@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item "><a href="../../dashboard"> Home </a></li>
+<li class="breadcrumb-item active">Community</li>
+{% endblock %}
+
+{% block content %}
+<body>
+    <div class="container">
+   
+            <img src= {{ community.image_url }} height="10%" width="40%" > 
+            <br> {{ community.name }} <br> 
+            About : {{ community.about }} <br>
+            Number of members : {{ community.members_count }} <br>
+            Location : {{ community.location }} <br>
+            Members : {{ community.members_count }} <br>
+            Category : {{ category.category }} <br>
+            Active Since : {{ community.active_since }} <br>
+           
+            {% for admin in admins %}
+            Admins : {{ admin.0 }} <br>
+            {% endfor %}
+    </div>
+    <br>
+    <button onclick = joinGroup() class="btn btn-success">Join</button>
+
+</body>
+{% endblock %}

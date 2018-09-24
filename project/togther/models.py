@@ -6,6 +6,9 @@ class User (models.Model):
     fb_token = models.TextField()
     linkdin_token = models.TextField()
 
+    def __str__(self):
+        return self.email_id
+
 class Userinfo (models.Model):
     user_id = models.ForeignKey(User, on_delete=models.CASCADE)
     name = models.CharField(max_length = 200)
@@ -17,13 +20,19 @@ class Userinfo (models.Model):
     image_url = models.CharField(max_length = 200)
     interests = models.CharField(max_length = 200)
 
+    def __str__(self):
+        return self.name
+
 class Community (models.Model):
     name = models.CharField(max_length = 200)
     about = models.TextField()
     location = models.CharField(max_length = 200)
     image_url = models.CharField(max_length = 200)
     members_count = models.IntegerField(default = 0)
-    active_since = models.DateField()
+    active_since = models.DateField(auto_now_add = True)
+
+    def __str__(self):
+        return self.name
 
 class Members (models.Model):
     member_id = models.ForeignKey(User, on_delete=models.CASCADE)

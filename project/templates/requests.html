@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item "><a href="../dashboard"> Home </a></li>
+<li class="breadcrumb-item active">Requests</li>
+  
+{% endblock %}
+
+{% block content %}
+<body>
+  <div>
+    <div class="container">
+    {% for request in req %}
+      {% for i in request %}  
+        {% if i.status == 0 %}
+          <ol>
+                  User: {{i.user_id}} <br>
+                  Community: {{i.community_id}}
+
+                  <button onclick = joinGroup() class="btn btn-success">Accept</button>
+                  <button onclick = joinGroup() class="btn btn-success">Decline</button>
+          </ol>
+        {% endif %}
+      {% endfor %}
+    {% endfor %}
+    </div>
+  </div>
+</body>
+{% endblock %}

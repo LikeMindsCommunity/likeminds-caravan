@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+
+{% block breadcrumb %}
+    <li class="breadcrumb-item "><a href="../dashboard"> Home </a></li>
+    <li class="breadcrumb-item active">Profile</li>
+{% endblock %}
+
+{% block content %}
+<body>
+  <div>
+    <div class="container">
+    {% for inf in info %}
+
+        <ol>
+                <img src= {{ inf.image_url }} height="10%" width="20%" > <br>
+                User: {{inf.name}} <br>
+                college: {{inf.college}} <br>
+                City: {{inf.city}} <br>
+                contact_number : {{inf.contact_number}} <br>
+                experience : {{inf.experience}} <br>
+                gender : {{inf.gender}} <br>
+                interests : {{inf.interests}}
+
+
+
+                
+        </ol>
+        
+    {% endfor %}
+    </div>
+  </div>
+</body>
+{% endblock %}

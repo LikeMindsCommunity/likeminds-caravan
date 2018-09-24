@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+
+{% block breadcrumb %}
+  <li class="breadcrumb-item active">Home</li> 
+{% endblock %}
+
+{% block content %}
+<body>
+  <div class="row">
+    <div  class="col-lg-4">
+        <h3> Communities</h3>
+    {% for community in communities %}
+    <ol>
+            <img src= {{ community.image_url }} height="10%" width="10%" > 
+            <br> 
+            <a href="../community/{{community.id}}"> {{ community.name }} </a> <br> 
+            About : {{ community.about }} <br>
+            Number of members : {{ community.members_count }}
+    </ol>
+    {% endfor %}
+    </div>
+
+    <div class="col-lg-4" >
+        <h3> My groups</h3>
+        
+        {% for community in my_community %}
+        <ol>
+            <a href="../community/{{community.0.id}}"> {{ community.0.name }} </a> <br> 
+        </ol>
+    {% endfor %}
+    </div>
+    <div  class="col-lg-4" >
+        <h3> Joined groups</h3>
+        {% for community in user_communities %}
+        <ol>
+            <img src= {{ community.0.image_url }} height="10%" width="10%" > 
+            <br> 
+            <a href="../community/{{community.id}}"> {{ community.0.name }} </a> <br> 
+            About : {{ community.0.about }} <br>
+            Number of members : {{ community.0.members_count }}
+        </ol>
+    {% endfor %}
+
+    </div>
+  </div>
+</body>
+{% endblock %}

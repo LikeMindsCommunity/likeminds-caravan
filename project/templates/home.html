@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+
+{% block breadcrumb %}
+  <li class="breadcrumb-item active">Boards</li>
+{% endblock %}
+
+{% block content %}
+<body>
+    <div class="container">
+        <ol class="breadcrumb my-4">
+          <li class="breadcrumb-item active">Login</li>
+        </ol>
+        <ol> 
+          <a href="{% url 'social:begin' 'facebook' %}">Login with Facebook</a>
+        </ol>
+        <ol> 
+          <a href="{% url 'social:begin' 'linkedin-oauth2' %}">Login with Linkdin</a>
+        </ol>
+      </div>
+
+</body>
+{% endblock %}
