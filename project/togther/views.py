@@ -3,15 +3,31 @@ from django.http import HttpResponse
 from togther.models import *
 from django.contrib.auth.decorators import login_required
 from togther.forms import * 
+import facebook
+import urllib
+import requests
 
+APP_ID = 238578530155985
+APP_SECRET = "1ebe21a36a1601fd88d234733bf20cef"
 
-# Create your views here.
 def home(request):
     users = User.objects.all()
     return render(request, 'home.html', {'users': users})
 
 @login_required
 def dashboard(request):
+    url = 'https://graph.facebook.com/oauth/access_token'       
+    payload = {
+        'grant_type': 'client_credentials',
+        'client_id': APP_ID,
+        'client_secret': APP_SECRET
+    }
+    response = requests.post(url, params=payload)
+    #token = response.json()['access_token']
+    #print (token)
+    #graph = facebook.GraphAPI(access_token=token, version = 3.0)
+    #graph.get_object('me')
+
     communities = Community.objects.all()
     users_communities = Members.objects.all().filter(member_id = 1)
     user_communities = []

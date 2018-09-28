@@ -19,14 +19,11 @@ from django.conf.urls import url
 from togther import views  
 from django.contrib.auth import views as auth_views
 
-LOGIN_URL = 'login'
-LOGOUT_URL = 'logout'
-LOGIN_REDIRECT_URL = 'home' 
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('togther/', include('togther.urls'),name= 'togther'),
-    path('login/', auth_views.LoginView, name='login'),
-    path('logout/', auth_views.LogoutView, name='logout'),
-    path('oauth/', include('social_django.urls', namespace='social')),
+    #path('accounts/login/?next=/togther/dashboard/', auth_views.LoginView, name='login'),
+    #path('logout/', auth_views.LogoutView, name='logout'),
+    path('', include('social_django.urls', namespace='social')),
 ]

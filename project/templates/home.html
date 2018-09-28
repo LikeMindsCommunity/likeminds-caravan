@@ -1,12 +1,26 @@
-{% extends 'base.html' %}
-
-{% block breadcrumb %}
-  <li class="breadcrumb-item active">Boards</li>
-{% endblock %}
-
-{% block content %}
-<body>
+{% load static %}<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>{% block title %}Community Project{% endblock %}</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+  </head>
+  <body>
+    
     <div class="container">
+ 
+      <ol class="breadcrumb my-4">
+        {% block breadcrumb %}
+        <li class="breadcrumb-item active"> Togther </li>            
+        {% endblock %}
+      </ol>
+      
+        
+     
+      
+      {% block content %}
+      <div class="container">
         <ol class="breadcrumb my-4">
           <li class="breadcrumb-item active">Login</li>
         </ol>
@@ -17,6 +31,7 @@
           <a href="{% url 'social:begin' 'linkedin-oauth2' %}">Login with Linkdin</a>
         </ol>
       </div>
-
-</body>
-{% endblock %}
+      {% endblock %}
+    </div>
+  </body>
+</html>
