@@ -6,42 +6,158 @@
 
 {% block content %}
 <body>
-  <div class="row">
-    <div  class="col-lg-4">
-        <h3> Communities</h3>
+        <div class=" ui fluid container" style="padding:10px 20px;">
+        <div class="ui grid">
+            <div class="eight wide column" style="padding-right:5px; ">
+            <div class="ui left aligned search" >
+                <div class="ui fluid icon input" id = 'result' > 
+                  <input class="ui fluid prompt"   type="text"  placeholder=" Categories..." style="padding-right: 2px !important;"> 
+                  <i class="search icon" onclick="filter()"></i>
+                </div>
+                <div class="results" ></div>
+              </div>
+              </div>
+              <div class="eight wide column" >
+              <div class="ui right aligned search" >
+                    <div class="ui fluid icon input">
+                      <input class="ui fluid prompt" type="text"  id='lct' placeholder="Location...." style=" width: 100% ; padding-right: 2px !important;">
+                      <i class="map marker alternate icon"></i>
+                    </div>
+                    <div class="results"></div>
+            </div>
+            </div>
+
+        </div>
+            </div>
+           
+            
+    <div class="ui fluid container" style="padding: 0 20px" id = 'comm_card'>
+        {{request.user.userinfo}}
     {% for community in communities %}
-    <ol>
-            <img src= {{ community.image_url }} height="10%" width="10%" > 
-            <br> 
-            <a href="../community/{{community.id}}"> {{ community.name }} </a> <br> 
-            About : {{ community.about }} <br>
-            Number of members : {{ community.members_count }}
-    </ol>
-    {% endfor %}
+    
+    <div class="ui link fluid cards" >
+            <div class="ui fluid card ">
+                    <div class="image">
+                      <img src="{{community.image_url}}">
+                    </div>
+                    <div class="content">
+                      <div class="header" style="padding-bottom: 5px;"><a href="../community/{{community.id}}" style="color:#1cb39b;">{{community.name}}</a></div>
+                    
+                      <span class="left floated" style="width:50%;">
+                            <i class="map marker alternate icon"></i>
+                            {{community.location}}
+                            
+
+                          </span>
+                          <span class="right floated ">
+                            <i class="user icon"></i>
+                            <a href ="{% url 'members_list' community.id %}">
+                            {{community.members_count}}
+                            </a>
+                          </span>
+                    </div>
+                    <div class="extra content">
+                            <div class="description">
+                                    {{community.about}}
+                                  </div>
+                      
+                    </div>
+                  </div>
     </div>
 
-    <div class="col-lg-4" >
-        <h3> My groups</h3>
+    {% endfor %}
+</div>
+<script>
+        function getLocation(){   
+            navigator.geolocation.getCurrentPosition(function(location) {
+                console.log(1)
+                console.log(location.coords.latitude);
+                console.log(location.coords.longitude);
+                url = 'https://maps.googleapis.com/maps/api/geocode/json?latlng=44.4647452,7.3553838&key=AIzaSyAebp4g7KxzLCAtyjTtW67z1IJxC8Bbt6U';
+                var xhttp = new XMLHttpRequest();
+                xhttp.onreadystatechange = function() {
+                  if (this.readyState == 4 && this.status == 200) {
+                    console.log(this.responseText);
+                  }
+                };
+                xhttp.open("GET", url , true);
+                xhttp.send();
+              }
+            );
+        };
+    $(document).ready(function () {
+        var content = [ {title : 'Alumni'},
+        {title : 'College'},
+        {title : 'School'},
+        {title : 'Profession'},
+        {title : 'Native Roots'},
+        {title : 'Parenting'},
+        {title : 'Events'},
+        {title : 'Interests'},
+        {title : 'Education'},
+        {title : 'Achievements'},
+        {title : 'Learning'},
+        {title : 'Opportunities'},
+        {title : 'Sports'},
+        {title : 'Activities'},
+        {title : 'Travel'},
+        {title : 'Hobbies'},
+        {title : 'Religious'},
+        {title : 'Political'},
+        {title : 'Social'},
+        {title : 'Music'},
+        {title : 'Belief'},
+        {title : 'Fan'},
+        {title : 'Startups'},
+        {title : 'Finance'},
+        {title : 'Industry'},
+        {title : 'Skill'},
+        {title : 'Family'},
+        {title : 'Cause'},
+        {title : 'Neighborhood'},
+        {title : 'Health & Wellness'},
+        {title : 'Sports & Fitness'},
+        {title : 'Food & Drink'},
+        {title : 'Language & Culture'},
+        {title : 'Movement'},
+        {title : 'Games'},
+        {title : 'Art'},
+        {title : 'Fashion'},
+        {title : 'Brand'},
+        ]
+
+        $('.ui.left.aligned.search')
+        .search({
+          source: content
+        })
+      ;
+
+    });
+    
+    //location = document.getElementById('location');
+    
+
+    function filter(){
+        var category = document.getElementById('result');
+        value = document.getElementsByTagName('input');
         
-        {% for community in my_community %}
-        <ol>
-            <a href="../community/{{community.0.id}}"> {{ community.0.name }} </a> <br> 
-        </ol>
-    {% endfor %}
-    </div>
-    <div  class="col-lg-4" >
-        <h3> Joined groups</h3>
-        {% for community in user_communities %}
-        <ol>
-            <img src= {{ community.0.image_url }} height="10%" width="10%" > 
-            <br> 
-            <a href="../community/{{community.id}}"> {{ community.0.name }} </a> <br> 
-            About : {{ community.0.about }} <br>
-            Number of members : {{ community.0.members_count }}
-        </ol>
-    {% endfor %}
-
-    </div>
-  </div>
+        data = value[1].value;
+        $.ajax({
+            url: "",
+            type: "GET",
+            data: {"data": data,},
+            cache:false,
+            dataType: "json",
+            success: function(res){
+            console.log('hi')
+              console.log(status)
+              console.log(res)
+            }
+        });
+        //url = 'localhost:8000/togther/dashboard/'+data;
+        //console.log(url)
+        //window.location(url);
+    };
+</script>
 </body>
 {% endblock %}

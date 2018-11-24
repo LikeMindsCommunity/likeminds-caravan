@@ -2,36 +2,64 @@
 <html>
   <head>
     <meta charset="utf-8">
-    <title>{% block title %}Community Project{% endblock %}</title>
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+    <title>{% block title %}TOGTHER{% endblock %}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">  
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/1.11.8/semantic.min.css"/>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/1.11.8/semantic.min.js"></script>
+
   </head>
   <body>
-    
-    <div class="container">
- 
-      <ol class="breadcrumb my-4">
-        {% block breadcrumb %}
-        <li class="breadcrumb-item active"> Togther </li>            
-        {% endblock %}
-      </ol>
-      
         
-     
-      
-      {% block content %}
-      <div class="container">
-        <ol class="breadcrumb my-4">
-          <li class="breadcrumb-item active">Login</li>
-        </ol>
-        <ol> 
-          <a href="{% url 'social:begin' 'facebook' %}">Login with Facebook</a>
-        </ol>
-        <ol> 
-          <a href="{% url 'social:begin' 'linkedin-oauth2' %}">Login with Linkdin</a>
-        </ol>
-      </div>
-      {% endblock %}
-    </div>
-  </body>
-</html>
+    
+
+        <div class="ui teal small inverted menu" style="margin:0;">
+            <div class="ui grid container" style = "margin:0;">
+                <div class="two wide column">
+                  <a class="item" href="{% url 'home' %}">Logo</a>
+                </div>
+            </div>
+            </div>      
+                      <div class="ui middle aligned center aligned grid">
+               <div class="column">
+                 <h2 class="ui teal image header">
+                   
+                   <div class="content">
+                     <br>
+                     <br>
+
+                     Login 
+                   </div>
+                 </h2>
+                 <div class="content">
+                    We need few basic information about you. This will help us to have relevant member in group.
+                  </div>
+                  <br>
+                  <div class="content">
+                      <a href="{% url 'social:begin' 'facebook' %}">
+                  <button class="ui facebook button">
+                      <i class="facebook icon"></i>
+                      Facebook
+                    </button>
+                    </a>
+                  </div>
+                  <br>
+                    OR 
+                    <br>
+                    <br>
+                    <div class = "content">
+                        <a href="{% url 'social:begin' 'linkedin-oauth2' %}">
+                    <button class="ui linkedin button" >
+                        <i class="linkedin icon"></i>
+                        LinkedIn
+                      </button>
+                      </a>
+                    </div>
+               </div>
+              
+           
+                  
+
+              </div>
+      </body>
+      </html>

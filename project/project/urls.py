@@ -15,15 +15,23 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, re_path, include
-from django.conf.urls import url
+from django.conf.urls import url, include
 from togther import views  
 from django.contrib.auth import views as auth_views
+from django.conf import settings
+from django.conf.urls.static import static
+
 
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    #url(r'^login/$', auth_views.LoginView, name='login'),
+    url(r'^logout/$', auth_views.LogoutView, name='logout'),
+    url(r'^oauth/', include('social_django.urls', namespace='social')),  # <--
+    url(r'^admin/', admin.site.urls),
     path('togther/', include('togther.urls'),name= 'togther'),
-    #path('accounts/login/?next=/togther/dashboard/', auth_views.LoginView, name='login'),
-    #path('logout/', auth_views.LogoutView, name='logout'),
-    path('', include('social_django.urls', namespace='social')),
+    path('accounts/login/', views.home, name='login'),
+    #url(r'', include('social_django.urls', namespace='social')),
 ]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

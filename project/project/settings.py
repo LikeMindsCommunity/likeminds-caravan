@@ -70,6 +70,7 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
                 'social_django.context_processors.backends',
                 'social_django.context_processors.login_redirect',
+                'django.template.context_processors.media',
             ],
         },
     },
@@ -135,19 +136,33 @@ STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'static'),
 ]
 
+MEDIA_URL = '/media/'
+
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
 AUTHENTICATION_BACKENDS = (
     'social_core.backends.facebook.FacebookOAuth2',
-    'social.backends.linkedin.LinkedinOAuth2',
+    'social_core.backends.linkedin.LinkedinOAuth2',
     'django.contrib.auth.backends.ModelBackend',
 )   
 
 SOCIAL_AUTH_FACEBOOK_KEY = '238578530155985'
 SOCIAL_AUTH_FACEBOOK_SECRET = '1ebe21a36a1601fd88d234733bf20cef'
+SOCIAL_AUTH_FACEBOOK_SCOPE = ['email','user_location','user_hometown']
 
 SOCIAL_AUTH_LINKEDIN_OAUTH2_KEY = '81cstqax7swmbg'
 SOCIAL_AUTH_LINKEDIN_OAUTH2_SECRET = 'WOxeGejkvDVwZrKE'
-SOCIAL_AUTH_LINKEDIN_OAUTH2_SCOPE = ['r_basicprofile']
+SOCIAL_AUTH_LINKEDIN_OAUTH2_SCOPE = ['r_basicprofile','r_emailaddress','rw_company_admin','w_share']
 
-LOGIN_REDIRECT_URL = '/togther/dashboard'
-#SOCIAL_AUTH_LOGIN_REDIRECT_URL = '../../togther/dashboard'
+SOCIAL_AUTH_LOGIN_URL = ""
+SOCIAL_AUTH_LOGIN_REDIRECT_URL = "dashboard"
+SOCIAL_AUTH_LOGIN_ERROR_URL = "error"
 
+SOCIAL_AUTH_LINKEDIN_FIELD_SELECTORS = ['email-address', 'headline', 'industry']
+# Arrange to add the fields to UserSocialAuth.extra_data
+SOCIAL_AUTH_LINKEDIN_EXTRA_DATA = [('id', 'id'),
+                                   ('firstName', 'first_name'),
+                                   ('lastName', 'last_name'),
+                                   ('emailAddress', 'email_address'),
+                                   ('headline', 'headline'),
+                                   ('industry', 'industry')]

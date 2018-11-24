@@ -1,33 +1,218 @@
 {% extends 'base.html' %}
 
-{% block breadcrumb %}
-    <li class="breadcrumb-item "><a href="../dashboard"> Home </a></li>
-    <li class="breadcrumb-item active">Profile</li>
-{% endblock %}
-
 {% block content %}
 <body>
   <div>
-    <div class="container">
-    {% for inf in info %}
-
-        <ol>
-                <img src= {{ inf.image_url }} height="10%" width="20%" > <br>
-                User: {{inf.name}} <br>
-                college: {{inf.college}} <br>
-                City: {{inf.city}} <br>
-                contact_number : {{inf.contact_number}} <br>
-                experience : {{inf.experience}} <br>
-                gender : {{inf.gender}} <br>
-                interests : {{inf.interests}}
-
-
-
+    <div class="fluid container">
+        <div class="ui fluid card" style="margin:0;">
+            <div class="content">
+                <div class="content">
+                    <img class="ui tiny left circular image" src="{{ info.0.image_url }} " style="width:30%; border: 1px solid #1ebea5"> 
+                    <div class="right floated author" style="margin-top:20px;">
+                        <p>{{info.0.name}}</p>
+                        <p style="font-size: 12px; width : 120px;"> headline </p>
+                        {% if info.0.user_id.id == request.user.id %}
+                        <i class="right floated pencil alternate icon" onclick="edit();"></i>
+                        
+                          <div class="ui modal edit_headline">
+                            <div class = "ui fluid card">
+                            <div class="ui form" style="margin: 20px 20px;">
+                                <div class="field">
+                                  <label>Headline</label>
+                                  <input type="text" value="{{ info.0.headline }}">
+                              </div>
+                              <div class="ui two buttons">
+                                  <div class="ui basic green button" type = "submit">Save Changes</div>
+                                <div class="ui basic red button">Discard Changes</div>
+                                </div>
+                                
+                              </div>
+                              </div>
+                          </div>
+                          {% endif %}
+                        <p style="font-size: 12px; width : 120px;"> {{info.0.city}}</p>
+                    </div>
+                    
+                    <br>
+                    <br>
+                    <a href="http://{{info.0.fb_link}}"><i class="facebook f icon" ></i> </a>
+                    <a href="http://{{info.0.linkedin_link}}"><i class="linkedin icon" style="margin-left:40px;"></i></a>
+                    
+                  </div>
                 
-        </ol>
-        
-    {% endfor %}
+            </div>
+            <div class="content">
+              <div class="header">About Me/Summary
+                  {% if info.0.user_id.id == request.user.id %}
+                  <i class="right floated pencil alternate icon" onclick="edit();"></i>
+                  
+                    <div class="ui modal edit_headline">
+                      <div class = "ui fluid card">
+                      <div class="ui form" style="margin: 20px 20px;">
+                          <div class="field">
+                            <label>Summary</label>
+                            <textarea value = "{{info.0.about}}"></textarea>
+                        </div>
+                        <div class="ui two buttons">
+                            <div class="ui basic green button" type = "submit">Save Changes</div>
+                          <div class="ui basic red button">Discard Changes</div>
+                          </div>
+                          
+                        </div>
+                        </div>
+                    </div>
+                    {% endif %}
+              
+              
+            </div> 
+              <div class="description">
+                {{info.0.about}}
+              </div>
+              
+            </div>
+            <div class="content">
+                <div class="header">Experiences
+                    <i class=" right floated plus square icon"  onclick="add();" style="top:0; right:0;"></i>
+                </div>
+                
+                  
+                  
+                    <div class="ui modal add">
+                      <div class = "ui fluid card">
+                          <form class="ui form" >
+                              <div class="field">
+                                <label>Title</label>
+                                <input type="text" name="title" placeholder="Title">
+                              </div>
+                              <div class="field">
+                                <label>Company</label>
+                                <input type="text" name="company" placeholder="Company">
+                              </div>
+                              
+                             
+                                  <div class="two inline fields">
+                                    <div class="field">
+                                      From year
+                                        <input type="text" name="card[expire-year]" maxlength="4" placeholder="Year"> 
+                                      </div>
+                                      <div class="field">
+                                        To year
+                                        <input type="text" name="card[expire-year]" maxlength="4" placeholder="Year">
+                                      </div>
+                                  
+                                </div>
+                                    
+                                  
+                                
+                              <div class="field">
+                                  <label>Location</label>
+                                  <input type="text" name="location" placeholder="Location">
+                                </div>
+                                <div class="field">
+                                    <label>Description</label>
+                                    <textarea></textarea>
+                                  </div>
+                              <button class="ui button" type="submit">Submit</button>
+                            </form>
+                        </div>
+                    </div>
+                {% for j in experience %}
+                
+                <div class="description">
+                  {{j.0.title}}
+                </div>
+                {% endfor %}
+              </div>
+              <div class="content">
+                  <div class="header">Education
+                      <i class=" right floated plus square icon" style="top:0; right:0;"></i>
+                      
+                  </div>
+                  {% for j in education %}
+                  
+                  <div class="description">
+                    {{j.0.institution}}
+                  </div>
+                  {% endfor %}
+                </div>
+                <div class="content">
+                    <div class="header">Interests
+                        {% if info.0.user_id.id == request.user.id %}
+                        <i class="right floated pencil alternate icon" onclick="edit();"></i>
+                        
+                          <div class="ui modal edit_headline">
+                            <div class = "ui fluid card">
+                            <div class="ui form" style="margin: 20px 20px;">
+                                <div class="field">
+                                  <label>Interests</label>
+                                  <textarea value = "{{ info.0.interests}}"></textarea>
+                              </div>
+                              <div class="ui two buttons">
+                                  <div class="ui basic green button" type = "submit">Save Changes</div>
+                                <div class="ui basic red button">Discard Changes</div>
+                                </div>
+                                
+                              </div>
+                              </div>
+                          </div>
+                          {% endif %}
+                    </div>
+                    <div class="description">
+                      {{info.0.interests}}
+                    </div>
+                    
+                  </div>
+                  {% if info.0.fb_link == Null and info.0.linkedin_link == Null %}
+                  <button class="ui fluid button " style=" z-index:2;width:95%; left:2.5%; margin:10px auto; background-color: #1cb39b; color:white;" onclick="join();"> Connect with Facebook/Linkedin  </button>
+                  {% elif  info.0.linkedin_link == Null %}
+                  <button class="ui fluid button " style=" z-index:2;width:95%; left:2.5%; margin:10px auto; background-color: #1cb39b; color:white;" onclick="join();"> Connect with Linkedin  </button>
+                  {% elif info.0.fb_link == Null %}
+                  <button class="ui fluid button " style=" z-index:2;width:95%; left:2.5%; margin:10px auto; background-color: #1cb39b; color:white;" onclick="join();"> Connect with Facebook  </button>
+                  {% endif %}
+
+                </div>
+            
+       
+                  {% if request.user.id == info.0.user_id.id %}
+                  <div class = "ui fluid card" style="margin : 0;">
+                  <div class = 'content'>
+                      <h4 > My Communities <a class = "right floated" href = "{% url 'my_communities' request.user.id %}"> See all </a></h4>
+                     
+                  <div class="ui celled list" style="padding-top: 10px;">
+                    <div class="ui small images features grid noMargin" style="overflow-y:auto;white-space:nowrap;" >
+                      {% for i in my_communities %}
+                      <a href="{% url 'community' i.id %}">
+                      <img class="ui image" src="{{ i.image_url }}">
+                      </a>
+                      {% endfor %}
+                  </div>
+                </div>
+              </div>
+              </div>
+            {% endif %}
     </div>
-  </div>
+    </div>
 </body>
+
+<script>
+    $('.special.modal')
+    .modal({
+      centered: false
+    })
+    .modal('show')
+  ;
+
+  function edit(){
+    $('.ui.modal.edit_headline')
+  .modal('show')
+;
+  }
+
+  function add(){
+    $('.ui.modal.add')
+  .modal('show')
+;
+  }
+
+</script>
 {% endblock %}

@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+
+{% block breadcrumb %}
+    <li class="breadcrumb-item "><a href="../dashboard"> Home </a></li>
+    <li class="breadcrumb-item active">Profile</li>
+    
+{% endblock %}
+
+{% block content %}
+<body>
+        <div class="ui top attached tabular menu">
+                <a class="active item" href="mycommunities">
+                  As a Member
+                </a>
+                <a class="item" href="communities_as_admin">
+                  As Admin
+                </a>
+                </div>
+                <div class="ui two cards" style="margin:10px 10px; ">
+                    {% for i in my_communities %}
+                    <div class="card" style=" margin-left: 0.5em; margin-right:0.5em; width: calc(50% - 1em) !important;" >
+                      <div class="image">
+                        <img src="{{i.image_url}}">
+                      </div>
+                      <div class="extra">
+                      <a href="{% url 'community' i.id %}">  Name:
+                        {{i.name}}</a>
+                      </div>
+                    </div>
+                    {% endfor %}
+                  </div>
+
+</body>
+{% endblock %}

@@ -1,29 +1,121 @@
 {% extends 'base.html' %}
-
-{% block breadcrumb %}
-<li class="breadcrumb-item "><a href="../../dashboard"> Home </a></li>
-<li class="breadcrumb-item active">Community</li>
-{% endblock %}
-
 {% block content %}
-<body>
-    <div class="container">
-   
-            <img src= {{ community.image_url }} height="10%" width="40%" > 
-            <br> {{ community.name }} <br> 
-            About : {{ community.about }} <br>
-            Number of members : {{ community.members_count }} <br>
-            Location : {{ community.location }} <br>
-            Members : {{ community.members_count }} <br>
-            Category : {{ category.category }} <br>
-            Active Since : {{ community.active_since }} <br>
-           
-            {% for admin in admins %}
-            Admins : {{ admin.0 }} <br>
-            {% endfor %}
-    </div>
-    <br>
-    <button onclick = joinGroup() class="btn btn-success">Join</button>
 
-</body>
+<div class=" ui small breadcrumb" style="padding: 0 10px;">
+        <a class="section" href = "{% url 'home' %}">Home</a>
+        <i class="right chevron icon divider"></i>
+
+        <div class="active section">{{community.name}}</div>
+</div>
+
+        <div class="ui fluid card" style="margin-top:0px;">
+            <div class="image">
+                <img src= {{ community.image_url }}> 
+            </div>
+        
+            <div class="content">
+                <a class="center aligned header">{{ community.name }}</a>
+                <span class="left floated text" style="width:50%;">{{community.location}}<i class="map marker alternate icon"></i></span>
+                <span class="right floated text"><a href = "{% url 'members_list' community.id %}" style="color:#1cb39b;">{{community.members_count}} Members </a></span>
+            </div>
+            
+                <div class="content">
+                  
+                  <div class="ui small feed">
+                    <div class="event">
+                      <div class="content">
+                            <h4 class=" center aligned ui sub header" style="margin-bottom:2px;">About</h4>
+                        <div class="summary center aligned">
+                           <p style="font-weight:100;">{{community.about}}</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="event">
+                      <div class="content">
+                        <div class="left floated summary" style="font-size:1.1em !important ;">
+                           <p style="margin:0; font-size:1.1em;" > Active Since <br></p>
+                           <p style="font-weight:100; font-size:0.9em !important;">
+                           {{community.active_since}}
+                            </p>
+                        </div>
+                        <div class="right floated summary">
+                                <p style="font-size:1.1em;"> Admins <br> <img class="ui circular avatar image" src="http://localhost:8000/media/{{admins.0.0.image_url}}">
+                                     <a href='../../profile/5'+{{admins.0.0.admin_id}} style="font-weight:100; font-size:0.9em !important;">{{admins.0.0.name}} </a></p>
+                        </div>
+                      </div>
+                    </div>
+                    <br>
+                    <div class="center aligned extra content">
+                            <button class="ui fluid button " style=" z-index:2;width:95%; left:2.5%; margin:0 auto; background-color: #1cb39b; color:white; bottom:1%; position:fixed;" onclick="join();"> Join Group  </button>
+                    </div>
+                    
+                    <div class="ui celled list">
+                        
+                            <h4 class="ui sub header">
+                                    Community Members
+                                    <a class="right floated" style=" color:#1cb39b; font-weight:100;" href="{% url 'members_list' community.id %}"> See all</a>
+                                  </h4>
+                        
+                        
+                                
+                        
+                        {% for i in members%}
+                        <div class="item">
+                            <img class="ui avatar image" src="http://localhost:8000/media/{{i.image_url}}">
+                            <div class="content">
+                            <a class="header" href="../../profile/6">{{i.name}}</a>
+                            <div class="description">Interested in  <a><b>{{i.interests}}</b></a> </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                  </div>
+                  
+                <div class="ui celled list">
+                        <h4> Similar Communities </h4>
+                    <div class="ui small images features grid noMargin" style="overflow-y:auto;white-space:nowrap;" >
+                        {% for i in similar_communities %}
+                        
+                                <a class="image" href="../{{i.id}}">
+                                    <figcaption>{{i.name}}</figcaption>
+                                    <img class="ui image" src="{{ i.image_url }}">
+                                    
+                                </a>
+                                
+                                  
+                                 
+                                
+                              
+                       
+                        
+                        
+                        
+                        
+                        {% endfor %}
+                    </div>
+                </div>
+                </div>
+                
+              </div>
+              
+           <script>
+                function join(){
+                    {% if user.is_authenticated %}
+                        window.location.href = "join";
+                    {% else %}
+                    $('.ui.modal')
+                    .modal('show')
+                  ;
+                    {% endif %}
+                }
+
+                $('.slider').glide({
+                    autoplay: false,
+                    arrowsWrapperClass: 'slider-arrows',
+                    arrowRightText: '',
+                    arrowLeftText: ''
+                  });
+           </script>
 {% endblock %}
+
+

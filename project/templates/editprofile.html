@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+
+
+{% block content %}
+<div class=" ui small breadcrumb" style="padding: 0 10px;">
+    <a class="section" href = "{% url 'home' %}">Home</a>
+    <i class="right chevron icon divider"></i>
+    <a class="section" href = "{% url 'profile' request.user.id %}">profile</a>
+    <i class="right chevron icon divider"></i>
+    <div class="active section">Edit Profile </div>
+
+</div>
+
+
+  
+    
+
+        <form method="post" enctype="multipart/form-data" >
+          {% csrf_token %}
+          {{ form.as_p }}
+          <button type="submit">Post</button>
+    </form>
+  
+
+{% endblock %}

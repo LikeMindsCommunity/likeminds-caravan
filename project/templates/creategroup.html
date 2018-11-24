@@ -9,9 +9,86 @@
 {% endblock %}
 
 {% block content %}
-  <form method="post">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit" class="btn btn-success">Post</button>
+<form class="ui form">
+    <div class="field">
+      <label>Name</label>
+      <input type="text" name="name" placeholder="Community Name">
+    </div>
+    <div class="field">
+      <label>About</label>
+      <textarea></textarea>
+    </div>
+    <div class="field">
+      <label> Image Upload</label>
+      <input type="file" name="image">
+    </div>
+    <div class="field">
+        <label> Location</label>
+        <input type="text" name="image">
+      </div>
+     
+          <label> Categories</label>
+           <div class="ui fluid multiple search selection dropdown"> 
+              <input type="hidden" name="category">
+              <i class="dropdown icon"></i>
+              <div class="default text">Select Category</div>
+              <div class="menu">
+              <div data-value="">Categories</div>
+              <div class="item" data-value="afg">Afghanistan</div>
+              <div class="item">Alumni</div>
+              <div class="item">School</div>
+              <div class="item">College</div>
+              <div class="item" >Profession</div>
+              <div class="item">Native Roots</div>
+              <div>Events</div> 
+              <div>Interest</div>
+              <div>Education</div>
+              <div>Achievement</div>
+              <div>Learning</div>
+              <div>Opportunities</div>
+              <div>Sports</div>
+              <div>Activities</div>
+              <div>Networking</div>
+              <div>Travel</div>
+              <div>Hobbies</div>
+              <div>Religious</div>
+              <div>Political</div>
+              <div>Social</div>
+              <div>Music</div>
+              <div>Belief</div>
+              <div>Fan</div>
+              <div>Startups</div>
+              <div>Finance</div>
+              <div>Industry</div>
+              <div>Skill</div>
+              <div>Family</div>
+              <div>Cause</div>
+              <div>Neighborhood</div>
+              <div>Health & Wellness</div>
+              <div>Sports & Fitness</div>
+              <div>Food & Drink</div>
+              <div>Language & Culture</div>
+              <div>Movement</div>
+              <div>Games</div>
+              <div>Art</div>
+              <div>Fashion</div>
+              <div>Brand</div>
+              <div>Parenting</div> 
+          </div>
+          </div>
+          
+        <div class="field">
+            <label> Image Upload</label>
+            <input type="file" name="image">
+          </div>
+    <button class="ui button" type="submit">Submit</button>
   </form>
+  
+  <script>
+      document.getElementById("id_location").onkeyup = function(){
+      var place = document.getElementById("id_location");
+      place = place.value;
+      
+    }
+  </script>
 {% endblock %}

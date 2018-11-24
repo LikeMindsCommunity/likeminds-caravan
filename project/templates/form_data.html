@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item "><a href="../../dashboard"> Home </a></li>
+<li class="breadcrumb-item active">Community</li>
+{% endblock %}
+
+{% block content %}
+<body>
+    <div class="container">
+   
+            <form method="POST" action="">
+                {% csrf_token %}
+                {{ form }}
+                <label>Whatsapp Group link</label>
+                <br>
+                <input type = "text" name = "whatsapp_link" class="form-control"> 
+                <br>
+                Info required from user ?
+                <br>
+                <input type="checkbox" name="college" value="college">College<br>
+                <input type="checkbox" name="contact" value="contact_number"> Contact Number<br>
+                <input type="checkbox" name="experience" value="experience"> Experiences <br>
+                <input type="checkbox" name="interests" value="interests"> Interests <br>
+                <br>
+                <div class="form-group" id = "data">
+                    <label>Other data </label>
+                    <br>
+                    <input type="text" name="question_1" placeholder = "Question 1" class="form-control">
+                </div>
+                    
+                <br><br>
+                <button type="submit" class="btn">Submit</button>
+            </form>
+            <button class="btn" onclick="addField()">Add more</button>  
+                
+    </div>
+    <br>
+    
+</body>
+<script>
+    var count = 1;
+    function addField(){
+        count +=1;
+        var container = document.getElementById("data");
+        console.log("Here")
+        
+        var input = document.createElement("input");
+                input.label = "Question";
+                input.type = "text";
+                input.className = "form-control";
+                
+                nm = "question_"+count;
+                console.log(nm);
+                input.name = nm;
+                input.placeholder = nm;
+                container.appendChild(document.createElement("br"));
+                container.appendChild(input);
+        
+    }
+</script>
+{% endblock %}
