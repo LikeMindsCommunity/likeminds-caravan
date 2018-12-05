@@ -25,7 +25,7 @@ SECRET_KEY = 'rg9n#$ebfj4w_mv-%7aahi2!qnitgw%xt(4re%i&)vdlppnz^e'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['beta.collabmates.com','ec2-18-220-31-143.us-east-2.compute.amazonaws.com']
 
 
 # Application definition
@@ -87,7 +87,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
         'NAME': 'togther',
         'USER': 'apoorv',
-        'PASSWORD': 'password',
+        'PASSWORD': 'apoorv',
         'HOST': 'localhost',
         'PORT': '',
     }

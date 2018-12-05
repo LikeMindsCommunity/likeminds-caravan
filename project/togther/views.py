@@ -4,7 +4,6 @@ from togther.models import *
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import logout
 from togther.forms import * 
-import facebook
 import urllib
 import requests
 from django.contrib.auth.models import User
