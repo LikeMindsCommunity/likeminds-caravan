@@ -20,8 +20,14 @@
                     </div>
                 {% for i in data %}
                 <div class="field">
-                      <label>{{i.data}}</label>
-                      <input type="text" name="first-name" placeholder="{{i.data}}">
+                     
+                    {% if i.data_type == 'text' %}
+                    <label>{{i.data}}</label><input type="text">
+                    {% elif i.data_type == 'pdf' %}
+                    <label>{{i.data}}</label><input type="text">
+                    {% elif i.data_type == 'textarea' %}
+                    <label>{{i.data}}</label><textarea></textarea>
+                    {% endif %}
                 </div>
                 {% endfor %}
                 <br>
