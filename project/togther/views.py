@@ -4,7 +4,7 @@ from togther.models import *
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import logout
 from togther.forms import * 
-import facebook
+import facebook 
 import urllib
 import requests
 from django.contrib.auth.models import User
@@ -24,10 +24,10 @@ def home(request):
         return render(request, 'home.html', {'users': users})
         
 
-
 def dashboard(request):
-    usr = Userinfo.objects.all().filter(user_id = request.user)
+    
     if request.user.is_authenticated:
+        usr = Userinfo.objects.all().filter(user_id = request.user)
         user = Userinfo.objects.all().filter(user_id = request.user)
     
         if not usr :
@@ -55,7 +55,7 @@ def dashboard(request):
                     info.save()
 
             if social_user.provider == 'linkedin-oauth2':
-                url = 'https://api.linkedin.com/v1/people/~:(id,email-address,first-name,last-name,location:(name),picture-url,public-profile-url)?format=json&oauth2_access_token=AQWY8Jq6ozfuocRIPm-KM6fS56UuscZ66StJOkJojMbcfCAqVl0N_d9l72RRS8rhhR2Lqt6dP4H2i8cr8MEOEsYwupNpGowJ0IhLtxg2zCckYo0tZWsvjUqIhBKbU-kz2VK-K4Tk4P96eOIz5pcvWOFzHX4_AeTo_7r5U6vl87F4pidcTPkNPUT4DsZiqubCe7zoOruTcSXVYOM0_VQhDukITgeXa_XfJ6xUkAvPG2FI_SuXD6wXDIJeX4ptDQGSXIc4hJmtaIGYhlPn0ZdHVcgK2x69W9sWh05a395QI8dweE6EVWR2WjYrssJ_uLs3NzejvzxvrPF2e3GWc6wtCYMlDASqAg'
+                url = 'https://api.linkedin.com/v1/people/~:(id,email-address,first-name,last-name,location:(name),picture-url,public-profile-url)?format=json&oauth2_access_token='+social_user.extra_data['access_token']
                 response = requests.get(url)
                 data = json.loads(response.text)
                 print(data)
@@ -83,6 +83,7 @@ def dashboard(request):
             for i in categories:
                 communities.append({'community':i.community_id})
             print('comm :',communities)
+            return JsonResponse({'communities': communities})
             # return  HttpResponse(json.dumps({'communities':communities}), content_type='application/json')
         else:    
             return render (request, 'dashboard.html', { 'usr': user,'communities' : communities})
@@ -90,7 +91,7 @@ def dashboard(request):
 
 def community(request, community_id):
     community = get_object_or_404(Community, pk = community_id)
-    admins = Admins.objects.all().filter( community_id_id = community.id)
+    admins = Admins.objects.all().filter( community_id = community)
     admin_details=[]
     print("admin",admins)
     for admin in admins:
@@ -120,13 +121,33 @@ def community(request, community_id):
 @login_required
 def creategroup(request):
     if request.method == 'POST':
-        form = NewGroupForm(request.POST,request.FILES)
+        form = NewGroupForm(request.POST,request.FILES )
         if form.is_valid():
             group = form.save()
             group.members_count = group.members_count + 1
+            category = Category()
+            f = form.data.dict()
+            print (f)
+            print (type(f))
+            category.category = f["category"]
+            category.community_id_id = group.id
+            category.save()
             group.save()
-            return redirect('form_data',1)
-    return render(request, 'creategroup.html')
+            print(group)
+            admin = Admins()
+            admin.admin_id = request.user
+            community = Community.objects.all().filter(community_id = group.id)
+            print (community)
+            admin.community_id = community[0]
+            admin.save()
+            return redirect('form_data', community_id = group.id)
+    else:
+        form = NewGroupForm()
+    if request.user.is_authenticated:
+        user = Userinfo.objects.all().filter(user_id = request.user)
+    else:
+        user = []
+    return render(request, 'creategroup.html', { 'usr':user ,'form': form})
 
 @login_required
 def profile(request, user_id):
@@ -227,11 +248,13 @@ def logout_view(request):
 
 @login_required
 def join_community(request, community_id):
+    print( community_id)
     if request.user.is_authenticated:
         user = Userinfo.objects.all().filter(user_id = request.user)
     else :
         user = []
     data = Form_data.objects.all().filter(community_id = community_id)
+    print(data)
     if request.method == "POST":
         return render(request,'thankyou.html',{'usr':user})
     else: 
@@ -242,48 +265,65 @@ def join_community(request, community_id):
 @login_required
 def form_data(request, community_id):
     print (community_id)
+    if request.user.is_authenticated:
+        user = Userinfo.objects.all().filter(user_id = request.user)
+    else :
+        user = []
     if request.method == "POST":
         print (request.POST.dict())
         res = request.POST.dict()
         community = Community.objects.all().filter(id = community_id)
-        community[0].whatsapp_group_link = res['whatsapp_link']
         if 'college' in res:
             mForm_data = Form_data()
-            mForm_data.data = res['college']
+            mForm_data.data = 'College'
             mForm_data.community_id = community[0]
+            mForm_data.data_type = 'text'
             mForm_data.save()
         if 'contact' in res:
             mForm_data = Form_data()
-            mForm_data.data = res['contact']
+            mForm_data.data = 'Contact'
             mForm_data.community_id = community[0]
-            mForm_data.data_type = text
+            mForm_data.data_type = 'text'
             mForm_data.save()
         if 'experience' in res:
             mForm_data = Form_data()
-            mForm_data.data = res['experience']
+            mForm_data.data = 'Experience'
             mForm_data.community_id = community[0]
+            mForm_data.data_type = 'text'
             mForm_data.save()
         if 'interests' in res:
             mForm_data = Form_data()
-            mForm_data.data = res['interests']
+            mForm_data.data = 'Interests'
             mForm_data.community_id = community[0]
+            mForm_data.data_type = 'text'
             mForm_data.save()
-        if 'question_1' in res:
-            mForm_data = Form_data()
-            mForm_data.data = res['question_1']
-            mForm_data.community_id = community[0]
-            mForm_data.save()
-        if 'question_2' in res:
-            mForm_data = Form_data()
-            mForm_data.data = res['question_2']
-            mForm_data.community_id = community[0]
-            mForm_data.save()
+        count = 1
+        q = 'question_'
+        i = q+str(count)
+        print(i)
+        while(1):
+            if i in res:
+                print(i)
+                mForm_data = Form_data()
+                mForm_data.data = res[i]
+                mForm_data.community_id = community[0]
+                mForm_data.data_type = res['response'+str(count)]
+                mForm_data.save()
+            else:
+                break
+            count=count+1
+            i = q+str(count)
     else:
-        return render(request,'form_data.html')
+        return render(request,'form_data.html', {'usr':user})
+    
     return redirect('community', community_id)
 
 def thankyou(request):
-    return render('thankyou.html')
+    if request.user.is_authenticated:
+        user = Userinfo.objects.all().filter(user_id = request.user)
+    else :
+        user = []
+    return render('thankyou.html', {'usr':user})
 
 def my_communities(request, user_id):
     communities = Members.objects.all().filter(member_id = user_id)

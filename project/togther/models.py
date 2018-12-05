@@ -3,13 +3,14 @@ from django.contrib.auth.models import User
 
 response_choices = (
     ('text','Text'),
-    ('text_area','Text_area'),
+    ('textarea','Textarea'),
     ('pdf','PDF'),
 )
 
 class Community (models.Model):
     name = models.CharField(max_length = 200)
     about = models.TextField()
+    purpose = models.CharField(max_length= 300)
     location = models.CharField(max_length = 200)
     image_url = models.ImageField(upload_to="media/")
     members_count = models.IntegerField(default = 0)
