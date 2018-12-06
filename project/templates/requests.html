@@ -10,20 +10,44 @@
 <body>
   <div>
     <div class="container">
-    {% for request in req %}
-      {% for i in request %}  
+    {% for i in req %}
+
         {% if i.status == 0 %}
           <ol>
-                  User: {{i.user_id}} <br>
-                  Community: {{i.community_id}}
-                  Response: {{i.data}}
-                  <button onclick = joinGroup() class="btn btn-success">Accept</button>
-                  <button onclick = joinGroup() class="btn btn-success">Decline</button>
+              <div class="ui cards" >
+                  <div class="card">
+                    <div class="content">
+                      <img class="right floated mini ui image" src="{{i.user_info.image_url}}">
+                      <div class="header">
+                        {{i.user_info.name}}
+                      </div>
+                      <div class="meta">
+                        {{i.user_info.city}}
+                      </div>
+                      <div class="meta">
+                          For : <a href="/community/{{i.community.id}}">{{i.community}}</a>
+                      </div>
+                      <div class="description">
+                          <a href="requests/user_response/{{i.user_info.id}}">See Response</a>
+                        </div>
+                    </div>
+                    <div class="extra content" id="extra">
+                      <div class="ui two buttons">
+                        <div class="ui basic green button">Approve</div>
+                        <div class="ui basic red button">Decline</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
           </ol>
         {% endif %}
-      {% endfor %}
+
     {% endfor %}
     </div>
   </div>
+  <script>
+
+  </script>
+
 </body>
 {% endblock %}

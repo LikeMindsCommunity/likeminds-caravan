@@ -28,11 +28,6 @@ class Admins (models.Model):
     admin_id = models.ForeignKey(User, on_delete=models.CASCADE)
     community_id = models.ForeignKey(Community, on_delete = models.CASCADE)
 
-class Requests (models.Model):
-    user_id = models.ForeignKey(User, on_delete=models.CASCADE)
-    community_id = models.ForeignKey(Community, on_delete = models.CASCADE)
-    status = models.IntegerField(default = 0)
-
 class Category (models.Model):
     community_id = models.ForeignKey(Community, on_delete = models.CASCADE)
     category = models.CharField(max_length = 200)
@@ -43,7 +38,9 @@ class Form_data (models.Model):
     data_type = models.CharField(max_length = 20, choices = response_choices, default = 'text') 
 
 class Form_response (models.Model):
-    data_id = models.ForeignKey(Form_data,on_delete=models.CASCADE)
+    data = models.TextField()
+    user = models.IntegerField()
+    community = models.IntegerField()
     response = models.TextField()
 
 class Userinfo (models.Model):
@@ -81,5 +78,11 @@ class Education (models.Model):
     from_year = models.DateField(null = True)
     to_year = models.DateField(null = True)
     description = models.TextField(null = True)
+
+class Requests (models.Model):
+    user_id = models.ForeignKey(User, on_delete=models.CASCADE)
+    user_info = models.ForeignKey(Userinfo, on_delete=models.CASCADE)
+    community = models.ForeignKey(Community, on_delete=models.CASCADE)
+    status = models.IntegerField(default = 0)
     
 

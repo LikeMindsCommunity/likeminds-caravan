@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item "><a href="../dashboard"> Home </a></li>
+<li class="breadcrumb-item active">Requests</li>
+  
+{% endblock %}
+
+{% block content %}
+<body>
+  <div>
+    <div class="container" style="margin: 10px;">
+            <div class="ui cards">
+                    <div class=" ui fluid card">
+        {% for i in responses %}
+        <div class="ui steps">
+                <div class="step">
+                  <div class="title">{{i.data}}</div>
+                  <div class="description">{{i.response}}</div>
+            </div>
+        </div>
+            
+        {% endfor %}
+            </div>
+        </div>
+        <br>
+        
+        <div class="ui two buttons">
+                <div class="ui basic green button">Approve</div>
+                <div class="ui basic red button">Decline</div>
+              </div>
+    </div>
+  </div>
+</body>
+{% endblock %}

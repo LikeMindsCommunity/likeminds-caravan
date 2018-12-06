@@ -28,7 +28,7 @@ urlpatterns = [
     url(r'^logout/$', auth_views.LogoutView, name='logout'),
     url(r'^oauth/', include('social_django.urls', namespace='social')),  # <--
     url(r'^admin/', admin.site.urls),
-    path('togther/', include('togther.urls'),name= 'togther'),
+    path('', include('togther.urls'),name= 'togther'),
     path('accounts/login/', views.home, name='login'),
     #url(r'', include('social_django.urls', namespace='social')),
 ]
