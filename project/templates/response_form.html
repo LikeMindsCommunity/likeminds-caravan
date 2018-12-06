@@ -12,21 +12,21 @@
     <div class="container">
 
             <div class="ui raised very padded text container segment">
-            <form class="ui form" method="post">
+            <form class="ui form" action="" method="post">
                 {% csrf_token %}
                 <div class="center aligned content">
                         <p>In order to add relevant members to the community we would like to know few more things about you </p>
                     <br>
                     </div>
                 {% for i in data %}
-                <div class="field">
+                <div class=" required field">
                      
                     {% if i.data_type == 'text' %}
-                    <label>{{i.data}}</label><input type="text">
+                    <label>{{i.data}}</label><input name ={{i.data}} type="text">
                     {% elif i.data_type == 'pdf' %}
-                    <label>{{i.data}}</label><input type="text">
+                    <label>{{i.data}}</label><input name ={{i.data}} type="text">
                     {% elif i.data_type == 'textarea' %}
-                    <label>{{i.data}}</label><textarea></textarea>
+                    <label>{{i.data}}</label><textarea name ={{i.data}} ></textarea>
                     {% endif %}
                 </div>
                 {% endfor %}

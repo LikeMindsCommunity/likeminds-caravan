@@ -25,7 +25,7 @@ SECRET_KEY = 'rg9n#$ebfj4w_mv-%7aahi2!qnitgw%xt(4re%i&)vdlppnz^e'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -151,8 +151,9 @@ SOCIAL_AUTH_FACEBOOK_SECRET = '095e2bc2fd71379ccbf3e1564abfee27'
 SOCIAL_AUTH_FACEBOOK_SCOPE = ['email','user_location','user_hometown']
 
 SOCIAL_AUTH_LINKEDIN_OAUTH2_KEY = '8616kilc3dqagd'
-SOCIAL_AUTH_LINKEDIN_OAUTH2_SECRET = 'g2LdZt5KN9HRF1IB  '
+SOCIAL_AUTH_LINKEDIN_OAUTH2_SECRET = 'g2LdZt5KN9HRF1IB'
 SOCIAL_AUTH_LINKEDIN_OAUTH2_SCOPE = ['r_basicprofile','r_emailaddress','rw_company_admin','w_share']
+SOCIAL_AUTH_LINKEDIN_OAUTH2_WHITELISTED_DOMAINS=['*','gmail.com','linkedin.com']
 
 SOCIAL_AUTH_LOGIN_URL = ""
 SOCIAL_AUTH_LOGIN_REDIRECT_URL = "dashboard"

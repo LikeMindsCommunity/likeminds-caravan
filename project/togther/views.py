@@ -35,7 +35,7 @@ def dashboard(request):
             print(social_user.extra_data['id'])
             if social_user:
                 if social_user.provider == 'facebook':
-                    url = "https://graph.facebook.com/v2.9/"+social_user.extra_data['id']+"?fields=name,email,location,gender,picture,link&access_token="+social_user.extra_data['access_token']
+                    url = "https://graph.facebook.com/v2.8/"+social_user.extra_data['id']+"?fields=name,email,location,gender,picture,link&access_token="+social_user.extra_data['access_token']
                     response = requests.get(url)
                     data = json.loads(response.text)
                     print(data)
@@ -175,18 +175,27 @@ def recieved_requests(request):
         req.append(r)
     return render (request,'requests.html', {'req': req})    
 
-def join_request(request):
-    if request.method == "GET":
-        user = request.GET.get("user")
-        community = request.GET.get("community")
-        print (user, community)
-        req = Requests()
-        req.status = 0
-        user_obj = User.objects.filter(id = user)
-        community_obj = Community.objects.filter(id=community)
-        req.user_id = user_obj[0]
-        req.community_id = community_obj[0]
-        req.save()
+def requests(request):
+    communities = Admins.objects.all()
+    admins_communities = []
+    for i in communities:
+        admins_communities.append(i.community_id)
+    print(admins_communities)
+    rqsts = []
+    requests = Requests.objects.all()
+    for i in requests:
+        print (type(i.community.id))
+        for j in admins_communities:
+            print(type(j.id))
+            if i.community.id == j.id  :
+                rqsts.append(i)
+    if request.user.is_authenticated:
+        user = Userinfo.objects.all().filter(user_id = request.user)
+    else :
+        user = []
+    print(rqsts)
+    return render(request,'requests.html',{'usr':user,'admins_communities':admins_communities, 'req':rqsts})
+    
 
 def request_response(request):
     if request.method == "GET":
@@ -253,11 +262,29 @@ def join_community(request, community_id):
         user = Userinfo.objects.all().filter(user_id = request.user)
     else :
         user = []
-    data = Form_data.objects.all().filter(community_id = community_id)
-    print(data)
     if request.method == "POST":
+        res = request.POST.dict()
+        print (res)
+        
+        for i in res:
+            response = Form_response()
+            if i != 'csrfmiddlewaretoken':
+                response.data = i
+                response.response = res[i]
+                response.user = request.user.id
+                response.community = community_id
+                response.save()
+        
+        req = Requests()
+        req.user_id = request.user
+        req.user_info = user
+        comm = Community.objects.all().filter(id = community_id)
+        req.community = comm[0]
+        req.save()
         return render(request,'thankyou.html',{'usr':user})
-    else: 
+    else:
+        data = Form_data.objects.all().filter(community_id = community_id)
+        print(data)
         return render(request,'response_form.html',{"data":data, 'usr':user})
     
     return redirect('dashboard')
@@ -363,3 +390,14 @@ def members_list(request, community_id):
         user = []
     community = Community.objects.all().filter(id = community_id)
     return render(request,'members.html' ,{'usr':user,'members':members, 'community':community})
+
+
+def user_response(request, user_id):
+    if request.user.is_authenticated:
+        user = Userinfo.objects.all().filter(user_id = request.user)
+    else :
+        user = []
+    print(request.user.id)
+    responses = Form_response.objects.all().filter(user = request.user.id)
+    print(responses)
+    return render(request,'user_response.html' ,{'usr':user, 'responses':responses})
