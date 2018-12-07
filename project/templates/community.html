@@ -10,7 +10,7 @@
 
         <div class="ui fluid card" style="margin-top:0px;">
             <div class="image">
-                <img src=' http://localhost:8000/media/{{ community.image_url }}'> 
+                <img src='/media/{{community.image_url}}'> 
             </div>
         
             <div class="content">
@@ -39,7 +39,7 @@
                             </p>
                         </div>
                         <div class="right floated summary">
-                                <p style="font-size:1.1em;"> Admins <br> <img class="ui circular avatar image" src="http://localhost:8000/media/{{admins.0.0.image_url}}">
+                                <p style="font-size:1.1em;"> Admins <br> <img class="ui circular avatar image" src="/media/{{admins.0.0.image_url}}">
                                      <a href='../../profile/5'+{{admins.0.0.admin_id}} style="font-weight:100; font-size:0.9em !important;">{{admins.0.0.name}} </a></p>
                         </div>
                       </div>
@@ -61,7 +61,7 @@
                         
                         {% for i in members%}
                         <div class="item">
-                            <img class="ui avatar image" src="http://localhost:8000/media/{{i.image_url}}">
+                            <img class="ui avatar image" src="/media/{{i.image_url}}">
                             <div class="content">
                             <a class="header" href="../../profile/{{i.user_id.id}}">{{i.name}}</a>
                             <div class="description">Interested in  <a><b>{{i.interests}}</b></a> </div>
