@@ -32,9 +32,9 @@
                         </div>
                     </div>
                     <div class="extra content" id="extra">
-                      <div class="ui two buttons">
-                        <div class="ui basic green button">Approve</div>
-                        <div class="ui basic red button">Decline</div>
+                      <div class="ui two buttons" style="">
+                        <div class="ui basic green button" onclick='accept("{{i.id}}")' style="color:green !important ;" >Approve</div>
+                        <div class="ui basic red button" onclick='decline("{{i.id}}")' style="color:red !important ;">Decline</div>
                       </div>
                     </div>
                   </div>
@@ -46,7 +46,37 @@
     </div>
   </div>
   <script>
+    function accept( id ){
+      div = document.getElementById('extra');
+      $.ajax({
+        url: "",
+        type: "GET",
+        data: {"status": 1, "id": id },
+        cache:false,
+        dataType: "json",
+        success: function(res){
+          console.log(res);
+          div.innerHTML = '';
+      $('#extra').append('<button class="ui fluid green basic button" style = "color:green !important; box-shadow: green !important; ">Accepted</button>');
+      
+    }});
+  }
 
+    function decline( id ){
+      div = document.getElementById('extra');
+      $.ajax({
+        url: "",
+        type: "GET",
+        data: {"status": 0, "id":id},
+        cache:false,
+        dataType: "json",
+        success: function(res){
+          console.log(res);
+          div.innerHTML = '';
+          $('#extra').append('<button class="ui fluid red basic button" style = "color:red !important; ">Rejected</button>');
+      
+    }});
+    }
   </script>
 
 </body>

@@ -10,5 +10,6 @@ admin.site.register(Requests)
 admin.site.register(Category)
 admin.site.register(Form_response)
 admin.site.register(Form_data)
-
+admin.site.register(Experience)
+admin.site.register(Education)
 

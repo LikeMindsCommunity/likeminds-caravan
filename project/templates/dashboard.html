@@ -157,32 +157,32 @@
             cache:false,
             dataType: "json",
             success: function(res){
-              console.log(res['communities']);
+              console.log(res);
               comm = res['communities'];
             
         
       cont = document.getElementById('comm_card');
       cont.innerHTML = ""
-        for (i in cont){
-        $("#comm_card").append('<div class="ui link fluid cards"> <div class="ui fluid card " > <div class="image" > \
-                      <img src=' + i.image_url + '> \
-                    </div > \
-                    <div class="content" > \
-                      <div class="header" style="padding-bottom: 5px;"><a href="../community/'+ i.id+ ' " style="color:#1cb39b;">{{community.name}}</a></div > <span class="left floated" style="width:50%;"> \
-                            <i class="map marker alternate icon" > \
-                            </i> ' + i.location + '</span> \
-                          <span class="right floated " > \
-                            <i class="user icon"></i > \
-                            <a href = "/' + members_list + '/1 ">   </a> \
-                          </span> \
-                    </div> \
-                    <div class="extra content"> \
-                            <div class="description"> ' + i.about + ' </div> \
-                    </div> \
-                  </div> \
-    </div>');
-  }
-    }
+        for (j in comm){
+        i = comm[j]
+  $("#comm_card").append('<div class="ui link fluid cards"> <div class="ui fluid card " > <div class="image" > \
+      <img src=' + i.image_url + '> \
+    </div > \
+    <div class="content" > \
+      <div class="header" style="padding-bottom: 5px;"><a href="../community/'+ i.id+ ' " style="color:#1cb39b;">{{community.name}}</a></div > <span class="left floated" style="width:50%;"> \
+            <i class="map marker alternate icon" > \
+            </i> ' + i.location + '</span> \
+          <span class="right floated " > \
+            <i class="user icon"></i > \
+            <a href = "/' + i.members_count + '/1 ">   </a> \
+          </span> \
+    </div> \
+    <div class="extra content"> \
+            <div class="description"> ' + i.about + ' </div> \
+    </div> \
+  </div> \
+</div>');
+    }}
     });
         //url = 'localhost:8000/togther/dashboard/'+data;
         //console.log(url)
