@@ -4,27 +4,38 @@
 <body>
   <div>
     <div class="fluid container">
-        <div class="ui fluid card" style="margin:0;">
-            <div class="content">
+        <div class="ui fluid card" style="margin:0; ">
+           
+          
+          <div class="content">
                 <div class="content">
-                    <img class="ui tiny left circular image" src="{{ info.0.image_url }} " style="width:30%; border: 1px solid #1ebea5"> 
+                    <img class="ui tiny left circular image" src="{{ info.0.image_url }} " style="width:40%; border: 1px solid black"> 
                     <div class="right floated author" style="margin-top:20px;">
                         <p>{{info.0.name}}</p>
-                        <p style="font-size: 12px; width : 120px;"> headline </p>
+                        <p style="font-size: 12px; width : 120px;"> {{info.0.headline}} </p>
                         {% if info.0.user_id.id == request.user.id %}
-                        <i class="right floated pencil alternate icon" onclick="edit();"></i>
+                        <i class="right floated pencil alternate icon" onclick="edit_headline();"></i>
                         
-                          <div class="ui modal edit_headline">
-                            <div class = "ui fluid card">
-                            <div class="ui form" style="margin: 20px 20px;">
-                                <div class="field">
-                                  <label>Headline</label>
-                                  <input type="text" value="{{ info.0.headline }}">
-                              </div>
+                          <div class="ui modal edit_headline" >
+                            <div class = "ui fluid card" style="padding:10px;">
+                                <form class="ui form" id = 'headline'>
+                                    <div class="field">
+                                      <label>Headline</label>
+                                      <input type="text" name="headline" placeholder=Headline value="{{info.0.headline}}">
+                                    </div>
+                                    <div class="field">
+                                      <label>Facebook Link</label>
+                                      <input type="text" name="fb_link" value="{{info.0.fb_link}}">
+                                    </div>
+                                    <div class="field">
+                                        <label>linkedin Link</label>
+                                        <input type="text" name="linkedin_link" value="{{info.0.linkedin_link}}">
+                                      </div>
+                                  </form>
+                                  <br>
                               <div class="ui two buttons">
-                                  <div class="ui basic green button" type = "submit">Save Changes</div>
-                                <div class="ui basic red button">Discard Changes</div>
-                                </div>
+                                  <div class="ui basic green button" onclick="send('headline');" >Save Changes</div>
+                                <div class="ui basic red button" onclick="hide();">Discard Changes</div>
                                 
                               </div>
                               </div>
@@ -35,124 +46,272 @@
                     
                     <br>
                     <br>
-                    <a href="http://{{info.0.fb_link}}"><i class="facebook f icon" ></i> </a>
-                    <a href="http://{{info.0.linkedin_link}}"><i class="linkedin icon" style="margin-left:40px;"></i></a>
+                    <a href="http://{{info.0.fb_link}}"><i class="facebook f icon" style="margin-left:2%;"></i> </a>
+                    <a href="http://{{info.0.linkedin_link}}"><i class="linkedin icon" style="margin-left:25%;"></i></a>
                     
-                  </div>
-                
+                  </div>    
             </div>
+
+
             <div class="content">
               <div class="header">About Me/Summary
                   {% if info.0.user_id.id == request.user.id %}
-                  <i class="right floated pencil alternate icon" onclick="edit();"></i>
-                  
-                    <div class="ui modal edit_headline">
+                  <i class="right floated pencil alternate icon" onclick="edit_summary();"></i>
+                    <div class="ui modal edit_summary">
                       <div class = "ui fluid card">
-                      <div class="ui form" style="margin: 20px 20px;">
+                      <form class="ui form" id='summary' style="margin: 20px 20px;">
                           <div class="field">
-                            <label>Summary</label>
-                            <textarea value = "{{info.0.about}}"></textarea>
+                            <label>About me/Summary</label>
+                            <textarea name='summary' value = "{{info.0.about}}"></textarea>
                         </div>
                         <div class="ui two buttons">
-                            <div class="ui basic green button" type = "submit">Save Changes</div>
-                          <div class="ui basic red button">Discard Changes</div>
+                            <div class="ui basic green button" onclick="send('summary');">Save Changes</div>
+                          <div class="ui basic red button" onclick="hide();">Discard Changes</div>
                           </div>
-                          
-                        </div>
+                          </form>
                         </div>
                     </div>
-                    {% endif %}
-              
-              
+                    {% endif %}  
             </div> 
               <div class="description">
                 {{info.0.about}}
               </div>
-              
             </div>
+
+
             <div class="content">
                 <div class="header">Experiences
-                    <i class=" right floated plus square icon"  onclick="add();" style="top:0; right:0;"></i>
+                    {% if info.0.user_id.id == request.user.id %}
+                    <i class=" right floated plus square icon"  onclick="add_experience();" style="top:0; right:0;"></i>
+                    {% endif %}
                 </div>
-                
+                {% if info.0.user_id.id == request.user.id %}
+                {% if education %}
+                    <i class="right floated pencil alternate icon" onclick='edit_experience();'></i>
+                    {% endif %}
+                    {% endif %}
+                {% for i in experience %}
+                <div class="field">
+                  {{i.title}}
+                  </div>
+                  <br>
+                {% endfor %}
                   
-                  
-                    <div class="ui modal add">
+                <div class="ui modal add_experience">
+                    
+                    <div class = "ui fluid card">
+                        <form class="ui form" style="padding:10px;" id='add_experience'>
+                            <div class="field">
+                              <label>Title</label>
+                              <input type="text" name="title" placeholder="Title">
+                            </div>
+                            <div class="field">
+                              <label>Company</label>
+                              <input type="text" name="company" placeholder="Company">
+                            </div>
+                                <div class="two inline fields">
+                                  <div class="field">
+                                    From year<br>
+                                      <input type="text" name="from" maxlength="4" placeholder="Year"> 
+                                    </div>
+                                    <br>
+                                    <br>
+                                    <div class="field">
+                                      To year<br>
+                                      <input type="text" name="to" maxlength="4" placeholder="Year">
+                                    </div>
+                                </div>
+                            <div class="field">
+                                <label>Location</label>
+                                <input type="text" name="location" placeholder="Location">
+                              </div>
+                              <div class="field">
+                                  <label>Description</label>
+                                  <textarea name="description"></textarea>
+                                </div>
+                                <div class="ui two buttons">
+                                    <div class="ui basic green button" onclick="add('add_experience');">Save Changes</div>
+                                  <div class="ui basic red button" onclick="hide();">Discard Changes</div>
+                                  </div>
+                          </form>
+                      </div>
+                      
+                  </div>  
+
+                    <div class="ui modal edit_experience">
+                        {% for i in experience %}
+                        
                       <div class = "ui fluid card">
-                          <form class="ui form" >
+                          <form class="ui form" style="padding:10px;" id = "experience">
                               <div class="field">
                                 <label>Title</label>
-                                <input type="text" name="title" placeholder="Title">
+                                <input type="text" name="title" value="{{i.title}}">
                               </div>
                               <div class="field">
                                 <label>Company</label>
-                                <input type="text" name="company" placeholder="Company">
+                                <input type="text" name="company" value="{{i.company}}">
                               </div>
-                              
-                             
-                                  <div class="two inline fields">
+                               <div class="two inline fields">
                                     <div class="field">
-                                      From year
-                                        <input type="text" name="card[expire-year]" maxlength="4" placeholder="Year"> 
+                                      From year<br>
+                                        <input type="text" name="from" maxlength="4" value="{{i.from}}"> 
                                       </div>
+                                      <br>
+                                      <br>
                                       <div class="field">
-                                        To year
-                                        <input type="text" name="card[expire-year]" maxlength="4" placeholder="Year">
+                                        To year<br>
+                                        <input type="text" name="to" maxlength="4" value="{{i.to}}">
                                       </div>
-                                  
-                                </div>
-                                    
-                                  
-                                
+                              </div>  
                               <div class="field">
                                   <label>Location</label>
-                                  <input type="text" name="location" placeholder="Location">
+                                  <input type="text" name="location" value="{{i.location}}">
                                 </div>
                                 <div class="field">
                                     <label>Description</label>
-                                    <textarea></textarea>
+                                    <textarea name="description" value="{{i.description}}"></textarea>
                                   </div>
-                              <button class="ui button" type="submit">Submit</button>
+                                  <div class="ui two buttons">
+                                      <div class="ui basic green button" onclick="send('experience');">Save Changes</div>
+                                    <div class="ui basic red button" onclick="hide();">Discard Changes</div>
+                                    </div>
                             </form>
                         </div>
+
+                        {% endfor %}
+                     
                     </div>
                 {% for j in experience %}
-                
                 <div class="description">
                   {{j.0.title}}
                 </div>
                 {% endfor %}
               </div>
               <div class="content">
-                  <div class="header">Education
-                      <i class=" right floated plus square icon" style="top:0; right:0;"></i>
+                  <div class="header">Education 
+                      {% if info.0.user_id.id == request.user.id %}
+                    <i class=" right floated plus square icon" onclick="add_education();" style="top:0; right:0;"></i>   
+                    {% endif %}
+                    {% if info.0.user_id.id == request.user.id %}
+                    {% if education %}
+                    <i class="right floated pencil alternate icon" onclick='edit_education();'></i>
+                    {% endif %}
+                    {% endif %}
+                    {% for j in education %}
+                      <div class="description">
+                        {{j.institution}}
+                      </div>
+                      {% endfor %}
+                   
                       
                   </div>
-                  {% for j in education %}
+
+                  <div class="ui modal edit_education">
+                      <div class = "ui fluid card">
+                          <form class="ui form" style="padding:10px;">
+                              <div class="field">
+                                <label>Degree</label>
+                                <input type="text" name="title" placeholder="Title">
+                              </div>
+                              <div class="field">
+                                <label>Institution</label>
+                                <input type="text" name="company" placeholder="Company">
+                              </div>
+                              
+                             
+                                  <div class="two inline fields">
+                                    <div class="field">
+                                      From year<br>
+                                        <input type="text" name="from" maxlength="4" placeholder="Year"> 
+                                      </div>
+                                      <br>
+                                      <br>
+                                      <div class="field">
+                                        To year<br>
+                                        <input type="text" name="to" maxlength="4" placeholder="Year">
+                                      </div>
+                                  
+                                </div>
+                              
+                              <div class="field">
+                                  <label>Location</label>
+                                  <input type="text" name="location" placeholder="Location">
+                                </div>
+                                <div class="field">
+                                    <label>Description</label>
+                                    <textarea name='description'></textarea>
+                                  </div>
+                                  <div class="ui two buttons">
+                                      <div class="ui basic green button" onclick="send('education');">Save Changes</div>
+                                    <div class="ui basic red button" onclick='hide();'>Discard Changes</div>
+                                    </div>
+                            </form>
+                        </div>
+
+                        <div class="ui modal add_education">
+                            <div class = "ui fluid card">
+                                <form class="ui form" style="padding:10px;" id="add_education">
+                                    <div class="field">
+                                      <label>Degree</label>
+                                      <input type="text" name="degree" placeholder="Degree">
+                                    </div>
+                                    <div class="field">
+                                      <label>Institution</label>
+                                      <input type="text" name="institution" placeholder="Institute">
+                                    </div>
+                                    
+                                   
+                                        <div class="two inline fields">
+                                          <div class="field">
+                                            From year<br>
+                                              <input type="text" name="from" maxlength="4" placeholder="Year"> 
+                                            </div>
+                                            <br>
+                                            <br>
+                                            <div class="field">
+                                              To year<br>
+                                              <input type="text" name="to" maxlength="4" placeholder="Year">
+                                            </div>
+                                        
+                                      </div>
+                                    
+                                    <div class="field">
+                                        <label>Location</label>
+                                        <input type="text" name="location" placeholder="Location">
+                                      </div>
+                                      <div class="field">
+                                          <label>Description</label>
+                                          <textarea name='description'></textarea>
+                                        </div>
+                                        <div class="ui two buttons">
+                                            <div class="ui basic green button" onclick="add('add_education');">Save Changes</div>
+                                          <div class="ui basic red button" onclick="hide();">Discard Changes</div>
+                                          </div>
+                                  </form>
+                              </div>
+
                   
-                  <div class="description">
-                    {{j.0.institution}}
-                  </div>
-                  {% endfor %}
+                </div>
+                </div>
                 </div>
                 <div class="content">
                     <div class="header">Interests
                         {% if info.0.user_id.id == request.user.id %}
-                        <i class="right floated pencil alternate icon" onclick="edit();"></i>
+                        <i class="right floated pencil alternate icon" onclick="edit_interests();"></i>
                         
-                          <div class="ui modal edit_headline">
+                          <div class="ui modal edit_interest">
                             <div class = "ui fluid card">
-                            <div class="ui form" style="margin: 20px 20px;">
+                            <form class="ui form" style="margin: 20px 20px;" id='interests'>
                                 <div class="field">
                                   <label>Interests</label>
-                                  <textarea value = "{{ info.0.interests}}"></textarea>
+                                  <textarea value = "{{ info.0.interests}}" name='interest'></textarea>
                               </div>
                               <div class="ui two buttons">
-                                  <div class="ui basic green button" type = "submit">Save Changes</div>
-                                <div class="ui basic red button">Discard Changes</div>
+                                  <div class="ui basic green button" onclick="send('interests');">Save Changes</div>
+                                <div class="ui basic red button" onclick="hide();">Discard Changes</div>
                                 </div>
                                 
-                              </div>
+                              </form>
                               </div>
                           </div>
                           {% endif %}
@@ -163,11 +322,11 @@
                     
                   </div>
                   {% if info.0.fb_link == Null and info.0.linkedin_link == Null %}
-                  <button class="ui fluid button " style=" z-index:2;width:95%; left:2.5%; margin:10px auto; background-color: #1cb39b; color:white;" onclick="join();"> Connect with Facebook/Linkedin  </button>
+                  <button class="ui fluid button " onclick="edit_headline();" style=" z-index:2;width:95%; left:2.5%; margin:10px auto; background-color: #1cb39b; color:white;" onclick="join();"> Connect with Facebook/Linkedin  </button>
                   {% elif  info.0.linkedin_link == Null %}
-                  <button class="ui fluid button " style=" z-index:2;width:95%; left:2.5%; margin:10px auto; background-color: #1cb39b; color:white;" onclick="join();"> Connect with Linkedin  </button>
+                  <button class="ui fluid button " onclick="edit_headline();" style=" z-index:2;width:95%; left:2.5%; margin:10px auto; background-color: #1cb39b; color:white;" onclick="join();"> Connect with Linkedin  </button>
                   {% elif info.0.fb_link == Null %}
-                  <button class="ui fluid button " style=" z-index:2;width:95%; left:2.5%; margin:10px auto; background-color: #1cb39b; color:white;" onclick="join();"> Connect with Facebook  </button>
+                  <button class="ui fluid button " onclick="edit_headline();" style=" z-index:2;width:95%; left:2.5%; margin:10px auto; background-color: #1cb39b; color:white;" onclick="join();"> Connect with Facebook  </button>
                   {% endif %}
 
                 </div>
@@ -195,6 +354,39 @@
 </body>
 
 <script>
+
+  function hide(){
+    $('.ui.modal').modal("hide");
+  }
+  function send( mdl, id=1 ){
+    var ele = document.getElementById(mdl);
+    console.log(ele)
+    if(mdl == 'headline'){
+      data = {"name": mdl, "headline":ele['headline'].value, "fb_link":ele['fb_link'].value, "linkedin_link":ele['linkedin_link'].value};
+    }
+    if(mdl == 'summary'){
+      data = {"name": mdl, "summary":ele['summary'].value};
+    }
+    if(mdl == 'experience'){
+      data = {"id":id,"name": mdl, "Title":ele['title'].value, "company":ele['company'].value, "from":ele['from'].value, "to":ele['to'].value, "location":ele['location'].value, "description":ele['description'].value};
+    }
+    if(mdl == 'education'){
+      data = {'id':id,"name": mdl, "degree":ele['degree'].value, "institution":ele['institution'].value, "from":ele['from'].value, "to":ele['to'].value, "location":ele['location'].value, "description":ele['description'].value};
+    }
+    if(mdl == 'interests'){
+      data = {"name": mdl, "interests":ele['interest'].value};
+    }
+    $.ajax({
+      url: "",
+      type: "GET",
+      data: data,
+      cache:false,
+      dataType: "json",
+      success: function(res){
+        $('.ui.modal').modal("hide");
+        location.reload();
+  }});
+  }
     $('.special.modal')
     .modal({
       centered: false
@@ -202,16 +394,70 @@
     .modal('show')
   ;
 
-  function edit(){
+  function edit_headline(){
     $('.ui.modal.edit_headline')
   .modal('show')
 ;
   }
 
-  function add(){
-    $('.ui.modal.add')
+  function edit_summary(){
+    $('.ui.modal.edit_summary')
   .modal('show')
 ;
+  }
+  function edit_education( ){
+    $('.ui.modal.edit_education')
+  .modal('show')
+;
+  }
+  function edit_experience(){
+    $('.ui.modal.edit_experience')
+  .modal('show')
+;
+  }
+
+  function edit_interests(){
+    $('.ui.modal.edit_interest')
+  .modal('show')
+;
+  }
+
+
+  function add_experience(){
+    $('.ui.modal.add_experience')
+  .modal('show')
+;
+  }
+  
+
+  function add_education(){
+    $('.ui.modal.add_education')
+  .modal('show')
+;
+  }
+
+  function add(mdl){
+    console.log(mdl);
+    var ele = document.getElementById(mdl);
+    console.log(ele)
+    if(mdl == 'add_experience'){
+      data = {"name": mdl, "title":ele['title'].value, "company":ele['company'].value, "from":ele['from'].value, "to":ele['to'].value, "location":ele['location'].value, "description":ele['description'].value};
+    }
+    if(mdl == 'add_education'){
+      data = {"name": mdl, "degree":ele['degree'].value, "institution":ele['institution'].value, "from":ele['from'].value, "to":ele['to'].value, "location":ele['location'].value, "description":ele['description'].value};
+    }
+    
+    $.ajax({
+      url: "",
+      type: "GET",
+      data: data,
+      cache:false,
+      dataType: "json",
+      success: function(res){
+        console.log('hi')
+        $('.ui.modal').modal("hide");
+        location.reload();
+      }});
   }
 
 </script>

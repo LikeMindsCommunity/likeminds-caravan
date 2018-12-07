@@ -5,9 +5,9 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth import logout
 from togther.forms import * 
 import urllib
-import requests
+import requests as rqst
 from django.contrib.auth.models import User
-import json,requests
+import json
 from django.http.response import JsonResponse
 
 
@@ -34,28 +34,23 @@ def dashboard(request):
             print(social_user.extra_data['id'])
             if social_user:
                 if social_user.provider == 'facebook':
-                    url = "https://graph.facebook.com/v2.8/"+social_user.extra_data['id']+"?fields=name,email,location,gender,picture,link&access_token="+social_user.extra_data['access_token']
-                    response = requests.get(url)
+                    url = "https://graph.facebook.com/v2.9/"+social_user.extra_data['id']+"?fields=name,email,gender,location,picture,link&access_token="+social_user.extra_data['access_token']
+                    print(url)
+                    response = rqst.get(url)
                     data = json.loads(response.text)
                     print(data)
                     info = Userinfo()
                     info.name = data['name']
                     info.email = data['email'] 
-                    gender = 0
-                    if data['gender'] == 'male':
-                        gender = 1
-                    if data['gender'] == 'female':
-                        gender = 0
-                    info.gender = gender
                     info.city = data['location']['name']
                     info.image_url = data['picture']['data']['url']
-                    info.fb_link = data["link"]
                     info.user_id = request.user
                     info.save()
 
             if social_user.provider == 'linkedin-oauth2':
                 url = 'https://api.linkedin.com/v1/people/~:(id,email-address,first-name,last-name,location:(name),picture-url,public-profile-url)?format=json&oauth2_access_token='+social_user.extra_data['access_token']
-                response = requests.get(url)
+                print(url)
+                response = rqst.get(url)
                 data = json.loads(response.text)
                 print(data)
                 info = Userinfo()
@@ -75,17 +70,36 @@ def dashboard(request):
         response = request.GET.dict()
         print (response)
         if 'data' in response:
-            category = response['data']
-            categories = Category.objects.all().filter(category = category)
-            print (categories)
-            communities = []
-            for i in categories:
-                communities.append({'community':i.community_id})
-            print('comm :',communities)
-            return JsonResponse({'communities': communities})
-            # return  HttpResponse(json.dumps({'communities':communities}), content_type='application/json')
-        else:    
-            return render (request, 'dashboard.html', { 'usr': user,'communities' : communities})
+            if response['data'] != '':
+                category = response['data']
+                categories = Category.objects.all().filter(category = category)
+                print (categories)
+                communities = []
+                for i in categories:
+                    comm = {'id':i.community_id.id,
+                        'name':i.community_id.name,
+                        'about':i.community_id.about,
+                        'image_url':i.community_id.image_url.url,
+                        'location':i.community_id.location,
+                        'members_count':i.community_id.members_count,
+                        }
+                    communities.append(comm)
+                print('comm :',communities)
+                return JsonResponse({'communities': communities})
+            else:
+                communities = []
+                community = Community.objects.all()
+                for i in community:
+                    comm = {'id':i.id,
+                        'name':i.name,
+                        'about':i.about,
+                        'image_url':i.image_url.url,
+                        'location':i.location,
+                        'members_count':i.members_count,
+                        }
+                    communities.append(comm)
+                return JsonResponse({'communities': communities})
+    return render (request, 'dashboard.html', { 'usr': user,'communities' : communities})
 
 
 def community(request, community_id):
@@ -139,6 +153,9 @@ def creategroup(request):
             print (community)
             admin.community_id = community[0]
             admin.save()
+            member = Members()
+            member.member_id = request.user
+            member.community_id = community
             return redirect('form_data', community_id = group.id)
     else:
         form = NewGroupForm()
@@ -150,6 +167,51 @@ def creategroup(request):
 
 @login_required
 def profile(request, user_id):
+    info = Userinfo.objects.get(user_id = request.user)
+    if request.method == 'GET':
+        res = request.GET.dict()
+        print(res)
+        if 'name' in res:
+            if(res['name'] == 'headline'):
+                info.headline = res['headline']
+                info.fb_link = res['fb_link']
+                info.linkedin_link = res['linkedin_link']
+                info.save()
+            if(res['name'] == 'summary'):
+                info.about = res['summary']
+                info.save()
+            if(res['name'] == 'experience'):
+                info.headline = res['headline']
+                info.fb_link = res['fb_link']
+                info.linkedin_link = res['linkedin']
+                info.save()
+            if(res['name'] == 'education'):
+                info.headline = res['headline']
+                info.fb_link = res['fb_link']
+                info.linkedin_link = res['linkedin']
+                info.save()
+            if(res['name'] == 'interests'):
+                info.interests = res['interests']
+                info.save()
+            if(res['name'] == 'add_education'):
+                edu = Education()
+                edu.user_id = info
+                edu.degree = res['degree']
+                edu.instituion = res['institution']
+                edu.from_year = res['from']
+                edu.to_year = res['to']
+                edu.description = res['description']
+                edu.save()
+            if(res['name'] == 'add_experience'):
+                exp = Experience()
+                exp.user_id = info
+                exp.company = res['company']
+                exp.title = res['title']
+                exp.from_year = res['from']
+                exp.to_year = res['to']
+                exp.description = res['description']
+                exp.save()
+            return JsonResponse({'status':'ok'})
     info = Userinfo.objects.all().filter(user_id = user_id)
     if request.user.is_authenticated:
         user = Userinfo.objects.all().filter(user_id = request.user)
@@ -159,8 +221,10 @@ def profile(request, user_id):
     my_communities = []
     for i in communities:
         my_communities.append(i.community_id)
-    experiences = Experience.objects.all().filter(user_id = info[0].id)
-    educations = Education.objects.all().filter(user_id = info[0].id)
+    experiences = Experience.objects.all().filter(user_id = info[0])
+    educations = Education.objects.all().filter(user_id = info[0])
+    print(educations)
+    print(experiences)
     return render(request, 'profile.html', {'usr':user,"info": info,"my_communities":my_communities,"experience":experiences, "education": educations})
 
 
@@ -175,19 +239,39 @@ def recieved_requests(request):
     return render (request,'requests.html', {'req': req})    
 
 def requests(request):
-    communities = Admins.objects.all()
-    admins_communities = []
-    for i in communities:
-        admins_communities.append(i.community_id)
+
+    if request.method == 'GET':
+        res = request.GET.dict()
+        print(res)
+        if 'status' in res:
+            req = Requests.objects.get(id = int(res['id']))
+            comm = Community.objects.get(id = req.community.id)
+            print(req)
+            if res['status'] == '1':
+                req.status = 1
+                req.save()
+                print(req.status)
+                mem = Members()
+                mem.member_id = req.user_id
+                mem.community_id = req.community
+                mem.save()
+                comm.members_count = comm.members_count + 1
+                comm.save()
+                
+            else:
+                req.status = -1
+                req.save()
+            return JsonResponse({'status':'OK'})
+    admins_communities = Admins.objects.all().filter(admin_id = request.user)
     print(admins_communities)
     rqsts = []
     requests = Requests.objects.all()
     for i in requests:
-        print (type(i.community.id))
-        for j in admins_communities:
-            print(type(j.id))
-            if i.community.id == j.id  :
-                rqsts.append(i)
+        if i.status != -1 :
+            for j in admins_communities:
+                print((j.community_id.id))
+                if i.community.id == j.community_id.id  :
+                    rqsts.append(i)
     if request.user.is_authenticated:
         user = Userinfo.objects.all().filter(user_id = request.user)
     else :

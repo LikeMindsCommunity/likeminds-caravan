@@ -65,8 +65,8 @@ class Experience (models.Model):
     title = models.CharField(max_length = 200, null= True)
     company = models.CharField(max_length = 200, null = True)
     location = models.CharField(max_length = 200, null=True)
-    from_year = models.DateField(null = True)
-    to_year = models.DateField(null = True)
+    from_year = models.CharField(max_length = 4,null = True)
+    to_year = models.CharField(max_length = 4,null = True)
     description = models.TextField(null = True)
     
 
@@ -75,8 +75,8 @@ class Education (models.Model):
     instituion = models.CharField(max_length = 200, null= True)
     degree = models.CharField(max_length = 200, null= True)
     field_of_study = models.CharField(max_length = 200, null= True)
-    from_year = models.DateField(null = True)
-    to_year = models.DateField(null = True)
+    from_year = models.CharField(max_length = 4,null = True)
+    to_year = models.CharField(max_length = 4,null = True)
     description = models.TextField(null = True)
 
 class Requests (models.Model):
