@@ -149,13 +149,14 @@ def creategroup(request):
             print(group)
             admin = Admins()
             admin.admin_id = request.user
-            community = Community.objects.all().filter(community_id = group.id)
+            community = Community.objects.get(id = group.id)
             print (community)
-            admin.community_id = community[0]
+            admin.community_id = community
             admin.save()
             member = Members()
             member.member_id = request.user
             member.community_id = community
+            member.save()
             return redirect('form_data', community_id = group.id)
     else:
         form = NewGroupForm()
@@ -345,13 +346,14 @@ def join_community(request, community_id):
         user = Userinfo.objects.all().filter(user_id = request.user)
     else :
         user = []
+
     if request.method == "POST":
         res = request.POST.dict()
-        print (res)
-        
+        print (res) 
         for i in res:
             response = Form_response()
-            if i != 'csrfmiddlewaretoken':
+            if i != 'csrfmiddlewaretoken' :
+                print(i)
                 response.data = i
                 response.response = res[i]
                 response.user = request.user.id
@@ -367,8 +369,12 @@ def join_community(request, community_id):
         return render(request,'thankyou.html',{'usr':user})
     else:
         data = Form_data.objects.all().filter(community_id = community_id)
-        print(data)
-        return render(request,'response_form.html',{"data":data, 'usr':user})
+        print('data:',data)
+        if not data:
+            return render(request,'thankyou.html',{'usr':user})
+        else:
+            community = Community.objects.get(id = community_id)
+            return render(request,'response_form.html',{"data":data, 'usr':user, 'community':community})
     
     return redirect('dashboard')
 
@@ -412,7 +418,7 @@ def form_data(request, community_id):
         i = q+str(count)
         print(i)
         while(1):
-            if i in res:
+            if i in res and res[i]!= '' :
                 print(i)
                 mForm_data = Form_data()
                 mForm_data.data = res[i]

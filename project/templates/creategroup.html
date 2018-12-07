@@ -4,14 +4,27 @@
 <form method="post" enctype="multipart/form-data" style="padding:10px; margin:0;">
   {% csrf_token %}
   {{ form.as_p }}
+  
   <button type="submit">Post</button>
 </form>
   
   <script>
-
+      
       //ui fluid container
     //$('p').addClass('ui fluid card');
+    function hi(){
+    $('#id_category').addClass('<div class="ui selection dropdown">\
+        <input type="hidden" name="gender">\
+        <i class="dropdown icon"></i>\
+        <div class="default text">Gender</div>\
+        <div class="menu">\
+          <div class="item" data-value="1">Male</div>\
+          <div class="item" data-value="0">Female</div>\
+        </div>\
+      </div>');
+    }
     $('form').addClass('ui form ui fluid card');
+    
       document.getElementById("id_location").onkeyup = function(){
       var place = document.getElementById("id_location");
       place = place.value;
