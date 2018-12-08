@@ -116,7 +116,7 @@ def community(request, community_id):
     print('admin: ',admin_details)
     members = [] 
     for m in member:
-        if m.member_id == request.user.id:
+        if m.member_id == request.user:
             is_joined = 1
         print (m.member_id.id)
         mem = Userinfo.objects.all().filter(user_id = m.member_id.id)
@@ -362,7 +362,7 @@ def join_community(request, community_id):
         
         req = Requests()
         req.user_id = request.user
-        req.user_info = user
+        req.user_info = user[0]
         comm = Community.objects.all().filter(id = community_id)
         req.community = comm[0]
         req.save()
@@ -486,7 +486,7 @@ def user_response(request, user_id):
         user = Userinfo.objects.all().filter(user_id = request.user)
     else :
         user = []
-    print(request.user.id)
-    responses = Form_response.objects.all().filter(user = request.user.id)
-    print(responses)
+    responses = Form_response.objects.all().filter(user = user_id)
+    print(user_id)
+    print('res:',responses)
     return render(request,'user_response.html' ,{'usr':user, 'responses':responses})

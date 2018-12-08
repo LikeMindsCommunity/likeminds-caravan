@@ -39,16 +39,17 @@
                             </p>
                         </div>
                         <div class="right floated summary">
-                                <p style="font-size:1.1em;"> Admins <br> <img class="ui circular avatar image" src="/media/{{admins.0.0.image_url}}">
-                                     <a href='../../profile/5'+{{admins.0.0.admin_id}} style="font-weight:100; font-size:0.9em !important;">{{admins.0.0.name}} </a></p>
+                                <p style="font-size:1.1em;"> Admins <br> <br><img class="ui circular avatar image" src="{{admins.0.0.image_url}}">
+                                     <a href='../../profile/{{admins.0.0.user_id.id}}' style="font-weight:100; font-size:0.9em !important;">{{admins.0.0.name}} </a></p>
                         </div>
                       </div>
                     </div>
                     <br>
-                    <div class="center aligned extra content">
+                    {% if joined == 0 %}
+			<div class="center aligned extra content">
                             <button class="ui fluid button " style=" z-index:2;width:95%; left:2.5%; margin:0 auto; background-color: #1cb39b; color:white; bottom:1%; position:fixed;" onclick="join();"> Join Group  </button>
                     </div>
-                    
+                    {% endif %}
                     <div class="ui celled list">
                         
                             <h4 class="ui sub header">
@@ -61,7 +62,7 @@
                         
                         {% for i in members%}
                         <div class="item">
-                            <img class="ui avatar image" src="/media/{{i.image_url}}">
+                            <img class="ui avatar image" src="{{i.image_url}}">
                             <div class="content">
                             <a class="header" href="../../profile/{{i.user_id.id}}">{{i.name}}</a>
                             <div class="description">Interested in  <a><b>{{i.interests}}</b></a> </div>
@@ -78,7 +79,7 @@
                         
                                 <a class="image" href="../{{i.id}}">
                                     <figcaption>{{i.name}}</figcaption>
-                                    <img class="ui image" src="{{ i.image_url }}">
+                                    <img class="ui image" src="http://beta.collabmates.com/media/{{ i.image_url }}">
                                     
                                 </a>
                    

@@ -341,7 +341,7 @@
                     <div class="ui small images features grid noMargin" style="overflow-y:auto;white-space:nowrap;" >
                       {% for i in my_communities %}
                       <a href="{% url 'community' i.id %}">
-                      <img class="ui image" src="{{ i.image_url }}">
+                      <img class="ui image" src="http://beta.collabmates.com/media/{{ i.image_url }}">
                       </a>
                       {% endfor %}
                   </div>
