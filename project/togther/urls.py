@@ -2,13 +2,13 @@ from django.urls import path, include
 from . import views
 
 urlpatterns = [
-    path('', views.home, name="home"),
-    path('dashboard/', views.dashboard, name="dashboard"),
+    path('login/', views.home, name="home"),
+    path('', views.dashboard, name="dashboard"),
     path('dashboard/<slug:data>', views.dashboard, name="dashboard"),
     path('dashboard/recieved_requests', views.recieved_requests, name="recieved_requests"),
     path('community/<int:community_id>/join', views.join_community, name="join_community"),
     path('requests', views.requests,name="requests"),
-    path('requests/user_response/<int:user_id>', views.user_response,name="user_response"),
+    path('requests/<int:community_id>/user_response/<int:user_id>', views.user_response,name="user_response"),
     path('community/<int:community_id>/', views.community, name="community"),
     path('community/<int:community_id>/members_list', views.members_list, name="members_list"),
     path('creategroup/', views.creategroup, name="create"),

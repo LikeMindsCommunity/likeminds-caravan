@@ -14,22 +14,23 @@
         
         <div class="ui small inverted menu" style="background-color:#1ebea5 ;margin:0;">
             <div class="ui grid container" style = "margin:0;">
-                <div class="two wide column" style="padding:0;">
-                  <a class="item" href="{% url 'home' %}"> 
+                <div class="twelve wide column" style="padding:0;">
+                  <a class="item" href="{% url 'home' %}" style="padding:0;"> 
                       <div class="image">
-                          <img src="/media/media/logo.jpeg" alt="Logo" style="height:36px; width:36px;">
+                          <img src="/media/media/logo.png" alt="Logo" style="height:60px; width:60vw;">
                         </div>
                   </a>
                 </div>
-                <div class="ten wide column">  
-                  <div class="ui category search item">
-                    <div class="ui white icon input">
+                <!-- <div class="ten wide column" style="text-align:center;">  
+                  <div class="ui category search item" >
+                    <div class="ui white icon input" >
+                      <h2>CollabMates</h2>
                     <input class="prompt" type="text" placeholder="Search...">
-                    <i class="search link icon"></i>
+                     <i class="search link icon"></i>
                   </div>
                 <div class="results"></div>
               </div>
-              </div>
+              </div> -->
             <div class = "four wide column">
               <div class="right menu">
                   {% if user.is_authenticated %}
@@ -62,7 +63,7 @@
                   </div>
                   <div class="center aligned container">
                   <div class="content">
-                      <a  href="{% url 'social:begin' 'facebook' %}?next={{request.path}}join">
+                      <a  href="{% url 'social:begin' 'facebook' %}">
                   <button class="ui facebook button">
                       <i class="facebook icon"></i>
                       Facebook
@@ -74,10 +75,12 @@
                     <br>
                     <br>
                     <div class = "content">
+                        <a href="{% url 'social:begin' 'linkedin-oauth2' %}">
                     <button class="ui linkedin button" >
                         <i class="linkedin icon"></i>
                         LinkedIn
                       </button>
+                      </a>
                     </div>
                     </div>
                     </div>

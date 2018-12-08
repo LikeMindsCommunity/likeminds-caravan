@@ -62,10 +62,12 @@
                         
                         {% for i in members%}
                         <div class="item">
-                            <img class="ui avatar image" src="{{i.image_url}}">
+                            
                             <div class="content">
-                            <a class="header" href="../../profile/{{i.user_id.id}}">{{i.name}}</a>
+                            <a class="header" href="../../profile/{{i.user_id.id}}"><img class="ui avatar image" style="margin-right:10px;" src="{{i.image_url}}">{{i.name}}</a>
+                            <!-- {% if i.interests != None %}
                             <div class="description">Interested in  <a><b>{{i.interests}}</b></a> </div>
+                            {% endif %} -->
                             </div>
                         </div>
                         {% endfor %}

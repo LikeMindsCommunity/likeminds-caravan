@@ -37,8 +37,9 @@
     
     <div class="ui link fluid cards" >
             <div class="ui fluid card ">
-                    <div class="image">
-                      <img src="http://beta.collabmates.com/media/{{community.image_url}}">
+                    
+                    <div class=" fluid image">
+                      <img src="http://beta.collabmates.com/media/{{community.image_url}}" onclick="open_community('{{community.id}}');">
                     </div>
                     <div class="content">
                       <div class="header" style="padding-bottom: 5px;"><a href="../community/{{community.id}}" style="color:#1cb39b;">{{community.name}}</a></div>
@@ -68,6 +69,10 @@
     {% endfor %}
 </div>
 <script>
+
+        function open_community(id){
+          window.location = '/community/'+id;
+        }
         function getLocation(){   
             navigator.geolocation.getCurrentPosition(function(location) {
                 console.log(1)
@@ -166,8 +171,8 @@
         for (j in comm){
         i = comm[j]
   $("#comm_card").append('<div class="ui link fluid cards"> <div class="ui fluid card " > <div class="image" > \
-      <img src=' + i.image_url + '> \
-    </div > \
+      <a href="../community/'+i.id+'><img src="http://beta.collabmates.com/media/'+i.image_url+'></a> \
+    </div> \
     <div class="content" > \
       <div class="header" style="padding-bottom: 5px;"><a href="../community/'+ i.id+ ' " style="color:#1cb39b;">{{community.name}}</a></div > <span class="left floated" style="width:50%;"> \
             <i class="map marker alternate icon" > \

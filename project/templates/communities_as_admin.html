@@ -9,10 +9,10 @@
 {% block content %}
 <body>
         <div class="ui top attached tabular menu">
-                <a class="item" href="mycommunities">
+                <a class="item" style = "width:50%; text-align: center;" href="mycommunities">
                   As a Member
                 </a>
-                <a class="active item" href="communities_as_admin">
+                <a class="active item" style = "width:50%; text-align: center;" href="communities_as_admin" >
                 
                   As Admin
                 </a>
@@ -22,7 +22,7 @@
                     {% for i in admins_communities %}
                     <div class="card" style=" margin-left: 0.5em; margin-right:0.5em; width: calc(50% - 1em) !important;" >
                       <div class="image">
-                        <img src="http://beta.collabmates.com/media/{{i.image_url}}">
+                        <img src="http://beta.collabmates.com/media/{{i.image_url}}" onclick="open_comm('{{i.id}}');">
                       </div>
                       <div class="extra">
                         <a href="{% url 'community' i.id%}">Name:
@@ -32,4 +32,10 @@
                     {% endfor %}
                   </div>
 </body>
+
+<script>
+    function open_comm(id) {
+      window.location = '/community/'+id;
+    };
+</script>
 {% endblock %}

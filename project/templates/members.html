@@ -16,14 +16,20 @@
                 {% for i in members %}
                 <div class="card" style=" margin-left: 0.5em; margin-right:0.5em; width: calc(50% - 1em) !important;" >
                   <div class="image">
-                    <img src="{{i.image_url}}">
+                    <img src="{{i.image_url}}" onclick = "direct('{{i.user_id_id}}');">
                   </div>
                   <div class="extra">
                   <a href="{% url 'profile' i.user_id_id %}">  Name:
-                    {{i.name}}</a>
+                    {{i.name}}</a>  
                   </div>
                 </div>
                 {% endfor %}
               </div>
 </body>
+
+<script>
+  function direct(id){
+    window.location = '../../../profile/'+id;
+  }
+</script>
 {% endblock %}

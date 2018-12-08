@@ -64,8 +64,8 @@ def dashboard(request):
 
     else:
         user = []
-    communities = Community.objects.all()
-
+    communities = Community.objects.all().order_by('-active_since')
+    print(communities)
     if request.method == 'GET':
         response = request.GET.dict()
         print (response)
@@ -224,8 +224,8 @@ def profile(request, user_id):
         my_communities.append(i.community_id)
     experiences = Experience.objects.all().filter(user_id = info[0])
     educations = Education.objects.all().filter(user_id = info[0])
-    print(educations)
-    print(experiences)
+    print(':',my_communities)
+   
     return render(request, 'profile.html', {'usr':user,"info": info,"my_communities":my_communities,"experience":experiences, "education": educations})
 
 
@@ -454,7 +454,7 @@ def my_communities(request, user_id):
     return render(request,'my_community.html',{'usr':user,'my_communities':my_communities})
 
 def communities_as_admin(request, user_id):
-    communities = Admins.objects.all()
+    communities = Admins.objects.all().filter(admin_id = user_id)
     admins_communities = []
     for i in communities:
         admins_communities.append(i.community_id)
@@ -481,12 +481,10 @@ def members_list(request, community_id):
     return render(request,'members.html' ,{'usr':user,'members':members, 'community':community})
 
 
-def user_response(request, user_id):
+def user_response(request, community_id, user_id):
     if request.user.is_authenticated:
         user = Userinfo.objects.all().filter(user_id = request.user)
     else :
         user = []
-    responses = Form_response.objects.all().filter(user = user_id)
-    print(user_id)
-    print('res:',responses)
+    responses = Form_response.objects.all().filter(user = user_id, community = community_id)
     return render(request,'user_response.html' ,{'usr':user, 'responses':responses})
