@@ -11,7 +11,7 @@
             <div class="eight wide column" style="padding-right:5px; ">
             <div class="ui left aligned search" >
                 <div class="ui fluid icon input" id = 'result' > 
-                  <input class="ui fluid prompt"   type="text"  placeholder=" Categories..." style="padding-right: 2px !important;"> 
+                  <input class="ui fluid prompt"   type="text"  placeholder=" Categories..." id = 'cat' style="padding-right: 2px !important;"> 
                   <i class="search icon" onclick="filter()"></i>
                 </div>
                 <div class="results" ></div>
@@ -149,11 +149,10 @@
     
 
     function filter(){
-        var category = document.getElementById('result');
+        var category = document.getElementById('cat');
         value = document.getElementsByTagName('input');
+        data = category.value;
         
-        data = value[1].value;
-        console.log(data);
         var comm ;
         $.ajax({
             url: "",
@@ -168,10 +167,11 @@
         
       cont = document.getElementById('comm_card');
       cont.innerHTML = ""
+        console.log(comm);
         for (j in comm){
         i = comm[j]
-  $("#comm_card").append('<div class="ui link fluid cards"> <div class="ui fluid card " > <div class="image" > \
-      <a href="../community/'+i.id+'><img src="http://beta.collabmates.com/media/'+i.image_url+'></a> \
+  $("#comm_card").append('<div class="ui link fluid cards onclick = "window.location = /community/'+i.id+'> <div class="ui fluid card " > <div class="image" > \
+      <img src="http://beta.collabmates.com/media/'+i.image_url+'"> \
     </div> \
     <div class="content" > \
       <div class="header" style="padding-bottom: 5px;"><a href="../community/'+ i.id+ ' " style="color:#1cb39b;">{{community.name}}</a></div > <span class="left floated" style="width:50%;"> \

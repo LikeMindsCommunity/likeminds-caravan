@@ -80,18 +80,19 @@
                         {% for i in similar_communities %}
                         
                                 <a class="image" href="../{{i.id}}">
-                                    <figcaption>{{i.name}}</figcaption>
-                                    <img class="ui image" src="http://beta.collabmates.com/media/{{ i.image_url }}">
                                     
+                                    <img class="ui image" src="http://beta.collabmates.com/media/{{ i.image_url }}" style="height:100px;" >
+                                    <figcaption>{{i.name}}</figcaption>
                                 </a>
-                   
-                        
-                        
                         {% endfor %}
+                        
                     </div>
                 </div>
                 </div>
                 
+                        <br>
+                        <br>
+                        <br>
               </div>
               
            <script>

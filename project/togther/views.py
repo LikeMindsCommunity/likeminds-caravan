@@ -34,7 +34,7 @@ def dashboard(request):
             print(social_user.extra_data['id'])
             if social_user:
                 if social_user.provider == 'facebook':
-                    url = "https://graph.facebook.com/v2.9/"+social_user.extra_data['id']+"?fields=name,email,gender,location,picture,link&access_token="+social_user.extra_data['access_token']
+                    url = "https://graph.facebook.com/v2.9/"+social_user.extra_data['id']+"?fields=name,email,gender,location,picture,link,headline&access_token="+social_user.extra_data['access_token']
                     print(url)
                     response = rqst.get(url)
                     data = json.loads(response.text)
