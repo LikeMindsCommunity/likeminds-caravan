@@ -7,12 +7,12 @@
         <div class="ui fluid card" style="margin:0; ">
            
           
-          <div class="content">
-                <div class="content">
-                    <img class="ui tiny left circular image" src="{{ info.0.image_url }} " style="width:40%; border: 1px solid black"> 
-                    <div class="right floated author" style="margin-top:20px;">
-                        <p>{{info.0.name}}</p>
-                        <p style="font-size: 12px; width : 120px;"> {{info.0.headline}} </p>
+          <div class="content" style="padding-bottom:0px;">
+                <div class="content" >
+                    <img class="ui tiny left floated circular image" src="{{ info.0.image_url }} " style="width:40%; border: 1px solid black"> 
+                    <div class="left floated author" style="margin-top:20px;">
+                        <p style="font-size: 14px;">{{info.0.name}}</p>
+                        <p style="font-size: 14px;"> {{info.0.headline}} </p>
                         {% if info.0.user_id.id == request.user.id %}
                         <i class="right floated pencil alternate icon" onclick="edit_headline();"></i>
                         
@@ -41,17 +41,19 @@
                               </div>
                           </div>
                           {% endif %}
-                        <p style="font-size: 12px; width : 120px;"> {{info.0.city}}</p>
+                        <p style="font-size: 14px; "> {{info.0.city}}</p>
                     </div>
                     
                     <br>
                     <br>
-                    <a href="https://{{info.0.fb_link}}"><i class="facebook f icon" style="margin-left:2%;"></i> </a>
-                    <a href="https://{{info.0.linkedin_link}}"><i class="linkedin icon" style="margin-left:25%;"></i></a>
-                    
-                  </div>    
+                   
+                 
             </div>
-
+            </div>
+            <div class="content" style="padding-top:0;">
+                <a href="https://{{info.0.fb_link}}"><i class="facebook f icon" style="margin-left:2%;"></i> </a>
+              <a href="https://{{info.0.linkedin_link}}"><i class="linkedin icon" style="margin-left:25%;"></i></a>
+            </div> 
 
             <div class="content">
               <div class="header">About Me/Summary
