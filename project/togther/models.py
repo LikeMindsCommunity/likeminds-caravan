@@ -46,6 +46,7 @@ class Form_response (models.Model):
 class Userinfo (models.Model):
     user_id = models.ForeignKey(User, on_delete=models.CASCADE)
     name = models.CharField(max_length = 200)
+    email = models.CharField(max_length = 200)
     city = models.CharField(max_length = 100, null = True)
     headline = models.CharField(max_length = 200, null= True)
     contact_number = models.CharField(max_length = 200,null = True)

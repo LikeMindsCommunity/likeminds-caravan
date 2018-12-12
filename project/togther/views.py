@@ -9,6 +9,9 @@ import requests as rqst
 from django.contrib.auth.models import User
 import json
 from django.http.response import JsonResponse
+from django.conf import settings
+from django.core.mail import send_mail
+
 
 
 
@@ -258,10 +261,15 @@ def requests(request):
                 mem.save()
                 comm.members_count = comm.members_count + 1
                 comm.save()
-                
+                email = req.user_info.email
+                print(email)
+                send_mail('Collabmates: Group Joining', 'Your request has been approved by the admin.', 'hello@collabmates.com', [email], fail_silently=False)
             else:
                 req.status = -1
                 req.save()
+                email = req.user_info.email
+                print(email)
+                send_mail('Collabmates: Group Joining', 'Your request has been Rejected by the admin.', 'hello@collabmates.com', [email], fail_silently=False)
             return JsonResponse({'status':'OK'})
     admins_communities = Admins.objects.all().filter(admin_id = request.user)
     print(admins_communities)
@@ -366,6 +374,16 @@ def join_community(request, community_id):
         comm = Community.objects.all().filter(id = community_id)
         req.community = comm[0]
         req.save()
+        admin = Admins.objects.all().filter(community_id = community_id)
+        u_info = Userinfo.objects.get(user_id = admin[0].admin_id)
+        
+        email = u_info.email
+        print(email)
+        try:
+            send_mail('Collabmates: Group Joining', 'Thankyou.', 'hello@collabmates.com', [email], fail_silently=False)
+            print(done)
+        except:
+            print(False) 
         return render(request,'thankyou.html',{'usr':user})
     else:
         data = Form_data.objects.all().filter(community_id = community_id)

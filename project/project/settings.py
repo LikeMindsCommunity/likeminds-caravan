@@ -167,3 +167,9 @@ SOCIAL_AUTH_LINKEDIN_EXTRA_DATA = [('id', 'id'),
                                    ('emailAddress', 'email_address'),
                                    ('headline', 'headline'),
                                    ('industry', 'industry')]
+
+EMAIL_HOST = 'smtp.sendgrid.net'
+EMAIL_HOST_USER = 'collabmates'
+EMAIL_HOST_PASSWORD = 'Nipun@git@123'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
