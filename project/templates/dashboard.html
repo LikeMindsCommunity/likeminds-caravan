@@ -6,55 +6,63 @@
 
 {% block content %}
 <body>
-        <div class=" ui fluid container" style="padding:10px 20px;">
-        <div class="ui grid">
-            <div class="eight wide column" style="padding-right:5px; ">
-                <div class="ui left aligned search" >
-                <div class="ui fluid icon input" id = 'result' > 
-                  <input class="ui fluid prompt"   type="text"  placeholder=" Categories..." id = 'cat' style="padding-right: 0px !important;"> 
-                  <i class="search icon" onclick="filter()"></i>
-                </div>
-                <div class="results" ></div>
-              </div>
-              </div>
-              <div class="eight wide column" style="padding-left:0px;">
-              <div class="ui right aligned search" >    
-                <div class="ui fluid icon input">
-                      <input class="ui fluid prompt" type="text"  id='lct' placeholder="Location...." style=" width: 95% ; padding-right: 2px !important; margin-left:2px;">
-                      <!-- <i class="map marker alternate icon"></i> -->
-                    </div>
-                    <div class="results"></div>
-            </div>
-            </div>
-
-        </div>
-            </div>
+        
             <div class="ui fluid container" style=" padding: 10px 0px" >
-              <h4>Welcome</h4>
+             
             <div class="ui link fluid cards" >
                 <div class="ui fluid card ">
                 <div class="ui fluid image mySlides">
-            
+                    <h4 class="ui center aligned text" style="margin:10px;"> Make Your Group Viral </h4>
                 <img  src="../media/media/1.png" style="height:180px;" >
-                <h4 class="ui center aligned text" style="margin:10px;"> Make Your Group Viral </h4>
+                
                 </div>
                 <div class="ui fluid image mySlides ">
+                    <h4 class="ui center aligned text" style="margin:10px;"> Find New Members </h4>
                 <img  src="../media/media/2.png" style="height:180px;" >
-                <h4 class="ui center aligned text" style="margin:10px;"> Find New Members </h4>
+                
                 </div>
                 <div class="ui fluid image mySlides">
+                    <h4 class="ui center aligned text" style="margin:10px;"> Autheticate Members </h4>
                 <img  src="../media/media/3.png" style="height:180px;" >
-                <h4 class="ui center aligned text" style="margin:10px;"> Autheticate Members </h4>
-
+                
               </div>
+              <div class="center aligned extra content" style="display:inline;">
+              <span onclick="change(1)"> <i class="circle icon"></i></span>
+              <span  onclick="change(2)"><i class="circle icon"></i></span>
+                <span  onclick="change(3)"><i class="circle icon"></i></span>
               </div>
-              </div>
-              
-              </div>
-              
               <div class="center aligned extra content">
-                  <button class="ui fluid button " style=" width:75%; z-index:2; left:2.5%; margin:10px auto; background-color: #1cb39b; color:white; " > Add Your Community  </button>
-          </div>
+                  <button class="ui fluid button " style=" width:75%; z-index:2; left:2.5%; margin:0px auto; background-color: #1cb39b; color:white; " onclick="createGroup();" > Add Your Community  </button>
+               </div>
+              </div>
+              
+              </div>
+              
+              </div>
+              <div class=" ui fluid container" style="padding:10px 20px;">
+                  <div class="ui grid">
+                      <div class="sixteen wide column" style="padding-right:5px; ">
+                          <div class="ui center aligned search" >
+                          <div class="ui fluid icon input" id = 'result' > 
+                            <input class="ui fluid prompt"   type="text"  placeholder=" Categories..." id = 'cat' style="width:100%; padding-right: 0px !important;"> 
+                            <i class="search icon" onclick="filter()"></i>
+                          </div>
+                          <div class="results" ></div>
+                        </div>
+                        </div>
+                        <!-- <div class="eight wide column" style="padding-left:0px;">
+                        <div class="ui right aligned search" >    
+                          <div class="ui fluid icon input">
+                                <input class="ui fluid prompt" type="text"  id='lct' placeholder="Location...." style=" width: 95% ; padding-right: 2px !important; margin-left:2px;">
+                                <i class="map marker alternate icon"></i>
+                              </div>
+                              <div class="results"></div>
+                      </div>
+                      </div> -->
+          
+                  </div>
+                      </div>
+              
     <div class="ui fluid container" style="padding: 0 20px" id = 'comm_card'>
         {{request.user.userinfo}}
     {% for community in communities %}
@@ -93,6 +101,11 @@
     {% endfor %}
 </div>
 <script>
+
+    function createGroup(){
+      window.location = '/creategroup'
+    }
+
     var myIndex = 0;
 carousel();
 
@@ -106,6 +119,16 @@ function carousel() {
     if (myIndex > x.length) {myIndex = 1}    
     x[myIndex-1].style.display = "block";  
     setTimeout(carousel, 3000); // Change image every 2 seconds
+}
+
+function change(j) {
+  var x = document.getElementsByClassName("mySlides");
+  for (i = 0; i < x.length; i++) {
+     x[i].style.display = "none";  
+  }
+     
+  x[j-1].style.display = "block";  
+  
 }
  
 

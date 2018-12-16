@@ -460,7 +460,8 @@ def thankyou(request):
         user = Userinfo.objects.all().filter(user_id = request.user)
     else :
         user = []
-    return render('thankyou.html', {'usr':user})
+    communities = Community.objects.all()
+    return render(request, 'thankyou.html', {'usr':user, 'similar_communities':communities})
 
 def my_communities(request, user_id):
     communities = Members.objects.all().filter(member_id = user_id)

@@ -51,8 +51,8 @@
             </div>
             </div>
             <div class="content" style="padding-top:0;">
-                <a href="https://{{info.0.fb_link}}"><i class="facebook f icon" style="margin-left:2%;"></i> </a>
-              <a href="https://{{info.0.linkedin_link}}"><i class="linkedin icon" style="margin-left:25%;"></i></a>
+                <i class="facebook f icon" style="margin-left:2%;" onclick="fb('{{info.0.fb_link}}')"></i> 
+              <i class="linkedin icon" style="margin-left:25%;" onclick="ld('{{info.0.linkedin_link}}');"></i>
             </div> 
 
             <div class="content">
@@ -367,6 +367,27 @@
 </body>
 
 <script>
+  function fb(i){
+    console.log(i);
+    if (i == ''){
+      edit_headline();
+    }
+    else{
+      url = 'https://'+i;
+      window.location = url;
+    }
+  }
+
+  function ld(i){
+    console.log(i);
+    if (i == ''){
+      edit_headline();
+    }
+    else{
+      url = 'https://'+i;
+      window.location = url;
+    }
+  }
 
   function hide(){
     $('.ui.modal').modal("hide");
