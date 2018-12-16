@@ -9,9 +9,9 @@
         <div class=" ui fluid container" style="padding:10px 20px;">
         <div class="ui grid">
             <div class="eight wide column" style="padding-right:5px; ">
-                div class="ui left aligned search" >
+                <div class="ui left aligned search" >
                 <div class="ui fluid icon input" id = 'result' > 
-                  <input class="ui fluid prompt"   type="text"  placeholder=" Categories..." id = 'cat' style="padding-right: 2px !important;"> 
+                  <input class="ui fluid prompt"   type="text"  placeholder=" Categories..." id = 'cat' style="padding-right: 0px !important;"> 
                   <i class="search icon" onclick="filter()"></i>
                 </div>
                 <div class="results" ></div>
@@ -20,7 +20,7 @@
               <div class="eight wide column" style="padding-left:0px;">
               <div class="ui right aligned search" >    
                 <div class="ui fluid icon input">
-                      <input class="ui fluid prompt" type="text"  id='lct' placeholder="Location...." style=" width: 100% ; padding-right: 2px !important;">
+                      <input class="ui fluid prompt" type="text"  id='lct' placeholder="Location...." style=" width: 95% ; padding-right: 2px !important; margin-left:2px;">
                       <!-- <i class="map marker alternate icon"></i> -->
                     </div>
                     <div class="results"></div>
@@ -39,7 +39,7 @@
             <div class="ui fluid card ">
                     
                     <div class=" fluid image">
-                      <img src="http://beta.collabmates.com/media/{{community.image_url}}" onclick="open_community('{{community.id}}');">
+                      <img src="https://beta.collabmates.com/media/{{community.image_url}}" onclick="open_community('{{community.id}}');">
                     </div>
                     <div class="content">
                       <div class="header" style="padding-bottom: 5px;"><a href="../community/{{community.id}}" style="color:#1cb39b;">{{community.name}}</a></div>
@@ -171,7 +171,7 @@
         for (j in comm){
         i = comm[j]
   $("#comm_card").append('<div class="ui link fluid cards onclick = "window.location = /community/'+i.id+'> <div class="ui fluid card " > <div class="image" > \
-      <img src="http://beta.collabmates.com'+i.image_url+'"> \
+      <img src="https://beta.collabmates.com'+i.image_url+'"> \
     </div> \
     <div class="content" > \
       <div class="header" style="padding-bottom: 5px;"><a href="../community/'+ i.id+ ' " style="color:#1cb39b;">{{community.name}}</a></div > <span class="left floated" style="width:50%;"> \
