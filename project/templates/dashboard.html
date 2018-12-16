@@ -9,7 +9,7 @@
         <div class=" ui fluid container" style="padding:10px 20px;">
         <div class="ui grid">
             <div class="eight wide column" style="padding-right:5px; ">
-            <div class="ui left aligned search" >
+                div class="ui left aligned search" >
                 <div class="ui fluid icon input" id = 'result' > 
                   <input class="ui fluid prompt"   type="text"  placeholder=" Categories..." id = 'cat' style="padding-right: 2px !important;"> 
                   <i class="search icon" onclick="filter()"></i>
@@ -17,7 +17,7 @@
                 <div class="results" ></div>
               </div>
               </div>
-              <div class="eight wide column" >
+              <div class="eight wide column" style="padding-left:0px;">
               <div class="ui right aligned search" >    
                 <div class="ui fluid icon input">
                       <input class="ui fluid prompt" type="text"  id='lct' placeholder="Location...." style=" width: 100% ; padding-right: 2px !important;">
@@ -59,7 +59,7 @@
                     </div>
                     <div class="extra content">
                             <div class="description">
-                                    {{community.about}}
+                                    {{community.purpose}}
                                   </div>
                       
                     </div>
@@ -87,7 +87,7 @@
                     resp = JSON.parse(resp);
                     var city = resp["results"][3]["formatted_address"]
                     console.log(city);
-                    //[0]['address_components'][3]
+                    
                     lct.value = city;
                   }
                 };
@@ -171,7 +171,7 @@
         for (j in comm){
         i = comm[j]
   $("#comm_card").append('<div class="ui link fluid cards onclick = "window.location = /community/'+i.id+'> <div class="ui fluid card " > <div class="image" > \
-      <img src="http://beta.collabmates.com/'+i.image_url+'"> \
+      <img src="http://beta.collabmates.com'+i.image_url+'"> \
     </div> \
     <div class="content" > \
       <div class="header" style="padding-bottom: 5px;"><a href="../community/'+ i.id+ ' " style="color:#1cb39b;">{{community.name}}</a></div > <span class="left floated" style="width:50%;"> \
@@ -183,7 +183,7 @@
           </span> \
     </div> \
     <div class="extra content"> \
-            <div class="description"> ' + i.about + ' </div> \
+            <div class="description"> ' + i.purpose + ' </div> \
     </div> \
   </div> \
 </div>');

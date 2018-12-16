@@ -24,18 +24,30 @@ class Members (models.Model):
     member_id = models.ForeignKey(User, on_delete=models.CASCADE)
     community_id = models.ForeignKey(Community, on_delete = models.CASCADE)
 
+    def __str__(self):
+        return self.community_id.name
+
 class Admins (models.Model):
     admin_id = models.ForeignKey(User, on_delete=models.CASCADE)
     community_id = models.ForeignKey(Community, on_delete = models.CASCADE)
+
+    def __str__(self):
+        return self.community_id.name
 
 class Category (models.Model):
     community_id = models.ForeignKey(Community, on_delete = models.CASCADE)
     category = models.CharField(max_length = 200)
 
+    def __str__(self):
+        return self.community_id.name
+
 class Form_data (models.Model):
     community_id = models.ForeignKey(Community, on_delete = models.CASCADE)
     data = models.CharField(max_length = 400)
-    data_type = models.CharField(max_length = 20, choices = response_choices, default = 'text') 
+    data_type = models.CharField(max_length = 20, choices = response_choices, default = 'text')
+
+    def __str__(self):
+        return self.community_id.name
 
 class Form_response (models.Model):
     data = models.TextField()

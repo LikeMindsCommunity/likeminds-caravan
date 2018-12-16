@@ -12,9 +12,9 @@
 
 </div>
 <body>
-            <div class="ui two cards" style="margin:10px 10px; ">
+    <div class="ui celled list">
                 {% for i in members %}
-                <div class="card" style=" margin-left: 0.5em; margin-right:0.5em; width: calc(50% - 1em) !important;" >
+                <!-- <div class="card" style=" margin-left: 0.5em; margin-right:0.5em; width: calc(50% - 1em) !important;" >
                   <div class="image">
                     <img src="{{i.image_url}}" onclick = "direct('{{i.user_id_id}}');">
                   </div>
@@ -22,9 +22,19 @@
                   <a href="{% url 'profile' i.user_id_id %}"> 
                     {{i.name}}</a>  
                   </div>
+                </div> -->
+                <div class="item">
+                            
+                    <div class="content" style="margin-left:10px; padding-left:10px;">
+                    <a class="header" href="../../profile/{{i.user_id.id}}"><img class="ui avatar image" style="margin-right:10px;" src="{{i.image_url}}">{{i.name}}</a>
+                    <!-- {% if i.interests != None %}
+                    <div class="description">Interested in  <a><b>{{i.interests}}</b></a> </div>
+                    {% endif %} -->
+                    </div>
                 </div>
                 {% endfor %}
-              </div>
+        </div>
+              
 </body>
 
 <script>

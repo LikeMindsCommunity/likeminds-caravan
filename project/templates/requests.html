@@ -33,8 +33,8 @@
                     </div>
                     <div class="extra content" id="extra">
                       <div class="ui two buttons" style="">
-                        <div class="ui basic green button" onclick='accept("{{i.id}}")' style="color:green !important ;" >Approve</div>
-                        <div class="ui basic red button" onclick='decline("{{i.id}}")' style="color:red !important ;">Decline</div>
+                        <div class="ui green button" onclick='accept("{{i.id}}")' >Approve</div>
+                        <div class="ui red button" onclick='decline("{{i.id}}")' >Decline</div>
                       </div>
                     </div>
                   </div>
@@ -57,7 +57,7 @@
         success: function(res){
           console.log(res);
           div.innerHTML = '';
-      $('#extra').append('<button class="ui fluid green basic button" style = "color:green !important; box-shadow: green !important; ">Accepted</button>');
+      $('#extra').append('<button class="ui fluid green button" >Accepted</button>');
       
     }});
   }
@@ -73,7 +73,7 @@
         success: function(res){
           console.log(res);
           div.innerHTML = '';
-          $('#extra').append('<button class="ui fluid red basic button" style = "color:red !important; ">Rejected</button>');
+          $('#extra').append('<button class="ui fluid red button" >Rejected</button>');
       
     }});
     }
