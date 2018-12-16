@@ -45,7 +45,8 @@ def dashboard(request):
                     info = Userinfo()
                     if 'name' in data:
                         info.name = data['name']
-                    info.email = data['email'] 
+                    if 'email' in data:
+                        info.email = data['email'] 
                     if 'location' in data:
                         info.city = data['location']['name']
                     info.image_url = data['picture']['data']['url']
