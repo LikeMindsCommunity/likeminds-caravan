@@ -12,26 +12,26 @@
             <div class="ui link fluid cards" >
                 <div class="ui fluid card ">
                 <div class="ui fluid image mySlides">
-                    <h4 class="ui center aligned text" style="margin:10px;"> Make Your Group Viral </h4>
+                    <!-- <h4 class="ui center aligned text" style="margin:10px;"> Make Your Group Viral </h4> -->
                 <img  src="../media/media/1.png" style="height:180px;" >
                 
                 </div>
                 <div class="ui fluid image mySlides ">
-                    <h4 class="ui center aligned text" style="margin:10px;"> Find New Members </h4>
+                    <!-- <h4 class="ui center aligned text" style="margin:10px;"> Find New Members </h4> -->
                 <img  src="../media/media/2.png" style="height:180px;" >
                 
                 </div>
                 <div class="ui fluid image mySlides">
-                    <h4 class="ui center aligned text" style="margin:10px;"> Autheticate Members </h4>
+                    <!-- <h4 class="ui center aligned text" style="margin:10px;"> Autheticate Members </h4> -->
                 <img  src="../media/media/3.png" style="height:180px;" >
                 
               </div>
-              <div class="center aligned extra content" style="display:inline;">
-              <span onclick="change(1)"> <i class="circle icon"></i></span>
-              <span  onclick="change(2)"><i class="circle icon"></i></span>
-                <span  onclick="change(3)"><i class="circle icon"></i></span>
+              <div class="center aligned extra content" style="display:inline; z-index:2; margin-top: -40px; ">
+              <span onclick="change(1)"> <i class="circle icon" style=" color:black;"></i></span>
+              <span  onclick="change(2)"><i class="circle icon" style=" color:black;" ></i></span>
+                <span  onclick="change(3)"><i class="circle icon" style=" color:black;"></i></span>
               </div>
-              <div class="center aligned extra content">
+              <div class="center aligned extra content" style="padding:5px;">
                   <button class="ui fluid button " style=" width:75%; z-index:2; left:2.5%; margin:0px auto; background-color: #1cb39b; color:white; " onclick="createGroup();" > Add Your Community  </button>
                </div>
               </div>
@@ -50,6 +50,7 @@
                           <div class="results" ></div>
                         </div>
                         </div>
+                      
                         <!-- <div class="eight wide column" style="padding-left:0px;">
                         <div class="ui right aligned search" >    
                           <div class="ui fluid icon input">
@@ -103,7 +104,13 @@
 <script>
 
     function createGroup(){
-      window.location = '/creategroup'
+      {% if user.is_authenticated %}
+      window.location = "/creategroup";
+  {% else %}
+  $('.ui.modal')
+  .modal('show')
+;
+  {% endif %}
     }
 
     var myIndex = 0;
@@ -142,7 +149,8 @@ function change(j) {
                 console.log(1)
                 console.log(location.coords.latitude);
                 console.log(location.coords.longitude);
-                lct = document.getElementById('lct');
+                lct = document.getElementsByClassName('lct');
+                console.log(lct);
                 url = 'https://maps.googleapis.com/maps/api/geocode/json?latlng='+location.coords.latitude+','+ location.coords.longitude+'&key=AIzaSyBWzqsPR2NYGai0sn5eZB9h9bTgttUifDQ';
                 var xhttp = new XMLHttpRequest();
                 xhttp.onreadystatechange = function() {
@@ -152,7 +160,7 @@ function change(j) {
                     var city = resp["results"][3]["formatted_address"]
                     console.log(city);
                     
-                    lct.value = city;
+                    lct.innerHTML = city;
                   }
                 };
                 xhttp.open("GET", url , true);

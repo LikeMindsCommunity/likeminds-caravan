@@ -21,7 +21,7 @@
         
         <div class="ui small inverted menu" style=" background-color:#1ebea5 ;margin:0;">
             <div class="ui grid container" style = "margin:0;">
-                <div class="twelve wide column" style="padding:0;">
+                <div class="eight wide column" style="padding:0;">
                   <a class="item" href="{% url 'dashboard' %}" style="padding:0;"> 
                       <div class="image">
                           <img src="/media/media/logo.png" alt="Logo" style="height:60px; width:60vw;">
@@ -38,6 +38,10 @@
                 <div class="results"></div>
               </div>
               </div> -->
+              <div class = "four wide column">
+                <p class="lct"></p>
+                </div>
+                
             <div class = "four wide column">
               <div class="right menu">
                   {% if user.is_authenticated %}
@@ -102,7 +106,7 @@
 
            
         <script>
-
+          
     $(function(){
       $("#test").click(function(){
         $(".test").modal('show');
