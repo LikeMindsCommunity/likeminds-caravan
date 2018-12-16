@@ -29,8 +29,8 @@ def home(request):
 def dashboard(request):
     
     if request.user.is_authenticated:
-        usr = Userinfo.objects.all().filter(user_id = request.user)
-        user = Userinfo.objects.all().filter(user_id = request.user)
+        usr = Userinfo.objects.get(user_id = request.user)
+        user = Userinfo.objects.get(user_id = request.user)
     
         if not usr :
             social_user = request.user.social_auth.filter(user_id = request.user.id).first()
