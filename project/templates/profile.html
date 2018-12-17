@@ -368,7 +368,6 @@
 
 <script>
   function fb(i){
-    console.log(i);
     if (i == ''){
       edit_headline();
     }
@@ -379,7 +378,6 @@
   }
 
   function ld(i){
-    console.log(i);
     if (i == ''){
       edit_headline();
     }
@@ -394,7 +392,6 @@
   }
   function send( mdl, id=1 ){
     var ele = document.getElementById(mdl);
-    console.log(ele)
     if(mdl == 'headline'){
       data = {"name": mdl, "headline":ele['headline'].value, "fb_link":ele['fb_link'].value, "linkedin_link":ele['linkedin_link'].value};
     }
@@ -471,9 +468,7 @@
   }
 
   function add(mdl){
-    console.log(mdl);
     var ele = document.getElementById(mdl);
-    console.log(ele)
     if(mdl == 'add_experience'){
       data = {"name": mdl, "title":ele['title'].value, "company":ele['company'].value, "from":ele['from'].value, "to":ele['to'].value, "location":ele['location'].value, "description":ele['description'].value};
     }
@@ -488,7 +483,6 @@
       cache:false,
       dataType: "json",
       success: function(res){
-        console.log('hi')
         $('.ui.modal').modal("hide");
         location.reload();
       }});

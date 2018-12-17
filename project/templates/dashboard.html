@@ -27,28 +27,112 @@
                 
               </div>
               <div class="center aligned extra content" style="display:inline; z-index:2; margin-top: -40px; ">
-              <span onclick="change(1)"> <i class="circle icon" style=" color:black;"></i></span>
-              <span  onclick="change(2)"><i class="circle icon" style=" color:black;" ></i></span>
-                <span  onclick="change(3)"><i class="circle icon" style=" color:black;"></i></span>
+              <span onclick="change(1)"> <i class="circle icon" style=" color:grey;"></i></span>
+              <span  onclick="change(2)"><i class="circle icon" style=" color:grey;" ></i></span>
+                <span  onclick="change(3)"><i class="circle icon" style=" color:grey;"></i></span>
               </div>
-              <div class="center aligned extra content" style="padding:5px;">
+              <!-- <div class="center aligned extra content" style="padding:5px;">
                   <button class="ui fluid button " style=" width:75%; z-index:2; left:2.5%; margin:0px auto; background-color: #1cb39b; color:white; " onclick="createGroup();" > Add Your Community  </button>
-               </div>
+               </div> -->
               </div>
               
               </div>
               
               </div>
-              <div class=" ui fluid container" style="padding:10px 20px;">
+              <div class=" ui fluid container" style=" padding:10px 20px;">
                   <div class="ui grid">
-                      <div class="sixteen wide column" style="padding-right:5px; ">
-                          <div class="ui center aligned search" >
+                      <div class="sixteen wide column" style="margin-left:10px; padding-right:5px; ">
+                          <!-- <div class="ui center aligned search" >
                           <div class="ui fluid icon input" id = 'result' > 
                             <input class="ui fluid prompt"   type="text"  placeholder=" Categories..." id = 'cat' style="width:100%; padding-right: 0px !important;"> 
                             <i class="search icon" onclick="filter()"></i>
                           </div>
                           <div class="results" ></div>
-                        </div>
+                        </div> -->
+                        <select id='selUser' style=" padding-left:10px; width:85%; height:30px; background:white; border: 0.5px solid silver; color: grey; border-radius:50px;">
+                            
+                            <option value="">Select Category</option>
+  <option value="alumni">Alumni</option>
+
+  <option value="college">College</option>
+
+  <option value="school">School</option>
+
+  <option value="profession">Profession</option>
+
+  <option value="native roots">Native Roots</option>
+
+  <option value="parenting">Parenting</option>
+
+  <option value="events">Events</option>
+
+  <option value="interests">Interests</option>
+
+  <option value="education">Education</option>
+
+  <option value="achievements">Achievements</option>
+
+  <option value="learning">Learning</option>
+
+  <option value="opportunities">Opportunities</option>
+
+  <option value="sports">Sports</option>
+
+  <option value="activities">Activities</option>
+
+  <option value="travel">Travel</option>
+
+  <option value="hobbies">Hobbies</option>
+
+  <option value="religious">Religious</option>
+
+  <option value="political">Political</option>
+
+  <option value="social">Social</option>
+
+  <option value="music">Music</option>
+
+  <option value="belief">Belief</option>
+
+  <option value="fan">Fan</option>
+
+  <option value="startups">Startups</option>
+
+  <option value="finance">Finance</option>
+
+  <option value="industry">Industry</option>
+
+  <option value="skill">Skill</option>
+
+  <option value="family">Family</option>
+
+  <option value="cause">Cause</option>
+
+  <option value="neighborhood">Neighborhood</option>
+
+  <option value="health &amp; wellness">Health &amp; Wellness</option>
+
+  <option value="Sports &amp; Fitness">Sports &amp; Fitness</option>
+
+  <option value="Food &amp; Drink">Food &amp; Drink</option>
+
+  <option value="Language &amp; Culture">Language &amp; Culture</option>
+
+  <option value="movement">Movement</option>
+
+  <option value="games">Games</option>
+
+  <option value="art">Art</option>
+
+  <option value="fashion">Fashion</option>
+
+  <option value="brand">Brand</option>
+                          </select>
+                          <i class="search icon" id = 'but_read' style="height:30px;"></i>
+                         
+                          <br/>
+                          <div id='result'></div>
+                          </div>
                         </div>
                       
                         <!-- <div class="eight wide column" style="padding-left:0px;">
@@ -60,10 +144,10 @@
                               <div class="results"></div>
                       </div>
                       </div> -->
-          
+                      
                   </div>
-                      </div>
-              
+
+                  
     <div class="ui fluid container" style="padding: 0 20px" id = 'comm_card'>
         {{request.user.userinfo}}
     {% for community in communities %}
@@ -102,6 +186,19 @@
     {% endfor %}
 </div>
 <script>
+
+    $(document).ready(function(){
+ 
+      
+    
+      // Read selected option
+      $('#but_read').click(function(){
+        var category = $('#selUser option:selected').text();
+        filter(category);
+      });
+    });
+    
+
 
     function createGroup(){
       {% if user.is_authenticated %}
@@ -146,11 +243,9 @@ function change(j) {
         }
         function getLocation(){   
             navigator.geolocation.getCurrentPosition(function(location) {
-                console.log(1)
-                console.log(location.coords.latitude);
-                console.log(location.coords.longitude);
+                
                 lct = document.getElementsByClassName('lct');
-                console.log(lct);
+                
                 url = 'https://maps.googleapis.com/maps/api/geocode/json?latlng='+location.coords.latitude+','+ location.coords.longitude+'&key=AIzaSyBWzqsPR2NYGai0sn5eZB9h9bTgttUifDQ';
                 var xhttp = new XMLHttpRequest();
                 xhttp.onreadystatechange = function() {
@@ -158,7 +253,7 @@ function change(j) {
                     var resp = this.responseText;
                     resp = JSON.parse(resp);
                     var city = resp["results"][3]["formatted_address"]
-                    console.log(city);
+                    
                     
                     lct.innerHTML = city;
                   }
@@ -220,10 +315,9 @@ function change(j) {
     //location = document.getElementById('location');
     
 
-    function filter(){
-        var category = document.getElementById('cat');
-        value = document.getElementsByTagName('input');
-        data = category.value;
+    function filter(val){
+        
+        data = val;
         
         var comm ;
         $.ajax({
@@ -233,13 +327,12 @@ function change(j) {
             cache:false,
             dataType: "json",
             success: function(res){
-              console.log(res);
+              
               comm = res['communities'];
             
         
       cont = document.getElementById('comm_card');
       cont.innerHTML = ""
-        console.log(comm);
         for (j in comm){
         i = comm[j]
   $("#comm_card").append('<div class="ui link fluid cards onclick = "window.location = /community/'+i.id+'> <div class="ui fluid card " > <div class="image" > \
@@ -268,7 +361,6 @@ function change(j) {
 
     $("#lct").keyup(function(){
       var txt = document.getElementById('lct');
-      console.log(txt.value);
       var url1 = "https://maps.googleapis.com/maps/api/place/autocomplete/jsonp?input="+txt.value+"&key=AIzaSyBWzqsPR2NYGai0sn5eZB9h9bTgttUifDQ";
       var xhttp = new XMLHttpRequest();
       xhttp.onreadystatechange = function() {
@@ -276,7 +368,6 @@ function change(j) {
           var resp = this.responseText;
           //resp = JSON.parse(resp);
           //var city = resp["results"][3]["formatted_address"]
-          console.log(resp);
           //[0]['address_components'][3]
           //lct.value = city;
         }
