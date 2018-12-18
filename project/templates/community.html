@@ -62,23 +62,28 @@
                         
                             <h4 class="ui sub header">
                                     Community Members
+
                                     <a class="right floated" style=" color:#1cb39b; font-weight:100;" href="{% url 'members_list' community.id %}"> See all</a>
                                   </h4>
+                        <br>
                         
-                        
-                                
-                        
+                                  <div class="ui small images features grid noMargin" style=" padding-left:10px;overflow-y:auto;white-space:nowrap;" >
+                                        
                         {% for i in members%}
-                        <div class="item">
-                            
-                            <div class="content">
-                            <a class="header" href="../../profile/{{i.user_id.id}}"><img class="ui avatar image" style="margin-right:10px;" src="{{i.image_url}}">{{i.name}}</a>
-                            <!-- {% if i.interests != None %}
-                            <div class="description">Interested in  <a><b>{{i.interests}}</b></a> </div>
-                            {% endif %} -->
-                            </div>
+                        <div class="four wide column greyOdd" style="margin: 5px; border: 0.1px solid black; box-shadow:1px 1px 10px 1px grey; border-radius:10px; padding:15px 5px 5px 5px;">
+                                <a class="header" href="../../profile/{{i.user_id.id}}" style="margin: 0 15px;">
+                                    <img class="ui mini circular image" style="height: 50px; width:50px; " src="{{i.image_url}}">
+                                    <br>
+                                    <p>{{i.name}}</p>
+                                </a>
+                               
+                                <br>
+                                
                         </div>
+  
+                            
                         {% endfor %}
+                    </div>
                     </div>
                   </div>
                   

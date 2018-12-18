@@ -7,7 +7,7 @@
 {% block content %}
 <body>
         
-            <div class="ui fluid container" style=" padding: 10px 0px" >
+            <div class="ui fluid container" style=" padding: 0px 0px" >
              
             <div class="ui link fluid cards" >
                 <div class="ui fluid card ">
@@ -39,9 +39,14 @@
               </div>
               
               </div>
-              <div class=" ui fluid container" style=" padding:10px 20px;">
+
+              <div class=" ui fluid container" style=" padding:0px 20px;">
                   <div class="ui grid">
-                      <div class="sixteen wide column" style="margin-left:10px; padding-right:5px; ">
+                      
+                      <div class="sixteen wide column" style="  margin: 0 auto; padding-right:5px; ">
+                        <center style="margin: 10px;">
+                          <h3> Popular Communities Nearby</h3>
+                        </center>
                           <!-- <div class="ui center aligned search" >
                           <div class="ui fluid icon input" id = 'result' > 
                             <input class="ui fluid prompt"   type="text"  placeholder=" Categories..." id = 'cat' style="width:100%; padding-right: 0px !important;"> 
@@ -49,9 +54,9 @@
                           </div>
                           <div class="results" ></div>
                         </div> -->
-                        <select id='selUser' style=" padding-left:10px; width:85%; height:30px; background:white; border: 0.5px solid silver; color: grey; border-radius:50px;">
+                        <select id='selUser' style=" margin-left: 20px; padding-left:10px; width:85%; height:30px; background:white; border: 0.5px solid silver; color: grey; border-radius:50px;">
                             
-                            <option value="">Select Category</option>
+                            <option value="">Explore by Category</option>
   <option value="alumni">Alumni</option>
 
   <option value="college">College</option>
@@ -128,7 +133,7 @@
 
   <option value="brand">Brand</option>
                           </select>
-                          <i class="search icon" id = 'but_read' style="height:30px;"></i>
+                          <i class="search icon" id = 'but_read' style=" height:30px;"></i>
                          
                           <br/>
                           <div id='result'></div>
