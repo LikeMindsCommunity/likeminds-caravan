@@ -40,11 +40,14 @@ INSTALLED_APPS = [
     'social_django',
     'rest_framework',
     'togther',
+    'django_select2',
+    'corsheaders',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -173,3 +176,6 @@ EMAIL_HOST_USER = 'collabmates'
 EMAIL_HOST_PASSWORD = 'Nipun@git@123'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
+
+
+CORS_ORIGIN_ALLOW_ALL = True   

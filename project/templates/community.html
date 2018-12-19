@@ -1,4 +1,6 @@
 {% extends 'base.html' %}
+
+
 {% block content %}
 
 <div class=" ui small breadcrumb" style="padding: 0 10px;">
@@ -90,9 +92,9 @@
                         <h4> Similar Communities </h4>
                         <div class="ui container" style=" padding-left:10px; overflow-y:auto;white-space:nowrap;" >
                         {% for i in similar_communities %}
-                        <div class="ui card" style="display:inline-block; width:150px; padding:10px 0px; margin-right:10px;">
+                        <div class="ui card" style="display:inline-block; width:150px; padding:0px 0px; margin-right:10px;">
                                 <a href="../{{i.id}}"  >
-                                  <img class="ui medium fluid image" src="https://beta.collabmates.com/media/{{i.image_url}}" style=" margin:0 auto; height:80px; width: 150px;">
+                                  <img class="ui medium fluid image" src="https://beta.collabmates.com/media/{{i.image_url}}" style=" margin:0 auto; height:100px; width: 150px;">
                                 </a>
                                 <div class="content">
                                   <a class="header" href="../{{i.id}}" style="margin: 0 auto; overflow-x:hidden ; text-align:center; ">{{i.name}}</a>

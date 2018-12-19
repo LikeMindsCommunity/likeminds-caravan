@@ -147,7 +147,7 @@ def creategroup(request):
             category = Category()
             f = form.data.dict()
             print (f)
-            print (type(f))
+            print (form.cleaned_data.get('category'))
             category.category = f["category"]
             category.community_id_id = group.id
             category.save()

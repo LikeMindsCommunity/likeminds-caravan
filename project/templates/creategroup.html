@@ -1,14 +1,19 @@
 {% extends 'base.html' %}
-
+{{ form.media.css }}
+{{ form.media.js }}
 {% block content %}
+
 <form method="post" enctype="multipart/form-data" style="padding:10px 10vw; width:100%; margin:0 auto;">
   {% csrf_token %}
   {{ form.as_p }}
   <button class="ui fluid button " style=" z-index:2;width:100%; left:10vh; margin:0 auto; background-color: #1cb39b; color:white; bottom:1%;" > Create Group  </button>
 </form>
+
+
   <script>
-    //$('select').addClass('ui fluid search dropdown');
-    $('.ui.dropdown').dropdown();
+
+     
+
     $('form').addClass('ui form ui fluid card');
       document.getElementById("id_location").onkeyup = function(){
       var place = document.getElementById("id_location");
@@ -27,7 +32,7 @@
         }
       };
       xhttp.open("GET", url1 , true);
-      xhttp.send();
+      xhttp.send({withCredentials:true});
     }
 
 
