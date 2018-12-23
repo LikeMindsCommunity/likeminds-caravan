@@ -2,17 +2,65 @@
 {{ form.media.css }}
 {{ form.media.js }}
 {% block content %}
+<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/multiple-select/1.2.2/multiple-select.min.css">
 
-<form method="post" enctype="multipart/form-data" style="padding:10px 10vw; width:100%; margin:0 auto;">
+<!-- Latest compiled and minified JavaScript -->
+<script src="//cdnjs.cloudflare.com/ajax/libs/multiple-select/1.2.2/multiple-select.min.js"></script>
+
+<form method="POST" action="" enctype="multipart/form-data" style="padding:10px 10vw; width:100%; margin:0 auto;">
   {% csrf_token %}
-  {{ form.as_p }}
+  <!-- {{ form.as_p }} -->
+  <div class="field">
+      <label>Name</label>
+      <input type="text" name="name" placeholder="Name" required>
+    </div>
+    <div class="field">
+      <label>Purpose  </label>
+      <!-- <input disabled  maxlength="3" size="3" value="" id="counter"> -->
+      <input type="text" name="purpose" id= "message" onkeyup="textCounter(this,'counter');" placeholder="Purpose" required>
+      <span id="counter" > </span> 
+    </div>
+    <div class="field">
+        <div class="field">
+            <label>About</label>
+            <textarea style="white-space: pre-line;" name="about"></textarea>
+        </div>
+      </div>
+    <div class="field">
+      <label>Location of Prospective members</label>
+      <input type="text" name="location" placeholder="Location of Prospective members" required>
+    </div>
+    <div class="field">
+       <label>Categories</label>
+        <select multiple="multiple" id="select" name="category" class="ui multiple dropdown" style="max-width:498px; width:80vw;" required>
+            
+            <option value="alumni">Alumni</option>
+            <option value="college">College</option>
+            <option value="school">School</option>
+            <option value="native Roots">Native Roots</option>
+            <option value="parenting">Parenting</option>
+            <option value="events">Events</option>
+            <option value="interests">Interests</option>
+            <option value="education">Education</option>
+        </select>
+      </div>
+    <div class="field">
+        <label> Image </label>
+      <!-- <input type="text" name="image_url" placeholder="Image URL"> -->
+       <!-- <br> OR <br> -->
+      <input type="file" name="image" accept="image/*">
+      </div>
+      <div class="field">
+          <label>WhatsApp Group Link</label>
+          <input type="text" name="whatsapp_link" placeholder="Group Link">
+        </div>
+    
   <button class="ui fluid button " style=" z-index:2;width:100%; left:10vh; margin:0 auto; background-color: #1cb39b; color:white; bottom:1%;" > Create Group  </button>
 </form>
 
 
   <script>
-
-     
+      $('#select').multipleSelect();
 
     $('form').addClass('ui form ui fluid card');
       document.getElementById("id_location").onkeyup = function(){
@@ -21,19 +69,31 @@
       console.log(place);
       var url1 = "https://maps.googleapis.com/maps/api/place/autocomplete/jsonp?input="+place+"&key=AIzaSyBWzqsPR2NYGai0sn5eZB9h9bTgttUifDQ";
       var xhttp = new XMLHttpRequest();
-      xhttp.onreadystatechange = function() {
-        if (this.readyState == 4 && this.status == 200) {
-          var resp = this.responseText;
-          console.log(resp);
+      //xhttp.onreadystatechange = function() {
+      //  if (this.readyState == 4 && this.status == 200) {
+      //    var resp = this.responseText;
+       //   console.log(resp);
           //resp = JSON.parse(resp);
           //var city = resp["results"][3]["formatted_address"]
           //[0]['address_components'][3]
           //lct.value = city;
-        }
-      };
-      xhttp.open("GET", url1 , true);
-      xhttp.send({withCredentials:true});
+        //}
+      //};
+      //xhttp.open("GET", url1 , true);
+      //xhttp.send({withCredentials:true});
     }
+
+  function textCounter(field,field2)
+{
+var maxlimit = 300;
+ var countfield = document.getElementById(field2);
+ if ( field.value.length > maxlimit ) {
+  field.value = field.value.substring( 0, maxlimit );
+  return false;
+ } else {
+  countfield.innerHTML = maxlimit - field.value.length;
+ }
+}
 
 
 

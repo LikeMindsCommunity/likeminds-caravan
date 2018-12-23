@@ -25,10 +25,10 @@
                   
                   <div class="ui small feed">
                     <div class="event">
-                      <div class="content">
-                            <h4 class=" center aligned ui sub header" style="margin-bottom:2px;">About</h4>
+                      <div class="content" >
+                            <h4 class=" center aligned ui sub header"  style="margin-bottom:2px;">About</h4>
                         <div class="summary center aligned">
-                           <p style="font-weight:100;">{{community.about}}</p>
+                           <p style="font-weight:100;" id = "more">{{community.about}}</p>
                         </div>
                       </div>
                     </div>
@@ -111,6 +111,20 @@
                         <br>
               </div>
               
+              <style>
+            a.morelink {
+                text-decoration:none;
+                outline: none;
+            }
+            .morecontent span {
+                display: none;
+            }
+            .comment {
+                width: 400px;
+                background-color: #f0f0f0;
+                margin: 10px;
+            }
+        </style>
            <script>
                 function join(){
                     {% if user.is_authenticated %}
@@ -122,6 +136,39 @@
                     {% endif %}
                 }
 
+                $(document).ready(function() {
+                    var showChar = 200;
+                    var ellipsestext = "...";
+                    var moretext = "more";
+                    var lesstext = "less";
+                    $('#more').each(function() {
+                        var content = $(this).html();
+                        
+                        if(content.length > showChar) {
+                            console.log(content.length);
+                            var c = content.substr(0, showChar);
+                            var h = content.substr(showChar-1, content.length - showChar);
+                
+                            var html = c + '<span class="moreellipses">' + ellipsestext+ '&nbsp;</span><span class="morecontent"><span>' + h + '</span>&nbsp;&nbsp;<a href="" class="morelink">' + moretext + '</a></span>';
+                
+                            $(this).html(html);
+                        }
+                
+                    });
+                
+                    $(".morelink").click(function(){
+                        if($(this).hasClass("less")) {
+                            $(this).removeClass("less");
+                            $(this).html(moretext);
+                        } else {
+                            $(this).addClass("less");
+                            $(this).html(lesstext);
+                        }
+                        $(this).parent().prev().toggle();
+                        $(this).prev().toggle();
+                        return false;
+                    });
+                });
                 
            </script>
 {% endblock %}

@@ -32,7 +32,8 @@
                         </div>
                     </div>
                     <div class="extra content" id="extra">
-                      <div class="ui two buttons" style="">
+                      <div class="ui two buttons" >
+                          
                         <div class="ui green button" onclick='accept("{{i.id}}")' >Approve</div>
                         <div class="ui red button" onclick='decline("{{i.id}}")' >Decline</div>
                       </div>
@@ -47,6 +48,7 @@
   </div>
   <script>
     function accept( id ){
+      
       div = document.getElementById('extra');
       $.ajax({
         url: "",
@@ -54,12 +56,18 @@
         data: {"status": 1, "id": id },
         cache:false,
         dataType: "json",
-        success: function(res){
+        beforeSend: function() {
           div.innerHTML = '';
-      $('#extra').append('<button class="ui fluid green button" >Accepted</button>');
-      
-    }});
-  }
+          $('#extra').append('<img src="https://beta.collabmates.com/media/media/ajax-loader.gif" id="loading-indicator" style="display:none" />');
+          
+        },
+        complete: function(event, request, settings) {
+          div.innerHTML = '';
+          $('#extra').append('<button class="ui fluid green button" >Accepted</button>');
+          
+        }
+      });
+    }
 
     function decline( id ){
       div = document.getElementById('extra');
@@ -69,11 +77,19 @@
         data: {"status": 0, "id":id},
         cache:false,
         dataType: "json",
-        success: function(res){
+        beforeSend: function() {
+          div.innerHTML = '';
+          $('#extra').append('<img src="https://beta.collabmates.com/media/media/ajax-loader.gif" id="loading-indicator" style="display:none" />');
+          
+        },
+        complete: function(event, request, settings) {
           div.innerHTML = '';
           $('#extra').append('<button class="ui fluid red button" >Rejected</button>');
+          
+        }
+          
       
-    }});
+    });
     }
   </script>
 

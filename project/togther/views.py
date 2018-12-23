@@ -88,6 +88,7 @@ def dashboard(request):
                         'image_url':i.community_id.image_url.url,
                         'location':i.community_id.location,
                         'members_count':i.community_id.members_count,
+                        'purpose': i.purpose,
                         }
                     communities.append(comm)
                 print('comm :',communities)
@@ -139,38 +140,48 @@ def community(request, community_id):
 
 @login_required
 def creategroup(request):
+    print(request)
     if request.method == 'POST':
-        form = NewGroupForm(request.POST,request.FILES )
-        if form.is_valid():
-            group = form.save()
-            group.members_count = group.members_count + 1
+        print('here')
+        res = request.POST.dict()
+        img = request.FILES.dict()
+        print(img)
+        print(res)
+        group = Community()
+        group.members_count = group.members_count + 1
+        group.name = res['name']
+        group.about = res['about']
+        group.purpose = res['purpose']
+        group.location = res['location']
+        if 'image' in img:
+            print('yeah')
+            group.image_url = img['image']
+        if 'whatsapp_link' in res:
+            group.whatsapp_group_link = res['whatsapp_link']
+        group.save()
+
+        categories = request.POST.getlist('category')
+        for i in categories:
             category = Category()
-            f = form.data.dict()
-            print (f)
-            print (form.cleaned_data.get('category'))
-            category.category = f["category"]
+            category.category = i
             category.community_id_id = group.id
             category.save()
-            group.save()
-            print(group)
-            admin = Admins()
-            admin.admin_id = request.user
-            community = Community.objects.get(id = group.id)
-            print (community)
-            admin.community_id = community
-            admin.save()
-            member = Members()
-            member.member_id = request.user
-            member.community_id = community
-            member.save()
-            return redirect('form_data', community_id = group.id)
-    else:
-        form = NewGroupForm()
+
+        admin = Admins()
+        admin.admin_id = request.user
+        community = Community.objects.get(id = group.id)
+        admin.community_id = community
+        admin.save()
+        member = Members()
+        member.member_id = request.user
+        member.community_id = community
+        member.save()
+        return redirect('form_data', community_id = group.id)
     if request.user.is_authenticated:
         user = Userinfo.objects.all().filter(user_id = request.user)
     else:
         user = []
-    return render(request, 'creategroup.html', { 'usr':user ,'form': form})
+    return render(request, 'creategroup.html', { 'usr':user})
 
 @login_required
 def profile(request, user_id):
@@ -244,7 +255,7 @@ def recieved_requests(request):
         r = Requests.objects.all().filter( community_id_id = c.admin_id_id)
         req.append(r)
     return render (request,'requests.html', {'req': req})    
-
+@login_required
 def requests(request):
 
     if request.method == 'GET':
