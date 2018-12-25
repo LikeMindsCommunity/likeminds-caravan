@@ -6,6 +6,7 @@
 
 <!-- Latest compiled and minified JavaScript -->
 <script src="//cdnjs.cloudflare.com/ajax/libs/multiple-select/1.2.2/multiple-select.min.js"></script>
+<script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA2OaubFK36a1_pNeNVSuiikTP8T5cduQs&libraries=places"></script>
 
 <form method="POST" action="" enctype="multipart/form-data" style="padding:10px 10vw; width:100%; margin:0 auto;">
   {% csrf_token %}
@@ -28,7 +29,7 @@
       </div>
     <div class="field">
       <label>Location of Prospective members</label>
-      <input type="text" name="location" placeholder="Location of Prospective members" required>
+      <input type="text" name="location" id="searchTextField" placeholder="Location of Prospective members" required>
     </div>
     <div class="field">
        <label>Categories</label>
@@ -95,6 +96,12 @@ var maxlimit = 300;
  }
 }
 
+function initialize() {
+  var input = document.getElementById('searchTextField');
+  new google.maps.places.Autocomplete(input);
+}
+
+google.maps.event.addDomListener(window, 'load', initialize);
 
 
   </script>

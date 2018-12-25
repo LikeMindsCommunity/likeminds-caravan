@@ -466,6 +466,7 @@ def form_data(request, community_id):
     
     return redirect('community', community_id)
 
+@login_required
 def thankyou(request):
     if request.user.is_authenticated:
         user = Userinfo.objects.all().filter(user_id = request.user)

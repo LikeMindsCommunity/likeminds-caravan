@@ -250,17 +250,25 @@ function change(j) {
             navigator.geolocation.getCurrentPosition(function(location) {
                 
                 lct = document.getElementsByClassName('lct');
-                
+                console.log(location.coords.latitude);
+                console.log(location.coords.longitude);
                 url = 'https://maps.googleapis.com/maps/api/geocode/json?latlng='+location.coords.latitude+','+ location.coords.longitude+'&key=AIzaSyBWzqsPR2NYGai0sn5eZB9h9bTgttUifDQ';
                 var xhttp = new XMLHttpRequest();
                 xhttp.onreadystatechange = function() {
                   if (this.readyState == 4 && this.status == 200) {
                     var resp = this.responseText;
                     resp = JSON.parse(resp);
-                    var city = resp["results"][3]["formatted_address"]
-                    
-                    
-                    lct.innerHTML = city;
+                    var add = resp["results"][0]["formatted_address"]
+                    var  value=add.split(",");
+
+                    count=value.length;
+                    country=value[count-1];
+                    state=value[count-2];
+                    city=value[count-3];
+                    console.log(city);
+                    ele = document.getElementById("lct");
+                    ele.innerHTML = '';
+                    ele.innerHTML = city;
                   }
                 };
                 xhttp.open("GET", url , true);

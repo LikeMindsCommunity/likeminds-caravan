@@ -45,7 +45,7 @@
                 <div class="eight wide column" style="padding:0;">
                   <a class="item" href="{% url 'dashboard' %}" style="padding:0;"> 
                       <div class="image">
-                          <img src="/media/media/logo.png" alt="Logo" style="margin-left:10px; height:60px; width:60vw; max-width:240px;">
+                          <img src="/media/media/logo.png" alt="Logo" style="margin-left:0px; height:60px; width:60vw; max-width:240px;">
                         </div>
                   </a>
                 </div>
@@ -59,11 +59,9 @@
                 <div class="results"></div>
               </div>
               </div> -->
-              <div class = "four wide column">
-                <p class="lct"></p>
-                </div>
-                
-            <div class = "four wide column">
+              <div class = "eight wide column" style="color:white;">
+                  <div class="menu" >
+             
               <div class="right menu">
                   {% if user.is_authenticated %}
                   <div class="ui simple dropdown item" style="padding:0;">
@@ -119,8 +117,9 @@
                     </div>
                     </div>
                </div>
+               <a class="item"  style="float:right; margin-right:10px; " href= "#"><span id="lct" style = "overflow:hidden;"> Location </span></a>
               </div>
-              
+              </div>
              </div>
         </div>
                   
