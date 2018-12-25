@@ -3,7 +3,7 @@
 
 {% block content %}
 
-<div class=" ui small breadcrumb" style="padding: 0 10px;">
+<div class=" ui small breadcrumb" style="padding: 5px 10px;">
         <a class="section" href = "{% url 'home' %}">Home</a>
         <i class="right chevron icon divider"></i>
 
@@ -15,7 +15,7 @@
                 <img src='/media/{{community.image_url}}'> 
             </div>
         
-            <div class="content" style="padding-bottom:0;">
+            <div class="content" >
                 <a class="center aligned header">{{ community.name }}</a>
                 <span class="left floated text" style="width:50%;"><i class="map marker alternate icon"></i>{{community.location}}</span>
                 <span class="right floated text"><a href = "{% url 'members_list' community.id %}" style="color:#1cb39b;">{{community.members_count}} Members </a></span>
@@ -26,7 +26,7 @@
                   <div class="ui small feed">
                     <div class="event">
                       <div class="content" >
-                            <h4 class=" center aligned ui sub header"  style="margin-bottom:2px;">About</h4>
+                            <h4 class=" center aligned ui header"  style="margin-bottom:2px;">About</h4>
                         <div class="summary center aligned">
                            <p style="font-weight:100;" id = "more">{{community.about}}</p>
                         </div>
@@ -34,7 +34,7 @@
                     </div>
                     <div class="event">
                             <div class="content">
-                                  <h4 class=" center aligned ui sub header" style="margin-bottom:2px;">Purpose</h4>
+                                  <h4 class=" center aligned ui  header" style="margin-bottom:2px;">Purpose</h4>
                               <div class="summary center aligned">
                                  <p style="font-weight:100;">{{community.purpose}}</p>
                               </div>
@@ -49,7 +49,7 @@
                             </p>
                         </div>
                         <div class="right floated summary">
-                                <p style="font-size:1.1em;"> Admins <br> <br><img class="ui mini image" style=" height:35px; width:35px;" src="{{admins.0.0.image_url}}">
+                                <p style="font-size:1.1em;"> Admins <br><img class="ui mini image" style=" height:35px; width:35px;" src="{{admins.0.0.image_url}}">
                                      <a href='../../profile/{{admins.0.0.user_id.id}}' style="font-weight:100; font-size:0.9em !important;">{{admins.0.0.name}} </a></p>
                         </div>
                       </div>

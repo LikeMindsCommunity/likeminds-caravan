@@ -7,7 +7,7 @@
         <div class="ui fluid card" style="margin:0; ">
            
           
-          <div class="content" style="padding-bottom:0px;">
+          <div class="content">
                 <div class="content" >
                     <img class="ui tiny left floated circular image" src="{{ info.0.image_url }} " style="width:40%; border: 1px solid black"> 
                     <div class="left floated author" style="margin-top:20px;">
@@ -44,17 +44,16 @@
                         <p style="font-size: 14px; "> {{info.0.city}}</p>
                     </div>
                     
-                    <br>
-                    <br>
-                   
+                  
+             
                  
             </div>
             </div>
-            <div class="content" style="padding-top:0;">
-                <i class="facebook f icon" style="margin-left:2%;" onclick="fb('{{info.0.fb_link}}')"></i> 
+             
+ <div class="content" style="border: 0px;">
+              <i class="facebook f icon" style="margin-left:2%;" onclick="fb('{{info.0.fb_link}}')"></i> 
               <i class="linkedin icon" style="margin-left:25%;" onclick="ld('{{info.0.linkedin_link}}');"></i>
             </div> 
-
             <div class="content">
               <div class="header">About Me/Summary
                   {% if info.0.user_id.id == request.user.id %}
@@ -348,8 +347,9 @@
                   
 
               <div class="ui celled list">
-                        <h4> My Communities </h4>
+                        
                         <div class="ui container" style=" padding-left:10px; overflow-y:auto;white-space:nowrap;" >
+                        <h4 style=" margin-bottom: 0px;"> My Communities </h4>
                         {% for i in my_communities %}
                         <div class="ui card" style="display:inline-block; width:150px; padding:0px 0px; margin-right:10px;">
                                 <a href="../community/{{i.id}}"  >
