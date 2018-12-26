@@ -397,13 +397,16 @@ def join_community(request, community_id):
             send_mail('Collabmates: Group Joining', 'Thankyou.', 'hello@collabmates.com', [email], fail_silently=False)
             print(done)
         except:
-            print(False) 
-        return render(request,'thankyou.html',{'usr':user})
+            print(False)
+        communities = Community.objects.all()
+        return render(request, 'thankyou.html', {'usr':user, 'similar_communities':communities}) 
+        
     else:
         data = Form_data.objects.all().filter(community_id = community_id)
         print('data:',data)
         if not data:
-            return render(request,'thankyou.html',{'usr':user})
+            communities = Community.objects.all()
+            return render(request, 'thankyou.html', {'usr':user, 'similar_communities':communities}) 
         else:
             community = Community.objects.get(id = community_id)
             return render(request,'response_form.html',{"data":data, 'usr':user, 'community':community})
