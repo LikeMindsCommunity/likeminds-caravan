@@ -4,14 +4,14 @@
 
       <html lang="zxx" class="no-js">
           <head>
-          <script src="//js.growsurf.com/v1"></script>	
+          	
             <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
             
             <link rel="shortcut icon" href="https://beta.collabmates.com/media/media/favicon.ico">
             
             <meta name="author" content="colorlib">
             
-            <meta name="description" content="">
+          
             
             <meta name="keywords" content="">
             
@@ -45,7 +45,7 @@
                 <div class="eight wide column" style="padding:0;">
                   <a class="item" href="{% url 'dashboard' %}" style="padding:0;"> 
                       <div class="image">
-                          <img src="/media/media/logo.png" alt="Logo" style="margin-left:0px; height:60px; width:60vw; max-width:240px;">
+                          <img src="/media/media/logo.png" alt="Logo" style="margin-left:0px; height:60px; width:40vw; max-width:240px;">
                         </div>
                   </a>
                 </div>
@@ -60,8 +60,22 @@
               </div>
               </div> -->
               <div class = "eight wide column" style="color:white;display:inline;">
-                  <div class="menu" >
-                  {% comment %} <a class="item"  style="float:right; " href= "#"><span id="lct" style = "overflow-y:hidden;">  </span></a> {% endcomment %}
+                   <div class="menu" >
+                  <a class="item"  style="float:left; " href= "#"><span id="lct" style = "overflow-y:hidden;" onclick = "loct();">  </span></a>
+                  <div class="ui modal loct">
+                      
+                          <div class="ui fluid card " style="border: 2px solid #1ebea5; margin:0 0 ; padding: 10px 10px;">
+                 <h2 class="ui teal center aligned header">
+                   <div class="field">
+                     <input type="text" name="location" id="searchTextField" placeholder="Location" required>
+                     <div class="ui basic green button" onclick="save();">Save Changes</div>
+                                <div class="ui basic red button" onclick="hide();">Discard Changes</div>
+                   </div>
+                 </h2>
+                    </div>
+                    </div>
+               
+
                   </div>
               <div class="right menu" style="float:right; ">
                   {% if user.is_authenticated %}
@@ -120,7 +134,9 @@
                
               </div>
               </div>
+              
              </div>
+            
         </div>
                   
 
@@ -135,6 +151,15 @@
         closable: true
       });
     });
+
+       function hide(){
+    $('.ui.modal').modal("hide");
+  }
+function save(){
+  ele = document.getElementById('lct');
+  ele = document.getElementById('lct');
+  ele.value = val;
+} 
         </script>
       <div style="margin:0 auto; max-width:786px;">
       {% block content %}

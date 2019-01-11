@@ -68,25 +68,7 @@
 ;
 
     $('form').addClass('ui form ui fluid card');
-      document.getElementById("id_location").onkeyup = function(){
-      var place = document.getElementById("id_location");
-      place = place.value;
-      console.log(place);
-      var url1 = "https://maps.googleapis.com/maps/api/place/autocomplete/jsonp?input="+place+"&key=AIzaSyBWzqsPR2NYGai0sn5eZB9h9bTgttUifDQ";
-      var xhttp = new XMLHttpRequest();
-      //xhttp.onreadystatechange = function() {
-      //  if (this.readyState == 4 && this.status == 200) {
-      //    var resp = this.responseText;
-       //   console.log(resp);
-          //resp = JSON.parse(resp);
-          //var city = resp["results"][3]["formatted_address"]
-          //[0]['address_components'][3]
-          //lct.value = city;
-        //}
-      //};
-      //xhttp.open("GET", url1 , true);
-      //xhttp.send({withCredentials:true});
-    }
+
 
   function textCounter(field,field2)
 {

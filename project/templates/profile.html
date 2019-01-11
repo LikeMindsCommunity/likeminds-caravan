@@ -10,9 +10,9 @@
           <div class="content">
                 <div class="content" >
                     <img class="ui tiny left floated circular image" src="{{ info.0.image_url }} " style="width:40%; border: 1px solid black"> 
-                    <div class="left floated author" style="margin-top:20px;">
+                    <div class="left floated author" style="margin-top:20px; width:50%;">
                         <p style="font-size: 14px;">{{info.0.name}}</p>
-                        <p style="font-size: 14px;"> {{info.0.headline}} </p>
+                        <p style="font-size: 14px; word-wrap: break-word;"> {{info.0.headline}} </p>
                         {% if info.0.user_id.id == request.user.id %}
                         <i class="right floated pencil alternate icon" onclick="edit_headline();"></i>
                         
@@ -23,14 +23,6 @@
                                       <label>Headline</label>
                                       <input type="text" name="headline" placeholder=Headline value="{{info.0.headline}}">
                                     </div>
-                                    <div class="field">
-                                      <label>Facebook Link</label>
-                                      <input type="text" name="fb_link" value="{{info.0.fb_link}}">
-                                    </div>
-                                    <div class="field">
-                                        <label>linkedin Link</label>
-                                        <input type="text" name="linkedin_link" value="{{info.0.linkedin_link}}">
-                                      </div>
                                   </form>
                                   <br>
                               <div class="ui two buttons">
@@ -63,7 +55,7 @@
                       <form class="ui form" id='summary' style="margin: 20px 20px;">
                           <div class="field">
                             <label>About me/Summary</label>
-                            <textarea name='summary' value = "{{info.0.about}}"></textarea>
+                            <textarea name='summary'>{{info.0.about}}</textarea>
                         </div>
                         <div class="ui two buttons">
                             <div class="ui basic green button" onclick="send('summary');">Save Changes</div>
@@ -371,21 +363,21 @@
 
 <script>
   function fb(i){
-    if (i == ''){
+    if (i == '' || i == 'None' || i == 'none' ){
       edit_headline();
     }
     else{
-      url = 'https://'+i;
+      url = i;
       window.location = url;
     }
   }
 
   function ld(i){
-    if (i == ''){
+    if (i == '' || i == 'None' || i == 'none'){
       edit_headline();
     }
     else{
-      url = 'https://'+i;
+      url = i;
       window.location = url;
     }
   }
@@ -393,10 +385,10 @@
   function hide(){
     $('.ui.modal').modal("hide");
   }
-  function send( mdl, id=1 ){
+  function send( mdl, id='request.user.id' ){
     var ele = document.getElementById(mdl);
     if(mdl == 'headline'){
-      data = {"name": mdl, "headline":ele['headline'].value, "fb_link":ele['fb_link'].value, "linkedin_link":ele['linkedin_link'].value};
+      data = {"name": mdl, "headline":ele['headline'].value};
     }
     if(mdl == 'summary'){
       data = {"name": mdl, "summary":ele['summary'].value};

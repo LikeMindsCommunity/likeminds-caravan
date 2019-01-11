@@ -31,7 +31,9 @@ def dashboard(request):
     if request.user.is_authenticated:
         usr = Userinfo.objects.all().filter(user_id = request.user)
         user = Userinfo.objects.all().filter(user_id = request.user)
-    
+        social_user = request.user.social_auth.filter(user_id = request.user.id).first()
+        token = social_user.extra_data['access_token']
+        print('token',token)
         if not usr :
             social_user = request.user.social_auth.filter(user_id = request.user.id).first()
             print(social_user.extra_data['id'])
@@ -41,33 +43,40 @@ def dashboard(request):
                     print(url)
                     response = rqst.get(url)
                     data = json.loads(response.text)
-                    print(data)
-                    info = Userinfo()
-                    if 'name' in data:
-                        info.name = data['name']
-                    if 'email' in data:
-                        info.email = data['email'] 
-                    if 'location' in data:
-                        info.city = data['location']['name']
-                    info.image_url = data['picture']['data']['url']
-                    info.user_id = request.user
-                    info.save()
+                    usr1 = Userinfo.objects.all().filter(email = data['email'])
+                    if not usr1:
+                        info = Userinfo()
+                        if 'name' in data:
+                            info.name = data['name']
+                        if 'email' in data:
+                            info.email = data['email'] 
+                        if 'location' in data:
+                            info.city = data['location']['name']
+                        info.image_url = data['picture']['data']['url']
+                        info.user_id = request.user
+                        info.save()
+                    else:
+                        if 'link' in data:
+                            usr1.fb_link = data['link']
 
             if social_user.provider == 'linkedin-oauth2':
-                url = 'https://api.linkedin.com/v1/people/~:(id,email-address,first-name,last-name,location:(name),picture-url,public-profile-url)?format=json&oauth2_access_token='+social_user.extra_data['access_token']
+                url = 'https://api.linkedin.com/v1/people/~:(id,email-address,first-name,last-name,headline,interests,location:(name),picture-url,public-profile-url,positions:(id,title,start-date,end-date,company,summary),educations:(id,school-name,field-of-study,start-date,end-date,degree))?format=json&oauth2_access_token='+social_user.extra_data['access_token']
                 print(url)
                 response = rqst.get(url)
                 data = json.loads(response.text)
                 print(data)
                 info = Userinfo()
-                info.name = data['firstName']+" "+data['lastName']
-                info.email = data['emailAddress'] 
-                info.city = data['location']['name']
-                info.image_url = data['pictureUrl']
-                info.linkedin_link = data['publicProfileUrl']
-                info.user_id = request.user
-                info.save()
-
+                usr1 = Userinfo.objects.all().filter(email = data['email'])
+                if not usr1:
+                    info.name = data['firstName']+" "+data['lastName']
+                    info.email = data['emailAddress'] 
+                    info.city = data['location']['name']
+                    info.image_url = data['pictureUrl']
+                    info.linkedin_link = data['publicProfileUrl']
+                    info.user_id = request.user
+                    info.save()
+                else:
+                    usr1.linkedin_link = data['publicProfileUrl']
     else:
         user = []
     communities = Community.objects.all().order_by('-active_since')
@@ -78,21 +87,28 @@ def dashboard(request):
         if 'data' in response:
             if response['data'] != '':
                 category = response['data']
-                categories = Category.objects.all().filter(category = category)
-                print (categories)
+                print(category)
+                categories = Category.objects.all()
                 communities = []
                 for i in categories:
-                    comm = {'id':i.community_id.id,
-                        'name':i.community_id.name,
-                        'about':i.community_id.about,
-                        'image_url':i.community_id.image_url.url,
-                        'location':i.community_id.location,
-                        'members_count':i.community_id.members_count,
+                    print(i, i.community_id)
+                    if i.category == category:
+                        c = Community.objects.get(id = i.community_id.id)
+                        communities.append(c)
+                print('c:',communities)
+                community = []
+                for i in communities:
+                    comm = {'id':i.id,
+                        'name':i.name,
+                        'about':i.about,
+                        'image_url':i.image_url.url,
+                        'location':i.location,
+                        'members_count':i.members_count,
                         'purpose': i.purpose,
                         }
-                    communities.append(comm)
-                print('comm :',communities)
-                return JsonResponse({'communities': communities})
+                    community.append(comm)
+                print('comm :',community)
+                return JsonResponse({'communities': community})
             else:
                 communities = []
                 community = Community.objects.all()
@@ -192,8 +208,6 @@ def profile(request, user_id):
         if 'name' in res:
             if(res['name'] == 'headline'):
                 info.headline = res['headline']
-                info.fb_link = res['fb_link']
-                info.linkedin_link = res['linkedin_link']
                 info.save()
             if(res['name'] == 'summary'):
                 info.about = res['summary']
@@ -525,3 +539,9 @@ def user_response(request, community_id, user_id):
         user = []
     responses = Form_response.objects.all().filter(user = user_id, community = community_id)
     return render(request,'user_response.html' ,{'usr':user, 'responses':responses})
+
+def privacy(request):
+    return render(request,'privacy.html')
+
+def terms(request):
+    return render(request,'terms.html')

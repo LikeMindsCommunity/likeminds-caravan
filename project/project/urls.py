@@ -16,7 +16,8 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, re_path, include
 from django.conf.urls import url, include
-from togther import views  
+from togther import views
+from collabmates_api import views as api_views  
 from django.contrib.auth import views as auth_views
 from django.conf import settings
 from django.conf.urls.static import static
@@ -30,6 +31,7 @@ urlpatterns = [
     url(r'^admin/', admin.site.urls),
     path('', include('togther.urls'),name= 'togther'),
     path('accounts/login/', views.home, name='login'),
+    path('api', include('collabmates_api.urls'),name= 'api'),
     #url(r'', include('social_django.urls', namespace='social')),
 ]
 

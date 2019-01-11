@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'togther',
     'django_select2',
     'corsheaders',
+    'collabmates_api',
 ]
 
 MIDDLEWARE = [

@@ -39,7 +39,7 @@ class Category (models.Model):
     category = models.CharField(max_length = 200)
 
     def __str__(self):
-        return self.community_id.name
+        return self.category
 
 class Form_data (models.Model):
     community_id = models.ForeignKey(Community, on_delete = models.CASCADE)

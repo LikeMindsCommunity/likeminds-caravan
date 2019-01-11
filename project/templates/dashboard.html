@@ -56,7 +56,7 @@
                         </div> -->
                         <select id='selUser' style=" margin-left: 10px; padding-left:10px; width:85%; height:30px; background:white; border: 0.5px solid silver; color: grey; border-radius:50px;">
                             
-                            <option value="">Explore by Category</option>
+                            <option value=" ">Explore by Category</option>
   <option value="alumni">Alumni</option>
 
   <option value="college">College</option>
@@ -133,7 +133,7 @@
 
   <option value="brand">Brand</option>
                           </select>
-                          <i class="search icon" id = 'but_read' style=" height:30px;"></i>
+                          
                          
                           <br/>
                           <div id='result'></div>
@@ -197,7 +197,7 @@
       
     
       // Read selected option
-      $('#but_read').click(function(){
+      $('#selUser').change(function(){
         var category = $('#selUser option:selected').text();
         filter(category);
       });
@@ -268,7 +268,7 @@ function change(j) {
                     console.log(city);
                     ele = document.getElementById("lct");
                     ele.innerHTML = '';
-                    ele.innerHTML = city;
+                    ele.innerHTML = city+'<i class="map marker alternate icon"></i>';
                   }
                 };
                 xhttp.open("GET", url , true);
@@ -277,51 +277,6 @@ function change(j) {
             );
         };
     $(document).ready(function () {
-        var content = [ {title : 'Alumni'},
-        {title : 'College'},
-        {title : 'School'},
-        {title : 'Profession'},
-        {title : 'Native Roots'},
-        {title : 'Parenting'},
-        {title : 'Events'},
-        {title : 'Interests'},
-        {title : 'Education'},
-        {title : 'Achievements'},
-        {title : 'Learning'},
-        {title : 'Opportunities'},
-        {title : 'Sports'},
-        {title : 'Activities'},
-        {title : 'Travel'},
-        {title : 'Hobbies'},
-        {title : 'Religious'},
-        {title : 'Political'},
-        {title : 'Social'},
-        {title : 'Music'},
-        {title : 'Belief'},
-        {title : 'Fan'},
-        {title : 'Startups'},
-        {title : 'Finance'},
-        {title : 'Industry'},
-        {title : 'Skill'},
-        {title : 'Family'},
-        {title : 'Cause'},
-        {title : 'Neighborhood'},
-        {title : 'Health & Wellness'},
-        {title : 'Sports & Fitness'},
-        {title : 'Food & Drink'},
-        {title : 'Language & Culture'},
-        {title : 'Movement'},
-        {title : 'Games'},
-        {title : 'Art'},
-        {title : 'Fashion'},
-        {title : 'Brand'},
-        ]
-
-        $('.ui.left.aligned.search')
-        .search({
-          source: content
-        })
-      ;
         getLocation();
     });
     
@@ -345,7 +300,11 @@ function change(j) {
             
         
       cont = document.getElementById('comm_card');
-      cont.innerHTML = ""
+      cont.innerHTML = "";
+      if (comm.length == 0){
+        cont.innerHTML = "<h1>No Result Found</h1>"
+      }
+      else {
         for (j in comm){
         i = comm[j]
   $("#comm_card").append('<div class="ui link fluid cards onclick = "window.location = /community/'+i.id+'> <div class="ui fluid card " > <div class="image" > \
@@ -365,31 +324,33 @@ function change(j) {
     </div> \
   </div> \
 </div>');
-    }}
+    }}}
     });
         //url = 'localhost:8000/togther/dashboard/'+data;
         //console.log(url)
         //window.location(url);
     };
-
-    $("#lct").keyup(function(){
-      var txt = document.getElementById('lct');
-      var url1 = "https://maps.googleapis.com/maps/api/place/autocomplete/jsonp?input="+txt.value+"&key=AIzaSyBWzqsPR2NYGai0sn5eZB9h9bTgttUifDQ";
-      var xhttp = new XMLHttpRequest();
-      xhttp.onreadystatechange = function() {
-        if (this.readyState == 4 && this.status == 200) {
-          var resp = this.responseText;
-          //resp = JSON.parse(resp);
-          //var city = resp["results"][3]["formatted_address"]
-          //[0]['address_components'][3]
-          //lct.value = city;
-        }
-      };
-      xhttp.open("GET", url1 , true);
-      xhttp.send();
-      //$("#lct").innerHTML = resp;
-    });
-
+function initialize() {
+  var input = document.getElementById('searchTextField');
+  console.log(input);
+  x = new google.maps.places.Autocomplete(input);
+  console.log(x);
+}
+ 
+function loct(){
+      $('.ui.modal.loct')
+  .modal('show')
+;
+  }
+function hide(){
+    $('.ui.modal').modal("hide");
+  }
+function save(){
+  ele = document.getElementById('lct');
+  val = document.getElementById('lct');
+  ele.value = val;
+}
 </script>
+<script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAebp4g7KxzLCAtyjTtW67z1IJxC8Bbt6U&libraries=places&callback=initialize"></script>
 </body>
 {% endblock %}
