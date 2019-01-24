@@ -8,5 +8,6 @@ urlpatterns = [
     path('/community/<int:community_id>', api_views.community, name="community"),
     path('/similar_communities/<int:community_id>', api_views.similar_community, name="similar_community"),
     path('/community/<int:community_id>/join', api_views.join_community, name="join"),
+    path('/categories', api_views.categories, name="categories"),
     path('/community/<str:category>', api_views.category_filter, name="category_filter"),
 ]

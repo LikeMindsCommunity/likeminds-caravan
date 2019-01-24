@@ -12,7 +12,7 @@ from django.http.response import JsonResponse
 from django.conf import settings
 from django.core.mail import send_mail
 from collabmates_api.serializers import CommunitySerializer
-
+from categories import Category_list
 # your views here.
 
 def communities(request):
@@ -71,3 +71,7 @@ def category_filter(request, category):
         serializer_class = CommunitySerializer(i)
         community.append(serializer_class.data)
     return JsonResponse({'communities': community})
+
+def categories(request):
+    print (Category_list)
+    return JsonResponse ({'category_list': Category_list})
