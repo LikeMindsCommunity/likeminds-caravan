@@ -73,5 +73,28 @@ def category_filter(request, category):
     return JsonResponse({'communities': community})
 
 def categories(request):
-    print (Category_list)
     return JsonResponse ({'category_list': Category_list})
+
+def user(request, user_id):
+    info = Userinfo.objects.all().filter(user_id = user_id)
+    user = {}
+    print (info)
+    for i in info:
+        user["name"] = i.name
+        user["email"] = i.email
+        user["city"] = i.city
+        user["headline"] = i.headline
+        user["contact_number"] = i.contact_number
+        user["image_url"] = i.image_url
+        user["about"] = i.about
+        user["fb_link"] = i.fb_link
+        user["linkedin_link"] = i.linkedin_link
+    return JsonResponse ({'user': user})
+
+def members(request, community_id):
+    member = Members.objects.all().filter(community_id = community_id)
+    members = []
+    for i in member:
+        members.append({"member_id": i.member_id.id})
+    print (members)
+    return JsonResponse ({'members': members})

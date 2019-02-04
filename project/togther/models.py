@@ -7,6 +7,11 @@ response_choices = (
     ('pdf','PDF'),
 )
 
+card_action = (
+    ('like','Like'),
+    ('share','Share'),
+)
+
 class Community (models.Model):
     name = models.CharField(max_length = 200)
     about = models.TextField()
@@ -98,4 +103,19 @@ class Requests (models.Model):
     community = models.ForeignKey(Community, on_delete=models.CASCADE)
     status = models.IntegerField(default = 0)
     
+class Collabcard (models.Model):
+    title = models.CharField(max_length = 200, null= True)
+    community = models.ForeignKey(Community, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    likes_count =  models.IntegerField(default = 0)
+    share_count =  models.IntegerField(default = 0)
 
+class Comments (models.Model):
+    comment =  models.CharField(max_length = 1000)
+    card = models.ForeignKey(Collabcard, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+
+class Cardaction (models.Model):
+    action =  models.CharField(max_length=100 ,choices = response_choices)
+    card = models.ForeignKey(Collabcard, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)

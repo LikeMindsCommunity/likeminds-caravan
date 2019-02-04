@@ -10,4 +10,7 @@ urlpatterns = [
     path('/community/<int:community_id>/join', api_views.join_community, name="join"),
     path('/categories', api_views.categories, name="categories"),
     path('/community/<str:category>', api_views.category_filter, name="category_filter"),
+    path('/user/<int:user_id>', api_views.user, name="user"),
+    # path('/admin_id/<int:community_id>', api_views.admin, name="admin"),
+    path('/members/<int:community_id>', api_views.members, name="members"),
 ]
