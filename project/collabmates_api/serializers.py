@@ -6,5 +6,5 @@ from togther.models import *
 class CommunitySerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Community
-        fields = ('id','name', 'image_url' ,'about', 'location', 'members_count')
+        fields = ('id','name', 'purpose', 'image_url' ,'about', 'location', 'members_count')
 

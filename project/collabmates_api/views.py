@@ -16,6 +16,37 @@ from categories import Category_list
 # your views here.
 
 def communities(request):
+    if request.method == 'GET':
+        response = request.GET.dict()
+        if 'category' in response:
+            if response['category'] != '':
+                category = response['category']
+                print(category)
+                categories = Category.objects.all()
+                communities = []
+                for i in categories:
+                    if i.category == category:
+                        c = Community.objects.get(id = i.community_id.id)
+                        communities.append(c)
+                community = []
+                for i in communities:
+                    comm = {'id':i.id,
+                        'name':i.name,
+                        'about':i.about,
+                        'image_url':i.image_url.url,
+                        'location':i.location,
+                        'members_count':i.members_count,
+                        'purpose': i.purpose,
+                        }
+                    community.append(comm)
+                return JsonResponse({'communities': community})
+        else:
+            queryset = Community.objects.all().order_by('-active_since')
+            community = []
+            for i in queryset:
+                serializer_class = CommunitySerializer(i)
+                community.append(serializer_class.data)
+            return JsonResponse({'communities': community})
     queryset = Community.objects.all().order_by('-active_since')
     community = []
     for i in queryset:
@@ -98,3 +129,22 @@ def members(request, community_id):
         members.append({"member_id": i.member_id.id})
     print (members)
     return JsonResponse ({'members': members})
+
+def admins(request, community_id):
+    admins = Admins.objects.all().filter(community_id = community_id)
+    users = []
+    for i in admins:
+        user = Userinfo.objects .filter(user_id = i.admin_id)
+        print(user)
+        usr = {}
+        usr["name"] = user[0].name
+        usr["email"] = user[0].email
+        usr["city"] = user[0].city
+        usr["headline"] = user[0].headline
+        usr["contact_number"] = user[0].contact_number
+        usr["image_url"] = user[0].image_url
+        usr["about"] = user[0].about
+        usr["fb_link"] = user[0].fb_link
+        usr["linkedin_link"] = user[0].linkedin_link
+        users.append(usr)
+    return JsonResponse ({'created_by': users})

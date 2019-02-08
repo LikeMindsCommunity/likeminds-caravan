@@ -11,6 +11,6 @@ urlpatterns = [
     path('/categories', api_views.categories, name="categories"),
     path('/community/<str:category>', api_views.category_filter, name="category_filter"),
     path('/user/<int:user_id>', api_views.user, name="user"),
-    # path('/admin_id/<int:community_id>', api_views.admin, name="admin"),
+    path('/admins/<int:community_id>', api_views.admins, name="admins"),
     path('/members/<int:community_id>', api_views.members, name="members"),
 ]
