@@ -78,7 +78,7 @@ def similar_community(request, community_id):
         if i.id != community_id:
             serializer_class = CommunitySerializer(i)
             similar_communities.append(serializer_class.data)
-    return JsonResponse({'similar_communities': similar_communities})
+    return JsonResponse({'communities': similar_communities})
 
 def join_community(request, community_id):
     data = Form_data.objects.all().filter(community_id = community_id)
@@ -111,6 +111,7 @@ def user(request, user_id):
     user = {}
     print (info)
     for i in info:
+        user['id'] = i.id
         user["name"] = i.name
         user["email"] = i.email
         user["city"] = i.city
@@ -137,6 +138,7 @@ def admins(request, community_id):
         user = Userinfo.objects .filter(user_id = i.admin_id)
         print(user)
         usr = {}
+        usr['id'] = user[0].id
         usr["name"] = user[0].name
         usr["email"] = user[0].email
         usr["city"] = user[0].city
