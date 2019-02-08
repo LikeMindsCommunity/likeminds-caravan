@@ -147,4 +147,4 @@ def admins(request, community_id):
         usr["fb_link"] = user[0].fb_link
         usr["linkedin_link"] = user[0].linkedin_link
         users.append(usr)
-    return JsonResponse ({'created_by': users})
+    return JsonResponse ({'members': users})
