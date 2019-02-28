@@ -1,6 +1,7 @@
 from django.urls import path, include
 from . import views
 from collabmates_api import views as api_views
+from django.views.decorators.csrf import csrf_exempt
 
 urlpatterns = [
     path('/communities', api_views.communities, name="communities"),
@@ -9,7 +10,7 @@ urlpatterns = [
     path('/similar_communities/<int:community_id>', api_views.similar_community, name="similar_community"),
     path('/community/<int:community_id>/join', api_views.join_community, name="join"),
     path('/categories', api_views.categories, name="categories"),
-    path('/create_community', api_views.create_community, name="create_community"),
+    path('/create_community', csrf_exempt(api_views.create_community), name="create_community"),
     path('/community/<str:category>', api_views.category_filter, name="category_filter"),
     path('/user/<int:user_id>', api_views.user, name="user"),
     path('/admins/<int:community_id>', api_views.admins, name="admins"),

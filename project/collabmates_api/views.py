@@ -152,8 +152,10 @@ def admins(request, community_id):
     return JsonResponse ({'members': users})
 
 def create_community(request):
+    print (request)
     if request.method == 'POST':
         res = request.POST.dict()
+        print(res)
         img = request.FILES.dict()
         group = Community()
         group.members_count = group.members_count + 1
@@ -184,6 +186,7 @@ def create_community(request):
         member.community_id = community
         member.save()
         return JsonResponse({'created':1})
+    return HttpResponse('Create')
 
 def create_card(request, community_id, user_id):
     community = Community.objects.get(id = community_id)
