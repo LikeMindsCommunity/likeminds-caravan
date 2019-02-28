@@ -154,37 +154,42 @@ def admins(request, community_id):
 def create_community(request):
     print (request)
     if request.method == 'POST':
-        res = request.POST.dict()
-        print(res)
+        res = json.loads(request.body)
         img = request.FILES.dict()
+        print(res)
         group = Community()
         group.members_count = group.members_count + 1
         group.name = res['name']
-        group.about = res['about']
-        group.purpose = res['purpose']
-        group.location = res['location']
-        if 'image' in img:
-            group.image_url = img['image']
-        if 'whatsapp_link' in res:
-            group.whatsapp_group_link = res['whatsapp_link']
-        group.save()
-        categories = request.POST.getlist('category')
-        for i in categories:
-            category = Category()
-            category.category = i
-            category.community_id_id = group.id
-            category.save()
+        print(type(res['items']))
+        for i in res['items']:
+            if i['key'] == 'Purpose of the community':
+                group.purpose = i['value']
+            if i['key'] == 'Geography of the community':
+                group.location = i['value']
 
-        admin = Admins()
-        user = User.objects.get(id = user_id)
-        admin.admin_id = user
-        community = Community.objects.get(id = group.id)
-        admin.community_id = community
-        admin.save()
-        member = Members()
-        member.member_id = user
-        member.community_id = community
-        member.save()
+
+        # if 'image' in img:
+            # group.image_url = img['image']
+        # if 'whatsapp_link' in res:
+        #     group.whatsapp_group_link = res['whatsapp_link']
+        group.save()
+        # categories = res['items'])
+        # for i in categories:
+        #     category = Category()
+        #     category.category = i
+        #     category.community_id_id = group.id
+        #     category.save()
+
+        # admin = Admins()
+        # user = User.objects.get(id = user_id)
+        # admin.admin_id = user
+        # community = Community.objects.get(id = group.id)
+        # admin.community_id = community
+        # admin.save()
+        # member = Members()
+        # member.member_id = user
+        # member.community_id = community
+        # member.save()
         return JsonResponse({'created':1})
     return HttpResponse('Create')
 
