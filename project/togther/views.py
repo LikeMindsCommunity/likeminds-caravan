@@ -158,11 +158,9 @@ def community(request, community_id):
 def creategroup(request):
     print(request)
     if request.method == 'POST':
-        print('here')
         res = request.POST.dict()
         img = request.FILES.dict()
         print(img)
-        print(res)
         group = Community()
         group.members_count = group.members_count + 1
         group.name = res['name']

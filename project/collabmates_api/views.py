@@ -150,3 +150,58 @@ def admins(request, community_id):
         usr["linkedin_link"] = user[0].linkedin_link
         users.append(usr)
     return JsonResponse ({'members': users})
+
+def create_community(request):
+    if request.method == 'POST':
+        res = request.POST.dict()
+        img = request.FILES.dict()
+        group = Community()
+        group.members_count = group.members_count + 1
+        group.name = res['name']
+        group.about = res['about']
+        group.purpose = res['purpose']
+        group.location = res['location']
+        if 'image' in img:
+            group.image_url = img['image']
+        if 'whatsapp_link' in res:
+            group.whatsapp_group_link = res['whatsapp_link']
+        group.save()
+        categories = request.POST.getlist('category')
+        for i in categories:
+            category = Category()
+            category.category = i
+            category.community_id_id = group.id
+            category.save()
+
+        admin = Admins()
+        user = User.objects.get(id = user_id)
+        admin.admin_id = user
+        community = Community.objects.get(id = group.id)
+        admin.community_id = community
+        admin.save()
+        member = Members()
+        member.member_id = user
+        member.community_id = community
+        member.save()
+        return JsonResponse({'created':1})
+
+def create_card(request, community_id, user_id):
+    community = Community.objects.get(id = community_id)
+    user = User.objects.get(id = user_id)
+    print(community, user)
+    if request.method == 'GET':
+        res = request.GET.dict()
+        card = Collabcard()
+        card.title = res['title']
+        card.community = community
+        card.user = user
+        card.save()
+        return JsonResponse({'card_created':1})
+
+def collabcard(request, card_id):
+    card = Collabcard.objects.all().filter(id = card_id)
+    return JsonResponse({"card_details": card[0]})
+
+def community_cards(request, community_id):
+    cards = Collabcard.objects.filter(community = community_id)
+    return JsonResponse ({'cards': cards})
