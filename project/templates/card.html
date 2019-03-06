@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+
+
+{% block content %}
+
+<div class="ui raised padded text container segment" style="margin: 8px 8px !important;">
+<div class="card">
+    <div class="content">
+    
+      <div class="header"><img class="ui left aligned avatar image" src="{{creator.image_url}}">{{creator.name}}</div>
+      <div class="meta"></div>
+      <div class="description">
+      <br>
+        {{card.title}}
+      </div>
+    </div>
+  </div>
+</div>
+
+
+{% endblock %}

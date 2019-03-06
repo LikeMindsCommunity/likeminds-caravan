@@ -22,5 +22,5 @@ urlpatterns = [
     path('logout',views.logout_view, name = "logout_view"),
     path('creategroup/<int:community_id>/form_data',views.form_data,name='form_data'),
     path('thankyou', views.thankyou, name="thankyou"),
-    # path('collabcard/<int:card_id>', views.collabcard, name="card"),
+    path('collabcard/<int:card_id>', views.collabcard, name="card"),
 ]

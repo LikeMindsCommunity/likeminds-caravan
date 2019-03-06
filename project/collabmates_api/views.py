@@ -190,8 +190,8 @@ def create_community(request):
         # member.member_id = user
         # member.community_id = community
         # member.save()
-        return JsonResponse({'created':1})
-    return HttpResponse('Create')
+        return JsonResponse({'success':True})
+    return JsonResponse({'success':True})
 
 def create_card(request, community_id, user_id):
     community = Community.objects.get(id = community_id)
@@ -213,3 +213,21 @@ def collabcard(request, card_id):
 def community_cards(request, community_id):
     cards = Collabcard.objects.filter(community = community_id)
     return JsonResponse ({'cards': cards})
+
+def login(request):
+    if request.method == 'POST':
+        res = json.loads(request.body)
+        user = request.user.social_auth.filter(user_id = res['id']).first()
+        if user :
+            userinfo = Userinfo.objects.all().filter(user_id = user['id'])
+        else :
+            userinfo = Userinfo.objects.all().filter(email_id = res['email'])
+            if not userinfo:
+                userinfo = Userinfo()
+                userinfo.id = res['id']
+                userinfo.name = res['name']
+                userinfo.image_url = res['picture']
+                userinfo.fb_link = res['link']
+                user.city = res['location']['name']
+
+        return JsonResponse ({'user': userinfo})

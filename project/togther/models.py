@@ -104,11 +104,12 @@ class Requests (models.Model):
     status = models.IntegerField(default = 0)
     
 class Collabcard (models.Model):
-    title = models.CharField(max_length = 200, null= True)
+    title = models.TextField()
     community = models.ForeignKey(Community, on_delete=models.CASCADE)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     likes_count =  models.IntegerField(default = 0)
     share_count =  models.IntegerField(default = 0)
+    answers_count = models.IntegerField(default=0)
 
 class Comments (models.Model):
     comment =  models.CharField(max_length = 1000)
@@ -119,3 +120,8 @@ class Cardaction (models.Model):
     action =  models.CharField(max_length=100 ,choices = response_choices)
     card = models.ForeignKey(Collabcard, on_delete=models.CASCADE)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
+
+class card_answers (models.Model):
+    answer = models.TextField()
+    card = models.ForeignKey(Collabcard, on_delete = models.CASCADE)
+    user = models.ForeignKey(User,on_delete = models.CASCADE)

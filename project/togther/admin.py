@@ -11,5 +11,6 @@ admin.site.register(Category)
 admin.site.register(Form_response)
 admin.site.register(Form_data)
 admin.site.register(Experience)
-admin.site.register(Education)
-
+admin.site.register(Collabcard)
+admin.site.register(Comments)
+admin.site.register(Cardaction)

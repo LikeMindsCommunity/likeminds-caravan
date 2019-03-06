@@ -19,4 +19,5 @@ urlpatterns = [
     path('/collabcard/<int:card_id>', api_views.collabcard, name="collabcard"),
     path('/community_cards/<int:community_id>', api_views.community_cards, name="community_cards"),
     # path('/create_card/<int:community_id>/<int:user_id>', api_views.create_card, name="create_card")
+    path('/login',api_views.login,name = 'login')
 ]
