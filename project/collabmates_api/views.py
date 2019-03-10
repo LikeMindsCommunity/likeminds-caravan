@@ -243,7 +243,7 @@ def login(request):
         
         usr = {}
         print(userinfo)
-        usr['id'] = userinfo[0].id
+        usr['id'] = userinfo[0].user_id.id
         usr["name"] = userinfo[0].name
         usr["email"] = userinfo[0].email
         usr["city"] = userinfo[0].city
