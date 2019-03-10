@@ -13,6 +13,8 @@ from django.conf import settings
 from django.core.mail import send_mail
 from collabmates_api.serializers import CommunitySerializer
 from categories import Category_list
+from django.views.decorators.csrf import csrf_exempt
+
 # your views here.
 
 def communities(request):
@@ -214,20 +216,42 @@ def community_cards(request, community_id):
     cards = Collabcard.objects.filter(community = community_id)
     return JsonResponse ({'cards': cards})
 
+@csrf_exempt
 def login(request):
     if request.method == 'POST':
         res = json.loads(request.body)
-        user = request.user.social_auth.filter(user_id = res['id']).first()
+        print(res)
+        user = Userinfo.objects.filter(email = res['email'])
         if user :
-            userinfo = Userinfo.objects.all().filter(user_id = user['id'])
+            userinfo = Userinfo.objects.all().filter(email = res['email'])
         else :
-            userinfo = Userinfo.objects.all().filter(email_id = res['email'])
+            userinfo = Userinfo.objects.all().filter(email = res['email'])
             if not userinfo:
                 userinfo = Userinfo()
-                userinfo.id = res['id']
+                usr = User()
+                usr.username = res['name']
+                usr.save()
+                userinfo.user_id = usr
+                userinfo.email = res['email']
                 userinfo.name = res['name']
-                userinfo.image_url = res['picture']
-                userinfo.fb_link = res['link']
-                user.city = res['location']['name']
-
-        return JsonResponse ({'user': userinfo})
+                userinfo.image_url = res['picture']['data']['url']
+                if 'link' in res:
+                    userinfo.fb_link = res['link']
+                if 'location' in res:
+                    userinfo.city = res['location']['name']
+                userinfo.save()
+        
+        usr = {}
+        print(userinfo)
+        usr['id'] = userinfo[0].id
+        usr["name"] = userinfo[0].name
+        usr["email"] = userinfo[0].email
+        usr["city"] = userinfo[0].city
+        usr["headline"] = userinfo[0].headline
+        usr["contact_number"] = userinfo[0].contact_number
+        usr["image_url"] = userinfo[0].image_url
+        usr["about"] = userinfo[0].about
+        usr["fb_link"] = userinfo[0].fb_link
+        usr["linkedin_link"] = userinfo[0].linkedin_link
+        return JsonResponse ({'user': usr})
+    return HttpResponse('Login Api')
