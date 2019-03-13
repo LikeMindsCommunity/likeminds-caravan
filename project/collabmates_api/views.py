@@ -69,14 +69,16 @@ def your_communities(request,user_id):
 
 def community(request, community_id):
     queryset = Community.objects.get(id = community_id)
-    header = json.loads(request.headers)
-    user_id = header['member_id']
-    member = Members.objects.all().filter(community_id = community.id)
+    body = json.loads(request.body)
+    if 'member_id' in body:
+        user_id = body['member_id']
+    member = Members.objects.all().filter(community_id = community_id)
     is_member = False
     user = User.objects.get(id = user_id)
     for m in member:
         if m.member_id == user:
             is_member = True
+    serializer_class = CommunitySerializer(queryset)
     return JsonResponse({'communities': serializer_class.data, 'is_member':is_member})
 
 def similar_community(request, community_id):
@@ -204,7 +206,7 @@ def create_community(request):
 
 @csrf_exempt
 def create_card(request, community_id):
-    header = json.loads(request.headers)
+    header = json.loads(request.body)
     user_id = header['member_id']
     member = Members.objects.all().filter(community_id = community.id)
     is_member = False
@@ -226,7 +228,7 @@ def create_card(request, community_id):
     return JsonResponse({'is_member': is_member})
 
 def collabcard(request, card_id):
-    header = json.loads(request.headers)
+    header = json.loads(request.body)
     user_id = header['member_id']
     member = Members.objects.all().filter(community_id = community.id)
     is_member = False
@@ -238,7 +240,7 @@ def collabcard(request, card_id):
     return JsonResponse({"card_details": card[0],'is_member': is_member})
 
 def community_cards(request, community_id):
-    header = json.loads(request.headers)
+    header = json.loads(request.body)
     user_id = header['member_id']
     member = Members.objects.all().filter(community_id = community.id)
     is_member = False
@@ -250,7 +252,7 @@ def community_cards(request, community_id):
     return JsonResponse ({'cards': cards, 'is_member': is_member})
 
 def card_details(request, card_id):
-    header = json.loads(request.headers)
+    header = json.loads(request.body)
     user_id = header['member_id']
     member = Members.objects.all().filter(community_id = community.id)
     is_member = False
