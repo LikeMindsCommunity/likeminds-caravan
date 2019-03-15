@@ -18,7 +18,7 @@ from django.views.decorators.csrf import csrf_exempt
 # your views here.
 
 def communities(request):
-    
+
     if request.method == 'GET':
         response = request.GET.dict()
         if 'category' in response:
@@ -83,27 +83,44 @@ def community(request, community_id):
         if m.member_id == user:
             is_member = True
     serializer_class = CommunitySerializer(queryset)
-    return JsonResponse({'community': serializer_class.data, 'is_member':is_member})
+    community = serializer_class.data
+    community['is_member']= is_member
+    return JsonResponse({'community': community})
 
 def similar_community(request, community_id):
+    body = request.GET
+    if 'member_id' in body:
+        user_id = body['member_id']
+    member = Members.objects.all().filter(community_id = community_id)
+    is_member = False
+    user = User.objects.get(id = user_id)
+    
     community = Community.objects.get(id = community_id)
     queryset = Community.objects.all().order_by('-active_since')
     similar_communities = []
     for i in queryset:
         if i.id != community_id:
             serializer_class = CommunitySerializer(i)
-            similar_communities.append(serializer_class.data)
+            community = serializer_class.data
+            print(community)
+            member = Members.objects.all().filter(community_id = community['id'])
+            is_member = False
+            for m in member:
+                if m.member_id == user:
+                    is_member = True
+            community['is_member']= is_member
+            similar_communities.append(community)
     return JsonResponse({'communities': similar_communities})
 
 def join_community(request, community_id):
     data = Form_data.objects.all().filter(community_id = community_id)
     reqd_info = []
     for i in data:
-        ques = {'data':i.data,
+        ques = {'question':i.data,
                 'data_type':i.data_type,
                 }
         reqd_info.append(ques)
-    return JsonResponse({'data': reqd_info})
+    return JsonResponse({'questions': reqd_info})
 
 def join_community_responses(request):
     body = request.GET
@@ -206,8 +223,8 @@ def create_community(request):
                 group.purpose = i['value']
             if i['key'] == 'Geography of the community':
                 group.location = i['value']
-
-
+            if i['key'] == 'about'
+                group.about = i['value'] 
             if 'image' in img:
                 group.image_url = img['image']
             if i['key'] == 'whatsapp_link' :
