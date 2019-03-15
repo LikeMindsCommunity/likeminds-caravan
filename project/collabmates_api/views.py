@@ -133,6 +133,7 @@ def join_community(request, community_id):
         reqd_info.append(ques)
     return JsonResponse({'questions': reqd_info})
 
+@csrf_exempt
 def join_community_responses(request):
     body = request.GET
     res = json.loads(request.body)
@@ -142,7 +143,7 @@ def join_community_responses(request):
     if 'community_id' in body:
         community_id = body['community_id']
     response = Form_response()
-    for i in res['communityJoinQuestions']: 
+    for i in res['questions']: 
         response.data = i['key']
         response.response = i['value']
         response.user = user_id
