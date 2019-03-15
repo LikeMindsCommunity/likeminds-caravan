@@ -273,21 +273,29 @@ def create_card(request):
     if request.method == 'POST':
         res = json.loads(request.body)
         card = Collabcard()
-        card.title = res['title']
+        card.title = res['text']
         card.community = community
         card.user = user
         card.save()
-        return JsonResponse({'Success':True})
+        return JsonResponse({'success':True})
     return JsonResponse()
 
 def collabcard(request, card_id):
-    card = Collabcard.objects.get(id = card_id)
-    answers = card_answers.objects.filter(card = card)
-    return JsonResponse({"card_details": card, 'card_answers':answers})
+    cards = Collabcard.objects.get(id = card_id)
+    print(cards)
+    answer = card_answers.objects.filter(card = cards)
+    answers = []
+    for i in answer:
+        answers.append({'answer':i.answer, 'user': i.user})
+    card = {'title':cards.title, 'user':cards.user.id,'community' :cards.community.id}
+    return JsonResponse({"card_details": card, 'answers':answers})
 
 def community_cards(request, community_id):
     cards = Collabcard.objects.filter(community = community_id)
-    return JsonResponse ({'cards': cards})
+    card = []
+    for i in cards:
+        card.append({'title': i.title, 'user':i.user.id,'community':i.community.id})
+    return JsonResponse ({'cards': card})
 
 def create_answer(request):
     body = request.GET
@@ -304,7 +312,7 @@ def create_answer(request):
         ans.card = card
         ans.user = user
         ans.save()
-        return JsonResponse({'Success':True})
+        return JsonResponse({'success':True})
 @csrf_exempt
 def login(request):
     if request.method == 'POST':
