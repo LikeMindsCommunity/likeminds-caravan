@@ -156,7 +156,10 @@ def user(request, user_id):
     return JsonResponse ({'user': user})
 
 def members(request, community_id):
-    member = Members.objects.all().filter(community_id = community_id)
+    community = get_object_or_404(Community, pk = community_id)
+    print(community)
+    member = Members.objects.all().filter(community_id = community)
+    print(member)
     members = []
     for i in member:
         members.append({"member_id": i.member_id.id})
@@ -182,12 +185,14 @@ def admins(request, community_id):
         usr["linkedin_link"] = user[0].linkedin_link
         users.append(usr)
     return JsonResponse ({'members': users})
-
+@csrf_exempt
 def create_community(request):
     print (request)
-    body = request.POST
-    if 'member_id' in body:
-        user_id = body['member_id']
+    params = request.GET
+    print(params)
+    if 'member_id' in params:
+        user_id = params['member_id']
+        print(user_id)
     if request.method == 'POST':
         res = json.loads(request.body)
         img = request.FILES.dict()
@@ -220,7 +225,7 @@ def create_community(request):
         admin = Admins()
         user = User.objects.get(id = user_id)
         admin.admin_id = user
-        ommunity = Community.objects.get(id = group.id)
+        community = Community.objects.get(id = group.id)
         admin.community_id = community
         admin.save()
         member = Members()
