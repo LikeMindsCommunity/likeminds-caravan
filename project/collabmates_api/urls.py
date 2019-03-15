@@ -9,6 +9,7 @@ urlpatterns = [
     path('/community/<int:community_id>', api_views.community, name="community"),
     path('/similar_communities/<int:community_id>', api_views.similar_community, name="similar_community"),
     path('/community/<int:community_id>/join', api_views.join_community, name="join"),
+    path('join_community', views.join_community_responses, name="join_community_responses"),
     path('/categories', api_views.categories, name="categories"),
     path('/create_community', csrf_exempt(api_views.create_community), name="create_community"),
     path('/community/<str:category>', api_views.category_filter, name="category_filter"),

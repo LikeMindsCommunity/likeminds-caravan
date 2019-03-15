@@ -18,6 +18,7 @@ from django.views.decorators.csrf import csrf_exempt
 # your views here.
 
 def communities(request):
+    
     if request.method == 'GET':
         response = request.GET.dict()
         if 'category' in response:
@@ -49,12 +50,13 @@ def communities(request):
                 serializer_class = CommunitySerializer(i)
                 community.append(serializer_class.data)
             return JsonResponse({'communities': community})
+        
     queryset = Community.objects.all().order_by('-active_since')
     community = []
     for i in queryset:
         serializer_class = CommunitySerializer(i)
         community.append(serializer_class.data)
-    return JsonResponse({'communities': community})
+    return JsonResponse({'communities': community, 'is_member':is_member})
 
 def your_communities(request,user_id):
     communities = Members.objects.all().filter(member_id = user_id)
@@ -81,7 +83,7 @@ def community(request, community_id):
         if m.member_id == user:
             is_member = True
     serializer_class = CommunitySerializer(queryset)
-    return JsonResponse({'communities': serializer_class.data, 'is_member':is_member})
+    return JsonResponse({'community': serializer_class.data, 'is_member':is_member})
 
 def similar_community(request, community_id):
     community = Community.objects.get(id = community_id)
@@ -94,7 +96,6 @@ def similar_community(request, community_id):
     return JsonResponse({'communities': similar_communities})
 
 def join_community(request, community_id):
-    
     data = Form_data.objects.all().filter(community_id = community_id)
     reqd_info = []
     for i in data:
@@ -103,6 +104,23 @@ def join_community(request, community_id):
                 }
         reqd_info.append(ques)
     return JsonResponse({'data': reqd_info})
+
+def join_community_responses(request):
+    body = request.GET
+    res = json.loads(request.body)
+    print(body)
+    if 'member_id' in body:
+        user_id = body['member_id']
+    if 'community_id' in body:
+        community_id = body['community_id']
+    response = Form_response()
+    for i in res: 
+        response.data = i
+        response.response = res[i]
+        response.user = user_id
+        response.community = community_id
+        response.save()
+    return JsonResponse({'Success':True})
 
 def category_filter(request, category):
     categories = Category.objects.all()
