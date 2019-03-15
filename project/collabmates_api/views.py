@@ -18,7 +18,6 @@ from django.views.decorators.csrf import csrf_exempt
 # your views here.
 
 def communities(request):
-
     if request.method == 'GET':
         response = request.GET.dict()
         if 'category' in response:
@@ -223,7 +222,7 @@ def create_community(request):
                 group.purpose = i['value']
             if i['key'] == 'Geography of the community':
                 group.location = i['value']
-            if i['key'] == 'about'
+            if i['key'] == 'about':
                 group.about = i['value'] 
             if 'image' in img:
                 group.image_url = img['image']
