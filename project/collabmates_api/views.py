@@ -233,7 +233,7 @@ def create_community(request):
         member.community_id = community
         member.save()
         return JsonResponse({'success':True})
-    return JsonResponse({'success':True})
+    return JsonResponse({'success':True, 'community_id':community.id})
 
 @csrf_exempt
 def create_card(request, community_id):
