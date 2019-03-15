@@ -143,7 +143,7 @@ def user(request, user_id):
     user = {}
     print (info)
     for i in info:
-        user['id'] = i.id
+        user['id'] = i.user_id.id
         user["name"] = i.name
         user["email"] = i.email
         user["city"] = i.city
@@ -170,7 +170,7 @@ def admins(request, community_id):
         user = Userinfo.objects .filter(user_id = i.admin_id)
         print(user)
         usr = {}
-        usr['id'] = user[0].id
+        usr['id'] = user[0].user_id.id
         usr["name"] = user[0].name
         usr["email"] = user[0].email
         usr["city"] = user[0].city
@@ -185,6 +185,9 @@ def admins(request, community_id):
 
 def create_community(request):
     print (request)
+    body = request.POST
+    if 'member_id' in body:
+        user_id = body['member_id']
     if request.method == 'POST':
         res = json.loads(request.body)
         img = request.FILES.dict()
@@ -200,28 +203,30 @@ def create_community(request):
                 group.location = i['value']
 
 
-        # if 'image' in img:
-            # group.image_url = img['image']
-        # if 'whatsapp_link' in res:
-        #     group.whatsapp_group_link = res['whatsapp_link']
+            if 'image' in img:
+                group.image_url = img['image']
+            if i['key'] == 'whatsapp_link' :
+                group.whatsapp_group_link = i['whatsapp_link']
+            if i['key'] == 'categories' :
+                categories = res(['items'])
+                for i in categories:
+                    category = Category()
+                    category.category = i
+                    category.community_id_id = group.id
+                    category.save()
         group.save()
-        # categories = res['items'])
-        # for i in categories:
-        #     category = Category()
-        #     category.category = i
-        #     category.community_id_id = group.id
-        #     category.save()
+        
 
-        # admin = Admins()
-        # user = User.objects.get(id = user_id)
-        # admin.admin_id = user
-        # community = Community.objects.get(id = group.id)
-        # admin.community_id = community
-        # admin.save()
-        # member = Members()
-        # member.member_id = user
-        # member.community_id = community
-        # member.save()
+        admin = Admins()
+        user = User.objects.get(id = user_id)
+        admin.admin_id = user
+        ommunity = Community.objects.get(id = group.id)
+        admin.community_id = community
+        admin.save()
+        member = Members()
+        member.member_id = user
+        member.community_id = community
+        member.save()
         return JsonResponse({'success':True})
     return JsonResponse({'success':True})
 
