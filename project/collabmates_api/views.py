@@ -265,12 +265,9 @@ def create_community(request):
 
 @csrf_exempt
 def create_card(request):
-    body = request.GET
-    if 'member_id' in body:
-        user_id = body['member_id']
-    if 'community_id' in body:
-        community_id = body['community_id']
-    member = Members.objects.all().filter(community_id = community.id)
+    user_id = request.GET.get('member_id')
+    community_id = request.GET.get('community_id')
+    print (user_id, community_id)
     user = User.objects.get(id = user_id)
     community = Community.objects.get(id = community_id)
     if request.method == 'POST':
