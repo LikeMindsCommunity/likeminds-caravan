@@ -19,6 +19,9 @@ from django.views.decorators.csrf import csrf_exempt
 
 def communities(request):
     if request.method == 'GET':
+        body = request.GET
+        if 'member_id' in body:
+            user_id = body['member_id']
         response = request.GET.dict()
         if 'category' in response:
             if response['category'] != '':
@@ -52,10 +55,19 @@ def communities(request):
         
     queryset = Community.objects.all().order_by('-active_since')
     community = []
+    user = User.objects.get(id = user_id)
     for i in queryset:
         serializer_class = CommunitySerializer(i)
-        community.append(serializer_class.data)
-    return JsonResponse({'communities': community, 'is_member':is_member})
+        member = Members.objects.all().filter(community_id = i.id)
+        is_member = False
+        for m in member:
+            if m.member_id == user:
+                is_member = True
+        comm = serializer_class.data
+        print(comm)    
+        comm['member_id'] = member_id
+        community.append(comm)
+    return JsonResponse({'communities': community})
 
 def your_communities(request,user_id):
     communities = Members.objects.all().filter(member_id = user_id)
@@ -130,9 +142,9 @@ def join_community_responses(request):
     if 'community_id' in body:
         community_id = body['community_id']
     response = Form_response()
-    for i in res: 
-        response.data = i
-        response.response = res[i]
+    for i in res['communityJoinQuestions']: 
+        response.data = i['key']
+        response.response = i['value']
         response.user = user_id
         response.community = community_id
         response.save()
@@ -252,71 +264,50 @@ def create_community(request):
     return JsonResponse({'success':True, 'community_id':community.id})
 
 @csrf_exempt
-def create_card(request, community_id):
+def create_card(request):
     body = request.GET
     if 'member_id' in body:
         user_id = body['member_id']
-    
+    if 'community_id' in body:
+        community_id = body['community_id']
     member = Members.objects.all().filter(community_id = community.id)
-    is_member = False
     user = User.objects.get(id = user_id)
-    for m in member:
-        if m.member_id == user:
-            is_member = True
     community = Community.objects.get(id = community_id)
     if request.method == 'POST':
         res = json.loads(request.body)
-        header = json.loads(request.headers)
-        user = User.objects.get(id = header['user_id'])
         card = Collabcard()
         card.title = res['title']
         card.community = community
         card.user = user
         card.save()
         return JsonResponse({'Success':True})
-    return JsonResponse({'is_member': is_member})
+    return JsonResponse()
 
 def collabcard(request, card_id):
-    body = request.GET
-    if 'member_id' in body:
-        user_id = body['member_id']
-    member = Members.objects.all().filter(community_id = community.id)
-    is_member = False
-    user = User.objects.get(id = user_id)
-    for m in member:
-        if m.member_id == user:
-            is_member = True
-    card = Collabcard.objects.all().filter(id = card_id)
-    return JsonResponse({"card_details": card[0],'is_member': is_member})
-
-def community_cards(request, community_id):
-    body = request.GET
-    if 'member_id' in body:
-        user_id = body['member_id']
-    member = Members.objects.all().filter(community_id = community.id)
-    is_member = False
-    user = User.objects.get(id = user_id)
-    for m in member:
-        if m.member_id == user:
-            is_member = True
-    cards = Collabcard.objects.filter(community = community_id)
-    return JsonResponse ({'cards': cards, 'is_member': is_member})
-
-def card_details(request, card_id):
-    body = request.GET
-    if 'member_id' in body:
-        user_id = body['member_id']
-    member = Members.objects.all().filter(community_id = community.id)
-    is_member = False
-    user = User.objects.get(id = user_id)
-    for m in member:
-        if m.member_id == user:
-            is_member = True
-    header = json.loads(request.headers)
     card = Collabcard.objects.get(id = card_id)
     answers = card_answers.objects.filter(card = card)
-    return JsonResponse({'answers': answers,'is_member': is_member})    
+    return JsonResponse({"card_details": card, 'card_answers':answers})
 
+def community_cards(request, community_id):
+    cards = Collabcard.objects.filter(community = community_id)
+    return JsonResponse ({'cards': cards})
+
+def create_answer(request):
+    body = request.GET
+    if 'member_id' in body:
+        user_id = body['member_id']
+    user = User.objects.get(id = user_id)
+    if'collabcard_id' in body:
+        card_id = body['collabcard_id']
+    card = Collabcard.object.get(id = collabcard_id)
+    if request.method == 'POST':
+        res = request.body
+        ans = card_answers()
+        ans.answer =  res['title']
+        ans.card = card
+        ans.user = user
+        ans.save()
+        return JsonResponse({'Success':True})
 @csrf_exempt
 def login(request):
     if request.method == 'POST':
