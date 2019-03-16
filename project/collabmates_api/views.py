@@ -135,21 +135,24 @@ def join_community(request, community_id):
 
 @csrf_exempt
 def join_community_responses(request):
-    body = request.GET
     res = json.loads(request.body)
-    print(body)
-    if 'member_id' in body:
-        user_id = body['member_id']
-    if 'community_id' in body:
-        community_id = body['community_id']
+    user_id = request.GET.get('member_id')
+    community_id = request.GET.get('community_id')
+    print(user_id, community_id)
+    user = User.objects.get(id = user_id)
+    community = Community.objects.get(id = community_id)
     response = Form_response()
     for i in res['questions']: 
         response.data = i['key']
         response.response = i['value']
-        response.user = user_id
-        response.community = community_id
+        response.user = user.id
+        response.community = community.id
         response.save()
-    return JsonResponse({'Success':True})
+    member = Members()
+    member.member_id = user
+    member.community_id = community
+    member.save()
+    return JsonResponse({'success':True})
 
 def category_filter(request, category):
     categories = Category.objects.all()
@@ -292,11 +295,25 @@ def collabcard(request, card_id):
     return JsonResponse({"card_details": card, 'answers':answers})
 
 def community_cards(request, community_id):
+    user_id = request.GET.get('member_id')
     cards = Collabcard.objects.filter(community = community_id)
     card = []
     for i in cards:
-        card.append({'title': i.title, 'user':i.user.id,'community':i.community.id})
-    return JsonResponse ({'cards': card})
+        user = Userinfo.objects.get(user_id = i.user)
+        usr = {}
+        usr['id'] = user.user_id.id
+        usr["name"] = user.name
+        usr["email"] = user.email
+        usr["city"] = user.city
+        usr["headline"] = user.headline
+        usr["contact_number"] = user.contact_number
+        usr["image_url"] = user.image_url
+        usr["about"] = user.about
+        usr["fb_link"] = user.fb_link
+        usr["linkedin_link"] = user.linkedin_link
+    
+        card.append({'title': i.title, 'member':usr })
+    return JsonResponse ({'collabcards': card})
 
 def create_answer(request):
     body = request.GET
