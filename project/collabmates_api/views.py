@@ -216,7 +216,7 @@ def members(request, community_id):
         usr["about"] = user.about
         usr["fb_link"] = user.fb_link
         usr["linkedin_link"] = user.linkedin_link
-        members.append({"member": usr})
+        members.append(usr)
     print (members)
     return JsonResponse ({'members': members})
 
