@@ -324,7 +324,7 @@ def collabcard(request, card_id):
         usr["about"] = user.about
         usr["fb_link"] = user.fb_link
         usr["linkedin_link"] = user.linkedin_link
-        answers.append({'id':i.id,'answer':i.answer, 'user': usr})
+        answers.append({'id':i.id,'answer':i.answer, 'member': usr})
     user = Userinfo.objects.get(user_id = cards.user.id)
     usr = {}
     usr['id'] = user.user_id.id
@@ -337,7 +337,7 @@ def collabcard(request, card_id):
     usr["about"] = user.about
     usr["fb_link"] = user.fb_link
     usr["linkedin_link"] = user.linkedin_link
-    card = {'id': cards.id, 'title':cards.title, 'user':usr,'community' :cards.community.id}
+    card = {'id': cards.id, 'title':cards.title, 'member':usr,'community' :cards.community.id}
     return JsonResponse({"collabcard": card, 'answers':answers})
 
 def community_cards(request, community_id):
