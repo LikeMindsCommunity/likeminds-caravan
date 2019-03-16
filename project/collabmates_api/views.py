@@ -70,14 +70,24 @@ def communities(request):
     return JsonResponse({'communities': community})
 
 def your_communities(request,user_id):
+    member_id = request.GET.get('member_id')
+    user = User.objects.get(id = member_id)
     communities = Members.objects.all().filter(member_id = user_id)
     my_communities = []
+    print(communities)
     for i in communities:
         my_communities.append(i.community_id)
     my_community =[]
     for i in my_communities:
+        members = Members.objects.all().filter(community_id = i.id)
         serializer_class = CommunitySerializer(i)
-        my_community.append(serializer_class.data)
+        comm = serializer_class.data
+        for j in members:
+            if j.member_id == user:
+                comm['is_member'] = True
+            else:
+                comm['is_member'] = False
+        my_community.append(comm)
     return JsonResponse({'your_communities':my_community})
 
 def community(request, community_id):
@@ -194,7 +204,19 @@ def members(request, community_id):
     print(member)
     members = []
     for i in member:
-        members.append({"member_id": i.member_id.id})
+        user = Userinfo.objects.get(user_id = i.member_id)
+        usr = {}
+        usr['id'] = user.user_id.id
+        usr["name"] = user.name
+        usr["email"] = user.email
+        usr["city"] = user.city
+        usr["headline"] = user.headline
+        usr["contact_number"] = user.contact_number
+        usr["image_url"] = user.image_url
+        usr["about"] = user.about
+        usr["fb_link"] = user.fb_link
+        usr["linkedin_link"] = user.linkedin_link
+        members.append({"member": usr})
     print (members)
     return JsonResponse ({'members': members})
 
@@ -291,7 +313,19 @@ def collabcard(request, card_id):
     answers = []
     for i in answer:
         answers.append({'answer':i.answer, 'user': i.user})
-    card = {'title':cards.title, 'user':cards.user.id,'community' :cards.community.id}
+    user = Userinfo.objects.get(user_id = i.user.id)
+    usr = {}
+    usr['id'] = user.user_id.id
+    usr["name"] = user.name
+    usr["email"] = user.email
+    usr["city"] = user.city
+    usr["headline"] = user.headline
+    usr["contact_number"] = user.contact_number
+    usr["image_url"] = user.image_url
+    usr["about"] = user.about
+    usr["fb_link"] = user.fb_link
+    usr["linkedin_link"] = user.linkedin_link
+    card = {'id': cards.id, 'title':cards.title, 'user':usr,'community' :cards.community.id}
     return JsonResponse({"card_details": card, 'answers':answers})
 
 def community_cards(request, community_id):
@@ -312,7 +346,7 @@ def community_cards(request, community_id):
         usr["fb_link"] = user.fb_link
         usr["linkedin_link"] = user.linkedin_link
     
-        card.append({'title': i.title, 'member':usr })
+        card.append({'id': i.id, 'title': i.title, 'member':usr })
     return JsonResponse ({'collabcards': card})
 
 def create_answer(request):
