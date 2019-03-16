@@ -312,8 +312,20 @@ def collabcard(request, card_id):
     answer = card_answers.objects.filter(card = cards)
     answers = []
     for i in answer:
-        answers.append({'answer':i.answer, 'user': i.user})
-    user = Userinfo.objects.get(user_id = i.user.id)
+        usr = {}
+        user = Userinfo.objects.get(user_id = i.user.id)
+        usr['id'] = user.user_id.id
+        usr["name"] = user.name
+        usr["email"] = user.email
+        usr["city"] = user.city
+        usr["headline"] = user.headline
+        usr["contact_number"] = user.contact_number
+        usr["image_url"] = user.image_url
+        usr["about"] = user.about
+        usr["fb_link"] = user.fb_link
+        usr["linkedin_link"] = user.linkedin_link
+        answers.append({'answer':i.answer, 'user': usr})
+    user = Userinfo.objects.get(user_id = cards.user.id)
     usr = {}
     usr['id'] = user.user_id.id
     usr["name"] = user.name
@@ -348,7 +360,7 @@ def community_cards(request, community_id):
     
         card.append({'id': i.id, 'title': i.title, 'member':usr })
     return JsonResponse ({'collabcards': card})
-
+@csrf_exempt
 def create_answer(request):
     body = request.GET
     if 'member_id' in body:
@@ -356,9 +368,9 @@ def create_answer(request):
     user = User.objects.get(id = user_id)
     if'collabcard_id' in body:
         card_id = body['collabcard_id']
-    card = Collabcard.object.get(id = collabcard_id)
+    card = Collabcard.objects.get(id = card_id)
     if request.method == 'POST':
-        res = request.body
+        res = json.loads(request.body)
         ans = card_answers()
         ans.answer =  res['title']
         ans.card = card
