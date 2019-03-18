@@ -299,7 +299,7 @@ def create_card(request):
     if request.method == 'POST':
         res = json.loads(request.body)
         card = Collabcard()
-        card.title = res['text']
+        card.title = res['title']
         card.community = community
         card.user = user
         card.save()
