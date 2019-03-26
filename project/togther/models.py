@@ -125,3 +125,9 @@ class card_answers (models.Model):
     answer = models.TextField()
     card = models.ForeignKey(Collabcard, on_delete = models.CASCADE)
     user = models.ForeignKey(User,on_delete = models.CASCADE)
+
+class temp_admin (models.Model):
+    name = models.CharField(max_length = 200)
+    contact_number = models.CharField(max_length = 200, null=True)
+    email = models.CharField(max_length = 200, null = True)
+    community = models.ForeignKey(Community, on_delete = models.CASCADE)

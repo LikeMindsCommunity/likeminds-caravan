@@ -296,7 +296,7 @@ def create_community(request):
             group.members_count = group.members_count + 1
             group.name = res['name']
             group.save()
-            community = Community.objects.get(id = group.id)
+            community = Community.objects.get(id = group.id)    
         
     return JsonResponse({'success':True, 'community_id':community.id})
 
@@ -427,15 +427,33 @@ def login(request):
         usr["linkedin_link"] = userinfo[0].linkedin_link
         return JsonResponse ({'user': usr})
     return HttpResponse('Login Api')
-
+@csrf_exempt
 def image_upload(request,community_id):
     body = request.GET
-    if 'member_id' in body:
-        user_id = body['member_id']
-    user = User.objects.get(id = user_id)
-    res = json.loads(request.body)
-    image_url = res['image']
-    community = Community.objects.get(id = community_id)
-    community.image_url = image_url
-    community.save()
-    return JsonResponse({'success':True})
+    if request.method =='POST':
+        if 'member_id' in body:
+            user_id = body['member_id']
+        # user = User.objects.get(id = user_id)
+        res = request.FILES['file']
+        image_url = res
+        community = Community.objects.get(id = community_id)
+        community.image_url = image_url
+        community.save()
+        return JsonResponse({'success':True})
+
+@csrf_exempt
+def add_admin(request,community_id):
+    if request.method == 'POST':
+        res = json.loads(request.body)
+        admin = temp_admin()
+        if 'name' in res:
+            admin.name = res['name']
+        if 'email' in res:
+            admin.email = res['email']
+        if 'contact_number' in res:
+            admin.contact_number = res['contact_number']
+        community = Community.objects.get(id = community_id)
+        admin.community = community
+        admin.save()
+        return JsonResponse({'success':True})
+    return HttpResponse('Add Admin Api')

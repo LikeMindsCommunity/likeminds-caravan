@@ -21,5 +21,6 @@ urlpatterns = [
     path('/community_collabcard/<int:community_id>', api_views.community_cards, name="community_cards"),
     path('/create_answer', api_views.create_answer, name="create_answer"),
     path('/login',api_views.login,name = 'login'),
-    path('/image_upload',api_views.image_upload,name = 'image')
+    path('/image_upload/<int:community_id>',api_views.image_upload,name = 'image'),
+    path('/add_admin/<int:community_id>',api_views.add_admin,name = 'add_admin')
 ]
