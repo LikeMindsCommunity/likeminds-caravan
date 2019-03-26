@@ -243,50 +243,61 @@ def admins(request, community_id):
 def create_community(request):
     print (request)
     params = request.GET
-    print(params)
-    if 'member_id' in params:
-        user_id = params['member_id']
-        print(user_id)
-    if request.method == 'POST':
-        res = json.loads(request.body)
-        img = request.FILES.dict()
-        print(res)
-        group = Community()
-        group.members_count = group.members_count + 1
-        group.name = res['name']
-        print(type(res['items']))
-        for i in res['items']:
-            if i['key'] == 'Purpose of the community':
-                group.purpose = i['value']
-            if i['key'] == 'Geography of the community':
-                group.location = i['value']
-            if i['key'] == 'about':
-                group.about = i['value'] 
-            if 'image' in img:
-                group.image_url = img['image']
-            if i['key'] == 'whatsapp_link' :
-                group.whatsapp_group_link = i['whatsapp_link']
-            if i['key'] == 'categories' :
-                categories = res(['items'])
-                for i in categories:
-                    category = Category()
-                    category.category = i
-                    category.community_id_id = group.id
-                    category.save()
-        group.save()
-        
+    is_admin = params['is_admin']
+    if is_admin == True:
+        if 'member_id' in params:
+            user_id = params['member_id']
+            print(user_id)
+        if request.method == 'POST':
+            res = json.loads(request.body)
+            img = request.FILES.dict()
+            print(res)
+            group = Community()
+            group.members_count = group.members_count + 1
+            group.name = res['name']
+            for i in res['items']:
+                if i['key'] == 'Purpose of the community':
+                    group.purpose = i['value']
+                if i['key'] == 'Geography of the community':
+                    group.location = i['value']
+                if i['key'] == 'about':
+                    group.about = i['value'] 
+                if 'image' in img:
+                    group.image_url = img['image']
+                if i['key'] == 'whatsapp_link' :
+                    group.whatsapp_group_link = i['whatsapp_link']
+                if i['key'] == 'categories' :
+                    categories = res(['items'])
+                    for i in categories:
+                        category = Category()
+                        category.category = i
+                        category.community_id_id = group.id
+                        category.save()
+            group.save()
+            
 
-        admin = Admins()
-        user = User.objects.get(id = user_id)
-        admin.admin_id = user
-        community = Community.objects.get(id = group.id)
-        admin.community_id = community
-        admin.save()
-        member = Members()
-        member.member_id = user
-        member.community_id = community
-        member.save()
-        return JsonResponse({'success':True})
+            admin = Admins()
+            user = User.objects.get(id = user_id)
+            admin.admin_id = user
+            community = Community.objects.get(id = group.id)
+            admin.community_id = community
+            admin.save()
+            member = Members()
+            member.member_id = user
+            member.community_id = community
+            member.save()
+    else:
+        if 'member_id' in params:
+            user_id = params['member_id']
+        if request.method == 'POST':
+            res = json.loads(request.body)
+            print(res)
+            group = Community()
+            group.members_count = group.members_count + 1
+            group.name = res['name']
+            group.save()
+            community = Community.objects.get(id = group.id)
+        
     return JsonResponse({'success':True, 'community_id':community.id})
 
 @csrf_exempt
