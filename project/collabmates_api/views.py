@@ -416,3 +416,15 @@ def login(request):
         usr["linkedin_link"] = userinfo[0].linkedin_link
         return JsonResponse ({'user': usr})
     return HttpResponse('Login Api')
+
+def image_upload(request,community_id):
+    body = request.GET
+    if 'member_id' in body:
+        user_id = body['member_id']
+    user = User.objects.get(id = user_id)
+    res = json.loads(request.body)
+    image_url = res['image']
+    community = Community.objects.get(id = community_id)
+    community.image_url = image_url
+    community.save()
+    return JsonResponse({'success':True})
