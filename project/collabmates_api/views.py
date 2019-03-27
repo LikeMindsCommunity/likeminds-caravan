@@ -428,7 +428,7 @@ def login(request):
         return JsonResponse ({'user': usr})
     return HttpResponse('Login Api')
 @csrf_exempt
-def image_upload(request,community_id):
+def image_upload(request):
     body = request.GET
     if request.method =='POST':
         if 'member_id' in body:
@@ -436,9 +436,18 @@ def image_upload(request,community_id):
         # user = User.objects.get(id = user_id)
         res = request.FILES['file']
         image_url = res
-        community = Community.objects.get(id = community_id)
-        community.image_url = image_url
-        community.save()
+        if 'community_id' in body:
+            community_id = body['community_id']
+            community = Community.objects.get(id = community_id)
+            community.image_url = image_url
+            community.save()
+        if 'collabcard_id' in body:
+            collabcard_id = body['collabcard_id']
+            collabcard = Collabcard.objects.get(id = collabcard_id)
+            card_image = card_images()
+            card_image.image_url = image_url
+            card_image.collabcard = collabcard
+            card_image.save()
         return JsonResponse({'success':True})
 
 @csrf_exempt

@@ -131,3 +131,7 @@ class temp_admin (models.Model):
     contact_number = models.CharField(max_length = 200, null=True)
     email = models.CharField(max_length = 200, null = True)
     community = models.ForeignKey(Community, on_delete = models.CASCADE)
+
+class card_images (models.Model):
+    collabcard = models.ForeignKey(Collabcard, on_delete = models.CASCADE)
+    image_url = models.ImageField(upload_to="media/collabcardImages")
