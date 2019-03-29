@@ -368,8 +368,12 @@ def community_cards(request, community_id):
         usr["about"] = user.about
         usr["fb_link"] = user.fb_link
         usr["linkedin_link"] = user.linkedin_link
-    
-        card.append({'id': i.id, 'title': i.title, 'member':usr })
+        images = card_images.objects.filter(collabcard = i)
+        img_list = []
+        for j in images:
+            img = {'image_url': j.image_url.url}
+            img_list.append(img)
+        card.append({'id': i.id, 'title': i.title, 'member':usr,'images':img_list })
     return JsonResponse ({'collabcards': card})
 @csrf_exempt
 def create_answer(request):
@@ -451,7 +455,10 @@ def image_upload(request):
         return JsonResponse({'success':True})
 
 @csrf_exempt
-def add_admin(request,community_id):
+def create_admin(request):
+    params = request.GET
+    if ['community_id'] in params:
+        community_id = params['community_id']
     if request.method == 'POST':
         res = json.loads(request.body)
         admin = temp_admin()
