@@ -240,13 +240,11 @@ def admins(request, community_id):
     return JsonResponse ({'members': users})
 @csrf_exempt
 def create_community(request):
-    print (request)
-    params = request.GET
-    is_admin = params['is_admin']
-    if is_admin == True:
-        if 'member_id' in params:
-            user_id = params['member_id']
-            print(user_id)
+    is_admin = request.GET.get('is_admin')
+    print(is_admin)
+    if is_admin == 'true':
+        user_id = request.GET.get('member_id')
+        print(user_id)
         if request.method == 'POST':
             res = json.loads(request.body)
             img = request.FILES.dict()
@@ -274,6 +272,7 @@ def create_community(request):
                         category.save()
             group.save()
             admin = Admins()
+            print(group)
             user = User.objects.get(id = user_id)
             admin.admin_id = user
             community = Community.objects.get(id = group.id)
