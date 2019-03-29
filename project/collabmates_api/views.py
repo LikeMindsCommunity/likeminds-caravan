@@ -74,7 +74,6 @@ def your_communities(request,user_id):
     user = User.objects.get(id = member_id)
     communities = Members.objects.all().filter(member_id = user_id)
     my_communities = []
-    print(communities)
     for i in communities:
         my_communities.append(i.community_id)
     my_community =[]
@@ -224,7 +223,7 @@ def admins(request, community_id):
     admins = Admins.objects.all().filter(community_id = community_id)
     users = []
     for i in admins:
-        user = Userinfo.objects .filter(user_id = i.admin_id)
+        user = Userinfo.objects.filter(user_id = i.admin_id)
         print(user)
         usr = {}
         usr['id'] = user[0].user_id.id
@@ -260,7 +259,7 @@ def create_community(request):
                     group.purpose = i['value']
                 if i['key'] == 'Geography of the community':
                     group.location = i['value']
-                if i['key'] == 'about':
+                if i['key'] == 'About the community':
                     group.about = i['value'] 
                 if 'image' in img:
                     group.image_url = img['image']
@@ -274,8 +273,6 @@ def create_community(request):
                         category.community_id_id = group.id
                         category.save()
             group.save()
-            
-
             admin = Admins()
             user = User.objects.get(id = user_id)
             admin.admin_id = user
@@ -392,11 +389,11 @@ def create_answer(request):
         ans.user = user
         ans.save()
         return JsonResponse({'success':True})
+
 @csrf_exempt
 def login(request):
     if request.method == 'POST':
         res = json.loads(request.body)
-        print(res)
         user = Userinfo.objects.filter(email = res['email'])
         if user :
             userinfo = Userinfo.objects.all().filter(email = res['email'])
@@ -418,7 +415,6 @@ def login(request):
                 userinfo.save()
         
         usr = {}
-        print(userinfo)
         usr['id'] = userinfo[0].user_id.id
         usr["name"] = userinfo[0].name
         usr["email"] = userinfo[0].email
@@ -431,6 +427,7 @@ def login(request):
         usr["linkedin_link"] = userinfo[0].linkedin_link
         return JsonResponse ({'user': usr})
     return HttpResponse('Login Api')
+
 @csrf_exempt
 def image_upload(request):
     body = request.GET

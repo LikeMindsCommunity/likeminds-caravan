@@ -12,22 +12,15 @@ from django.http.response import JsonResponse
 from django.conf import settings
 from django.core.mail import send_mail
 
-
-
-
 def home(request):
     users = User.objects.all()
     if request.user.is_authenticated: 
         return redirect('dashboard')
     else :
-        usr = request.user.username
-        print ("here")
-        print(request.user.id)
         return render(request, 'home.html', {'users': users})
         
 
-def dashboard(request):
-    
+def dashboard(request):  
     if request.user.is_authenticated:
         usr = Userinfo.objects.all().filter(user_id = request.user)
         user = Userinfo.objects.all().filter(user_id = request.user)
