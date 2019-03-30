@@ -310,7 +310,7 @@ def create_card(request):
         card.community = community
         card.user = user
         card.save()
-        return JsonResponse({'success':True})
+        return JsonResponse({'success':True, 'collabcard_id':card.id})
     return JsonResponse()
 
 def collabcard(request, card_id):
