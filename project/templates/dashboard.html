@@ -39,14 +39,34 @@
               </div>
               
               </div>
-
+            {% if user.is_authenticated %}
+              <div class="ui fluid container" style=" padding:0px 20px;" >
+                <div class="ui grid">
+                      
+                      <div class="sixteen wide column" style=" margin: 0 auto; padding-right:5px; ">
+                          <h3  style="margin: 10px;"> My Communities</h3>
+                          {% for i in my_communities %}
+                          <div class="ui middle aligned divided list">
+                            <div class="item">
+                              <img class="ui avatar image" src="https://beta.collabmates.com/media/{{i.image_url}}">
+                              <div class="content">
+                                <a class="header">{{i.name}}</a>
+                              </div>
+                            </div>
+                          </div>
+                          {% endfor %}
+                </div>
+                <button class="ui green basic button" style="margin: 0 auto; align:center;">View all</button>
+              </div>
+              </div>
+            {% endif %}
               <div class=" ui fluid container" style=" padding:0px 20px;">
                   <div class="ui grid">
                       
                       <div class="sixteen wide column" style=" margin: 0 auto; padding-right:5px; ">
-                        <center style="margin: 10px;">
-                          <h3> Popular Communities Nearby</h3>
-                        </center>
+                        
+                          <h3 style="margin: 10px;"> Popular Communities Nearby</h3>
+                        
                           <!-- <div class="ui center aligned search" >
                           <div class="ui fluid icon input" id = 'result' > 
                             <input class="ui fluid prompt"   type="text"  placeholder=" Categories..." id = 'cat' style="width:100%; padding-right: 0px !important;"> 
@@ -156,7 +176,7 @@
     <div class="ui fluid container" style="padding: 0 20px" id = 'comm_card'>
         {{request.user.userinfo}}
     {% for community in communities %}
-    
+
     <div class="ui link fluid cards" >
             <div class="ui fluid card ">
                     

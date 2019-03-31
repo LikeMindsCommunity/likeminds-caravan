@@ -73,7 +73,6 @@ def dashboard(request):
     else:
         user = []
     communities = Community.objects.all().order_by('-active_since')
-    print(communities)
     if request.method == 'GET':
         response = request.GET.dict()
         print (response)
@@ -115,7 +114,15 @@ def dashboard(request):
                         }
                     communities.append(comm)
                 return JsonResponse({'communities': communities})
-    return render (request, 'dashboard.html', { 'usr': user,'communities' : communities})
+        user_id = request.user.id
+        communities1 = Members.objects.all().filter(member_id = user_id)[:2]
+        my_communities = []
+        for j in communities1:
+            my_communities.append(j.community_id)
+        my_community =[]
+        for j in my_communities:
+            my_community.append(j)
+    return render (request, 'dashboard.html', { 'usr': user,'communities' : communities, 'my_communities':my_community})
 
 
 def community(request, community_id):

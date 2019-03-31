@@ -344,7 +344,12 @@ def collabcard(request, card_id):
     usr["about"] = user.about
     usr["fb_link"] = user.fb_link
     usr["linkedin_link"] = user.linkedin_link
-    card = {'id': cards.id, 'title':cards.title, 'member':usr,'community' :cards.community.id}
+    images = card_images.objects.filter(collabcard = card_id)
+    img_list = []
+    for j in images:
+        img = {'image_url': j.image_url.url}
+        img_list.append(img)
+    card = {'id': cards.id, 'title':cards.title, 'member':usr,'community' :cards.community.id,'images':img_list }
     return JsonResponse({"collabcard": card, 'answers':answers})
 
 def community_cards(request, community_id):
