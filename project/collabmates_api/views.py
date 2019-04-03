@@ -286,14 +286,16 @@ def create_community(request):
             member.community_id = community
             member.save()
             card = Collabcard()
-            if community['purpose']!= '':
-                card.title = "Created this community"+community['purpose']
+            print(community)
+            if community.purpose != '':
+                card.title = "Created this community "+community.purpose
             else:
                 card.title = "Listed our community on CollabMates. This will help us to know each other, have organised discussions and network efficiently."
             card.community = community
             card.user = user
             card.save()
-            return JsonResponse({'success':True, 'community_id':community.id, 'collabcard':card})
+            crd = {'id':card.id , 'title':card.title, 'member_id':user.id, 'community_id': community.id }
+            return JsonResponse({'success':True, 'community_id':community.id, 'collabcard':crd})
     else:
         member_id = request.GET.get('member_id')
         if request.method == 'POST':
