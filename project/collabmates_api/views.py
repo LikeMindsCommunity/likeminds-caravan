@@ -154,12 +154,13 @@ def join_community_responses(request):
     user = User.objects.get(id = user_id)
     community = Community.objects.get(id = community_id)
     response = Form_response()
-    for i in res['questions']: 
-        response.data = i['key']
-        response.response = i['value']
-        response.user = user.id
-        response.community = community.id
-        response.save()
+    if 'questions' in res:
+        for i in res['questions']: 
+            response.data = i['key']
+            response.response = i['value']
+            response.user = user.id
+            response.community = community.id
+            response.save()
     member = Members()
     member.member_id = user
     member.community_id = community
