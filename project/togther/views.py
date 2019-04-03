@@ -87,7 +87,6 @@ def dashboard(request):
                     if i.category == category:
                         c = Community.objects.get(id = i.community_id.id)
                         communities.append(c)
-                print('c:',communities)
                 community = []
                 for i in communities:
                     comm = {'id':i.id,
