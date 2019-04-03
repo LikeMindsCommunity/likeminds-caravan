@@ -295,7 +295,19 @@ def create_community(request):
             card.community = community
             card.user = user
             card.save()
-            crd = {'id':card.id , 'title':card.title, 'member_id':user.id, 'community_id': community.id }
+            user = Userinfo.objects.get(user_id = user.id)
+            usr = {}
+            usr['id'] = user.user_id.id
+            usr["name"] = user.name
+            usr["email"] = user.email
+            usr["city"] = user.city
+            usr["headline"] = user.headline
+            usr["contact_number"] = user.contact_number
+            usr["image_url"] = user.image_url
+            usr["about"] = user.about
+            usr["fb_link"] = user.fb_link
+            usr["linkedin_link"] = user.linkedin_link
+            crd = {'id':card.id , 'title':card.title, 'member':usr, 'community_id': community.id }
             return JsonResponse({'success':True, 'community_id':community.id, 'collabcard':crd})
     else:
         member_id = request.GET.get('member_id')
