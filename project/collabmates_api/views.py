@@ -285,8 +285,7 @@ def create_community(request):
             member.community_id = community
             member.save()
     else:
-        if 'member_id' in params:
-            user_id = params['member_id']
+        member_id = request.GET.get('member_id')
         if request.method == 'POST':
             res = json.loads(request.body)
             print(res)
