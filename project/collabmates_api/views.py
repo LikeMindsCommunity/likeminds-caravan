@@ -26,11 +26,13 @@ def communities(request):
         if 'category' in response:
             if response['category'] != '':
                 category = response['category']
-                print(category)
-                categories = Category.objects.all()
+                category_objects = Category.objects.all()
+                for i in Category_list:
+                    if i['id'] == category:
+                        cat = i['title'] 
                 communities = []
-                for i in categories:
-                    if i.category == category:
+                for i in category_objects:
+                    if i.category == cat:
                         c = Community.objects.get(id = i.community_id.id)
                         communities.append(c)
                 community = []
