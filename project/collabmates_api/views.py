@@ -24,6 +24,7 @@ def communities(request):
             user_id = body['member_id']
         response = request.GET.dict()
         if 'category_id' in response:
+            print(response['category_id'])
             if response['category_id'] != '':
                 category = response['category_id']
                 category_objects = Category.objects.all()
@@ -37,15 +38,9 @@ def communities(request):
                         communities.append(c)
                 community = []
                 for i in communities:
-                    comm = {'id':i.id,
-                        'name':i.name,
-                        'about':i.about,
-                        'image_url':i.image_url.url,
-                        'location':i.location,
-                        'members_count':i.members_count,
-                        'purpose': i.purpose,
-                        }
-                    community.append(comm)
+                    serializer_class = CommunitySerializer(i)
+                    community.append(serializer_class.data)
+                return JsonResponse({'communities': community})
             else:
                 queryset = Community.objects.all().order_by('-active_since')
                 community = []
@@ -75,7 +70,7 @@ def communities(request):
         print(comm)    
         comm['member_id'] = user_id
         community.append(comm)
-    return JsonResponse({'communities': community})
+    return HttpResponse({'communities': community})
 
 def your_communities(request,user_id):
     member_id = request.GET.get('member_id')
@@ -291,7 +286,7 @@ def create_community(request):
             member.community_id = community
             member.save()
             card = Collabcard()
-            if 'purpose' in community:
+            if community['purpose']!= '':
                 card.title = "Created this community"+community['purpose']
             else:
                 card.title = "Listed our community on CollabMates. This will help us to know each other, have organised discussions and network efficiently."
