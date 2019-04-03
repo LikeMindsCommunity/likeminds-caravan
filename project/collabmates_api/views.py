@@ -243,9 +243,9 @@ def admins(request, community_id):
     return JsonResponse ({'members': users})
 @csrf_exempt
 def create_community(request):
-    isAdmin = request.GET.get('isAdmin')
-    print(isAdmin)
-    if isAdmin == 'true':
+    is_admin = request.GET.get('is_admin')
+    print(is_admin)
+    if is_admin == 'true':
         user_id = request.GET.get('member_id')
         print(user_id)
         if request.method == 'POST':
