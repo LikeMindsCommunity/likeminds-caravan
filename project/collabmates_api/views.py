@@ -73,7 +73,7 @@ def communities(request):
                 is_member = True
         comm = serializer_class.data
         print(comm)    
-        comm['member_id'] = member_id
+        comm['member_id'] = user_id
         community.append(comm)
     return JsonResponse({'communities': community})
 
