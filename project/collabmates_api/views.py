@@ -46,6 +46,12 @@ def communities(request):
                         'purpose': i.purpose,
                         }
                     community.append(comm)
+            else:
+                queryset = Community.objects.all().order_by('-active_since')
+                community = []
+                for i in queryset:
+                    serializer_class = CommunitySerializer(i)
+                    community.append(serializer_class.data)
                 return JsonResponse({'communities': community})
         else:
             queryset = Community.objects.all().order_by('-active_since')
@@ -284,6 +290,15 @@ def create_community(request):
             member.member_id = user
             member.community_id = community
             member.save()
+            card = Collabcard()
+            if 'purpose' in community:
+                card.title = "Created this community"+community['purpose']
+            else:
+                card.title = "Listed our community on CollabMates. This will help us to know each other, have organised discussions and network efficiently."
+            card.community = community
+            card.user = user
+            card.save()
+            return JsonResponse({'success':True, 'community_id':community.id, 'collabcard':card})
     else:
         member_id = request.GET.get('member_id')
         if request.method == 'POST':
@@ -294,8 +309,8 @@ def create_community(request):
             group.name = res['name']
             group.save()
             community = Community.objects.get(id = group.id)    
-        
-    return JsonResponse({'success':True, 'community_id':community.id})
+        return JsonResponse({'success':True, 'community_id':community.id})
+    return HttpResponse("Create Community Api")
 
 @csrf_exempt
 def create_card(request):

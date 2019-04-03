@@ -8,43 +8,14 @@
 <body>
         
             <div class="ui fluid container" style="padding: 0px 0px; margin: 0px 0px 0px 0px !important;" >
-             
-            <div class="ui link fluid cards" >
-                <div class="ui fluid card ">
-                <div class="ui fluid image mySlides">
-                    <!-- <h4 class="ui center aligned text" style="margin:10px;"> Make Your Group Viral </h4> -->
-                <img  src="../media/media/1.png" style="height:180px;" >
-                
-                </div>
-                <div class="ui fluid image mySlides ">
-                    <!-- <h4 class="ui center aligned text" style="margin:10px;"> Find New Members </h4> -->
-                <img  src="../media/media/2.png" style="height:180px;" >
-                
-                </div>
-                <div class="ui fluid image mySlides">
-                    <!-- <h4 class="ui center aligned text" style="margin:10px;"> Autheticate Members </h4> -->
-                <img  src="../media/media/3.png" style="height:180px;" >
-                
-              </div>
-              <div class="center aligned extra content" style="display:inline; z-index:2; margin-top: -40px; ">
-              <span onclick="change(1)"> <i class="circle icon" style=" color:grey;"></i></span>
-              <span  onclick="change(2)"><i class="circle icon" style=" color:grey;" ></i></span>
-                <span  onclick="change(3)"><i class="circle icon" style=" color:grey;"></i></span>
-              </div>
-              <!-- <div class="center aligned extra content" style="padding:5px;">
-                  <button class="ui fluid button " style=" width:75%; z-index:2; left:2.5%; margin:0px auto; background-color: #1cb39b; color:white; " onclick="createGroup();" > Add Your Community  </button>
-               </div> -->
-              </div>
-              
-              </div>
-              
+                <img class="ui medium rounded fluid image" style="width:100vw;" src="../media/group_2.png">
               </div>
             {% if user.is_authenticated %}
-              <div class="ui fluid container" style=" padding:0px 20px;" >
+              <div class="ui fluid container" style=" margin: 0 0; padding:10px 0px; border-top: solid 0.5px grey; border-bottom: solid 0.5px grey;" >
                 <div class="ui grid">
                       
                       <div class="sixteen wide column" style=" margin: 0 auto; padding-right:5px; ">
-                          <h3  style="margin: 10px;"> My Communities</h3>
+                          <h3  > My Communities</h3>
                           {% for i in my_communities %}
                           <div class="ui middle aligned divided list">
                             <div class="item">
@@ -56,9 +27,12 @@
                           </div>
                           {% endfor %}
                 </div>
-                <button class="ui green basic button" style="margin: 0 auto; align:center;">View all</button>
+                <button class="ui green basic button" style="margin: 0 auto 20px; align:center;">View all</button>
+                <br>
+                <br>
               </div>
               </div>
+            
             {% endif %}
               <div class=" ui fluid container" style=" padding:0px 20px;">
                   <div class="ui grid">
