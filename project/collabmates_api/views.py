@@ -23,9 +23,9 @@ def communities(request):
         if 'member_id' in body:
             user_id = body['member_id']
         response = request.GET.dict()
-        if 'category' in response:
-            if response['category'] != '':
-                category = response['category']
+        if 'category_id' in response:
+            if response['category_id'] != '':
+                category = response['category_id']
                 category_objects = Category.objects.all()
                 for i in Category_list:
                     if i['id'] == category:
