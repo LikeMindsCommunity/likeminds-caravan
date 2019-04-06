@@ -92,7 +92,7 @@ def dashboard(request):
                     comm = {'id':i.id,
                         'name':i.name,
                         'about':i.about,
-                        'image_url':i.image_url.url,
+                        'image_url':'https://beta.collabmates.com/'+i.image_url.url,
                         'location':i.location,
                         'members_count':i.members_count,
                         'purpose': i.purpose,
@@ -107,7 +107,7 @@ def dashboard(request):
                     comm = {'id':i.id,
                         'name':i.name,
                         'about':i.about,
-                        'image_url':i.image_url.url,
+                        'image_url':'https://beta.collabmates.com/'+i.image_url.url,
                         'location':i.location,
                         'members_count':i.members_count,
                         }
