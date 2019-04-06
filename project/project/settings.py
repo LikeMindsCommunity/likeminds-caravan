@@ -24,7 +24,7 @@ SECRET_KEY = 'rg9n#$ebfj4w_mv-%7aahi2!qnitgw%xt(4re%i&)vdlppnz^e'
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
-#SECURE_SSL_REDIRECT = True
+SECURE_SSL_REDIRECT = True
 ALLOWED_HOSTS = ['127.0.0.1','localhost','beta.collabmates.com','ec2-18-220-31-143.us-east-2.compute.amazonaws.com']
 
 
