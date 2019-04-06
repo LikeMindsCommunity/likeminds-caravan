@@ -131,13 +131,10 @@ def community(request, community_id):
             is_member = True
     serializer_class = CommunitySerializer(queryset)
     community = serializer_class.data
-    new_dict = {}
-    new_dict.update(serializer_class.data)
-    if new_dict['image_url']:
-        new_dict['image_url'] = 'https://beta.collabmates.com'+new_dict['image_url']
+    if community['image_url']:
+        community['image_url'] = 'https://beta.collabmates.com'+community['image_url']
     else:
-        new_dict['image_url'] = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQMUCHvC0wEVO5yDMe9wddUoagIqQ3VPH0nm8_VtjK5gk3M0mMO'
-    community.append(new_dict)
+        community['image_url'] = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQMUCHvC0wEVO5yDMe9wddUoagIqQ3VPH0nm8_VtjK5gk3M0mMO'
     community['is_member']= is_member
     return JsonResponse({'community': community})
 
