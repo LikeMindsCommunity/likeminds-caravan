@@ -37,15 +37,20 @@
 
       gtag('config', 'UA-130288684-1');
 </script>
+  {% block styles %}
+      {% endblock %}
   </head>
   <body>
         
         <div class="ui small inverted menu" style=" height:60px; background-color:#075e54; margin:0 0 0 0 !important;">
             <div class="ui grid container" style = "margin-left:0!important; margin-top:0px;">
-                <div class="eight wide column" style="padding:0;">
-                  <a class="item" href="{% url 'dashboard' %}" style="padding:0;"> 
-                      <div class="image">
-                          <img src="/media/media/logo.png" alt="Logo" style="margin-left:0px; height:60px; width:40vw; max-width:240px;">
+                <div class="eight wide column" style="padding:10px; ">
+                  
+                  <a class="item" href="{% url 'dashboard' %}" style='padding:10px;'> 
+                      <div class="image" >
+                      
+                          <img src="/media/logo_2.svg" alt="Logo" style="margin-left:0px; height:20px; margin: auto auto; width:auto; max-width:240px; display: flex;justify-content: center;flex-direction: column;">
+                        
                         </div>
                   </a>
                 </div>

@@ -9,16 +9,16 @@
         
             <div class="ui fluid container" style="padding: 0px 0px; margin: 0px 0px 0px 0px !important;" >
             <br>
-                <img class="ui medium rounded fluid image" style="width:100vw;" src="../media/group_2.png">
+                <img class="ui medium rounded fluid image" style="width:100vw;" src="/media/group_2.png">
               </div>
             {% if user.is_authenticated %}
-              <div class="ui fluid container" style=" margin: 0 0; padding:10px 10px; border-top: solid 0.5px grey; border-bottom: solid 0.5px grey;" >
-                
-                 <h3  > My Communities</h3>
+              <div class="ui fluid container" style=" margin: 0 0 !important;  border-bottom: solid 0.5px grey;" >
+                <div class="ui fluid card" style=" padding: 1em; ">
+                 <h3  style="margin:10px;"> My Communities</h3>
                   {% for i in my_communities %}
-                      <div class="ui relaxed divided list">
+                      <div class="ui relaxed divided list" style="margin:10px;">
                         <div class="item">
-                          <img class="ui avatar image" src="https://beta.collabmates.com/{{i.image_url}}">
+                          <img class="ui avatar image" src="/media/{{i.image_url}}">
                           <div class="content">
                             <a class="header" href="/community/{{i.id}}">{{i.name}}</a>
                             <div class="description">{{i.purpose}}</div>
@@ -27,18 +27,18 @@
                         </div>
                           {% endfor %}
                 <div>
-                  <button class="ui green basic rounded button" style="margin: 0 auto; border-radius:20px; display: flex; justify-content: center;">View all</button>
+                  <button class="ui green basic rounded button" style="margin: 0 auto; color:#075e54; border-radius:20px; display: flex; justify-content: center;">View all</button>
                 </div>
               </div>
               </div>
-            
+            </div>
             {% endif %}
-              <div class=" ui fluid container" style=" padding:0px 20px;">
+              <div class=" ui fluid container" style=" padding:0px 10px;">
                   <div class="ui grid">
                       
                       <div class="sixteen wide column" style=" margin: 0 auto; padding-right:5px; ">
                         
-                          <h3 style="margin: 10px;"> Popular Communities Nearby</h3>
+                          <h3 style="margin: 10px;">Popular Communities Nearby</h3>
                         
                           <!-- <div class="ui center aligned search" >
                           <div class="ui fluid icon input" id = 'result' > 
@@ -154,7 +154,7 @@
             <div class="ui fluid card ">
                     
                     <div class=" fluid image">
-                      <img src="https://beta.collabmates.com/media/{{community.image_url}}" onclick="open_community('{{community.id}}');">
+                      <img src="/media/{{community.image_url}}" onclick="open_community('{{community.id}}');">
                     </div>
                     <div class="content">
                       <div class="header" style="padding-bottom: 5px;"><a href="../community/{{community.id}}" style="color:#1cb39b;">{{community.name}}</a></div>

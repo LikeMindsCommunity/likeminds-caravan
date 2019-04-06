@@ -14,7 +14,8 @@ class UserinfoSerializer(serializers.ModelSerializer):
 class CommunitySerializer(serializers.ModelSerializer):
     class Meta: 
         model = Community
-        fields = '__all__'     
+        fields = '__all__'  
+
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta: 

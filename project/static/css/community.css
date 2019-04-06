@@ -1,0 +1,38 @@
+.top{
+  display: flex;
+}
+
+ul {
+    width: 100vh;
+    list-style-type: none;
+    margin: 0 auto;
+    padding: 0;
+    overflow: hidden;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    height: 7vh;
+  }
+  
+  li {
+    width: 25vh;
+    float: left;
+    font-size: 12px;
+    display: flex;
+  }
+  
+  li a {
+    display: block;
+    color: #4a4a4a;
+    text-align: center;
+    padding: 0.5em !important;
+    text-decoration: none;
+    display: flex;
+    align-items: center;  
+    margin: 0 auto;  
+  }
+  
+  li a:hover {
+    color: #00897b;
+    border-bottom: 1px solid #00897b;
+  }

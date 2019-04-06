@@ -39,21 +39,39 @@ def communities(request):
                 community = []
                 for i in communities:
                     serializer_class = CommunitySerializer(i)
-                    community.append(serializer_class.data)
+                    new_dict = {}
+                    new_dict.update(serializer_class.data)
+                    if new_dict['image_url']:
+                        new_dict['image_url'] = 'https://beta.collabmates.com'+new_dict['image_url']
+                    else:
+                        new_dict['image_url'] = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQMUCHvC0wEVO5yDMe9wddUoagIqQ3VPH0nm8_VtjK5gk3M0mMO'
+                    community.append(new_dict)
                 return JsonResponse({'communities': community})
             else:
                 queryset = Community.objects.all().order_by('-active_since')
                 community = []
                 for i in queryset:
                     serializer_class = CommunitySerializer(i)
-                    community.append(serializer_class.data)
+                    new_dict = {}
+                    new_dict.update(serializer_class.data)
+                    if new_dict['image_url']:
+                        new_dict['image_url'] = 'https://beta.collabmates.com'+new_dict['image_url']
+                    else:
+                        new_dict['image_url'] = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQMUCHvC0wEVO5yDMe9wddUoagIqQ3VPH0nm8_VtjK5gk3M0mMO'
+                    community.append(new_dict)
                 return JsonResponse({'communities': community})
         else:
             queryset = Community.objects.all().order_by('-active_since')
             community = []
             for i in queryset:
                 serializer_class = CommunitySerializer(i)
-                community.append(serializer_class.data)
+                new_dict = {}
+                new_dict.update(serializer_class.data)
+                if new_dict['image_url']:
+                    new_dict['image_url'] = 'https://beta.collabmates.com'+new_dict['image_url']
+                else:
+                    new_dict['image_url'] = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQMUCHvC0wEVO5yDMe9wddUoagIqQ3VPH0nm8_VtjK5gk3M0mMO'
+                community.append(new_dict)
             return JsonResponse({'communities': community})
         
     queryset = Community.objects.all().order_by('-active_since')
@@ -89,7 +107,13 @@ def your_communities(request,user_id):
                 comm['is_member'] = True
             else:
                 comm['is_member'] = False
-        my_community.append(comm)
+        new_dict = {}
+        new_dict.update(serializer_class.data)
+        if new_dict['image_url']:
+            new_dict['image_url'] = 'https://beta.collabmates.com'+new_dict['image_url']
+        else:
+            new_dict['image_url'] = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQMUCHvC0wEVO5yDMe9wddUoagIqQ3VPH0nm8_VtjK5gk3M0mMO'
+        my_community.append(new_dict)
     return JsonResponse({'your_communities':my_community})
 
 def community(request, community_id):

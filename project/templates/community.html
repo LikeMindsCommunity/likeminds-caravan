@@ -1,91 +1,75 @@
 {% extends 'base.html' %}
+{% load static %}
 
+{% block styles%}
+ <link rel = "stylesheet" href="{% static 'css/community.css' %}">
+{% endblock %}
 
 {% block content %}
-
-<div class=" ui small breadcrumb" style="padding: 5px 10px;">
-        <a class="section" href = "{% url 'home' %}">Home</a>
-        <i class="right chevron icon divider"></i>
-
-        <div class="active section">{{community.name}}</div>
+<div class = 'top'>
+<ul>
+  <li><a href="#home">PURPOSE</a></li>
+  <li><a href="#news">ABOUT</a></li>
+  <li><a href="#contact">MEMBERS</a></li>
+  <li><a href="#about">DISCUSSIONS</a></li>
+</ul>
 </div>
 
         <div class="ui fluid card" style="margin-top:0px;">
             <div class="image">
                 <img src='/media/{{community.image_url}}'> 
             </div>
-        
-            <div class="content" >
+            <div class="summary center aligned">
+                <p style="font-weight:100;">{{community.purpose}}</p>
+            </div>
+            {% comment %} <div class="content" >
                 <a class="center aligned header">{{ community.name }}</a>
                 <span class="left floated text" style="width:50%;"><i class="map marker alternate icon"></i>{{community.location}}</span>
                 <span class="right floated text"><a href = "{% url 'members_list' community.id %}" style="color:#1cb39b;">{{community.members_count}} Members </a></span>
-            </div>
+            </div> {% endcomment %}
             
                 <div class="content">
-                  
-                  <div class="ui small feed">
-                    <div class="event">
-                      <div class="content" >
-                            <h4 class=" center aligned ui header"  style="margin-bottom:2px;">About</h4>
-                        <div class="summary center aligned">
-                           <p style="font-weight:100;" id = "more">{{community.about}}</p>
+                 <h4>   Created By  </h4>
+                    <div class="item">
+                        <a class="ui tiny circular image">
+                        <img src="{{admins.0.0.image_url}}">
+                        </a>
+                        <div class="right aligned content">
+                        <a class="header">{{admins.0.0.name}}</a>
+                        <div class="description">
+                            <p>Stevie Feliciano is a <a>library scientist</a> living in New York City. She likes to spend her time reading, running, and writing.</p>
                         </div>
-                      </div>
-                    </div>
-                    <div class="event">
-                            <div class="content">
-                                  <h4 class=" center aligned ui  header" style="margin-bottom:2px;">Purpose</h4>
-                              <div class="summary center aligned">
-                                 <p style="font-weight:100;">{{community.purpose}}</p>
-                              </div>
-                            </div>
-                          </div>
-                    <div class="event">
-                      <div class="content">
-                        <div class="left floated summary" style="font-size:1.1em !important ;">
-                           <p style="margin:0; font-size:1.1em;" > Active Since <br></p>
-                           <p style="font-weight:100; font-size:0.9em !important;">
-                           {{community.active_since}}
-                            </p>
                         </div>
-                        <div class="right floated summary">
-                                <p style="font-size:1.1em;"> Admins <br><img class="ui mini image" style=" height:35px; width:35px;" src="{{admins.0.0.image_url}}">
-                                     <a href='../../profile/{{admins.0.0.user_id.id}}' style="font-weight:100; font-size:0.9em !important;">{{admins.0.0.name}} </a></p>
-                        </div>
-                      </div>
                     </div>
-                    <br>
-                    {% if joined == 0 %}
-			<div class="center aligned extra content">
-                            <button class="ui fluid button " style=" z-index:2;width:95%; left:2.5%; margin:0 auto; background-color: #1cb39b; color:white; bottom:1%; position:fixed;" onclick="join();"> Join Group  </button>
-                    </div>
-                    {% endif %}
-                    <div class="ui celled list">
-                        
-                            <h4 class="ui sub header">
-                                    Community Members
+                </div>
 
-                                    <a class="right floated" style=" color:#1cb39b; font-weight:100;" href="{% url 'members_list' community.id %}"> See all</a>
-                                  </h4>                        
+            <div class="content" style="background-color:#f0f5f5;">
+            <h4>   About Community  </h4>
+                <p style="font-weight:100;" id="more">{{community.about}}</p>
+                
+            </div>
+                  <div class="content">
+                            <h4>Members
+                                <a class="right floated" style=" color:#1cb39b; font-weight:100; " href="{% url 'members_list' community.id %}"> See all</a>
+                            </h4>    
+                      
                     <div class="ui container" style=" overflow-y:auto;white-space:nowrap;" >
                                         
                         {% for i in members%}
-                            <div class="ui card" style="display:inline-block;  width:150px; padding:10px 0px; margin:5px 10px;">
-                                <a href="../../profile/{{i.user_id.id}}" style=" margin:0 35px; width: 80px !important; ">
-                                  <img class="ui medium circular image" src="{{i.image_url}}" style=" margin:0 auto; height:80px; width:75px;">
-                                </a>
+                        
+                            <div class="item">
+                                <img class="ui tiny circular image" src="{{i.image_url}}">
                                 <div class="content">
-                                  <a class="header" href="../../profile/{{i.user_id.id}}" style="margin: 0 auto; overflow-x:hidden ; text-align:center; ">{{i.name}}</a>
+                                <br>
+                                    {{i.name}}
                                 </div>
-                              </div>
-  
-                            
+                               
+                            </div>
                         {% endfor %}
 
                        
                     </div>
                     </div>
-                    
                   </div>
                   
                 <div class="ui celled list">
@@ -105,7 +89,9 @@
                     </div>
                 </div>
                 </div>
-                
+                <div class="center aligned extra content">
+                            <button class="ui fluid button " style=" z-index:2;width:95%; left:2.5%; margin:0 auto; background-color: #1cb39b; color:white; bottom:1%; position:fixed;" onclick="join();"> Join Group  </button>
+                    </div>
                         <br>
                         <br>
                         <br>
@@ -137,7 +123,7 @@
                 }
 
                 $(document).ready(function() {
-                    var showChar = 200;
+                    var showChar = 180;
                     var ellipsestext = "...";
                     var moretext = "more";
                     var lesstext = "less";
