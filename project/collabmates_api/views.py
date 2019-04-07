@@ -570,14 +570,18 @@ def join(request):
     if 'accepted' in res:
         accepted = res['accepted']
     req = Requests.objects.filter(community = community_id).filter(user_id = member_id)
-    if accepted == True:
+    req = req[0]
+    print(req.id)
+    if accepted == 'True':
+        print('hello')
         req.status = 1
+        req.save()
         member = Members()
         member.member_id = req.user_id
         member.community_id = req.community
         member.save()
         community = Community.objects.get(id = community_id)
-        community['members_count'] = community['members_count']+1
+        community.members_count = community.members_count+1
     else:
         req.status = 0
     return JsonResponse({'success': True})
