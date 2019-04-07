@@ -180,19 +180,22 @@ def join_community_responses(request):
     community_id = request.GET.get('community_id')
     print(user_id, community_id)
     user = User.objects.get(id = user_id)
+    userinfo = Userinfo.objects.get(user_id = user)
     community = Community.objects.get(id = community_id)
     response = Form_response()
+    req = Requests()
+    req.user = User
+    req.user_info = userinfo
+    req.community = community
+    req.save()
     if 'questions' in res:
         for i in res['questions']: 
             response.data = i['key']
             response.response = i['value']
             response.user = user.id
             response.community = community.id
+            response.request_id = req
             response.save()
-    member = Members()
-    member.member_id = user
-    member.community_id = community
-    member.save()
     return JsonResponse({'success':True})
 
 def category_filter(request, category):
@@ -295,8 +298,9 @@ def create_community(request):
                     group.image_url = img['image']
                 if i['key'] == 'whatsapp_link' :
                     group.whatsapp_group_link = i['whatsapp_link']
-                if i['key'] == 'categories' :
-                    categories = res(['items'])
+                if i['key'] == 'Type of community' :
+                    categories = res(['value'])
+                    categories = categories.split(",")
                     for i in categories:
                         category = Category()
                         category.category = i
@@ -529,12 +533,55 @@ def create_admin(request):
         return JsonResponse({'success':True})
     return HttpResponse('Add Admin Api')
 
-# def pending_members(request):
-#     params = request.GET
-#     if ['community_id'] in params:
-#         community_id = params['community_id']
-#     community = Community.objects.get(id = community_id)
-    # requests = Requests.objects.filter(community = community)
+def pending_members(request,community_id):
+    community = Community.objects.get(id = community_id)
+    requests = Requests.objects.filter(community = community).filter(status = 0)
+    pending_requests = []
+    for i in requests:
+        resp = Form_response.objects.filter(request_id = i.id)
+        user = i.user_info
+        usr = {}
+        usr['id'] = user.user_id.id
+        usr["name"] = user.name
+        usr["email"] = user.email
+        usr["city"] = user.city
+        usr["headline"] = user.headline
+        usr["contact_number"] = user.contact_number
+        usr["image_url"] = user.image_url
+        usr["about"] = user.about
+        usr["fb_link"] = user.fb_link
+        usr["linkedin_link"] = user.linkedin_link
+        user_response = []
+        for j in resp:
+            response_object = {}
+            response_object['key'] = j.data
+            response_object['value'] = j.response
+            user_response.append(response_object)
+        usr['user_respone'] = user_response
+        pending_requests.append({'user':usr})
+    return JsonResponse({'pending_requests': pending_requests})
 
-    
-
+def join(request):
+    res = json.loads(request.body)
+    if 'member_id' in res:
+        member_id = res['member_id']
+    if 'community_id' in res:
+        community_id = res['community_id']
+    if 'accepted' in res:
+        accepted = res['accepted']
+    req = Requests.objects.filter(community = community_id).filter(user_id = member_id)
+    req = req[0]
+    print(req.id)
+    if accepted == 'True':
+        print('hello')
+        req.status = 1
+        req.save()
+        member = Members()
+        member.member_id = req.user_id
+        member.community_id = req.community
+        member.save()
+        community = Community.objects.get(id = community_id)
+        community.members_count = community.members_count+1
+    else:
+        req.status = 0
+    return JsonResponse({'success': True})
