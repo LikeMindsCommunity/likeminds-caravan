@@ -40,4 +40,9 @@ class RequestsSerializer(serializers.ModelSerializer):
 class AnswerSerializer(serializers.ModelSerializer):
     class Meta: 
         model = card_answers
-        field = '__all__'        
+        field = '__all__'   
+
+class ResponseFormSerializer(serializers.ModelSerializer):
+    class Meta: 
+        model = Form_response
+        field = '__all__'   

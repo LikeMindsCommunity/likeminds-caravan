@@ -43,6 +43,8 @@ INSTALLED_APPS = [
     'django_select2',
     'corsheaders',
     'collabmates_api',
+    'mail_templated',
+    "fcm_django"
 ]
 
 MIDDLEWARE = [
@@ -173,10 +175,16 @@ SOCIAL_AUTH_LINKEDIN_EXTRA_DATA = [('id', 'id'),
                                    ('industry', 'industry')]
 
 EMAIL_HOST = 'smtp.sendgrid.net'
-EMAIL_HOST_USER = 'collabmates'
+EMAIL_HOST_USER = 'collabmates1'
 EMAIL_HOST_PASSWORD = 'Nipun@git@123'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 
 
 CORS_ORIGIN_ALLOW_ALL = True   
+
+FCM_DJANGO_SETTINGS = {
+    "FCM_SERVER_KEY": "AAAAllezPSk:APA91bEYRnVqZGMS_YNTDwu4wJfQfbubN7jQtwvdAyZI6XvoRIjQPii9kj2joizPGJ8GhcoXpcIF5ftsZ-zyBuY9WzqS48b2JCZ51Lv8K9L56gMwBjLsW7tDSfntEqMtAQ9f8f024M5P",
+    "ONE_DEVICE_PER_USER": True,
+    "DELETE_INACTIVE_DEVICES": False
+}

@@ -54,12 +54,6 @@ class Form_data (models.Model):
     def __str__(self):
         return self.community_id.name
 
-class Form_response (models.Model):
-    data = models.TextField()
-    user = models.IntegerField()
-    community = models.IntegerField()
-    response = models.TextField()
-
 class Userinfo (models.Model):
     user_id = models.ForeignKey(User, on_delete=models.CASCADE)
     name = models.CharField(max_length = 200)
@@ -102,6 +96,13 @@ class Requests (models.Model):
     user_info = models.ForeignKey(Userinfo, on_delete=models.CASCADE)
     community = models.ForeignKey(Community, on_delete=models.CASCADE)
     status = models.IntegerField(default = 0)
+
+class Form_response (models.Model):
+    request_id = models.ForeignKey(Requests, on_delete=models.CASCADE)
+    data = models.TextField()
+    user = models.IntegerField()
+    community = models.IntegerField()
+    response = models.TextField()
     
 class Collabcard (models.Model):
     title = models.TextField()
