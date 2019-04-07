@@ -538,7 +538,7 @@ def pending_members(request,community_id):
     requests = Requests.objects.filter(community = community).filter(status = 0)
     pending_requests = []
     for i in requests:
-        resp = Form_response.objects.filter(request_id = i.id)
+        resp = Form_response.objects.filter(community = community_id).filter(user_id = member_id)
         user = i.user_info
         usr = {}
         usr['id'] = user.user_id.id
@@ -559,7 +559,7 @@ def pending_members(request,community_id):
             user_response.append(response_object)
         usr['user_respone'] = user_response
         pending_requests.append({'user':usr})
-    return JsonResponse({'pending_requests': pending_requests})
+    return JsonResponse({'pending_members': pending_requests})
 
 def join(request):
     res = json.loads(request.body)
