@@ -163,7 +163,8 @@ def similar_community(request, community_id):
             similar_communities.append(community)
     return JsonResponse({'communities': similar_communities})
 
-def join_community(request, community_id):
+def join_community(request):
+    community_id = request.GET.get('community_id')
     data = Form_data.objects.all().filter(community_id = community_id)
     reqd_info = []
     for i in data:
