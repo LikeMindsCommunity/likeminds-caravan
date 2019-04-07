@@ -529,9 +529,12 @@ def create_admin(request):
         return JsonResponse({'success':True})
     return HttpResponse('Add Admin Api')
 
-def pending_members(request):
-    params = request.GET
-    if ['community_id'] in params:
-        community_id = params['community_id']
+# def pending_members(request):
+#     params = request.GET
+#     if ['community_id'] in params:
+#         community_id = params['community_id']
+#     community = Community.objects.get(id = community_id)
+    # requests = Requests.objects.filter(community = community)
+
     
 

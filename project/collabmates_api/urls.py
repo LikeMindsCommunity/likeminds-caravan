@@ -23,7 +23,7 @@ urlpatterns = [
     path('/login',api_views.login,name = 'login'),
     path('/image_upload',api_views.image_upload,name = 'image'),
     path('/create_admin>',api_views.create_admin,name = 'create_admin'),
-    path('/pending_members>',api_views.pending_members,name = 'pending_members'),
-    path('/response>',api_views.user_response,name = 'user_response')
+    # path('/pending_members>',api_views.pending_members,name = 'pending_members'),
+    # path('/response>',api_views.user_response,name = 'user_response')
 
 ]
