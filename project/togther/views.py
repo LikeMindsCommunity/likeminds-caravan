@@ -543,6 +543,7 @@ def privacy(request):
 def terms(request):
     return render(request,'terms.html')
 
+@login_required
 def collabcard(request, card_id):
     if request.user.is_authenticated:
         user = Userinfo.objects.all().filter(user_id = request.user)
@@ -551,5 +552,16 @@ def collabcard(request, card_id):
     card = Collabcard.objects.get(id = card_id)
     creator = Userinfo.objects.get(user_id = card.user)
     community = card.community
-    return render(request,'card.html' ,{'user':user, 'card':card, 'creator': creator, 'community': community})
-    
+    print(user)
+    return render(request,'card.html' ,{'usr':user, 'card':card, 'creator': creator, 'community': community})
+
+@login_required 
+def view_answers(request, card_id):
+    cards = Collabcard.objects.get(id = card_id)
+    answer = card_answers.objects.filter(card = cards)
+    userinfo = Userinfo.objects.get(user_id = cards.user)
+    answers = []
+    for i in answer:
+        creator = Userinfo.objects.get(user_id = i.user.id)
+        answers.append({'answer':answer ,'creator':creator})
+    return render(request, 'answers.html',{'answers': answers, 'user':userinfo})

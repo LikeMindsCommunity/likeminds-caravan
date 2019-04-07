@@ -528,3 +528,10 @@ def create_admin(request):
         admin.save()
         return JsonResponse({'success':True})
     return HttpResponse('Add Admin Api')
+
+def pending_members(request):
+    params = request.GET
+    if ['community_id'] in params:
+        community_id = params['community_id']
+    
+

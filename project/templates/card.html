@@ -3,6 +3,7 @@
 
 {% block content %}
 
+
 <div class="ui raised padded text container segment" style="margin: 8px 8px !important;">
 <div class="card">
     <div class="content">
@@ -13,9 +14,23 @@
       <br>
         {{card.title}}
       </div>
+      
     </div>
   </div>
+  
 </div>
 
+<button class="ui fluid button " style=" z-index:2;width:60%; left:20%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; " onclick ="join();" >View Answers  </button>
+<script>
+
+      function join(){
+      {% if user.is_authenticated %}
+          window.location.href = "../view_answers/{{card.id }}";
+      {% else %}
+      $('.test')
+      .modal('show');
+      {% endif %}
+  }
+</script>
 
 {% endblock %}

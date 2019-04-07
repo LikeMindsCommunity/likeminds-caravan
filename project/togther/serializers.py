@@ -35,4 +35,9 @@ class AdminsSerializer(serializers.ModelSerializer):
 class RequestsSerializer(serializers.ModelSerializer):
     class Meta: 
         model = Requests
+        field = '__all__'   
+
+class AnswerSerializer(serializers.ModelSerializer):
+    class Meta: 
+        model = card_answers
         field = '__all__'        
