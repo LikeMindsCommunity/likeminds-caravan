@@ -205,7 +205,7 @@ def join_community_responses(request):
     community = Community.objects.get(id = community_id)
     response = Form_response()
     req = Requests()
-    req.user = User
+    req.user_id = user
     req.user_info = userinfo
     req.community = community
     req.save()
@@ -215,7 +215,6 @@ def join_community_responses(request):
             response.response = i['value']
             response.user = user.id
             response.community = community.id
-            response.request_id = req
             response.save()
     return JsonResponse({'success':True})
 
