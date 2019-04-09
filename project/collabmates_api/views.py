@@ -45,6 +45,7 @@ def communities(request):
                         new_dict['image_url'] = 'https://beta.collabmates.com'+new_dict['image_url']
                     else:
                         new_dict['image_url'] = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQMUCHvC0wEVO5yDMe9wddUoagIqQ3VPH0nm8_VtjK5gk3M0mMO'
+                    new_dict['share_url']= 'https://beta.collabmates.com/community/'+str(new_dict['id'])
                     community.append(new_dict)
                 return JsonResponse({'communities': community})
             else:
@@ -58,6 +59,13 @@ def communities(request):
                         new_dict['image_url'] = 'https://beta.collabmates.com'+new_dict['image_url']
                     else:
                         new_dict['image_url'] = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQMUCHvC0wEVO5yDMe9wddUoagIqQ3VPH0nm8_VtjK5gk3M0mMO'
+                    member = Members.objects.all().filter(community_id = i.id)
+                    is_member = False
+                    for m in member:
+                        if m.member_id == user_id:
+                            is_member = True
+                    new_dict['is_member'] = is_member
+                    new_dict['share_url']= 'https://beta.collabmates.com/community/'+str(new_dict['id'])
                     community.append(new_dict)
                 return JsonResponse({'communities': community})
         else:
@@ -71,6 +79,13 @@ def communities(request):
                     new_dict['image_url'] = 'https://beta.collabmates.com'+new_dict['image_url']
                 else:
                     new_dict['image_url'] = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQMUCHvC0wEVO5yDMe9wddUoagIqQ3VPH0nm8_VtjK5gk3M0mMO'
+                member = Members.objects.all().filter(community_id = i.id)
+                is_member = False
+                for m in member:
+                    if m.member_id == user_id:
+                        is_member = True
+                    new_dict['is_member'] = is_member
+                new_dict['share_url']= 'https://beta.collabmates.com/community/'+str(new_dict['id'])
                 community.append(new_dict)
             return JsonResponse({'communities': community})
         
@@ -82,11 +97,12 @@ def communities(request):
         member = Members.objects.all().filter(community_id = i.id)
         is_member = False
         for m in member:
-            if m.member_id == user:
+            if m.member_id == user_id:
                 is_member = True
         comm = serializer_class.data
         print(comm)    
         comm['member_id'] = user_id
+        new_dict['share_url']= 'https://beta.collabmates.com/community/'+str(new_dict['id'])
         community.append(comm)
     return HttpResponse({'communities': community})
 
@@ -147,22 +163,25 @@ def similar_community(request, community_id):
     member = Members.objects.all().filter(community_id = community_id)
     is_member = False
     user = User.objects.get(id = user_id)
-    
+    for m in member:
+        if m.member_id == user:
+            is_member = True
     community = Community.objects.get(id = community_id)
-    queryset = Community.objects.all().order_by('-active_since')
+    queryset = Community.objects.all().order_by('-active_since')[:10]
     similar_communities = []
     for i in queryset:
         if i.id != community_id:
             serializer_class = CommunitySerializer(i)
             community = serializer_class.data
-            print(community)
-            member = Members.objects.all().filter(community_id = community['id'])
-            is_member = False
-            for m in member:
-                if m.member_id == user:
-                    is_member = True
-            community['is_member']= is_member
-            similar_communities.append(community)
+        new_dict = {}
+        new_dict.update(serializer_class.data)
+        if new_dict['image_url']:
+            new_dict['image_url'] = 'https://beta.collabmates.com'+new_dict['image_url']
+        else:
+            new_dict['image_url'] = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQMUCHvC0wEVO5yDMe9wddUoagIqQ3VPH0nm8_VtjK5gk3M0mMO'
+        new_dict['share_url']= 'https://beta.collabmates.com/community/'+str(new_dict['id'])
+        new_dict['is_member'] = is_member
+        similar_communities.append(new_dict)
     return JsonResponse({'communities': similar_communities})
 
 def join_community(request, community_id):
