@@ -8,18 +8,18 @@
 {% block content %}
 <div class = 'top'>
 <ul>
-  <li><a href="#home">PURPOSE</a></li>
-  <li><a href="#news">ABOUT</a></li>
-  <li><a href="#contact">MEMBERS</a></li>
-  <li><a href="#about">DISCUSSIONS</a></li>
+  <li><a href="#purpose">PURPOSE</a></li>
+  <li><a href="#about">ABOUT</a></li>
+  <li><a href="#members">MEMBERS</a></li>
+  <li><a href="#discussion">DISCUSSIONS</a></li>
 </ul>
 </div>
 
-        <div class="ui fluid card" style="margin-top:0px;">
+        <div class="ui fluid card" id="purpose" style="margin-top:0px;">
             <div class="image">
                 <img src='/media/{{community.image_url}}'> 
             </div>
-            <div class="summary center aligned">
+            <div class="summary left aligned">
                 <p style="font-weight:100; padding:10px; color:#666666;">{{community.purpose}}</p>
             </div>
             {% comment %} <div class="content" >
@@ -46,27 +46,29 @@
                     </div>
                 </div>
 
-            <div class="content" style="background-color:#f0f5f5;">
+            <div class="content" id="about" style="background-color:#f0f5f5;">
             <h4>   About Community  </h4>
                 <p style="font-weight:100;" id="more">{{community.about}}</p>
                 
             </div>
-                  <div class="content">
+                  <div class="content" id="members">
                             <h4>Members
                                 <a class="right floated" style=" color:#1cb39b; font-weight:100; " href="{% url 'members_list' community.id %}"> See all</a>
                             </h4>    
                       
-                    <div class="ui container" style=" overflow-y:auto;white-space:nowrap;" >
-                                        
+                    <div class="ui container"  style=" overflow-y:auto;white-space:nowrap;" >
+                               <div class="ui big horizontal divided list">         
                         {% for i in members%}
                         
                             <div class="item">
                                 <img class="ui tiny circular image" src="{{i.image_url}}">
                                 <div class="content">
                                 <br>
+                                <a href="../../profile/{{i.id}}">
                                     {{i.name}}
+                                </a>
                                 </div>
-                               
+                               </div>
                             </div>
                         {% endfor %}
 
@@ -77,7 +79,7 @@
                   
                   <div class="content">
                             <h4>Similar Communities
-                                <a class="right floated" style=" color:#1cb39b; font-weight:100; " href="{% url 'members_list' community.id %}"> See all</a>
+                                <a class="right floated" style=" color:#1cb39b; font-weight:100; " href="{% url 'similar_community' 51 %}"> See all</a>
                             </h4>    
                       
                     <div class="ui container" style=" overflow-y:auto;white-space:nowrap;" >
