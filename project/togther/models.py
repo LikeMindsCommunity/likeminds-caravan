@@ -98,7 +98,6 @@ class Requests (models.Model):
     status = models.IntegerField(default = 0)
 
 class Form_response (models.Model):
-    request_id = models.ForeignKey(Requests, on_delete=models.CASCADE)
     data = models.TextField()
     user = models.IntegerField()
     community = models.IntegerField()
