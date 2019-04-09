@@ -113,6 +113,7 @@ def your_communities(request,user_id):
             new_dict['image_url'] = 'https://beta.collabmates.com'+new_dict['image_url']
         else:
             new_dict['image_url'] = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQMUCHvC0wEVO5yDMe9wddUoagIqQ3VPH0nm8_VtjK5gk3M0mMO'
+        new_dict['share_url']= 'https://beta.collabmates.com/community/'+str(new_dict['id'])
         my_community.append(new_dict)
     return JsonResponse({'your_communities':my_community})
 
@@ -136,6 +137,7 @@ def community(request, community_id):
     else:
         community['image_url'] = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQMUCHvC0wEVO5yDMe9wddUoagIqQ3VPH0nm8_VtjK5gk3M0mMO'
     community['is_member']= is_member
+    community['share_url']= 'https://beta.collabmates.com/community/'+str(community['id'])
     return JsonResponse({'community': community})
 
 def similar_community(request, community_id):
@@ -163,8 +165,7 @@ def similar_community(request, community_id):
             similar_communities.append(community)
     return JsonResponse({'communities': similar_communities})
 
-def join_community(request):
-    community_id = request.GET.get('community_id')
+def join_community(request, community_id):
     data = Form_data.objects.all().filter(community_id = community_id)
     reqd_info = []
     for i in data:
@@ -198,6 +199,7 @@ def join_community_responses(request):
             response.request_id = req
             response.save()
     return JsonResponse({'success':True})
+
 
 def category_filter(request, category):
     categories = Category.objects.all()
@@ -539,7 +541,7 @@ def pending_members(request,community_id):
     requests = Requests.objects.filter(community = community).filter(status = 0)
     pending_requests = []
     for i in requests:
-        resp = Form_response.objects.filter(community = community_id).filter(user_id = member_id)
+        resp = Form_response.objects.filter(community = community_id).filter(user = i.user_id.id)
         user = i.user_info
         usr = {}
         usr['id'] = user.user_id.id

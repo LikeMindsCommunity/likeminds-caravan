@@ -49,7 +49,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'collabmates_api',
 #    'mail_templated',
-#    "fcm_django"
+    "fcm_django"
 ]
 
 MIDDLEWARE = [
