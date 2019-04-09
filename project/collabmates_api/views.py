@@ -579,7 +579,7 @@ def pending_members(request,community_id):
             response_object['value'] = j.response
             user_response.append(response_object)
         usr['user_respone'] = user_response
-        pending_requests.append({'user':usr})
+        pending_requests.append({'members':usr})
     return JsonResponse({'pending_members': pending_requests})
 
 def join(request):
