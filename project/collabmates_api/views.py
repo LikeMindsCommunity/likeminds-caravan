@@ -360,8 +360,9 @@ def create_community(request):
             usr["about"] = user.about
             usr["fb_link"] = user.fb_link
             usr["linkedin_link"] = user.linkedin_link
-            crd = {'id':card.id , 'title':card.title, 'member':usr, 'community_id': community.id }
-            return JsonResponse({'success':True, 'community_id':community.id, 'collabcard':crd})
+            serializer_class = CommunitySerializer(community)
+            crd = {'id':card.id , 'title':card.title, 'member':usr }
+            return JsonResponse({'success':True, 'community':serializer_class.data, 'collabcard':crd})
     else:
         member_id = request.GET.get('member_id')
         if request.method == 'POST':
@@ -380,16 +381,33 @@ def create_card(request):
     user_id = request.GET.get('member_id')
     community_id = request.GET.get('community_id')
     print (user_id, community_id)
-    user = User.objects.get(id = user_id)
+    useer = User.objects.get(id = user_id)
+    user = Userinfo.objects.get(user_id = user_id)
     community = Community.objects.get(id = community_id)
     if request.method == 'POST':
         res = json.loads(request.body)
         card = Collabcard()
         card.title = res['title']
         card.community = community
-        card.user = user
+        card.user = useer
         card.save()
-        return JsonResponse({'success':True, 'collabcard_id':card.id})
+        collabcard = {}
+        collabcard['id'] = card.id
+        collabcard['title'] = card.title
+        collabcard['community'] = community.id
+        usr = {}
+        usr['id'] = user.user_id.id
+        usr["name"] = user.name
+        usr["email"] = user.email
+        usr["city"] = user.city
+        usr["headline"] = user.headline
+        usr["contact_number"] = user.contact_number
+        usr["image_url"] = user.image_url
+        usr["about"] = user.about
+        usr["fb_link"] = user.fb_link
+        usr["linkedin_link"] = user.linkedin_link
+        collabcard['member'] = usr
+        return JsonResponse({'success':True, 'collabcard':collabcard})
     return JsonResponse()
 
 def collabcard(request, card_id):
@@ -582,7 +600,7 @@ def pending_members(request,community_id):
         pending_requests.append(usr)
     return JsonResponse({'pending_members': pending_requests})
 
-def join(request):
+def request_response(request):
     res = json.loads(request.body)
     if 'member_id' in res:
         member_id = res['member_id']
@@ -594,7 +612,6 @@ def join(request):
     req = req[0]
     print(req.id)
     if accepted == 'True':
-        print('hello')
         req.status = 1
         req.save()
         member = Members()

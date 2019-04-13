@@ -24,5 +24,5 @@ urlpatterns = [
     path('/image_upload',api_views.image_upload,name = 'image'),
     path('/create_admin',api_views.create_admin,name = 'create_admin'),
     path('/pending_members/<int:community_id>',api_views.pending_members,name = 'pending_members'),
-    path('/join',api_views.join,name = 'join')
+    path('/join',api_views.request_response,name = 'join')
 ]
