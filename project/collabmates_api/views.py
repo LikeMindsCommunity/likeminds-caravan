@@ -599,7 +599,7 @@ def pending_members(request,community_id):
         usr['user_respone'] = user_response
         pending_requests.append(usr)
     return JsonResponse({'pending_members': pending_requests})
-
+@csrf_exempt
 def request_response(request):
     res = json.loads(request.body)
     if 'member_id' in res:
@@ -623,3 +623,7 @@ def request_response(request):
     else:
         req.status = 0
     return JsonResponse({'success': True})
+
+
+#def pending_request_count(request):
+
