@@ -360,9 +360,16 @@ def create_community(request):
             usr["about"] = user.about
             usr["fb_link"] = user.fb_link
             usr["linkedin_link"] = user.linkedin_link
-            serializer_class = CommunitySerializer(community)
+            serializer_class = CommunitySerializer(i)
+            new_dict = {}
+            new_dict.update(serializer_class.data)
+            if new_dict['image_url']:
+                new_dict['image_url'] = 'https://beta.collabmates.com'+new_dict['image_url']
+            else:
+                new_dict['image_url'] = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQMUCHvC0wEVO5yDMe9wddUoagIqQ3VPH0nm8_VtjK5gk3M0mMO'
+            new_dict['share_url']= 'https://beta.collabmates.com/community/'+str(new_dict['id'])
             crd = {'id':card.id , 'title':card.title, 'member':usr }
-            return JsonResponse({'success':True, 'community':serializer_class.data, 'collabcard':crd})
+            return JsonResponse({'success':True, 'community':new_dict, 'collabcard':crd})
     else:
         member_id = request.GET.get('member_id')
         if request.method == 'POST':
@@ -372,8 +379,17 @@ def create_community(request):
             group.members_count = group.members_count + 1
             group.name = res['name']
             group.save()
-            community = Community.objects.get(id = group.id)    
-        return JsonResponse({'success':True, 'community_id':community.id})
+            community = Community.objects.get(id = group.id)
+            serializer_class = CommunitySerializer(i)
+            new_dict = {}
+            new_dict.update(serializer_class.data)
+            if new_dict['image_url']:
+                new_dict['image_url'] = 'https://beta.collabmates.com'+new_dict['image_url']
+            else:
+                new_dict['image_url'] = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQMUCHvC0wEVO5yDMe9wddUoagIqQ3VPH0nm8_VtjK5gk3M0mMO'
+            new_dict['share_url']= 'https://beta.collabmates.com/community/'+str(new_dict['id'])
+            
+        return JsonResponse({'success':True, 'community_id':new_dict})
     return HttpResponse("Create Community Api")
 
 @csrf_exempt
@@ -395,6 +411,7 @@ def create_card(request):
         collabcard['id'] = card.id
         collabcard['title'] = card.title
         collabcard['community'] = community.id
+        collabcard['share_url'] = 'https://beta.collabamtes.com/collabcard/'+card.id
         usr = {}
         usr['id'] = user.user_id.id
         usr["name"] = user.name
@@ -447,6 +464,7 @@ def collabcard(request, card_id):
         img = {'image_url': 'https://beta.collabmates.com'+j.image_url.url}
         img_list.append(img)
     card = {'id': cards.id, 'title':cards.title, 'member':usr,'community' :cards.community.id,'images':img_list }
+    card['share_url'] = 'https://beta.collabamtes.com/collabcard/'+cards.id
     return JsonResponse({"collabcard": card, 'answers':answers})
 
 def community_cards(request, community_id):
@@ -471,7 +489,7 @@ def community_cards(request, community_id):
         for j in images:
             img = {'image_url': 'https://beta.collabmates.com'+j.image_url.url}
             img_list.append(img)
-        card.append({'id': i.id, 'title': i.title, 'member':usr,'images':img_list })
+        card.append({'id': i.id, 'title': i.title, 'member':usr,'images':img_list,'share_url' : 'https://beta.collabamtes.com/collabcard/'+i.id })
     return JsonResponse ({'collabcards': card})
 @csrf_exempt
 def create_answer(request):
@@ -611,7 +629,7 @@ def request_response(request):
     req = Requests.objects.filter(community = community_id).filter(user_id = member_id)
     req = req[0]
     print(req.id)
-    if accepted == 'True':
+    if accepted == 'true':
         req.status = 1
         req.save()
         member = Members()
