@@ -294,6 +294,7 @@ def admins(request, community_id):
         usr["linkedin_link"] = user[0].linkedin_link
         users.append(usr)
     return JsonResponse ({'members': users})
+
 @csrf_exempt
 def create_community(request):
     is_admin = request.GET.get('is_admin')
@@ -320,7 +321,7 @@ def create_community(request):
                 if i['key'] == 'whatsapp_link' :
                     group.whatsapp_group_link = i['whatsapp_link']
                 if i['key'] == 'Type of community' :
-                    categories = res(['value'])
+                    categories = i(['value'])
                     categories = categories.split(",")
                     for i in categories:
                         category = Category()
@@ -360,7 +361,7 @@ def create_community(request):
             usr["about"] = user.about
             usr["fb_link"] = user.fb_link
             usr["linkedin_link"] = user.linkedin_link
-            serializer_class = CommunitySerializer(i)
+            serializer_class = CommunitySerializer(community)
             new_dict = {}
             new_dict.update(serializer_class.data)
             if new_dict['image_url']:
@@ -380,7 +381,7 @@ def create_community(request):
             group.name = res['name']
             group.save()
             community = Community.objects.get(id = group.id)
-            serializer_class = CommunitySerializer(i)
+            serializer_class = CommunitySerializer(community)
             new_dict = {}
             new_dict.update(serializer_class.data)
             if new_dict['image_url']:
