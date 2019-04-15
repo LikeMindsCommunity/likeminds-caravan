@@ -309,7 +309,7 @@ def create_community(request):
             group = Community()
             group.members_count = group.members_count + 1
             group.name = res['name']
-            for i in res['items']:
+            
                 if i['key'] == 'Purpose of the community':
                     group.purpose = i['value']
                 if i['key'] == 'Geography of the community':
@@ -320,15 +320,16 @@ def create_community(request):
                     group.image_url = img['image']
                 if i['key'] == 'whatsapp_link' :
                     group.whatsapp_group_link = i['whatsapp_link']
+            group.save()
+            for i in res['items']:
                 if i['key'] == 'Type of community' :
                     categories = i['value']
                     categories = categories.split(",")
-                    for i in categories:
+                    for j in categories:
                         category = Category()
-                        category.category = i
-                        category.community_id = group
+                        category.category = j
+                        category.community_id_id = group.id
                         category.save()
-            group.save()
             admin = Admins()
             print(group)
             user = User.objects.get(id = user_id)
