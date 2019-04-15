@@ -5,11 +5,38 @@
 {% endblock %}
 
 {% block content %}
+<style>
+#back2Top {
+    width: 40px;
+    line-height: 40px;
+    overflow: hidden;
+    z-index: 999;
+    display: none;
+    cursor: pointer;
+    -moz-transform: rotate(270deg);
+    -webkit-transform: rotate(270deg);
+    -o-transform: rotate(270deg);
+    -ms-transform: rotate(270deg);
+    transform: rotate(270deg);
+    position: fixed;
+    bottom: 50px;
+    right: 0;
+    background-color: #DDD;
+    color: #555;
+    text-align: center;
+    font-size: 30px;
+    text-decoration: none;
+}
+#back2Top:hover {
+    background-color: #DDF;
+    color: #000;
+}
+</style>
 <body>
         
             <div class="ui fluid container" style="padding: 0px 0px; margin: 0px 0px 0px 0px !important;" >
             <br>
-                <img class="ui medium rounded fluid image" style="width:100vw;" src="/media/group_2.png">
+                <img class="ui medium rounded fluid image" style="width:100vw;" onclick="create();"src="/media/group_2.png">
               </div>
             {% if user.is_authenticated %}
               <div class="ui fluid container" style=" margin: 0 0 !important;  border-bottom: solid 0.5px grey;" >
@@ -27,18 +54,20 @@
                         </div>
                           {% endfor %}
                 <div>
+                  {% if my_communities_count >= 3 %}
                   <button class="ui green basic rounded button" style="margin: 0 auto; color:#075e54; border-radius:20px; display: flex; justify-content: center;">View all</button>
                 </div>
               </div>
               </div>
             </div>
             {% endif %}
+            {% endif %}
               <div class=" ui fluid container" style=" padding:0px 10px;">
                   <div class="ui grid">
                       
                       <div class="sixteen wide column" style=" margin: 0 auto; padding-right:5px; ">
                         
-                          <h3 style="margin: 10px;">Popular Communities Nearby</h3>
+                          <h3 style="margin: 10px;">Recommended Communities </h3>
                         
                           <!-- <div class="ui center aligned search" >
                           <div class="ui fluid icon input" id = 'result' > 
@@ -151,10 +180,10 @@
     {% for community in communities %}
 
     <div class="ui link fluid cards" >
-            <div class="ui fluid card ">
+            <div class="ui fluid card "onclick="open_community('{{community.id}}');">
                     
                     <div class=" fluid image">
-                      <img src="/media/{{community.image_url}}" onclick="open_community('{{community.id}}');">
+                      <img src="/media/{{community.image_url}}">
                     </div>
                     <div class="content">
                       <div class="header" style="padding-bottom: 5px;"><a href="../community/{{community.id}}" style="color:#1cb39b;">{{community.name}}</a></div>
@@ -179,14 +208,39 @@
                       
                     </div>
                   </div>
+                  
+                
     </div>
-
+    
     {% endfor %}
+
+    <a id="back2Top" title="Back to top" href="#">&#10148;</a>
+
 </div>
 <script>
 
+    function create(){
+      window.location.href = 'create_community';
+    }
+    $(window).scroll(function() {
+    var height = $(window).scrollTop();
+    if (height > 100) {
+        $('#back2Top').fadeIn();
+    } else {
+        $('#back2Top').fadeOut();
+    }
+});
+$(document).ready(function() {
+    $("#back2Top").click(function(event) {
+        event.preventDefault();
+        $("html, body").animate({ scrollTop: 0 }, "slow");
+        return false;
+    });
+
+});
+
     $(document).ready(function(){
- 
+      
       
     
       // Read selected option
@@ -343,6 +397,8 @@ function save(){
   val = document.getElementById('lct');
   ele.value = val;
 }
+
+
 </script>
 <script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAebp4g7KxzLCAtyjTtW67z1IJxC8Bbt6U&libraries=places&callback=initialize"></script>
 </body>

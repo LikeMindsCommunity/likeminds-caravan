@@ -114,28 +114,27 @@ def dashboard(request):
                     communities.append(comm)
                 return JsonResponse({'communities': communities})
         user_id = request.user.id
-        communities1 = Members.objects.all().filter(member_id = user_id)[:2]
+        communities1 = Members.objects.all().filter(member_id = user_id)
         my_communities = []
         for j in communities1:
             my_communities.append(j.community_id)
         my_community =[]
         for j in my_communities:
             my_community.append(j)
-    return render (request, 'dashboard.html', { 'usr': user,'communities' : communities, 'my_communities':my_community})
+    return render (request, 'dashboard.html', { 'usr': user,'communities' : communities, 'my_communities':my_community[:2], "my_communities_count": len(my_community) })
 
 
 def community(request, community_id):
     community = get_object_or_404(Community, pk = community_id)
     admins = Admins.objects.all().filter( community_id = community)
     admin_details=[]
-    print("admin",admins)
     for admin in admins:
         print(admin.id)
         user_details = Userinfo.objects.all().filter( user_id = admin.admin_id )
         admin_details.append(user_details)
     member = Members.objects.all().filter(community_id = community.id)
-    is_joined = 0
-    print('admin: ',admin_details)
+    requests = Requests.objects.all().filter(community = community.id)
+    is_joined = -1
     members = [] 
     for m in member:
         if m.member_id == request.user:
@@ -145,7 +144,9 @@ def community(request, community_id):
         print(mem)
         if mem:
             members.append(mem[0])
-    print (members)
+    for i in requests:
+        if i.user_id == request.user and i.status !=1 :
+            is_joined=0
     communities = Community.objects.all()
     if request.user.is_authenticated:
         user = Userinfo.objects.all().filter(user_id = request.user)
@@ -480,7 +481,7 @@ def form_data(request, community_id):
     
     return redirect('community', community_id)
 
-@login_required
+
 def thankyou(request):
     if request.user.is_authenticated:
         user = Userinfo.objects.all().filter(user_id = request.user)
@@ -543,7 +544,6 @@ def privacy(request):
 def terms(request):
     return render(request,'terms.html')
 
-@login_required
 def collabcard(request, card_id):
     if request.user.is_authenticated:
         user = Userinfo.objects.all().filter(user_id = request.user)

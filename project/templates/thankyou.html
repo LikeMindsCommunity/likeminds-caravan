@@ -2,28 +2,47 @@
 
 
 {% block content %}
-
-<div class="ui raised padded text container segment" style="margin: 8px 8px !important;">
+<div class="ui fluid card" style="margin-top:0px;">
+<div class="ui raised padded text container segment" style="margin: 5vw 5vw !important; padding: 12px 12px;">
     <br>
-    <h3 class="ui header" style="color:#1ebea5;">Thank You for your request to join this community.<br> <br>Your response has been forwarded to the admin
-    of this community and we will notify you over email once it is approved.    </h3>
+    <p style="font-size: 16px; color:#4a4a4a;">Thank You for your request to join this community.Your response has been forwarded to the admin
+    of this community and we will notify you over email once it is approved.    </p>
+    <a href="http://www.collabmates.com">
+    <img class="ui small center aligned image" style="margin:0 auto;" src="/media/playstore_icon.png">
+    </a>
     <br>
 </div>
-<div class="ui celled list">
-        <h4> Similar Communities </h4>
-        <div class="ui container" style=" padding-left:10px; overflow-y:auto;white-space:nowrap;" >
-        {% for i in similar_communities %}
-        <div class="ui card" style="display:inline-block; width:150px; padding:0px 0px; margin-right:10px;">
-                <a href="../community/{{i.id}}"  >
-                  <img class="ui medium fluid image" src="https://beta.collabmates.com/media/{{i.image_url}}" style=" margin:0 auto; height:100px; width: 150px;">
-                </a>
-                <div class="content">
-                  <a class="header" href="../community/{{i.id}}" style="margin: 0 auto; overflow-x:hidden ; text-align:center; ">{{i.name}}</a>
-                </div>
+<div class="content">
+          <h4>Similar Communities
+              <a class="right floated" style=" color:#1cb39b; font-weight:100; " href="{% url 'similar_community' 51 %}"> See all</a>
+          </h4>    
+    
+  <div class="ui container" style=" overflow-y:auto;white-space:nowrap;" >
+                      
+      <div class="ui big horizontal divided list">
+      {% for i in similar_communities %}
+          <div class="item" onclick="open_community({{i.id}});">
+          <br><br>
+          
+              <img class="ui avatar image" src="/media/{{i.image_url}}">
+              <div class="content" style="font-size:14px;">
+              <div class="header" style="font-size:1.2rem;">{{i.name}}</div>
+              {{i.members_count}} Members
               </div>
-        {% endfor %}
-        
-    </div>
+              <br><br><br><br>
+          
+          </div>
+          {% endfor %}
+      </div>
+  </div>
+  </div>
 </div>
+
+<script>
+function open_community(id){
+                    console.log(id);
+                    window.location.href = "../community/"+id;
+                }
+</script>
 
 {% endblock %}
