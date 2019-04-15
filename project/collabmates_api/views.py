@@ -309,7 +309,7 @@ def create_community(request):
             group = Community()
             group.members_count = group.members_count + 1
             group.name = res['name']
-            
+            for i in res['items']:
                 if i['key'] == 'Purpose of the community':
                     group.purpose = i['value']
                 if i['key'] == 'Geography of the community':
