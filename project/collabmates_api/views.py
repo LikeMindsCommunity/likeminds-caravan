@@ -413,7 +413,7 @@ def create_card(request):
         collabcard['id'] = card.id
         collabcard['title'] = card.title
         collabcard['community'] = community.id
-        collabcard['share_url'] = 'https://beta.collabamtes.com/collabcard/'+card.id
+        collabcard['share_url'] = 'https://beta.collabamtes.com/collabcard/'+str(card.id)
         usr = {}
         usr['id'] = user.user_id.id
         usr["name"] = user.name
@@ -466,7 +466,7 @@ def collabcard(request, card_id):
         img = {'image_url': 'https://beta.collabmates.com'+j.image_url.url}
         img_list.append(img)
     card = {'id': cards.id, 'title':cards.title, 'member':usr,'community' :cards.community.id,'images':img_list }
-    card['share_url'] = 'https://beta.collabamtes.com/collabcard/'+cards.id
+    card['share_url'] = 'https://beta.collabamtes.com/collabcard/'+str(cards.id)
     return JsonResponse({"collabcard": card, 'answers':answers})
 
 def community_cards(request, community_id):
@@ -491,7 +491,7 @@ def community_cards(request, community_id):
         for j in images:
             img = {'image_url': 'https://beta.collabmates.com'+j.image_url.url}
             img_list.append(img)
-        share_url = 'https://beta.collabamtes.com/collabcard/'+i.id
+        share_url = 'https://beta.collabamtes.com/collabcard/'+str(i.id)
         card.append({'id': i.id, 'title': i.title, 'member':usr,'images':img_list,'share_url' : share_url })
     return JsonResponse ({'collabcards': card})
 @csrf_exempt
