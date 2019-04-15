@@ -629,7 +629,9 @@ def request_response(request):
         community_id = res['community_id']
     if 'accepted' in res:
         accepted = res['accepted']
-    req = Requests.objects.filter(community = community_id).filter(user_id = member_id)
+    community = Community.objects.get(id = community_id)
+    user = User.objects.get(id= user_id)
+    req = Requests.objects.filter(community = community).filter(user_id = user)
     req = req[0]
     print(req.id)
     if accepted == 'true':
