@@ -321,12 +321,12 @@ def create_community(request):
                 if i['key'] == 'whatsapp_link' :
                     group.whatsapp_group_link = i['whatsapp_link']
                 if i['key'] == 'Type of community' :
-                    categories = i(['value'])
+                    categories = i['value']
                     categories = categories.split(",")
                     for i in categories:
                         category = Category()
                         category.category = i
-                        category.community_id_id = group.id
+                        category.community_id = group
                         category.save()
             group.save()
             admin = Admins()
