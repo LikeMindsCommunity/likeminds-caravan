@@ -371,7 +371,7 @@ def edit_profile(request, user_id):
 @login_required
 def logout_view(request):
     logout(request)
-    return redirect('home')
+    return redirect('dashboard')
 
 @login_required
 def join_community(request, community_id):
