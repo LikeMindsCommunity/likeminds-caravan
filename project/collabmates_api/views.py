@@ -630,7 +630,7 @@ def request_response(request):
     if 'accepted' in res:
         accepted = res['accepted']
     community = Community.objects.get(id = community_id)
-    user = User.objects.get(id= user_id)
+    user = User.objects.get(id= member_id)
     req = Requests.objects.filter(community = community).filter(user_id = user)
     req = req[0]
     print(req.id)
