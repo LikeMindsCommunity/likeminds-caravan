@@ -491,7 +491,8 @@ def community_cards(request, community_id):
         for j in images:
             img = {'image_url': 'https://beta.collabmates.com'+j.image_url.url}
             img_list.append(img)
-        card.append({'id': i.id, 'title': i.title, 'member':usr,'images':img_list,'share_url' : 'https://beta.collabamtes.com/collabcard/'+i.id })
+        share_url = 'https://beta.collabamtes.com/collabcard/'+i.id
+        card.append({'id': i.id, 'title': i.title, 'member':usr,'images':img_list,'share_url' : share_url })
     return JsonResponse ({'collabcards': card})
 @csrf_exempt
 def create_answer(request):
