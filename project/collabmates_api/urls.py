@@ -25,5 +25,5 @@ urlpatterns = [
     path('/create_admin',api_views.create_admin,name = 'create_admin'),
     path('/pending_members/<int:community_id>',api_views.pending_members,name = 'pending_members'),
     path('/join',api_views.request_response,name = 'join'),
-    #path('/pending_request_count',api_views.pending_request_count,name = 'pending_request_count')
+    path('/pending_members_count/<int:community_id>',api_views.pending_request_count,name = 'pending_request_count')
 ]

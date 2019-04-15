@@ -646,5 +646,7 @@ def request_response(request):
     return JsonResponse({'success': True})
 
 
-#def pending_request_count(request):
-
+def pending_request_count(request,community_id):
+    community = Community.objects.get(id = community_id)
+    requests = Requests.objects.filter(community = community).filter(status = 0)
+    return JsonResponse({'pending_request_count': len(requests)})
