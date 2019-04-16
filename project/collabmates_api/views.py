@@ -370,7 +370,7 @@ def create_community(request):
             else:
                 new_dict['image_url'] = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQMUCHvC0wEVO5yDMe9wddUoagIqQ3VPH0nm8_VtjK5gk3M0mMO'
             new_dict['share_url']= 'https://beta.collabmates.com/community/'+str(new_dict['id'])
-            crd = {'id':card.id , 'title':card.title, 'member':usr }
+            crd = {'id':card.id , 'title':card.title, 'member':usr, 'answer_text': '' }
             return JsonResponse({'success':True, 'community':new_dict, 'collabcard':crd})
     else:
         member_id = request.GET.get('member_id')
@@ -414,6 +414,7 @@ def create_card(request):
         collabcard['title'] = card.title
         collabcard['community'] = community.id
         collabcard['share_url'] = 'https://beta.collabamtes.com/collabcard/'+str(card.id)
+        collabcard['answer_text'] = ''
         usr = {}
         usr['id'] = user.user_id.id
         usr["name"] = user.name
@@ -467,6 +468,20 @@ def collabcard(request, card_id):
         img_list.append(img)
     card = {'id': cards.id, 'title':cards.title, 'member':usr,'community' :cards.community.id,'images':img_list }
     card['share_url'] = 'https://beta.collabamtes.com/collabcard/'+str(cards.id)
+    ans_text = ''
+    count = 0
+    for i in range(len(answer) -1, -1, -1):
+        if i < len(answer) -2 :
+            count = len(answer) - 2
+            break
+        userinfo = Userinfo.objects.get(user_id = answer[i].user)
+        ans_text = ans_text+userinfo.name+", "
+    if len(answer) >0 :
+        ans_text = ans_text[:-2]
+        if count > 0:
+            ans_text = ans_text + ' & ' + str(count) + ' other'
+        ans_text = ans_text+' answered'
+    card['answet_text']= ans_text
     return JsonResponse({"collabcard": card, 'answers':answers})
 
 def community_cards(request, community_id):
@@ -492,7 +507,21 @@ def community_cards(request, community_id):
             img = {'image_url': 'https://beta.collabmates.com'+j.image_url.url}
             img_list.append(img)
         share_url = 'https://beta.collabamtes.com/collabcard/'+str(i.id)
-        card.append({'id': i.id, 'title': i.title, 'member':usr,'images':img_list,'share_url' : share_url })
+        ans_text = ''
+        count = 0
+        answer = card_answers.objects.filter(card = i)
+        for j in range(len(answer) -1, -1, -1):
+            if j < len(answer) -  2:
+                count = len(answer) - 2
+                break
+            userinfo = Userinfo.objects.get(user_id = answer[j].user)
+            ans_text = ans_text+userinfo.name+", "
+        if len(answer) >0 :
+            ans_text = ans_text[:-2]
+            if count > 0:
+                ans_text = ans_text + ' & ' + str(count) + ' other'
+            ans_text = ans_text+' answered'
+        card.append({'id': i.id, 'title': i.title, 'member':usr,'images':img_list,'share_url' : share_url,  'answer_text': ans_text })
     return JsonResponse ({'collabcards': card})
 @csrf_exempt
 def create_answer(request):
@@ -620,6 +649,7 @@ def pending_members(request,community_id):
         usr['user_respone'] = user_response
         pending_requests.append(usr)
     return JsonResponse({'pending_members': pending_requests})
+
 @csrf_exempt
 def request_response(request):
     res = json.loads(request.body)
@@ -634,7 +664,7 @@ def request_response(request):
     req = Requests.objects.filter(community = community).filter(user_id = user)
     req = req[0]
     print(req.id)
-    if accepted == 'true':
+    if accepted == True :
         req.status = 1
         req.save()
         member = Members()
