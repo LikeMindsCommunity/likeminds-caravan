@@ -391,7 +391,7 @@ def create_community(request):
                 new_dict['image_url'] = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQMUCHvC0wEVO5yDMe9wddUoagIqQ3VPH0nm8_VtjK5gk3M0mMO'
             new_dict['share_url']= 'https://beta.collabmates.com/community/'+str(new_dict['id'])
             
-        return JsonResponse({'success':True, 'community_id':new_dict})
+        return JsonResponse({'success':True, 'community':new_dict})
     return HttpResponse("Create Community Api")
 
 @csrf_exempt
