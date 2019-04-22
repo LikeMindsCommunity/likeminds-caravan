@@ -139,7 +139,7 @@ def your_communities(request,user_id):
         card = Collabcard.objects.all().filter(community = community)
         if card:
             new_dict['collabcard_text'] = card[0].title
-        new_dict['date'] = i['active_since']
+        new_dict['date'] = i.active_since
         my_community.append(new_dict)
     return JsonResponse({'your_communities':my_community})
 
@@ -164,7 +164,7 @@ def community(request, community_id):
         community['image_url'] = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQMUCHvC0wEVO5yDMe9wddUoagIqQ3VPH0nm8_VtjK5gk3M0mMO'
     community['is_member']= is_member
     community['share_url']= 'https://beta.collabmates.com/community/'+str(community['id'])
-    new_dict['date'] = i['active_since']
+    new_dict['date'] = i.active_since
     return JsonResponse({'community': community})
 
 def similar_community(request, community_id):
@@ -192,7 +192,7 @@ def similar_community(request, community_id):
             new_dict['image_url'] = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQMUCHvC0wEVO5yDMe9wddUoagIqQ3VPH0nm8_VtjK5gk3M0mMO'
         new_dict['share_url']= 'https://beta.collabmates.com/community/'+str(new_dict['id'])
         new_dict['is_member'] = is_member
-        new_dict['date'] = i['active_since']
+        new_dict['date'] = i.active_since
         similar_communities.append(new_dict)
     return JsonResponse({'communities': similar_communities})
 
