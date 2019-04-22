@@ -46,6 +46,7 @@ def communities(request):
                     else:
                         new_dict['image_url'] = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQMUCHvC0wEVO5yDMe9wddUoagIqQ3VPH0nm8_VtjK5gk3M0mMO'
                     new_dict['share_url']= 'https://beta.collabmates.com/community/'+str(new_dict['id'])
+                    new_dict['date'] = i.active_since
                     community.append(new_dict)
                 return JsonResponse({'communities': community})
             else:
@@ -66,6 +67,7 @@ def communities(request):
                             is_member = True
                     new_dict['is_member'] = is_member
                     new_dict['share_url']= 'https://beta.collabmates.com/community/'+str(new_dict['id'])
+                    new_dict['date'] = i.active_since
                     community.append(new_dict)
                 return JsonResponse({'communities': community})
         else:
@@ -86,6 +88,7 @@ def communities(request):
                         is_member = True
                     new_dict['is_member'] = is_member
                 new_dict['share_url']= 'https://beta.collabmates.com/community/'+str(new_dict['id'])
+                new_dict['date'] = i.active_since
                 community.append(new_dict)
             return JsonResponse({'communities': community})
         
@@ -130,6 +133,13 @@ def your_communities(request,user_id):
         else:
             new_dict['image_url'] = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQMUCHvC0wEVO5yDMe9wddUoagIqQ3VPH0nm8_VtjK5gk3M0mMO'
         new_dict['share_url']= 'https://beta.collabmates.com/community/'+str(new_dict['id'])
+        community = Community.objects.get(id = new_dict['id'])
+        requests = Requests.objects.filter(community = community).filter(status = 0)
+        new_dict['pending_members_count'] = len(requests)
+        card = Collabcard.objects.all().filter(community = community)
+        if card:
+            new_dict['collabcard_text'] = card[0].title
+        new_dict['date'] = i['active_since']
         my_community.append(new_dict)
     return JsonResponse({'your_communities':my_community})
 
@@ -154,6 +164,7 @@ def community(request, community_id):
         community['image_url'] = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQMUCHvC0wEVO5yDMe9wddUoagIqQ3VPH0nm8_VtjK5gk3M0mMO'
     community['is_member']= is_member
     community['share_url']= 'https://beta.collabmates.com/community/'+str(community['id'])
+    new_dict['date'] = i['active_since']
     return JsonResponse({'community': community})
 
 def similar_community(request, community_id):
@@ -181,6 +192,7 @@ def similar_community(request, community_id):
             new_dict['image_url'] = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQMUCHvC0wEVO5yDMe9wddUoagIqQ3VPH0nm8_VtjK5gk3M0mMO'
         new_dict['share_url']= 'https://beta.collabmates.com/community/'+str(new_dict['id'])
         new_dict['is_member'] = is_member
+        new_dict['date'] = i['active_since']
         similar_communities.append(new_dict)
     return JsonResponse({'communities': similar_communities})
 
@@ -370,6 +382,7 @@ def create_community(request):
             else:
                 new_dict['image_url'] = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQMUCHvC0wEVO5yDMe9wddUoagIqQ3VPH0nm8_VtjK5gk3M0mMO'
             new_dict['share_url']= 'https://beta.collabmates.com/community/'+str(new_dict['id'])
+            #new_dict['date'] = community['active_since']
             crd = {'id':card.id , 'title':card.title, 'member':usr, 'answer_text': '' }
             return JsonResponse({'success':True, 'community':new_dict, 'collabcard':crd})
     else:
@@ -415,6 +428,9 @@ def create_card(request):
         collabcard['community'] = community.id
         collabcard['share_url'] = 'https://beta.collabamtes.com/collabcard/'+str(card.id)
         collabcard['answer_text'] = ''
+        new_dict = {}
+        new_dict = collabcard
+        new_dict['date'] = ''
         usr = {}
         usr['id'] = user.user_id.id
         usr["name"] = user.name
@@ -427,7 +443,7 @@ def create_card(request):
         usr["fb_link"] = user.fb_link
         usr["linkedin_link"] = user.linkedin_link
         collabcard['member'] = usr
-        return JsonResponse({'success':True, 'collabcard':collabcard})
+        return JsonResponse({'success':True, 'collabcard':new_dict})
     return JsonResponse()
 
 def collabcard(request, card_id):
@@ -482,6 +498,7 @@ def collabcard(request, card_id):
             ans_text = ans_text + ' & ' + str(count) + ' other'
         ans_text = ans_text+' answered'
     card['answet_text']= ans_text
+    card['date'] = ''
     return JsonResponse({"collabcard": card, 'answers':answers})
 
 def community_cards(request, community_id):
@@ -521,7 +538,7 @@ def community_cards(request, community_id):
             if count > 0:
                 ans_text = ans_text + ' & ' + str(count) + ' other'
             ans_text = ans_text+' answered'
-        card.append({'id': i.id, 'title': i.title, 'member':usr,'images':img_list,'share_url' : share_url,  'answer_text': ans_text })
+        card.append({'id': i.id, 'title': i.title, 'member':usr,'images':img_list,'share_url' : share_url,  'answer_text': ans_text ,'date':''})
     return JsonResponse ({'collabcards': card})
 @csrf_exempt
 def create_answer(request):
