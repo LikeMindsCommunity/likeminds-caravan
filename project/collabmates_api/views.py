@@ -137,8 +137,16 @@ def your_communities(request,user_id):
         requests = Requests.objects.filter(community = community).filter(status = 0)
         new_dict['pending_members_count'] = len(requests)
         card = Collabcard.objects.all().filter(community = community)
+        print(card)
         if card:
-            new_dict['collabcard_text'] = card[0].title
+            card = card[0]
+            collabcard = {}
+            collabcard['id'] = card.id
+            collabcard['title'] = card.title
+            collabcard['community'] = community.id
+            collabcard['share_url'] = 'https://beta.collabamtes.com/collabcard/'+str(card.id)
+            collabcard['answer_text'] = ''
+            new_dict['collabcard'] = collabcard
         new_dict['date'] = i.active_since
         my_community.append(new_dict)
     return JsonResponse({'your_communities':my_community})
@@ -164,7 +172,7 @@ def community(request, community_id):
         community['image_url'] = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQMUCHvC0wEVO5yDMe9wddUoagIqQ3VPH0nm8_VtjK5gk3M0mMO'
     community['is_member']= is_member
     community['share_url']= 'https://beta.collabmates.com/community/'+str(community['id'])
-    new_dict['date'] = i.active_since
+    community['date'] =  queryset.active_since
     return JsonResponse({'community': community})
 
 def similar_community(request, community_id):

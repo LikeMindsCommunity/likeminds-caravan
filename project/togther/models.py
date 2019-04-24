@@ -111,7 +111,7 @@ class Collabcard (models.Model):
     likes_count =  models.IntegerField(default = 0)
     share_count =  models.IntegerField(default = 0)
     answers_count = models.IntegerField(default=0)
-
+    date = models.DateField(auto_now_add = True)
 class Comments (models.Model):
     comment =  models.CharField(max_length = 1000)
     card = models.ForeignKey(Collabcard, on_delete=models.CASCADE)
@@ -121,6 +121,7 @@ class Cardaction (models.Model):
     action =  models.CharField(max_length=100 ,choices = response_choices)
     card = models.ForeignKey(Collabcard, on_delete=models.CASCADE)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
+    date = models.DateField(auto_now_add = True)
 
 class card_answers (models.Model):
     answer = models.TextField()
