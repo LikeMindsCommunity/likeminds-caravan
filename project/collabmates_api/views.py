@@ -161,6 +161,7 @@ def your_communities(request,user_id):
             usr["fb_link"] = user.fb_link
             usr["linkedin_link"] = user.linkedin_link
             collabcard['member'] = usr
+            collabcard['collabcard_unseen'] = 0
         my_community.append(new_dict)
     return JsonResponse({'your_communities':my_community})
 
