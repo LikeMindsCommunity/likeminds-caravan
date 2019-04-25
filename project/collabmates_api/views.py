@@ -147,7 +147,20 @@ def your_communities(request,user_id):
             collabcard['share_url'] = 'https://beta.collabamtes.com/collabcard/'+str(card.id)
             collabcard['answer_text'] = ''
             new_dict['collabcard'] = collabcard
-        new_dict['date'] = i.active_since
+            new_dict['date'] = i.active_since
+            usr = {}
+            user = Userinfo.objects.get(user_id = card.user)
+            usr['id'] = user.user_id.id
+            usr["name"] = user.name
+            usr["email"] = user.email
+            usr["city"] = user.city
+            usr["headline"] = user.headline
+            usr["contact_number"] = user.contact_number
+            usr["image_url"] = user.image_url
+            usr["about"] = user.about
+            usr["fb_link"] = user.fb_link
+            usr["linkedin_link"] = user.linkedin_link
+            collabcard['member'] = usr
         my_community.append(new_dict)
     return JsonResponse({'your_communities':my_community})
 
