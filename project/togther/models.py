@@ -121,7 +121,7 @@ class Cardaction (models.Model):
     action =  models.CharField(max_length=100 ,choices = response_choices)
     card = models.ForeignKey(Collabcard, on_delete=models.CASCADE)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    date = models.DateField(auto_now_add = True)
+    #date = models.DateField(auto_now_add = True)
 
 class card_answers (models.Model):
     answer = models.TextField()

@@ -293,7 +293,11 @@ def members(request, community_id):
     print(member)
     members = []
     for i in member:
-        user = Userinfo.objects.get(user_id = i.member_id)
+        user = Userinfo.objects.filter(user_id = i.member_id)
+        if user:
+            user = user[0]
+        else:
+            continue
         usr = {}
         usr['id'] = user.user_id.id
         usr["name"] = user.name
