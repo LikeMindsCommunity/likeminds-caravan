@@ -750,11 +750,11 @@ def pending_request_count(request,community_id):
 @csrf_exempt
 def collabcard_seen(request):
     params = request.GET
-    if ['community_id'] in params:
+    if 'community_id' in params:
         community_id = params['community_id']
-    if ['collabcard_id'] in params:
-        collabcard_id = params['collabcard_id']
-    if ['member_id'] in params:
+    if 'collabcard_id' in params:
+        card_id = params['collabcard_id']
+    if 'member_id' in params:
         user_id = params['member_id']
 
     community = Community.objects.get(id = community_id)
