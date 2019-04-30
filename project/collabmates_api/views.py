@@ -534,23 +534,23 @@ def collabcard(request, card_id):
     return JsonResponse({"collabcard": card, 'answers':answers})
 
 def community_cards(request, community_id):
-    res = json.loads(request.body)
-    user_id = res('member_id')
-    print(user_id)
+    # res = json.loads(request.body)
+    # user_id = res('member_id')
+    # print(user_id)
     community = Community.objects.get(id = community_id)
-    user = User.objects.get(id = user_id)
+    # user = User.objects.get(id = user_id)
     cards = Collabcard.objects.filter(community = community_id).order_by('-id')
-    seen_card = collabcard_seen.objects.filter(community = community).filter(user = user)
-    if seen_card:
-        print(seen_card[0])
-        if cards:
-            seen_card[0].card = cards[0]
-    else:
-        if cards:
-            seen = collabcard_seen()
-            seen.community = community
-            seen.card = cards[0]
-            seen.user = user
+    # seen_card = collabcard_seen.objects.filter(community = community).filter(user = user)
+    # if seen_card:
+    #     print(seen_card[0])
+    #     if cards:
+    #         seen_card[0].card = cards[0]
+    # else:
+    #     if cards:
+    #         seen = collabcard_seen()
+    #         seen.community = community
+    #         seen.card = cards[0]
+    #         seen.user = user
     card = []
     for i in cards:
         user = Userinfo.objects.get(user_id = i.user)
@@ -747,11 +747,11 @@ def pending_request_count(request,community_id):
     community = Community.objects.get(id = community_id)
     requests = Requests.objects.filter(community = community).filter(status = 0)
     return JsonResponse({'pending_request_count': len(requests)})
-
+@csrf_exempt
 def collabcard_seen(request):
-    user_id = request.GET.get('member_id')
-    community_id = request.GET.get('community_id')
-    card_id = request.GET.get('collabcard_id')
+    user_id = request.POST.get('member_id')
+    community_id = request.POST.get('community_id')
+    card_id = request.POST.get('collabcard_id')
     community = Community.objects.get(id = community_id)
     user = User.objects.get(id = user_id)
     card = Collabcard.objects.get(id = card_id)
