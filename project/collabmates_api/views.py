@@ -748,7 +748,7 @@ def pending_request_count(request,community_id):
     return JsonResponse({'pending_request_count': len(requests)})
 
 @csrf_exempt
-def collabcard_seen(request):
+def collabcards_seen(request):
     params = request.GET
     if 'community_id' in params:
         community_id = params['community_id']
