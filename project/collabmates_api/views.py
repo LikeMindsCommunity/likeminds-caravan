@@ -534,7 +534,9 @@ def collabcard(request, card_id):
     return JsonResponse({"collabcard": card, 'answers':answers})
 
 def community_cards(request, community_id):
-    user_id = request.GET.get('member_id')
+    res = json.loads(request.body)
+    user_id = res('member_id')
+    print(user_id)
     community = Community.objects.get(id = community_id)
     user = User.objects.get(id = user_id)
     cards = Collabcard.objects.filter(community = community_id).order_by('-id')
@@ -585,6 +587,7 @@ def community_cards(request, community_id):
             ans_text = ans_text+' answered'
         card.append({'id': i.id, 'title': i.title, 'member':usr,'images':img_list,'share_url' : share_url,  'answer_text': ans_text ,'date':''})
     return JsonResponse ({'collabcards': card})
+
 @csrf_exempt
 def create_answer(request):
     body = request.GET
