@@ -26,5 +26,5 @@ urlpatterns = [
     path('/pending_members/<int:community_id>',api_views.pending_members,name = 'pending_members'),
     path('/join',api_views.request_response,name = 'join'),
     path('/pending_members_count/<int:community_id>',api_views.pending_request_count,name = 'pending_request_count'),
-    path('/collabcard_seen', api_views.collabcard_seen, name='collabcard_seen')
+    path('/collabcard_seen', api_views.collabcards_seen, name='collabcard_seen')
 ]
