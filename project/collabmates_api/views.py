@@ -133,11 +133,17 @@ def your_communities(request,user_id):
         else:
             new_dict['image_url'] = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQMUCHvC0wEVO5yDMe9wddUoagIqQ3VPH0nm8_VtjK5gk3M0mMO'
         new_dict['share_url']= 'https://beta.collabmates.com/community/'+str(new_dict['id'])
+
+        is_admin = False
+        admin = Admins.objects.filter(community_id = i)
+        for j in admin:
+            if j.admin_id.id == user.id :
+                is_admin = True
+        new_dict['is_admin'] = is_admin
         community = Community.objects.get(id = new_dict['id'])
         requests = Requests.objects.filter(community = community).filter(status = 0)
         new_dict['pending_members_count'] = len(requests)
         card = Collabcard.objects.all().filter(community = community)
-        print(card)
         if card:
             card = card[0]
             collabcard = {}
@@ -529,7 +535,20 @@ def collabcard(request, card_id):
 
 def community_cards(request, community_id):
     user_id = request.GET.get('member_id')
+    community = Community.objects.get(id = community_id)
+    user = User.objects.get(id = user_id)
     cards = Collabcard.objects.filter(community = community_id).order_by('-id')
+    seen_card = collabcard_seen.objects.filter(community = community).filter(user = user)
+    if seen_card:
+        print(seen_card[0])
+        if cards:
+            seen_card[0].card = cards[0]
+    else:
+        if cards:
+            seen = collabcard_seen()
+            seen.community = community
+            seen.card = cards[0]
+            seen.user = user
     card = []
     for i in cards:
         user = Userinfo.objects.get(user_id = i.user)
@@ -725,3 +744,16 @@ def pending_request_count(request,community_id):
     community = Community.objects.get(id = community_id)
     requests = Requests.objects.filter(community = community).filter(status = 0)
     return JsonResponse({'pending_request_count': len(requests)})
+
+def collabcard_seen(request):
+    user_id = request.GET.get('member_id')
+    community_id = request.GET.get('community_id')
+    card_id = request.GET.get('collabcard_id')
+    community = Community.objects.get(id = community_id)
+    user = User.objects.get(id = user_id)
+    card = Collabcard.objects.get(id = card_id)
+    seen_card = collabcard_seen.objects.filter(community = community).filter(user = user)
+    resp = {}
+    if seen_card:
+        resp.update(seen_card[0])
+    return JsonResponse({'collabcard_seen': resp})

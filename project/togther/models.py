@@ -111,7 +111,7 @@ class Collabcard (models.Model):
     likes_count =  models.IntegerField(default = 0)
     share_count =  models.IntegerField(default = 0)
     answers_count = models.IntegerField(default=0)
-    date = models.DateField(auto_now_add = True)
+    #date = models.DateField(auto_now_add = True)
 class Comments (models.Model):
     comment =  models.CharField(max_length = 1000)
     card = models.ForeignKey(Collabcard, on_delete=models.CASCADE)
@@ -137,3 +137,8 @@ class temp_admin (models.Model):
 class card_images (models.Model):
     collabcard = models.ForeignKey(Collabcard, on_delete = models.CASCADE)
     image_url = models.ImageField(upload_to="media/collabcardImages")
+
+class collabcard_seen(models.Model):
+    card = models.ForeignKey(Collabcard, on_delete= models.CASCADE)
+    community = models.ForeignKey(Community, on_delete= models.CASCADE)
+    user = models.ForeignKey(User, on_delete = models.CASCADE)
