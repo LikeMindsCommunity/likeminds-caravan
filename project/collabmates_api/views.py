@@ -543,7 +543,7 @@ def collabcard(request, card_id):
         if count > 0:
             ans_text = ans_text + ' & ' + str(count) + ' other'
         ans_text = ans_text+' answered'
-    card['answet_text']= ans_text
+    card['answer_text']= ans_text
     card['date'] = ''
     return JsonResponse({"collabcard": card, 'answers':answers})
 
