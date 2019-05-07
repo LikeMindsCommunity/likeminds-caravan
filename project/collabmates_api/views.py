@@ -14,7 +14,8 @@ from django.core.mail import send_mail
 from collabmates_api.serializers import CommunitySerializer
 from categories import Category_list
 from django.views.decorators.csrf import csrf_exempt
-
+from datetime import datetime 
+import random
 # your views here.
 
 def communities(request):
@@ -167,7 +168,7 @@ def your_communities(request,user_id):
             usr["fb_link"] = user.fb_link
             usr["linkedin_link"] = user.linkedin_link
             collabcard['member'] = usr
-            collabcard['collabcard_unseen'] = 0
+            collabcard['collabcard_unseen'] = random.randint(0,3)
         my_community.append(new_dict)
     return JsonResponse({'your_communities':my_community})
 
@@ -476,7 +477,7 @@ def create_card(request):
         collabcard['answer_text'] = ''
         new_dict = {}
         new_dict = collabcard
-        new_dict['date'] = ''
+        new_dict['date'] = datetime.today().strftime('%Y-%m-%d')
         usr = {}
         usr['id'] = user.user_id.id
         usr["name"] = user.name
@@ -544,7 +545,7 @@ def collabcard(request, card_id):
             ans_text = ans_text + ' & ' + str(count) + ' other'
         ans_text = ans_text+' answered'
     card['answer_text']= ans_text
-    card['date'] = ''
+    new_dict['date'] = datetime.today().strftime('%Y-%m-%d')
     return JsonResponse({"collabcard": card, 'answers':answers})
 
 def community_cards(request, community_id):
@@ -584,7 +585,7 @@ def community_cards(request, community_id):
             if count > 0:
                 ans_text = ans_text + ' & ' + str(count) + ' other'
             ans_text = ans_text+' answered'
-        card.append({'id': i.id, 'title': i.title, 'member':usr,'images':img_list,'share_url' : share_url,  'answer_text': ans_text ,'date':''})
+        card.append({'id': i.id, 'title': i.title, 'member':usr,'images':img_list,'share_url' : share_url,  'answer_text': ans_text ,'date':datetime.today().strftime('%Y-%m-%d')})
     return JsonResponse ({'collabcards': card})
 
 @csrf_exempt
