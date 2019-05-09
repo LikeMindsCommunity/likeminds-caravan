@@ -545,7 +545,7 @@ def collabcard(request, card_id):
             ans_text = ans_text + ' & ' + str(count) + ' other'
         ans_text = ans_text+' answered'
     card['answer_text']= ans_text
-    new_dict['date'] = datetime.today().strftime('%Y-%m-%d')
+    card['date'] = datetime.today().strftime('%Y-%m-%d')
     return JsonResponse({"collabcard": card, 'answers':answers})
 
 def community_cards(request, community_id):
