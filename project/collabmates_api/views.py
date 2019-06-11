@@ -484,8 +484,7 @@ def create_card(request):
         card.title = res['title']
         card.community = community
         card.user = useer
-        logging.info('Epoch time - ',time.time())
-        card.date_epoch=int(time.time())
+        card.date_epoch=1
         card.save()
         collabcard = {}
         collabcard['id'] = card.id
