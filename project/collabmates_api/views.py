@@ -111,13 +111,27 @@ def communities(request):
     return HttpResponse({'communities': community})
 
 def your_communities(request,user_id):
+    '''This function is used to see your communities based on user id'''
     member_id = request.GET.get('member_id')
     user = User.objects.get(id = member_id)
     communities = Members.objects.all().filter(member_id = user_id)
     my_communities = []
-    for i in communities:
-        my_communities.append(i.community_id)
+
+    # making a tupple list and sorting communities based on date
+    tupple_list=[]
+    for each_community in communities:
+        collabcard=Collabcard.objects.filter(community_id=each_community.community_id).aggregate(Max('date_created'))
+        x=(each_community.community_id,collabcard['date_created__max'])
+        tupple_list.append(x)
+
+    result = sorted(tupple_list, key=lambda x: x[1],reverse=True)
+
+
+    for each_community in result:
+        my_communities.append(each_community[0])
+
     my_community =[]
+
     for i in my_communities:
         members = Members.objects.all().filter(community_id = i.id)
         serializer_class = CommunitySerializer(i)
