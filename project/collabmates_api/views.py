@@ -17,7 +17,7 @@ from django.views.decorators.csrf import csrf_exempt
 from datetime import datetime 
 import random
 from django.db.models import Max
-
+import time
 # your views here.
 
 def communities(request):
@@ -122,8 +122,8 @@ def your_communities(request,user_id):
     # making a tupple list and sorting communities based on date
     tupple_list=[]
     for each_community in communities:
-        collabcard=Collabcard.objects.filter(community_id=each_community.community_id).aggregate(Max('date_created'))
-        x=(each_community.community_id,collabcard['date_created__max'])
+        collabcard=Collabcard.objects.filter(community_id=each_community.community_id).aggregate(Max('date_epoch'))
+        x=(each_community.community_id,collabcard['date_epoch__max'])
         tupple_list.append(x)
 
     result = sorted(tupple_list, key=lambda x: x[1],reverse=True)
@@ -131,7 +131,6 @@ def your_communities(request,user_id):
 
     for each_community in result:
         my_communities.append(each_community[0])
-
     my_community =[]
 
     for i in my_communities:
@@ -484,6 +483,7 @@ def create_card(request):
         card.title = res['title']
         card.community = community
         card.user = useer
+        card.date_epoch=int(time.time())
         card.save()
         collabcard = {}
         collabcard['id'] = card.id

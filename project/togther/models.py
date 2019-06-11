@@ -2,7 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User
 import datetime
 from django.utils.timezone import now
-
+import time
 response_choices = (
     ('text','Text'),
     ('textarea','Textarea'),
@@ -112,7 +112,7 @@ class Collabcard (models.Model):
     likes_count =  models.IntegerField(default = 0)
     share_count =  models.IntegerField(default = 0)
     answers_count = models.IntegerField(default=0)
-    date_created = models.DateTimeField(default=now,editable=False)
+    date_epoch=models.BigIntegerField(default=-9223372036854775808)
 
 class Comments (models.Model):
     comment =  models.CharField(max_length = 1000)
