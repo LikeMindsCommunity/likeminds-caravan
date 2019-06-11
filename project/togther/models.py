@@ -111,7 +111,8 @@ class Collabcard (models.Model):
     likes_count =  models.IntegerField(default = 0)
     share_count =  models.IntegerField(default = 0)
     answers_count = models.IntegerField(default=0)
-    #date = models.DateField(auto_now_add = True)
+    date_created = models.DateTimeField(default=now,editable=False)
+
 class Comments (models.Model):
     comment =  models.CharField(max_length = 1000)
     card = models.ForeignKey(Collabcard, on_delete=models.CASCADE)
