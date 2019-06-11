@@ -16,6 +16,8 @@ from categories import Category_list
 from django.views.decorators.csrf import csrf_exempt
 from datetime import datetime 
 import random
+from django.db.models import Max
+
 # your views here.
 
 def communities(request):
