@@ -18,6 +18,7 @@ from datetime import datetime
 import random
 from django.db.models import Max
 import time
+import logging
 # your views here.
 
 def communities(request):
@@ -483,6 +484,7 @@ def create_card(request):
         card.title = res['title']
         card.community = community
         card.user = useer
+        logging.info('Epoch time - ',time.time())
         card.date_epoch=int(time.time())
         card.save()
         collabcard = {}
