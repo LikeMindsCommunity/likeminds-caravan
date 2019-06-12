@@ -3,6 +3,12 @@ from django.contrib.auth.models import User
 import datetime
 from django.utils.timezone import now
 import time
+from django.core.files import File
+import urllib
+from urllib.request import urlopen
+import urllib.request
+from io import BytesIO
+
 response_choices = (
     ('text','Text'),
     ('textarea','Textarea'),
@@ -65,6 +71,7 @@ class Userinfo (models.Model):
     contact_number = models.CharField(max_length = 200,null = True)
     gender = models.IntegerField(null = True)
     image_url = models.CharField(max_length = 500, null = True)
+    image_file = models.ImageField(upload_to='media/profile_pics/',null =True)
     interests = models.CharField(max_length = 400,null = True)
     about = models.CharField(max_length = 400, null = True)
     fb_link = models.CharField(max_length = 400, null = True)
@@ -73,6 +80,16 @@ class Userinfo (models.Model):
     
     def __str__(self):
         return self.name
+
+    def save(self, *args, **kwargs):
+        if self.image_url and not self.image_file:
+
+            response = urlopen(self.image_url)
+            img = BytesIO(response.read())
+            self.image_file.save("profile_pic_"+self.name+".jpeg", File(img))
+
+        super(Userinfo, self).save(*args, **kwargs)
+
 
 class Experience (models.Model):
     user_id = models.ForeignKey(Userinfo,default =6 ,on_delete= models.CASCADE)

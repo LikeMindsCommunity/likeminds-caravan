@@ -21,6 +21,7 @@ import time
 import logging
 # your views here.
 
+
 def communities(request):
     if request.method == 'GET':
         body = request.GET
@@ -179,7 +180,7 @@ def your_communities(request,user_id):
             usr["city"] = user.city
             usr["headline"] = user.headline
             usr["contact_number"] = user.contact_number
-            usr["image_url"] = user.image_url
+            usr["image_url"] = user.image_file.url
             usr["about"] = user.about
             usr["fb_link"] = user.fb_link
             usr["linkedin_link"] = user.linkedin_link
@@ -194,7 +195,7 @@ def community(request, community_id):
     print(body)
     if 'member_id' in body:
         user_id = body['member_id']
-    print(user_id)
+    #print(user_id)
     member = Members.objects.all().filter(community_id = community_id)
     is_member = False
     user = User.objects.get(id = user_id)
@@ -258,8 +259,8 @@ def join_community_responses(request):
     community_id = request.GET.get('community_id')
     print(user_id, community_id)
     user = User.objects.get(id = user_id)
-    userinfo = Userinfo.objects.get(user_id = user)
     community = Community.objects.get(id = community_id)
+    userinfo = Userinfo.objects.get(name = user)
     response = Form_response()
     req = Requests()
     req.user_id = user
@@ -268,11 +269,13 @@ def join_community_responses(request):
     req.save()
     if 'questions' in res:
         for i in res['questions']: 
+            response = Form_response()
             response.data = i['key']
             response.response = i['value']
             response.user = user.id
             response.community = community.id
             response.save()
+
     return JsonResponse({'success':True})
 
 
@@ -303,7 +306,7 @@ def user(request, user_id):
         user["city"] = i.city
         user["headline"] = i.headline
         user["contact_number"] = i.contact_number
-        user["image_url"] = i.image_url
+        user["image_url"] = i.image_file.url
         user["about"] = i.about
         user["fb_link"] = i.fb_link
         user["linkedin_link"] = i.linkedin_link
@@ -328,7 +331,7 @@ def members(request, community_id):
         usr["city"] = user.city
         usr["headline"] = user.headline
         usr["contact_number"] = user.contact_number
-        usr["image_url"] = user.image_url
+        usr["image_url"] = user.image_file.url
         usr["about"] = user.about
         usr["fb_link"] = user.fb_link
         usr["linkedin_link"] = user.linkedin_link
@@ -349,7 +352,7 @@ def admins(request, community_id):
         usr["city"] = user[0].city
         usr["headline"] = user[0].headline
         usr["contact_number"] = user[0].contact_number
-        usr["image_url"] = user[0].image_url
+        usr["image_url"] = user[0].image_file.url
         usr["about"] = user[0].about
         usr["fb_link"] = user[0].fb_link
         usr["linkedin_link"] = user[0].linkedin_link
@@ -419,7 +422,7 @@ def create_community(request):
             usr["city"] = user.city
             usr["headline"] = user.headline
             usr["contact_number"] = user.contact_number
-            usr["image_url"] = user.image_url
+            usr["image_url"] = user.image_file.url
             usr["about"] = user.about
             usr["fb_link"] = user.fb_link
             usr["linkedin_link"] = user.linkedin_link
@@ -502,7 +505,7 @@ def create_card(request):
         usr["city"] = user.city
         usr["headline"] = user.headline
         usr["contact_number"] = user.contact_number
-        usr["image_url"] = user.image_url
+        usr["image_url"] = user.image_file.url
         usr["about"] = user.about
         usr["fb_link"] = user.fb_link
         usr["linkedin_link"] = user.linkedin_link
@@ -524,7 +527,7 @@ def collabcard(request, card_id):
         usr["city"] = user.city
         usr["headline"] = user.headline
         usr["contact_number"] = user.contact_number
-        usr["image_url"] = user.image_url
+        usr["image_url"] = user.image_file.url
         usr["about"] = user.about
         usr["fb_link"] = user.fb_link
         usr["linkedin_link"] = user.linkedin_link
@@ -537,7 +540,7 @@ def collabcard(request, card_id):
     usr["city"] = user.city
     usr["headline"] = user.headline
     usr["contact_number"] = user.contact_number
-    usr["image_url"] = user.image_url
+    usr["image_url"] = user.image_file.url
     usr["about"] = user.about
     usr["fb_link"] = user.fb_link
     usr["linkedin_link"] = user.linkedin_link
@@ -578,7 +581,7 @@ def community_cards(request, community_id):
         usr["city"] = user.city
         usr["headline"] = user.headline
         usr["contact_number"] = user.contact_number
-        usr["image_url"] = user.image_url
+        usr["image_url"] = user.image_file.url
         usr["about"] = user.about
         usr["fb_link"] = user.fb_link
         usr["linkedin_link"] = user.linkedin_link
@@ -654,7 +657,7 @@ def login(request):
         usr["city"] = userinfo[0].city
         usr["headline"] = userinfo[0].headline
         usr["contact_number"] = userinfo[0].contact_number
-        usr["image_url"] = userinfo[0].image_url
+        usr["image_url"] = userinfo[0].image_file.url
         usr["about"] = userinfo[0].about
         usr["fb_link"] = userinfo[0].fb_link
         usr["linkedin_link"] = userinfo[0].linkedin_link
@@ -718,19 +721,20 @@ def pending_members(request,community_id):
         usr["city"] = user.city
         usr["headline"] = user.headline
         usr["contact_number"] = user.contact_number
-        usr["image_url"] = user.image_url
+        usr["image_url"] = user.image_file.url
         usr["about"] = user.about
         usr["fb_link"] = user.fb_link
         usr["linkedin_link"] = user.linkedin_link
+        print(i)
         user_response = []
         for j in resp:
             response_object = {}
             response_object['key'] = j.data
             response_object['value'] = j.response
             user_response.append(response_object)
-        usr['user_respone'] = user_response
+        usr['response'] = user_response
         pending_requests.append(usr)
-    return JsonResponse({'pending_members': pending_requests})
+        return JsonResponse({'pending_members': pending_requests})
 
 @csrf_exempt
 def request_response(request):
