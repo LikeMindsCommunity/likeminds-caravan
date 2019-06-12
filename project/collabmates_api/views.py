@@ -259,8 +259,8 @@ def join_community_responses(request):
     community_id = request.GET.get('community_id')
     print(user_id, community_id)
     user = User.objects.get(id = user_id)
-    userinfo = Userinfo.objects.get(user_id = user)
     community = Community.objects.get(id = community_id)
+    userinfo = Userinfo.objects.get(name = user)
     response = Form_response()
     req = Requests()
     req.user_id = user
@@ -269,11 +269,13 @@ def join_community_responses(request):
     req.save()
     if 'questions' in res:
         for i in res['questions']: 
+            response = Form_response()
             response.data = i['key']
             response.response = i['value']
             response.user = user.id
             response.community = community.id
             response.save()
+
     return JsonResponse({'success':True})
 
 
@@ -723,15 +725,16 @@ def pending_members(request,community_id):
         usr["about"] = user.about
         usr["fb_link"] = user.fb_link
         usr["linkedin_link"] = user.linkedin_link
+        print(i)
         user_response = []
         for j in resp:
             response_object = {}
             response_object['key'] = j.data
             response_object['value'] = j.response
             user_response.append(response_object)
-        usr['user_respone'] = user_response
+        usr['response'] = user_response
         pending_requests.append(usr)
-    return JsonResponse({'pending_members': pending_requests})
+        return JsonResponse({'pending_members': pending_requests})
 
 @csrf_exempt
 def request_response(request):
