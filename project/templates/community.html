@@ -118,7 +118,7 @@
                     <div class="item" style="postion:relative;">
                         <div class="left aligned content">
                         <a class="ui tiny circular image" style="float:left;">
-                        <img src="{{admins.0.0.image_url}}">
+                        <img src="{{admins.0.0.image_file.url}}">
                         </a>
                         <div class="left aligned content" style="width:65%; float:left; margin-left:10vw;">
                         <h4 class="header" style="float:left;">{{admins.0.0.name}}</h4>
@@ -146,7 +146,7 @@
                         {% for i in members%}
                         
                             <div class="item">
-                                <img class="ui tiny circular image" src="{{i.image_url}}">
+                                <img class="ui tiny circular image" src="{{i.image_file.url}}">
                                 <div class="content">
                                 <br>
                                 <a href="../../profile/{{i.id}}">
