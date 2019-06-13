@@ -657,7 +657,7 @@ def login(request):
         usr["city"] = userinfo[0].city
         usr["headline"] = userinfo[0].headline
         usr["contact_number"] = userinfo[0].contact_number
-        usr["image_url"] = userinfo[0].image_file.url
+        usr["image_url"] = 'https://beta.collabmates.com'+userinfo[0].image_file.url
         usr["about"] = userinfo[0].about
         usr["fb_link"] = userinfo[0].fb_link
         usr["linkedin_link"] = userinfo[0].linkedin_link
