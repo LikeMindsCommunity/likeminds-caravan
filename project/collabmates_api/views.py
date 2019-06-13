@@ -792,3 +792,18 @@ def collabcards_seen(request):
         seen_card.card = card
         seen_card.save()
     return JsonResponse({'success': True})
+
+@csrf_exempt
+def push(request):
+    '''This function is used to insert fcm token to the database in order to generate notifications from database'''
+    member_id=request.GET.get('member_id','')
+    token=request.GET.get('token','')
+
+    is_member=Userinfo.objects.filter(user_id=member_id)
+    print(is_member)
+    success=False
+    if is_member:
+        success=True
+        fcm_token=Userinfo.objects.filter(user_id=member_id).update(fcm_token=token)
+
+    return JsonResponse({'success':success})
