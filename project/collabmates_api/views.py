@@ -257,6 +257,7 @@ def join_community_responses(request):
     res = json.loads(request.body)
     user_id = request.GET.get('member_id')
     community_id = request.GET.get('community_id')
+    print(request.user.id)
     print(user_id, community_id)
     user = User.objects.get(id = user_id)
     community = Community.objects.get(id = community_id)
