@@ -76,7 +76,8 @@ class Userinfo (models.Model):
     about = models.CharField(max_length = 400, null = True)
     fb_link = models.CharField(max_length = 400, null = True)
     linkedin_link = models.CharField(max_length = 400, null = True)
-    headline = models.CharField(max_length = 100, null = True) 
+    headline = models.CharField(max_length = 100, null = True)
+    fcm_token=models.CharField(max_length=1024,null=True)
     
     def __str__(self):
         return self.name
