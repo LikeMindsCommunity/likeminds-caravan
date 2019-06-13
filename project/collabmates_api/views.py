@@ -180,7 +180,7 @@ def your_communities(request,user_id):
             usr["city"] = user.city
             usr["headline"] = user.headline
             usr["contact_number"] = user.contact_number
-            usr["image_url"] = 'https://beta.collabmates.com/'+user.image_file.url
+            usr["image_url"] = 'https://beta.collabmates.com'+user.image_file.url
             usr["about"] = user.about
             usr["fb_link"] = user.fb_link
             usr["linkedin_link"] = user.linkedin_link
@@ -307,7 +307,7 @@ def user(request, user_id):
         user["city"] = i.city
         user["headline"] = i.headline
         user["contact_number"] = i.contact_number
-        user["image_url"] = 'https://beta.collabmates.com/'+i.image_file.url
+        user["image_url"] = 'https://beta.collabmates.com'+i.image_file.url
         user["about"] = i.about
         user["fb_link"] = i.fb_link
         user["linkedin_link"] = i.linkedin_link
@@ -332,7 +332,7 @@ def members(request, community_id):
         usr["city"] = user.city
         usr["headline"] = user.headline
         usr["contact_number"] = user.contact_number
-        usr["image_url"] = 'https://beta.collabmates.com/'+user.image_file.url
+        usr["image_url"] = 'https://beta.collabmates.com'+user.image_file.url
         usr["about"] = user.about
         usr["fb_link"] = user.fb_link
         usr["linkedin_link"] = user.linkedin_link
@@ -353,7 +353,7 @@ def admins(request, community_id):
         usr["city"] = user[0].city
         usr["headline"] = user[0].headline
         usr["contact_number"] = user[0].contact_number
-        usr["image_url"] = 'https://beta.collabmates.com/'+user[0].image_file.url
+        usr["image_url"] = 'https://beta.collabmates.com'+user[0].image_file.url
         usr["about"] = user[0].about
         usr["fb_link"] = user[0].fb_link
         usr["linkedin_link"] = user[0].linkedin_link
@@ -423,7 +423,7 @@ def create_community(request):
             usr["city"] = user.city
             usr["headline"] = user.headline
             usr["contact_number"] = user.contact_number
-            usr["image_url"] = 'https://beta.collabmates.com/'+user.image_file.url
+            usr["image_url"] = 'https://beta.collabmates.com'+user.image_file.url
             usr["about"] = user.about
             usr["fb_link"] = user.fb_link
             usr["linkedin_link"] = user.linkedin_link
@@ -506,7 +506,7 @@ def create_card(request):
         usr["city"] = user.city
         usr["headline"] = user.headline
         usr["contact_number"] = user.contact_number
-        usr["image_url"] = 'https://beta.collabmates.com/'+user.image_file.url
+        usr["image_url"] = 'https://beta.collabmates.com'+user.image_file.url
         usr["about"] = user.about
         usr["fb_link"] = user.fb_link
         usr["linkedin_link"] = user.linkedin_link
@@ -528,7 +528,7 @@ def collabcard(request, card_id):
         usr["city"] = user.city
         usr["headline"] = user.headline
         usr["contact_number"] = user.contact_number
-        usr["image_url"] = 'https://beta.collabmates.com/'+user.image_file.url
+        usr["image_url"] = 'https://beta.collabmates.com'+user.image_file.url
         usr["about"] = user.about
         usr["fb_link"] = user.fb_link
         usr["linkedin_link"] = user.linkedin_link
@@ -541,7 +541,7 @@ def collabcard(request, card_id):
     usr["city"] = user.city
     usr["headline"] = user.headline
     usr["contact_number"] = user.contact_number
-    usr["image_url"] = 'https://beta.collabmates.com/'+user.image_file.url
+    usr["image_url"] = 'https://beta.collabmates.com'+user.image_file.url
     usr["about"] = user.about
     usr["fb_link"] = user.fb_link
     usr["linkedin_link"] = user.linkedin_link
@@ -582,7 +582,7 @@ def community_cards(request, community_id):
         usr["city"] = user.city
         usr["headline"] = user.headline
         usr["contact_number"] = user.contact_number
-        usr["image_url"] = 'https://beta.collabmates.com/'+user.image_file.url
+        usr["image_url"] = 'https://beta.collabmates.com'+user.image_file.url
         usr["about"] = user.about
         usr["fb_link"] = user.fb_link
         usr["linkedin_link"] = user.linkedin_link
@@ -658,7 +658,7 @@ def login(request):
         usr["city"] = userinfo[0].city
         usr["headline"] = userinfo[0].headline
         usr["contact_number"] = userinfo[0].contact_number
-        usr["image_url"] = 'https://beta.collabmates.com/'+userinfo[0].image_file.url
+        usr["image_url"] = 'https://beta.collabmates.com'+userinfo[0].image_file.url
         usr["about"] = userinfo[0].about
         usr["fb_link"] = userinfo[0].fb_link
         usr["linkedin_link"] = userinfo[0].linkedin_link
@@ -722,7 +722,7 @@ def pending_members(request,community_id):
         usr["city"] = user.city
         usr["headline"] = user.headline
         usr["contact_number"] = user.contact_number
-        usr["image_url"] = 'https://beta.collabmates.com/'+user.image_file.url
+        usr["image_url"] = 'https://beta.collabmates.com'+user.image_file.url
         usr["about"] = user.about
         usr["fb_link"] = user.fb_link
         usr["linkedin_link"] = user.linkedin_link
