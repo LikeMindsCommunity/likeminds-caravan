@@ -36,7 +36,7 @@ class Community (models.Model):
 class Members (models.Model):
     member_id = models.ForeignKey(User, on_delete=models.CASCADE)
     community_id = models.ForeignKey(Community, on_delete = models.CASCADE)
-
+    state=models.IntegerField(null=True)
     def __str__(self):
         return self.community_id.name
 

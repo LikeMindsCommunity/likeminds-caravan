@@ -259,16 +259,25 @@ def join_community_responses(request):
     community_id = request.GET.get('community_id')
     print(user_id, community_id)
     user = User.objects.get(id = user_id)
+    print(user)
     community = Community.objects.get(id = community_id)
-    userinfo = Userinfo.objects.get(name = user)
+    userinfo = Userinfo.objects.get(user_id=user_id)
     response = Form_response()
+
+    #inserting in members table if the member status is pending and inserting it to database with status=3
+    member = Members()
+    member.member_id = user
+    member.community_id = community
+    member.state = 3  # pending members
+    member.save()
+
     req = Requests()
     req.user_id = user
     req.user_info = userinfo
     req.community = community
     req.save()
     if 'questions' in res:
-        for i in res['questions']: 
+        for i in res['questions']:
             response = Form_response()
             response.data = i['key']
             response.response = i['value']
@@ -404,6 +413,7 @@ def create_community(request):
             member = Members()
             member.member_id = user
             member.community_id = community
+            member.state=1                                  # admin state
             member.save()
             card = Collabcard()
             print(community)
@@ -461,6 +471,12 @@ def create_community(request):
             group.name = res['name']
             group.save()
             community = Community.objects.get(id = group.id)
+            user = User.objects.get(id=member_id)
+            member = Members()
+            member.member_id = user
+            member.community_id = community
+            member.state=2                              # temperary admin state
+            member.save()
             serializer_class = CommunitySerializer(community)
             new_dict = {}
             new_dict.update(serializer_class.data)
@@ -710,9 +726,14 @@ def create_admin(request):
 def pending_members(request,community_id):
     community = Community.objects.get(id = community_id)
     requests = Requests.objects.filter(community = community).filter(status = 0)
+
     pending_requests = []
     for i in requests:
         resp = Form_response.objects.filter(community = community_id).filter(user = i.user_id.id)
+        member_state=Members.objects.filter(member_id=i.user_id,community_id=community).values('state')
+
+        if member_state[0]['state'] != 3:
+            continue
         user = i.user_info
         usr = {}
         usr['id'] = user.user_id.id
@@ -721,11 +742,10 @@ def pending_members(request,community_id):
         usr["city"] = user.city
         usr["headline"] = user.headline
         usr["contact_number"] = user.contact_number
-        usr["image_url"] = user.image_file.url
+        #usr["image_url"] = user.image_file.url
         usr["about"] = user.about
         usr["fb_link"] = user.fb_link
         usr["linkedin_link"] = user.linkedin_link
-        print(i)
         user_response = []
         for j in resp:
             response_object = {}
@@ -734,7 +754,7 @@ def pending_members(request,community_id):
             user_response.append(response_object)
         usr['response'] = user_response
         pending_requests.append(usr)
-        return JsonResponse({'pending_members': pending_requests})
+    return JsonResponse({'pending_members': pending_requests})
 
 @csrf_exempt
 def request_response(request):
@@ -750,24 +770,24 @@ def request_response(request):
     req = Requests.objects.filter(community = community).filter(user_id = user)
     req = req[0]
     print(req.id)
-    if accepted == True :
+    if accepted == 'True' :
         req.status = 1
         req.save()
-        member = Members()
-        member.member_id = req.user_id
-        member.community_id = req.community
-        member.save()
+        # updating the approve state
+
+        Members.objects.filter(member_id=req.user_id,community_id=community).update(state=4)  # aprove state = 4
+
         community = Community.objects.get(id = community_id)
         community.members_count = community.members_count+1
     else:
+        Members.objects.filter(member_id=req.user_id,community_id=community).update(state=5)  # decline state = 5
         req.status = 0
     return JsonResponse({'success': True})
 
 
 def pending_request_count(request,community_id):
-    community = Community.objects.get(id = community_id)
-    requests = Requests.objects.filter(community = community).filter(status = 0)
-    return JsonResponse({'pending_request_count': len(requests)})
+    no_of_pending_members = Members.objects.filter(community_id = community_id).filter(state = 3)
+    return JsonResponse({'pending_request_count': len(no_of_pending_members)})
 
 @csrf_exempt
 def collabcards_seen(request):
@@ -792,3 +812,17 @@ def collabcards_seen(request):
         seen_card.card = card
         seen_card.save()
     return JsonResponse({'success': True})
+
+
+def members_state(request):
+    '''This function gives the state of user '''
+    member_id=request.GET.get('member_id')
+    community_id=request.GET.get('community_id')
+    state=0
+    query_set=Members.objects.filter(member_id=member_id,community_id=community_id)
+    for data in query_set:
+        if data.state != None:
+            state=data.state
+
+    return JsonResponse({'state':state})
+
