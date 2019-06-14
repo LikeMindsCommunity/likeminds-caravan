@@ -371,6 +371,7 @@ def create_community(request):
             res = json.loads(request.body)
             img = request.FILES.dict()
             print(res)
+            # creating the community with given credentials
             group = Community()
             group.members_count = group.members_count + 1
             group.name = res['name']
@@ -386,6 +387,7 @@ def create_community(request):
                 if i['key'] == 'whatsapp_link' :
                     group.whatsapp_group_link = i['whatsapp_link']
             group.save()
+            #saving the category of the community
             for i in res['items']:
                 if i['key'] == 'Type of community' :
                     categories = i['value']
@@ -395,6 +397,7 @@ def create_community(request):
                         category.category = j
                         category.community_id_id = group.id
                         category.save()
+            # create user as a admin for the community as the user is creating the community as a admin
             admin = Admins()
             print(group)
             user = User.objects.get(id = user_id)
@@ -406,6 +409,7 @@ def create_community(request):
             member.member_id = user
             member.community_id = community
             member.save()
+            #creating a card while a comunity is created
             card = Collabcard()
             print(community)
             if community.purpose != '':
@@ -415,6 +419,7 @@ def create_community(request):
             card.community = community
             card.user = user
             card.save()
+            #getting details of the user who is creating the community
             user = Userinfo.objects.get(user_id = user.id)
             usr = {}
             usr['id'] = user.user_id.id
@@ -436,17 +441,15 @@ def create_community(request):
                 new_dict['image_url'] = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQMUCHvC0wEVO5yDMe9wddUoagIqQ3VPH0nm8_VtjK5gk3M0mMO'
             new_dict['share_url']= 'https://beta.collabmates.com/community/'+str(new_dict['id'])
             #new_dict['date'] = community['active_since']
-            
+            ans_text =''
             #saving the questions to be asked while joining a community
             for questions in res['questions']:
                 question = Form_data()
                 question.data = questions["key"]
                 question.community_id = community
                 question.save()
-                print("success")
-                
 
-            crd = {'id':card.id , 'title':card.title, 'member':usr}
+            crd = {'id':card.id , 'title':card.title, 'member':usr,'answer_text': ans_text}
             return JsonResponse({'success':True, 'community':new_dict, 'collabcard':crd})
     else:
         member_id = request.GET.get('member_id')
