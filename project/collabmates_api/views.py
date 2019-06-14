@@ -180,7 +180,7 @@ def your_communities(request,user_id):
             usr["city"] = user.city
             usr["headline"] = user.headline
             usr["contact_number"] = user.contact_number
-            usr["image_url"] = user.image_file.url
+            usr["image_url"] = 'https://beta.collabmates.com'+user.image_file.url
             usr["about"] = user.about
             usr["fb_link"] = user.fb_link
             usr["linkedin_link"] = user.linkedin_link
@@ -257,11 +257,14 @@ def join_community_responses(request):
     res = json.loads(request.body)
     user_id = request.GET.get('member_id')
     community_id = request.GET.get('community_id')
+    print(request.user.id)
     print(user_id, community_id)
     user = User.objects.get(id = user_id)
     print(user)
     community = Community.objects.get(id = community_id)
+
     userinfo = Userinfo.objects.get(user_id=user_id)
+
     response = Form_response()
 
     #inserting in members table if the member status is pending and inserting it to database with status=3
@@ -315,7 +318,7 @@ def user(request, user_id):
         user["city"] = i.city
         user["headline"] = i.headline
         user["contact_number"] = i.contact_number
-        user["image_url"] = i.image_file.url
+        user["image_url"] = 'https://beta.collabmates.com'+i.image_file.url
         user["about"] = i.about
         user["fb_link"] = i.fb_link
         user["linkedin_link"] = i.linkedin_link
@@ -340,7 +343,7 @@ def members(request, community_id):
         usr["city"] = user.city
         usr["headline"] = user.headline
         usr["contact_number"] = user.contact_number
-        usr["image_url"] = user.image_file.url
+        usr["image_url"] = 'https://beta.collabmates.com'+user.image_file.url
         usr["about"] = user.about
         usr["fb_link"] = user.fb_link
         usr["linkedin_link"] = user.linkedin_link
@@ -361,7 +364,7 @@ def admins(request, community_id):
         usr["city"] = user[0].city
         usr["headline"] = user[0].headline
         usr["contact_number"] = user[0].contact_number
-        usr["image_url"] = user[0].image_file.url
+        usr["image_url"] = 'https://beta.collabmates.com'+user[0].image_file.url
         usr["about"] = user[0].about
         usr["fb_link"] = user[0].fb_link
         usr["linkedin_link"] = user[0].linkedin_link
@@ -432,7 +435,7 @@ def create_community(request):
             usr["city"] = user.city
             usr["headline"] = user.headline
             usr["contact_number"] = user.contact_number
-            usr["image_url"] = user.image_file.url
+            usr["image_url"] = 'https://beta.collabmates.com'+user.image_file.url
             usr["about"] = user.about
             usr["fb_link"] = user.fb_link
             usr["linkedin_link"] = user.linkedin_link
@@ -445,21 +448,17 @@ def create_community(request):
                 new_dict['image_url'] = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQMUCHvC0wEVO5yDMe9wddUoagIqQ3VPH0nm8_VtjK5gk3M0mMO'
             new_dict['share_url']= 'https://beta.collabmates.com/community/'+str(new_dict['id'])
             #new_dict['date'] = community['active_since']
-            ans_text = ''
-            count = 0
-            answer = card_answers.objects.filter(card = i)
-            for j in range(len(answer) -1, -1, -1):
-                if j < len(answer) -  2:
-                    count = len(answer) - 2
-                    break
-                userinfo = Userinfo.objects.get(user_id = answer[j].user)
-                ans_text = ans_text+userinfo.name+", "
-            if len(answer) >0 :
-                ans_text = ans_text[:-2]
-                if count > 0:
-                    ans_text = ans_text + ' & ' + str(count) + ' other'
-                ans_text = ans_text+' answered'
-            crd = {'id':card.id , 'title':card.title, 'member':usr, 'answer_text': ans_text }
+            
+            #saving the questions to be asked while joining a community
+            for questions in res['questions']:
+                question = Form_data()
+                question.data = questions["key"]
+                question.community_id = community
+                question.save()
+                print("success")
+                
+
+            crd = {'id':card.id , 'title':card.title, 'member':usr}
             return JsonResponse({'success':True, 'community':new_dict, 'collabcard':crd})
     else:
         member_id = request.GET.get('member_id')
@@ -521,7 +520,7 @@ def create_card(request):
         usr["city"] = user.city
         usr["headline"] = user.headline
         usr["contact_number"] = user.contact_number
-        usr["image_url"] = user.image_file.url
+        usr["image_url"] = 'https://beta.collabmates.com'+user.image_file.url
         usr["about"] = user.about
         usr["fb_link"] = user.fb_link
         usr["linkedin_link"] = user.linkedin_link
@@ -543,7 +542,7 @@ def collabcard(request, card_id):
         usr["city"] = user.city
         usr["headline"] = user.headline
         usr["contact_number"] = user.contact_number
-        usr["image_url"] = user.image_file.url
+        usr["image_url"] = 'https://beta.collabmates.com'+user.image_file.url
         usr["about"] = user.about
         usr["fb_link"] = user.fb_link
         usr["linkedin_link"] = user.linkedin_link
@@ -556,7 +555,7 @@ def collabcard(request, card_id):
     usr["city"] = user.city
     usr["headline"] = user.headline
     usr["contact_number"] = user.contact_number
-    usr["image_url"] = user.image_file.url
+    usr["image_url"] = 'https://beta.collabmates.com'+user.image_file.url
     usr["about"] = user.about
     usr["fb_link"] = user.fb_link
     usr["linkedin_link"] = user.linkedin_link
@@ -597,7 +596,7 @@ def community_cards(request, community_id):
         usr["city"] = user.city
         usr["headline"] = user.headline
         usr["contact_number"] = user.contact_number
-        usr["image_url"] = user.image_file.url
+        usr["image_url"] = 'https://beta.collabmates.com'+user.image_file.url
         usr["about"] = user.about
         usr["fb_link"] = user.fb_link
         usr["linkedin_link"] = user.linkedin_link
@@ -673,7 +672,7 @@ def login(request):
         usr["city"] = userinfo[0].city
         usr["headline"] = userinfo[0].headline
         usr["contact_number"] = userinfo[0].contact_number
-        usr["image_url"] = userinfo[0].image_file.url
+        usr["image_url"] = 'https://beta.collabmates.com'+userinfo[0].image_file.url
         usr["about"] = userinfo[0].about
         usr["fb_link"] = userinfo[0].fb_link
         usr["linkedin_link"] = userinfo[0].linkedin_link
@@ -742,7 +741,10 @@ def pending_members(request,community_id):
         usr["city"] = user.city
         usr["headline"] = user.headline
         usr["contact_number"] = user.contact_number
-        #usr["image_url"] = user.image_file.url
+
+       
+        usr["image_url"] = 'https://beta.collabmates.com'+user.image_file.url
+
         usr["about"] = user.about
         usr["fb_link"] = user.fb_link
         usr["linkedin_link"] = user.linkedin_link
@@ -814,6 +816,7 @@ def collabcards_seen(request):
     return JsonResponse({'success': True})
 
 
+
 def members_state(request):
     '''This function gives the state of user '''
     member_id=request.GET.get('member_id')
@@ -825,4 +828,22 @@ def members_state(request):
             state=data.state
 
     return JsonResponse({'state':state})
+
+
+
+
+@csrf_exempt
+def push(request):
+    '''This function is used to insert fcm token to the database in order to generate notifications from database'''
+    member_id=request.GET.get('member_id','')
+    token=request.GET.get('token','')
+
+    is_member=Userinfo.objects.filter(user_id=member_id)
+    print(is_member)
+    success=False
+    if is_member:
+        success=True
+        fcm_token=Userinfo.objects.filter(user_id=member_id).update(fcm_token=token)
+
+    return JsonResponse({'success':success})
 
