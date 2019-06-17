@@ -152,7 +152,8 @@ class temp_admin (models.Model):
     name = models.CharField(max_length = 200)
     contact_number = models.CharField(max_length = 200, null=True)
     email = models.CharField(max_length = 200, null = True)
-    community = models.ForeignKey(Community, on_delete = models.CASCADE)
+    community = models.ForeignKey(Community, on_delete = models.CASCADE) 
+    member_id = models.ForeignKey(Members, on_delete = models.CASCADE)
 
 class card_images (models.Model):
     collabcard = models.ForeignKey(Collabcard, on_delete = models.CASCADE)

@@ -130,9 +130,9 @@ def your_communities(request,user_id):
 
     result = sorted(tupple_list, key=lambda x: x[1],reverse=True)
 
-
     for each_community in result:
         my_communities.append(each_community[0])
+
     my_community =[]
 
     for i in my_communities:
@@ -706,21 +706,24 @@ def image_upload(request):
         return JsonResponse({'success':True})
 
 @csrf_exempt
-def create_admin(request):
-    params = request.GET
-    if ['community_id'] in params:
-        community_id = params['community_id']
+def create_admin(request,community_id):
+    # saving admin details given by creator of a community
+    # when the creator is creating a community as a member
     if request.method == 'POST':
         res = json.loads(request.body)
         admin = temp_admin()
         if 'name' in res:
             admin.name = res['name']
-        if 'email' in res:
-            admin.email = res['email']
-        if 'contact_number' in res:
-            admin.contact_number = res['contact_number']
+        if 'email_id' in res:
+            admin.email = res['email_id']
+        if 'contact_no' in res:
+            admin.contact_number = res['contact_no']
+        if 'memberId' in res:
+            memberId = res['memberId']
+        member = Members.objects.get(id = memberId)
         community = Community.objects.get(id = community_id)
         admin.community = community
+        admin.member_id = member
         admin.save()
         return JsonResponse({'success':True})
     return HttpResponse('Add Admin Api')
