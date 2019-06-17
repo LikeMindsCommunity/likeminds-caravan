@@ -129,13 +129,10 @@ def your_communities(request,user_id):
         tupple_list.append(x)
 
     result = sorted(tupple_list, key=lambda x: x[1],reverse=True)
-    print("result  ++  ",result)
-
 
     for each_community in result:
         my_communities.append(each_community[0])
 
-    print("\n my communities ==  ", my_communities)
     my_community =[]
 
     for i in my_communities:
