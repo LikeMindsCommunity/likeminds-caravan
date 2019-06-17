@@ -18,6 +18,7 @@ from datetime import datetime
 import random
 from django.db.models import Max
 import time
+from django.db.models import Q
 import logging
 # your views here.
 
@@ -118,13 +119,15 @@ def your_communities(request,user_id):
     '''This function is used to see your communities based on user id'''
     member_id = request.GET.get('member_id')
     user = User.objects.get(id = member_id)
-    communities = Members.objects.all().filter(member_id = user_id)
+    communities = Members.objects.all().filter(member_id = user_id).filter(Q(state=1)|Q(state=2)|Q(state=4))
     my_communities = []
-
     # making a tupple list and sorting communities based on date
     tupple_list=[]
     for each_community in communities:
         collabcard=Collabcard.objects.filter(community_id=each_community.community_id).aggregate(Max('date_epoch'))
+        #handling error for previous filled data in table
+        if collabcard['date_epoch__max'] is None:
+            collabcard['date_epoch__max']=-9223372036854775808
         x=(each_community.community_id,collabcard['date_epoch__max'])
         tupple_list.append(x)
 
@@ -257,8 +260,6 @@ def join_community_responses(request):
     res = json.loads(request.body)
     user_id = request.GET.get('member_id')
     community_id = request.GET.get('community_id')
-    print(request.user.id)
-    print(user_id, community_id)
     user = User.objects.get(id = user_id)
     print(user)
     community = Community.objects.get(id = community_id)
@@ -271,14 +272,22 @@ def join_community_responses(request):
     member = Members()
     member.member_id = user
     member.community_id = community
-    member.state = 3  # pending members
-    member.save()
+    #If the member is declined from the community and he applied again
+    try:
+        current_state=Members.objects.filter(member_id=user,community_id=community).values('state')
+        print(current_state)
+        if current_state[0]['state'] == 5:
+            Members.objects.filter(member_id=user, community_id=community).update(state=3)
 
-    req = Requests()
-    req.user_id = user
-    req.user_info = userinfo
-    req.community = community
-    req.save()
+
+    except:
+        member.state = 3  # pending members
+        member.save()
+        req = Requests()
+        req.user_id = user
+        req.user_info = userinfo
+        req.community = community
+        req.save()
     if 'questions' in res:
         for i in res['questions']:
             response = Form_response()
@@ -778,7 +787,7 @@ def request_response(request):
     req = Requests.objects.filter(community = community).filter(user_id = user)
     req = req[0]
     print(req.id)
-    if accepted == 'True' :
+    if accepted == True :
         req.status = 1
         req.save()
         # updating the approve state
