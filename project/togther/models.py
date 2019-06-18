@@ -1,12 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
-import datetime
-from django.utils.timezone import now
-import time
 from django.core.files import File
-import urllib
 from urllib.request import urlopen
-import urllib.request
 from io import BytesIO
 
 response_choices = (
@@ -162,3 +157,9 @@ class collabcard_seen(models.Model):
     card = models.ForeignKey(Collabcard, on_delete= models.CASCADE)
     community = models.ForeignKey(Community, on_delete= models.CASCADE)
     user = models.ForeignKey(User, on_delete = models.CASCADE)
+
+
+class collabcard_follow(models.Model):
+    '''Model to store the follow requests of members'''
+    collabcard_id=models.ForeignKey(Collabcard,on_delete=models.CASCADE)
+    member_id = models.ForeignKey(User, on_delete=models.CASCADE)

@@ -1,16 +1,10 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import HttpResponse
 from togther.models import *
-from django.contrib.auth.decorators import login_required
-from django.contrib.auth import logout
-from togther.forms import * 
-import urllib
-import requests as rqst
+from togther.forms import *
 from django.contrib.auth.models import User
 import json
 from django.http.response import JsonResponse
-from django.conf import settings
-from django.core.mail import send_mail
 from collabmates_api.serializers import CommunitySerializer
 from categories import Category_list
 from django.views.decorators.csrf import csrf_exempt
@@ -18,8 +12,8 @@ from datetime import datetime
 import random
 from django.db.models import Max
 import time
-import logging
-# your views here.
+
+from .notification import send_follow_notification
 
 
 def communities(request):
@@ -190,6 +184,7 @@ def your_communities(request,user_id):
     return JsonResponse({'your_communities':my_community})
 
 def community(request, community_id):
+    '''Community detail page'''
     queryset = Community.objects.get(id = community_id)
     body = request.GET
     print(body)
@@ -628,6 +623,7 @@ def community_cards(request, community_id):
 
 @csrf_exempt
 def create_answer(request):
+    '''function to post answer on collabcard'''
     body = request.GET
     if 'member_id' in body:
         user_id = body['member_id']
@@ -635,6 +631,7 @@ def create_answer(request):
     if'collabcard_id' in body:
         card_id = body['collabcard_id']
     card = Collabcard.objects.get(id = card_id)
+
     if request.method == 'POST':
         res = json.loads(request.body)
         ans = card_answers()
@@ -642,6 +639,9 @@ def create_answer(request):
         ans.card = card
         ans.user = user
         ans.save()
+        send_follow_notification(card,user,res['title'])
+
+
         return JsonResponse({'success':True})
 
 @csrf_exempt
@@ -821,7 +821,8 @@ def collabcards_seen(request):
 
 
 def members_state(request):
-    '''This function gives the state of user '''
+    '''This function gives the state of user.Get Api'''
+
     member_id=request.GET.get('member_id')
     community_id=request.GET.get('community_id')
     state=0
@@ -849,4 +850,23 @@ def push(request):
         fcm_token=Userinfo.objects.filter(user_id=member_id).update(fcm_token=token)
 
     return JsonResponse({'success':success})
+
+
+@csrf_exempt
+def collabcard_follow(request):
+    '''Api to follow collabcard by members Post API'''
+    collabcard_id=request.GET.get('collabcard_id','')
+    member_id=request.GET.get('member_id','')
+
+    collabcard=Collabcard.objects.get(id=collabcard_id)
+    member_id=User.objects.get(id=member_id)
+
+    follow=collabcard_follow()
+    follow.collabcard_id=collabcard
+    follow.member_id=member_id
+    follow.save()
+
+    return JsonResponse({'success':True})
+
+
 
