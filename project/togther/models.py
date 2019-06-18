@@ -131,6 +131,7 @@ class Collabcard (models.Model):
     share_count =  models.IntegerField(default = 0)
     answers_count = models.IntegerField(default=0)
     date_epoch=models.BigIntegerField(default=-9223372036854775808)
+    answer_text = models.CharField(max_length = 100, default = '')
 
 class Comments (models.Model):
     comment =  models.CharField(max_length = 1000)
@@ -153,7 +154,7 @@ class temp_admin (models.Model):
     contact_number = models.CharField(max_length = 200, null=True)
     email = models.CharField(max_length = 200, null = True)
     community = models.ForeignKey(Community, on_delete = models.CASCADE) 
-    member_id = models.ForeignKey(Members, on_delete = models.CASCADE)
+    member_id = models.ForeignKey(Members, on_delete = models.CASCADE,)
 
 class card_images (models.Model):
     collabcard = models.ForeignKey(Collabcard, on_delete = models.CASCADE)
