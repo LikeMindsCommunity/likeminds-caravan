@@ -13,7 +13,13 @@ import random
 from django.db.models import Max
 import time
 
+
 from .notification import send_follow_notification
+
+from django.db.models import Q
+
+
+
 
 
 def communities(request):
@@ -112,21 +118,23 @@ def your_communities(request,user_id):
     '''This function is used to see your communities based on user id'''
     member_id = request.GET.get('member_id')
     user = User.objects.get(id = member_id)
-    communities = Members.objects.all().filter(member_id = user_id)
+    communities = Members.objects.all().filter(member_id = user_id).filter(Q(state=1)|Q(state=2)|Q(state=4))
     my_communities = []
-
     # making a tupple list and sorting communities based on date
     tupple_list=[]
     for each_community in communities:
         collabcard=Collabcard.objects.filter(community_id=each_community.community_id).aggregate(Max('date_epoch'))
+        #handling error for previous filled data in table
+        if collabcard['date_epoch__max'] is None:
+            collabcard['date_epoch__max']=-9223372036854775808
         x=(each_community.community_id,collabcard['date_epoch__max'])
         tupple_list.append(x)
 
     result = sorted(tupple_list, key=lambda x: x[1],reverse=True)
 
-
     for each_community in result:
         my_communities.append(each_community[0])
+
     my_community =[]
 
     for i in my_communities:
@@ -252,8 +260,6 @@ def join_community_responses(request):
     res = json.loads(request.body)
     user_id = request.GET.get('member_id')
     community_id = request.GET.get('community_id')
-    print(request.user.id)
-    print(user_id, community_id)
     user = User.objects.get(id = user_id)
     print(user)
     community = Community.objects.get(id = community_id)
@@ -266,14 +272,22 @@ def join_community_responses(request):
     member = Members()
     member.member_id = user
     member.community_id = community
-    member.state = 3  # pending members
-    member.save()
+    #If the member is declined from the community and he applied again
+    try:
+        current_state=Members.objects.filter(member_id=user,community_id=community).values('state')
+        print(current_state)
+        if current_state[0]['state'] == 5:
+            Members.objects.filter(member_id=user, community_id=community).update(state=3)
 
-    req = Requests()
-    req.user_id = user
-    req.user_info = userinfo
-    req.community = community
-    req.save()
+
+    except:
+        member.state = 3  # pending members
+        member.save()
+        req = Requests()
+        req.user_id = user
+        req.user_info = userinfo
+        req.community = community
+        req.save()
     if 'questions' in res:
         for i in res['questions']:
             response = Form_response()
@@ -347,23 +361,22 @@ def members(request, community_id):
     return JsonResponse ({'members': members})
 
 def admins(request, community_id):
-    admins = Admins.objects.all().filter(community_id = community_id)
+    admins = Members.objects.all().filter(community_id = community_id).filter(Q(state=1)|Q(state=2))
+    user = Userinfo.objects.filter(user_id = admins[0].member_id.id)
     users = []
-    for i in admins:
-        user = Userinfo.objects.filter(user_id = i.admin_id)
-        print(user)
-        usr = {}
-        usr['id'] = user[0].user_id.id
-        usr["name"] = user[0].name
-        usr["email"] = user[0].email
-        usr["city"] = user[0].city
-        usr["headline"] = user[0].headline
-        usr["contact_number"] = user[0].contact_number
-        usr["image_url"] = 'https://beta.collabmates.com'+user[0].image_file.url
-        usr["about"] = user[0].about
-        usr["fb_link"] = user[0].fb_link
-        usr["linkedin_link"] = user[0].linkedin_link
-        users.append(usr)
+    usr={}
+    usr = {}
+    usr['id'] = user[0].user_id.id
+    usr["name"] = user[0].name
+    usr["email"] = user[0].email
+    usr["city"] = user[0].city
+    usr["headline"] = user[0].headline
+    usr["contact_number"] = user[0].contact_number
+    usr["image_url"] = 'https://beta.collabmates.com'+user[0].image_file.url
+    usr["about"] = user[0].about
+    usr["fb_link"] = user[0].fb_link
+    usr["linkedin_link"] = user[0].linkedin_link
+    users.append(usr)
     return JsonResponse ({'members': users})
 
 @csrf_exempt
@@ -564,20 +577,7 @@ def collabcard(request, card_id):
         img_list.append(img)
     card = {'id': cards.id, 'title':cards.title, 'member':usr,'community' :cards.community.id,'images':img_list }
     card['share_url'] = 'https://beta.collabamtes.com/collabcard/'+str(cards.id)
-    ans_text = ''
-    count = 0
-    for i in range(len(answer) -1, -1, -1):
-        if i < len(answer) -2 :
-            count = len(answer) - 2
-            break
-        userinfo = Userinfo.objects.get(user_id = answer[i].user)
-        ans_text = ans_text+userinfo.name+", "
-    if len(answer) >0 :
-        ans_text = ans_text[:-2]
-        if count > 0:
-            ans_text = ans_text + ' & ' + str(count) + ' other'
-        ans_text = ans_text+' answered'
-    card['answer_text']= ans_text
+    card['answer_text']= cards.answer_text
     card['date'] = datetime.today().strftime('%Y-%m-%d')
     return JsonResponse({"collabcard": card, 'answers':answers})
 
@@ -604,20 +604,7 @@ def community_cards(request, community_id):
             img = {'image_url': 'https://beta.collabmates.com'+j.image_url.url}
             img_list.append(img)
         share_url = 'https://beta.collabamtes.com/collabcard/'+str(i.id)
-        ans_text = ''
-        count = 0
-        answer = card_answers.objects.filter(card = i)
-        for j in range(len(answer) -1, -1, -1):
-            if j < len(answer) -  2:
-                count = len(answer) - 2
-                break
-            userinfo = Userinfo.objects.get(user_id = answer[j].user)
-            ans_text = ans_text+userinfo.name+", "
-        if len(answer) >0 :
-            ans_text = ans_text[:-2]
-            if count > 0:
-                ans_text = ans_text + ' & ' + str(count) + ' other'
-            ans_text = ans_text+' answered'
+        ans_text = i.answer_text
         card.append({'id': i.id, 'title': i.title, 'member':usr,'images':img_list,'share_url' : share_url,  'answer_text': ans_text ,'date':datetime.today().strftime('%Y-%m-%d')})
     return JsonResponse ({'collabcards': card})
 
@@ -627,6 +614,7 @@ def create_answer(request):
     body = request.GET
     if 'member_id' in body:
         user_id = body['member_id']
+        print("user_id == ",user_id)
     user = User.objects.get(id = user_id)
     if'collabcard_id' in body:
         card_id = body['collabcard_id']
@@ -641,8 +629,62 @@ def create_answer(request):
         ans.save()
         send_follow_notification(card,user,res['title'])
 
+        #calling update_answer_text 
+        update_answer_text(card_id)
+
 
         return JsonResponse({'success':True})
+
+def update_answer_text(card_id):
+        #function for updating the answer_text feild in collab card model
+        ans_text=''
+        card = Collabcard.objects.get(id = card_id)
+        card_ans = card_answers.objects.filter(card = card)
+        # if only one answer is present fro a collab card
+        if len(card_ans) == 1:
+            # get the name of the user who answered
+            username = Userinfo.objects.get(user_id = card_ans[0].user_id)
+            #format the answer text string as "username answered"
+            ans_text = username.name + " answered"
+            # update the answer_text feild in collabcard
+            Collabcard.objects.filter(id=card_id).update(answer_text=ans_text) 
+        # if there is more than one answer
+        else:
+            #get the user id's of the users who have answered
+            user_list =[]
+            for ans in card_ans:
+                # save it in a list without duplicates
+                if ans.user_id not in user_list:
+                    user_list.append(ans.user_id)
+            count = 1
+            #check if only two different users have answered
+            #not more than two different users should have answered
+            if len(user_list)==2:
+                for ID in user_list:
+                    username = Userinfo.objects.get(user_id = ID)
+                    ans_text += username.name
+                    if count !=0:
+                        ans_text += ","
+                        count-=1
+                ans_text+=" answered"
+                Collabcard.objects.filter(id=card_id).update(answer_text=ans_text)
+            count = 2
+            # if more then two different users have answered
+            if len(user_list) > 2:
+                for ID in user_list:
+                    if count ==0:
+                        break
+                    username = Userinfo.objects.get(user_id = ID)
+                    ans_text += username.name
+                    if count >1:
+                        ans_text += ","
+                    count-=1
+                if len(user_list)-2 == 1:
+                    ans_text+= " & "+str(len(user_list)-2) + " other answered"
+                else:
+                    ans_text+= " & "+str(len(user_list)-2) + " others answered"
+                Collabcard.objects.filter(id=card_id).update(answer_text=ans_text)
+        
 
 @csrf_exempt
 def login(request):
@@ -706,21 +748,24 @@ def image_upload(request):
         return JsonResponse({'success':True})
 
 @csrf_exempt
-def create_admin(request):
-    params = request.GET
-    if ['community_id'] in params:
-        community_id = params['community_id']
+def create_admin(request,community_id):
+    # saving admin details given by creator of a community
+    # when the creator is creating a community as a member
     if request.method == 'POST':
         res = json.loads(request.body)
         admin = temp_admin()
         if 'name' in res:
             admin.name = res['name']
-        if 'email' in res:
-            admin.email = res['email']
-        if 'contact_number' in res:
-            admin.contact_number = res['contact_number']
+        if 'email_id' in res:
+            admin.email = res['email_id']
+        if 'contact_no' in res:
+            admin.contact_number = res['contact_no']
+        if 'member_id' in res:
+            member_id = res['member_id']
+        member = Members.objects.get(id = member_id)
         community = Community.objects.get(id = community_id)
         admin.community = community
+        admin.member_id = member
         admin.save()
         return JsonResponse({'success':True})
     return HttpResponse('Add Admin Api')
@@ -775,7 +820,7 @@ def request_response(request):
     req = Requests.objects.filter(community = community).filter(user_id = user)
     req = req[0]
     print(req.id)
-    if accepted == 'True' :
+    if accepted == True :
         req.status = 1
         req.save()
         # updating the approve state
