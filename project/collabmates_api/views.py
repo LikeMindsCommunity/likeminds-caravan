@@ -727,9 +727,9 @@ def create_admin(request,community_id):
             admin.email = res['email_id']
         if 'contact_no' in res:
             admin.contact_number = res['contact_no']
-        if 'memberId' in res:
-            memberId = res['memberId']
-        member = Members.objects.get(id = memberId)
+        if 'member_id' in res:
+            member_id = res['member_id']
+        member = Members.objects.get(id = member_id)
         community = Community.objects.get(id = community_id)
         admin.community = community
         admin.member_id = member
