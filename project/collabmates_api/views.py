@@ -361,23 +361,22 @@ def members(request, community_id):
     return JsonResponse ({'members': members})
 
 def admins(request, community_id):
-    admins = Admins.objects.all().filter(community_id = community_id)
+    admins = Members.objects.all().filter(community_id = community_id).filter(Q(state=1)|Q(state=2))
+    user = Userinfo.objects.filter(user_id = admins[0].member_id.id)
     users = []
-    for i in admins:
-        user = Userinfo.objects.filter(user_id = i.admin_id)
-        print(user)
-        usr = {}
-        usr['id'] = user[0].user_id.id
-        usr["name"] = user[0].name
-        usr["email"] = user[0].email
-        usr["city"] = user[0].city
-        usr["headline"] = user[0].headline
-        usr["contact_number"] = user[0].contact_number
-        usr["image_url"] = 'https://beta.collabmates.com'+user[0].image_file.url
-        usr["about"] = user[0].about
-        usr["fb_link"] = user[0].fb_link
-        usr["linkedin_link"] = user[0].linkedin_link
-        users.append(usr)
+    usr={}
+    usr = {}
+    usr['id'] = user[0].user_id.id
+    usr["name"] = user[0].name
+    usr["email"] = user[0].email
+    usr["city"] = user[0].city
+    usr["headline"] = user[0].headline
+    usr["contact_number"] = user[0].contact_number
+    usr["image_url"] = 'https://beta.collabmates.com'+user[0].image_file.url
+    usr["about"] = user[0].about
+    usr["fb_link"] = user[0].fb_link
+    usr["linkedin_link"] = user[0].linkedin_link
+    users.append(usr)
     return JsonResponse ({'members': users})
 
 @csrf_exempt
@@ -605,20 +604,7 @@ def community_cards(request, community_id):
             img = {'image_url': 'https://beta.collabmates.com'+j.image_url.url}
             img_list.append(img)
         share_url = 'https://beta.collabamtes.com/collabcard/'+str(i.id)
-        ans_text = ''
-        count = 0
-        answer = card_answers.objects.filter(card = i)
-        for j in range(len(answer) -1, -1, -1):
-            if j < len(answer) -  2:
-                count = len(answer) - 2
-                break
-            userinfo = Userinfo.objects.get(user_id = answer[j].user)
-            ans_text = ans_text+userinfo.name+", "
-        if len(answer) >0 :
-            ans_text = ans_text[:-2]
-            if count > 0:
-                ans_text = ans_text + ' & ' + str(count) + ' other'
-            ans_text = ans_text+' answered'
+        ans_text = i.answer_text
         card.append({'id': i.id, 'title': i.title, 'member':usr,'images':img_list,'share_url' : share_url,  'answer_text': ans_text ,'date':datetime.today().strftime('%Y-%m-%d')})
     return JsonResponse ({'collabcards': card})
 
