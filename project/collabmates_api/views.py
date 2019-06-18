@@ -578,20 +578,7 @@ def collabcard(request, card_id):
         img_list.append(img)
     card = {'id': cards.id, 'title':cards.title, 'member':usr,'community' :cards.community.id,'images':img_list }
     card['share_url'] = 'https://beta.collabamtes.com/collabcard/'+str(cards.id)
-    ans_text = ''
-    count = 0
-    for i in range(len(answer) -1, -1, -1):
-        if i < len(answer) -2 :
-            count = len(answer) - 2
-            break
-        userinfo = Userinfo.objects.get(user_id = answer[i].user)
-        ans_text = ans_text+userinfo.name+", "
-    if len(answer) >0 :
-        ans_text = ans_text[:-2]
-        if count > 0:
-            ans_text = ans_text + ' & ' + str(count) + ' other'
-        ans_text = ans_text+' answered'
-    card['answer_text']= ans_text
+    card['answer_text']= cards.answer_text
     card['date'] = datetime.today().strftime('%Y-%m-%d')
     return JsonResponse({"collabcard": card, 'answers':answers})
 
@@ -640,6 +627,7 @@ def create_answer(request):
     body = request.GET
     if 'member_id' in body:
         user_id = body['member_id']
+        print("user_id == ",user_id)
     user = User.objects.get(id = user_id)
     if'collabcard_id' in body:
         card_id = body['collabcard_id']
@@ -651,7 +639,61 @@ def create_answer(request):
         ans.card = card
         ans.user = user
         ans.save()
+        #calling update_answer_text 
+        update_answer_text(card_id)
+
         return JsonResponse({'success':True})
+
+def update_answer_text(card_id):
+        #function for updating the answer_text feild in collab card model
+        ans_text=''
+        card = Collabcard.objects.get(id = card_id)
+        card_ans = card_answers.objects.filter(card = card)
+        # if only one answer is present fro a collab card
+        if len(card_ans) == 1:
+            # get the name of the user who answered
+            username = Userinfo.objects.get(user_id = card_ans[0].user_id)
+            #format the answer text string as "username answered"
+            ans_text = username.name + " answered"
+            # update the answer_text feild in collabcard
+            Collabcard.objects.filter(id=card_id).update(answer_text=ans_text) 
+        # if there is more than one answer
+        else:
+            #get the user id's of the users who have answered
+            user_list =[]
+            for ans in card_ans:
+                # save it in a list without duplicates
+                if ans.user_id not in user_list:
+                    user_list.append(ans.user_id)
+            count = 1
+            #check if only two different users have answered
+            #not more than two different users should have answered
+            if len(user_list)==2:
+                for ID in user_list:
+                    username = Userinfo.objects.get(user_id = ID)
+                    ans_text += username.name
+                    if count !=0:
+                        ans_text += ","
+                        count-=1
+                ans_text+=" answered"
+                Collabcard.objects.filter(id=card_id).update(answer_text=ans_text)
+            count = 2
+            # if more then two different users have answered
+            if len(user_list) > 2:
+                for ID in user_list:
+                    if count ==0:
+                        break
+                    username = Userinfo.objects.get(user_id = ID)
+                    ans_text += username.name
+                    if count >1:
+                        ans_text += ","
+                    count-=1
+                if len(user_list)-2 == 1:
+                    ans_text+= " & "+str(len(user_list)-2) + " other answered"
+                else:
+                    ans_text+= " & "+str(len(user_list)-2) + " others answered"
+                Collabcard.objects.filter(id=card_id).update(answer_text=ans_text)
+        
 
 @csrf_exempt
 def login(request):
