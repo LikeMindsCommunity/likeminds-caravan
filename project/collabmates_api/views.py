@@ -906,7 +906,7 @@ def collabcard_follow(request):
     collabcard=Collabcard.objects.get(id=collabcard_id)
     member_id=User.objects.get(id=member_id)
 
-    follow=collabcard_follow()
+    follow=follow_collabcard()
     follow.collabcard_id=collabcard
     follow.member_id=member_id
     follow.save()
