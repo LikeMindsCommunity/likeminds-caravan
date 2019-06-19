@@ -11,8 +11,13 @@ from django.views.decorators.csrf import csrf_exempt
 from datetime import datetime 
 from django.db.models import Max
 import time
+
 from .notification import send_follow_notification
 from django.db.models import Q
+
+
+
+
 
 def communities(request):
     if request.method == 'GET':
@@ -153,8 +158,12 @@ def your_communities(request,user_id):
                 is_admin = True
         new_dict['is_admin'] = is_admin
         community = Community.objects.get(id = new_dict['id'])
-        requests = Requests.objects.filter(community = community).filter(status = 0)
-        new_dict['pending_members_count'] = len(requests)
+        community_admins = Members.objects.filter(community_id = i)
+        pending_requests = Members.objects.filter(community_id = community.id).filter(state = 3)
+        if (community_admins[0].state == 1 or community_admins[0].state==2):
+            new_dict['pending_members_count'] = len(pending_requests)
+        else:
+            new_dict['pending_members_count'] = 0
         card = Collabcard.objects.all().filter(community = community)
 
 
@@ -333,9 +342,7 @@ def user(request, user_id):
 
 def members(request, community_id):
     community = get_object_or_404(Community, pk = community_id)
-    print(community)
-    member = Members.objects.all().filter(community_id = community)
-    print(member)
+    member = Members.objects.filter(community_id = community).filter(Q(state=1)|Q(state=2)|Q(state=4))
     members = []
     for i in member:
         user = Userinfo.objects.filter(user_id = i.member_id)
@@ -355,11 +362,10 @@ def members(request, community_id):
         usr["fb_link"] = user.fb_link
         usr["linkedin_link"] = user.linkedin_link
         members.append(usr)
-    print (members)
     return JsonResponse ({'members': members})
 
 def admins(request, community_id):
-    admins = Members.objects.all().filter(community_id = community_id).filter(Q(state=1)|Q(state=2))
+    admins = Members.objects.filter(community_id = community_id).filter(Q(state=1)|Q(state=2))
     user = Userinfo.objects.filter(user_id = admins[0].member_id.id)
     users = []
     usr={}
@@ -891,7 +897,6 @@ def collabcards_seen(request):
     return JsonResponse({'success': True})
 
 
-
 def members_state(request):
     '''This function gives the state of user.Get Api'''
 
@@ -904,8 +909,6 @@ def members_state(request):
             state=data.state
 
     return JsonResponse({'state':state})
-
-
 
 
 @csrf_exempt
