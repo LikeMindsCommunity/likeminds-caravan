@@ -17,8 +17,6 @@ from django.db.models import Q
 
 
 
-
-
 def communities(request):
     if request.method == 'GET':
         body = request.GET
@@ -871,6 +869,7 @@ def pending_request_count(request,community_id):
 
 @csrf_exempt
 def collabcards_seen(request):
+    '''This functions stores the details of members who have seen the card'''
     params = request.GET
     if 'community_id' in params:
         community_id = params['community_id']
@@ -882,15 +881,15 @@ def collabcards_seen(request):
     community = Community.objects.get(id = community_id)
     user = User.objects.get(id = user_id)
     card = Collabcard.objects.get(id = card_id)
-    seen_card = collabcard_seen.objects.filter(community = community).filter(user = user)
-    if seen_card:
-        seen_card.card = card
-    else:
-        seen_card = collabcard_seen()
-        seen_card.community = community
-        seen_card.user = user
-        seen_card.card = card
-        seen_card.save()
+
+    seen_card = collabcard_seen.objects.filter(community = community,user=user,card=card)
+    if not seen_card:
+       collab_seen=collabcard_seen()
+       collab_seen.card=card
+       collab_seen.user=user
+       collab_seen.community=community
+       collab_seen.save()
+
     return JsonResponse({'success': True})
 
 
