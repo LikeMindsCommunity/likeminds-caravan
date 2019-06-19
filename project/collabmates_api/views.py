@@ -11,15 +11,8 @@ from django.views.decorators.csrf import csrf_exempt
 from datetime import datetime 
 from django.db.models import Max
 import time
-
-
 from .notification import send_follow_notification
-
 from django.db.models import Q
-
-
-
-
 
 def communities(request):
     if request.method == 'GET':
@@ -194,8 +187,6 @@ def your_communities(request,user_id):
             new_dict['collabcard_unseen'] = (total_collabcards-seen_collabcard)
         my_community.append(new_dict)
     return JsonResponse({'your_communities':my_community})
-
-
 
 
 def community(request, community_id):
@@ -546,9 +537,10 @@ def create_card(request):
         return JsonResponse({'success':True, 'collabcard':new_dict})
     return JsonResponse()
 
+
+
 def collabcard(request, card_id):
     cards = Collabcard.objects.get(id = card_id)
-    print(cards)
     answer = card_answers.objects.filter(card = cards)
     answers = []
     for i in answer:
@@ -590,7 +582,9 @@ def collabcard(request, card_id):
 
 def community_cards(request, community_id):
     community = Community.objects.get(id = community_id)
-    cards = Collabcard.objects.filter(community = community_id).order_by('-id')
+    cards = Collabcard.objects.filter(community = community_id).order_by('id')
+    member_id=request.GET.get('member_id')
+
     card = []
     for i in cards:
         user = Userinfo.objects.get(user_id = i.user)
@@ -612,8 +606,34 @@ def community_cards(request, community_id):
             img_list.append(img)
         share_url = 'https://beta.collabamtes.com/collabcard/'+str(i.id)
         ans_text = i.answer_text
-        card.append({'id': i.id, 'title': i.title, 'member':usr,'images':img_list,'share_url' : share_url,  'answer_text': ans_text ,'date':datetime.today().strftime('%Y-%m-%d')})
+        card_dict={'id': i.id,
+                   'title': i.title,
+                   'member':usr,
+                   'images':img_list,
+                   'share_url' : share_url,
+                   'answer_text': ans_text ,
+                   'date':datetime.today().strftime('%Y-%m-%d'),
+                   'state':get_status_of_collabcard(member_id,community,i)
+                   }
+        card.append(card_dict)
     return JsonResponse ({'collabcards': card})
+
+
+
+def get_status_of_collabcard(member_id,community,card):
+    '''function to get the state of collabcard'''
+    state=0
+    member_id=User.objects.get(id=member_id)
+
+    seen_status=collabcard_seen.objects.filter(card=card,community=community,user=member_id)
+    if seen_status:
+        state=1
+        follow=follow_collabcard.objects.filter(collabcard_id=card,member_id=member_id)
+        if follow:
+            state=2
+
+    return state
+
 
 @csrf_exempt
 def create_answer(request):
