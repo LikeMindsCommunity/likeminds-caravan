@@ -111,7 +111,7 @@ def communities(request):
 
 def your_communities(request,user_id):
     '''This function is used to see your communities based on user id'''
-    member_id = request.GET.get('member_id')
+    member_id = user_id
     user = User.objects.get(id = member_id)
     communities = Members.objects.all().filter(member_id = user_id).filter(Q(state=1)|Q(state=2)|Q(state=4))
     my_communities = []
@@ -161,7 +161,9 @@ def your_communities(request,user_id):
         new_dict['is_admin'] = is_admin
         card = Collabcard.objects.all().filter(community = community)
 
-
+        total_collabcards = Collabcard.objects.filter(community=community).count()
+        seen_collabcard = collabcard_seen.objects.filter(community=community, user=member_id).count()
+        new_dict['collabcard_unseen'] = (total_collabcards - seen_collabcard)
 
         if card:
             card = card[0]
@@ -186,9 +188,8 @@ def your_communities(request,user_id):
             usr["fb_link"] = user.fb_link
             usr["linkedin_link"] = user.linkedin_link
             collabcard['member'] = usr
-            total_collabcards=Collabcard.objects.filter(community=community).count()
-            seen_collabcard=collabcard_seen.objects.filter(community=community,user=usr['id']).count()
-            new_dict['collabcard_unseen'] = (total_collabcards-seen_collabcard)
+
+
         my_community.append(new_dict)
     return JsonResponse({'your_communities':my_community})
 
