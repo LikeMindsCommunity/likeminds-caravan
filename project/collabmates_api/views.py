@@ -9,7 +9,6 @@ from collabmates_api.serializers import CommunitySerializer
 from categories import Category_list
 from django.views.decorators.csrf import csrf_exempt
 from datetime import datetime 
-import random
 from django.db.models import Max
 import time
 
@@ -124,7 +123,7 @@ def your_communities(request,user_id):
     tupple_list=[]
     for each_community in communities:
         collabcard=Collabcard.objects.filter(community_id=each_community.community_id).aggregate(Max('date_epoch'))
-        #handling error for previous filled data in table
+        # handling error for previous filled data in table
         if collabcard['date_epoch__max'] is None:
             collabcard['date_epoch__max']=-9223372036854775808
         x=(each_community.community_id,collabcard['date_epoch__max'])
@@ -164,6 +163,9 @@ def your_communities(request,user_id):
         requests = Requests.objects.filter(community = community).filter(status = 0)
         new_dict['pending_members_count'] = len(requests)
         card = Collabcard.objects.all().filter(community = community)
+
+
+
         if card:
             card = card[0]
             collabcard = {}
@@ -187,9 +189,14 @@ def your_communities(request,user_id):
             usr["fb_link"] = user.fb_link
             usr["linkedin_link"] = user.linkedin_link
             collabcard['member'] = usr
-            collabcard['collabcard_unseen'] = random.randint(0,3)
+            total_collabcards=Collabcard.objects.filter(community=community).count()
+            seen_collabcard=collabcard_seen.objects.filter(community=community,user=usr['id']).count()
+            new_dict['collabcard_unseen'] = (total_collabcards-seen_collabcard)
         my_community.append(new_dict)
     return JsonResponse({'your_communities':my_community})
+
+
+
 
 def community(request, community_id):
     '''Community detail page'''
