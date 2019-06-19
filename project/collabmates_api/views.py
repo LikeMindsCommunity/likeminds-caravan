@@ -152,18 +152,15 @@ def your_communities(request,user_id):
         new_dict['share_url']= 'https://beta.collabmates.com/community/'+str(new_dict['id'])
 
         is_admin = False
-        admin = Admins.objects.filter(community_id = i)
-        for j in admin:
-            if j.admin_id.id == user_id :
-                is_admin = True
-        new_dict['is_admin'] = is_admin
         community = Community.objects.get(id = new_dict['id'])
-        community_admins = Members.objects.filter(community_id = i)
+        community_admins = Members.objects.filter(community_id = i).filter(member_id =member_id)
         pending_requests = Members.objects.filter(community_id = community.id).filter(state = 3)
         if (community_admins[0].state == 1 or community_admins[0].state==2):
             new_dict['pending_members_count'] = len(pending_requests)
+            is_admin = True
         else:
             new_dict['pending_members_count'] = 0
+        new_dict['is_admin'] = is_admin
         card = Collabcard.objects.all().filter(community = community)
 
 
