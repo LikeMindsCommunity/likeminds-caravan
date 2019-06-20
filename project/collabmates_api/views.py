@@ -14,7 +14,7 @@ import time
 
 from .notification import send_follow_notification
 from django.db.models import Q
-
+from operator import itemgetter
 
 
 def communities(request):
@@ -122,10 +122,13 @@ def your_communities(request,user_id):
         # handling error for previous filled data in table
         if collabcard['date_epoch__max'] is None:
             collabcard['date_epoch__max']=-9223372036854775808
-        x=(each_community.community_id,collabcard['date_epoch__max'])
+
+        pending_members_count=Members.objects.filter(community_id=each_community.community_id,state=3).count()
+
+        x=(each_community.community_id,collabcard['date_epoch__max'],pending_members_count)
         tupple_list.append(x)
 
-    result = sorted(tupple_list, key=lambda x: x[1],reverse=True)
+    result = sorted(tupple_list, key=itemgetter(2,1),reverse=True)
 
     for each_community in result:
         my_communities.append(each_community[0])
