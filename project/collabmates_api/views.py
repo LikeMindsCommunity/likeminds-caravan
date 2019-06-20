@@ -852,18 +852,12 @@ def request_response(request):
         accepted = res['accepted']
     community = Community.objects.get(id = community_id)
     user = User.objects.get(id= member_id)
-    req = Requests.objects.filter(community = community).filter(user_id = user)
-    req = req[0]
-    print(req.id)
     if accepted == True :
-        req.status = 1
-        req.save()
         #updating the approve state
-
-        Members.objects.filter(member_id=req.user_id,community_id=community).update(state=4)  # aprove state = 4
-
+        Members.objects.filter(member_id=member_id,community_id=community).update(state=4)  # aprove state = 4
         community = Community.objects.get(id = community_id)
-        community.members_count = community.members_count+1
+        members_count = community.members_count+1
+        Community.objects.filter(id = community_id).update(members_count=members_count)
         send_notification_for_join_requests(community_id,True,member_id)
     else:
         Members.objects.filter(member_id=req.user_id,community_id=community).update(state=5)  # decline state = 5
