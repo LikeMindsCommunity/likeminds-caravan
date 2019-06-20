@@ -8,7 +8,7 @@ from pyfcm import FCMNotification
 # database details
 db_user="apoorv"
 db_password="khare"
-db_host="127.0.0.1"
+db_host="ec2-18-220-31-143.us-east-2.compute.amazonaws.com"
 db_port="5432"
 db_database="togther"
 
@@ -44,15 +44,30 @@ def get_token_for_fcm(member_id):
     except (Exception, psycopg2.Error) as error:
         print ("Error while connecting to PostgreSQL  ", error)
 
+def get_community_name(community_id):
+    try:
+        conn=get_connection()
+        curr=conn.cursor()
+        sql = "select name from togther_community where id= " + str(community_id)
+        curr.execute(sql)
+        community_name = curr.fetchone()[0]
+        curr.close()
+        conn.close()
+        return community_name
+    except (Exception, psycopg2.Error) as error:
+
+        print ("Error while connecting to PostgreSQL", error)
+
 
 
 def send_notification_to_multiple_devices(token_list,message):
     '''This function is used to send notifications'''
     push_service = FCMNotification(api_key=server_key)
+    header='Collabmates'
 
-    result = push_service.notify_multiple_devices(registration_ids=token_list, message_title=message['title'], message_body=message['body'],data_message=message['payload'])
+    result = push_service.notify_multiple_devices(registration_ids=token_list, message_title=header,data_message=message['payload'])
     print(result)
-    print("\n\n")
+
     return result
 
 
@@ -75,21 +90,22 @@ def send_follow_notification(card,user,answer):
         curr.close()
         connection.close()
         message={}
-        message['title']=str(answerer_name[0]) + " answered your query"
-        message['body']=answer
+
         message['payload']={
+            "title":str(answerer_name[0]) + " answered your query",
+            "subtitle":answer,
             "route":"route://collabcard/"+str(card.id)
         }
 
         token_list=[]
-        print(member_list)
+
         for member in member_list:
 
             if member[0] == user.id:
                 continue
             fcm_token = get_token_for_fcm(member[0])
             token_list.append(fcm_token)
-        print(token_list)
+
         send_notification_to_multiple_devices(token_list,message)
 
     except (Exception, psycopg2.Error) as error:
@@ -98,10 +114,56 @@ def send_follow_notification(card,user,answer):
 
 
 
+def send_notification_to_admins(community_id,name):
+    '''function to send notification to community admins'''
+    try:
+        connection=get_connection()
+        curr=connection.cursor()
+        sql="select member_id_id from togther_members where community_id_id= " + str(community_id)
+        curr.execute(sql)
+        admin_id=curr.fetchone()[0]
+
+        fcm_token=get_token_for_fcm(admin_id)
+        community_name=get_community_name(community_id)
+        message={}
+        message['payload']={
+            'title':community_name,
+            'sub_title':str(name)+' has requested to join your community',
+            'route':'route://member_approve?'+'community_id=' + str(community_id) + "&" + "communtiy_name =" + str(community_name)
+        }
+        
+        token_list=[]
+        token_list.append(fcm_token)
+
+        send_notification_to_multiple_devices(token_list,message)
+        curr.close()
+        connection.close()
+    except (Exception, psycopg2.Error) as error:
+
+        print ("Error while connecting to PostgreSQL", error)
 
 
+def send_notification_for_join_requests(community_id,flag,member_id):
+    '''function to send notification for approval or denial'''
+    community_name=get_community_name(community_id)
+    fcm_token=get_token_for_fcm(member_id)
+    token_list=[]
+    token_list.append(fcm_token)
+    message={}
+    if flag:
+        message['payload']={
+            'title':community_name,
+            'sub_title':"Congrats! you are now part of this commnity",
+            'route':'route://member_approve?community_id='+ str(community_id)
+        }
+    else:
+        message['payload'] = {
+            'title': community_name,
+            'sub_title': "Sorry! your request to join this community has been rejected",
+            'route': 'route://member_declined?community_id=' + str(community_id)
+        }
 
-
+    send_notification_to_multiple_devices(token_list,message)
 
 
 

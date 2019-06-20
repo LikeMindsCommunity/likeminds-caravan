@@ -12,7 +12,7 @@ from datetime import datetime
 from django.db.models import Max
 import time
 
-from .notification import send_follow_notification
+from .notification import send_follow_notification,send_notification_to_admins,send_notification_for_join_requests
 from django.db.models import Q
 from operator import itemgetter
 
@@ -268,10 +268,11 @@ def join_community_responses(request):
     user_id = request.GET.get('member_id')
     community_id = request.GET.get('community_id')
     user = User.objects.get(id = user_id)
-    print(user)
+
     community = Community.objects.get(id = community_id)
 
     userinfo = Userinfo.objects.get(user_id=user_id)
+
 
     response = Form_response()
 
@@ -305,6 +306,8 @@ def join_community_responses(request):
             response.community = community.id
             response.save()
     Community.objects.filter(id=community_id).update(updated_at=time.time())
+
+    send_notification_to_admins(community_id,userinfo)
 
     return JsonResponse({'success':True})
 
@@ -859,15 +862,17 @@ def request_response(request):
     if accepted == True :
         req.status = 1
         req.save()
-        # updating the approve state
+        #updating the approve state
 
         Members.objects.filter(member_id=req.user_id,community_id=community).update(state=4)  # aprove state = 4
 
         community = Community.objects.get(id = community_id)
         community.members_count = community.members_count+1
+        send_notification_for_join_requests(community_id,True,member_id)
     else:
         Members.objects.filter(member_id=req.user_id,community_id=community).update(state=5)  # decline state = 5
         req.status = 0
+        send_notification_for_join_requests(community_id, False, member_id)
     return JsonResponse({'success': True})
 
 
