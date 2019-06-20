@@ -13,6 +13,7 @@ from django.db.models import Max
 import time
 
 from .notification import send_follow_notification,send_notification_to_admins,send_notification_for_join_requests
+from .notification import send_notification_for_new_collabcard_posted
 from django.db.models import Q
 from operator import itemgetter
 
@@ -521,6 +522,7 @@ def create_card(request):
         card.user = useer
         card.date_epoch=time.time()
         card.save()
+        send_notification_for_new_collabcard_posted(community_id,res['title'],user_id,user.name)
         Community.objects.filter(id=community_id).update(updated_at=time.time())
         collabcard = {}
         collabcard['id'] = card.id

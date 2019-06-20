@@ -59,7 +59,6 @@ def get_community_name(community_id):
         print ("Error while connecting to PostgreSQL", error)
 
 
-
 def send_notification_to_multiple_devices(token_list,message):
     '''This function is used to send notifications'''
     push_service = FCMNotification(api_key=server_key)
@@ -69,8 +68,6 @@ def send_notification_to_multiple_devices(token_list,message):
     print(result)
 
     return result
-
-
 
 
 def send_follow_notification(card,user,answer):
@@ -166,6 +163,34 @@ def send_notification_for_join_requests(community_id,flag,member_id):
     send_notification_to_multiple_devices(token_list,message)
 
 
+def send_notification_for_new_collabcard_posted(community_id,collabcard_title,poster_id,poster_name):
+    '''function to send notification to all members when new collabcard is posted'''
+    try:
+        connection=get_connection()
+        curr=connection.cursor()
+        sql="select member_id_id from togther_members where community_id_id=%s and member_id_id !=%s and (state=1 or state=2 or state=4)"
+        parameter_list=[community_id,poster_id]
+        curr.execute(sql,parameter_list)
+        member_list=curr.fetchall()
+
+        token_list=[]
+        for member in member_list:
+            token=get_token_for_fcm(member[0])
+            token_list.append(token)
+        community_name=get_community_name(community_id)
+        message={}
+        message['payload']={
+            'title':str(poster_name) + " posted",
+            'subtitle':str(collabcard_title),
+            'route':'route://community_collabcard?community_id=' + str(community_id) + '& community_name='+ str(community_name)
+        }
+
+        send_notification_to_multiple_devices(token_list,message)
+
+
+    except (Exception, psycopg2.Error) as error:
+
+        print ("Error while connecting to PostgreSQL", error)
 
 
 
