@@ -44,6 +44,20 @@ def get_token_for_fcm(member_id):
     except (Exception, psycopg2.Error) as error:
         print ("Error while connecting to PostgreSQL  ", error)
 
+def get_community_name(community_id):
+    try:
+        conn=get_connection()
+        curr=conn.cursor()
+        sql = "select name from togther_community where id= " + str(community_id)
+        curr.execute(sql)
+        community_name = curr.fetchone()[0]
+        curr.close()
+        conn.close()
+        return community_name
+    except (Exception, psycopg2.Error) as error:
+
+        print ("Error while connecting to PostgreSQL", error)
+
 
 
 def send_notification_to_multiple_devices(token_list,message):
@@ -84,14 +98,14 @@ def send_follow_notification(card,user,answer):
         }
 
         token_list=[]
-        print(member_list)
+
         for member in member_list:
 
             if member[0] == user.id:
                 continue
             fcm_token = get_token_for_fcm(member[0])
             token_list.append(fcm_token)
-        print(token_list)
+
         send_notification_to_multiple_devices(token_list,message)
 
     except (Exception, psycopg2.Error) as error:
@@ -110,15 +124,14 @@ def send_notification_to_admins(community_id,name):
         admin_id=curr.fetchone()[0]
 
         fcm_token=get_token_for_fcm(admin_id)
-        sql = "select name from togther_community where id= " + str(community_id)
-        curr.execute(sql)
-        community_name=curr.fetchone()[0]
+        community_name=get_community_name(community_id)
         message={}
         message['payload']={
             'title':community_name,
             'sub_title':str(name)+' has requested to join your community',
             'route':'route://member_approve?'+'community_id=' + str(community_id) + "&" + "communtiy_name =" + str(community_name)
         }
+        
         token_list=[]
         token_list.append(fcm_token)
 
@@ -128,6 +141,29 @@ def send_notification_to_admins(community_id,name):
     except (Exception, psycopg2.Error) as error:
 
         print ("Error while connecting to PostgreSQL", error)
+
+
+def send_notification_for_join_requests(community_id,flag,member_id):
+    '''function to send notification for approval or denial'''
+    community_name=get_community_name(community_id)
+    fcm_token=get_token_for_fcm(member_id)
+    token_list=[]
+    token_list.append(fcm_token)
+    message={}
+    if flag:
+        message['payload']={
+            'title':community_name,
+            'sub_title':"Congrats! you are now part of this commnity",
+            'route':'route://member_approve?community_id='+ str(community_id)
+        }
+    else:
+        message['payload'] = {
+            'title': community_name,
+            'sub_title': "Sorry! your request to join this community has been rejected",
+            'route': 'route://member_declined?community_id=' + str(community_id)
+        }
+
+    send_notification_to_multiple_devices(token_list,message)
 
 
 
