@@ -24,6 +24,7 @@ class Community (models.Model):
     members_count = models.IntegerField(default = 0)
     active_since = models.DateField(auto_now_add = True)
     whatsapp_group_link = models.CharField(max_length = 400, null=True)
+    updated_at=models.BigIntegerField(default=-9223372036854775808)
 
     def __str__(self):
         return self.name
