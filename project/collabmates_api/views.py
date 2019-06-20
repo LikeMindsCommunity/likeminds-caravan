@@ -115,20 +115,21 @@ def your_communities(request,user_id):
     user = User.objects.get(id = member_id)
     communities = Members.objects.all().filter(member_id = user_id).filter(Q(state=1)|Q(state=2)|Q(state=4))
     my_communities = []
+
     # making a tupple list and sorting communities based on date
     tupple_list=[]
     for each_community in communities:
-        collabcard=Collabcard.objects.filter(community_id=each_community.community_id).aggregate(Max('date_epoch'))
-        # handling error for previous filled data in table
-        if collabcard['date_epoch__max'] is None:
-            collabcard['date_epoch__max']=-9223372036854775808
+        update_time=Community.objects.filter(id=each_community.community_id.id).values('updated_at')
 
-        pending_members_count=Members.objects.filter(community_id=each_community.community_id,state=3).count()
+        if len(update_time) == 0:
 
-        x=(each_community.community_id,collabcard['date_epoch__max'],pending_members_count)
+            update_time=-9223372036854775808
+        else:
+            update_time=update_time[0]['updated_at']
+        x=(each_community.community_id,update_time)
         tupple_list.append(x)
 
-    result = sorted(tupple_list, key=itemgetter(2,1),reverse=True)
+    result = sorted(tupple_list, key= lambda x:x[1],reverse=True)
 
     for each_community in result:
         my_communities.append(each_community[0])
@@ -294,6 +295,7 @@ def join_community_responses(request):
         req.user_info = userinfo
         req.community = community
         req.save()
+
     if 'questions' in res:
         for i in res['questions']:
             response = Form_response()
@@ -302,6 +304,7 @@ def join_community_responses(request):
             response.user = user.id
             response.community = community.id
             response.save()
+    Community.objects.filter(id=community_id).update(updated_at=time.time())
 
     return JsonResponse({'success':True})
 
@@ -518,6 +521,7 @@ def create_card(request):
         card.user = useer
         card.date_epoch=time.time()
         card.save()
+        Community.objects.filter(id=community_id).update(updated_at=time.time())
         collabcard = {}
         collabcard['id'] = card.id
         collabcard['title'] = card.title
