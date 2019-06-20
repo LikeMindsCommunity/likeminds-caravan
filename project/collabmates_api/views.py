@@ -448,6 +448,10 @@ def create_community(request):
             card.community = community
             card.user = user
             card.save()
+            follow=follow_collabcard()
+            follow.collabcard_id=card
+            follow.member_id=user
+            follow.save()
             #getting details of the user who is creating the community
             user = Userinfo.objects.get(user_id = user.id)
             usr = {}
@@ -546,6 +550,10 @@ def create_card(request):
         usr["fb_link"] = user.fb_link
         usr["linkedin_link"] = user.linkedin_link
         collabcard['member'] = usr
+        follow=follow_collabcard()
+        follow.collabcard_id=card
+        follow.member_id=useer
+        follow.save()
         return JsonResponse({'success':True, 'collabcard':new_dict})
     return JsonResponse()
 
