@@ -405,6 +405,7 @@ def create_community(request):
                     group.image_url = img['image']
                 if i['key'] == 'whatsapp_link' :
                     group.whatsapp_group_link = i['whatsapp_link']
+            group.updated_at=time.time()
             group.save()
             #saving the category of the community
             for i in res['items']:
@@ -483,6 +484,7 @@ def create_community(request):
             group = Community()
             group.members_count = group.members_count + 1
             group.name = res['name']
+            group.updated_at=time.time()
             group.save()
             community = Community.objects.get(id = group.id)
             user = User.objects.get(id=member_id)
