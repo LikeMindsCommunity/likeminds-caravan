@@ -193,6 +193,5 @@ def send_notification_for_new_collabcard_posted(community_id,collabcard_title,po
         print ("Error while connecting to PostgreSQL", error)
 
 
-#if __name__ == "__main__":
-    #send_notification_for_new_collabcard_posted(306,'bike',18,'mahesh')
+
 
