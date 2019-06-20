@@ -273,29 +273,20 @@ def join_community_responses(request):
 
     userinfo = Userinfo.objects.get(user_id=user_id)
 
-
-    response = Form_response()
-
     #inserting in members table if the member status is pending and inserting it to database with status=3
-    member = Members()
-    member.member_id = user
-    member.community_id = community
+    
     #If the member is declined from the community and he applied again
     try:
         current_state=Members.objects.filter(member_id=user,community_id=community).values('state')
-        print(current_state)
         if current_state[0]['state'] == 5:
             Members.objects.filter(member_id=user, community_id=community).update(state=3)
 
-
     except:
+        member = Members()
+        member.member_id = user
+        member.community_id = community
         member.state = 3  # pending members
         member.save()
-        req = Requests()
-        req.user_id = user
-        req.user_info = userinfo
-        req.community = community
-        req.save()
 
     if 'questions' in res:
         for i in res['questions']:
@@ -819,27 +810,20 @@ def create_admin(request,community_id):
 
 def pending_members(request,community_id):
     community = Community.objects.get(id = community_id)
-    requests = Requests.objects.filter(community = community).filter(status = 0)
-
+    pend_requests=Members.objects.filter(community_id=community).filter(state = 3)
     pending_requests = []
-    for i in requests:
-        resp = Form_response.objects.filter(community = community_id).filter(user = i.user_id.id)
-        member_state=Members.objects.filter(member_id=i.user_id,community_id=community).values('state')
-
-        if member_state[0]['state'] != 3:
-            continue
-        user = i.user_info
+    for i in pend_requests:
+        print(i.member_id.id,"  ==  ",type(i))
+        resp = Form_response.objects.filter(community = community_id).filter(user = i.member_id.id)
+        user = Userinfo.objects.get(user_id = i.member_id.id)
         usr = {}
         usr['id'] = user.user_id.id
         usr["name"] = user.name
         usr["email"] = user.email
         usr["city"] = user.city
         usr["headline"] = user.headline
-        usr["contact_number"] = user.contact_number
-
-       
+        usr["contact_number"] = user.contact_number       
         usr["image_url"] = 'https://beta.collabmates.com'+user.image_file.url
-
         usr["about"] = user.about
         usr["fb_link"] = user.fb_link
         usr["linkedin_link"] = user.linkedin_link
