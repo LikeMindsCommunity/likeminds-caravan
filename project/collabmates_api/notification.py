@@ -62,9 +62,9 @@ def get_community_name(community_id):
 def send_notification_to_multiple_devices(token_list,message):
     '''This function is used to send notifications'''
     push_service = FCMNotification(api_key=server_key)
-    header='Collabmates'
 
-    result = push_service.notify_multiple_devices(registration_ids=token_list, message_title=header,data_message=message['payload'])
+
+    result = push_service.notify_multiple_devices(registration_ids=token_list,data_message=message['payload'])
     print(result)
 
     return result
@@ -126,7 +126,7 @@ def send_notification_to_admins(community_id,name):
         message['payload']={
             'title':community_name,
             'sub_title':str(name)+' has requested to join your community',
-            'route':'route://member_approve?'+'community_id=' + str(community_id) + "&" + "communtiy_name =" + str(community_name)
+            'route':'route://member_approve?'+'community_id=' + str(community_id) + "&" + "community_name =" + str(community_name)
         }
         
         token_list=[]
@@ -151,7 +151,7 @@ def send_notification_for_join_requests(community_id,flag,member_id):
         message['payload']={
             'title':community_name,
             'sub_title':"Congrats! you are now part of this commnity",
-            'route':'route://member_approve?community_id='+ str(community_id)
+            'route':'route://member_approved?community_id='+ str(community_id)
         }
     else:
         message['payload'] = {
@@ -182,7 +182,7 @@ def send_notification_for_new_collabcard_posted(community_id,collabcard_title,po
         message['payload']={
             'title':str(poster_name) + " posted",
             'sub_title':str(collabcard_title),
-            'route':'route://community_collabcard?community_id=' + str(community_id) + '& community_name='+ str(community_name)
+            'route':'route://community_collabcard?community_id=' + str(community_id) + '&community_name='+ str(community_name)
         }
 
         send_notification_to_multiple_devices(token_list,message)
