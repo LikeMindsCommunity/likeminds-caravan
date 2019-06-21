@@ -16,13 +16,11 @@ from .notification import send_follow_notification,send_notification_to_admins,s
 from .notification import send_notification_for_new_collabcard_posted
 from django.db.models import Q
 
-@csrf_exempt
 def communities(request):
     if request.method == 'GET':
         response = request.GET.dict()
         if 'member_id' in response:
             user_id = response['member_id']
-        print("response == ",response)
         if 'category_id' in response:
             if response['category_id'] != '':
                 community=filter_by_communities(response)     
