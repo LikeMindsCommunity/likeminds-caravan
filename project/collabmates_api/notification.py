@@ -90,7 +90,7 @@ def send_follow_notification(card,user,answer):
 
         message['payload']={
             "title":str(answerer_name[0]) + " answered your query",
-            "subtitle":answer,
+            "sub_title":answer,
             "route":"route://collabcard?collabcard_id="+str(card.id)
         }
 
@@ -181,7 +181,7 @@ def send_notification_for_new_collabcard_posted(community_id,collabcard_title,po
         message={}
         message['payload']={
             'title':str(poster_name) + " posted",
-            'subtitle':str(collabcard_title),
+            'sub_title':str(collabcard_title),
             'route':'route://community_collabcard?community_id=' + str(community_id) + '& community_name='+ str(community_name)
         }
 
