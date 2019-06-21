@@ -9,13 +9,12 @@ from collabmates_api.serializers import CommunitySerializer
 from categories import Category_list
 from django.views.decorators.csrf import csrf_exempt
 from datetime import datetime 
-from django.db.models import Max
+
 import time
 
 from .notification import send_follow_notification,send_notification_to_admins,send_notification_for_join_requests
 from .notification import send_notification_for_new_collabcard_posted
 from django.db.models import Q
-from operator import itemgetter
 
 
 def communities(request):
@@ -51,7 +50,7 @@ def communities(request):
                     community.append(new_dict)
                 return JsonResponse({'communities': community})
             else:
-                queryset = Community.objects.all().order_by('-active_since')
+                queryset = Community.objects.all().order_by('-created_at')
                 community = []
                 for i in queryset:
                     serializer_class = CommunitySerializer(i)
@@ -72,7 +71,7 @@ def communities(request):
                     community.append(new_dict)
                 return JsonResponse({'communities': community})
         else:
-            queryset = Community.objects.all().order_by('-active_since')
+            queryset = Community.objects.all().order_by('-created_at')
             community = []
             for i in queryset:
                 serializer_class = CommunitySerializer(i)
@@ -93,7 +92,7 @@ def communities(request):
                 community.append(new_dict)
             return JsonResponse({'communities': community})
         
-    queryset = Community.objects.all().order_by('-active_since')
+    queryset = Community.objects.all().order_by('-created_at')
     community = []
     user = User.objects.get(id = user_id)
     for i in queryset:
@@ -407,6 +406,7 @@ def create_community(request):
                 if i['key'] == 'whatsapp_link' :
                     group.whatsapp_group_link = i['whatsapp_link']
             group.updated_at=time.time()
+            group.created_at=time.time()
             group.save()
             #saving the category of the community
             for i in res['items']:
@@ -486,6 +486,7 @@ def create_community(request):
             group.members_count = group.members_count + 1
             group.name = res['name']
             group.updated_at=time.time()
+            group.created_at=time.time()
             group.save()
             community = Community.objects.get(id = group.id)
             user = User.objects.get(id=member_id)
