@@ -16,38 +16,14 @@ from .notification import send_follow_notification,send_notification_to_admins,s
 from .notification import send_notification_for_new_collabcard_posted
 from django.db.models import Q
 
-
 def communities(request):
     if request.method == 'GET':
-        body = request.GET
-        if 'member_id' in body:
-            user_id = body['member_id']
         response = request.GET.dict()
+        if 'member_id' in response:
+            user_id = response['member_id']
         if 'category_id' in response:
-            print(response['category_id'])
             if response['category_id'] != '':
-                category = response['category_id']
-                category_objects = Category.objects.all()
-                for i in Category_list:
-                    if i['id'] == category:
-                        cat = i['title'] 
-                communities = []
-                for i in category_objects:
-                    if i.category == cat:
-                        c = Community.objects.get(id = i.community_id.id)
-                        communities.append(c)
-                community = []
-                for i in communities:
-                    serializer_class = CommunitySerializer(i)
-                    new_dict = {}
-                    new_dict.update(serializer_class.data)
-                    if new_dict['image_url']:
-                        new_dict['image_url'] = 'https://beta.collabmates.com'+new_dict['image_url']
-                    else:
-                        new_dict['image_url'] = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQMUCHvC0wEVO5yDMe9wddUoagIqQ3VPH0nm8_VtjK5gk3M0mMO'
-                    new_dict['share_url']= 'https://beta.collabmates.com/community/'+str(new_dict['id'])
-                    new_dict['date'] = i.active_since
-                    community.append(new_dict)
+                community=filter_by_communities(response)     
                 return JsonResponse({'communities': community})
             else:
                 queryset = Community.objects.all().order_by('-created_at')
@@ -70,10 +46,24 @@ def communities(request):
                     new_dict['date'] = i.active_since
                     community.append(new_dict)
                 return JsonResponse({'communities': community})
-        else:
-            queryset = Community.objects.all().order_by('-created_at')
+
+def filter_by_communities(response):
+    """  filtering communities accordig to the category of the community  """
+    if 'category_id' in response:
+        if response['category_id'] != '':
+            category = response['category_id']
+            for i in Category_list:
+                if i['id'] == category:
+                    cat = i['title'] 
+            category_objects = Category.objects.all().filter(category =cat)
+            communities = []
+            for i in category_objects:
+                if i.category == cat:
+                    c = Community.objects.get(id = i.community_id.id)
+                    communities.append(c)
             community = []
-            for i in queryset:
+            communities = communities[::-1]
+            for i in communities:
                 serializer_class = CommunitySerializer(i)
                 new_dict = {}
                 new_dict.update(serializer_class.data)
@@ -81,33 +71,10 @@ def communities(request):
                     new_dict['image_url'] = 'https://beta.collabmates.com'+new_dict['image_url']
                 else:
                     new_dict['image_url'] = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQMUCHvC0wEVO5yDMe9wddUoagIqQ3VPH0nm8_VtjK5gk3M0mMO'
-                member = Members.objects.all().filter(community_id = i.id)
-                is_member = False
-                for m in member:
-                    if m.member_id == user_id:
-                        is_member = True
-                    new_dict['is_member'] = is_member
                 new_dict['share_url']= 'https://beta.collabmates.com/community/'+str(new_dict['id'])
                 new_dict['date'] = i.active_since
                 community.append(new_dict)
-            return JsonResponse({'communities': community})
-        
-    queryset = Community.objects.all().order_by('-created_at')
-    community = []
-    user = User.objects.get(id = user_id)
-    for i in queryset:
-        serializer_class = CommunitySerializer(i)
-        member = Members.objects.all().filter(community_id = i.id)
-        is_member = False
-        for m in member:
-            if m.member_id == user_id:
-                is_member = True
-        comm = serializer_class.data
-        print(comm)    
-        comm['member_id'] = user_id
-        new_dict['share_url']= 'https://beta.collabmates.com/community/'+str(new_dict['id'])
-        community.append(comm)
-    return HttpResponse({'communities': community})
+            return community
 
 def your_communities(request,user_id):
     '''This function is used to see your communities based on user id'''
@@ -382,14 +349,12 @@ def admins(request, community_id):
 @csrf_exempt
 def create_community(request):
     is_admin = request.GET.get('is_admin')
-    print(is_admin)
     if is_admin == 'true':
         user_id = request.GET.get('member_id')
         print(user_id)
         if request.method == 'POST':
             res = json.loads(request.body)
             img = request.FILES.dict()
-            print(res)
             # creating the community with given credentials
             group = Community()
             group.members_count = group.members_count + 1
@@ -412,10 +377,13 @@ def create_community(request):
             for i in res['items']:
                 if i['key'] == 'Type of community' :
                     categories = i['value']
-                    categories = categories.split(",")
+                    categories = categories.split(", ")
                     for j in categories:
+                        for i in Category_list:
+                            if i['id'] == j:
+                                cat = i['title'] 
                         category = Category()
-                        category.category = j
+                        category.category = cat
                         category.community_id_id = group.id
                         category.save()
             # create user as a admin for the community as the user is creating the community as a admin
@@ -635,7 +603,6 @@ def community_cards(request, community_id):
     return JsonResponse ({'collabcards': card})
 
 
-
 def get_status_of_collabcard(member_id,community,card):
     '''function to get the state of collabcard'''
     state=0
@@ -679,7 +646,7 @@ def create_answer(request):
         return JsonResponse({'success':True})
 
 def update_answer_text(card_id):
-        #function for updating the answer_text feild in collab card model
+        '''function for updating the answer_text feild in collab card model'''
         ans_text=''
         card = Collabcard.objects.get(id = card_id)
         card_ans = card_answers.objects.filter(card = card)
