@@ -91,7 +91,7 @@ def send_follow_notification(card,user,answer):
         message['payload']={
             "title":str(answerer_name[0]) + " answered your query",
             "subtitle":answer,
-            "route":"route://collabcard/"+str(card.id)
+            "route":"route://collabcard?collabcard_id="+str(card.id)
         }
 
         token_list=[]
