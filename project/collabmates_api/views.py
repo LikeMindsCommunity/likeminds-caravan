@@ -442,8 +442,9 @@ def create_community(request):
                 question.data = questions["key"]
                 question.community_id = community
                 question.save()
-
-            crd = {'id':card.id , 'title':card.title, 'member':usr,'answer_text': ans_text}
+            collabcard_share_url='https://beta.collabamtes.com/collabcard/'+str(card.id)
+            crd = {'id':card.id , 'title':card.title, 'member':usr,'answer_text': ans_text,'share_url':collabcard_share_url}
+            print(crd)
             return JsonResponse({'success':True, 'community':new_dict, 'collabcard':crd})
     else:
         member_id = request.GET.get('member_id')
