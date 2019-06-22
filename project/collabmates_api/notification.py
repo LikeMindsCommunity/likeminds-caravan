@@ -8,10 +8,9 @@ from pyfcm import FCMNotification
 # database details
 db_user="apoorv"
 db_password="khare"
-#db_host="ec2-18-220-31-143.us-east-2.compute.amazonaws.com"
-db_host="127.0.0.1"
+db_host="ec2-18-220-31-143.us-east-2.compute.amazonaws.com"
 db_port="5432"
-db_database="test_database"
+db_database="togther"
 
 
 # server keys for sending notification
