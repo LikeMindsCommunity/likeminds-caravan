@@ -72,16 +72,15 @@ def send_notification_to_multiple_devices(token_list,message):
 
 def send_follow_notification(card,user,answer):
 
-    '''function to send notification for followed members'''
+    '''function to send notification to followed members'''
 
     try:
         connection=get_connection()
         curr=connection.cursor()
-        sql="select member_id_id from togther_collabcard_follow where collabcard_id_id=%s"
+        sql="select member_id_id from togther_follow_collabcard where collabcard_id_id=%s"
         parameter_list=[card.id]
         curr.execute(sql,parameter_list)
         member_list=curr.fetchall()
-
         curr.execute("select name from togther_userinfo where user_id_id=%s",[user.id])
         answerer_name=curr.fetchone()
         curr.close()
@@ -93,7 +92,6 @@ def send_follow_notification(card,user,answer):
             "sub_title":answer,
             "route":"route://collabcard?collabcard_id="+str(card.id)
         }
-
         token_list=[]
 
         for member in member_list:
@@ -102,7 +100,6 @@ def send_follow_notification(card,user,answer):
                 continue
             fcm_token = get_token_for_fcm(member[0])
             token_list.append(fcm_token)
-
         send_notification_to_multiple_devices(token_list,message)
 
     except (Exception, psycopg2.Error) as error:
@@ -126,9 +123,9 @@ def send_notification_to_admins(community_id,name):
         message['payload']={
             'title':community_name,
             'sub_title':str(name)+' has requested to join your community',
-            'route':'route://member_approve?'+'community_id=' + str(community_id) + "&" + "community_name =" + str(community_name)
+            'route':'route://member_approve?'+'community_id=' + str(community_id) + "&" + "community_name=" + str(community_name)
         }
-        
+
         token_list=[]
         token_list.append(fcm_token)
 
