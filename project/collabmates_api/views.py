@@ -23,7 +23,7 @@ def communities(request):
             user_id = response['member_id']
         if 'category_id' in response:
             if response['category_id'] != '':
-                community=filter_by_communities(response)     
+                community=filter_by_category(response)     
                 return JsonResponse({'communities': community})
             else:
                 queryset = Community.objects.all().order_by('-created_at')
@@ -47,7 +47,7 @@ def communities(request):
                     community.append(new_dict)
                 return JsonResponse({'communities': community})
 
-def filter_by_communities(response):
+def filter_by_category(response):
     """  filtering communities accordig to the category of the community  """
     if 'category_id' in response:
         if response['category_id'] != '':
@@ -104,6 +104,7 @@ def your_communities(request,user_id):
     my_community =[]
 
     for i in my_communities:
+        print("\n\n")
         members = Members.objects.all().filter(community_id = i.id)
         serializer_class = CommunitySerializer(i)
         comm = serializer_class.data
@@ -130,14 +131,25 @@ def your_communities(request,user_id):
         else:
             new_dict['pending_members_count'] = 0
         new_dict['is_admin'] = is_admin
-        card = Collabcard.objects.all().filter(community = community)
-
-        total_collabcards = Collabcard.objects.filter(community=community).count()
-        seen_collabcard = collabcard_seen.objects.filter(community=community, user=member_id).count()
-        new_dict['collabcard_unseen'] = (total_collabcards - seen_collabcard)
-
+        card = list(Collabcard.objects.all().filter(community = community))
+        total_collabcards = Collabcard.objects.filter(community=community)
+        seen_collabcard = collabcard_seen.objects.filter(community=community, user=member_id)
+        new_dict['collabcard_unseen'] = (len(total_collabcards) - len(seen_collabcard))
+        unseen_list=[]
+        total_list=[]
+        seen_list=[]
+        for j in total_collabcards:
+            total_list.append(j.id)
+        for j in seen_collabcard:
+            seen_list.append(j.card_id)
+        for j in total_list:
+            if j not in seen_list:
+                unseen_list.append(j)
         if card:
-            card = card[0]
+            if len(unseen_list) != 0:
+                card = Collabcard.objects.get(id = unseen_list[0])
+            else:
+                card = card[-1]
             collabcard = {}
             collabcard['id'] = card.id
             collabcard['title'] = card.title
@@ -829,8 +841,7 @@ def request_response(request):
         Community.objects.filter(id = community_id).update(members_count=members_count)
         send_notification_for_join_requests(community_id,True,member_id)
     else:
-        Members.objects.filter(member_id=req.user_id,community_id=community).update(state=5)  # decline state = 5
-        req.status = 0
+        Members.objects.filter(member_id=member_id,community_id=community).update(state=5)  # decline state = 5
         send_notification_for_join_requests(community_id, False, member_id)
     return JsonResponse({'success': True})
 
