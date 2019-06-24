@@ -145,6 +145,8 @@ class card_answers (models.Model):
     answer = models.TextField()
     card = models.ForeignKey(Collabcard, on_delete = models.CASCADE)
     user = models.ForeignKey(User,on_delete = models.CASCADE)
+    date_epoch=models.BigIntegerField(default=-9223372036854775808)
+
 
 class temp_admin (models.Model):
     name = models.CharField(max_length = 200)
