@@ -9,12 +9,11 @@ from collabmates_api.serializers import CommunitySerializer
 from categories import Category_list
 from django.views.decorators.csrf import csrf_exempt
 from datetime import datetime 
-
 import time
-
-from .notification import send_follow_notification,send_notification_to_admins,send_notification_for_join_requests
-from .notification import send_notification_for_new_collabcard_posted
+from .notification import send_follow_notification,send_notification_to_admins,send_notification_for_join_requests,send_notification_for_new_collabcard_posted
 from django.db.models import Q
+from time import strptime, strftime, mktime, gmtime
+import dateutil.relativedelta
 
 def communities(request):
     if request.method == 'GET':
@@ -553,7 +552,13 @@ def collabcard(request, card_id):
         usr["about"] = user.about
         usr["fb_link"] = user.fb_link
         usr["linkedin_link"] = user.linkedin_link
-        answers.append({'id':i.id,'answer':i.answer, 'member': usr})
+        # coverting current time into epoch time
+        time =datetime.now()
+        time =str(time)
+        target_timestamp =datetime.strptime(time.strip(' \t\r\n'), "%Y-%m-%d %H:%M:%S.%f").strftime('%s') 
+        time_text = get_time_text(i.date_epoch,target_timestamp)
+        
+        answers.append({'id':i.id,'answer':i.answer,'created_at':time_text ,'member': usr})
     user = Userinfo.objects.get(user_id = cards.user.id)
     usr = {}
     usr['id'] = user.user_id.id
@@ -574,8 +579,42 @@ def collabcard(request, card_id):
     card = {'id': cards.id, 'title':cards.title, 'member':usr,'community' :cards.community.id,'images':img_list }
     card['share_url'] = 'https://beta.collabamtes.com/collabcard/'+str(cards.id)
     card['answer_text']= cards.answer_text
-    card['date'] = datetime.today().strftime('%Y-%m-%d')
+
+    # coverting current time into epoch time
+    time =datetime.now()
+    time =str(time)
+    target_timestamp =datetime.strptime(time.strip(' \t\r\n'), "%Y-%m-%d %H:%M:%S.%f").strftime('%s') 
+
+    time_text = get_time_text(cards.date_epoch,target_timestamp)
+    card['created_at'] = time_text
     return JsonResponse({"collabcard": card, 'answers':answers})
+
+def get_time_text(created_time,current_time ):
+
+    dt1 = datetime.fromtimestamp(created_time)
+    dt2 = datetime.fromtimestamp(int(current_time))
+    rd = dateutil.relativedelta.relativedelta (dt2, dt1)
+
+    if rd.days :
+        if rd.days == 1:
+            return str(rd.days)+" day ago"
+        if rd.days < 7 :
+            return str(rd.days)+" days ago"
+        elif rd.days == 7:
+            return "1 week ago"
+        return time.strftime('%d/%m/%Y', time.localtime(created_time))
+    elif rd.hours:
+        if rd.hours == 1:
+            return str(rd.hours)+" hour ago"
+        return str(rd.hours)+" hours ago"
+    elif rd.minutes:
+        if rd.minutes ==1:
+            return str(rd.minutes)+" minute ago"
+        return str(rd.minutes)+" minutes ago"
+    else:
+        return "Just Now"
+
+    print ("%d years, %d months, %d days, %d hours, %d minutes and %d seconds" % (rd.years, rd.months, rd.days, rd.hours, rd.minutes, rd.seconds))
 
 def community_cards(request, community_id):
     community = Community.objects.get(id = community_id)
@@ -615,7 +654,6 @@ def community_cards(request, community_id):
         card.append(card_dict)
     return JsonResponse ({'collabcards': card})
 
-
 def get_status_of_collabcard(member_id,community,card):
     '''function to get the state of collabcard'''
     state=0
@@ -629,7 +667,6 @@ def get_status_of_collabcard(member_id,community,card):
             state=2
 
     return state
-
 
 @csrf_exempt
 def create_answer(request):
@@ -649,12 +686,12 @@ def create_answer(request):
         ans.answer =  res['title']
         ans.card = card
         ans.user = user
+        ans.date_epoch=time.time()
         ans.save()
         send_follow_notification(card,user,res['title'])
 
         #calling update_answer_text 
         update_answer_text(card_id)
-
 
         return JsonResponse({'success':True})
 
