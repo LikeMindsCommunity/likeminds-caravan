@@ -4,6 +4,7 @@ from django.core.files import File
 from urllib.request import urlopen
 from io import BytesIO
 
+
 response_choices = (
     ('text','Text'),
     ('textarea','Textarea'),
@@ -75,7 +76,8 @@ class Userinfo (models.Model):
     linkedin_link = models.CharField(max_length = 400, null = True)
     headline = models.CharField(max_length = 100, null = True)
     fcm_token=models.CharField(max_length=1024,null=True)
-    
+    login_type=models.CharField(max_length=50,null=True)
+    login_json=models.TextField(null=True)
     def __str__(self):
         return self.name
 
