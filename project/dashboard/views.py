@@ -15,7 +15,7 @@ def dashboard(request):
 
 
 def update_form(request,community_id):
-
+    '''function to update form for community'''
     if request.method == 'POST':
 
 
