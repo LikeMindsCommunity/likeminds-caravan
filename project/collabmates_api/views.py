@@ -748,12 +748,13 @@ def update_answer_text(card_id):
 
 @csrf_exempt
 def login(request):
+
     if request.method == 'POST':
         res = json.loads(request.body)
-        user = Userinfo.objects.filter(email = res['email'])
-        if user :
-            userinfo = Userinfo.objects.all().filter(email = res['email'])
-        else :
+        dic_form=res
+        json_to_save=json.dumps(dic_form)
+        login_type=request.GET.get('type')
+        if login_type == 'facebook':
             userinfo = Userinfo.objects.all().filter(email = res['email'])
             if not userinfo:
                 userinfo = Userinfo()
@@ -768,8 +769,29 @@ def login(request):
                     userinfo.fb_link = res['link']
                 if 'location' in res:
                     userinfo.city = res['location']['name']
+                userinfo.login_type='facebook'
+                userinfo.login_json=json_to_save
                 userinfo.save()
-        
+        else:
+            user_name=res['firstName']['localized']['en_US'] + " " + res['lastName']['localized']['en_US']
+            profile_picture=res['profilePicture']['displayImage~']['elements'][2]['identifiers'][0]['identifier']
+            email=res['email']['elements'][0]['handle~']['emailAddress']
+            userinfo = Userinfo.objects.filter(email=email)
+
+            if not userinfo:
+                userinfo=Userinfo()
+                usr=User()
+                usr.username=user_name
+                usr.save()
+                userinfo.user_id=usr
+                userinfo.email=email
+                userinfo.name=user_name
+                userinfo.image_url=profile_picture
+                userinfo.login_type='linkedIn'
+                userinfo.login_json=json_to_save
+                userinfo.save()
+
+        userinfo=Userinfo.objects.filter(email=email)
         usr = {}
         usr['id'] = userinfo[0].user_id.id
         usr["name"] = userinfo[0].name
@@ -782,7 +804,10 @@ def login(request):
         usr["fb_link"] = userinfo[0].fb_link
         usr["linkedin_link"] = userinfo[0].linkedin_link
         return JsonResponse ({'user': usr})
+
     return HttpResponse('Login Api')
+
+
 
 @csrf_exempt
 def image_upload(request):
