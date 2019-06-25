@@ -48,8 +48,8 @@ INSTALLED_APPS = [
     'django_select2',
     'corsheaders',
     'collabmates_api',
-#    'mail_templated',
-#    "fcm_django"
+    'dashboard',
+    'crispy_forms',
 ]
 
 MIDDLEWARE = [

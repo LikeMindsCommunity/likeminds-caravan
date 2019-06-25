@@ -32,6 +32,7 @@ urlpatterns = [
     path('', include('togther.urls'),name= 'togther'),
     path('accounts/login/', views.home, name='login'),
     path('api/', include('collabmates_api.urls'),name= 'api'),
+    path('dashboard/',include('dashboard.urls'),name='dashboard'),
 ]
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT) 
