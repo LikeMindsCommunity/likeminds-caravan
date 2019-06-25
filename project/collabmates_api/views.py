@@ -772,6 +772,7 @@ def login(request):
         json_to_save=json.dumps(dic_form)
         login_type=request.GET.get('type')
         if login_type == 'facebook':
+            email=res['email']
             userinfo = Userinfo.objects.all().filter(email = res['email'])
             if not userinfo:
                 userinfo = Userinfo()
