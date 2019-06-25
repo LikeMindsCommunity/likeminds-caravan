@@ -560,6 +560,7 @@ def collabcard(request, card_id):
         usr["fb_link"] = user.fb_link
         usr["linkedin_link"] = user.linkedin_link
         # coverting current time into epoch time
+
         if str(i.date_epoch) == "-9223372036854775808":
             time_text=""
         else:
