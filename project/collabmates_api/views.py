@@ -156,7 +156,14 @@ def your_communities(request,user_id):
             collabcard['share_url'] = 'https://beta.collabamtes.com/collabcard/'+str(card.id)
             collabcard['answer_text'] = ''
             new_dict['collabcard'] = collabcard
-            new_dict['date'] = i.active_since
+            if str(i.updated_at) == "-9223372036854775808":
+                time_text=""
+            else:
+                time =datetime.now()
+                time =str(time)
+                target_timestamp =datetime.strptime(time.strip(' \t\r\n'), "%Y-%m-%d %H:%M:%S.%f").strftime('%s') 
+                time_text = get_time_text(i.updated_at,target_timestamp)
+            new_dict['updated_at'] = time_text
             usr = {}
             user = Userinfo.objects.get(user_id = card.user)
             usr['id'] = user.user_id.id
@@ -553,10 +560,13 @@ def collabcard(request, card_id):
         usr["fb_link"] = user.fb_link
         usr["linkedin_link"] = user.linkedin_link
         # coverting current time into epoch time
-        time =datetime.now()
-        time =str(time)
-        target_timestamp =datetime.strptime(time.strip(' \t\r\n'), "%Y-%m-%d %H:%M:%S.%f").strftime('%s') 
-        time_text = get_time_text(i.date_epoch,target_timestamp)
+        if str(i.date_epoch) == "-9223372036854775808":
+            time_text=""
+        else:
+            time =datetime.now()
+            time =str(time)
+            target_timestamp =datetime.strptime(time.strip(' \t\r\n'), "%Y-%m-%d %H:%M:%S.%f").strftime('%s') 
+            time_text = get_time_text(i.date_epoch,target_timestamp)
         
         answers.append({'id':i.id,'answer':i.answer,'created_at':time_text ,'member': usr})
     user = Userinfo.objects.get(user_id = cards.user.id)
@@ -641,6 +651,13 @@ def community_cards(request, community_id):
             img = {'image_url': 'https://beta.collabmates.com'+j.image_url.url}
             img_list.append(img)
         share_url = 'https://beta.collabamtes.com/collabcard/'+str(i.id)
+        if str(i.date_epoch) == "-9223372036854775808":
+            time_text=""
+        else:
+            time =datetime.now()
+            time =str(time)
+            target_timestamp =datetime.strptime(time.strip(' \t\r\n'), "%Y-%m-%d %H:%M:%S.%f").strftime('%s') 
+            time_text = get_time_text(i.date_epoch,target_timestamp)
         ans_text = i.answer_text
         card_dict={'id': i.id,
                    'title': i.title,
@@ -648,7 +665,7 @@ def community_cards(request, community_id):
                    'images':img_list,
                    'share_url' : share_url,
                    'answer_text': ans_text ,
-                   'date':datetime.today().strftime('%Y-%m-%d'),
+                   'created_at':time_text,
                    'state':get_status_of_collabcard(member_id,community,i)
                    }
         card.append(card_dict)
