@@ -177,7 +177,7 @@ def send_notification_for_new_collabcard_posted(community_id,collabcard_title,po
         community_name=get_community_name(community_id)
         message={}
         message['payload']={
-            'title':str(poster_name) + " posted",
+            'title':str(poster_name) + " posted in "+str(community_name),
             'sub_title':str(collabcard_title),
             'route':'route://community_collabcard?community_id=' + str(community_id) + '&community_name='+ str(community_name)
         }
