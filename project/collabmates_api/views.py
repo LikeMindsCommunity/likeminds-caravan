@@ -14,6 +14,7 @@ from .notification import send_follow_notification,send_notification_to_admins,s
 from django.db.models import Q
 from time import strptime, strftime, mktime, gmtime
 import dateutil.relativedelta
+from .tasks import send_email_to_nominated_admin,send_email
 
 def communities(request):
     if request.method == 'GET':
@@ -426,6 +427,7 @@ def create_community(request):
                 card.title = "Listed our community on CollabMates. This will help us to know each other, have organised discussions and network efficiently."
             card.community = community
             card.user = user
+            card.date_epoch =time.time()
             card.save()
             follow=follow_collabcard()
             follow.collabcard_id=card
@@ -539,8 +541,6 @@ def create_card(request):
         follow.save()
         return JsonResponse({'success':True, 'collabcard':new_dict})
     return JsonResponse()
-
-
 
 def collabcard(request, card_id):
     cards = Collabcard.objects.get(id = card_id)
@@ -826,8 +826,6 @@ def login(request):
 
     return HttpResponse('Login Api')
 
-
-
 @csrf_exempt
 def image_upload(request):
     body = request.GET
@@ -857,6 +855,9 @@ def create_admin(request,community_id):
     # when the creator is creating a community as a member
     if request.method == 'POST':
         res = json.loads(request.body)
+        #check = check_member(res['email_id'],community_id,res['member_id'])
+        #if check:
+            #return JsonResponse({'success':check})
         admin = temp_admin()
         if 'name' in res:
             admin.name = res['name']
@@ -871,8 +872,10 @@ def create_admin(request,community_id):
         admin.community = community
         admin.member_id = member
         admin.save()
+
         return JsonResponse({'success':True})
     return HttpResponse('Add Admin Api')
+
 
 def pending_members(request,community_id):
     community = Community.objects.get(id = community_id)
