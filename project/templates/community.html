@@ -112,7 +112,7 @@
                 <span class="left floated text" style="width:50%;"><i class="map marker alternate icon"></i>{{community.location}}</span>
                 <span class="right floated text"><a href = "{% url 'members_list' community.id %}" style="color:#1cb39b;">{{community.members_count}} Members </a></span>
             </div> {% endcomment %}
-            
+
                 <div class="content">
                  <h4>   Created By  </h4>
                     <div class="item" style="postion:relative;">
@@ -123,7 +123,6 @@
                         <div class="left aligned content" style="width:65%; float:left; margin-left:10vw;">
                         <h4 class="header" style="float:left;">{{admins.0.0.name}}</h4>
                         <div class="description"  style="float:left;">
-                            <p>Stevie Feliciano is a <a>library scientist</a> living in New York City. </p>
                         </div>
                         </div>
                         </div>
@@ -142,30 +141,30 @@
                             </h4>    
                       
                     <div class="ui container"  style=" overflow-y:auto;white-space:nowrap;" >
-                               <div class="ui big horizontal divided list">         
+                        <div class="ui big horizontal divided list">
                         {% for i in members%}
                         
                             <div class="item">
                                 <img class="ui tiny circular image" src="{{i.image_file.url}}">
                                 <div class="content">
                                 <br>
-                                <a href="../../profile/{{i.id}}">
+                                <a href="../../profile/{{i.user_id.id}}">
                                     {{i.name}}
                                 </a>
                                 </div>
-                               </div>
-                            </div>
+
+                        </div>
                         {% endfor %}
 
-                       
+                    <br/><br/>
                     </div>
                     </div>
                   
-                  
+                  <br><br>
                   <div class="content">
                             <h4>Similar Communities
-                                <a class="right floated" style=" color:#1cb39b; font-weight:100; " href="{% url 'similar_community' 51 %}"> See all</a>
-                            </h4>    
+<!--                                <a class="right floated" style=" color:#1cb39b; font-weight:100; " href="{% url 'similar_community' 273 %}"> See all</a>-->
+                            </h4>
                       
                     <div class="ui container" style=" overflow-y:auto;white-space:nowrap;" >
                                         
@@ -191,9 +190,9 @@
                   </div>
              
                             {% if is_joined == -1 %}
-                            <button class="ui fluid button " style=" z-index:2;width:60%; left:20%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;" onclick="join();"> Join Group  </button>
-                            {% elif if_joined == 0 %}
-                            <button class="ui fluid button " style=" z-index:2;width:60%; left:20%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;" onclick="join();"> Pending Approval  </button>
+                                <button class="ui fluid button " style=" z-index:2;width:60%; left:20%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;" onclick="join();"> Join Group  </button>
+                            {% elif is_joined == 0 %}
+                                <button class="ui fluid button " style=" z-index:2;width:60%; left:20%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;" disabled> Pending Approval  </button>
                             {% endif %}
                         <br>
                         <br>
@@ -224,6 +223,7 @@
                 function join(){
                     console.log(1);
                     {% if user.is_authenticated %}
+
                         window.location.href = "join";
                     {% else %}
                     $('.test')
@@ -231,6 +231,8 @@
                   ;
                     {% endif %}
                 }
+
+
 
     $(function(){
       $("#test").click(function(){

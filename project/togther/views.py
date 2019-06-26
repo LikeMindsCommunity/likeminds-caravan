@@ -9,7 +9,7 @@ import requests as rqst
 from django.contrib.auth.models import User
 import json
 from django.http.response import JsonResponse
-from django.conf import settings
+from django.db.models import Q
 from django.core.mail import send_mail
 
 def home(request):
@@ -126,34 +126,31 @@ def dashboard(request):
 
 def community(request, community_id):
     community = get_object_or_404(Community, pk = community_id)
-    admins = Admins.objects.all().filter( community_id = community)
-    admin_details=[]
-    for admin in admins:
-        print(admin.id)
-        user_details = Userinfo.objects.all().filter( user_id = admin.admin_id )
-        admin_details.append(user_details)
-    member = Members.objects.all().filter(community_id = community.id)
-    requests = Requests.objects.all().filter(community = community.id)
-    is_joined = -1
-    members = [] 
-    for m in member:
-        if m.member_id == request.user:
-            is_joined = 1
-        print (m.member_id.id)
-        mem = Userinfo.objects.all().filter(user_id = m.member_id.id)
-        print(mem)
-        if mem:
-            members.append(mem[0])
-    for i in requests:
-        if i.user_id == request.user and i.status !=1 :
-            is_joined=0
-    communities = Community.objects.all()
-    if request.user.is_authenticated:
-        user = Userinfo.objects.all().filter(user_id = request.user)
-    else:
-        user = []
-    return render (request, 'community.html', {'usr':user,'similar_communities':communities , 'community' : community,'admins': admin_details, 'joined':is_joined, 'members':members})   
+    all_members=Members.objects.filter(community_id=community.id)
 
+    members=[]
+    admin_details=[]
+    is_joined=-1
+    for member in all_members:
+        mem = Userinfo.objects.all().filter(user_id=member.member_id.id)
+        if member.state == 1 or member.state == 2 :
+            admin_details.append(mem)
+            members.append(mem[0])
+        elif member.state == 4 :
+            members.append(mem[0])
+
+        elif request.user.id == member.member_id.id and member.state == 3:
+            is_joined=0
+
+
+
+    user=[]
+    communities=Community.objects.all()
+
+
+
+
+    return render (request, 'community.html', {'usr':user,'similar_communities':communities , 'community' : community,'admins': admin_details, 'is_joined':is_joined, 'members':members})
 @login_required
 def creategroup(request):
     print(request)
