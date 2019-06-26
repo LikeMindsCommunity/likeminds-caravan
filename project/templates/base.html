@@ -113,7 +113,7 @@
                   </div>
                   <div class="center aligned container">
                   <div class="content">
-                      <a  href="{% url 'social:begin' 'facebook' %}">
+                      <a  href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}">
                   <button class="ui facebook button">
                       <i class="facebook icon"></i>
                       Facebook
@@ -125,7 +125,7 @@
                     <br>
                     <br>
                     <div class = "content">
-                        <a href="{% url 'social:begin' 'linkedin-oauth2' %}">
+                        <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}">
                     <button class="ui linkedin button" >
                         <i class="linkedin icon"></i>
                         LinkedIn

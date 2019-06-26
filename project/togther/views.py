@@ -136,19 +136,20 @@ def community(request, community_id):
         if member.state == 1 or member.state == 2 :
             admin_details.append(mem)
             members.append(mem[0])
+
         elif member.state == 4 :
             members.append(mem[0])
+
 
         elif request.user.id == member.member_id.id and member.state == 3:
             is_joined=0
 
-
-
     user=[]
     communities=Community.objects.all()
-
-
-
+    if request.user.is_authenticated:
+        user = Userinfo.objects.all().filter(user_id=request.user)
+    else:
+        user = []
 
     return render (request, 'community.html', {'usr':user,'similar_communities':communities , 'community' : community,'admins': admin_details, 'is_joined':is_joined, 'members':members})
 @login_required
@@ -380,7 +381,7 @@ def join_community(request, community_id):
 
     if request.method == "POST":
         res = request.POST.dict()
-        print (res) 
+
         for i in res:
             response = Form_response()
             if i != 'csrfmiddlewaretoken' :
@@ -397,18 +398,14 @@ def join_community(request, community_id):
         comm = Community.objects.all().filter(id = community_id)
         req.community = comm[0]
         req.save()
+
+
+
         admin = Admins.objects.all().filter(community_id = community_id)
         u_info = Userinfo.objects.get(user_id = admin[0].admin_id)
-        
-        email = u_info.email
-        print(email)
-        try:
-            send_mail('Collabmates: Group Joining', 'Thankyou.', 'hello@collabmates.com', [email], fail_silently=False)
-            print(done)
-        except:
-            print(False)
         communities = Community.objects.all()
-        return render(request, 'thankyou.html', {'usr':user, 'similar_communities':communities}) 
+
+        return render(request, 'thankyou.html', {'usr':user, 'similar_communities':communities})
         
     else:
         data = Form_data.objects.all().filter(community_id = community_id)
@@ -420,7 +417,6 @@ def join_community(request, community_id):
             community = Community.objects.get(id = community_id)
             return render(request,'response_form.html',{"data":data, 'usr':user, 'community':community})
     
-    return redirect('dashboard')
 
 @login_required
 def form_data(request, community_id):
