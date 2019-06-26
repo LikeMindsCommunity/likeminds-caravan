@@ -130,7 +130,6 @@ def your_communities(request,user_id):
         else:
             new_dict['pending_members_count'] = 0
         new_dict['is_admin'] = is_admin
-        card = list(Collabcard.objects.all().filter(community = community))
         total_collabcards = Collabcard.objects.filter(community=community)
         seen_collabcard = collabcard_seen.objects.filter(community=community, user=member_id)
         new_dict['collabcard_unseen'] = (len(total_collabcards) - len(seen_collabcard))
@@ -144,11 +143,13 @@ def your_communities(request,user_id):
         for j in total_list:
             if j not in seen_list:
                 unseen_list.append(j)
-        if card:
+        total_list=sorted(total_list)
+        unseen_list = sorted(unseen_list)
+        if len(total_collabcards)>0:
             if len(unseen_list) != 0:
                 card = Collabcard.objects.get(id = unseen_list[0])
             else:
-                card = card[0]
+                card = Collabcard.objects.get(id = total_list[-1:][0])
             collabcard = {}
             collabcard['id'] = card.id
             collabcard['title'] = card.title
