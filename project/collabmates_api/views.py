@@ -104,7 +104,6 @@ def your_communities(request,user_id):
     my_community =[]
 
     for i in my_communities:
-        print("\n\n")
         members = Members.objects.all().filter(community_id = i.id)
         serializer_class = CommunitySerializer(i)
         comm = serializer_class.data
@@ -149,12 +148,12 @@ def your_communities(request,user_id):
             if len(unseen_list) != 0:
                 card = Collabcard.objects.get(id = unseen_list[0])
             else:
-                card = card[-1]
+                card = card[0]
             collabcard = {}
             collabcard['id'] = card.id
             collabcard['title'] = card.title
             collabcard['community'] = community.id
-            collabcard['share_url'] = 'https://beta.collabamtes.com/collabcard/'+str(card.id)
+            collabcard['share_url'] = 'https://beta.collabmates.com/collabcard/'+str(card.id)
             collabcard['answer_text'] = ''
             new_dict['collabcard'] = collabcard
             if str(i.updated_at) == "-9223372036854775808":
@@ -462,7 +461,7 @@ def create_community(request):
                 question.data = questions["key"]
                 question.community_id = community
                 question.save()
-            collabcard_share_url='https://beta.collabamtes.com/collabcard/'+str(card.id)
+            collabcard_share_url='https://beta.collabmates.com/collabcard/'+str(card.id)
             crd = {'id':card.id , 'title':card.title, 'member':usr,'answer_text': ans_text,'share_url':collabcard_share_url}
             print(crd)
             return JsonResponse({'success':True, 'community':new_dict, 'collabcard':crd})
@@ -518,7 +517,7 @@ def create_card(request):
         collabcard['id'] = card.id
         collabcard['title'] = card.title
         collabcard['community'] = community.id
-        collabcard['share_url'] = 'https://beta.collabamtes.com/collabcard/'+str(card.id)
+        collabcard['share_url'] = 'https://beta.collabmates.com/collabcard/'+str(card.id)
         collabcard['answer_text'] = ''
         new_dict = {}
         new_dict = collabcard
@@ -588,7 +587,7 @@ def collabcard(request, card_id):
         img = {'image_url': 'https://beta.collabmates.com'+j.image_url.url}
         img_list.append(img)
     card = {'id': cards.id, 'title':cards.title, 'member':usr,'community' :cards.community.id,'images':img_list }
-    card['share_url'] = 'https://beta.collabamtes.com/collabcard/'+str(cards.id)
+    card['share_url'] = 'https://beta.collabmates.com/collabcard/'+str(cards.id)
     card['answer_text']= cards.answer_text
 
     # coverting current time into epoch time
@@ -620,8 +619,8 @@ def get_time_text(created_time,current_time ):
         return str(rd.hours)+" hours ago"
     elif rd.minutes:
         if rd.minutes ==1:
-            return str(rd.minutes)+" minute ago"
-        return str(rd.minutes)+" minutes ago"
+            return str(rd.minutes)+" min ago"
+        return str(rd.minutes)+" mins ago"
     else:
         return "Just Now"
 
@@ -651,7 +650,7 @@ def community_cards(request, community_id):
         for j in images:
             img = {'image_url': 'https://beta.collabmates.com'+j.image_url.url}
             img_list.append(img)
-        share_url = 'https://beta.collabamtes.com/collabcard/'+str(i.id)
+        share_url = 'https://beta.collabmates.com/collabcard/'+str(i.id)
         if str(i.date_epoch) == "-9223372036854775808":
             time_text=""
         else:
