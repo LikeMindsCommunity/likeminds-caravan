@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<!-- Latest compiled and minified CSS -->
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/css/bootstrap.min.css">
+
+<!-- jQuery library -->
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+<!-- Latest compiled JavaScript -->
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/js/bootstrap.min.js"></script>
+<style>
+    .center_div{
+    margin: 0 auto;
+    width:80% /* value of your choice which suits your alignment */
+}
+</style>
+<body>
+
+<h2>Category Tags</h2>
+
+    <form id="my_form" onsubmit="return false">
+      <div class="form-group center_div">
+        <label for="tag">Tags</label>
+        <input type="text" name="tags" id="previous_categories" value="{{category}}"  class="form-control" >
+      </div>
+      <br/><br/>
+     <div class="form-group center_div">
+
+    <select name="select_tags" multiple id="my_select" class="form-control">
+          <option value="Profession">Profession</option>
+          <option value="Industry">Industry</option>
+          <option value="legacy">legacy</option>
+          <option value="Interest">Interest</option>
+          <option value="Cause">Cause</option>
+          <option value="Sports">Sports</option>
+          <option value="Fan">Fan</option>
+
+     </select>
+     </div>
+        <br/>
+      <div class="center_div">
+        <button type="submit" class="btn btn-default ">Submit</button>
+       </div>
+
+    </form>
+
+</body>
+</html>
+
+<script>
+
+    $(document).ready(function(){
+
+       $('#my_form').on('submit',function()
+       {
+         category=$('#previous_categories').val();
+         selected=$('#my_select').val();
+
+         select=""
+
+         for(var i=0;i<selected.length;i++){
+            select=select+selected[i]+","
+         }
+         select=select.substring(0, select.length - 1);
+         console.log(select)
+         community_id={{community_id}}
+
+         temp={
+
+           'categories':select,
+           'community_id':community_id,
+           'already_category':category
+
+         }
+
+         $.ajax({
+
+            url:'/admin_dashboard/add_tags',
+            data:temp,
+            dataType:'json',
+            success:function(data){
+               console.log('hello')
+               console.log(data)
+
+            }
+
+         })
+
+       })
+
+    })
+</script>

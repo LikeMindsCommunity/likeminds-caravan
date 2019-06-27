@@ -3,6 +3,8 @@ from django.http import HttpResponse
 from togther.models import *
 from django.views.generic import *
 from .forms import *
+from django.views.decorators.csrf import csrf_exempt
+
 # Create your views here.
 
 def dashboard(request):
@@ -119,3 +121,47 @@ def decline_member(request,community_id,member_id):
     url='/admin_dashboard/show_pending_member/'+str(community_id)
     return redirect(url)
 
+
+def show_tags(request,community_id):
+    '''Taging communitites'''
+    print(community_id)
+    categories=Category.objects.filter(community_id=community_id)
+    category_string=""
+    for i in categories:
+        category_string=category_string+str(i) + ","
+    category_string=category_string[:-1]
+    context={
+        'category':category_string,
+        'community_id':community_id
+    }
+    return render(request,"dashboard/category.html",context)
+
+def add_tags(request):
+
+    categories=request.GET.get('categories')
+    community_id=request.GET.get('community_id')
+    categories=categories.split(",")
+    already_category=request.GET.get('already_category')
+    already_category=already_category.split(",")
+
+    category_list=[]
+    community_category=Category.objects.filter(community_id=community_id)
+
+    for category in community_category:
+        category_list.append(str(category))
+
+    for category in category_list:
+        if category not in already_category:
+            Category.objects.filter(community_id=community_id,category=category).delete()
+
+    for category in categories:
+
+        selected_categories=Category.objects.filter(community_id=community_id,category=category)
+        if not selected_categories:
+            cat=Category()
+            cat.community_id=Community.objects.get(id=community_id)
+            cat.category=category
+            cat.save()
+
+
+    return HttpResponse('submitted')
