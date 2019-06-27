@@ -188,7 +188,7 @@ def accept_admin(request,community_id,cta):
         temp_admin = Members.objects.filter(community_id = community,state=2)
         Members.objects.filter(community_id = community,member_id=temp_admin[0].member_id).update(state =4)
         Members.objects.filter(community_id = community,member_id=request.user).update(state =1)
-        send_email_to_proposed_admin.delay(NominatedAdmin,email,ProposedAdmin,CommunityName)
+        send_email_to_proposed_admin.delay(NominatedAdmin=nom_admin.name,email=prop_admin.email,ProposedAdmin=prop_admin.name,CommunityName=community.name)
     return HttpResponseRedirect(reverse('comunity', args=[community_id]))
 
 @login_required
