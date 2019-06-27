@@ -179,7 +179,6 @@ SOCIAL_AUTH_LINKEDIN_EXTRA_DATA = [('id', 'id'),
                                    ('headline', 'headline'),
                                    ('industry', 'industry')]
 
-EMAIL_BACKEND = ‘django.core.mail.backends.smtp.EmailBackend’
 SENDGRID_API_KEY = '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'
 EMAIL_HOST = 'smtp.sendgrid.net'
 EMAIL_HOST_USER = 'collabmates1'
