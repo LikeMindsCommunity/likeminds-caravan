@@ -26,9 +26,9 @@ SECRET_KEY = 'rg9n#$ebfj4w_mv-%7aahi2!qnitgw%xt(4re%i&)vdlppnz^e'
 DEBUG = True
 #SECURE_SSL_REDIRECT = True
 # Honor the 'X-Forwarded-Proto' header for request.is_secure()
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+#SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 # Force HTTPS in the final URIs
-SOCIAL_AUTH_REDIRECT_IS_HTTPS = True
+#SOCIAL_AUTH_REDIRECT_IS_HTTPS = True
 
 ALLOWED_HOSTS = ['https://beta.collabmates.com','beta.collabmates.com','127.0.0.1','localhost','ec2-18-220-31-143.us-east-2.compute.amazonaws.com']
 
@@ -179,6 +179,8 @@ SOCIAL_AUTH_LINKEDIN_EXTRA_DATA = [('id', 'id'),
                                    ('headline', 'headline'),
                                    ('industry', 'industry')]
 
+EMAIL_BACKEND = ‘django.core.mail.backends.smtp.EmailBackend’
+SENDGRID_API_KEY = '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'
 EMAIL_HOST = 'smtp.sendgrid.net'
 EMAIL_HOST_USER = 'collabmates1'
 EMAIL_HOST_PASSWORD = 'Nipun@git@123'

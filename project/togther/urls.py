@@ -11,7 +11,7 @@ urlpatterns = [
     path('community/<int:community_id>/join', views.join_community, name="join_community"),
     path('requests', views.requests,name="requests"),
     path('requests/<int:community_id>/user_response/<int:user_id>', views.user_response,name="user_response"),
-    path('community/<int:community_id>/', views.community, name="community"),
+    path('community/<int:community_id>/', views.community, name="comunity"),
     path('community/<int:community_id>/members_list', views.members_list, name="members_list"),
     path('create_community/', views.creategroup, name="create"),
     path('profile/<int:user_id>', views.profile, name="profile"),
@@ -23,5 +23,6 @@ urlpatterns = [
     path('creategroup/<int:community_id>/form_data',views.form_data,name='form_data'),
     path('thankyou', views.thankyou, name="thankyou"),
     path('collabcard/<int:card_id>', views.collabcard, name="card"),
-    path('view_answers/<int:card_id>',views.view_answers,name = 'view_answers')
+    path('view_answers/<int:card_id>',views.view_answers,name = 'view_answers'),
+    path('accept_admin/<int:community_id>/<str:cta>',views.accept_admin,name='accept_admin')
 ]

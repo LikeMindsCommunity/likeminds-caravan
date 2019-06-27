@@ -14,7 +14,7 @@ from .notification import send_follow_notification,send_notification_to_admins,s
 from django.db.models import Q
 from time import strptime, strftime, mktime, gmtime
 import dateutil.relativedelta
-from .tasks import send_email_to_nominated_admin,send_email
+from .tasks import send_email_to_nominated_admin,send_email,send_email_to_admin_of_community
 
 def communities(request):
     if request.method == 'GET':
@@ -132,7 +132,10 @@ def your_communities(request,user_id):
         new_dict['is_admin'] = is_admin
         total_collabcards = Collabcard.objects.filter(community=community)
         seen_collabcard = collabcard_seen.objects.filter(community=community, user=member_id)
-        new_dict['collabcard_unseen'] = (len(total_collabcards) - len(seen_collabcard))
+        if (len(total_collabcards) - len(seen_collabcard)) < 0:
+            new_dict['collabcard_unseen'] =0
+        else:
+            new_dict['collabcard_unseen'] = (len(total_collabcards) - len(seen_collabcard))
         unseen_list=[]
         total_list=[]
         seen_list=[]
@@ -348,21 +351,22 @@ def members(request, community_id):
 
 def admins(request, community_id):
     admins = Members.objects.filter(community_id = community_id).filter(Q(state=1)|Q(state=2))
-    user = Userinfo.objects.filter(user_id = admins[0].member_id.id)
     users = []
-    usr={}
-    usr = {}
-    usr['id'] = user[0].user_id.id
-    usr["name"] = user[0].name
-    usr["email"] = user[0].email
-    usr["city"] = user[0].city
-    usr["headline"] = user[0].headline
-    usr["contact_number"] = user[0].contact_number
-    usr["image_url"] = 'https://beta.collabmates.com'+user[0].image_file.url
-    usr["about"] = user[0].about
-    usr["fb_link"] = user[0].fb_link
-    usr["linkedin_link"] = user[0].linkedin_link
-    users.append(usr)
+    for admin in admins:
+        user = Userinfo.objects.filter(user_id = admin.member_id.id)
+        usr={}
+        usr = {}
+        usr['id'] = user[0].user_id.id
+        usr["name"] = user[0].name
+        usr["email"] = user[0].email
+        usr["city"] = user[0].city
+        usr["headline"] = user[0].headline
+        usr["contact_number"] = user[0].contact_number
+        usr["image_url"] = 'https://beta.collabmates.com'+user[0].image_file.url
+        usr["about"] = user[0].about
+        usr["fb_link"] = user[0].fb_link
+        usr["linkedin_link"] = user[0].linkedin_link
+        users.append(usr)
     return JsonResponse ({'members': users})
 
 @csrf_exempt
@@ -465,6 +469,7 @@ def create_community(request):
             collabcard_share_url='https://beta.collabmates.com/collabcard/'+str(card.id)
             crd = {'id':card.id , 'title':card.title, 'member':usr,'answer_text': ans_text,'share_url':collabcard_share_url}
             print(crd)
+            #send_email_to_admin_of_community.delay(CommmunityAdminName=user.name,CommunityName=res['name'],email=user.email)
             return JsonResponse({'success':True, 'community':new_dict, 'collabcard':crd})
     else:
         member_id = request.GET.get('member_id')
@@ -492,7 +497,10 @@ def create_community(request):
             else:
                 new_dict['image_url'] = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQMUCHvC0wEVO5yDMe9wddUoagIqQ3VPH0nm8_VtjK5gk3M0mMO'
             new_dict['share_url']= 'https://beta.collabmates.com/community/'+str(new_dict['id'])
-            
+            user_id = request.GET.get('member_id')
+            user = User.objects.get(id = user_id)
+            user = Userinfo.objects.get(user_id = user.id)
+            #send_email_to_temp_admin_of_community.delay(CommmunityAdminName=user.name,CommunityName=res['name'],email=user.email)
         return JsonResponse({'success':True, 'community':new_dict})
     return HttpResponse("Create Community Api")
 
@@ -855,9 +863,9 @@ def create_admin(request,community_id):
     # when the creator is creating a community as a member
     if request.method == 'POST':
         res = json.loads(request.body)
-        #check = check_member(res['email_id'],community_id,res['member_id'])
-        #if check:
-            #return JsonResponse({'success':check})
+        check = check_member(res['email_id'],community_id,res['member_id'],response=res)
+        if check:
+            return JsonResponse({'success':check})
         admin = temp_admin()
         if 'name' in res:
             admin.name = res['name']
@@ -875,6 +883,34 @@ def create_admin(request,community_id):
 
         return JsonResponse({'success':True})
     return HttpResponse('Add Admin Api')
+
+def check_member(email,community_id,member_id,response):
+    user = Userinfo.objects.get(email=email)
+    ProposedAdmin = Userinfo.objects.get(user_id = member_id)
+    community = Community.objects.get(id = community_id)
+    CommunityName=community.name
+    NominatedAdmin=user.name
+    email=email
+    ProposedAdmin=ProposedAdmin.name
+    if user:
+        member =Members.objects.filter(community_id = community,member_id = user.user_id.id)
+        if member:
+            Members.objects.filter(community_id = community,member_id = user.user_id.id).update(state=6)
+            print("member is updated")
+            send_email_to_nominated_admin.delay(NominatedAdmin=NominatedAdmin,email=email,ProposedAdmin=ProposedAdmin,CommunityName=CommunityName,community_id =community.id)
+        else :
+            member =Members()
+            member.community_id = community
+            member.member_id = user.user_id
+            member.state = 6
+            member.save()
+            print("member is created for community")
+            send_email_to_nominated_admin.delay(NominatedAdmin=NominatedAdmin,email=email,ProposedAdmin=ProposedAdmin,CommunityName=CommunityName,community_id =community.id)
+        return True
+    else:
+        send_email_to_nominated_admin.delay(NominatedAdmin=res['name'],email=res['email'],ProposedAdmin=ProposedAdmin,CommunityName=CommunityName,community_id =community.id)
+
+    return False
 
 
 def pending_members(request,community_id):
