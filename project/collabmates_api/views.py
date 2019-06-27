@@ -885,13 +885,16 @@ def create_admin(request,community_id):
     return HttpResponse('Add Admin Api')
 
 def check_member(email,community_id,member_id,response):
-    user = Userinfo.objects.get(email=email)
     ProposedAdmin = Userinfo.objects.get(user_id = member_id)
     community = Community.objects.get(id = community_id)
     CommunityName=community.name
     NominatedAdmin=user.name
     email=email
     ProposedAdmin=ProposedAdmin.name
+    try:
+        user = Userinfo.objects.get(email=email)
+    except:
+        send_email_to_nominated_admin.delay(NominatedAdmin=res['name'],email=res['email'],ProposedAdmin=ProposedAdmin,CommunityName=CommunityName,community_id =community.id)
     if user:
         member =Members.objects.filter(community_id = community,member_id = user.user_id.id)
         if member:
@@ -907,9 +910,6 @@ def check_member(email,community_id,member_id,response):
             print("member is created for community")
             send_email_to_nominated_admin.delay(NominatedAdmin=NominatedAdmin,email=email,ProposedAdmin=ProposedAdmin,CommunityName=CommunityName,community_id =community.id)
         return True
-    else:
-        send_email_to_nominated_admin.delay(NominatedAdmin=res['name'],email=res['email'],ProposedAdmin=ProposedAdmin,CommunityName=CommunityName,community_id =community.id)
-
     return False
 
 
