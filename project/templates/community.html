@@ -4,7 +4,7 @@
 
       <html lang="zxx" class="no-js">
           <head>
-          	
+            
             <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
             
             <link rel="shortcut icon" href="https://beta.collabmates.com/media/media/favicon.ico">
@@ -36,7 +36,6 @@
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
-
       gtag('config', 'UA-130288684-1');
 </script>
   
@@ -188,11 +187,26 @@
                     </div>
                     </div>
                   </div>
+                  {% if Nom_mem_state == 1%}
+                                <button class="ui fluid button " style=" z-index:2;width:60%; left:20%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;" disabled>Already a Member</button>
+
+                  {% elif Nom_mem_state == 2 %}
+                                <button class="ui fluid button " style=" z-index:2;width:60%; left:20%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;" disabled>Already a Member</button>
+                  {% elif Nom_mem_state == 4 %}{%if source == mail%}
+                                <button class="ui fluid button " style=" z-index:2;width:60%; left:20%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;" onclick="accept_admin('{{cta}}','{{community.id}}','{{Nom_mem_state}}');"> Accept invitation </button>{%endif%}
+
+                  {% elif Nom_mem_state == 4 %}
+                                <button class="ui fluid button " style=" z-index:2;width:60%; left:20%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;" disabled>Already a Member</button>
+
+                  {% elif source == 'mail' %}
+              <button class="ui fluid button " style=" z-index:2;width:60%; left:20%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;" onclick="accept_admin('{{cta}}','{{community.id}}','{{Nom_mem_state}}');"> Accept invitation </button>
+
              
-                            {% if is_joined == -1 %}
+                            {% elif is_joined == -1 %}
                                 <button class="ui fluid button " style=" z-index:2;width:60%; left:20%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;" onclick="join();"> Join Group  </button>
-                            {% elif is_joined == 0 %}
+                            {% elif Nom_mem_state == 5 %}
                                 <button class="ui fluid button " style=" z-index:2;width:60%; left:20%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;" disabled> Pending Approval  </button>
+                            
 <!--                            {% elif is_joined == 1 %}-->
 <!--                                <button class="ui fluid button " style=" z-index:2;width:60%; left:20%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;"   id="invite" onclick="invite();" > Join Group  </button>-->
                             {% endif %}
@@ -217,16 +231,13 @@
            
         </style>
            <script>
-
                 function open_community(id){
                     console.log(id);
                     window.location.href = "../"+id;
                 }
-
                 function join(){
                     console.log(1);
                     {% if user.is_authenticated %}
-
                         window.location.href = "join";
                     {% else %}
                     $('.test')
@@ -234,13 +245,24 @@
                   ;
                     {% endif %}
                 }
-
-
-
-
-
-
-
+                function accept_admin(cta,community_id,Nom_mem_state){
+                    console.log(cta);
+                    console.log(community_id)
+                    console.log(Nom_mem_state)
+                    if (Nom_mem_state!=6) 
+                    {
+                      alert("Sorry!You are not the Nominated Admin of this Community");
+                      return;
+                    }
+                    {% if user.is_authenticated %}
+                        window.location.href = "/"+"accept_admin/"+community_id+"/"+cta
+                    {% else %}
+                    $('.test')
+                    .modal('show')
+                  ;
+                    {% endif %}
+               
+                }
 
     $(function(){
       $("#test").click(function(){
@@ -250,11 +272,9 @@
         closable: true
       });
     });
-
        function hide(){
     $('.ui.modal').modal("hide");
   }
-
                 $(document).ready(function() {
                     var showChar = 180;
                     var ellipsestext = "...";
@@ -289,9 +309,6 @@
                     });
                 });
                 
-
                 
            </script>
 {% endblock %}
-
-

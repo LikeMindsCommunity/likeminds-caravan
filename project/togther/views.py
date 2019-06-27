@@ -11,6 +11,10 @@ import json
 from django.http.response import JsonResponse
 from django.db.models import Q
 from django.core.mail import send_mail
+from django.http import HttpResponseRedirect
+from django.urls import reverse
+from .tasks import *
+from django.db.models import Q
 
 def home(request):
     users = User.objects.all()
@@ -125,7 +129,21 @@ def dashboard(request):
 
 
 def community(request, community_id):
+    #-----accept admin APi part---------------
+    res= request.GET.dict()
+    if 'source' in res:
+        source =res['source']
+    else:
+        source = ''
+        
+    if 'cta' in res:
+        cta = res['cta']
+    else:
+        source = ''
+        cta =''
     community = get_object_or_404(Community, pk = community_id)
+    Nominated_mem = Members.objects.filter(member_id=request.user,community_id=community)
+    #------------------------------------------
     all_members=Members.objects.filter(community_id=community.id)
 
     members=[]
@@ -140,7 +158,6 @@ def community(request, community_id):
         elif member.state == 4 :
             members.append(mem[0])
 
-
         elif request.user.id == member.member_id.id and member.state == 3:
             is_joined=0
 
@@ -150,8 +167,30 @@ def community(request, community_id):
         user = Userinfo.objects.all().filter(user_id=request.user)
     else:
         user = []
+    print("member state == ",Nominated_mem[0].state)
 
-    return render (request, 'community.html', {'usr':user,'similar_communities':communities , 'community' : community,'admins': admin_details, 'is_joined':is_joined, 'members':members})
+    return render (request, 'community.html', {'usr':user,'similar_communities':communities , 'community' : community,'admins': admin_details, 'is_joined':is_joined, 'members':members,'source':source,'cta':cta,'Nom_mem_state':Nominated_mem[0].state})
+
+def accept_admin(request,community_id,cta):
+    community = Community.objects.get(id=community_id)
+    member = Members.objects.filter(community_id = community).filter(Q(state=1)|Q(state=2))
+    prop_admin = Userinfo.objects.get(user_id = member[0].member_id.id)
+    nom_admin = Userinfo.objects.get(user_id = request.user)
+    if cta == 'accept_invitation_admin':
+        if len(member) == 1:
+            send_email_to_proposed_admin.delay(NominatedAdmin=nom_admin.name,email=prop_admin.email,ProposedAdmin=prop_admin.name,CommunityName=community.name)
+        Members.objects.filter(community_id = community,member_id=request.user).update(state =1)
+    elif cta == 'accept_invitation_temp_admin':
+        print("nominated Admin  name == ",nom_admin.name)
+        print("ProposedAdmin name == ",prop_admin.name)
+        print("user email == ",prop_admin.email)
+        print("community name == ",community.name)
+        temp_admin = Members.objects.filter(community_id = community,state=2)
+        Members.objects.filter(community_id = community,member_id=temp_admin[0].member_id).update(state =4)
+        Members.objects.filter(community_id = community,member_id=request.user).update(state =1)
+        send_email_to_proposed_admin.delay(NominatedAdmin,email,ProposedAdmin,CommunityName)
+    return HttpResponseRedirect(reverse('comunity', args=[community_id]))
+
 @login_required
 def creategroup(request):
     print(request)

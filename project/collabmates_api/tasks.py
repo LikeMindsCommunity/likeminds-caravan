@@ -9,14 +9,14 @@ from django.template import Context
 def send_email():
 	time.sleep(300)
 	fail_silently=True
-	context={"subject":"Greetings from collabmates"}
-	t = get_template("mails/welcome_mail_zero.html").render()
-	msg = EmailMultiAlternatives("Greetings from collabmates",
-	                                 t,
+	subject="Thanks for joining CollabMates! Here's what to expect"
+	template = get_template("mails/welcome_mail_zero.html").render()
+	msg = EmailMultiAlternatives(subject,
+	                                 template,
 	                                 "hello@collabmates.com",
-	                                 ['mahesh61437mahe@gmail.com'],
+	                                 ['mahesh61437mahe@gmail.com',to],
 	                                 )
-	msg.attach_alternative(t, "text/html")
+	msg.attach_alternative(template, "text/html")
 	return msg.send(fail_silently)
 
 @shared_task
@@ -24,12 +24,42 @@ def send_email_to_nominated_admin(NominatedAdmin,email,ProposedAdmin,CommunityNa
 	time.sleep(5)
 	fail_silently=True
 	to = email
-	context={"subject":"Greetings from collabmates"}
-	t = get_template("mails/accept_admin_request.html").render({"NominatedAdmin":NominatedAdmin,"email":email,"ProposedAdmin":ProposedAdmin,"CommunityName":CommunityName,"community_id":community_id})
-	msg = EmailMultiAlternatives("Greetings from collabmates",
-	                                 t,
+	subject =str(ProposedAdmin)+ " has proposed you as admin of "+str(CommunityName)+" community"
+	template = get_template("mails/accept_admin_request.html").render({"NominatedAdmin":NominatedAdmin,"email":email,"ProposedAdmin":ProposedAdmin,"CommunityName":CommunityName,"community_id":community_id})
+	msg = EmailMultiAlternatives(subject,
+	                                 template,
 	                                 "hello@collabmates.com",
-	                                 [to],
+	                                 ['mahesh61437mahe@gmail.com',to],
 	                                 )
-	msg.attach_alternative(t, "text/html")
+	msg.attach_alternative(template, "text/html")
+	return msg.send(fail_silently)
+
+@shared_task
+def send_email_to_admin_of_community(CommmunityAdminName,CommunityName,email):
+	time.sleep(5)
+	fail_silently=True
+	to = email
+	subject = "Congrats! "+CommunityName+" community is now live"
+	template = get_template("mails/create_community_as_admin.html").render({"CommmunityAdminName":CommmunityAdminName,"CommunityName":CommunityName})
+	msg = EmailMultiAlternatives(subject,
+	                                 template,
+	                                 "hello@collabmates.com",
+	                                 ['mahesh61437mahe@gmail.com',to],
+	                                 )
+	msg.attach_alternative(template, "text/html")
+	return msg.send(fail_silently)
+
+@shared_task
+def send_email_to_temp_admin_of_community(CommmunityAdminName,CommunityName,email):
+	time.sleep(5)
+	fail_silently=True
+	to = email
+	subject = "Congrats! "+CommunityName+" community is now live"
+	template = get_template("mails/create_community_as_member.html").render({"CommmunityAdminName":CommmunityAdminName,"CommunityName":CommunityName})
+	msg = EmailMultiAlternatives(subject,
+	                                 template,
+	                                 "hello@collabmates.com",
+	                                 ['mahesh61437mahe@gmail.com',to],
+	                                 )
+	msg.attach_alternative(template, "text/html")
 	return msg.send(fail_silently)

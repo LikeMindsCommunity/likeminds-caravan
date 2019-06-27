@@ -472,7 +472,7 @@
 }</style></head>
     <body>
         <!--*|IF:MC_PREVIEW_TEXT|*-->
-        <!--[if !gte mso 9]><!----><span class="mcnPreviewText" style="display:none; font-size:0px; line-height:0px; max-height:0px; max-width:0px; opacity:0; overflow:hidden; visibility:hidden; mso-hide:all;">"Greetings from collabmates"</span><!--<![endif]-->
+        <!--[if !gte mso 9]><!----><span class="mcnPreviewText" style="display:none; font-size:0px; line-height:0px; max-height:0px; max-width:0px; opacity:0; overflow:hidden; visibility:hidden; mso-hide:all;">{{ProposedAdmin}} has proposed you as admin of {{CommunityName}} community</span><!--<![endif]-->
         <!--*|END:IF|*-->
         <center>
             <table align="center" border="0" cellpadding="0" cellspacing="0" height="100%" width="100%" id="bodyTable">
@@ -506,11 +506,14 @@
                         
                         <td valign="top" class="mcnTextContent" style="padding-top:0; padding-right:18px; padding-bottom:9px; padding-left:18px;">
                         
-                            Hi {{user.name}},<br>
+                            Hi {{NominatedAdmin}},<br>
 <br>
-Welcome to CollabMates! We are super excited to have launched the platform and so glad that you came along this ride! We have started CollabMates to help people collaborate with like-minded people efficiently and make networking very low friction, intuitive process.<br>
+{{ProposedAdmin}} recently added the {{CommunityName}} community on CollabMates. This will help your community members to know each other, access tools to have organised discussions and network efficiently. 
+
+{{ProposedAdmin}} has proposed that you are best suitable to become the admin of this community and drive collaboration between the community members.<br>
 <br>
-To make the most out of CollabMates you should join, add or create all the communities with which you identify yourself with and have high belongingness. It could be of a niche community group of a particular institution, interest, cause or skillset in your neighbourhood or city. Once you are part of any community, you can start engaging on relevant chat threads in the community and seek help from fellow community members whenever you need something.<br>
+
+<br>
 &nbsp;
                         </td>
                     </tr>
@@ -534,23 +537,7 @@ To make the most out of CollabMates you should join, add or create all the commu
                     <tbody>
                         <tr>
                             <td align="center" valign="middle" class="mcnButtonContent" style="font-family: Arial; font-size: 16px; padding: 15px;">
-                                <a class="mcnButton " title="Create Your Community" href="http://www.collabmates.com" target="_blank" style="font-weight: bold;letter-spacing: normal;line-height: 100%;text-align: center;text-decoration: none;color: #FFFFFF;">Create Your Community</a>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </td>
-        </tr>
-    </tbody>
-</table><table border="0" cellpadding="0" cellspacing="0" width="100%" class="mcnButtonBlock" style="min-width:100%;">
-    <tbody class="mcnButtonBlockOuter">
-        <tr>
-            <td style="padding-top:0; padding-right:18px; padding-bottom:18px; padding-left:18px;" valign="top" align="center" class="mcnButtonBlockInner">
-                <table border="0" cellpadding="0" cellspacing="0" class="mcnButtonContentContainer" style="border-collapse: separate !important;border-radius: 0px;background-color: #4CAAD8;">
-                    <tbody>
-                        <tr>
-                            <td align="center" valign="middle" class="mcnButtonContent" style="font-family: Arial; font-size: 16px; padding: 15px;">
-                                <a class="mcnButton " title="Explore Communities" href="http://www.collabmates.com" target="_blank" style="font-weight: bold;letter-spacing: normal;line-height: 100%;text-align: center;text-decoration: none;color: #FFFFFF;">Explore Communities</a>
+                                <a class="mcnButton " title="Create Your Community" href="https://beta.collabmates.com/community/{{community_id}}/?source=email&cta=accept_invitation_temp_admin" target="_blank" style="font-weight: bold;letter-spacing: normal;line-height: 100%;text-align: center;text-decoration: none;color: #FFFFFF;">Accept Invitation</a>
                             </td>
                         </tr>
                     </tbody>
@@ -575,7 +562,7 @@ To make the most out of CollabMates you should join, add or create all the commu
                         
                         <td valign="top" class="mcnTextContent" style="padding-top:0; padding-right:18px; padding-bottom:9px; padding-left:18px;">
                         
-                            Excited to have you aboard!<br>
+                            Cheers!<br>
 Team Collabmates
                         </td>
                     </tr>
