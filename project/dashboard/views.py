@@ -22,7 +22,7 @@ def update_form(request,community_id):
         community=Community.objects.get(id=community_id)
         community_form=CommunityForm(request.POST,request.FILES,instance=community)
         community_form.save()
-        return redirect('dashboard')
+        return redirect('admin_dashboard')
     else:
         community=Community.objects.get(id=community_id)
         community_form=CommunityForm(instance=community)
@@ -37,9 +37,7 @@ def update_form(request,community_id):
 def community_delete(request,community_id):
     '''function to delete the community'''
     Community.objects.filter(id=community_id).delete()
-    return redirect('dashboard')
-
-
+    return redirect('admin_dashboard')
 
 
 def add_dashboard_admin(request,community_id):
@@ -51,7 +49,7 @@ def add_dashboard_admin(request,community_id):
         if admin_form.is_valid():
             email_id=admin_form.cleaned_data['email']
             user_id=Userinfo.objects.get(email=email_id)
-
+            print(email_id)
             member_data=Members.objects.filter(community_id=community,member_id=user_id.user_id)
             if member_data:
                 Members.objects.filter(community_id=community_id,member_id=user_id.user_id).update(state=1)
@@ -61,9 +59,63 @@ def add_dashboard_admin(request,community_id):
                 m.member_id=user_id.user_id
                 m.state=1
                 m.save()
-        return redirect('dashboard')
+        return redirect('admin_dashboard')
     else:
         community=Community.objects.get(id=community_id)
         admin_form = AdminForm(request.POST)
     context = {'admin_form': admin_form, 'community': community}
     return render(request, 'dashboard/add_admin.html', context)
+
+
+def add_dashboard_member(request,community_id):
+    '''function to add members'''
+
+    if request.method == 'POST':
+        community = Community.objects.get(id=community_id)
+        member_form = MemberForm(request.POST)
+        if member_form.is_valid():
+            email_id = member_form.cleaned_data['email']
+            user_id = Userinfo.objects.get(email=email_id)
+
+            member_data = Members.objects.filter(community_id=community, member_id=user_id.user_id)
+            if member_data:
+                Members.objects.filter(community_id=community_id, member_id=user_id.user_id).update(state=4)
+            else:
+                m = Members()
+                m.community_id = community
+                m.member_id = user_id.user_id
+                m.state = 4
+                m.save()
+        return redirect('admin_dashboard')
+    else:
+        community = Community.objects.get(id=community_id)
+        member_form = MemberForm(request.POST)
+    context = {'member_form': member_form, 'community': community}
+    return render(request, 'dashboard/add_member.html', context)
+
+
+def show_pending_members(request,community_id):
+    '''function to show pending members'''
+    community = Community.objects.get(id=community_id)
+    pending_members=Members.objects.filter(community_id=community).filter(state=3)
+
+    context={'pending_members':pending_members,'community_id':community_id}
+    return render(request,'dashboard/pending_list.html',context)
+
+
+def aprove_member(request,community_id,member_id):
+    '''function to approve member'''
+    community = Community.objects.get(id=community_id)
+
+    Members.objects.filter(community_id=community,member_id=member_id).update(state=4)
+    url='/admin_dashboard/show_pending_member/'+str(community_id)
+    return redirect(url)
+
+def decline_member(request,community_id,member_id):
+    '''function to approve member'''
+    community = Community.objects.get(id=community_id)
+
+    Members.objects.filter(community_id=community,member_id=member_id).update(state=5)
+    url='/admin_dashboard/show_pending_member/'+str(community_id)
+    return redirect(url)
+
