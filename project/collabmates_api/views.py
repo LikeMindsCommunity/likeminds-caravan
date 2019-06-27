@@ -864,8 +864,8 @@ def create_admin(request,community_id):
     if request.method == 'POST':
         res = json.loads(request.body)
         check = check_member(res['email_id'],community_id,res['member_id'],response=res)
-        if check:
-            return JsonResponse({'success':check})
+        #if check:
+            #return JsonResponse({'success':check})
         admin = temp_admin()
         if 'name' in res:
             admin.name = res['name']
@@ -875,10 +875,10 @@ def create_admin(request,community_id):
             admin.contact_number = res['contact_no']
         if 'member_id' in res:
             member_id = res['member_id']
-        member = Members.objects.get(id = member_id)
+        #member = Members.objects.get(id = member_id)
         community = Community.objects.get(id = community_id)
         admin.community = community
-        admin.member_id = member
+        admin.member_id = member_id
         admin.save()
 
         return JsonResponse({'success':True})
