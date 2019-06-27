@@ -27,5 +27,13 @@ class CommunityForm(forms.ModelForm):
 
 class AdminForm(forms.Form):
 
-    email=forms.EmailField(label='email')
+    email=forms.EmailField(label='email', widget=forms.TextInput(attrs={'placeholder': 'Email' ,'class':'form-control form-group'}))
+
+
+
+class MemberForm(forms.Form):
+
+    email=forms.EmailField(label='email', widget=forms.TextInput(attrs={'placeholder': 'Email' ,'class':'form-control form-group'}))
+
+
 
