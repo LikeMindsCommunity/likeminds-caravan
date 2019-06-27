@@ -99,7 +99,7 @@ DATABASES = {
         'NAME': 'togther',
         'USER': 'apoorv',
         'PASSWORD': 'khare',
-        'HOST': 'ec2-18-220-31-143.us-east-2.compute.amazonaws.com',
+        'HOST': '127.0.0.1',
         'PORT': '5432',
     }
 }
