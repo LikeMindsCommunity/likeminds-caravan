@@ -1,4 +1,4 @@
-Category_list = [ { "id" : 'al' , "title": 'Alumni'},
+Category_list_backup = [ { "id" : 'al' , "title": 'Alumni'},
 { "id" : 'cl' , "title": 'College'},
 { "id" : 'sc' , "title": 'School'},
 { "id" : 'pf' , "title": 'Profession'},
@@ -37,7 +37,12 @@ Category_list = [ { "id" : 'al' , "title": 'Alumni'},
 { "id" : 'fa' , "title": 'Fashion'},
 { "id" : 'br' , "title": 'Brand'},
 ]
-
-
-
-
+Category_list = [
+{ "id" : 'in' , "title":  'Interests'},
+{ "id" : 'ca' , "title": 'Cause'},
+{ "id" : 'in' , "title": 'Industry'},
+{ "id" : 'pf' , "title": 'Profession'},
+{ "id" : 'fa' , "title": 'Fan'},
+{ "id" : 'sf' , "title": 'Sports'},
+{"id":'lg',"title":'Legacy'}
+]
