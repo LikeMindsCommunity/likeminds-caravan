@@ -99,7 +99,7 @@ DATABASES = {
         'NAME': 'togther',
         'USER': 'apoorv',
         'PASSWORD': 'khare',
-        'HOST': '127.0.0.1',
+        'HOST': 'ec2-18-220-31-143.us-east-2.compute.amazonaws.com',
         'PORT': '5432',
     }
 }
@@ -179,7 +179,6 @@ SOCIAL_AUTH_LINKEDIN_EXTRA_DATA = [('id', 'id'),
                                    ('headline', 'headline'),
                                    ('industry', 'industry')]
 
-EMAIL_BACKEND = ‘django.core.mail.backends.smtp.EmailBackend’
 SENDGRID_API_KEY = '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'
 EMAIL_HOST = 'smtp.sendgrid.net'
 EMAIL_HOST_USER = 'collabmates1'
