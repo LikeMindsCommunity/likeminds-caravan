@@ -863,7 +863,6 @@ def create_admin(request,community_id):
     # when the creator is creating a community as a member
     if request.method == 'POST':
         res = json.loads(request.body)
-        check = check_member(res['email_id'],community_id,res['member_id'],response=res)
         #if check:
             #return JsonResponse({'success':check})
         admin = temp_admin()
@@ -880,19 +879,19 @@ def create_admin(request,community_id):
         admin.community = community
         admin.member_id = member_id
         admin.save()
-
+        check = check_member(res['email_id'],community_id,res['member_id'],response=res)
         return JsonResponse({'success':True})
     return HttpResponse('Add Admin Api')
 
-def check_member(email,community_id,member_id,response):
+def check_member(email,community_id,member_id,res):
     ProposedAdmin = Userinfo.objects.get(user_id = member_id)
     community = Community.objects.get(id = community_id)
     CommunityName=community.name
-    NominatedAdmin=user.name
     email=email
     ProposedAdmin=ProposedAdmin.name
     try:
         user = Userinfo.objects.get(email=email)
+        NominatedAdmin=user.name
     except:
         send_email_to_nominated_admin.delay(NominatedAdmin=res['name'],email=res['email'],ProposedAdmin=ProposedAdmin,CommunityName=CommunityName,community_id =community.id)
     if user:
