@@ -897,17 +897,17 @@ def check_member(email,community_id,member_id,res):
             NominatedAdmin=user[0].name
         else:
             print("user is not present")
-            #send_email_to_nominated_admin.delay(NominatedAdmin=res['name'],email=email,ProposedAdmin=ProposedAdmin,CommunityName=CommunityName,community_id =community.id)
+            send_email_to_nominated_admin.delay(NominatedAdmin=res['name'],email=email,ProposedAdmin=ProposedAdmin,CommunityName=CommunityName,community_id =community.id)
             return False
     except:
-        #send_email_to_nominated_admin.delay(NominatedAdmin=res['name'],email=email,ProposedAdmin=ProposedAdmin,CommunityName=CommunityName,community_id =community.id)
+        send_email_to_nominated_admin.delay(NominatedAdmin=res['name'],email=email,ProposedAdmin=ProposedAdmin,CommunityName=CommunityName,community_id =community.id)
         return False
     if user:
         member =Members.objects.filter(community_id = community,member_id = user[0].user_id.id)
         if member and member[0].state == 4:
             print("member is meber")
             Members.objects.filter(community_id = community,member_id = user[0].user_id.id).update(state=6)
-            #send_email_to_nominated_admin.delay(NominatedAdmin=NominatedAdmin,email=email,ProposedAdmin=ProposedAdmin,CommunityName=CommunityName,community_id =community.id)
+            send_email_to_nominated_admin.delay(NominatedAdmin=NominatedAdmin,email=email,ProposedAdmin=ProposedAdmin,CommunityName=CommunityName,community_id =community.id)
         try:
             if member[0].state == 1 or member[0].state == 2 or member[0].state == 6:
                 print("member is admin")
@@ -919,7 +919,7 @@ def check_member(email,community_id,member_id,res):
             member.member_id = user[0].user_id
             member.state = 6
             member.save()
-            #send_email_to_nominated_admin.delay(NominatedAdmin=NominatedAdmin,email=email,ProposedAdmin=ProposedAdmin,CommunityName=CommunityName,community_id =community.id)
+            send_email_to_nominated_admin.delay(NominatedAdmin=NominatedAdmin,email=email,ProposedAdmin=ProposedAdmin,CommunityName=CommunityName,community_id =community.id)
         return True
     return False
 
