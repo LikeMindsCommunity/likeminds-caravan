@@ -11,6 +11,8 @@ urlpatterns = [
     path('aprove_member/<int:community_id>/<int:member_id>',aprove_member,name='aprove_member'),
     path('decline_member/<int:community_id>/<int:member_id>', decline_member, name='decline_member'),
     path('show_tags/<int:community_id>', show_tags, name='show_tags'),
-    path('add_tags',add_tags,name='add_tags')
+    path('add_tags',add_tags,name='add_tags'),
+    path('update_user/<str:email>',update_user,name='update_user'),
+    path('all_user',all_user,name='all_user')
 
 ]

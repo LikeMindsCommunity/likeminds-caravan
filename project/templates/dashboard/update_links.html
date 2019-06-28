@@ -1,16 +1,15 @@
+{% load crispy_forms_tags %}
  {% load static %}
 <!DOCTYPE html>
 <html>
-{% if request.user.is_superuser %}
 <head>
-	<meta charset="utf-8">
+  <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
     <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
 
     <link rel="stylesheet" type="text/css" href="{% static 'notes/main.css' %}">
-
 
 
 
@@ -52,7 +51,6 @@ ul {
   border: 1px solid #dddddd;
   border-radius: 3px;
   margin-bottom: 20px;
-  width:900px;
 }
 
 .article-title {
@@ -76,7 +74,7 @@ a.article-title:hover {
 
 .article-metadata {
   padding-bottom: 1px;
-  margin-bottom: 20px;
+  margin-bottom: 4px;
   border-bottom: 1px solid #e3e3e3
 }
 
@@ -106,45 +104,33 @@ a.article-title:hover {
  background-color: #f08c35;
 }
 </style>
-</head>
-<a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 float-right" href="{% url 'all_user' %}">Users</a>
+
 <body>
-
-
-
-	<main role="main" class="container" >
+<h1>{{error}}</h1>
+  <h1 class="container">Update User</h1>
+  <main role="main" class="container">
   <div class="row">
     <div class="col-md-8">
-      {% for community in communities %}
-    <article class="media content-section" >
-      <img class = "rounded-circle article-img" src="{{ community.image_url.url }}">
-  <div class="media-body" >
-    <div class="article-metadata" >
+              <div class="content-section">
 
-      <small class="text-muted">{{ community.active_since|date:"F d, Y" }}</small>
-      <a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 " href="{% url 'update_form' community.id %}">Update</a>
-      <a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 " href="{% url 'community_delete' community.id %}">Delete</a>
-      <a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 " href="{% url 'add_dashboard_admin' community.id %}">Add Admin</a>
-      <a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 " href="{% url 'add_dashboard_member' community.id %}">Add Member</a>
-      <a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 " href="{% url 'show_pending_member' community.id %}">Pending</a>
-      <a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 " href="{% url 'show_tags' community.id %}">Tags</a>
+              <form method="post" enctype = "multipart/form-data">
+                {% csrf_token %}
+                 <fieldset class="form-group">
+                    <legend class ="border-bottom mb-4">Community Info</legend>
+                    {{user_info_form|crispy }}
+                </fieldset>
+                <div class = "form-group">
+                    <button class="btn btn-outline-info" type="submit">Update</button>
+                </div>
 
+            </form>
+            </div>
 
-
-
-    </div>
-    <h2><a class="article-title" href="{% url 'update_form' community.id %}">{{ community.name }}</a></h2>
-    <p class="article-content">{{ community.purpose }}</p>
-  </div>
-</article>
-  {% endfor %}
     </div>
   </div>
 </main>
-	<script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+  <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
 
 </body>
-{% endif %}
-</html>

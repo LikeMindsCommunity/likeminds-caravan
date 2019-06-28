@@ -34,8 +34,6 @@ def update_form(request,community_id):
     return render(request,'dashboard/community.html',context)
 
 
-
-
 def community_delete(request,community_id):
     '''function to delete the community'''
     Community.objects.filter(id=community_id).delete()
@@ -165,3 +163,33 @@ def add_tags(request):
 
 
     return HttpResponse('submitted')
+
+def all_user(request):
+
+    '''dashboard to show all users'''
+    userinfo=Userinfo.objects.all()
+
+    return render(request, 'dashboard/all_user.html', {'all_user': userinfo})
+
+
+def update_user(request,email):
+
+    if request.method == 'POST':
+
+        user_info = Userinfo.objects.get(email=email)
+        user_info_form=UserForm(request.POST,instance=user_info)
+        user_info_form.save()
+        return redirect('all_user')
+    else:
+        context={}
+        try:
+            user_info = Userinfo.objects.get(email=email)
+            user_info_form = UserForm(instance=user_info)
+            context = {'user_info_form': user_info_form}
+        except:
+            context={'error':'Some Technical Error'}
+
+
+
+    return render(request,'dashboard/update_links.html',context)
+
