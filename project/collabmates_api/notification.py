@@ -8,9 +8,10 @@ from pyfcm import FCMNotification
 # database details
 db_user="apoorv"
 db_password="khare"
-db_host="ec2-18-220-31-143.us-east-2.compute.amazonaws.com"
+db_host="ec2-3-17-180-202.us-east-2.compute.amazonaws.com"
 db_port="5432"
 db_database="togther"
+
 
 
 # server keys for sending notification
@@ -113,11 +114,14 @@ def send_notification_to_admins(community_id,name):
     try:
         connection=get_connection()
         curr=connection.cursor()
-        sql="select member_id_id from togther_members where community_id_id= " + str(community_id)
+        sql="select member_id_id from togther_members where community_id_id= " + str(community_id) + " and (state=1 or state=2)"
         curr.execute(sql)
-        admin_id=curr.fetchone()[0]
+        admins=curr.fetchall()
+        token_list=[]
+        for admin in admins:
+             fcm_token=get_token_for_fcm(admin[0])
+             token_list.append((fcm_token))
 
-        fcm_token=get_token_for_fcm(admin_id)
         community_name=get_community_name(community_id)
         message={}
         message['payload']={
@@ -125,10 +129,6 @@ def send_notification_to_admins(community_id,name):
             'sub_title':str(name)+' has requested to join your community',
             'route':'route://member_approve?'+'community_id=' + str(community_id) + "&" + "community_name=" + str(community_name)
         }
-
-        token_list=[]
-        token_list.append(fcm_token)
-
         send_notification_to_multiple_devices(token_list,message)
         curr.close()
         connection.close()
@@ -191,4 +191,4 @@ def send_notification_for_new_collabcard_posted(community_id,collabcard_title,po
 
 
 
-
+print(get_connection())
