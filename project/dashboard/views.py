@@ -3,6 +3,8 @@ from django.http import HttpResponse
 from togther.models import *
 from django.views.generic import *
 from .forms import *
+from django.db.models import Q
+import time
 from django.views.decorators.csrf import csrf_exempt
 
 # Create your views here.
@@ -23,8 +25,23 @@ def update_form(request,community_id):
 
         community=Community.objects.get(id=community_id)
         community_form=CommunityForm(request.POST,request.FILES,instance=community)
+
         community_form.save()
-        return redirect('admin_dashboard')
+        purpose=community_form.cleaned_data['purpose']
+        admins=Members.objects.filter(community_id=community).filter(Q(state=1)|Q(state=2))
+        member_id=21
+        if admins:
+            for admin in admins:
+                member_id=admin.member_id
+                break;
+        exist=Collabcard.objects.filter(community_id=community,title=purpose)
+        if not exist:
+            collabcard=Collabcard()
+            collabcard.title=purpose
+            collabcard.user=member_id
+            collabcard.community_id=community_id
+            collabcard.date_epoch=time.time()
+            collabcard.save()
     else:
         community=Community.objects.get(id=community_id)
         community_form=CommunityForm(instance=community)
@@ -49,7 +66,7 @@ def add_dashboard_admin(request,community_id):
         if admin_form.is_valid():
             email_id=admin_form.cleaned_data['email']
             user_id=Userinfo.objects.get(email=email_id)
-            print(email_id)
+
             member_data=Members.objects.filter(community_id=community,member_id=user_id.user_id)
             if member_data:
                 Members.objects.filter(community_id=community_id,member_id=user_id.user_id).update(state=1)

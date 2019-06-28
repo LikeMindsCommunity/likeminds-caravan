@@ -14,9 +14,10 @@ class CommunityForm(forms.ModelForm):
         fields=['name','about','purpose','location','image_url']
         attrs = {'class': 'form-control form-group'}
         attr_purpose={'class': 'form-control form-group','minlength':40}
+
         widgets = {
             'name': forms.TextInput(attrs=attrs),
-            'about':forms.TextInput(attrs=attrs),
+            'about':forms.Textarea(attrs={'cols': 70, 'rows': 10}),
             'purpose':forms.TextInput(attrs=attr_purpose),
             'location':forms.TextInput(attrs=attrs),
             'image_url':forms.FileInput(attrs=({'class':'file-upload btn btn-primary'}))
