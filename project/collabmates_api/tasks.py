@@ -14,7 +14,7 @@ def send_email():
 	msg = EmailMultiAlternatives(subject,
 	                                 template,
 	                                 "hello@collabmates.com",
-	                                 ['mahesh61437mahe@gmail.com',to],
+	                                 [to],
 	                                 )
 	msg.attach_alternative(template, "text/html")
 	return msg.send(fail_silently)
@@ -29,7 +29,7 @@ def send_email_to_nominated_admin(NominatedAdmin,email,ProposedAdmin,CommunityNa
 	msg = EmailMultiAlternatives(subject,
 	                                 template,
 	                                 "hello@collabmates.com",
-	                                 ['mahesh61437mahe@gmail.com',to],
+	                                 [to],
 	                                 )
 	msg.attach_alternative(template, "text/html")
 	return msg.send(fail_silently)
@@ -44,7 +44,7 @@ def send_email_to_admin_of_community(CommmunityAdminName,CommunityName,email):
 	msg = EmailMultiAlternatives(subject,
 	                                 template,
 	                                 "hello@collabmates.com",
-	                                 ['mahesh61437mahe@gmail.com',to],
+	                                 [to],
 	                                 )
 	msg.attach_alternative(template, "text/html")
 	return msg.send(fail_silently)
@@ -59,7 +59,7 @@ def send_email_to_temp_admin_of_community(CommmunityAdminName,CommunityName,emai
 	msg = EmailMultiAlternatives(subject,
 	                                 template,
 	                                 "hello@collabmates.com",
-	                                 ['mahesh61437mahe@gmail.com',to],
+	                                 [to],
 	                                 )
 	msg.attach_alternative(template, "text/html")
 	return msg.send(fail_silently)

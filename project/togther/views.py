@@ -142,10 +142,15 @@ def community(request, community_id):
         source = ''
         cta =''
     community = get_object_or_404(Community, pk = community_id)
-    Nominated_mem = Members.objects.filter(member_id=request.user,community_id=community)
+    if request.user.is_authenticated:
+        Nominated_mem = Members.objects.filter(member_id=request.user,community_id=community)
+        Nom_mem_state=Nominated_mem[0].state
+    elif res['source']=='mail':
+        Nom_mem_state= 0
+    else:
+        Nom_mem_state= 0
     #------------------------------------------
     all_members=Members.objects.filter(community_id=community.id)
-
     members=[]
     admin_details=[]
     is_joined=-1
@@ -167,29 +172,38 @@ def community(request, community_id):
         user = Userinfo.objects.all().filter(user_id=request.user)
     else:
         user = []
-    print("member state == ",Nominated_mem[0].state)
 
-    return render (request, 'community.html', {'usr':user,'similar_communities':communities , 'community' : community,'admins': admin_details, 'is_joined':is_joined, 'members':members,'source':source,'cta':cta,'Nom_mem_state':Nominated_mem[0].state})
+    return render (request, 'community.html', {'usr':user,'similar_communities':communities , 'community' : community,'admins': admin_details, 'is_joined':is_joined, 'members':members,'source':source,'cta':cta,'Nom_mem_state':Nom_mem_state})
 
-def accept_admin(request,community_id,cta):
+def accept_admin(request,community_id,cta=''):
     community = Community.objects.get(id=community_id)
     member = Members.objects.filter(community_id = community).filter(Q(state=1)|Q(state=2))
     prop_admin = Userinfo.objects.get(user_id = member[0].member_id.id)
     nom_admin = Userinfo.objects.get(user_id = request.user)
+    if cta =='':
+        cta = check_admins(community_id)
     if cta == 'accept_invitation_admin':
         if len(member) == 1:
             send_email_to_proposed_admin.delay(NominatedAdmin=nom_admin.name,email=prop_admin.email,ProposedAdmin=prop_admin.name,CommunityName=community.name)
         Members.objects.filter(community_id = community,member_id=request.user).update(state =1)
     elif cta == 'accept_invitation_temp_admin':
-        print("nominated Admin  name == ",nom_admin.name)
-        print("ProposedAdmin name == ",prop_admin.name)
-        print("user email == ",prop_admin.email)
-        print("community name == ",community.name)
         temp_admin = Members.objects.filter(community_id = community,state=2)
         Members.objects.filter(community_id = community,member_id=temp_admin[0].member_id).update(state =4)
         Members.objects.filter(community_id = community,member_id=request.user).update(state =1)
         send_email_to_proposed_admin.delay(NominatedAdmin=nom_admin.name,email=prop_admin.email,ProposedAdmin=prop_admin.name,CommunityName=community.name)
     return HttpResponseRedirect(reverse('comunity', args=[community_id]))
+
+def check_admins(community_id):
+    community = Community.objects.get(id=community_id)
+    member = Members.objects.filter(community_id = community).filter(Q(state=1)|Q(state=2))
+    if len(member) == 1:
+        if member[0].state == 2:
+            cta = 'accept_invitation_temp_admin'
+        elif member[0].state == 1:
+            cta = 'accept_invitation_admin'
+    else:
+        cta = 'accept_invitation_admin'
+    return cta
 
 @login_required
 def creategroup(request):

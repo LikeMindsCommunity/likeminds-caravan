@@ -197,6 +197,9 @@
 
                   {% elif Nom_mem_state == 4 %}
                                 <button class="ui fluid button " style=" z-index:2;width:60%; left:20%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;" disabled>Already a Member</button>
+                  {% elif Nom_mem_state == 6 %}
+                  <button class="ui fluid button " style=" z-index:2;width:60%; left:20%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;" onclick="accept_admin('{{cta}}','{{community.id}}','{{Nom_mem_state}}');"> Accept invitation </button>
+
 
                   {% elif source == 'mail' %}
               <button class="ui fluid button " style=" z-index:2;width:60%; left:20%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;" onclick="accept_admin('{{cta}}','{{community.id}}','{{Nom_mem_state}}');"> Accept invitation </button>
@@ -249,13 +252,14 @@
                     console.log(cta);
                     console.log(community_id)
                     console.log(Nom_mem_state)
+                    
+                    {% if user.is_authenticated %}
+                        window.location.href = "/"+"accept_admin/"+community_id+"/"+cta
                     if (Nom_mem_state!=6) 
                     {
                       alert("Sorry!You are not the Nominated Admin of this Community");
                       return;
                     }
-                    {% if user.is_authenticated %}
-                        window.location.href = "/"+"accept_admin/"+community_id+"/"+cta
                     {% else %}
                     $('.test')
                     .modal('show')

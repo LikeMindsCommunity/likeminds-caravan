@@ -16,7 +16,7 @@ def send_email_to_proposed_admin(NominatedAdmin,email,ProposedAdmin,CommunityNam
 	msg = EmailMultiAlternatives(subject,
 	                                 template,
 	                                 "hello@collabmates.com",
-	                                 ['mahesh61437mahe@gmail.com',to],
+	                                 [to],
 	                                 )
 	msg.attach_alternative(template, "text/html")
 	return msg.send(fail_silently)
