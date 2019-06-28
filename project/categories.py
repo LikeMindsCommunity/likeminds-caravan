@@ -44,5 +44,6 @@ Category_list = [
 { "id" : 'pf' , "title": 'Profession'},
 { "id" : 'fa' , "title": 'Fan'},
 { "id" : 'sf' , "title": 'Sports'},
-{"id":'lg',"title":'Legacy'}
+{"id":'lg',"title":'Legacy'},
+{ "id" : 'le' , "title": 'Learning'},
 ]
