@@ -887,33 +887,39 @@ def check_member(email,community_id,member_id,res):
     ProposedAdmin = Userinfo.objects.get(user_id = member_id)
     community = Community.objects.get(id = community_id)
     CommunityName=community.name
-    email=email
+    email=email.lower()
     ProposedAdmin=ProposedAdmin.name
     try:
         user = Userinfo.objects.filter(email=email)
+
         if user:
+            print("user is present")
             NominatedAdmin=user[0].name
         else:
-            send_email_to_nominated_admin.delay(NominatedAdmin=res['name'],email=email,ProposedAdmin=ProposedAdmin,CommunityName=CommunityName,community_id =community.id)
+            print("user is not present")
+            #send_email_to_nominated_admin.delay(NominatedAdmin=res['name'],email=email,ProposedAdmin=ProposedAdmin,CommunityName=CommunityName,community_id =community.id)
             return False
     except:
-        send_email_to_nominated_admin.delay(NominatedAdmin=res['name'],email=email,ProposedAdmin=ProposedAdmin,CommunityName=CommunityName,community_id =community.id)
+        #send_email_to_nominated_admin.delay(NominatedAdmin=res['name'],email=email,ProposedAdmin=ProposedAdmin,CommunityName=CommunityName,community_id =community.id)
         return False
     if user:
         member =Members.objects.filter(community_id = community,member_id = user[0].user_id.id)
         if member and member[0].state == 4:
+            print("member is meber")
             Members.objects.filter(community_id = community,member_id = user[0].user_id.id).update(state=6)
-            send_email_to_nominated_admin.delay(NominatedAdmin=NominatedAdmin,email=email,ProposedAdmin=ProposedAdmin,CommunityName=CommunityName,community_id =community.id)
+            #send_email_to_nominated_admin.delay(NominatedAdmin=NominatedAdmin,email=email,ProposedAdmin=ProposedAdmin,CommunityName=CommunityName,community_id =community.id)
         try:
             if member[0].state == 1 or member[0].state == 2 or member[0].state == 6:
+                print("member is admin")
                 return True
         except:
+            print("member is created")
             member =Members()
             member.community_id = community
             member.member_id = user[0].user_id
             member.state = 6
             member.save()
-            send_email_to_nominated_admin.delay(NominatedAdmin=NominatedAdmin,email=email,ProposedAdmin=ProposedAdmin,CommunityName=CommunityName,community_id =community.id)
+            #send_email_to_nominated_admin.delay(NominatedAdmin=NominatedAdmin,email=email,ProposedAdmin=ProposedAdmin,CommunityName=CommunityName,community_id =community.id)
         return True
     return False
 

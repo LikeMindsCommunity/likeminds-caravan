@@ -133,6 +133,7 @@ def community(request, community_id):
     res= request.GET.dict()
     if 'source' in res:
         source =res['source']
+        print(source)
     else:
         source = ''
         
@@ -145,12 +146,14 @@ def community(request, community_id):
     if request.user.is_authenticated:
         Nominated_mem = Members.objects.filter(member_id=request.user,community_id=community)
         Nom_mem_state=Nominated_mem[0].state
+        print(Nom_mem_state)
     elif res['source']=='mail':
         Nom_mem_state= 0
     else:
         Nom_mem_state= 0
     #------------------------------------------
     all_members=Members.objects.filter(community_id=community.id)
+    print("nom mem state == ",Nom_mem_state)
     members=[]
     admin_details=[]
     is_joined=-1
@@ -178,13 +181,17 @@ def community(request, community_id):
 def accept_admin(request,community_id,cta=''):
     community = Community.objects.get(id=community_id)
     member = Members.objects.filter(community_id = community).filter(Q(state=1)|Q(state=2))
+
     prop_admin = Userinfo.objects.get(user_id = member[0].member_id.id)
-    nom_admin = Userinfo.objects.get(user_id = request.user)
+    print(request.user.id)
+    nom_admin = Userinfo.objects.all().filter(user_id = request.user.id)
+    print(nom_admin)
     if cta =='':
         cta = check_admins(community_id)
     if cta == 'accept_invitation_admin':
         if len(member) == 1:
-            send_email_to_proposed_admin.delay(NominatedAdmin=nom_admin.name,email=prop_admin.email,ProposedAdmin=prop_admin.name,CommunityName=community.name)
+            print(nom_admin[0].name)
+            #send_email_to_proposed_admin.delay(NominatedAdmin=nom_admin[0].name,email=prop_admin.email,ProposedAdmin=prop_admin.name,CommunityName=community.name)
         Members.objects.filter(community_id = community,member_id=request.user).update(state =1)
     elif cta == 'accept_invitation_temp_admin':
         temp_admin = Members.objects.filter(community_id = community,state=2)
@@ -196,6 +203,7 @@ def accept_admin(request,community_id,cta=''):
 def check_admins(community_id):
     community = Community.objects.get(id=community_id)
     member = Members.objects.filter(community_id = community).filter(Q(state=1)|Q(state=2))
+    print("member state == ",member[0].state)
     if len(member) == 1:
         if member[0].state == 2:
             cta = 'accept_invitation_temp_admin'
