@@ -879,7 +879,7 @@ def create_admin(request,community_id):
         admin.community = community
         admin.member_id = member_id
         admin.save()
-        check = check_member(res['email_id'],community_id,res['member_id'],response=res)
+        check = check_member(res['email_id'],community_id,res['member_id'],res)
         return JsonResponse({'success':True})
     return HttpResponse('Add Admin Api')
 
