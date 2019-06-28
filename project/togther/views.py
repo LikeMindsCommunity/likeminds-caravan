@@ -191,7 +191,7 @@ def accept_admin(request,community_id,cta=''):
     if cta == 'accept_invitation_admin':
         if len(member) == 1:
             print(nom_admin[0].name)
-            #send_email_to_proposed_admin.delay(NominatedAdmin=nom_admin[0].name,email=prop_admin.email,ProposedAdmin=prop_admin.name,CommunityName=community.name)
+            send_email_to_proposed_admin.delay(NominatedAdmin=nom_admin[0].name,email=prop_admin.email,ProposedAdmin=prop_admin.name,CommunityName=community.name)
         Members.objects.filter(community_id = community,member_id=request.user).update(state =1)
     elif cta == 'accept_invitation_temp_admin':
         temp_admin = Members.objects.filter(community_id = community,state=2)
