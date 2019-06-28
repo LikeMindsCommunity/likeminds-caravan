@@ -8,7 +8,7 @@ from pyfcm import FCMNotification
 # database details
 db_user="apoorv"
 db_password="khare"
-db_host="ec2-18-220-31-143.us-east-2.compute.amazonaws.com"
+db_host="ec2-3-17-180-202.us-east-2.compute.amazonaws.com"
 db_port="5432"
 db_database="togther"
 
@@ -191,3 +191,4 @@ def send_notification_for_new_collabcard_posted(community_id,collabcard_title,po
 
 
 
+print(get_connection())
