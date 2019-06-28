@@ -145,8 +145,10 @@ def community(request, community_id):
     community = get_object_or_404(Community, pk = community_id)
     if request.user.is_authenticated:
         Nominated_mem = Members.objects.filter(member_id=request.user,community_id=community)
-        Nom_mem_state=Nominated_mem[0].state
-        print(Nom_mem_state)
+        if Nominated_mem:
+            Nom_mem_state=Nominated_mem[0].state
+        else:
+            Nom_mem_state = 0
     elif res['source']=='mail':
         Nom_mem_state= 0
     else:

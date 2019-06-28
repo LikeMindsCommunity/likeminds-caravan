@@ -908,11 +908,7 @@ def check_member(email,community_id,member_id,res):
             print("member is meber")
             Members.objects.filter(community_id = community,member_id = user[0].user_id.id).update(state=6)
             send_email_to_nominated_admin.delay(NominatedAdmin=NominatedAdmin,email=email,ProposedAdmin=ProposedAdmin,CommunityName=CommunityName,community_id =community.id)
-        try:
-            if member[0].state == 1 or member[0].state == 2 or member[0].state == 6:
-                print("member is admin")
-                return True
-        except:
+        else:
             print("member is created")
             member =Members()
             member.community_id = community
@@ -920,6 +916,7 @@ def check_member(email,community_id,member_id,res):
             member.state = 6
             member.save()
             send_email_to_nominated_admin.delay(NominatedAdmin=NominatedAdmin,email=email,ProposedAdmin=ProposedAdmin,CommunityName=CommunityName,community_id =community.id)
+
         return True
     return False
 
