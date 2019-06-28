@@ -187,15 +187,19 @@
                     </div>
                     </div>
                   </div>
-                  {% if Nom_mem_state == 1%}
-                                <button class="ui fluid button " style=" z-index:2;width:60%; left:20%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;" disabled>Already a Member</button>
+                  {% if Nom_mem_state == 0 and source == 'email'%}
+                  <button class="ui fluid button " style=" z-index:2;width:60%; left:20%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;" onclick="accept_admin('{{cta}}','{{community.id}}','{{Nom_mem_state}}');"> Accept invitation </button>
+                  {% elif Nom_mem_state == 1%}
+                                <button class="ui fluid button " style=" z-index:2;width:60%; left:20%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;" disabled>You are a promoter</button>
 
                   {% elif Nom_mem_state == 2 %}
-                                <button class="ui fluid button " style=" z-index:2;width:60%; left:20%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;" disabled>Already a Member</button>
+                                <button class="ui fluid button " style=" z-index:2;width:60%; left:20%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;" disabled>You are a promoter</button>
                   {% elif Nom_mem_state == 4 %}
                                 <button class="ui fluid button " style=" z-index:2;width:60%; left:20%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;" disabled>Already a Member</button>
                   {% elif Nom_mem_state == 6 %}
                   <button class="ui fluid button " style=" z-index:2;width:60%; left:20%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;" onclick="accept_admin('{{cta}}','{{community.id}}','{{Nom_mem_state}}');"> Accept invitation </button>
+                  {% elif source == 'email' %}
+              <button class="ui fluid button " style=" z-index:2;width:60%; left:20%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;" onclick="accept_admin('{{cta}}','{{community.id}}','{{Nom_mem_state}}');"> Accept invitation </button>
 {% elif Nom_mem_state == 3 %}
                                 <button class="ui fluid button " style=" z-index:2;width:60%; left:20%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;" disabled> Pending Approval  </button>
 
