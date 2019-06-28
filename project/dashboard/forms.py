@@ -1,5 +1,4 @@
 from django import  forms
-from crispy_forms.helper import FormHelper
 from togther.models import *
 
 class CommunityForm(forms.ModelForm):
@@ -37,3 +36,33 @@ class MemberForm(forms.Form):
 
 
 
+
+
+class UserForm(forms.ModelForm):
+
+
+    def __init__(self, *args, **kwargs):
+        super(UserForm, self).__init__(*args, **kwargs)
+        self.fields['name'].required = True
+        self.fields['city'].required = False
+        self.fields['contact_number'].required = False
+        self.fields['interests'].required = False
+        self.fields['fb_link'].required = False
+        self.fields['linkedin_link'].required = False
+        self.fields['fcm_token'].required = False
+
+    class Meta:
+        model=Userinfo
+        fields=['name','city','contact_number','interests','fb_link','linkedin_link','fcm_token']
+        attrs = {'class': 'form-control form-group'}
+
+        widgets = {
+            'name': forms.TextInput(attrs=attrs),
+            'city':forms.TextInput(attrs=attrs),
+            'contact_number':forms.TextInput(attrs=attrs),
+            'interests':forms.TextInput(attrs=attrs),
+            'fb_link':forms.TextInput(attrs=attrs),
+            'linkedin_link':forms.TextInput(attrs=attrs),
+            'fcm_token':forms.TextInput(attrs=attrs)
+
+        }

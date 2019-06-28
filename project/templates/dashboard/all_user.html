@@ -107,7 +107,6 @@ a.article-title:hover {
 }
 </style>
 </head>
-<a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 float-right" href="{% url 'all_user' %}">Users</a>
 <body>
 
 
@@ -115,26 +114,20 @@ a.article-title:hover {
 	<main role="main" class="container" >
   <div class="row">
     <div class="col-md-8">
-      {% for community in communities %}
+      {% for user in all_user %}
     <article class="media content-section" >
       <img class = "rounded-circle article-img" src="{{ community.image_url.url }}">
   <div class="media-body" >
     <div class="article-metadata" >
 
-      <small class="text-muted">{{ community.active_since|date:"F d, Y" }}</small>
-      <a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 " href="{% url 'update_form' community.id %}">Update</a>
-      <a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 " href="{% url 'community_delete' community.id %}">Delete</a>
-      <a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 " href="{% url 'add_dashboard_admin' community.id %}">Add Admin</a>
-      <a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 " href="{% url 'add_dashboard_member' community.id %}">Add Member</a>
-      <a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 " href="{% url 'show_pending_member' community.id %}">Pending</a>
-      <a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 " href="{% url 'show_tags' community.id %}">Tags</a>
+
 
 
 
 
     </div>
-    <h2><a class="article-title" href="{% url 'update_form' community.id %}">{{ community.name }}</a></h2>
-    <p class="article-content">{{ community.purpose }}</p>
+    <h2><a class="article-title" href="{% url 'update_user'  user.email%}">{{ user.name }}</a></h2>
+    <p class="article-content">{{ user.email }}</p>
   </div>
 </article>
   {% endfor %}
