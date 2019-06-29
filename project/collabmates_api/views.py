@@ -782,12 +782,16 @@ def login(request):
         login_type=request.GET.get('type')
         if login_type == 'facebook':
             email=res['email']
+            email=email.lower().strip()
+            user =User.objects.filter(email=email)
+            if not user:
+                usr = User()
+                usr.username = res['name']
+                usr.email = res['email']
+                usr.save()
             userinfo = Userinfo.objects.all().filter(email = res['email'])
             if not userinfo:
                 userinfo = Userinfo()
-                usr = User()
-                usr.username = res['name']
-                usr.save()
                 userinfo.user_id = usr
                 userinfo.email = res['email']
                 userinfo.name = res['name']
@@ -887,7 +891,7 @@ def check_member(email,community_id,member_id,res):
     ProposedAdmin = Userinfo.objects.get(user_id = member_id)
     community = Community.objects.get(id = community_id)
     CommunityName=community.name
-    email=email.lower()
+    email=email.lower().strip()
     ProposedAdmin=ProposedAdmin.name
     try:
         user = Userinfo.objects.filter(email=email)
@@ -900,6 +904,7 @@ def check_member(email,community_id,member_id,res):
             send_email_to_nominated_admin.delay(NominatedAdmin=res['name'],email=email,ProposedAdmin=ProposedAdmin,CommunityName=CommunityName,community_id =community.id)
             return False
     except:
+        print("except block email")
         send_email_to_nominated_admin.delay(NominatedAdmin=res['name'],email=email,ProposedAdmin=ProposedAdmin,CommunityName=CommunityName,community_id =community.id)
         return False
     if user:
