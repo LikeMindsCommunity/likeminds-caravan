@@ -48,7 +48,7 @@ def update_form(request,community_id):
 
 
     context={'community_form':community_form,'community':community}
-    return render(request,'dashboard/community.html',context)
+    return render(request,'dashboard/dashboard.html',context)
 
 
 def community_delete(request,community_id):
@@ -210,3 +210,20 @@ def update_user(request,email):
 
     return render(request,'dashboard/update_links.html',context)
 
+
+def send_invitation(request):
+    '''function to send invite to members'''
+    if request.method == 'POST':
+        send_nominated_email=SendNominatedEmail(request.POST)
+        if send_nominated_email.is_valid():
+            proposer_email=send_nominated_email.cleaned_data['proposer_email']
+            proposed_email=send_nominated_email.cleaned_data['proposed_email']
+            admin_type=send_nominated_email.cleaned_data['admin_type']
+            print(proposer_email)
+            print(proposed_email)
+            print(admin_type)
+            return redirect('admin_dashboard')
+    else:
+        send_nominated_email=SendNominatedEmail()
+        context={'send_email':send_nominated_email}
+        return render(request,'dashboard/send_invitation.html',context)

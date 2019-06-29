@@ -67,3 +67,14 @@ class UserForm(forms.ModelForm):
             'fcm_token':forms.TextInput(attrs=attrs)
 
         }
+class SendNominatedEmail(forms.Form):
+
+    proposer_email=forms.EmailField(label='proposer_email', widget=forms.TextInput(attrs={'placeholder': 'Email' ,'class':'form-control form-group'}))
+    proposed_email=forms.EmailField(label='proposed_email', widget=forms.TextInput(attrs={'placeholder': 'Email' ,'class':'form-control form-group'}))
+
+    admin_type = (
+        ('admin', 'admin'),
+        ('temp_admin', 'temp_admin'),
+       )
+
+    admin_type=forms.ChoiceField(choices=admin_type)
