@@ -29,7 +29,7 @@ def dashboard(request):
         user = Userinfo.objects.all().filter(user_id = request.user)
         print("user == ", user)
         social_user = request.user.social_auth.filter(user_id = request.user.id).first()
-        if user :
+        if not user :
             social_user = request.user.social_auth.filter(user_id = request.user.id).first()
             if social_user:
                 if social_user.provider == 'facebook':
