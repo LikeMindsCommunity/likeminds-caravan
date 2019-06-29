@@ -5,6 +5,9 @@ from django.views.generic import *
 from .forms import *
 from django.db.models import Q
 import time
+from django.template.loader import get_template
+from django.shortcuts import render
+from django.core.mail import EmailMultiAlternatives
 from django.views.decorators.csrf import csrf_exempt
 
 # Create your views here.
@@ -48,7 +51,7 @@ def update_form(request,community_id):
 
 
     context={'community_form':community_form,'community':community}
-    return render(request,'dashboard/community.html',context)
+    return render(request,'dashboard/dashboard.html',context)
 
 
 def community_delete(request,community_id):
@@ -210,3 +213,41 @@ def update_user(request,email):
 
     return render(request,'dashboard/update_links.html',context)
 
+
+def send_invitation(request,community_id):
+    '''function to send invite to members'''
+    if request.method == 'POST':
+        community = Community.objects.get(id=community_id)
+       
+        send_nominated_email=SendNominatedEmail(request.POST)
+        if send_nominated_email.is_valid():
+            proposer_name=send_nominated_email.cleaned_data['proposer_name']
+            proposed_name=send_nominated_email.cleaned_data['proposed_name']
+            proposed_email=send_nominated_email.cleaned_data['proposed_email']
+            # admin_type=send_nominated_email.cleaned_data['admin_type']
+            # print(proposer_name)
+            # print(proposed_name)
+            # print(proposed_email)
+            # print(admin_type)
+            send_email_to_nominated_admin(proposed_name,proposed_email,proposer_name,community.name,community_id)
+            return redirect('admin_dashboard')
+    else:
+        send_nominated_email=SendNominatedEmail()
+        context={'send_email':send_nominated_email}
+        return render(request,'dashboard/send_invitation.html',context)
+
+
+
+
+def send_email_to_nominated_admin(NominatedAdmin,email,ProposedAdmin,CommunityName,community_id):
+	fail_silently=True
+	to = email
+	subject =str(ProposedAdmin)+ " has proposed you as admin of "+str(CommunityName)+" community"
+	template = get_template("mails/accept_admin_request.html").render({"NominatedAdmin":NominatedAdmin,"email":email,"ProposedAdmin":ProposedAdmin,"CommunityName":CommunityName,"community_id":community_id})
+	msg = EmailMultiAlternatives(subject,
+	                                 template,
+	                                 "hello@collabmates.com",
+	                                 [to],
+	                                 )
+	msg.attach_alternative(template, "text/html")
+	return msg.send(fail_silently)

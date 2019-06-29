@@ -13,6 +13,7 @@ urlpatterns = [
     path('show_tags/<int:community_id>', show_tags, name='show_tags'),
     path('add_tags',add_tags,name='add_tags'),
     path('update_user/<str:email>',update_user,name='update_user'),
-    path('all_user',all_user,name='all_user')
+    path('all_user',all_user,name='all_user'),
+    path('send_invitation/<int:community_id>', send_invitation, name='send_invitation')
 
 ]
