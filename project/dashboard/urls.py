@@ -14,6 +14,6 @@ urlpatterns = [
     path('add_tags',add_tags,name='add_tags'),
     path('update_user/<str:email>',update_user,name='update_user'),
     path('all_user',all_user,name='all_user'),
-    path('send_invitation', send_invitation, name='send_invitation')
+    path('send_invitation/<int:community_id>', send_invitation, name='send_invitation')
 
 ]
