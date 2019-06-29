@@ -29,6 +29,7 @@ def dashboard(request):
         user = Userinfo.objects.all().filter(user_id = request.user)
         print("user == ", user)
         social_user = request.user.social_auth.filter(user_id = request.user.id).first()
+        created =False
         if not user :
             social_user = request.user.social_auth.filter(user_id = request.user.id).first()
             if social_user:
@@ -36,6 +37,7 @@ def dashboard(request):
                     url = "https://graph.facebook.com/v2.9/"+social_user.extra_data['id']+"?fields=name,email,gender,location,picture,link&access_token="+social_user.extra_data['access_token']
                     response = rqst.get(url)
                     data = json.loads(response.text)
+                    print(data)
                     core_user = User.objects.all().filter(email = data['email']).first()
                     print("django user == ",core_user)
                     if core_user:
@@ -53,6 +55,7 @@ def dashboard(request):
                             user.user_id = core_user
                             user.save()
                             print("created userinfo")
+                            created =True
                     else:
                         if 'link' in data:
                             usr1.fb_link = data['link']
@@ -75,16 +78,27 @@ def dashboard(request):
                     info.save()
                 else:
                     usr1.linkedin_link = data['publicProfileUrl']
+        print("user ================================  ",user)
+        if created:
+            print("created")
+            user_id = user.id
+            print(user.id)
+            usr =user
+        else:
+            print("user info already exists")
+            print(user)
             user_id = user[0].id
-            communities1 = Members.objects.all().filter(member_id = user_id)
-            my_communities = []
-            for j in communities1:
+            usr=user[0]
+        communities1 = Members.objects.all().filter(member_id = user_id)
+        my_communities = []
+        for j in communities1:
                 my_communities.append(j.community_id)
-            my_community =[]
-            for j in my_communities:
-                my_community.append(j)
-            communities = Community.objects.all().order_by('-active_since')
-        return render (request, 'dashboard.html', { 'usr': user[0], 'communities' : communities, 'my_communities':my_community[:2], "my_communities_count": len(my_community) })
+        my_community =[]
+        for j in my_communities:
+            my_community.append(j)
+        communities = Community.objects.all().order_by('-active_since')
+        print("usr at last  ======== ",usr)
+        return render (request, 'dashboard.html', { 'usr': usr, 'communities' : communities, 'my_communities':my_community[:2], "my_communities_count": len(my_community) })
     else:
         user = []
     communities = Community.objects.all().order_by('-active_since')
@@ -156,7 +170,7 @@ def community(request, community_id):
     community = get_object_or_404(Community, pk = community_id)
     if request.user.is_authenticated:
         user = Userinfo.objects.all().filter(user_id = request.user)
-        print(user[0].email)
+        print("cur sess mail",user[0].email)
         core_user = User.objects.all().filter(email = user[0].email).first()
         print("core user == ",core_user.email)
         Nominated_mem = Members.objects.filter(member_id=core_user.id,community_id=community)
@@ -165,12 +179,24 @@ def community(request, community_id):
             if Nominated_mem:
                 Nom_mem_state=Nominated_mem[0].state
             else:
-                Nom_mem_state = 0
+                try:
+                    check=get_nominated_admin_details(member_id=core_user.id,community_id=community.id,email=core_user.email)
+                    if check:
+                        member=Members()
+                        member.member_id=core_user
+                        member.community_id = community
+                        member.state = 6
+                        member.save()
+                        Nom_mem_state = 6
+                    else:
+                        Nom_mem_state = 0
+                except:
+                    Nom_mem_state = 0
         except:
             print("except block Nominated_mem")
             Nom_mem_state = 0
     elif not request.user.is_authenticated and source == 'email':
-        print("not authenticated block Nominated_mem ans source is email")
+        print("not authenticated block Nominated_mem and source is email")
         Nom_mem_state= 0
     elif not request.user.is_authenticated:
         print("not authenticated block Nominated_mem")
@@ -197,7 +223,6 @@ def community(request, community_id):
 
         elif core_user.id == member.member_id.id and member.state == 3:
             is_joined=0
-
     user=[]
     communities=Community.objects.all()
     if request.user.is_authenticated:
@@ -206,6 +231,22 @@ def community(request, community_id):
         user = []
     print("last")
     return render (request, 'community.html', {'usr':user,'similar_communities':communities , 'community' : community,'admins': admin_details, 'is_joined':is_joined, 'members':members,'source':source,'cta':cta,'Nom_mem_state':Nom_mem_state})
+
+
+def get_nominated_admin_details(member_id,community_id,email):
+    print("fetching non admin details from DB")
+    user = Userinfo.objects.all().filter(user_id = request.user)
+    print("cur sess mail",user[0].email)
+    core_user = User.objects.all().filter(email = user[0].email).first()
+    community = get_object_or_404(Community, pk = community_id)
+    details = temp_admin.objects.filter(member_id=core_user,community_id=community,email=core_user.email)
+    if details:
+        print("details are present")
+        return True
+    else:
+        print("details are not present")
+        return False
+
 
 def accept_admin(request,community_id,cta=''):
     community = Community.objects.get(id=community_id)
