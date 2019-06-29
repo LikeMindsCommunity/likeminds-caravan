@@ -27,6 +27,7 @@ def home(request):
 def dashboard(request):  
     if request.user.is_authenticated:
         user = Userinfo.objects.all().filter(user_id = request.user)
+        print("user == ", user)
         social_user = request.user.social_auth.filter(user_id = request.user.id).first()
         if user :
             social_user = request.user.social_auth.filter(user_id = request.user.id).first()
