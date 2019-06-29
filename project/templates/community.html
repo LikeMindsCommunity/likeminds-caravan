@@ -37,7 +37,91 @@
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
       gtag('config', 'UA-130288684-1');
-</script>
+
+                     function open_community(id){
+                    console.log(id);
+                    window.location.href = "../"+id;
+                }
+
+
+                function join(){
+                    console.log(1);
+                    {% if user.is_authenticated %}
+                        window.location.href = "join"
+                    {% else %}
+                    $('.test')
+                    .modal('show')
+                  ;
+                    {% endif %}
+                }
+                function accept_admin(cta,community_id,Nom_mem_state){
+                    console.log('hello')
+                    console.log(cta);
+                    console.log(community_id)
+                    console.log(Nom_mem_state)
+
+                    {% if user.is_authenticated %}
+                    if (Nom_mem_state!=6)
+                    {
+                      alert("Sorry!You are not the Nominated Admin of this Community");
+                      return;
+                    }
+                    window.location.href = "/"+"accept_admin/"+community_id+"/"+cta;
+                    {% else %}
+                    $('.test')
+                    .modal('show')
+                  ;
+                    {% endif %}
+
+                }
+
+    $(function(){
+      $("#test").click(function(){
+        $(".test").modal('show');
+      });
+      $(".test").modal({
+        closable: true
+      });
+    });
+       function hide(){
+    $('.ui.modal').modal("hide");
+  }
+                $(document).ready(function() {
+                    var showChar = 180;
+                    var ellipsestext = "...";
+                    var moretext = "more";
+                    var lesstext = "less";
+                    $('#more').each(function() {
+                        var content = $(this).html();
+
+                        if(content.length > showChar) {
+                            console.log(content.length);
+                            var c = content.substr(0, showChar);
+                            var h = content.substr(showChar-1, content.length - showChar);
+
+                            var html = c + '<span class="moreellipses">' + ellipsestext+ '&nbsp;</span><span class="morecontent"><span>' + h + '</span>&nbsp;&nbsp;<a href="" class="morelink">' + moretext + '</a></span>';
+
+                            $(this).html(html);
+                        }
+
+                    });
+
+                    $(".morelink").click(function(){
+                        if($(this).hasClass("less")) {
+                            $(this).removeClass("less");
+                            $(this).html(moretext);
+                        } else {
+                            $(this).addClass("less");
+                            $(this).html(lesstext);
+                        }
+                        $(this).parent().prev().toggle();
+                        $(this).prev().toggle();
+                        return false;
+                    });
+                });
+
+
+     </script>
   
   </head>
 
@@ -209,7 +293,7 @@
                                 <button class="ui fluid button " style=" z-index:2;width:60%; left:20%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;" disabled> Join Group(Declined)  </button>
 
                   {% elif is_joined == -1 %}
-            <button class="ui fluid button " style=" z-index:2;width:60%; left:20%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;" onclick="join();"> Join Group  </button>
+            <button class="ui fluid button " style=" z-index:2;width:60%; left:20%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;" onclick="join()"> Join Group  </button>
                             
 <!--                            {% elif is_joined == 1 %}-->
 <!--                                <button class="ui fluid button " style=" z-index:2;width:60%; left:20%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;"   id="invite" onclick="invite();" > Join Group  </button>-->
@@ -235,87 +319,5 @@
            
         </style>
         </div>
-           <script>
-                function open_community(id){
-                    console.log(id);
-                    window.location.href = "../"+id;
-                }
-                function join(){
-                    console.log(1);
-                    {% if user.is_authenticated %}
-                        window.location.href = "join";
-                    {% else %}
-                    $('.test')
-                    .modal('show')
-                  ;
-                    {% endif %}
-                }
-                function accept_admin(cta,community_id,Nom_mem_state){
-                    console.log('hello')
-                    console.log(cta);
-                    console.log(community_id)
-                    console.log(Nom_mem_state)
-                    
-                    {% if user.is_authenticated %}
-                    if (Nom_mem_state!=6) 
-                    {
-                      alert("Sorry!You are not the Nominated Admin of this Community");
-                      return;
-                    }
-                    window.location.href = "/"+"accept_admin/"+community_id+"/"+cta;
-                    {% else %}
-                    $('.test')
-                    .modal('show')
-                  ;
-                    {% endif %}
-               
-                }
 
-    $(function(){
-      $("#test").click(function(){
-        $(".test").modal('show');
-      });
-      $(".test").modal({
-        closable: true
-      });
-    });
-       function hide(){
-    $('.ui.modal').modal("hide");
-  }
-                $(document).ready(function() {
-                    var showChar = 180;
-                    var ellipsestext = "...";
-                    var moretext = "more";
-                    var lesstext = "less";
-                    $('#more').each(function() {
-                        var content = $(this).html();
-                        
-                        if(content.length > showChar) {
-                            console.log(content.length);
-                            var c = content.substr(0, showChar);
-                            var h = content.substr(showChar-1, content.length - showChar);
-                
-                            var html = c + '<span class="moreellipses">' + ellipsestext+ '&nbsp;</span><span class="morecontent"><span>' + h + '</span>&nbsp;&nbsp;<a href="" class="morelink">' + moretext + '</a></span>';
-                
-                            $(this).html(html);
-                        }
-                
-                    });
-                
-                    $(".morelink").click(function(){
-                        if($(this).hasClass("less")) {
-                            $(this).removeClass("less");
-                            $(this).html(moretext);
-                        } else {
-                            $(this).addClass("less");
-                            $(this).html(lesstext);
-                        }
-                        $(this).parent().prev().toggle();
-                        $(this).prev().toggle();
-                        return false;
-                    });
-                });
-                
-                
-           </script>
 {% endblock %}
