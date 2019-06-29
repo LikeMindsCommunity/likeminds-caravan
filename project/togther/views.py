@@ -83,8 +83,7 @@ def dashboard(request):
             for j in my_communities:
                 my_community.append(j)
             communities = Community.objects.all().order_by('-active_since')
-        return render (request, 'dashboard.html', { 'usr': user[0], 'communities' : communities, 'my_communities':my_community[:2], "my_communities_count": len(my_community) })
-
+        return render (request, 'dashboard.html', { 'usr': user, 'communities' : communities, 'my_communities':my_community[:2], "my_communities_count": len(my_community) })
     else:
         user = []
     communities = Community.objects.all().order_by('-active_since')
