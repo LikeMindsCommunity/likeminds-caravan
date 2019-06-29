@@ -266,13 +266,13 @@ def accept_admin(request,community_id,cta=''):
         if len(member) == 1:
             print(nom_admin[0].name)
             print("email to proposed admin for single admin")
-            #send_email_to_proposed_admin.delay(NominatedAdmin=nom_admin[0].name,email=prop_admin.email,ProposedAdmin=prop_admin.name,CommunityName=community.name)
-        #Members.objects.filter(community_id = community,member_id=core_user.id).update(state =1)
+            send_email_to_proposed_admin.delay(NominatedAdmin=nom_admin[0].name,email=prop_admin.email,ProposedAdmin=prop_admin.name,CommunityName=community.name)
+        Members.objects.filter(community_id = community,member_id=core_user.id).update(state =1)
     elif cta == 'accept_invitation_temp_admin':
         temp_admin = Members.objects.filter(community_id = community,state=2)
-        #Members.objects.filter(community_id = community,member_id=temp_admin[0].member_id).update(state =4)
-        #Members.objects.filter(community_id = community,member_id=core_user.id).update(state =1)
-        #send_email_to_proposed_admin.delay(NominatedAdmin=nom_admin[0].name,email=prop_admin.email,ProposedAdmin=prop_admin.name,CommunityName=community.name)
+        Members.objects.filter(community_id = community,member_id=temp_admin[0].member_id).update(state =4)
+        Members.objects.filter(community_id = community,member_id=core_user.id).update(state =1)
+        send_email_to_proposed_admin.delay(NominatedAdmin=nom_admin[0].name,email=prop_admin.email,ProposedAdmin=prop_admin.name,CommunityName=community.name)
     return HttpResponseRedirect(reverse('comunity', args=[community_id]))
 
 def check_admins(community_id):
