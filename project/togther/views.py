@@ -161,11 +161,9 @@ def community(request, community_id):
         print(source)
     else:
         source = ''
-        
     if 'cta' in res:
         cta = res['cta']
     else:
-        source = ''
         cta =''
     community = get_object_or_404(Community, pk = community_id)
     if request.user.is_authenticated:
@@ -217,12 +215,15 @@ def community(request, community_id):
         if member.state == 1 or member.state == 2 :
             admin_details.append(mem)
             members.append(mem[0])
-
         elif member.state == 4 :
             members.append(mem[0])
-
-        elif core_user.id == member.member_id.id and member.state == 3:
-            is_joined=0
+        elif request.user.is_authenticated:
+            if core_user.id == member.member_id.id and member.state == 3:
+                is_joined=0
+            else:
+                is_joined=-1
+        else:
+            is_joined=-1
     user=[]
     communities=Community.objects.all()
     if request.user.is_authenticated:
