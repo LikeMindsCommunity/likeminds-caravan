@@ -28,11 +28,12 @@ def update_form(request,community_id):
 
         community=Community.objects.get(id=community_id)
         community_form=CommunityForm(request.POST,request.FILES,instance=community)
-
         community_form.save()
         purpose=community_form.cleaned_data['purpose']
+        community_form.save()
         admins=Members.objects.filter(community_id=community).filter(Q(state=1)|Q(state=2))
-        member_id=21
+        for_string=purpose.split(' ', 1)[0]
+        member_id=0
         if admins:
             for admin in admins:
                 member_id=admin.member_id
@@ -40,18 +41,20 @@ def update_form(request,community_id):
         exist=Collabcard.objects.filter(community_id=community,title=purpose)
         if not exist:
             collabcard=Collabcard()
+            purpose="Created this community " + for_string.lower() + purpose.split("For",1)[1]
             collabcard.title=purpose
             collabcard.user=member_id
             collabcard.community_id=community_id
             collabcard.date_epoch=time.time()
             collabcard.save()
+        return redirect('admin_dashboard')
     else:
         community=Community.objects.get(id=community_id)
         community_form=CommunityForm(instance=community)
 
 
     context={'community_form':community_form,'community':community}
-    return render(request,'dashboard/dashboard.html',context)
+    return render(request,'dashboard/community.html',context)
 
 
 def community_delete(request,community_id):
@@ -182,7 +185,7 @@ def add_tags(request):
             cat.save()
 
 
-    return HttpResponse('submitted')
+    return redirect('admin_dashboard')
 
 def all_user(request):
 
@@ -224,11 +227,7 @@ def send_invitation(request,community_id):
             proposer_name=send_nominated_email.cleaned_data['proposer_name']
             proposed_name=send_nominated_email.cleaned_data['proposed_name']
             proposed_email=send_nominated_email.cleaned_data['proposed_email']
-            # admin_type=send_nominated_email.cleaned_data['admin_type']
-            # print(proposer_name)
-            # print(proposed_name)
-            # print(proposed_email)
-            # print(admin_type)
+
             send_email_to_nominated_admin(proposed_name,proposed_email,proposer_name,community.name,community_id)
             return redirect('admin_dashboard')
     else:
