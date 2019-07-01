@@ -37,6 +37,7 @@ def dashboard(request):
                     url = "https://graph.facebook.com/v2.9/"+social_user.extra_data['id']+"?fields=name,email,gender,location,picture,link&access_token="+social_user.extra_data['access_token']
                     response = rqst.get(url)
                     data = json.loads(response.text)
+                    image_url = "http://graph.facebook.com/"+social_user.extra_data['id']+"/picture?width=400&height=400"
                     print(data)
                     core_user = User.objects.all().filter(email = data['email']).first()
                     print("django user == ",core_user)
@@ -51,7 +52,7 @@ def dashboard(request):
                                 user.email = data['email'] 
                             if 'location' in data:
                                 user.city = data['location']['name']
-                            user.image_url = data['picture']['data']['url']
+                            user.image_url = image_url
                             user.user_id = core_user
                             user.save()
                             print("created userinfo")
@@ -251,6 +252,7 @@ def update_user_info(request):
                 url = "https://graph.facebook.com/v2.9/"+social_user.extra_data['id']+"?fields=name,email,gender,location,picture,link&access_token="+social_user.extra_data['access_token']
                 response = rqst.get(url)
                 data = json.loads(response.text)
+                image_url = "http://graph.facebook.com/"+social_user.extra_data['id']+"/picture?width=400&height=400"
                 print(data)
                 core_user = User.objects.all().filter(email = data['email']).first()
                 print("django user == ",core_user)
@@ -265,7 +267,7 @@ def update_user_info(request):
                             user.email = data['email'] 
                         if 'location' in data:
                             user.city = data['location']['name']
-                        user.image_url = data['picture']['data']['url']
+                        user.image_url = image_url
                         user.user_id = core_user
                         user.save()
                         print("created userinfo")
