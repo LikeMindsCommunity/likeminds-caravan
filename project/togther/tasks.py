@@ -12,6 +12,7 @@ def send_email_to_proposed_admin(NominatedAdmin,email,ProposedAdmin,CommunityNam
     fail_silently=True
     to = email
     subject =str(NominatedAdmin)+ " has accepted your invitation to become a promoter for "+str(CommunityName)+" community"
+    
     if proposedAdminState == 1:
         template = get_template("mails/accepted_admin_request.html").render({"NominatedAdmin":NominatedAdmin,"email":email,"ProposedAdmin":ProposedAdmin,"CommunityName":CommunityName,"community_id":community_id})
     elif proposedAdminState == 2:

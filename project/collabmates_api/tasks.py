@@ -5,6 +5,8 @@ from django.shortcuts import render
 from django.core.mail import EmailMultiAlternatives
 import time
 from django.template import Context
+
+
 @shared_task
 def send_email():
 	time.sleep(300)
