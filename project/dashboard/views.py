@@ -8,14 +8,14 @@ import time
 from django.template.loader import get_template
 from django.shortcuts import render
 from django.core.mail import EmailMultiAlternatives
-from django.views.decorators.csrf import csrf_exempt
-
 # Create your views here.
+from collabmates_api.notification import send_notification_for_join_requests
 
 def dashboard(request):
   '''function to give list of community to edit'''
 
   community_list=Community.objects.all().order_by('-created_at','-active_since')
+
 
 
   return render(request,'dashboard/dashboard.html',{'communities':community_list})
@@ -140,6 +140,7 @@ def aprove_member(request,community_id,member_id):
     Members.objects.filter(community_id=community,member_id=member_id).update(state=4)
     update_member_count(community_id)
     url='/admin_dashboard/show_pending_member/'+str(community_id)
+    send_notification_for_join_requests(community_id,True,member_id)
     return redirect(url)
 
 def decline_member(request,community_id,member_id):
@@ -148,6 +149,8 @@ def decline_member(request,community_id,member_id):
 
     Members.objects.filter(community_id=community,member_id=member_id).update(state=5)
     url='/admin_dashboard/show_pending_member/'+str(community_id)
+    send_notification_for_join_requests(community_id,False,member_id)
+
     return redirect(url)
 
 
