@@ -214,8 +214,9 @@
                 </div>
             {% if community.about != '' %}
             <div class="content" id="about" style="background-color:#f0f5f5;">
+
             <h4>   About Community  </h4>
-                <p style="font-weight:100;" id="more">{{community.about}}</p>
+                <p style="font-weight:100;" id="more">{{community.about |linebreaks}}</p>
             </div>
             {% endif %}
                   <div class="content" id="members">
