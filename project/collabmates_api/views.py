@@ -387,7 +387,7 @@ def create_community(request):
                     group.purpose = i['value']
                 if i['key'] == 'Geography of the community':
                     group.location = i['value']
-                if i['key'] == 'About the community':
+                if i['key'] == 'About the community (Optional)':
                     group.about = i['value'] 
                 if 'image' in img:
                     group.image_url = img['image']

@@ -82,6 +82,7 @@ def add_dashboard_admin(request,community_id):
                 m.member_id=user_id.user_id
                 m.state=1
                 m.save()
+            update_member_count(community_id)
         return redirect('admin_dashboard')
     else:
         community=Community.objects.get(id=community_id)
@@ -89,6 +90,12 @@ def add_dashboard_admin(request,community_id):
     context = {'admin_form': admin_form, 'community': community}
     return render(request, 'dashboard/add_admin.html', context)
 
+def update_member_count(community_id):
+    community = Community.objects.get(id=community_id)
+    count = Members.objects.filter(community_id=community).filter(Q(state=1)|Q(state=2)|Q(state=4))
+    print("length == ",len(count))
+    community = Community.objects.filter(id=community_id).update(members_count = len(count))
+    return
 
 def add_dashboard_member(request,community_id):
     '''function to add members'''
@@ -109,6 +116,7 @@ def add_dashboard_member(request,community_id):
                 m.member_id = user_id.user_id
                 m.state = 4
                 m.save()
+            update_member_count(community_id)
         return redirect('admin_dashboard')
     else:
         community = Community.objects.get(id=community_id)
@@ -129,8 +137,8 @@ def show_pending_members(request,community_id):
 def aprove_member(request,community_id,member_id):
     '''function to approve member'''
     community = Community.objects.get(id=community_id)
-
     Members.objects.filter(community_id=community,member_id=member_id).update(state=4)
+    update_member_count(community_id)
     url='/admin_dashboard/show_pending_member/'+str(community_id)
     return redirect(url)
 
