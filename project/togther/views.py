@@ -308,6 +308,7 @@ def accept_admin(request,community_id,cta=''):
     print("nom_admin == ",nom_admin[0].name)
     cur_sess_user_id = core_user.id
 
+
     if len(member) == 1:
         if member[0].state == 1:
             print(nom_admin[0].name)

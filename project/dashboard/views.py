@@ -267,11 +267,11 @@ def send_invitation(request,community_id):
 def check_member(email,community_id,member_id,proposed_name):
     ProposedAdmin = Userinfo.objects.get(user_id = member_id)
     community = Community.objects.get(id = community_id)
-    proposedAdminState = Members.objects.filter(member_id=ProposedAdmin.user_id,community_id = community)
-    proposedAdminState = proposedAdminState[0].state
     CommunityName=community.name
     email=email.lower().strip()
     ProposedAdmin=ProposedAdmin.name
+    proposedAdminState = Members.objects.filter(member_id=ProposedAdmin.user_id,community_id = community)
+    proposedAdminState = proposedAdminState[0].state
     try:
         user = Userinfo.objects.filter(email=email)
 
