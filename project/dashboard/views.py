@@ -8,14 +8,14 @@ import time
 from django.template.loader import get_template
 from django.shortcuts import render
 from django.core.mail import EmailMultiAlternatives
-from django.views.decorators.csrf import csrf_exempt
-
 # Create your views here.
+from collabmates_api.notification import send_notification_for_join_requests
 
 def dashboard(request):
   '''function to give list of community to edit'''
 
   community_list=Community.objects.all().order_by('-created_at','-active_since')
+
 
 
   return render(request,'dashboard/dashboard.html',{'communities':community_list})
@@ -28,11 +28,12 @@ def update_form(request,community_id):
 
         community=Community.objects.get(id=community_id)
         community_form=CommunityForm(request.POST,request.FILES,instance=community)
-
         community_form.save()
         purpose=community_form.cleaned_data['purpose']
+        community_form.save()
         admins=Members.objects.filter(community_id=community).filter(Q(state=1)|Q(state=2))
-        member_id=21
+        for_string=purpose.split(' ', 1)[0]
+        member_id=0
         if admins:
             for admin in admins:
                 member_id=admin.member_id
@@ -40,18 +41,20 @@ def update_form(request,community_id):
         exist=Collabcard.objects.filter(community_id=community,title=purpose)
         if not exist:
             collabcard=Collabcard()
+            purpose="Created this community " + for_string.lower() + purpose.split("For",1)[1]
             collabcard.title=purpose
             collabcard.user=member_id
             collabcard.community_id=community_id
             collabcard.date_epoch=time.time()
             collabcard.save()
+        return redirect('admin_dashboard')
     else:
         community=Community.objects.get(id=community_id)
         community_form=CommunityForm(instance=community)
 
 
     context={'community_form':community_form,'community':community}
-    return render(request,'dashboard/dashboard.html',context)
+    return render(request,'dashboard/community.html',context)
 
 
 def community_delete(request,community_id):
@@ -79,6 +82,7 @@ def add_dashboard_admin(request,community_id):
                 m.member_id=user_id.user_id
                 m.state=1
                 m.save()
+            update_member_count(community_id)
         return redirect('admin_dashboard')
     else:
         community=Community.objects.get(id=community_id)
@@ -86,6 +90,12 @@ def add_dashboard_admin(request,community_id):
     context = {'admin_form': admin_form, 'community': community}
     return render(request, 'dashboard/add_admin.html', context)
 
+def update_member_count(community_id):
+    community = Community.objects.get(id=community_id)
+    count = Members.objects.filter(community_id=community).filter(Q(state=1)|Q(state=2)|Q(state=4))
+    print("length == ",len(count))
+    community = Community.objects.filter(id=community_id).update(members_count = len(count))
+    return
 
 def add_dashboard_member(request,community_id):
     '''function to add members'''
@@ -106,6 +116,7 @@ def add_dashboard_member(request,community_id):
                 m.member_id = user_id.user_id
                 m.state = 4
                 m.save()
+            update_member_count(community_id)
         return redirect('admin_dashboard')
     else:
         community = Community.objects.get(id=community_id)
@@ -126,9 +137,10 @@ def show_pending_members(request,community_id):
 def aprove_member(request,community_id,member_id):
     '''function to approve member'''
     community = Community.objects.get(id=community_id)
-
     Members.objects.filter(community_id=community,member_id=member_id).update(state=4)
+    update_member_count(community_id)
     url='/admin_dashboard/show_pending_member/'+str(community_id)
+    send_notification_for_join_requests(community_id,True,member_id)
     return redirect(url)
 
 def decline_member(request,community_id,member_id):
@@ -137,6 +149,8 @@ def decline_member(request,community_id,member_id):
 
     Members.objects.filter(community_id=community,member_id=member_id).update(state=5)
     url='/admin_dashboard/show_pending_member/'+str(community_id)
+    send_notification_for_join_requests(community_id,False,member_id)
+
     return redirect(url)
 
 
@@ -182,7 +196,7 @@ def add_tags(request):
             cat.save()
 
 
-    return HttpResponse('submitted')
+    return redirect('admin_dashboard')
 
 def all_user(request):
 
@@ -224,12 +238,25 @@ def send_invitation(request,community_id):
             proposer_name=send_nominated_email.cleaned_data['proposer_name']
             proposed_name=send_nominated_email.cleaned_data['proposed_name']
             proposed_email=send_nominated_email.cleaned_data['proposed_email']
-            # admin_type=send_nominated_email.cleaned_data['admin_type']
-            # print(proposer_name)
-            # print(proposed_name)
-            # print(proposed_email)
-            # print(admin_type)
-            send_email_to_nominated_admin(proposed_name,proposed_email,proposer_name,community.name,community_id)
+            proposer_email=send_nominated_email.cleaned_data['proposer_email']
+            proposed_no=send_nominated_email.cleaned_data['proposed_no']
+            print("proposed name  == ",proposed_name)
+            print("proposed email  == ",proposed_email)
+            print("proposed no  == ",proposed_no)
+            print("proposer name  == ",proposer_name)
+            print("proposer email  == ",proposer_email)
+            proposed_admin = User.objects.filter(email=proposer_email)
+            print("proposer check  == ",proposed_admin)
+            print("proposer id  == ",proposed_admin[0].id)
+            admin = temp_admin()
+            admin.name = proposed_name
+            admin.email = proposed_email
+            admin.contact_number = proposed_no
+            admin.community = community
+            admin.member_id = proposed_admin[0].id
+            admin.save()
+            check = check_member(proposed_email,community_id,proposed_admin[0].id,proposed_name)
+            #send_email_to_nominated_admin(proposed_name,proposed_email,proposer_name,community.name,community_id)
             return redirect('admin_dashboard')
     else:
         send_nominated_email=SendNominatedEmail()
@@ -237,12 +264,49 @@ def send_invitation(request,community_id):
         return render(request,'dashboard/send_invitation.html',context)
 
 
+def check_member(email,community_id,member_id,proposed_name):
+    ProposedAdmin = Userinfo.objects.get(user_id = member_id)
+    community = Community.objects.get(id = community_id)
+    CommunityName=community.name
+    email=email.lower().strip()
+    ProposedAdmin=ProposedAdmin.name
+    try:
+        user = Userinfo.objects.filter(email=email)
+
+        if user:
+            print("user is present")
+            NominatedAdmin=user[0].name
+        else:
+            print("user is not present")
+            send_email_to_nominated_admin(NominatedAdmin=proposed_name,email=email,ProposedAdmin=ProposedAdmin,CommunityName=CommunityName,community_id =community.id)
+            return False
+    except:
+        print("except block email")
+        send_email_to_nominated_admin(NominatedAdmin=proposed_name,email=email,ProposedAdmin=ProposedAdmin,CommunityName=CommunityName,community_id =community.id)
+        return False
+    if user:
+        member =Members.objects.filter(community_id = community,member_id = user[0].user_id.id)
+        if member and member[0].state == 4:
+            print("already a member")
+            Members.objects.filter(community_id = community,member_id = user[0].user_id.id).update(state=6)
+            send_email_to_nominated_admin(NominatedAdmin=NominatedAdmin,email=email,ProposedAdmin=ProposedAdmin,CommunityName=CommunityName,community_id =community.id)
+        else:
+            print("member is created")
+            member =Members()
+            member.community_id = community
+            member.member_id = user[0].user_id
+            member.state = 6
+            member.save()
+            send_email_to_nominated_admin(NominatedAdmin=NominatedAdmin,email=email,ProposedAdmin=ProposedAdmin,CommunityName=CommunityName,community_id =community.id)
+
+        return True
+    return False
 
 
 def send_email_to_nominated_admin(NominatedAdmin,email,ProposedAdmin,CommunityName,community_id):
 	fail_silently=True
 	to = email
-	subject =str(ProposedAdmin)+ " has proposed you as admin of "+str(CommunityName)+" community"
+	subject =str(ProposedAdmin)+ " has proposed you as promoter of "+str(CommunityName)+" community"
 	template = get_template("mails/accept_admin_request.html").render({"NominatedAdmin":NominatedAdmin,"email":email,"ProposedAdmin":ProposedAdmin,"CommunityName":CommunityName,"community_id":community_id})
 	msg = EmailMultiAlternatives(subject,
 	                                 template,
