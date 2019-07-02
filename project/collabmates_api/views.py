@@ -633,8 +633,6 @@ def get_time_text(created_time,current_time ):
     else:
         return "Just Now"
 
-    print ("%d years, %d months, %d days, %d hours, %d minutes and %d seconds" % (rd.years, rd.months, rd.days, rd.hours, rd.minutes, rd.seconds))
-
 def community_cards(request, community_id):
     community = Community.objects.get(id = community_id)
     cards = Collabcard.objects.filter(community = community_id).order_by('id')
@@ -755,7 +753,7 @@ def update_answer_text(card_id):
                 ans_text+=" answered"
                 Collabcard.objects.filter(id=card_id).update(answer_text=ans_text)
             count = 2
-            # if more then two different users have answered
+            # if more than two different users have answered
             if len(user_list) > 2:
                 for ID in user_list:
                     if count ==0:
@@ -867,8 +865,6 @@ def create_admin(request,community_id):
     # when the creator is creating a community as a member
     if request.method == 'POST':
         res = json.loads(request.body)
-        #if check:
-            #return JsonResponse({'success':check})
         admin = temp_admin()
         if 'name' in res:
             admin.name = res['name']

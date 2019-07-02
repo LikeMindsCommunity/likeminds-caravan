@@ -40,10 +40,10 @@ Category_list_backup = [ { "id" : 'al' , "title": 'Alumni'},
 Category_list = [
 { "id" : 'in' , "title":  'Interests'},
 { "id" : 'ca' , "title": 'Cause'},
-{ "id" : 'in' , "title": 'Industry'},
+{ "id" : 'ind', "title": 'Industry'},
 { "id" : 'pf' , "title": 'Profession'},
 { "id" : 'fa' , "title": 'Fan'},
 { "id" : 'sf' , "title": 'Sports'},
-{"id":'lg',"title":'Legacy'},
+{ "id" : 'lg' , "title": 'Legacy'},
 { "id" : 'le' , "title": 'Learning'},
 ]
