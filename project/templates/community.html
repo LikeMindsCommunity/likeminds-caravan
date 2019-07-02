@@ -20,8 +20,8 @@
             <title>CollabMates: Make your Whatsapp & Telegram groups viral</title>
             <meta name="description"
                     content="A platform that helps people discover relevant communities on internet. Admins can list their Whatsapp & Telegram groups here & make them discoverable. It also links the profile of group members with their social media profile so that everyone knows each other better."/>
-                <meta property="og:image" content='http://www.collabmates.com/cover.png'/>
-               <meta property="og:title" content="CollabMates: Make your Whatsapp & Telegram groups viral"/>
+                <meta property="og:image" content='http://www.collabmates.com/cover.png'/> 
+              <meta property="og:title" content="CollabMates: Make your Whatsapp & Telegram groups viral"/>
                 <meta property="og:description"
                   content="A platform that helps people discover relevant communities on internet. Admins can list their Whatsapp & Telegram groups here & make them discoverable. It also links the profile of group members with their social media profile so that everyone knows each other better."/>
 
@@ -63,7 +63,7 @@
                     {% if user.is_authenticated %}
                     if (Nom_mem_state!=6)
                     {
-                      alert("Sorry!You are not the Nominated Admin of this Community");
+                      alert("Sorry!You are not the Nominated Promoter of this Community");
                       return;
                     }
                     window.location.href = "/"+"accept_admin/"+community_id+"/"+cta;

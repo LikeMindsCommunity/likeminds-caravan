@@ -241,7 +241,7 @@ def send_invitation(request,community_id):
 def send_email_to_nominated_admin(NominatedAdmin,email,ProposedAdmin,CommunityName,community_id):
 	fail_silently=True
 	to = email
-	subject =str(ProposedAdmin)+ " has proposed you as admin of "+str(CommunityName)+" community"
+	subject =str(ProposedAdmin)+ " has proposed you as promoter of "+str(CommunityName)+" community"
 	template = get_template("mails/accept_admin_request.html").render({"NominatedAdmin":NominatedAdmin,"email":email,"ProposedAdmin":ProposedAdmin,"CommunityName":CommunityName,"community_id":community_id})
 	msg = EmailMultiAlternatives(subject,
 	                                 template,
