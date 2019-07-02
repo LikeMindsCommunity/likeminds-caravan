@@ -70,12 +70,9 @@ class UserForm(forms.ModelForm):
 class SendNominatedEmail(forms.Form):
 
     proposer_name=forms.CharField(label='proposer_name', widget=forms.TextInput(attrs={'placeholder': 'Person who nomitate' ,'class':'form-control form-group'}))
+    proposer_email=forms.EmailField(label='proposer_email', widget=forms.TextInput(attrs={'placeholder': 'Email' ,'class':'form-control form-group'}))
+
     proposed_name=forms.CharField(label='proposed_name', widget=forms.TextInput(attrs={'placeholder': 'Person who is nominted' ,'class':'form-control form-group'}))
     proposed_email=forms.EmailField(label='proposed_email', widget=forms.TextInput(attrs={'placeholder': 'Email' ,'class':'form-control form-group'}))
-
-    # admin_type = (
-    #     ('admin', 'admin'),
-    #     ('temp_admin', 'temp_admin'),
-    #    )
-    #
-    # admin_type=forms.ChoiceField(choices=admin_type)
+    proposed_no=forms.CharField(required=False,label='Contact no', widget=forms.TextInput(attrs={'placeholder': 'Optional' ,'class':'form-control form-group'}))
+    
