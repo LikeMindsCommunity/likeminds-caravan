@@ -267,6 +267,8 @@ def send_invitation(request,community_id):
 def check_member(email,community_id,member_id,proposed_name):
     ProposedAdmin = Userinfo.objects.get(user_id = member_id)
     community = Community.objects.get(id = community_id)
+    proposedAdminState = Members.objects.filter(member_id=ProposedAdmin.user_id,community_id = community)
+    proposedAdminState = proposedAdminState[0].state
     CommunityName=community.name
     email=email.lower().strip()
     ProposedAdmin=ProposedAdmin.name
@@ -278,18 +280,18 @@ def check_member(email,community_id,member_id,proposed_name):
             NominatedAdmin=user[0].name
         else:
             print("user is not present")
-            send_email_to_nominated_admin(NominatedAdmin=proposed_name,email=email,ProposedAdmin=ProposedAdmin,CommunityName=CommunityName,community_id =community.id)
+            send_email_to_nominated_admin(NominatedAdmin=proposed_name,email=email,ProposedAdmin=ProposedAdmin,proposedAdminState = proposedAdminState[0].state,CommunityName=CommunityName,community_id =community.id)
             return False
     except:
         print("except block email")
-        send_email_to_nominated_admin(NominatedAdmin=proposed_name,email=email,ProposedAdmin=ProposedAdmin,CommunityName=CommunityName,community_id =community.id)
+        send_email_to_nominated_admin(NominatedAdmin=proposed_name,email=email,ProposedAdmin=ProposedAdmin,proposedAdminState = proposedAdminState[0].state,CommunityName=CommunityName,community_id =community.id)
         return False
     if user:
         member =Members.objects.filter(community_id = community,member_id = user[0].user_id.id)
         if member and member[0].state == 4:
             print("already a member")
             Members.objects.filter(community_id = community,member_id = user[0].user_id.id).update(state=6)
-            send_email_to_nominated_admin(NominatedAdmin=NominatedAdmin,email=email,ProposedAdmin=ProposedAdmin,CommunityName=CommunityName,community_id =community.id)
+            send_email_to_nominated_admin(NominatedAdmin=NominatedAdmin,email=email,ProposedAdmin=ProposedAdmin,proposedAdminState = proposedAdminState[0].state,CommunityName=CommunityName,community_id =community.id)
         else:
             print("member is created")
             member =Members()
@@ -297,21 +299,24 @@ def check_member(email,community_id,member_id,proposed_name):
             member.member_id = user[0].user_id
             member.state = 6
             member.save()
-            send_email_to_nominated_admin(NominatedAdmin=NominatedAdmin,email=email,ProposedAdmin=ProposedAdmin,CommunityName=CommunityName,community_id =community.id)
+            send_email_to_nominated_admin(NominatedAdmin=NominatedAdmin,email=email,ProposedAdmin=ProposedAdmin,proposedAdminState = proposedAdminState[0].state,CommunityName=CommunityName,community_id =community.id)
 
         return True
     return False
 
 
-def send_email_to_nominated_admin(NominatedAdmin,email,ProposedAdmin,CommunityName,community_id):
-	fail_silently=True
-	to = email
-	subject =str(ProposedAdmin)+ " has proposed you as promoter of "+str(CommunityName)+" community"
-	template = get_template("mails/accept_admin_request.html").render({"NominatedAdmin":NominatedAdmin,"email":email,"ProposedAdmin":ProposedAdmin,"CommunityName":CommunityName,"community_id":community_id})
-	msg = EmailMultiAlternatives(subject,
-	                                 template,
-	                                 "hello@collabmates.com",
-	                                 [to],
-	                                 )
-	msg.attach_alternative(template, "text/html")
-	return msg.send(fail_silently)
+def send_email_to_nominated_admin(NominatedAdmin,email,ProposedAdmin,CommunityName,community_id,ProposedAdminState):
+    fail_silently=True
+    to = email
+    subject =str(ProposedAdmin)+ " has proposed you as promoter of "+str(CommunityName)+" community"
+    if proposedAdminState == 1:
+        template = get_template("mails/accept_admin_request.html").render({"NominatedAdmin":NominatedAdmin,"email":email,"ProposedAdmin":ProposedAdmin,"CommunityName":CommunityName,"community_id":community_id})
+    if proposedAdminState == 2:
+        template = get_template("mails/accept_temp_admin_request.html").render({"NominatedAdmin":NominatedAdmin,"email":email,"ProposedAdmin":ProposedAdmin,"CommunityName":CommunityName,"community_id":community_id})
+    msg = EmailMultiAlternatives(subject,
+                                     template,
+                                     "hello@collabmates.com",
+                                     [to],
+                                     )
+    msg.attach_alternative(template, "text/html")
+    return msg.send(fail_silently)
