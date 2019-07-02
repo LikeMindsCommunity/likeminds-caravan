@@ -37,6 +37,7 @@ def dashboard(request):
                     url = "https://graph.facebook.com/v2.9/"+social_user.extra_data['id']+"?fields=name,email,gender,location,picture,link&access_token="+social_user.extra_data['access_token']
                     response = rqst.get(url)
                     image_url = "http://graph.facebook.com/"+social_user.extra_data['id']+"/picture?width=400&height=400"
+                    
                     data = json.loads(response.text)
                     print(data)
                     core_user = User.objects.all().filter(email = data['email']).first()
@@ -170,8 +171,12 @@ def community(request, community_id):
     if request.user.is_authenticated:
         user = Userinfo.objects.all().filter(user_id = request.user)
         if not user:
-            update_user_info(request)
-            user = Userinfo.objects.all().filter(user_id = request.user)
+            created,email = update_user_info(request)
+            if created:
+                user = Userinfo.objects.all().filter(user_id = request.user)
+            else:
+                core_user = User.objects.all().filter(email = email).first()
+                user = Userinfo.objects.all().filter(user_id = core_user)
             print("user info created")
         print("cur sess mail",user[0].email)
         core_user = User.objects.all().filter(email = user[0].email).first()
@@ -271,6 +276,7 @@ def update_user_info(request):
                         user.save()
                         print("created userinfo")
                         created =True
+    return created,data['email']
 
 def get_nominated_admin_details(request,member_id,community_id,email):
     print("fetching non admin details from DB")
@@ -294,9 +300,9 @@ def get_nominated_admin_details(request,member_id,community_id,email):
 def accept_admin(request,community_id,cta=''):
     community = Community.objects.get(id=community_id)
     member = Members.objects.filter(community_id = community).filter(Q(state=1)|Q(state=2))
-    user = Userinfo.objects.all().filter(user_id = request.user)
-    print(user[0].email)
-    core_user = User.objects.all().filter(email = user[0].email).first()
+    #user = Userinfo.objects.all().filter(user_id = request.user)
+    #print(user[0].email)
+    core_user = User.objects.all().filter(email = request.user.email).first()
     print("core user == ",core_user.email)
     prop_admin = Userinfo.objects.get(user_id = member[0].member_id.id)
     print("prop_admin == ",prop_admin)
