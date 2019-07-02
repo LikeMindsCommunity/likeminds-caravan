@@ -252,7 +252,7 @@ def send_invitation(request,community_id):
             admin.community = community
             admin.member_id = proposed_admin[0].id
             admin.save()
-            check = check_member(proposed_email,community_id,proposed_admin[0].id,proposer_name)
+            check = check_member(proposed_email,community_id,proposed_admin[0].id,proposed_name)
             #send_email_to_nominated_admin(proposed_name,proposed_email,proposer_name,community.name,community_id)
             return redirect('admin_dashboard')
     else:
@@ -284,7 +284,7 @@ def check_member(email,community_id,member_id,proposed_name):
     if user:
         member =Members.objects.filter(community_id = community,member_id = user[0].user_id.id)
         if member and member[0].state == 4:
-            print("member is meber")
+            print("already a member")
             Members.objects.filter(community_id = community,member_id = user[0].user_id.id).update(state=6)
             send_email_to_nominated_admin(NominatedAdmin=NominatedAdmin,email=email,ProposedAdmin=ProposedAdmin,CommunityName=CommunityName,community_id =community.id)
         else:
