@@ -12,7 +12,6 @@ from datetime import datetime
 import time
 from .notification import send_follow_notification,send_notification_to_admins,send_notification_for_join_requests,send_notification_for_new_collabcard_posted
 from django.db.models import Q
-from time import strptime, strftime, mktime, gmtime
 import dateutil.relativedelta
 from .tasks import send_email_to_nominated_admin,send_email,send_email_to_admin_of_community
 
@@ -698,7 +697,6 @@ def create_answer(request):
     body = request.GET
     if 'member_id' in body:
         user_id = body['member_id']
-        print("user_id == ",user_id)
     user = User.objects.get(id = user_id)
     if'collabcard_id' in body:
         card_id = body['collabcard_id']
@@ -712,6 +710,16 @@ def create_answer(request):
         ans.user = user
         ans.date_epoch=time.time()
         ans.save()
+
+
+        #auto following the collabcard if answer is created
+        is_present=is_collabcard_already_followed(card,user)
+        if  is_present == False:
+            follow = follow_collabcard()
+            follow.collabcard_id = card
+            follow.member_id = user
+            follow.save()
+
         send_follow_notification(card,user,res['title'])
 
         #calling update_answer_text 
@@ -729,7 +737,7 @@ def update_answer_text(card_id):
             # get the name of the user who answered
             username = Userinfo.objects.get(user_id = card_ans[0].user_id)
             #format the answer text string as "username answered"
-            ans_text = username.name + " answered"
+            ans_text = username.name + " responded"
             # update the answer_text feild in collabcard
             Collabcard.objects.filter(id=card_id).update(answer_text=ans_text) 
         # if there is more than one answer
@@ -748,25 +756,42 @@ def update_answer_text(card_id):
                     username = Userinfo.objects.get(user_id = ID)
                     ans_text += username.name
                     if count !=0:
-                        ans_text += ","
+                        ans_text += " and "
                         count-=1
-                ans_text+=" answered"
+                ans_text+=" responded"
                 Collabcard.objects.filter(id=card_id).update(answer_text=ans_text)
+
+            count = 2
+            # check if only Three different users have answered
+            # not more than Three different users should have answered
+            if len(user_list) == 3:
+                for ID in user_list:
+                    username = Userinfo.objects.get(user_id=ID)
+                    ans_text += username.name
+                    if count > 1:
+                        ans_text += ", "
+                        count -= 1
+
+                    elif count != 0:
+                        ans_text += " and "
+                        count -= 1
+                ans_text += " responded"
+                Collabcard.objects.filter(id=card_id).update(answer_text=ans_text)
+
+
             count = 2
             # if more than two different users have answered
-            if len(user_list) > 2:
+            if len(user_list) > 3:
                 for ID in user_list:
                     if count ==0:
                         break
                     username = Userinfo.objects.get(user_id = ID)
                     ans_text += username.name
                     if count >1:
-                        ans_text += ","
+                        ans_text += ", "
                     count-=1
-                if len(user_list)-2 == 1:
-                    ans_text+= " & "+str(len(user_list)-2) + " other answered"
-                else:
-                    ans_text+= " & "+str(len(user_list)-2) + " others answered"
+
+                ans_text+= " & "+str(len(user_list)-2) + " others responded"
                 Collabcard.objects.filter(id=card_id).update(answer_text=ans_text)
         
 
@@ -1047,13 +1072,26 @@ def collabcard_follow(request):
 
     collabcard=Collabcard.objects.get(id=collabcard_id)
     member_id=User.objects.get(id=member_id)
+    is_present = is_collabcard_already_followed(collabcard, member_id)
 
-    follow=follow_collabcard()
-    follow.collabcard_id=collabcard
-    follow.member_id=member_id
-    follow.save()
+    if is_present == False:
+        follow=follow_collabcard()
+        follow.collabcard_id=collabcard
+        follow.member_id=member_id
+        follow.save()
 
     return JsonResponse({'success':True})
 
 
 
+def is_collabcard_already_followed(collabcard,member_id):
+
+    '''function to check whether the person already followed the collabcard or not'''
+
+    is_present=False
+    follow_data=follow_collabcard.objects.filter(collabcard_id=collabcard,member_id=member_id)
+
+    if follow_data:
+        is_present=True
+
+    return is_present
