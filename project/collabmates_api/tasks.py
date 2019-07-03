@@ -27,6 +27,8 @@ def send_email():
 @shared_task
 def send_email_to_nominated_admin(NominatedAdmin,email,ProposedAdmin,CommunityName,community_id,proposedAdminState):
 	time.sleep(5)
+	url = settings.URL
+	url = url+"/community/"+str(community_id)+"/?source=email&cta=accept_admin"
 	fail_silently=True
 	to = email
 	subject =str(ProposedAdmin)+ " has proposed you as a promoter of "+str(CommunityName)+" community"
