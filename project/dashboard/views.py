@@ -245,17 +245,17 @@ def send_invitation(request,community_id):
             print("proposed no  == ",proposed_no)
             print("proposer name  == ",proposer_name)
             print("proposer email  == ",proposer_email)
-            proposed_admin = User.objects.filter(email=proposer_email)
+            proposed_admin = User.objects.filter(email=proposer_email).first()
             print("proposer check  == ",proposed_admin)
-            print("proposer id  == ",proposed_admin[0].id)
+            print("proposer id  == ",proposed_admin.id)
             admin = temp_admin()
             admin.name = proposed_name
             admin.email = proposed_email
             admin.contact_number = proposed_no
             admin.community = community
-            admin.member_id = proposed_admin[0].id
+            admin.member_id = proposed_admin.id
             admin.save()
-            check = check_member(proposed_email,community_id,proposed_admin[0].id,proposed_name)
+            check = check_member(proposed_email,community_id,proposed_admin.id,proposed_name)
             #send_email_to_nominated_admin(proposed_name,proposed_email,proposer_name,community.name,community_id)
             return redirect('admin_dashboard')
     else:
@@ -265,13 +265,17 @@ def send_invitation(request,community_id):
 
 
 def check_member(email,community_id,member_id,proposed_name):
-    ProposedAdmin = Userinfo.objects.get(user_id = member_id)
+    ProposedAdmin = User.objects.filter(id = member_id).first()
+    print("proposed admin == ",ProposedAdmin)
     community = Community.objects.get(id = community_id)
+    print("community == ",community.id)
     CommunityName=community.name
     email=email.lower().strip()
-    ProposedAdmin=ProposedAdmin.name
-    proposedAdminState = Members.objects.filter(member_id=ProposedAdmin.user_id,community_id = community)
+    proposedAdminState = Members.objects.filter(member_id=ProposedAdmin.id,community_id = community)
+    print("proposed adminn state == ",proposedAdminState,"    ",proposedAdminState[0].state)
     proposedAdminState = proposedAdminState[0].state
+    ProposedAdmin = Userinfo.objects.get(user_id  = ProposedAdmin.id)
+    ProposedAdmin = ProposedAdmin.name
     try:
         user = Userinfo.objects.filter(email=email)
 
@@ -280,18 +284,20 @@ def check_member(email,community_id,member_id,proposed_name):
             NominatedAdmin=user[0].name
         else:
             print("user is not present")
-            send_email_to_nominated_admin(NominatedAdmin=proposed_name,email=email,ProposedAdmin=ProposedAdmin,proposedAdminState = proposedAdminState[0].state,CommunityName=CommunityName,community_id =community.id)
+            send_email_to_nominated_admin(NominatedAdmin=proposed_name,email=email,ProposedAdmin=ProposedAdmin,proposedAdminState = proposedAdminState,CommunityName=CommunityName,community_id =community.id)
             return False
     except:
         print("except block email")
-        send_email_to_nominated_admin(NominatedAdmin=proposed_name,email=email,ProposedAdmin=ProposedAdmin,proposedAdminState = proposedAdminState[0].state,CommunityName=CommunityName,community_id =community.id)
+        send_email_to_nominated_admin(NominatedAdmin=proposed_name,email=email,ProposedAdmin=ProposedAdmin,proposedAdminState = proposedAdminState,CommunityName=CommunityName,community_id =community.id)
         return False
     if user:
         member =Members.objects.filter(community_id = community,member_id = user[0].user_id.id)
         if member and member[0].state == 4:
             print("already a member")
             Members.objects.filter(community_id = community,member_id = user[0].user_id.id).update(state=6)
-            send_email_to_nominated_admin(NominatedAdmin=NominatedAdmin,email=email,ProposedAdmin=ProposedAdmin,proposedAdminState = proposedAdminState[0].state,CommunityName=CommunityName,community_id =community.id)
+            send_email_to_nominated_admin(NominatedAdmin=NominatedAdmin,email=email,ProposedAdmin=ProposedAdmin,proposedAdminState = proposedAdminState,CommunityName=CommunityName,community_id =community.id)
+        elif member and member[0].state == 6:
+            print("member is already a nominated promoter")
         else:
             print("member is created")
             member =Members()
@@ -299,7 +305,7 @@ def check_member(email,community_id,member_id,proposed_name):
             member.member_id = user[0].user_id
             member.state = 6
             member.save()
-            send_email_to_nominated_admin(NominatedAdmin=NominatedAdmin,email=email,ProposedAdmin=ProposedAdmin,proposedAdminState = proposedAdminState[0].state,CommunityName=CommunityName,community_id =community.id)
+            send_email_to_nominated_admin(NominatedAdmin=NominatedAdmin,email=email,ProposedAdmin=ProposedAdmin,proposedAdminState = proposedAdminState,CommunityName=CommunityName,community_id =community.id)
 
         return True
     return False
