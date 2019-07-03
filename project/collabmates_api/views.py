@@ -14,6 +14,9 @@ from .notification import send_follow_notification,send_notification_to_admins,s
 from django.db.models import Q
 import dateutil.relativedelta
 from .tasks import send_email_to_nominated_admin,send_email,send_email_to_admin_of_community
+from django.conf import settings
+
+url  = settings.URL
 
 def communities(request):
     if request.method == 'GET':
@@ -32,7 +35,7 @@ def communities(request):
                     new_dict = {}
                     new_dict.update(serializer_class.data)
                     if new_dict['image_url']:
-                        new_dict['image_url'] = 'https://beta.collabmates.com'+new_dict['image_url']
+                        new_dict['image_url'] = url+new_dict['image_url']
                     else:
                         new_dict['image_url'] = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQMUCHvC0wEVO5yDMe9wddUoagIqQ3VPH0nm8_VtjK5gk3M0mMO'
                     member = Members.objects.all().filter(community_id = i.id)
@@ -41,7 +44,7 @@ def communities(request):
                         if m.member_id == user_id:
                             is_member = True
                     new_dict['is_member'] = is_member
-                    new_dict['share_url']= 'https://beta.collabmates.com/community/'+str(new_dict['id'])
+                    new_dict['share_url']= url+'/community/'+str(new_dict['id'])
                     new_dict['date'] = i.active_since
                     community.append(new_dict)
                 return JsonResponse({'communities': community})
@@ -67,10 +70,10 @@ def filter_by_category(response):
                 new_dict = {}
                 new_dict.update(serializer_class.data)
                 if new_dict['image_url']:
-                    new_dict['image_url'] = 'https://beta.collabmates.com'+new_dict['image_url']
+                    new_dict['image_url'] = url+new_dict['image_url']
                 else:
                     new_dict['image_url'] = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQMUCHvC0wEVO5yDMe9wddUoagIqQ3VPH0nm8_VtjK5gk3M0mMO'
-                new_dict['share_url']= 'https://beta.collabmates.com/community/'+str(new_dict['id'])
+                new_dict['share_url']= url+str(new_dict['id'])
                 new_dict['date'] = i.active_since
                 community.append(new_dict)
             return community
@@ -114,10 +117,10 @@ def your_communities(request,user_id):
         new_dict = {}
         new_dict.update(serializer_class.data)
         if new_dict['image_url']:
-            new_dict['image_url'] = 'https://beta.collabmates.com'+new_dict['image_url']
+            new_dict['image_url'] = url+new_dict['image_url']
         else:
             new_dict['image_url'] = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQMUCHvC0wEVO5yDMe9wddUoagIqQ3VPH0nm8_VtjK5gk3M0mMO'
-        new_dict['share_url']= 'https://beta.collabmates.com/community/'+str(new_dict['id'])
+        new_dict['share_url']= url+str(new_dict['id'])
 
         is_admin = False
         community = Community.objects.get(id = new_dict['id'])
@@ -156,7 +159,7 @@ def your_communities(request,user_id):
             collabcard['id'] = card.id
             collabcard['title'] = card.title
             collabcard['community'] = community.id
-            collabcard['share_url'] = 'https://beta.collabmates.com/collabcard/'+str(card.id)
+            collabcard['share_url'] = url+'/collabcard/'+str(card.id)
             collabcard['answer_text'] = ''
             new_dict['collabcard'] = collabcard
             if str(i.updated_at) == "-9223372036854775808":
@@ -175,7 +178,7 @@ def your_communities(request,user_id):
             usr["city"] = user.city
             usr["headline"] = user.headline
             usr["contact_number"] = user.contact_number
-            usr["image_url"] = 'https://beta.collabmates.com'+user.image_file.url
+            usr["image_url"] = url+user.image_file.url
             usr["about"] = user.about
             usr["fb_link"] = user.fb_link
             usr["linkedin_link"] = user.linkedin_link
@@ -203,11 +206,11 @@ def community(request, community_id):
     serializer_class = CommunitySerializer(queryset)
     community = serializer_class.data
     if community['image_url']:
-        community['image_url'] = 'https://beta.collabmates.com'+community['image_url']
+        community['image_url'] = url+community['image_url']
     else:
         community['image_url'] = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQMUCHvC0wEVO5yDMe9wddUoagIqQ3VPH0nm8_VtjK5gk3M0mMO'
     community['is_member']= is_member
-    community['share_url']= 'https://beta.collabmates.com/community/'+str(community['id'])
+    community['share_url']= url+'/community/'+str(community['id'])
     community['date'] =  queryset.active_since
     return JsonResponse({'community': community})
 
@@ -231,10 +234,10 @@ def similar_community(request, community_id):
         new_dict = {}
         new_dict.update(serializer_class.data)
         if new_dict['image_url']:
-            new_dict['image_url'] = 'https://beta.collabmates.com'+new_dict['image_url']
+            new_dict['image_url'] = url+new_dict['image_url']
         else:
             new_dict['image_url'] = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQMUCHvC0wEVO5yDMe9wddUoagIqQ3VPH0nm8_VtjK5gk3M0mMO'
-        new_dict['share_url']= 'https://beta.collabmates.com/community/'+str(new_dict['id'])
+        new_dict['share_url']= url+'/community/'+str(new_dict['id'])
         new_dict['is_member'] = is_member
         new_dict['date'] = i.active_since
         similar_communities.append(new_dict)
@@ -318,7 +321,7 @@ def user(request, user_id):
         user["city"] = i.city
         user["headline"] = i.headline
         user["contact_number"] = i.contact_number
-        user["image_url"] = 'https://beta.collabmates.com'+i.image_file.url
+        user["image_url"] = url+i.image_file.url
         user["about"] = i.about
         user["fb_link"] = i.fb_link
         user["linkedin_link"] = i.linkedin_link
@@ -341,7 +344,7 @@ def members(request, community_id):
         usr["city"] = user.city
         usr["headline"] = user.headline
         usr["contact_number"] = user.contact_number
-        usr["image_url"] = 'https://beta.collabmates.com'+user.image_file.url
+        usr["image_url"] = url+user.image_file.url
         usr["about"] = user.about
         usr["fb_link"] = user.fb_link
         usr["linkedin_link"] = user.linkedin_link
@@ -361,7 +364,7 @@ def admins(request, community_id):
         usr["city"] = user[0].city
         usr["headline"] = user[0].headline
         usr["contact_number"] = user[0].contact_number
-        usr["image_url"] = 'https://beta.collabmates.com'+user[0].image_file.url
+        usr["image_url"] = url+user[0].image_file.url
         usr["about"] = user[0].about
         usr["fb_link"] = user[0].fb_link
         usr["linkedin_link"] = user[0].linkedin_link
@@ -445,7 +448,7 @@ def create_community(request):
             usr["city"] = user.city
             usr["headline"] = user.headline
             usr["contact_number"] = user.contact_number
-            usr["image_url"] = 'https://beta.collabmates.com'+user.image_file.url
+            usr["image_url"] = url+user.image_file.url
             usr["about"] = user.about
             usr["fb_link"] = user.fb_link
             usr["linkedin_link"] = user.linkedin_link
@@ -453,10 +456,10 @@ def create_community(request):
             new_dict = {}
             new_dict.update(serializer_class.data)
             if new_dict['image_url']:
-                new_dict['image_url'] = 'https://beta.collabmates.com'+new_dict['image_url']
+                new_dict['image_url'] = url+new_dict['image_url']
             else:
                 new_dict['image_url'] = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQMUCHvC0wEVO5yDMe9wddUoagIqQ3VPH0nm8_VtjK5gk3M0mMO'
-            new_dict['share_url']= 'https://beta.collabmates.com/community/'+str(new_dict['id'])
+            new_dict['share_url']= url+'/community/'+str(new_dict['id'])
             #new_dict['date'] = community['active_since']
             ans_text =''
             #saving the questions to be asked while joining a community
@@ -465,7 +468,7 @@ def create_community(request):
                 question.data = questions["key"]
                 question.community_id = community
                 question.save()
-            collabcard_share_url='https://beta.collabmates.com/collabcard/'+str(card.id)
+            collabcard_share_url=url+'/collabcard/'+str(card.id)
             crd = {'id':card.id , 'title':card.title, 'member':usr,'answer_text': ans_text,'share_url':collabcard_share_url}
             print(crd)
             #send_email_to_admin_of_community.delay(CommmunityAdminName=user.name,CommunityName=res['name'],email=user.email)
@@ -492,10 +495,10 @@ def create_community(request):
             new_dict = {}
             new_dict.update(serializer_class.data)
             if new_dict['image_url']:
-                new_dict['image_url'] = 'https://beta.collabmates.com'+new_dict['image_url']
+                new_dict['image_url'] = url+new_dict['image_url']
             else:
                 new_dict['image_url'] = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQMUCHvC0wEVO5yDMe9wddUoagIqQ3VPH0nm8_VtjK5gk3M0mMO'
-            new_dict['share_url']= 'https://beta.collabmates.com/community/'+str(new_dict['id'])
+            new_dict['share_url']= url+'/community/'+str(new_dict['id'])
             user_id = request.GET.get('member_id')
             user = User.objects.get(id = user_id)
             user = Userinfo.objects.get(user_id = user.id)
@@ -525,7 +528,7 @@ def create_card(request):
         collabcard['id'] = card.id
         collabcard['title'] = card.title
         collabcard['community'] = community.id
-        collabcard['share_url'] = 'https://beta.collabmates.com/collabcard/'+str(card.id)
+        collabcard['share_url'] = url+'/collabcard/'+str(card.id)
         collabcard['answer_text'] = ''
         new_dict = {}
         new_dict = collabcard
@@ -537,7 +540,7 @@ def create_card(request):
         usr["city"] = user.city
         usr["headline"] = user.headline
         usr["contact_number"] = user.contact_number
-        usr["image_url"] = 'https://beta.collabmates.com'+user.image_file.url
+        usr["image_url"] = url+user.image_file.url
         usr["about"] = user.about
         usr["fb_link"] = user.fb_link
         usr["linkedin_link"] = user.linkedin_link
@@ -546,7 +549,7 @@ def create_card(request):
         follow.collabcard_id=card
         follow.member_id=useer
         follow.save()
-        return JsonResponse({'success':True, 'collabcard':new_dict})
+        return JsonResponse({'success':True,'collabcard':new_dict})
     return JsonResponse()
 
 def collabcard(request, card_id):
@@ -562,7 +565,7 @@ def collabcard(request, card_id):
         usr["city"] = user.city
         usr["headline"] = user.headline
         usr["contact_number"] = user.contact_number
-        usr["image_url"] = 'https://beta.collabmates.com'+user.image_file.url
+        usr["image_url"] = url+user.image_file.url
         usr["about"] = user.about
         usr["fb_link"] = user.fb_link
         usr["linkedin_link"] = user.linkedin_link
@@ -585,17 +588,17 @@ def collabcard(request, card_id):
     usr["city"] = user.city
     usr["headline"] = user.headline
     usr["contact_number"] = user.contact_number
-    usr["image_url"] = 'https://beta.collabmates.com'+user.image_file.url
+    usr["image_url"] = url+user.image_file.url
     usr["about"] = user.about
     usr["fb_link"] = user.fb_link
     usr["linkedin_link"] = user.linkedin_link
     images = card_images.objects.filter(collabcard = card_id)
     img_list = []
     for j in images:
-        img = {'image_url': 'https://beta.collabmates.com'+j.image_url.url}
+        img = {'image_url': url+j.image_url.url}
         img_list.append(img)
     card = {'id': cards.id, 'title':cards.title, 'member':usr,'community' :cards.community.id,'images':img_list }
-    card['share_url'] = 'https://beta.collabmates.com/collabcard/'+str(cards.id)
+    card['share_url'] = url+'/collabcard/'+str(cards.id)
     card['answer_text']= cards.answer_text
 
     # coverting current time into epoch time
@@ -647,16 +650,16 @@ def community_cards(request, community_id):
         usr["city"] = user.city
         usr["headline"] = user.headline
         usr["contact_number"] = user.contact_number
-        usr["image_url"] = 'https://beta.collabmates.com'+user.image_file.url
+        usr["image_url"] = url+user.image_file.url
         usr["about"] = user.about
         usr["fb_link"] = user.fb_link
         usr["linkedin_link"] = user.linkedin_link
         images = card_images.objects.filter(collabcard = i)
         img_list = []
         for j in images:
-            img = {'image_url': 'https://beta.collabmates.com'+j.image_url.url}
+            img = {'image_url': url+j.image_url.url}
             img_list.append(img)
-        share_url = 'https://beta.collabmates.com/collabcard/'+str(i.id)
+        share_url = url+'/collabcard/'+str(i.id)
         if str(i.date_epoch) == "-9223372036854775808":
             time_text=""
         else:
@@ -853,7 +856,7 @@ def login(request):
         usr["city"] = userinfo[0].city
         usr["headline"] = userinfo[0].headline
         usr["contact_number"] = userinfo[0].contact_number
-        usr["image_url"] = 'https://beta.collabmates.com'+userinfo[0].image_file.url
+        usr["image_url"] = url+userinfo[0].image_file.url
         usr["about"] = userinfo[0].about
         usr["fb_link"] = userinfo[0].fb_link
         usr["linkedin_link"] = userinfo[0].linkedin_link
@@ -967,7 +970,7 @@ def pending_members(request,community_id):
         usr["city"] = user.city
         usr["headline"] = user.headline
         usr["contact_number"] = user.contact_number       
-        usr["image_url"] = 'https://beta.collabmates.com'+user.image_file.url
+        usr["image_url"] = url+user.image_file.url
         usr["about"] = user.about
         usr["fb_link"] = user.fb_link
         usr["linkedin_link"] = user.linkedin_link
