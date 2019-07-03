@@ -30,7 +30,7 @@ SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 # Force HTTPS in the final URIs
 SOCIAL_AUTH_REDIRECT_IS_HTTPS = True
 
-ALLOWED_HOSTS = ['https://beta.collabmates.com','beta.collabmates.com','127.0.0.1','localhost','ec2-3-17-180-202.us-east-2.compute.amazonaws.com']
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
