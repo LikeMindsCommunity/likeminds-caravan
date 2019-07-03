@@ -88,9 +88,9 @@
                       <img class="ui avatar image" src="{{usr.image_file.url}}">
                       
                       <div class="menu">
-                        <a class="item" href= "{% url 'profile' usr.user_id.id %}">My Profile</a>
+                        <!--<a class="item" href= "{% url 'profile' usr.user_id.id %}">My Profile</a>
                         <a class="item" href = "{% url 'my_communities' usr.user_id.id %}" >My communities</a>
-                        <a class="item" href = "{% url 'create' %}">Create communities</a>
+                        <a class="item" href = "{% url 'create' %}">Create communities</a>-->
                         <a class="item" href = "{% url 'logout_view' %}">Logout</a>
                       </div>
                     </div>
@@ -121,7 +121,7 @@
                     </a>
                   </div>
                   <br>
-                    OR 
+                   <!-- OR
                     <br>
                     <br>
                     <div class = "content">
@@ -131,7 +131,7 @@
                         LinkedIn
                       </button>
                       </a>
-                    </div>
+                    </div>-->
                     </div>
                     </div>
                     </div>
@@ -197,10 +197,13 @@ function save(){
         
             <div class="ui fluid container" style="padding: 0px 0px; margin: 0px 0px 0px 0px !important;" >
             <br>
+
 <!--                <img class="ui medium rounded fluid image" style="width:100vw;" onclick="create();"src="/media/group_2.png">-->
+
+                <img class="ui medium rounded fluid image" style="width:100vw;" src="/media/group_2.png">
               </div>
             {% if user.is_authenticated %}
-              <div class="ui fluid container" style=" margin: 0 0 !important;  border-bottom: solid 0.5px grey;" >
+              <!--<div class="ui fluid container" style=" margin: 0 0 !important;  border-bottom: solid 0.5px grey;" >
                 <div class="ui fluid card" style=" padding: 1em; ">
                  <h3  style="margin:10px;"> My Communities</h3>
                   {% for i in my_communities %}
@@ -214,12 +217,13 @@ function save(){
                         </div>
                         </div>
                           {% endfor %}
+
                 <div>
                   {% if my_communities_count >= 3 %}
                   <button class="ui green basic rounded button" style="margin: 0 auto; color:#075e54; border-radius:20px; display: flex; justify-content: center;">View all</button>
                 {% endif %}
                 </div>
-              </div>
+              </div>-->
               </div>
 
 
@@ -358,7 +362,7 @@ function save(){
                           </span>
                           <span class="right floated ">
                             <i class="user icon"></i>
-                            <a href ="{% url 'members_list' community.id %}">
+                            <a href ="#">
                             {{community.members_count}}
                             </a>
                           </span>

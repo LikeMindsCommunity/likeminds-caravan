@@ -161,7 +161,8 @@
                     </a>
                   </div>
                   <br>
-                    OR 
+                    <!--OR
+
                     <br>
                     <br>
                     <div class = "content">
@@ -171,7 +172,7 @@
                         LinkedIn
                       </button>
                       </a>
-                    </div>
+                    </div>-->
                     </div>
                     </div>
 </div>
@@ -240,7 +241,7 @@
             {% endif %}
                   <div class="content" id="members">
                             <h4>Members
-                                <a class="right floated" style=" color:#1cb39b; font-weight:100; " href="{% url 'members_list' community.id %}"> See all</a>
+                               <!-- <a class="right floated" style=" color:#1cb39b; font-weight:100; " href="{% url 'members_list' community.id %}"> See all</a>-->
                             </h4>    
                       
                     <div class="ui container"  style=" overflow-y:auto;white-space:nowrap;" >
@@ -251,7 +252,7 @@
                                 <img class="ui tiny circular image" src="{{i.image_file.url}}">
                                  <p></p>
 
-                                <a href="../../profile/{{i.user_id.id}}">
+                               <!-- <a href="../../profile/{{i.user_id.id}}">-->
 
                                     <p>{{i.name}}</p>
                                 </a>

@@ -22,36 +22,45 @@ def dashboard(request):
 
 
 def update_form(request,community_id):
-    '''function to update form for community'''
+    '''function to update form for community and also purpose collabcard'''
     if request.method == 'POST':
 
 
         community=Community.objects.get(id=community_id)
         community_form=CommunityForm(request.POST,request.FILES,instance=community)
-        community_form.save()
-        purpose=community_form.cleaned_data['purpose']
-        community_form.save()
         admins=Members.objects.filter(community_id=community).filter(Q(state=1)|Q(state=2))
-        for_string=purpose.split(' ', 1)[0]
         member_id=0
+        purpose=""
+        if community_form.is_valid():
+            purpose=community_form.cleaned_data['purpose']
+            for_string=purpose.split(' ', 1)[0]
+            purpose = "Created this community " + for_string.lower() + purpose.split("For", 1)[1]
+        else:
+            print("some error is there")
         if admins:
             for admin in admins:
                 member_id=admin.member_id
                 break;
-        exist=Collabcard.objects.filter(community_id=community,title=purpose)
-        if not exist:
-            collabcard=Collabcard()
-            purpose="Created this community " + for_string.lower() + purpose.split("For",1)[1]
+
+        try:
+            collabcard=Collabcard.objects.get(id=community.purpose_collabcard)
             collabcard.title=purpose
-            collabcard.user=member_id
-            collabcard.community_id=community_id
-            collabcard.date_epoch=time.time()
             collabcard.save()
+        except:
+            collabcard=Collabcard()
+            collabcard.title = purpose
+            collabcard.user = member_id
+            collabcard.community_id = community_id
+            collabcard.date_epoch = time.time()
+            collabcard.save()
+            community.purpose_collabcard=collabcard.id
+            community.save()
+        community_form.save()
+
         return redirect('admin_dashboard')
     else:
         community=Community.objects.get(id=community_id)
         community_form=CommunityForm(instance=community)
-
 
     context={'community_form':community_form,'community':community}
     return render(request,'dashboard/community.html',context)
