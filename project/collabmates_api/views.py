@@ -12,7 +12,6 @@ from datetime import datetime
 import time
 from .notification import send_follow_notification,send_notification_to_admins,send_notification_for_join_requests,send_notification_for_new_collabcard_posted
 from django.db.models import Q
-from time import strptime, strftime, mktime, gmtime
 import dateutil.relativedelta
 from .tasks import send_email_to_nominated_admin,send_email,send_email_to_admin_of_community
 
@@ -712,6 +711,16 @@ def create_answer(request):
         ans.user = user
         ans.date_epoch=time.time()
         ans.save()
+
+
+        #auto following the collabcard if answer is created
+        is_present=is_collabcard_already_followed(card,user)
+        if  is_present == False:
+            follow = follow_collabcard()
+            follow.collabcard_id = card
+            follow.member_id = user
+            follow.save()
+
         send_follow_notification(card,user,res['title'])
 
         #calling update_answer_text 
@@ -1047,13 +1056,26 @@ def collabcard_follow(request):
 
     collabcard=Collabcard.objects.get(id=collabcard_id)
     member_id=User.objects.get(id=member_id)
+    is_present = is_collabcard_already_followed(collabcard, member_id)
 
-    follow=follow_collabcard()
-    follow.collabcard_id=collabcard
-    follow.member_id=member_id
-    follow.save()
+    if is_present == False:
+        follow=follow_collabcard()
+        follow.collabcard_id=collabcard
+        follow.member_id=member_id
+        follow.save()
 
     return JsonResponse({'success':True})
 
 
 
+def is_collabcard_already_followed(collabcard,member_id):
+
+    '''function to check whether the person already followed the collabcard or not'''
+
+    is_present=False
+    follow_data=follow_collabcard.objects.filter(collabcard_id=collabcard,member_id=member_id)
+
+    if follow_data:
+        is_present=True
+
+    return is_present
