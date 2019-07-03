@@ -908,7 +908,7 @@ def check_member(email,community_id,member_id,res):
     if user:
         member =Members.objects.filter(community_id = community,member_id = user[0].user_id.id)
         print("member  == ",member)
-        print("member state == ",member[0].state)
+        #print("member state == ",member[0].state)
         if member and member[0].state == 4:
             print("member is meber")
             Members.objects.filter(community_id = community,member_id = user[0].user_id.id).update(state=6)
