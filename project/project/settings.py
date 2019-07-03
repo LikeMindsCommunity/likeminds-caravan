@@ -30,7 +30,7 @@ SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 # Force HTTPS in the final URIs
 SOCIAL_AUTH_REDIRECT_IS_HTTPS = True
 
-ALLOWED_HOSTS = ['https://beta.collabmates.com','beta.collabmates.com','127.0.0.1','localhost','ec2-3-17-180-202.us-east-2.compute.amazonaws.com']
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -157,9 +157,9 @@ AUTHENTICATION_BACKENDS = (
     'django.contrib.auth.backends.ModelBackend',
 )   
 
-SOCIAL_AUTH_FACEBOOK_KEY = '262864897759599'
-SOCIAL_AUTH_FACEBOOK_SECRET = '095e2bc2fd71379ccbf3e1564abfee27'
-SOCIAL_AUTH_FACEBOOK_SCOPE = ['email','user_hometown']
+SOCIAL_AUTH_FACEBOOK_KEY = '633859857057924'
+SOCIAL_AUTH_FACEBOOK_SECRET = 'f90d662fdb205e53f24a90009318a6d4'
+SOCIAL_AUTH_FACEBOOK_SCOPE = ['email']
 SOCIAL_AUTH_FACEBOOK_PROFILE_EXTRA_PARAMS = {'fields': 'id,name,email', }
 SOCIAL_AUTH_LINKEDIN_OAUTH2_KEY = '8616kilc3dqagd'
 SOCIAL_AUTH_LINKEDIN_OAUTH2_SECRET = 'g2LdZt5KN9HRF1IB'
