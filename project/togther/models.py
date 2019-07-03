@@ -27,7 +27,7 @@ class Community (models.Model):
     whatsapp_group_link = models.CharField(max_length = 400, null=True)
     created_at=models.BigIntegerField(default=-9223372036854775808)
     updated_at=models.BigIntegerField(default=-9223372036854775808)
-
+    purpose_collabcard=models.IntegerField(null=True)
     def __str__(self):
         return self.name
 
