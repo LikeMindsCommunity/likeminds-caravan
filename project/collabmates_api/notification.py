@@ -1,6 +1,6 @@
 import psycopg2
 from pyfcm import FCMNotification
-
+from django.conf import  settings
 
 # file to store configuration of the system
 
@@ -8,7 +8,7 @@ from pyfcm import FCMNotification
 # database details
 db_user="apoorv"
 db_password="khare"
-db_host="ec2-3-17-180-202.us-east-2.compute.amazonaws.com"
+db_host=settings.DB_HOST
 db_port="5432"
 db_database="togther"
 
