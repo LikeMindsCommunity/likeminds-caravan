@@ -332,7 +332,7 @@ def accept_admin(request,community_id,cta=''):
     else:
         send_email_to_proposed_admin.delay(NominatedAdmin=nom_admin[0].name,email=prop_admin.email,ProposedAdmin=prop_admin.name,proposedAdminState=1,CommunityName=community.name,community_id = community.id)
         Members.objects.filter(community_id = community,member_id=core_user.id).update(state =1)
-    return HttpResponseRedirect(reverse('comunity', args=[community_id]))
+    return HttpResponseRedirect("https://play.google.com/apps/testing/com.collabmates")
 
 def check_admins(community_id):
     community = Community.objects.get(id=community_id)
