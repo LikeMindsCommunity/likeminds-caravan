@@ -330,7 +330,7 @@ def send_email_to_nominated_admin(NominatedAdmin,email,ProposedAdmin,CommunityNa
     subject =str(ProposedAdmin)+ " has proposed you as promoter of "+str(CommunityName)+" community"
     if proposedAdminState == 1:
         template = get_template("mails/accept_admin_request.html").render({"NominatedAdmin":NominatedAdmin,"email":email,"ProposedAdmin":ProposedAdmin,"CommunityName":CommunityName,"community_id":community_id,'url':url})
-    if proposedAdminState == 2:
+    elif proposedAdminState == 2:
         template = get_template("mails/accept_temp_admin_request.html").render({"NominatedAdmin":NominatedAdmin,"email":email,"ProposedAdmin":ProposedAdmin,"CommunityName":CommunityName,"community_id":community_id,'url':url})
     msg = EmailMultiAlternatives(subject,
                                      template,
