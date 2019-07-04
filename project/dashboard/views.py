@@ -10,6 +10,8 @@ from django.shortcuts import render
 from django.core.mail import EmailMultiAlternatives
 # Create your views here.
 from collabmates_api.notification import send_notification_for_join_requests
+from django.conf import settings
+url  = settings.URL
 
 def dashboard(request):
   '''function to give list of community to edit'''
@@ -265,7 +267,7 @@ def send_invitation(request,community_id):
             admin.member_id = proposed_admin.id
             admin.save()
             check = check_member(proposed_email,community_id,proposed_admin.id,proposed_name)
-            #send_email_to_nominated_admin(proposed_name,proposed_email,proposer_name,community.name,community_id)
+            send_email_to_nominated_admin(proposed_name,proposed_email,proposer_name,community.name,community_id)
             return redirect('admin_dashboard')
     else:
         send_nominated_email=SendNominatedEmail()
@@ -320,14 +322,16 @@ def check_member(email,community_id,member_id,proposed_name):
     return False
 
 
-def send_email_to_nominated_admin(NominatedAdmin,email,ProposedAdmin,CommunityName,community_id,ProposedAdminState):
+def send_email_to_nominated_admin(NominatedAdmin,email,ProposedAdmin,CommunityName,community_id,proposedAdminState):
     fail_silently=True
     to = email
+    url = settings.URL
+    url = url + "/community/" + str(community_id) + "/?source=email&cta=accept_admin"
     subject =str(ProposedAdmin)+ " has proposed you as promoter of "+str(CommunityName)+" community"
     if proposedAdminState == 1:
-        template = get_template("mails/accept_admin_request.html").render({"NominatedAdmin":NominatedAdmin,"email":email,"ProposedAdmin":ProposedAdmin,"CommunityName":CommunityName,"community_id":community_id})
+        template = get_template("mails/accept_admin_request.html").render({"NominatedAdmin":NominatedAdmin,"email":email,"ProposedAdmin":ProposedAdmin,"CommunityName":CommunityName,"community_id":community_id,'url':url})
     if proposedAdminState == 2:
-        template = get_template("mails/accept_temp_admin_request.html").render({"NominatedAdmin":NominatedAdmin,"email":email,"ProposedAdmin":ProposedAdmin,"CommunityName":CommunityName,"community_id":community_id})
+        template = get_template("mails/accept_temp_admin_request.html").render({"NominatedAdmin":NominatedAdmin,"email":email,"ProposedAdmin":ProposedAdmin,"CommunityName":CommunityName,"community_id":community_id,'url':url})
     msg = EmailMultiAlternatives(subject,
                                      template,
                                      "hello@collabmates.com",
