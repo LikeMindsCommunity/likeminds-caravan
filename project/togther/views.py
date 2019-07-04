@@ -27,7 +27,7 @@ def home(request):
         return render(request, 'home.html', {'users': users})
         
 
-def dashboard(request):  
+def dashboard(request):
     if request.user.is_authenticated:
         user = Userinfo.objects.all().filter(user_id = request.user)
         print("user == ", user)
@@ -125,7 +125,7 @@ def dashboard(request):
                     comm = {'id':i.id,
                         'name':i.name,
                         'about':i.about,
-                        'image_url':'https://beta.collabmates.com/'+i.image_url.url,
+                        'image_url':url+i.image_url.url,
                         'location':i.location,
                         'members_count':i.members_count,
                         'purpose': i.purpose,
@@ -140,7 +140,7 @@ def dashboard(request):
                     comm = {'id':i.id,
                         'name':i.name,
                         'about':i.about,
-                        'image_url':'https://beta.collabmates.com/'+i.image_url.url,
+                        'image_url':url+i.image_url.url,
                         'location':i.location,
                         'members_count':i.members_count,
                         }
