@@ -265,7 +265,7 @@ def send_invitation(request,community_id):
             admin.member_id = proposed_admin.id
             admin.save()
             check = check_member(proposed_email,community_id,proposed_admin.id,proposed_name)
-            #send_email_to_nominated_admin(proposed_name,proposed_email,proposer_name,community.name,community_id)
+            send_email_to_nominated_admin(proposed_name,proposed_email,proposer_name,community.name,community_id)
             return redirect('admin_dashboard')
     else:
         send_nominated_email=SendNominatedEmail()
@@ -320,7 +320,7 @@ def check_member(email,community_id,member_id,proposed_name):
     return False
 
 
-def send_email_to_nominated_admin(NominatedAdmin,email,ProposedAdmin,CommunityName,community_id,ProposedAdminState):
+def send_email_to_nominated_admin(NominatedAdmin,email,ProposedAdmin,CommunityName,community_id,proposedAdminState):
     fail_silently=True
     to = email
     subject =str(ProposedAdmin)+ " has proposed you as promoter of "+str(CommunityName)+" community"
