@@ -112,8 +112,9 @@ a.article-title:hover {
   <div class="row">
     <div class="col-md-8">
               <div class="content-section">
-               <div class="media">
-                <img class=" account-img" style="height: 300px ;width: 600px" src="{{user_info.image_file.url}}">
+               <div class="media" >
+
+                <img class=" account-img" style="height: 300px ;width: 300px" src="{{user_info.image_file.url}}">
               </div>
               <form method="post" enctype = "multipart/form-data">
                 {% csrf_token %}
