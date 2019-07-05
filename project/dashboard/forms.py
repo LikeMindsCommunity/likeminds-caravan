@@ -51,12 +51,13 @@ class UserForm(forms.ModelForm):
         self.fields['fb_link'].required = False
         self.fields['linkedin_link'].required = False
         self.fields['fcm_token'].required = False
+        self.fields['image_file'].required = False
 
     class Meta:
         model=Userinfo
-        fields=['name','city','contact_number','interests','fb_link','linkedin_link','fcm_token','login_type']
+        fields=['name','city','contact_number','interests','fb_link','linkedin_link','fcm_token','login_type','image_file']
         attrs = {'class': 'form-control form-group'}
-
+        attr_purpose={'class': 'form-control form-group','minlength':40}
         widgets = {
             'name': forms.TextInput(attrs=attrs),
             'city':forms.TextInput(attrs=attrs),
@@ -65,7 +66,8 @@ class UserForm(forms.ModelForm):
             'fb_link':forms.TextInput(attrs=attrs),
             'linkedin_link':forms.TextInput(attrs=attrs),
             'fcm_token':forms.TextInput(attrs=attrs),
-            'login_type':forms.TextInput(attrs=attrs)
+            'login_type':forms.TextInput(attrs=attrs),
+            'image_file': forms.FileInput(attrs=({'class': 'file-upload btn btn-primary'}))
 
         }
 class SendNominatedEmail(forms.Form):
