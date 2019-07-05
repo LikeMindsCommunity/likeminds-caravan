@@ -222,7 +222,7 @@ def update_user(request,email):
     if request.method == 'POST':
 
         user_info = Userinfo.objects.get(email=email)
-        user_info_form=UserForm(request.POST,instance=user_info)
+        user_info_form=UserForm(request.POST,request.FILES or None,instance=user_info)
         user_info_form.save()
         return redirect('all_user')
     else:
@@ -230,8 +230,9 @@ def update_user(request,email):
         try:
             user_info = Userinfo.objects.get(email=email)
             user_info_form = UserForm(instance=user_info)
-            context = {'user_info_form': user_info_form}
-        except:
+            context = {'user_info_form': user_info_form,'user_info':user_info}
+        except Exception as e:
+            print(e)
             context={'error':'Some Technical Error'}
 
 
