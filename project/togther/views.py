@@ -100,12 +100,12 @@ def dashboard(request):
         my_community =[]
         for j in my_communities:
             my_community.append(j)
-        communities = Community.objects.all().order_by('-active_since')
+        communities = Community.objects.filter(hide_community='0').order_by('-active_since')
         print("usr at last  ======== ",usr)
         return render (request, 'dashboard.html', { 'usr': usr, 'communities' : communities, 'my_communities':my_community[:2], "my_communities_count": len(my_community) })
     else:
         user = []
-    communities = Community.objects.all().order_by('-active_since')
+    communities = Community.objects.filter(hide_community='0').order_by('-active_since')
     if request.method == 'GET':
         response = request.GET.dict()
         print (response)
@@ -170,6 +170,8 @@ def community(request, community_id):
     else:
         cta =''
     community = get_object_or_404(Community, pk = community_id)
+    if community.hide_community == '1':
+        return HttpResponse('This community is temporarily not available')
     if request.user.is_authenticated:
         user = Userinfo.objects.all().filter(user_id = request.user)
         if not user:
@@ -240,7 +242,7 @@ def community(request, community_id):
         else:
             is_joined=-1
     user=[]
-    communities=Community.objects.all()
+    communities=Community.objects.filter(hide_community='0')
     if request.user.is_authenticated:
         user = Userinfo.objects.all().filter(user_id=core_user.id)
     else:
