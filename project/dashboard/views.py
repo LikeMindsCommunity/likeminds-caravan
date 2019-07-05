@@ -222,7 +222,7 @@ def update_user(request,email):
     if request.method == 'POST':
 
         user_info = Userinfo.objects.get(email=email)
-        user_info_form=UserForm(request.POST,instance=user_info)
+        user_info_form=UserForm(request.POST,request.FILES or None,instance=user_info)
         user_info_form.save()
         return redirect('all_user')
     else:
@@ -230,8 +230,9 @@ def update_user(request,email):
         try:
             user_info = Userinfo.objects.get(email=email)
             user_info_form = UserForm(instance=user_info)
-            context = {'user_info_form': user_info_form}
-        except:
+            context = {'user_info_form': user_info_form,'user_info':user_info}
+        except Exception as e:
+            print(e)
             context={'error':'Some Technical Error'}
 
 
@@ -267,12 +268,16 @@ def send_invitation(request,community_id):
             admin.member_id = proposed_admin.id
             admin.save()
             check = check_member(proposed_email,community_id,proposed_admin.id,proposed_name)
-            send_email_to_nominated_admin(proposed_name,proposed_email,proposer_name,community.name,community_id)
             return redirect('admin_dashboard')
     else:
         send_nominated_email=SendNominatedEmail()
         context={'send_email':send_nominated_email}
         return render(request,'dashboard/send_invitation.html',context)
+
+def check_community_admin(community_id,proposed_admin_id):
+    community = Community.objects.filter(id= community_id)
+    promoter_id = User.objects.get(id = proposed_admin_id)
+    promoter = Members.objects.filter(community_id =  community,member_id = promoter_id)
 
 
 def check_member(email,community_id,member_id,proposed_name):
@@ -329,8 +334,10 @@ def send_email_to_nominated_admin(NominatedAdmin,email,ProposedAdmin,CommunityNa
     url = url + "/community/" + str(community_id) + "/?source=email&cta=accept_admin"
     subject =str(ProposedAdmin)+ " has proposed you as promoter of "+str(CommunityName)+" community"
     if proposedAdminState == 1:
+        print("proposed admin state  == 1")
         template = get_template("mails/accept_admin_request.html").render({"NominatedAdmin":NominatedAdmin,"email":email,"ProposedAdmin":ProposedAdmin,"CommunityName":CommunityName,"community_id":community_id,'url':url})
-    if proposedAdminState == 2:
+    elif proposedAdminState == 2:
+        print("proposed admin state  == 2")
         template = get_template("mails/accept_temp_admin_request.html").render({"NominatedAdmin":NominatedAdmin,"email":email,"ProposedAdmin":ProposedAdmin,"CommunityName":CommunityName,"community_id":community_id,'url':url})
     msg = EmailMultiAlternatives(subject,
                                      template,

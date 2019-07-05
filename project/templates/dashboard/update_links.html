@@ -112,11 +112,14 @@ a.article-title:hover {
   <div class="row">
     <div class="col-md-8">
               <div class="content-section">
+               <div class="media" >
 
+                <img class=" account-img" style="height: 300px ;width: 300px" src="{{user_info.image_file.url}}">
+              </div>
               <form method="post" enctype = "multipart/form-data">
                 {% csrf_token %}
                  <fieldset class="form-group">
-                    <legend class ="border-bottom mb-4">Community Info</legend>
+                    <legend class ="border-bottom mb-4">User Info</legend>
                     {{user_info_form|crispy }}
                 </fieldset>
                 <div class = "form-group">
