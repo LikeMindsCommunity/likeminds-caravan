@@ -17,6 +17,7 @@ card_action = (
 )
 
 class Community (models.Model):
+
     name = models.CharField(max_length = 200)
     about = models.TextField()
     purpose = models.CharField(max_length= 300)
@@ -28,6 +29,8 @@ class Community (models.Model):
     created_at=models.BigIntegerField(default=-9223372036854775808)
     updated_at=models.BigIntegerField(default=-9223372036854775808)
     purpose_collabcard=models.IntegerField(null=True)
+    hide_community=models.CharField(default=0,max_length=1)
+
     def __str__(self):
         return self.name
 
@@ -74,7 +77,6 @@ class Userinfo (models.Model):
     about = models.CharField(max_length = 400, null = True)
     fb_link = models.CharField(max_length = 400, null = True)
     linkedin_link = models.CharField(max_length = 400, null = True)
-    headline = models.CharField(max_length = 100, null = True)
     fcm_token=models.CharField(max_length=1024,null=True)
     login_type=models.CharField(max_length=50,null=True)
     login_json=models.TextField(null=True)
