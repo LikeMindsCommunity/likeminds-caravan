@@ -28,7 +28,7 @@ def communities(request):
                 community=filter_by_category(response)     
                 return JsonResponse({'communities': community})
             else:
-                queryset = Community.objects.all().order_by('-created_at')
+                queryset = Community.objects.filter(hide_community='0').order_by('-created_at')
                 community = []
                 for i in queryset:
                     serializer_class = CommunitySerializer(i)
@@ -50,7 +50,7 @@ def communities(request):
                 return JsonResponse({'communities': community})
 
 def filter_by_category(response):
-    """  filtering communities accordig to the category of the community  """
+    """  filtering communities according to the category of the community  """
     if 'category_id' in response:
         if response['category_id'] != '':
             category = response['category_id']
@@ -62,7 +62,8 @@ def filter_by_category(response):
             for i in category_objects:
                 if i.category == cat:
                     c = Community.objects.get(id = i.community_id.id)
-                    communities.append(c)
+                    if c.hide_community == '0':
+                        communities.append(c)
             community = []
             communities = communities[::-1]
             for i in communities:
@@ -80,7 +81,9 @@ def filter_by_category(response):
 
 def your_communities(request,user_id):
     '''This function is used to see your communities based on user id'''
-    member_id = user_id
+
+    member_id=request.GET.get('member_id')
+
     user = User.objects.get(id = member_id)
     communities = Members.objects.all().filter(member_id = user_id).filter(Q(state=1)|Q(state=2)|Q(state=4))
     my_communities = []
@@ -101,8 +104,14 @@ def your_communities(request,user_id):
     result = sorted(tupple_list, key= lambda x:x[1],reverse=True)
 
     for each_community in result:
-        my_communities.append(each_community[0])
 
+        if str(member_id) != str(user_id):
+            if each_community[0].hide_community == '0':
+                my_communities.append(each_community[0])
+
+        else:
+            member_id=user_id
+            my_communities.append(each_community[0])
     my_community =[]
 
     for i in my_communities:
@@ -124,7 +133,7 @@ def your_communities(request,user_id):
 
         is_admin = False
         community = Community.objects.get(id = new_dict['id'])
-        community_admins = Members.objects.filter(community_id = i).filter(member_id =member_id)
+        community_admins = Members.objects.filter(community_id = i).filter(member_id =user_id)
         pending_requests = Members.objects.filter(community_id = community.id).filter(state = 3)
         if (community_admins[0].state == 1 or community_admins[0].state==2):
             new_dict['pending_members_count'] = len(pending_requests)
@@ -133,7 +142,7 @@ def your_communities(request,user_id):
             new_dict['pending_members_count'] = 0
         new_dict['is_admin'] = is_admin
         total_collabcards = Collabcard.objects.filter(community=community)
-        seen_collabcard = collabcard_seen.objects.filter(community=community, user=member_id)
+        seen_collabcard = collabcard_seen.objects.filter(community=community, user=user_id)
         if (len(total_collabcards) - len(seen_collabcard)) < 0:
             new_dict['collabcard_unseen'] =0
         else:
@@ -215,6 +224,7 @@ def community(request, community_id):
     return JsonResponse({'community': community})
 
 def similar_community(request, community_id):
+    '''function to return similar communitites'''
     body = request.GET
     if 'member_id' in body:
         user_id = body['member_id']
@@ -225,7 +235,7 @@ def similar_community(request, community_id):
         if m.member_id == user:
             is_member = True
     community = Community.objects.get(id = community_id)
-    queryset = Community.objects.all().order_by('-active_since')[:10]
+    queryset = Community.objects.filter(hide_community='0').order_by('-active_since')[:10]
     similar_communities = []
     for i in queryset:
         if i.id != community_id:
