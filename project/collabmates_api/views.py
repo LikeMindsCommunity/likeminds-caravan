@@ -81,7 +81,9 @@ def filter_by_category(response):
 
 def your_communities(request,user_id):
     '''This function is used to see your communities based on user id'''
-    member_id = user_id
+
+    member_id=request.GET.get('member_id')
+
     user = User.objects.get(id = member_id)
     communities = Members.objects.all().filter(member_id = user_id).filter(Q(state=1)|Q(state=2)|Q(state=4))
     my_communities = []
@@ -102,8 +104,14 @@ def your_communities(request,user_id):
     result = sorted(tupple_list, key= lambda x:x[1],reverse=True)
 
     for each_community in result:
-        my_communities.append(each_community[0])
 
+        if str(member_id) != str(user_id):
+            if each_community[0].hide_community == '0':
+                my_communities.append(each_community[0])
+
+        else:
+            member_id=user_id
+            my_communities.append(each_community[0])
     my_community =[]
 
     for i in my_communities:
@@ -125,7 +133,7 @@ def your_communities(request,user_id):
 
         is_admin = False
         community = Community.objects.get(id = new_dict['id'])
-        community_admins = Members.objects.filter(community_id = i).filter(member_id =member_id)
+        community_admins = Members.objects.filter(community_id = i).filter(member_id =user_id)
         pending_requests = Members.objects.filter(community_id = community.id).filter(state = 3)
         if (community_admins[0].state == 1 or community_admins[0].state==2):
             new_dict['pending_members_count'] = len(pending_requests)
@@ -134,7 +142,7 @@ def your_communities(request,user_id):
             new_dict['pending_members_count'] = 0
         new_dict['is_admin'] = is_admin
         total_collabcards = Collabcard.objects.filter(community=community)
-        seen_collabcard = collabcard_seen.objects.filter(community=community, user=member_id)
+        seen_collabcard = collabcard_seen.objects.filter(community=community, user=user_id)
         if (len(total_collabcards) - len(seen_collabcard)) < 0:
             new_dict['collabcard_unseen'] =0
         else:
