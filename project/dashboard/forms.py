@@ -9,17 +9,21 @@ class CommunityForm(forms.ModelForm):
         self.fields['purpose'].required = True
         self.fields['location'].required = False
         self.fields['image_url'].required = False
+        self.fields['hide_community'].required = False
+
     class Meta:
         model=Community
-        fields=['name','about','purpose','location','image_url']
+        fields=['name','about','purpose','location','hide_community','image_url']
         attrs = {'class': 'form-control form-group'}
         attr_purpose={'class': 'form-control form-group','minlength':40}
+        attr_hidden={'class': 'form-control form-group','minlength':1,'placeholder':'Enter 1 to hide and 0 to unhide'}
 
         widgets = {
             'name': forms.TextInput(attrs=attrs),
             'about':forms.Textarea(attrs={'cols': 70, 'rows': 10}),
             'purpose':forms.TextInput(attrs=attr_purpose),
             'location':forms.TextInput(attrs=attrs),
+            'hide_community': forms.TextInput(attrs=attr_hidden),
             'image_url':forms.FileInput(attrs=({'class':'file-upload btn btn-primary'}))
 
         }

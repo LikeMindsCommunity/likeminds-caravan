@@ -28,7 +28,7 @@ def communities(request):
                 community=filter_by_category(response)     
                 return JsonResponse({'communities': community})
             else:
-                queryset = Community.objects.all().order_by('-created_at')
+                queryset = Community.objects.filter(hide_community='0').order_by('-created_at')
                 community = []
                 for i in queryset:
                     serializer_class = CommunitySerializer(i)
@@ -50,7 +50,7 @@ def communities(request):
                 return JsonResponse({'communities': community})
 
 def filter_by_category(response):
-    """  filtering communities accordig to the category of the community  """
+    """  filtering communities according to the category of the community  """
     if 'category_id' in response:
         if response['category_id'] != '':
             category = response['category_id']
@@ -62,7 +62,8 @@ def filter_by_category(response):
             for i in category_objects:
                 if i.category == cat:
                     c = Community.objects.get(id = i.community_id.id)
-                    communities.append(c)
+                    if c.hide_community == '0':
+                        communities.append(c)
             community = []
             communities = communities[::-1]
             for i in communities:
@@ -215,6 +216,7 @@ def community(request, community_id):
     return JsonResponse({'community': community})
 
 def similar_community(request, community_id):
+    '''function to return similar communitites'''
     body = request.GET
     if 'member_id' in body:
         user_id = body['member_id']
@@ -225,7 +227,7 @@ def similar_community(request, community_id):
         if m.member_id == user:
             is_member = True
     community = Community.objects.get(id = community_id)
-    queryset = Community.objects.all().order_by('-active_since')[:10]
+    queryset = Community.objects.filter(hide_community='0').order_by('-active_since')[:10]
     similar_communities = []
     for i in queryset:
         if i.id != community_id:
