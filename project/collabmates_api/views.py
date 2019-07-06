@@ -421,13 +421,9 @@ def create_community(request):
                         category.community_id_id = group.id
                         category.save()
             # create user as a admin for the community as the user is creating the community as a admin
-            admin = Admins()
             print(group)
             user = User.objects.get(id = user_id)
-            admin.admin_id = user
             community = Community.objects.get(id = group.id)
-            admin.community_id = community
-            admin.save()
             member = Members()
             member.member_id = user
             member.community_id = community
@@ -444,6 +440,7 @@ def create_community(request):
             card.user = user
             card.date_epoch =time.time()
             card.save()
+            Community.objects.filter(id=group.id).update(purpose_collabcard = card.id)
             follow=follow_collabcard()
             follow.collabcard_id=card
             follow.member_id=user
@@ -531,6 +528,10 @@ def create_card(request):
         card.user = useer
         card.date_epoch=time.time()
         card.save()
+        # if the community does not have a purpose card then a purpose will be created
+        # the first card created for a community is the purpose card
+        if not community.purpose_collabcard:
+            Community.objects.filter(id=community_id).update(purpose_collabcard  = card.id)
         send_notification_for_new_collabcard_posted(community_id,res['title'],user_id,user.name)
         Community.objects.filter(id=community_id).update(updated_at=time.time())
         collabcard = {}
