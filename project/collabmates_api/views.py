@@ -226,21 +226,19 @@ def community(request, community_id):
 def similar_community(request, community_id):
     '''function to return similar communitites'''
     body = request.GET
-    if 'member_id' in body:
-        user_id = body['member_id']
+    user_id=body['member_id']
     member = Members.objects.all().filter(community_id = community_id)
     is_member = False
     user = User.objects.get(id = user_id)
     for m in member:
         if m.member_id == user:
             is_member = True
-    community = Community.objects.get(id = community_id)
-    queryset = Community.objects.filter(hide_community='0').order_by('-active_since')[:10]
+    queryset = Community.objects.filter(~Q(id=community_id)&Q(hide_community='0')).order_by('-updated_at')[:10]
+    print(len(queryset))
+
     similar_communities = []
     for i in queryset:
-        if i.id != community_id:
-            serializer_class = CommunitySerializer(i)
-            community = serializer_class.data
+        serializer_class = CommunitySerializer(i)
         new_dict = {}
         new_dict.update(serializer_class.data)
         if new_dict['image_url']:
@@ -252,6 +250,7 @@ def similar_community(request, community_id):
         new_dict['date'] = i.active_since
         similar_communities.append(new_dict)
     return JsonResponse({'communities': similar_communities})
+
 
 def join_community(request, community_id):
     data = Form_data.objects.all().filter(community_id = community_id)
