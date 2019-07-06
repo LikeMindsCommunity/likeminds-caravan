@@ -96,7 +96,7 @@ def dashboard(request):
         communities1 = Members.objects.all().filter(member_id = user_id)
         my_communities = []
         for j in communities1:
-                my_communities.append(j.community_id)
+            my_communities.append(j.community_id)
         my_community =[]
         for j in my_communities:
             my_community.append(j)
@@ -322,6 +322,7 @@ def accept_admin(request,community_id,cta=''):
             print(nom_admin[0].name)
             Members.objects.filter(community_id=community, member_id=core_user.id).update(state=1)
             print("email to proposed admin for single admin and done it")
+            update_member_count(community.id)
             send_email_to_proposed_admin.delay(NominatedAdmin=nom_admin[0].name,email=prop_admin.email,ProposedAdmin=prop_admin.name,proposedAdminState =1,CommunityName=community.name,community_id = community.id)
             return HttpResponseRedirect("https://play.google.com/apps/testing/com.collabmates")
         elif member[0].state == 2:
@@ -329,12 +330,21 @@ def accept_admin(request,community_id,cta=''):
             temp_admin = Members.objects.filter(community_id = community,state=2)
             Members.objects.filter(community_id = community,member_id=temp_admin[0].member_id).update(state =4)
             Members.objects.filter(community_id = community,member_id=core_user.id).update(state =1)
+            update_member_count(community.id)
             send_email_to_proposed_admin.delay(NominatedAdmin=nom_admin[0].name,email=prop_admin.email,ProposedAdmin=prop_admin.name,proposedAdminState=2,CommunityName=community.name,community_id = community.id)
             return HttpResponseRedirect("https://play.google.com/apps/testing/com.collabmates")
     else:
         Members.objects.filter(community_id=community, member_id=core_user.id).update(state=1)
+        update_member_count(community.id)
         send_email_to_proposed_admin.delay(NominatedAdmin=nom_admin[0].name,email=prop_admin.email,ProposedAdmin=prop_admin.name,proposedAdminState=1,CommunityName=community.name,community_id = community.id)
         return HttpResponseRedirect("https://play.google.com/apps/testing/com.collabmates")
+
+def update_member_count(community_id):
+    community = Community.objects.get(id=community_id)
+    count = Members.objects.filter(community_id=community).filter(Q(state=1)|Q(state=2)|Q(state=4))
+    print("length == ",len(count))
+    community = Community.objects.filter(id=community_id).update(members_count = len(count))
+    return
 
 def check_admins(community_id):
     community = Community.objects.get(id=community_id)
