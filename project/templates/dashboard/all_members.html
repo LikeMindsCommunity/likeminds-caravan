@@ -1,6 +1,6 @@
- {% load static %}
+{% load static %}
 <!DOCTYPE html>
-<html>
+<html xmlns="http://www.w3.org/1999/html">
 {% if request.user.is_superuser %}
 <head>
 	<meta charset="utf-8">
@@ -12,7 +12,7 @@
     <link rel="stylesheet" type="text/css" href="{% static 'notes/main.css' %}">
 
 
-
+<!-- page to show all members of community -->
 
 <style type="text/css">
 
@@ -52,7 +52,7 @@ ul {
   border: 1px solid #dddddd;
   border-radius: 3px;
   margin-bottom: 20px;
-  width:1000px;
+  width:900px;
 }
 
 .article-title {
@@ -107,8 +107,6 @@ a.article-title:hover {
 }
 </style>
 </head>
-
-<a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 float-right" href="{% url 'all_user' %}">Users</a>
 <body>
 
 
@@ -116,27 +114,25 @@ a.article-title:hover {
 	<main role="main" class="container" >
   <div class="row">
     <div class="col-md-8">
-      {% for community in communities %}
-    <article class="media content-section" >
-      <img class = "rounded-circle article-img" src="{{ community.image_url.url }}">
+      {% for member in member_list %}
+<!--    <article class="media content-section" >-->
+<!--      <img class = "rounded-circle article-img" src="#">-->
   <div class="media-body" >
     <div class="article-metadata" >
 
-      <small class="text-muted">{{ community.active_since|date:"F d, Y" }}</small>
-      <a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 " href="{% url 'update_form' community.id %}">Update</a>
-      <a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 " href="{% url 'community_delete' community.id %}">Delete</a>
-      <a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 " href="{% url 'add_dashboard_admin' community.id %}">Add Admin</a>
-      <a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 " href="{% url 'add_dashboard_member' community.id %}">Add Member</a>
-      <a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 " href="{% url 'all_members' community.id %}">Members&nbsp;({{community.whatsapp_group_link}})</a>
-      <a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 " href="{% url 'show_tags' community.id %}">Tags</a>
-      <a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 " href="{% url 'send_invitation' community.id %}">Send Invitation</a>
-
-
-
-
     </div>
-    <h2><a class="article-title" href="{% url 'update_form' community.id %}">{{ community.name }}</a></h2>
-    <p class="article-content">{{ community.purpose }}</p>
+    <h2><a class="article-title" href="#">{{ member.id }}</a></h2>
+        {% if member.state != 'Pending' %}
+
+      <p class="article-content">{{member.state}}</p>
+      {% else %}
+            <p class="article-content" style="color:red;"> {{member.state}}</p>
+      {% endif %}
+    <a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 " href="{%url 'delete_members' member.community_id member.id.id %}">Delete</a>
+    {% if member.state == 'Pending' %}
+    <a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 " href="{% url 'aprove_member' member.community_id  member.id.id %} ">Approve</a>
+    <a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 " href="{% url 'decline_member' member.community_id  member.id.id %}">Decline</a>
+    {% endif %}
   </div>
 </article>
   {% endfor %}
@@ -149,4 +145,3 @@ a.article-title:hover {
 
 </body>
 {% endif %}
-</html>
