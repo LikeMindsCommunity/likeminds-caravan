@@ -19,6 +19,12 @@ from django.conf import settings
 
 url  = settings.URL
 
+def index(request):
+
+    '''function to show promotion page'''
+    return render(request,'index.html')
+
+
 def home(request):
     users = User.objects.all()
     if request.user.is_authenticated: 
