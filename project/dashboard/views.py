@@ -388,5 +388,5 @@ def delete_members(request,community_id,member_id):
            promoter_count=promoter_count+1
     if promoter_count == 1:
         return HttpResponse("You cannot Delete the promoter.First make a promoter in order to delete")
-    #Members.objects.filter(community_id=community_id,member_id=member_id).delete()
+    Members.objects.filter(community_id=community_id,member_id=member_id).delete()
     return redirect('admin_dashboard')
