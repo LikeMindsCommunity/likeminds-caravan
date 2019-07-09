@@ -11,6 +11,7 @@ from django.core.mail import EmailMultiAlternatives
 # Create your views here.
 from collabmates_api.notification import send_notification_for_join_requests
 from django.conf import settings
+import json
 url  = settings.URL
 
 def dashboard(request):
@@ -168,7 +169,6 @@ def decline_member(request,community_id,member_id):
 
 def show_tags(request,community_id):
     '''Taging communitites'''
-    print(community_id)
     categories=Category.objects.filter(community_id=community_id)
     category_string=""
     for i in categories:
@@ -227,7 +227,6 @@ def update_user(request,email):
         user_info_form.save()
         return redirect('all_user')
     else:
-        context={}
         try:
             user_info = Userinfo.objects.get(email=email)
             user_info_form = UserForm(instance=user_info)
@@ -390,3 +389,52 @@ def delete_members(request,community_id,member_id):
         return HttpResponse("You cannot Delete the promoter.First make a promoter in order to delete")
     Members.objects.filter(community_id=community_id,member_id=member_id).delete()
     return redirect('admin_dashboard')
+
+
+
+def add_questions(request,community_id):
+
+    '''function to add and edit questions'''
+    questions=Form_data.objects.filter(community_id=community_id)
+    community_name=Community.objects.filter(id=community_id).values('name')
+    question_list=[]
+    for question in questions:
+        question_list.append(question)
+
+    context={
+        'question_list':question_list,
+        'community_name':community_name[0]['name'],
+        'length':len(question_list),
+        'community_id':community_id
+    }
+
+    question_data=request.GET.get('data',None)
+    print(question_data)
+    if question_data is not None:
+        question_data=json.loads(question_data)
+
+        for question in question_data:
+
+           if len(question['question']) == 0:
+               continue
+           if question['update']:
+               Form_data.objects.filter(id=question['id']).update(data=question['question'])
+           else:
+               form_data=Form_data()
+               form_data.community_id=Community.objects.get(id=community_id)
+               form_data.data=question['question']
+               form_data.save()
+
+    return render(request,'dashboard/add_questions.html',context)
+
+
+
+def delete_questions(request,question_id):
+    '''function to delelte the questions'''
+    form_data=Form_data.objects.filter(id=question_id)
+    community_id=0
+    for i in form_data:
+        community_id=i.community_id.id
+    Form_data.objects.filter(id=question_id).delete()
+    url='/admin_dashboard/add_questions/'+str(community_id)
+    return redirect(url)
