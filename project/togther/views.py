@@ -708,7 +708,7 @@ def send_email(email):
     msg = EmailMultiAlternatives(subject,
                                  email,
                                  "hello@collabmates.com",
-                                 ['rastogi.fresh88@gmail.com'],
+                                 ['nipungoyal.iitd@gmail.com'],
                                  )
     return msg.send(fail_silently)
 
