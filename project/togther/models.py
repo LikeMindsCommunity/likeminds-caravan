@@ -174,3 +174,6 @@ class follow_collabcard(models.Model):
     '''Model to store the follow requests of members'''
     collabcard_id=models.ForeignKey(Collabcard,on_delete=models.CASCADE)
     member_id = models.ForeignKey(User, on_delete=models.CASCADE)
+
+class get_notified(models.Model):
+    email = models.EmailField()

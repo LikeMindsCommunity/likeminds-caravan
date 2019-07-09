@@ -16,6 +16,7 @@ from django.urls import reverse
 from .tasks import *
 from django.db.models import Q
 from django.conf import settings
+from django.core.mail import EmailMultiAlternatives
 
 url  = settings.URL
 
@@ -691,12 +692,25 @@ def form_data(request, community_id):
 
 
 def thankyou(request):
-    if request.user.is_authenticated:
-        user = Userinfo.objects.all().filter(user_id = request.user)
-    else :
-        user = []
-    communities = Community.objects.all()
-    return render(request, 'thankyou.html', {'usr':user, 'similar_communities':communities})
+    email = request.GET.get("mail")
+    print("email = = ",email)
+    mail = get_notified()
+    mail.email = email
+    mail.save()
+
+    send_email(email)
+    return render(request, 'thankyou2.html')
+
+def send_email(email):
+    fail_silently = True
+    to = email
+    subject = email+" wants to be Notified"
+    msg = EmailMultiAlternatives(subject,
+                                 email,
+                                 "hello@collabmates.com",
+                                 ['rastogi.fresh88@gmail.com'],
+                                 )
+    return msg.send(fail_silently)
 
 def my_communities(request, user_id):
     communities = Members.objects.all().filter(member_id = user_id)
