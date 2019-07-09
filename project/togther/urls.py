@@ -5,7 +5,7 @@ urlpatterns = [
     path('login/', views.home, name="home"),
     path('privacy/', views.privacy, name="privacy"),
     path('terms/', views.terms, name="terms"),
-    path('', views.dashboard, name="dashboard"),
+    path('communities/', views.dashboard, name="dashboard"),
     path('dashboard/<slug:data>', views.dashboard, name="dashboard"),
     path('dashboard/recieved_requests', views.recieved_requests, name="recieved_requests"),
     path('community/<int:community_id>/join', views.join_community, name="join_community"),
@@ -25,4 +25,6 @@ urlpatterns = [
     path('collabcard/<int:card_id>', views.collabcard, name="card"),
     path('view_answers/<int:card_id>',views.view_answers,name = 'view_answers'),
     path('accept_admin/<int:community_id>/',views.accept_admin,name='accept_admin'),
+    path('', views.index, name='index')
+
 ]

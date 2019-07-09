@@ -18,8 +18,9 @@ def dashboard(request):
 
   community_list=Community.objects.all().order_by('-created_at','-active_since')
 
-
-
+  for i in community_list:
+      pending_members_count=Members.objects.filter(community_id=i,state=3).count()
+      i.whatsapp_group_link=pending_members_count
   return render(request,'dashboard/dashboard.html',{'communities':community_list})
 
 
@@ -150,7 +151,7 @@ def aprove_member(request,community_id,member_id):
     community = Community.objects.get(id=community_id)
     Members.objects.filter(community_id=community,member_id=member_id).update(state=4)
     update_member_count(community_id)
-    url='/admin_dashboard/show_pending_member/'+str(community_id)
+    url='/admin_dashboard/all_members/'+str(community_id)
     send_notification_for_join_requests(community_id,True,member_id)
     return redirect(url)
 
@@ -159,7 +160,7 @@ def decline_member(request,community_id,member_id):
     community = Community.objects.get(id=community_id)
 
     Members.objects.filter(community_id=community,member_id=member_id).update(state=5)
-    url='/admin_dashboard/show_pending_member/'+str(community_id)
+    url='/admin_dashboard/all_members/'+str(community_id)
     send_notification_for_join_requests(community_id,False,member_id)
 
     return redirect(url)
@@ -346,3 +347,46 @@ def send_email_to_nominated_admin(NominatedAdmin,email,ProposedAdmin,CommunityNa
                                      )
     msg.attach_alternative(template, "text/html")
     return msg.send(fail_silently)
+
+
+
+def all_members(request,community_id):
+
+    '''function to show all members of the community'''
+
+    members_info=Members.objects.filter(community_id=community_id)
+    members_list=[]
+    for i in members_info:
+        member={}
+        member['id']=i.member_id
+        if i.state == 1 or i.state == 2:
+            member['state']='Promoter'
+        elif i.state == 3:
+            member['state']='Pending'
+        elif i.state == 4:
+            member['state']='Member'
+        else:
+            continue
+
+        image_url=Userinfo.objects.filter(user_id=i.member_id).values('image_file')
+        image_url=image_url[0]['image_file']
+        member['image_file']=image_url
+        member['community_id']=community_id
+        members_list.append(member)
+    return render(request,'dashboard/all_members.html',{'member_list':members_list})
+
+
+
+def delete_members(request,community_id,member_id):
+
+    '''function to delete the members'''
+    promoter=Members.objects.filter(community_id=community_id)
+    promoter_count=0
+    for i in promoter:
+       print(i.state)
+       if i.state == 1 or i.state == 2:
+           promoter_count=promoter_count+1
+    if promoter_count == 1:
+        return HttpResponse("You cannot Delete the promoter.First make a promoter in order to delete")
+    Members.objects.filter(community_id=community_id,member_id=member_id).delete()
+    return redirect('admin_dashboard')
