@@ -86,7 +86,10 @@
        function hide(){
     $('.ui.modal').modal("hide");
   }
-                $(document).ready(function() {
+
+  //jquery
+
+   $(document).ready(function() {
                     var showChar = 180;
                     var ellipsestext = "...";
                     var moretext = "more";
@@ -118,11 +121,14 @@
                         $(this).prev().toggle();
                         return false;
                     });
-                });
+
+
+
 
 
      </script>
-  
+
+
   </head>
 
 <div style="margin:0 auto; max-width:786px;">
@@ -205,7 +211,7 @@
                                 <div class="item">
                                     <img class="ui tiny circular image" src="{{i.image_file.url}}">
                                     <p></p>
-                                    <p>{{i.name}}</p>
+                                    <p style="font-size:65%;" >{{i.name}}</p>
                                     <div class="content">
                                     <br>
 
@@ -218,23 +224,24 @@
                     <br/><br/>
                     </div>
               </div>
-
+             </div>
 
 <!-- printing community about -->
             {% if community.about != '' %}
-            <div class="content" id="about" style="background-color:#f0f5f5;">
+            <div class="content ui fluid" id="about" style="background-color:#f0f5f5; ">
 
             <h4>   About Community  </h4>
-                <p style="font-weight:100;" id="more">{{community.about |linebreaks}}</p>
+                <p style="font-weight:50px;" id="more">{{community.about |linebreaks}}</p>
             </div>
             {% endif %}
+
                   <div class="content" id="members">
                             <h4>Members
                                <!-- <a class="right floated" style=" color:#1cb39b; font-weight:100; " href="{% url 'members_list' community.id %}"> See all</a>-->
                             </h4>    
                       
                     <div class="ui container"  style=" overflow-y:auto;white-space:nowrap;" >
-                        <div class="ui big horizontal divided list">
+                        <div class="ui big horizontal  list">
                         {% for i in members%}
                         
                             <div class="item">
@@ -243,7 +250,7 @@
 
                                <!-- <a href="../../profile/{{i.user_id.id}}">-->
 
-                                    <p>{{i.name}}</p>
+                                    <p style="font-size:65%;" >{{i.name}}</p>
                                 </a>
                                 <div class="content">
 
