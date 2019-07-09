@@ -1,0 +1,124 @@
+{% load static %}
+<html>
+<head>
+    <!-- Latest compiled and minified CSS -->
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/css/bootstrap.min.css">
+
+<!-- jQuery library -->
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+<!-- Latest compiled JavaScript -->
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/js/bootstrap.min.js"></script>
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+
+</head>
+
+<body>
+<div style="width:800px;  margin-left: 40px;">
+<h1 >Questions for {{community_name}}</h1>
+<form id="my_form" onsubmit="return false" >
+
+    {% for question in question_list %}
+
+
+    <div class="form-group">
+        <label >Question:{{ forloop.counter }}</label>
+
+            <input type="hidden" id="id{{forloop.counter}}" value="{{question.id}}"/>
+            <a href="{% url 'delete_questions'  question.id %} " style="color:red;"><i class="fa fa-trash" aria-hidden="true"></i></a>
+            <input type="text" class="form-control" id="question{{ forloop.counter }}" value="{{question.data}}">
+
+    </div>
+  {% endfor %}
+  <div id="form_field"></div>
+  <button type="submit" class="btn btn-default">Submit</button>
+
+</form>
+<button type="button" class="btn btn-primary" id="add">Add</button>
+<button type="button" class="btn btn-danger" id="delete">Delete</button>
+
+</div>
+</body>
+
+
+</html>
+
+<script>
+
+    $(document).ready(function(){
+    count={{length}}
+    $('#add').click(function(){
+    count=count+1
+    var id='question'+count
+     var new_field= " <div class='form-group'> <label for='question'>Question\"" + count + "\"</label> <input type='text' class='form-control' id=\"" + id + "\"></div>"
+      $('#form_field').append(new_field);
+    })
+
+   $('#delete').click(function(){
+   var id='question'+count
+   $('#'+id).parent('div').remove();
+   count=count-1;
+
+   })
+
+
+
+
+    $('#my_form').submit(function(){
+
+    var data=[]
+    update_count={{length}};
+
+    for(var i=1;i<=update_count;i++)
+    {
+        question=$('#question'+i).val()
+        id=$('#id'+i).val()
+        var update_object={
+        'question':question,
+        'update':true,
+        'id':id
+        }
+
+        data.push(update_object)
+    }
+
+
+    for(var i=update_count+1;i<=count;i++)
+    {
+
+        question=$('#question'+i).val()
+
+        var create_object={
+        'question':question,
+        'update':false
+        }
+
+        data.push(create_object)
+
+    }
+
+    var questions = JSON.stringify(data);
+    question_data={
+    'data':questions
+    }
+    //ajax
+
+     $.ajax({
+
+            url:'/admin_dashboard/add_questions/'+{{community_id}},
+            data:question_data,
+            dataType:'json',
+            success:function(data){
+
+              console.log(data)
+
+            }
+
+         })
+
+
+    })
+
+    })
+
+</script>
