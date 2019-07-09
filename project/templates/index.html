@@ -125,45 +125,18 @@ We link your members’ profile with their social media profiles so that everyon
 			<script type="text/javascript">
 
 				function add_field(){
-
-						home = document.getElementById('banner');
-						btn1 = document.getElementById("btn1");
-						btn2 = document.getElementById("btn2");
-						btn3 = document.getElementById("btn3");
 						mail = document.getElementById("email");
-						console.log(mail.value)
+
 						var reg = /^([A-Za-z0-9_\-\.])+\@([A-Za-z0-9_\-\.])+\.([A-Za-z]{2,4})$/;
 						if (reg.test(mail.value) == false)
 				        {
 				            alert('Invalid Email Address');
 				        }
 				        else{
-						//btn1.parentNode.removeChild(btn1);
-						btn2.innerHTML = "Get Notified when It's released";
-						//btn1.innerHTML = "ThankYou"
-						//btn1.style.fontWeight = '600';
-						//btn1.style.fontSize = '36px';
-						btn2.parentNode.removeChild(btn2);
-						//btn3.innerHTML = "We will notify you the moment we go live"
-						btn3.style.fontSize = "1.2rem"
-						const xHttp = new XMLHttpRequest();
-						const url='http://collabmates.com/save.php';
-						var mail = mail.value
-						params =  "email="+mail;
-
-						console.log(params)
-					        var metadata = {};
-
-						growsurf.createContact("yl6w0d", mail, "", metadata,function(){});
-						xHttp.open("GET", url+"?"+params);
-						xHttp.send();
-						xHttp.onreadystatechange=(e)=>{
-						if (this.readyState == 4 && this.status == 200)
-							console.log(this.responseText);
-							window.location.href = "thankyou.html?formmail="+mail;
+						window.location.href = "thankyou?mail="+mail.value;
 					}
 				}
-}
+
 			</script>
 
 			<script src="{% static 'js/vendor/jquery-2.2.4.min.js' %}"></script>
