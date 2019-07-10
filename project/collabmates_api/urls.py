@@ -32,7 +32,8 @@ urlpatterns = [
 
     path('push', api_views.push, name='push'),
 
-    path('collabcard_follow',api_views.collabcard_follow,name='collabcard_follow')
+    path('collabcard_follow',api_views.collabcard_follow,name='collabcard_follow'),
+    path('accept_invitation',views.accept_invitation,name='accept_invitation'),
 
 
 ]
