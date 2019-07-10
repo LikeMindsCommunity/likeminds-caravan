@@ -4,25 +4,21 @@ from togther.models import *
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import logout
 from togther.forms import * 
-import urllib
 import requests as rqst
 from django.contrib.auth.models import User
 import json
 from django.http.response import JsonResponse
-from django.db.models import Q
 from django.core.mail import send_mail
 from django.http import HttpResponseRedirect
-from django.urls import reverse
 from .tasks import *
 from django.db.models import Q
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
-import requests
 
-#url  = settings.URL
+url  = settings.URL
 
 #uncomment to run it in localhost
-url='http://localhost:8000'
+#url='http://localhost:8000'
 
 
 
