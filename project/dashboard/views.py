@@ -18,11 +18,22 @@ def dashboard(request):
   '''function to give list of community to edit'''
 
   community_list=Community.objects.all().order_by('-created_at','-active_since')
-
+  dashboard_list=[]
   for i in community_list:
+      community_dic={}
+      community_dic['id']=i.id
+      community_dic['name']=i.name
+      community_dic['image_url']=i.image_url
+      community_dic['purpose']=i.purpose
       pending_members_count=Members.objects.filter(community_id=i,state=3).count()
-      i.whatsapp_group_link=pending_members_count
-  return render(request,'dashboard/dashboard.html',{'communities':community_list})
+      community_dic['pending_member_count'] = pending_members_count
+      community_dic['active_since']=i.active_since
+      community_dic['question_count']=Form_data.objects.filter(community_id=i).count()
+      dashboard_list.append(community_dic)
+
+
+  print(dashboard_list)
+  return render(request,'dashboard/dashboard.html',{'communities':dashboard_list})
 
 
 def update_form(request,community_id):
@@ -382,10 +393,12 @@ def delete_members(request,community_id,member_id):
     promoter=Members.objects.filter(community_id=community_id)
     promoter_count=0
     for i in promoter:
-       print(i.state)
        if i.state == 1 or i.state == 2:
            promoter_count=promoter_count+1
-    if promoter_count == 1:
+
+    state_of_member=Members.objects.filter(community_id=community_id,member_id=member_id).values('state')
+    member_state=state_of_member[0]['state']
+    if promoter_count == 1 and (member_state==1 or member_state==2):
         return HttpResponse("You cannot Delete the promoter.First make a promoter in order to delete")
     Members.objects.filter(community_id=community_id,member_id=member_id).delete()
     return redirect('admin_dashboard')
@@ -438,3 +451,18 @@ def delete_questions(request,question_id):
     Form_data.objects.filter(id=question_id).delete()
     url='/admin_dashboard/add_questions/'+str(community_id)
     return redirect(url)
+
+
+def analytics(request):
+    '''function to show the analytics'''
+    community_count=Community.objects.all().count()
+    community_count_hiden=Community.objects.filter(hide_community='0').count()
+    user_count=Userinfo.objects.all().count()
+    promoter_count=Members.objects.values('member_id').distinct().count()
+    context={
+        'community_count':community_count,
+        'community_count_hidden':community_count_hiden,
+        'user_count':user_count,
+        'promoter_count':promoter_count
+    }
+    return render(request,'dashboard/analytics.html',context)

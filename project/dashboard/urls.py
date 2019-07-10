@@ -19,5 +19,6 @@ urlpatterns = [
     path('delete_members/<int:community_id>/<int:member_id>', delete_members, name='delete_members'),
     path('add_questions/<int:community_id>', add_questions, name='add_questions'),
     path('delete_questions/<int:question_id>', delete_questions, name='delete_questions'),
+    path('analytics', analytics, name='analytics'),
 
 ]
