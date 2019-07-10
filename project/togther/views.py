@@ -590,14 +590,17 @@ def join_community(request, community_id):
     else :
         user = []
 
-    similar_communities=[]
+
     member_id = request.user.id
+
     similar_communitites_url = api_url + 'similar_communities/' + str(community_id)
     res = rqst.get(similar_communitites_url, params={'member_id': member_id})
     similar_communitites = json.loads(res.content)
-    similar_communitites = similar_communitites['communities']
+    similar_communities = similar_communitites['communities']
 
     join_url = api_url + 'join_community'
+
+    community = Community.objects.get(id=community_id)
 
     if request.method == "POST":
 
@@ -619,7 +622,7 @@ def join_community(request, community_id):
         rqst.post(join_url,params=params,json=json_dict)
 
 
-        return render(request, 'thankyou.html', {'usr':user, 'similar_communities':similar_communitites})
+        return render(request, 'thankyou.html', {'usr':user, 'similar_communities':similar_communities,'community':community})
 
 
     else:
@@ -628,9 +631,8 @@ def join_community(request, community_id):
         if not data:
             params = {'member_id': member_id, 'community_id': community_id}
             rqst.post(join_url, params=params, json={})
-            return render(request, 'thankyou.html', {'usr':user, 'similar_communities':similar_communitites})
+            return render(request, 'thankyou.html', {'usr':user, 'similar_communities':similar_communities,'community':community})
         else:
-            community = Community.objects.get(id = community_id)
             return render(request,'response_form.html',{"data":data, 'usr':user, 'community':community})
     
 
