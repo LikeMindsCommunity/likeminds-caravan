@@ -64,6 +64,8 @@ def dashboard(request):
                                 user.city = data['location']['name']
                             user.image_url = image_url
                             user.user_id = core_user
+                            user.login_type = 'facebook'
+                            user.login_json = data
                             user.save()
                             print("created userinfo")
                             created =True
@@ -354,19 +356,6 @@ def update_member_count(community_id):
     print("length == ",len(count))
     community = Community.objects.filter(id=community_id).update(members_count = len(count))
     return
-
-def check_admins(community_id):
-    community = Community.objects.get(id=community_id)
-    member = Members.objects.filter(community_id = community).filter(Q(state=1)|Q(state=2))
-    print("member state == ",member[0].state)
-    if len(member) == 1:
-        if member[0].state == 2:
-            cta = 'accept_invitation_temp_admin'
-        elif member[0].state == 1:
-            cta = 'accept_invitation_admin'
-    else:
-        cta = 'accept_invitation_admin'
-    return cta
 
 @login_required
 def creategroup(request):
