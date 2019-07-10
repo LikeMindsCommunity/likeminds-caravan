@@ -601,10 +601,16 @@ def join_community(request, community_id):
     else :
         user = []
 
-    if request.method == "POST":
+    similar_communities=[]
+    member_id = request.user.id
+    similar_communitites_url = api_url + 'similar_communities/' + str(community_id)
+    res = rqst.get(similar_communitites_url, params={'member_id': member_id})
+    similar_communitites = json.loads(res.content)
+    similar_communitites = similar_communitites['communities']
 
-        member_id=request.user.id
-        params={'member_id':member_id,'community_id':community_id}
+    join_url = api_url + 'join_community'
+
+    if request.method == "POST":
 
         question_data=request.POST.dict()
         response_list=[]
@@ -617,25 +623,23 @@ def join_community(request, community_id):
             question_dict['value']=value
             response_list.append(question_dict)
 
-
         json_dict={}
         json_dict['questions']=response_list
-        join_url=api_url+'join_community'
 
+        params = {'member_id': member_id, 'community_id': community_id}
         rqst.post(join_url,params=params,json=json_dict)
 
-        similar_communitites_url=api_url+'similar_communities/'+ str(community_id)
-        res=rqst.get(similar_communitites_url,params={'member_id':member_id})
-        similar_communitites=json.loads(res.content)
-        return render(request, 'thankyou.html', {'usr':user, 'similar_communities':similar_communitites['communities']})
+
+        return render(request, 'thankyou.html', {'usr':user, 'similar_communities':similar_communitites})
 
 
     else:
         data = Form_data.objects.all().filter(community_id = community_id)
 
         if not data:
-            communities = Community.objects.all()
-            return render(request, 'thankyou.html', {'usr':user, 'similar_communities':communities})
+            params = {'member_id': member_id, 'community_id': community_id}
+            rqst.post(join_url, params=params, json={})
+            return render(request, 'thankyou.html', {'usr':user, 'similar_communities':similar_communitites})
         else:
             community = Community.objects.get(id = community_id)
             return render(request,'response_form.html',{"data":data, 'usr':user, 'community':community})
