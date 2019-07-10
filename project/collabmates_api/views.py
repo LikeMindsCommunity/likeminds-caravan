@@ -253,6 +253,9 @@ def similar_community(request, community_id):
 
 
 def join_community(request, community_id):
+
+    '''function to get questions of community'''
+
     data = Form_data.objects.all().filter(community_id = community_id)
     reqd_info = []
     for i in data:
@@ -262,19 +265,22 @@ def join_community(request, community_id):
         reqd_info.append(ques)
     return JsonResponse({'questions': reqd_info})
 
+
 @csrf_exempt
 def join_community_responses(request):
+
+    '''function to join community'''
+
     res = json.loads(request.body)
     user_id = request.GET.get('member_id')
     community_id = request.GET.get('community_id')
     user = User.objects.get(id = user_id)
-
     community = Community.objects.get(id = community_id)
 
     userinfo = Userinfo.objects.get(user_id=user_id)
 
     #inserting in members table if the member status is pending and inserting it to database with status=3
-    
+
     #If the member is declined from the community and he applied again
     try:
         current_state=Members.objects.filter(member_id=user,community_id=community).values('state')

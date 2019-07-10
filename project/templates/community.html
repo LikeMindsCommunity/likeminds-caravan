@@ -125,6 +125,9 @@
 
 
 
+});
+
+
 
      </script>
 
@@ -250,7 +253,7 @@
 
                                <!-- <a href="../../profile/{{i.user_id.id}}">-->
 
-                                    <p style="font-size:65%;" >{{i.name}}</p>
+                                    <p style="font-size:65%;">{{i.name}}</p>
                                 </a>
                                 <div class="content">
 
@@ -310,11 +313,11 @@
                  {% elif source == 'email' %}
               ]<button class="ui fluid button " style=" z-index:2;width:60%; left:20%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;" onclick="accept_admin();"> Accept invitation </button>
 
-                  {# elif is_joined == -1 #}
-<!--            <button class="ui fluid button " style=" z-index:2;width:60%; left:20%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;" onclick="join()"> Join Group  </button>-->
+                  {% elif is_joined == -1 %}
+            <button class="ui fluid button " style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;" onclick="join()"> Join Group  </button>
 
-                            {# elif is_joined == 1 #}
-<!--                                <button class="ui fluid button " style=" z-index:2;width:60%; left:20%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;"   id="invite" onclick="invite();" > Join Group  </button>-->
+                            {% elif is_joined == 1 %}
+                                <button class="ui fluid button " style=" z-index:2;width:60%; left:20%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;"   id="invite" onclick="invite();" > Join Group  </button>
                             {% endif %}
 
                         <br>

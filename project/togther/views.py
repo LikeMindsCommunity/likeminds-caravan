@@ -17,9 +17,16 @@ from .tasks import *
 from django.db.models import Q
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
+import requests
 
-url  = settings.URL
+#url  = settings.URL
 
+#uncomment to run it in localhost
+url='http://localhost:8000'
+
+
+
+api_url=url+'/api/'
 def index(request):
 
     '''function to show promotion page'''
@@ -471,7 +478,7 @@ def recieved_requests(request):
         req.append(r)
     return render (request,'requests.html', {'req': req})    
 @login_required
-def requests(request):
+def check_requests(request):
 
     if request.method == 'GET':
         res = request.GET.dict()
@@ -578,46 +585,50 @@ def logout_view(request):
 
 @login_required
 def join_community(request, community_id):
-    print( community_id)
+
+    '''function to join community'''
+
+
     if request.user.is_authenticated:
         user = Userinfo.objects.all().filter(user_id = request.user)
     else :
         user = []
 
     if request.method == "POST":
-        res = request.POST.dict()
 
-        for i in res:
-            response = Form_response()
-            if i != 'csrfmiddlewaretoken' :
-                print(i)
-                response.data = i
-                response.response = res[i]
-                response.user = request.user.id
-                response.community = community_id
-                response.save()
-        
-        req = Requests()
-        req.user_id = request.user
-        req.user_info = user[0]
-        comm = Community.objects.all().filter(id = community_id)
-        req.community = comm[0]
-        req.save()
+        member_id=request.user.id
+        params={'member_id':member_id,'community_id':community_id}
+
+        question_data=request.POST.dict()
+        response_list=[]
+
+        for key,value in question_data.items():
+            question_dict={}
+            if key == 'csrfmiddlewaretoken':
+                continue
+            question_dict['key']=key
+            question_dict['value']=value
+            response_list.append(question_dict)
 
 
+        json_dict={}
+        json_dict['questions']=response_list
+        join_url=api_url+'join_community'
 
-        admin = Admins.objects.all().filter(community_id = community_id)
-        u_info = Userinfo.objects.get(user_id = admin[0].admin_id)
-        communities = Community.objects.all()
+        rqst.post(join_url,params=params,json=json_dict)
 
-        return render(request, 'thankyou.html', {'usr':user, 'similar_communities':communities})
-        
+        similar_communitites_url=api_url+'similar_communities/'+ str(community_id)
+        res=rqst.get(similar_communitites_url,params={'member_id':member_id})
+        similar_communitites=json.loads(res.content)
+        return render(request, 'thankyou.html', {'usr':user, 'similar_communities':similar_communitites['communities']})
+
+
     else:
         data = Form_data.objects.all().filter(community_id = community_id)
-        print('data:',data)
+
         if not data:
             communities = Community.objects.all()
-            return render(request, 'thankyou.html', {'usr':user, 'similar_communities':communities}) 
+            return render(request, 'thankyou.html', {'usr':user, 'similar_communities':communities})
         else:
             community = Community.objects.get(id = community_id)
             return render(request,'response_form.html',{"data":data, 'usr':user, 'community':community})
