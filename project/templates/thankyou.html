@@ -2,18 +2,31 @@
 
 
 {% block content %}
+<div class=" ui small breadcrumb" style="padding: 0 10px;">
+        <a class="section" href = "{% url 'home' %}">Home</a>
+        <i class="right chevron icon divider"></i>
+        <a class="section" href = "{% url 'comunity' community.id %}">{{community.name}}</a>
+        <i class="right chevron icon divider"></i>
+        <div class="active section"> Join Community</div>
+</div>
 
-<div class="ui fluid card" style="margin-top:0px; max-width:786px;">
+<body>
+
+<div class="ui fluid card" style="margin-top:8px; max-width:786px;">
 <div class="ui raised padded text container segment" style="margin: 5vw 5vw !important; padding: 12px 12px;">
     <br>
-    <p style="font-size: 16px; color:#4a4a4a;">Thank You for your request to join this community.Your response has been forwarded to the admin
+    <p style="font-size: 16px; color:#4a4a4a;">Thank You for your request to join this community . Your response has been forwarded to the admin
     of this community and we will notify you over email once it is approved.    </p>
     <a href="https://play.google.com/apps/testing/com.collabmates">
     <img class="ui small center aligned image" style="margin:0 auto;" src="/media/playstore_icon.png">
     </a>
     <br>
+
+
 </div>
-<div class="content">
+<button class="ui fluid button " style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;" onclick="open_community({{community.id}});"> Back To Community  </button>
+
+    <div class="content">
           <h4>Similar Communities
 
           </h4>    
@@ -38,6 +51,7 @@
   </div>
   </div>
 </div>
+</body>
 
 <script>
 function open_community(id){
