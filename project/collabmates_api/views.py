@@ -1140,6 +1140,7 @@ def is_collabcard_already_followed(collabcard,member_id):
 
     return is_present
 
+@csrf_exempt
 def accept_invitation(request):
     ''' accept promoter request '''
     # getting details of nominated person and the community promoter who proposed this invitation
