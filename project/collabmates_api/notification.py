@@ -191,3 +191,27 @@ def send_notification_for_new_collabcard_posted(community_id,collabcard_title,po
 
 
 
+def send_notification_to_proposed_admin(nominated_admin_id,community_id,proposed_admin_name):
+    '''function to send notification to proposed admin'''
+
+    fcm_token=get_token_for_fcm(nominated_admin_id)
+
+    if fcm_token:
+        token_list=[]
+        token_list.append(fcm_token)
+        community_name = get_community_name(community_id)
+        message = {}
+        message['payload'] = {
+            'title': str(community_name),
+            'sub_title': str(proposed_admin_name) + " has nominated you as a promoter of this community ",
+            'route': 'route://community_collabcard?community_id=' + str(community_id)
+        }
+
+        send_notification_to_multiple_devices(token_list, message)
+
+
+
+
+
+
+
