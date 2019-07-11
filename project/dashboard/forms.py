@@ -15,8 +15,8 @@ class CommunityForm(forms.ModelForm):
         model=Community
         fields=['name','about','purpose','location','hide_community','image_url']
         attrs = {'class': 'form-control form-group'}
-        attr_purpose={'class': 'form-control form-group','minlength':40}
-        attr_hidden={'class': 'form-control form-group','minlength':1,'placeholder':'Enter 1 to hide and 0 to unhide'}
+        attr_purpose={'class': 'form-control form-group','minlength':40,'placeholder':'For'}
+        attr_hidden={'class': 'form-control form-group','minlength':1,'placeholder':'Enter 1 to hide,0 to unhide and 2 to delete'}
 
         widgets = {
             'name': forms.TextInput(attrs=attrs),
