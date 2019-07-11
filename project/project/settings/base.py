@@ -159,8 +159,9 @@ SOCIAL_AUTH_FACEBOOK_KEY = '633859857057924'
 SOCIAL_AUTH_FACEBOOK_SECRET = 'f90d662fdb205e53f24a90009318a6d4'
 SOCIAL_AUTH_FACEBOOK_SCOPE = ['email']
 SOCIAL_AUTH_FACEBOOK_PROFILE_EXTRA_PARAMS = {'fields': 'id,name,email', }
-SOCIAL_AUTH_LINKEDIN_OAUTH2_KEY = '8616kilc3dqagd'
-SOCIAL_AUTH_LINKEDIN_OAUTH2_SECRET = 'g2LdZt5KN9HRF1IB'
+
+SOCIAL_AUTH_LINKEDIN_OAUTH2_KEY = '8616kilc3dqagd'        #Client ID
+SOCIAL_AUTH_LINKEDIN_OAUTH2_SECRET = 'g2LdZt5KN9HRF1IB'  #Client Secret
 SOCIAL_AUTH_LINKEDIN_OAUTH2_SCOPE = ['r_basicprofile','r_emailaddress','rw_company_admin','w_share']
 SOCIAL_AUTH_LINKEDIN_OAUTH2_WHITELISTED_DOMAINS=['*','gmail.com','linkedin.com']
 
@@ -168,15 +169,17 @@ SOCIAL_AUTH_LOGIN_URL = ""
 SOCIAL_AUTH_LOGIN_REDIRECT_URL = "dashboard"
 SOCIAL_AUTH_LOGIN_ERROR_URL = "error"
 
-SOCIAL_AUTH_LINKEDIN_FIELD_SELECTORS = ['email-address', 'headline', 'industry']
+SOCIAL_AUTH_LINKEDIN_OAUTH2_FIELD_SELECTORS = ['emailAddress','vanityName', 'formatted-name', 'public-profile-url', 'picture-url','headline', 'industry']
 # Arrange to add the fields to UserSocialAuth.extra_data
-SOCIAL_AUTH_LINKEDIN_EXTRA_DATA = [('id', 'id'),
+SOCIAL_AUTH_LINKEDIN_OAUTH2_EXTRA_DATA = [('id', 'id'),
                                    ('firstName', 'first_name'),
                                    ('lastName', 'last_name'),
                                    ('emailAddress', 'email_address'),
                                    ('headline', 'headline'),
-                                   ('industry', 'industry')]
-
+                                   ('industry', 'industry'),
+                                   ('pictureUrl', 'picture_url'),
+                                   ('publicProfileUrl', 'profile_url'),
+                                   ('formattedName', 'name'),]
 
 SOCIAL_AUTH_PIPELINE = (
     # Get the information we can about the user and return it in a simple

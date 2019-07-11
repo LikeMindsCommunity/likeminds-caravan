@@ -13,8 +13,9 @@ import time
 from .notification import send_follow_notification,send_notification_to_admins,send_notification_for_join_requests,send_notification_for_new_collabcard_posted
 from django.db.models import Q
 import dateutil.relativedelta
-from .tasks import send_email_to_nominated_admin,send_email_to_proposed_admin
+from .tasks import send_email_to_nominated_admin
 from django.conf import settings
+from togther.tasks import send_email_to_proposed_admin
 
 url  = settings.URL
 
