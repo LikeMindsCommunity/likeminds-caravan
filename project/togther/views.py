@@ -74,24 +74,33 @@ def dashboard(request):
                             usr1.fb_link = data['link']
 
             if social_user.provider == 'linkedin-oauth2':
-                url = 'https://api.linkedin.com/v1/people/~:(id,email-address,first-name,last-name,headline,interests,location:(name),picture-url,public-profile-url,positions:(id,title,start-date,end-date,company,summary),educations:(id,school-name,field-of-study,start-date,end-date,degree))?format=json&oauth2_access_token='+social_user.extra_data['access_token']
-                print(url)
+                # accessing Linked In API to get user basic information
+                url = 'https://api.linkedin.com/v2/me?projection=(id,firstName,emailAddress,lastName,vanityName,headline,interests,location,picture-url,name,profilePicture(displayImage~:playableStreams))&oauth2_access_token='+social_user.extra_data['access_token']
+                email_url = 'https://api.linkedin.com/v2/emailAddress?q=members&projection=(elements*(handle~))&oauth2_access_token='+social_user.extra_data['access_token']
                 response = rqst.get(url)
-                data = json.loads(response.text)
-                print(data)
-                info = Userinfo()
-                usr1 = Userinfo.objects.all().filter(email = data['email'])
+                # getting public details of user from Linked In
+                data_main = json.loads(response.text)
+                response = rqst.get(email_url)
+                # getting emial of user from Linked In
+                email_data = json.loads(response.text)
+                # getting specific details from received Json
+                user_name = data_main['firstName']['localized']['en_US'] + " " + data_main['lastName']['localized']['en_US']
+                profile_picture = data_main['profilePicture']['displayImage~']['elements'][2]['identifiers'][0]['identifier']
+                email = email_data['elements'][0]['handle~']['emailAddress']
+                # checking if there is any user having details with the email we got from linkedIn
+                usr1 = Userinfo.objects.all().filter(email = email)
                 if not usr1:
-                    info.name = data['firstName']+" "+data['lastName']
-                    info.email = data['emailAddress'] 
-                    info.city = data['location']['name']
-                    info.image_url = data['pictureUrl']
-                    info.linkedin_link = data['publicProfileUrl']
+                    # if there is no user having th email , create a user info for the user
+                    info = Userinfo()
+                    info.name = user_name
+                    info.email = email
+                    info.image_url = profile_picture
+                    #info.linkedin_link = data['publicProfileUrl']
+                    info.login_type = 'linkedIn'
+                    info.login_json = [data_main,email_data]
                     info.user_id = request.user
                     info.save()
-                else:
-                    usr1.linkedin_link = data['publicProfileUrl']
-        print("user ================================  ",user)
+                    created = True
         if created:
             print("created")
             user_id = user.id
@@ -110,8 +119,7 @@ def dashboard(request):
         for j in my_communities:
             my_community.append(j)
         communities = Community.objects.filter(hide_community='0').order_by('-active_since')
-        print("usr at last  ======== ",usr)
-        return render (request, 'dashboard.html', { 'usr': usr, 'communities' : communities, 'my_communities':my_community[:2], "my_communities_count": len(my_community) })
+        return render (request, 'dashboard.html', {'usr': usr, 'communities' : communities, 'my_communities':my_community[:2], "my_communities_count": len(my_community) })
     else:
         user = []
     communities = Community.objects.filter(hide_community='0').order_by('-active_since')
@@ -167,7 +175,7 @@ def dashboard(request):
 
 
 def community(request, community_id):
-    #-----accept admin APi part---------------
+    # ----- accept admin APi part ---------------
     res= request.GET.dict()
     if 'source' in res:
         source =res['source']
@@ -230,7 +238,7 @@ def community(request, community_id):
         Nom_mem_state= 0
     else:
         Nom_mem_state= 0
-    #------------------------------------------
+    # ------------------------------------------------------------------
     all_members=Members.objects.filter(community_id=community.id)
     print("nom mem state == ",Nom_mem_state)
     members=[]
