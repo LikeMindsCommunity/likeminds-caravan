@@ -4,15 +4,12 @@ from togther.models import *
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import logout
 from togther.forms import * 
-import urllib
 import requests as rqst
 from django.contrib.auth.models import User
 import json
 from django.http.response import JsonResponse
-from django.db.models import Q
 from django.core.mail import send_mail
 from django.http import HttpResponseRedirect
-from django.urls import reverse
 from .tasks import *
 from django.db.models import Q
 from django.conf import settings
@@ -20,6 +17,12 @@ from django.core.mail import EmailMultiAlternatives
 
 url  = settings.URL
 
+#uncomment to run it in localhost
+#url='http://localhost:8000'
+
+
+
+api_url=url+'/api/'
 def index(request):
 
     '''function to show promotion page'''
@@ -64,6 +67,8 @@ def dashboard(request):
                                 user.city = data['location']['name']
                             user.image_url = image_url
                             user.user_id = core_user
+                            user.login_type = 'facebook'
+                            user.login_json = data
                             user.save()
                             print("created userinfo")
                             created =True
@@ -355,19 +360,6 @@ def update_member_count(community_id):
     community = Community.objects.filter(id=community_id).update(members_count = len(count))
     return
 
-def check_admins(community_id):
-    community = Community.objects.get(id=community_id)
-    member = Members.objects.filter(community_id = community).filter(Q(state=1)|Q(state=2))
-    print("member state == ",member[0].state)
-    if len(member) == 1:
-        if member[0].state == 2:
-            cta = 'accept_invitation_temp_admin'
-        elif member[0].state == 1:
-            cta = 'accept_invitation_admin'
-    else:
-        cta = 'accept_invitation_admin'
-    return cta
-
 @login_required
 def creategroup(request):
     print(request)
@@ -482,7 +474,7 @@ def recieved_requests(request):
         req.append(r)
     return render (request,'requests.html', {'req': req})    
 @login_required
-def requests(request):
+def check_requests(request):
 
     if request.method == 'GET':
         res = request.GET.dict()
@@ -589,48 +581,58 @@ def logout_view(request):
 
 @login_required
 def join_community(request, community_id):
-    print( community_id)
+
+    '''function to join community'''
+
+
     if request.user.is_authenticated:
         user = Userinfo.objects.all().filter(user_id = request.user)
     else :
         user = []
 
+
+    member_id = request.user.id
+
+    similar_communitites_url = api_url + 'similar_communities/' + str(community_id)
+    res = rqst.get(similar_communitites_url, params={'member_id': member_id})
+    similar_communitites = json.loads(res.content)
+    similar_communities = similar_communitites['communities']
+
+    join_url = api_url + 'join_community'
+
+    community = Community.objects.get(id=community_id)
+
     if request.method == "POST":
-        res = request.POST.dict()
 
-        for i in res:
-            response = Form_response()
-            if i != 'csrfmiddlewaretoken' :
-                print(i)
-                response.data = i
-                response.response = res[i]
-                response.user = request.user.id
-                response.community = community_id
-                response.save()
-        
-        req = Requests()
-        req.user_id = request.user
-        req.user_info = user[0]
-        comm = Community.objects.all().filter(id = community_id)
-        req.community = comm[0]
-        req.save()
+        question_data=request.POST.dict()
+        response_list=[]
 
+        for key,value in question_data.items():
+            question_dict={}
+            if key == 'csrfmiddlewaretoken':
+                continue
+            question_dict['key']=key
+            question_dict['value']=value
+            response_list.append(question_dict)
+
+        json_dict={}
+        json_dict['questions']=response_list
+
+        params = {'member_id': member_id, 'community_id': community_id}
+        rqst.post(join_url,params=params,json=json_dict)
 
 
-        admin = Admins.objects.all().filter(community_id = community_id)
-        u_info = Userinfo.objects.get(user_id = admin[0].admin_id)
-        communities = Community.objects.all()
+        return render(request, 'thankyou.html', {'usr':user, 'similar_communities':similar_communities,'community':community})
 
-        return render(request, 'thankyou.html', {'usr':user, 'similar_communities':communities})
-        
+
     else:
         data = Form_data.objects.all().filter(community_id = community_id)
-        print('data:',data)
+
         if not data:
-            communities = Community.objects.all()
-            return render(request, 'thankyou.html', {'usr':user, 'similar_communities':communities}) 
+            params = {'member_id': member_id, 'community_id': community_id}
+            rqst.post(join_url, params=params, json={})
+            return render(request, 'thankyou.html', {'usr':user, 'similar_communities':similar_communities,'community':community})
         else:
-            community = Community.objects.get(id = community_id)
             return render(request,'response_form.html',{"data":data, 'usr':user, 'community':community})
     
 

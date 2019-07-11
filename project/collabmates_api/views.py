@@ -13,7 +13,7 @@ import time
 from .notification import send_follow_notification,send_notification_to_admins,send_notification_for_join_requests,send_notification_for_new_collabcard_posted
 from django.db.models import Q
 import dateutil.relativedelta
-from .tasks import send_email_to_nominated_admin,send_email,send_email_to_admin_of_community
+from .tasks import send_email_to_nominated_admin,send_email_to_proposed_admin
 from django.conf import settings
 
 url  = settings.URL
@@ -253,6 +253,9 @@ def similar_community(request, community_id):
 
 
 def join_community(request, community_id):
+
+    '''function to get questions of community'''
+
     data = Form_data.objects.all().filter(community_id = community_id)
     reqd_info = []
     for i in data:
@@ -262,19 +265,22 @@ def join_community(request, community_id):
         reqd_info.append(ques)
     return JsonResponse({'questions': reqd_info})
 
+
 @csrf_exempt
 def join_community_responses(request):
+
+    '''function to join community'''
+
     res = json.loads(request.body)
     user_id = request.GET.get('member_id')
     community_id = request.GET.get('community_id')
     user = User.objects.get(id = user_id)
-
     community = Community.objects.get(id = community_id)
 
     userinfo = Userinfo.objects.get(user_id=user_id)
 
     #inserting in members table if the member status is pending and inserting it to database with status=3
-    
+
     #If the member is declined from the community and he applied again
     try:
         current_state=Members.objects.filter(member_id=user,community_id=community).values('state')
@@ -1039,8 +1045,38 @@ def members_state(request):
     for data in query_set:
         if data.state != None:
             state=data.state
+    if state == 0:
+        '''checking if user DETAILS EXIST in temp admin table in case he is a newly registered user'''
+        user = Userinfo.objects.get(user_id = member_id)
+        community = get_object_or_404(Community, pk=community_id)
+        check = get_nominated_admin_details(community_id=community_id,email=user.email)
+        if check:
+            '''creating a new row in members table making current
+            user a nominated promoter of this community,if he is a newly
+            registered user and his details are present in temp admin table'''
+            member = Members()
+            member.member_id = user.user_id
+            member.community_id = community
+            member.state = 6
+            member.save()
+            state = 6
+        else:
+            state = 0
 
     return JsonResponse({'state':state})
+
+def get_nominated_admin_details(community_id,email):
+    '''fetching nominated promoter details from temp admin table'''
+    community = get_object_or_404(Community, pk = community_id)
+    details = temp_admin.objects.filter(community_id=community,email=email)
+    if details:
+        '''details are present,return s true'''
+        print('details are present')
+        return True
+    else:
+        '''details are not present, returns false'''
+        print('details are not present')
+        return False
 
 
 @csrf_exempt
@@ -1090,3 +1126,53 @@ def is_collabcard_already_followed(collabcard,member_id):
         is_present=True
 
     return is_present
+
+@csrf_exempt
+def accept_invitation(request):
+    ''' accept promoter request '''
+    # getting details of nominated person and the community promoter who proposed this invitation
+    member_id=request.GET.get('member_id')
+    community_id=request.GET.get('community_id')
+    community = Community.objects.get(id=community_id)
+    promoter = Members.objects.filter(community_id = community).filter(Q(state=1)|Q(state=2))
+    prop_admin = Userinfo.objects.get(user_id = promoter[0].member_id.id)
+    nom_admin = Userinfo.objects.all().filter(user_id = member_id)
+    # ------------------------------------------------------------------------------
+    # if only one promoter to a community
+    if len(promoter) == 1:
+        # if the promter is actually a promoter
+        if promoter[0].state == 1:
+            Members.objects.filter(community_id=community, member_id=member_id).update(state=1)
+            # updating member count of the community
+            update_member_count(community.id)
+            # sending email to promoter , that user has accepted his request to beacome a promoter
+            send_email_to_proposed_admin.delay(NominatedAdmin=nom_admin[0].name,email=prop_admin.email,ProposedAdmin=prop_admin.name,proposedAdminState =1,CommunityName=community.name,community_id = community.id)
+            return JsonResponse({'success':True})
+        # if the promoter is a temporary promoter
+        elif promoter[0].state == 2:
+            temp_admin = Members.objects.filter(community_id = community,state=2)
+            Members.objects.filter(community_id = community,member_id=temp_admin[0].member_id).update(state =4)
+            Members.objects.filter(community_id = community,member_id=member_id).update(state =1)
+            # updating member count of the community
+            update_member_count(community.id)
+            # sending email to promoter , that user has accepted his request to beacome a promoter
+            send_email_to_proposed_admin.delay(NominatedAdmin=nom_admin[0].name,email=prop_admin.email,ProposedAdmin=prop_admin.name,proposedAdminState=2,CommunityName=community.name,community_id = community.id)
+            return JsonResponse({'success':True})
+    else:
+        Members.objects.filter(community_id=community, member_id=core_user.id).update(state=1)
+        # updating member count of the community
+        update_member_count(community.id)
+        # sending email to promoter , that user has accepted his request to beacome a promoter
+        send_email_to_proposed_admin.delay(NominatedAdmin=nom_admin[0].name,email=prop_admin.email,ProposedAdmin=prop_admin.name,proposedAdminState=1,CommunityName=community.name,community_id = community.id)
+        return JsonResponse({'success':True})
+    return JsonResponse({'success': False})
+
+
+def update_member_count(community_id):
+    ''' update members count of a community , when a promoter or member joins a community '''
+    community = Community.objects.get(id=community_id)
+    # getting the count of members including admins in a community
+    count = Members.objects.filter(community_id=community).filter(Q(state=1)|Q(state=2)|Q(state=4))
+    # updating count
+    Community.objects.filter(id=community_id).update(members_count = len(count))
+    return
