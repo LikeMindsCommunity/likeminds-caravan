@@ -193,22 +193,16 @@ def community(request, community_id):
                 user = Userinfo.objects.all().filter(user_id = core_user)
             else:
                 user = Userinfo.objects.all().filter(user_id = request.user)
-            print("user info created")
-        print("cur sess mail",user[0].email)
         core_user = User.objects.all().filter(email = user[0].email).first()
         print("core user == ",core_user.email)
         Nominated_mem = Members.objects.filter(member_id=core_user.id,community_id=community)
         try:
-            print("try block Nominated_mem")
             if Nominated_mem:
                 Nom_mem_state=Nominated_mem[0].state
             else:
                 try:
-                    print("get details from temp admin")
                     check=get_nominated_admin_details(request,member_id=core_user.id,community_id=community.id,email=core_user.email)
-                    print("get nominated admin details",check)
                     if check:
-                        print("creating member")
                         member=Members()
                         member.member_id=core_user
                         member.community_id = community
@@ -223,19 +217,15 @@ def community(request, community_id):
             print("except block Nominated_mem")
             Nom_mem_state = 0
     elif not request.user.is_authenticated and source == 'email':
-        print("not authenticated block Nominated_mem and source is email")
         Nom_mem_state= 0
     elif not request.user.is_authenticated:
-        print("not authenticated block Nominated_mem")
         Nom_mem_state= 0
     elif source=='email':
-        print("source block Nominated_mem")
         Nom_mem_state= 0
     else:
         Nom_mem_state= 0
     #------------------------------------------
     all_members=Members.objects.filter(community_id=community.id)
-    print("nom mem state == ",Nom_mem_state)
     members=[]
     admin_details=[]
     is_joined=-1
@@ -620,7 +610,6 @@ def join_community(request, community_id):
 
         params = {'member_id': member_id, 'community_id': community_id}
         rqst.post(join_url,params=params,json=json_dict)
-
 
         return render(request, 'thankyou.html', {'usr':user, 'similar_communities':similar_communities,'community':community})
 
