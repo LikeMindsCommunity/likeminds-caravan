@@ -942,7 +942,7 @@ def check_member(email,community_id,member_id,res):
 
         if user:
             print("user is present")
-            NominatedAdmin_id = user[0].user_id
+            NominatedAdmin_id = user[0].user_id.id
             NominatedAdmin=user[0].name
         else:
             print("user is not present")
