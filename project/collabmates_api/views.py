@@ -10,7 +10,7 @@ from categories import Category_list
 from django.views.decorators.csrf import csrf_exempt
 from datetime import datetime 
 import time
-from .notification import send_follow_notification,send_notification_to_admins,send_notification_for_join_requests,send_notification_for_new_collabcard_posted
+from .notification import send_follow_notification,send_notification_to_admins,send_notification_for_join_requests,send_notification_for_new_collabcard_posted,send_notification_to_proposed_admin
 from django.db.models import Q
 import dateutil.relativedelta
 from .tasks import send_email_to_nominated_admin
@@ -936,11 +936,13 @@ def check_member(email,community_id,member_id,res):
     CommunityName=community.name
     email=email.lower().strip()
     ProposedAdmin=ProposedAdmin.name
+
     try:
         user = Userinfo.objects.filter(email=email)
 
         if user:
             print("user is present")
+            NominatedAdmin_id = user[0].user_id
             NominatedAdmin=user[0].name
         else:
             print("user is not present")
@@ -957,7 +959,9 @@ def check_member(email,community_id,member_id,res):
             print("member is meber")
             Members.objects.filter(community_id = community,member_id = user[0].user_id.id).update(state=6)
             send_email_to_nominated_admin.delay(NominatedAdmin=NominatedAdmin,email=email,ProposedAdmin=ProposedAdmin,proposedAdminState = proposedAdminState,CommunityName=CommunityName,community_id =community.id)
+            send_notification_to_proposed_admin(nominated_admin_id = NominatedAdmin_id, community_id= community.id, proposed_admin_name=ProposedAdmin )
         elif member and member[0].state == 6:
+            send_notification_to_proposed_admin(nominated_admin_id = NominatedAdmin_id, community_id= community.id, proposed_admin_name=ProposedAdmin )
             print("member is already nominated")
         else:
             print("member is created")
@@ -967,7 +971,7 @@ def check_member(email,community_id,member_id,res):
             member.state = 6
             member.save()
             send_email_to_nominated_admin.delay(NominatedAdmin=NominatedAdmin,email=email,ProposedAdmin=ProposedAdmin,proposedAdminState = proposedAdminState,CommunityName=CommunityName,community_id =community.id)
-
+            send_notification_to_proposed_admin(nominated_admin_id = NominatedAdmin_id, community_id= community.id, proposed_admin_name=ProposedAdmin )
         return True
     return False
 
