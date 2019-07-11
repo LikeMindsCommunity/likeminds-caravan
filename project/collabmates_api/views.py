@@ -1195,3 +1195,24 @@ def update_member_count(community_id):
     # updating count
     Community.objects.filter(id=community_id).update(members_count = len(count))
     return
+
+@csrf_exempt
+def edit_community(request):
+
+    '''function to edit the community'''
+
+    community_id=request.GET.get('community_id')
+
+    json_body=json.loads(request.body)
+
+    key=json_body['key']
+    value=json_body['value']
+
+    Community.objects.filter(id=community_id).update(**{key: value})
+
+    return JsonResponse({'success': True})
+
+
+
+
+
