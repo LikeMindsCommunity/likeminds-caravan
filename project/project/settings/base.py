@@ -162,7 +162,8 @@ SOCIAL_AUTH_FACEBOOK_PROFILE_EXTRA_PARAMS = {'fields': 'id,name,email', }
 
 SOCIAL_AUTH_LINKEDIN_OAUTH2_KEY = '8616kilc3dqagd'        #Client ID
 SOCIAL_AUTH_LINKEDIN_OAUTH2_SECRET = 'g2LdZt5KN9HRF1IB'  #Client Secret
-SOCIAL_AUTH_LINKEDIN_OAUTH2_SCOPE = ['r_basicprofile','r_emailaddress','rw_company_admin','w_share']
+# SOCIAL_AUTH_LINKEDIN_OAUTH2_SCOPE = ['r_basicprofile','r_emailaddress','rw_company_admin','w_share']
+SOCIAL_AUTH_LINKEDIN_OAUTH2_SCOPE = ['r_basicprofile','r_emailaddress']
 SOCIAL_AUTH_LINKEDIN_OAUTH2_WHITELISTED_DOMAINS=['*','gmail.com','linkedin.com']
 
 SOCIAL_AUTH_LOGIN_URL = ""
