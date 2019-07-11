@@ -224,7 +224,7 @@ def add_tags(request):
 def all_user(request):
 
     '''dashboard to show all users'''
-    userinfo=Userinfo.objects.all()
+    userinfo=Userinfo.objects.all().order_by('-user_id')
 
     return render(request, 'dashboard/all_user.html', {'all_user': userinfo})
 
