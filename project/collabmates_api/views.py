@@ -1196,3 +1196,36 @@ def update_member_count(community_id):
     # updating count
     Community.objects.filter(id=community_id).update(members_count = len(count))
     return
+
+@csrf_exempt
+def edit_community(request):
+
+    '''function to edit the community'''
+
+    community_id=request.GET.get('community_id')
+
+    json_body=json.loads(request.body)
+
+    key=json_body['key']
+    value=json_body['value']
+
+    if key == 'purpose':
+        purpose_collabcard=Community.objects.filter(id=community_id).values('purpose_collabcard')
+        purpose_collabcard=purpose_collabcard[0]['purpose_collabcard']
+        Collabcard.objects.filter(id=purpose_collabcard).update(title=value)
+        Community.objects.filter(id=community_id).update(purpose=value)
+    else:
+        Community.objects.filter(id=community_id).update(**{key: value})
+
+    community=Community.objects.get(id=community_id)
+
+    serializer_class = CommunitySerializer(community)
+    new_dict = {}
+    new_dict.update(serializer_class.data)
+
+    return JsonResponse({'success': True,'community':new_dict})
+
+
+
+
+
