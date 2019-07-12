@@ -295,7 +295,6 @@ def join_community(request, community_id):
 def join_community_responses(request):
 
     '''function to join community'''
-
     res = json.loads(request.body)
     user_id = request.GET.get('member_id')
     community_id = request.GET.get('community_id')
@@ -311,7 +310,6 @@ def join_community_responses(request):
         current_state=Members.objects.filter(member_id=user,community_id=community).values('state')
         if current_state[0]['state'] == 5:
             Members.objects.filter(member_id=user, community_id=community).update(state=3)
-
     except:
         member = Members()
         member.member_id = user

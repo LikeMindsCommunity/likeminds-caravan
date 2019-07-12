@@ -45,16 +45,11 @@
                 }
 
 
-                function join(){
 
-
+                function join(community_id){
+                    console.log(1);
                     {% if user.is_authenticated %}
-                        var path = window.location.pathname;
-                        path = path.substring(0, path.length - 1);
-                        path=path+'&cta=join'
-                        window.open(path,"_self")
-
-
+                       window.location.href = "/"+"community/"+community_id+"/?cta=join";
                     {% else %}
                     $('.test')
                     .modal('show')
@@ -149,7 +144,7 @@
 <a href="../../communities"><i style="color:white; " class="big angle left icon"></i></a>
             <div class="ui center aligned grid container" style = " color:white; margin: 4%;">
                         
-                       <h2 style="margin-left:-10px; padding-left: 5px;"> {{community.name}}  </h2>              
+                       <h2 style="margin-left:-10px; padding-left: 5px;"> {{community.name}}  </h2>
    
             </div>
 </div>
@@ -171,8 +166,13 @@
                   </div>
                   <div class="center aligned container">
                   <div class="content">
+                      {% if cta == 'join' %}
+                      <a  href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join">
+                  <button class="ui facebook button" style="width:130px;">
+                      {% else %}
                       <a  href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}">
                   <button class="ui facebook button" style="width:130px;">
+                      {% endif %}
                       <i class="facebook icon"></i>
                       Facebook
                     </button>
@@ -183,8 +183,13 @@
                     <br>
                     <br>
                     <div class = "content">
-                        <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}">
-                    <button class="ui linkedin button" style="width:130px;">
+                    {% if cta == 'join' %}
+                      <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join">
+                  <button class="ui linkedin button" style="width:130px;">
+                      {% else %}
+                      <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}">
+                  <button class="ui linkedin button" style="width:130px;">
+                      {% endif %}
                         <i class="linkedin icon"></i>
                         LinkedIn
                       </button>
@@ -331,12 +336,12 @@
                   {% elif Nom_mem_state == 4 %}
                                 <button class="ui fluid button " style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;" disabled>Already a Member</button>
                  {% elif Nom_mem_state == 5 %}
-                 <button class="ui fluid button " style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;" onclick="join()" > Join Group(Declined)  </button>
+                 <button class="ui fluid button " style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;" onclick="join('{{community.id}}')" > Join Group(Declined)  </button>
                  {% elif source == 'email' %}
               ]<button class="ui fluid button " style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;" onclick="accept_admin();"> Accept invitation </button>
 
                   {% elif is_joined == -1 %}
-            <button class="ui fluid button " style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;" onclick="join()"> Join Group  </button>
+            <button class="ui fluid button " style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;" onclick="join('{{community.id}}')"> Join Group  </button>
 
                             {% elif is_joined == 1 %}
                                 <button class="ui fluid button " style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;"   id="invite" onclick="invite();" > Join Group  </button>

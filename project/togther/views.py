@@ -20,9 +20,8 @@ url  = settings.URL
 #uncomment to run it in localhost
 #url='http://localhost:8000'
 
-
-
 api_url=url+'/api/'
+
 def index(request):
 
     '''function to show promotion page'''
@@ -187,6 +186,14 @@ def community(request, community_id):
         source = ''
     if 'cta' in res:
         cta = res['cta']
+        print("cta == ",cta)
+        if cta == 'join' and request.user.is_authenticated:
+            questions,user,data,community = join_community(request, community_id)
+            if questions:
+                return render(request, 'response_form.html', {"data": data, 'usr': user, 'community': community})
+            else:
+                return render(request, 'thankyou.html',
+                            {'usr': user, 'similar_communities': data, 'community': community})
     else:
         cta =''
     community = get_object_or_404(Community, pk = community_id)
@@ -581,13 +588,10 @@ def logout_view(request):
 def join_community(request, community_id):
 
     '''function to join community'''
-
-
     if request.user.is_authenticated:
         user = Userinfo.objects.all().filter(user_id = request.user)
     else :
         user = []
-
 
     member_id = request.user.id
 
@@ -618,9 +622,7 @@ def join_community(request, community_id):
 
         params = {'member_id': member_id, 'community_id': community_id}
         rqst.post(join_url,params=params,json=json_dict)
-
-        return render(request, 'thankyou.html', {'usr':user, 'similar_communities':similar_communities,'community':community})
-
+        return False, user, similar_communities, community
 
     else:
         data = Form_data.objects.all().filter(community_id = community_id)
@@ -628,10 +630,9 @@ def join_community(request, community_id):
         if not data:
             params = {'member_id': member_id, 'community_id': community_id}
             rqst.post(join_url, params=params, json={})
-            return render(request, 'thankyou.html', {'usr':user, 'similar_communities':similar_communities,'community':community})
+            return False,user,similar_communities,community
         else:
-            return render(request,'response_form.html',{"data":data, 'usr':user, 'community':community})
-    
+            return True,user,data,community
 
 @login_required
 def form_data(request, community_id):
