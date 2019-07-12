@@ -38,22 +38,31 @@
       gtag('js', new Date());
       gtag('config', 'UA-130288684-1');
 
-                     function open_community(id){
+               function open_community(id){
                     console.log(id);
-                    window.location.href = "../"+id;
+                    window.location.href ="../"+id;
+                    console.log(window.location.href)
                 }
 
 
                 function join(){
-                    console.log(1);
+
+
                     {% if user.is_authenticated %}
-                        window.location.href = "join"
+                        var path = window.location.pathname;
+                        path = path.substring(0, path.length - 1);
+                        path=path+'&cta=join'
+                        window.open(path,"_self")
+
+
                     {% else %}
                     $('.test')
                     .modal('show')
                   ;
                     {% endif %}
                 }
+
+
                 function accept_admin(cta,community_id,Nom_mem_state){
                     console.log('hello')
                     console.log(cta);
