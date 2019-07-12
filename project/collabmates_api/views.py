@@ -28,8 +28,11 @@ def communities(request):
         response = request.GET.dict()
         if 'member_id' in response:
             user_id = response['member_id']
-        if 'category_id' in response:
+        if 'page' in response:
             page_number=response['page']
+        else:
+            page_number=1
+        if 'category_id' in response:
             if response['category_id'] != '':
                 community=filter_by_category(response,page_number)
                 return JsonResponse({'communities': community})
