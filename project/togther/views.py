@@ -15,10 +15,10 @@ from django.db.models import Q
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
 
-url  = settings.URL
+#url  = settings.URL
 
 #uncomment to run it in localhost
-#url='http://localhost:8000'
+url='http://localhost:8000'
 
 
 
@@ -187,8 +187,20 @@ def community(request, community_id):
         source = ''
     if 'cta' in res:
         cta = res['cta']
+        print("cta == ",cta)
+        if cta == 'join' and request.user.is_authenticated:
+            try:
+                x,user,data,community = join_community(request, community_id)
+                if x:
+                    return render(request, 'response_form.html', {"data": data, 'usr': user, 'community': community})
+                else:
+                    return render(request, 'thankyou.html',
+                                {'usr': user, 'similar_communities': data, 'community': community})
+            except:
+                pass
     else:
         cta =''
+    print("cta ==-=======---===== ", cta)
     community = get_object_or_404(Community, pk = community_id)
     if community.hide_community == '1':
         return HttpResponse('This community is temporarily not available')
@@ -591,8 +603,12 @@ def logout_view(request):
 def join_community(request, community_id):
 
     '''function to join community'''
-
-
+    print("inside join community")
+    res= request.GET.dict()
+    if 'cta' in res:
+        cta = res['cta']
+    else:
+        cta = ''
     if request.user.is_authenticated:
         user = Userinfo.objects.all().filter(user_id = request.user)
     else :
@@ -637,12 +653,22 @@ def join_community(request, community_id):
         data = Form_data.objects.all().filter(community_id = community_id)
 
         if not data:
+            print("no questions for this community")
             params = {'member_id': member_id, 'community_id': community_id}
-            rqst.post(join_url, params=params, json={})
-            return render(request, 'thankyou.html', {'usr':user, 'similar_communities':similar_communities,'community':community})
+            print("calling api")
+            x = rqst.post(join_url, params=params, json={})
+            print(x)
+            print("succesful")
+            if cta == 'join':
+                return False,user,similar_communities,community
+            else:
+                return render(request, 'thankyou.html', {'usr':user, 'similar_communities':similar_communities,'community':community})
         else:
-            return render(request,'response_form.html',{"data":data, 'usr':user, 'community':community})
-    
+            print("questions are there for this community")
+            if cta == 'join':
+                return True,user,data,community
+            else:
+                return render(request,'response_form.html',{"data":data, 'usr':user, 'community':community})
 
 @login_required
 def form_data(request, community_id):
