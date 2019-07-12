@@ -282,10 +282,7 @@ def send_invitation(request,community_id):
         context={'send_email':send_nominated_email}
         return render(request,'dashboard/send_invitation.html',context)
 
-def check_community_admin(community_id,proposed_admin_id):
-    community = Community.objects.filter(id= community_id)
-    promoter_id = User.objects.get(id = proposed_admin_id)
-    promoter = Members.objects.filter(community_id =  community,member_id = promoter_id)
+
 
 
 def check_member(email,community_id,member_id,proposed_name):
@@ -391,6 +388,7 @@ def delete_members(request,community_id,member_id):
     if promoter_count == 1 and (member_state==1 or member_state==2):
         return HttpResponse("You cannot Delete the promoter.First make a promoter in order to delete")
     Members.objects.filter(community_id=community_id,member_id=member_id).delete()
+    update_member_count(community_id)
     return redirect('admin_dashboard')
 
 

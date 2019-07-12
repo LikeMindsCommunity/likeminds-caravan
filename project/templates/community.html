@@ -38,10 +38,12 @@
       gtag('js', new Date());
       gtag('config', 'UA-130288684-1');
 
-                     function open_community(id){
+               function open_community(id){
                     console.log(id);
-                    window.location.href = "../"+id;
+                    window.location.href ="../"+id;
+                    console.log(window.location.href)
                 }
+
 
 
                 function join(community_id){
@@ -54,6 +56,8 @@
                   ;
                     {% endif %}
                 }
+
+
                 function accept_admin(cta,community_id,Nom_mem_state){
                     console.log('hello')
                     console.log(cta);

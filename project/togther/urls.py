@@ -8,7 +8,7 @@ urlpatterns = [
     path('communities/', views.dashboard, name="dashboard"),
     path('dashboard/<slug:data>', views.dashboard, name="dashboard"),
     path('dashboard/recieved_requests', views.recieved_requests, name="recieved_requests"),
-    path('community/<int:community_id>/join', views.join_community, name="join_community"),
+    path('community/<int:community_id>&cta=join', views.join_community, name="join_community"),
     path('requests', views.check_requests,name="check_requests"),
     path('requests/<int:community_id>/user_response/<int:user_id>', views.user_response,name="user_response"),
     path('community/<int:community_id>/', views.community, name="comunity"),
