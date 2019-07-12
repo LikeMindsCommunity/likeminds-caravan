@@ -96,7 +96,9 @@ def pagination(queryset,page_number):
     '''function to create pagination and return a query set for page number'''
 
     paginator = Paginator(queryset, 20)
-
+    max_page=len(paginator.page_range)
+    if max_page < int(page_number):
+        return []
     queryset = paginator.get_page(page_number)
 
     return queryset
