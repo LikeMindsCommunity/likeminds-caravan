@@ -13,7 +13,7 @@ import time
 from .notification import send_follow_notification,send_notification_to_admins,send_notification_for_join_requests,send_notification_for_new_collabcard_posted,send_notification_to_proposed_admin
 from django.db.models import Q
 import dateutil.relativedelta
-#from .tasks import send_email_to_nominated_admin
+from .tasks import send_email_to_nominated_admin
 from django.conf import settings
 from togther.tasks import send_email_to_proposed_admin
 
@@ -271,7 +271,6 @@ def join_community(request, community_id):
 def join_community_responses(request):
 
     '''function to join community'''
-    print("inside api join community responses")
     res = json.loads(request.body)
     user_id = request.GET.get('member_id')
     community_id = request.GET.get('community_id')
@@ -287,14 +286,12 @@ def join_community_responses(request):
         current_state=Members.objects.filter(member_id=user,community_id=community).values('state')
         if current_state[0]['state'] == 5:
             Members.objects.filter(member_id=user, community_id=community).update(state=3)
-        print('member state is updated in api')
     except:
         member = Members()
         member.member_id = user
         member.community_id = community
         member.state = 3  # pending members
         member.save()
-        print("member is created in api")
 
     if 'questions' in res:
         for i in res['questions']:
@@ -306,7 +303,7 @@ def join_community_responses(request):
             response.save()
     Community.objects.filter(id=community_id).update(updated_at=time.time())
 
-    #send_notification_to_admins(community_id,userinfo)
+    send_notification_to_admins(community_id,userinfo)
 
     return JsonResponse({'success':True})
 
@@ -947,11 +944,11 @@ def check_member(email,community_id,member_id,res):
             NominatedAdmin=user[0].name
         else:
             print("user is not present")
-            send_email_to_nominated_admin(NominatedAdmin=res['name'],email=email,ProposedAdmin=ProposedAdmin,proposedAdminState = proposedAdminState,CommunityName=CommunityName,community_id =community.id)
+            send_email_to_nominated_admin.delay(NominatedAdmin=res['name'],email=email,ProposedAdmin=ProposedAdmin,proposedAdminState = proposedAdminState,CommunityName=CommunityName,community_id =community.id)
             return False
     except:
         print("except block email")
-        send_email_to_nominated_admin(NominatedAdmin=res['name'],email=email,ProposedAdmin=ProposedAdmin,proposedAdminState = proposedAdminState,CommunityName=CommunityName,community_id =community.id)
+        send_email_to_nominated_admin.delay(NominatedAdmin=res['name'],email=email,ProposedAdmin=ProposedAdmin,proposedAdminState = proposedAdminState,CommunityName=CommunityName,community_id =community.id)
         return False
     if user:
         member =Members.objects.filter(community_id = community,member_id = user[0].user_id.id)
@@ -959,7 +956,7 @@ def check_member(email,community_id,member_id,res):
         if member and member[0].state == 4:
             print("member is meber")
             Members.objects.filter(community_id = community,member_id = user[0].user_id.id).update(state=6)
-            send_email_to_nominated_admin(NominatedAdmin=NominatedAdmin,email=email,ProposedAdmin=ProposedAdmin,proposedAdminState = proposedAdminState,CommunityName=CommunityName,community_id =community.id)
+            send_email_to_nominated_admin.delay(NominatedAdmin=NominatedAdmin,email=email,ProposedAdmin=ProposedAdmin,proposedAdminState = proposedAdminState,CommunityName=CommunityName,community_id =community.id)
             send_notification_to_proposed_admin(nominated_admin_id = NominatedAdmin_id, community_id= community.id, proposed_admin_name=ProposedAdmin )
         elif member and member[0].state == 6:
             send_notification_to_proposed_admin(nominated_admin_id = NominatedAdmin_id, community_id= community.id, proposed_admin_name=ProposedAdmin )
@@ -971,28 +968,10 @@ def check_member(email,community_id,member_id,res):
             member.member_id = user[0].user_id
             member.state = 6
             member.save()
-            send_email_to_nominated_admin(NominatedAdmin=NominatedAdmin,email=email,ProposedAdmin=ProposedAdmin,proposedAdminState = proposedAdminState,CommunityName=CommunityName,community_id =community.id)
+            send_email_to_nominated_admin.delay(NominatedAdmin=NominatedAdmin,email=email,ProposedAdmin=ProposedAdmin,proposedAdminState = proposedAdminState,CommunityName=CommunityName,community_id =community.id)
             send_notification_to_proposed_admin(nominated_admin_id = NominatedAdmin_id, community_id= community.id, proposed_admin_name=ProposedAdmin )
         return True
     return False
-
-def send_email_to_nominated_admin(NominatedAdmin,email,ProposedAdmin,CommunityName,community_id,proposedAdminState):
-    time.sleep(5)
-    url = settings.URL
-    url = url+"/community/"+str(community_id)+"/?source=email&cta=accept_admin"
-    fail_silently=True
-    to = email
-    subject =str(ProposedAdmin)+ " has proposed you as a promoter of "+str(CommunityName)+" community"
-    if proposedAdminState == 1:
-        template = get_template("mails/accept_admin_request.html").render({"NominatedAdmin":NominatedAdmin,"email":email,"ProposedAdmin":ProposedAdmin,"CommunityName":CommunityName,"community_id":community_id,'url':url})
-    elif proposedAdminState == 2:
-        template = get_template("mails/accept_temp_admin_request.html").render({"NominatedAdmin":NominatedAdmin,"email":email,"ProposedAdmin":ProposedAdmin,"CommunityName":CommunityName,"community_id":community_id,'url':url})
-    msg = EmailMultiAlternatives(subject,
-                                template,
-                                "hello@collabmates.com",
-                                [to],)
-    msg.attach_alternative(template, "text/html")
-    return msg.send(fail_silently)
 
 
 def pending_members(request,community_id):

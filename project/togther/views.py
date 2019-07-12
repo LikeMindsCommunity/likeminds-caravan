@@ -18,11 +18,10 @@ from django.core.mail import EmailMultiAlternatives
 #url  = settings.URL
 
 #uncomment to run it in localhost
-url='http://localhost:8000'
-
-
+#url='http://localhost:8000'
 
 api_url=url+'/api/'
+
 def index(request):
 
     '''function to show promotion page'''
@@ -189,15 +188,13 @@ def community(request, community_id):
         cta = res['cta']
         print("cta == ",cta)
         if cta == 'join' and request.user.is_authenticated:
-            try:
-                x,user,data,community = join_community(request, community_id)
-                if x:
-                    return render(request, 'response_form.html', {"data": data, 'usr': user, 'community': community})
-                else:
-                    return render(request, 'thankyou.html',
-                                {'usr': user, 'similar_communities': data, 'community': community})
-            except:
-                pass
+            x,user,data,community = join_community(request, community_id)
+            print(x,user)
+            if x:
+                return render(request, 'response_form.html', {"data": data, 'usr': user, 'community': community})
+            else:
+                return render(request, 'thankyou.html',
+                            {'usr': user, 'similar_communities': data, 'community': community})
     else:
         cta =''
     print("cta ==-=======---===== ", cta)
@@ -603,17 +600,10 @@ def logout_view(request):
 def join_community(request, community_id):
 
     '''function to join community'''
-    print("inside join community")
-    res= request.GET.dict()
-    if 'cta' in res:
-        cta = res['cta']
-    else:
-        cta = ''
     if request.user.is_authenticated:
         user = Userinfo.objects.all().filter(user_id = request.user)
     else :
         user = []
-
 
     member_id = request.user.id
 
@@ -644,31 +634,17 @@ def join_community(request, community_id):
 
         params = {'member_id': member_id, 'community_id': community_id}
         rqst.post(join_url,params=params,json=json_dict)
-
-
-        return render(request, 'thankyou.html', {'usr':user, 'similar_communities':similar_communities,'community':community})
-
+        return False, user, similar_communities, community
 
     else:
         data = Form_data.objects.all().filter(community_id = community_id)
 
         if not data:
-            print("no questions for this community")
             params = {'member_id': member_id, 'community_id': community_id}
-            print("calling api")
-            x = rqst.post(join_url, params=params, json={})
-            print(x)
-            print("succesful")
-            if cta == 'join':
-                return False,user,similar_communities,community
-            else:
-                return render(request, 'thankyou.html', {'usr':user, 'similar_communities':similar_communities,'community':community})
+            rqst.post(join_url, params=params, json={})
+            return False,user,similar_communities,community
         else:
-            print("questions are there for this community")
-            if cta == 'join':
-                return True,user,data,community
-            else:
-                return render(request,'response_form.html',{"data":data, 'usr':user, 'community':community})
+            return True,user,data,community
 
 @login_required
 def form_data(request, community_id):
