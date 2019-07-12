@@ -16,20 +16,26 @@ import dateutil.relativedelta
 from .tasks import send_email_to_nominated_admin
 from django.conf import settings
 from togther.tasks import send_email_to_proposed_admin
+from django.core.paginator import Paginator
 
 url  = settings.URL
 
 def communities(request):
+
+    '''function to get all the communities'''
+
     if request.method == 'GET':
         response = request.GET.dict()
         if 'member_id' in response:
             user_id = response['member_id']
         if 'category_id' in response:
+            page_number=response['page']
             if response['category_id'] != '':
-                community=filter_by_category(response)     
+                community=filter_by_category(response,page_number)
                 return JsonResponse({'communities': community})
             else:
                 queryset = Community.objects.filter(hide_community='0').order_by('-created_at')
+                queryset=pagination(queryset,page_number)
                 community = []
                 for i in queryset:
                     serializer_class = CommunitySerializer(i)
@@ -50,7 +56,7 @@ def communities(request):
                     community.append(new_dict)
                 return JsonResponse({'communities': community})
 
-def filter_by_category(response):
+def filter_by_category(response,page_number):
     """  filtering communities according to the category of the community  """
     if 'category_id' in response:
         if response['category_id'] != '':
@@ -66,7 +72,8 @@ def filter_by_category(response):
                     if c.hide_community == '0':
                         communities.append(c)
             community = []
-            communities = communities[::-1]
+            communities=communities[::-1]
+            communities=pagination(communities,page_number)
             for i in communities:
                 serializer_class = CommunitySerializer(i)
                 new_dict = {}
@@ -79,6 +86,18 @@ def filter_by_category(response):
                 new_dict['date'] = i.active_since
                 community.append(new_dict)
             return community
+
+
+def pagination(queryset,page_number):
+
+    '''function to create pagination and return a query set for page number'''
+
+    paginator = Paginator(queryset, 20)
+
+    queryset = paginator.get_page(page_number)
+
+    return queryset
+
 
 def your_communities(request,user_id):
     '''This function is used to see your communities based on user id'''
