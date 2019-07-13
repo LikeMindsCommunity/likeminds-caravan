@@ -38,22 +38,26 @@
       gtag('js', new Date());
       gtag('config', 'UA-130288684-1');
 
-                     function open_community(id){
+               function open_community(id){
                     console.log(id);
-                    window.location.href = "../"+id;
+                    window.location.href ="../"+id;
+                    console.log(window.location.href)
                 }
 
 
-                function join(){
+
+                function join(community_id){
                     console.log(1);
                     {% if user.is_authenticated %}
-                        window.location.href = "join"
+                       window.location.href = "/"+"community/"+community_id+"/?cta=join";
                     {% else %}
                     $('.test')
                     .modal('show')
                   ;
                     {% endif %}
                 }
+
+
                 function accept_admin(cta,community_id,Nom_mem_state){
                     console.log('hello')
                     console.log(cta);
@@ -140,7 +144,7 @@
 <a href="../../communities"><i style="color:white; " class="big angle left icon"></i></a>
             <div class="ui center aligned grid container" style = " color:white; margin: 4%;">
                         
-                       <h2 style="margin-left:-10px; padding-left: 5px;"> {{community.name}}  </h2>              
+                       <h2 style="margin-left:-10px; padding-left: 5px;"> {{community.name}}  </h2>
    
             </div>
 </div>
@@ -162,12 +166,35 @@
                   </div>
                   <div class="center aligned container">
                   <div class="content">
+                      {% if cta == 'join' %}
+                      <a  href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join">
+                  <button class="ui facebook button" style="width:130px;">
+                      {% else %}
                       <a  href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}">
-                  <button class="ui facebook button">
+                  <button class="ui facebook button" style="width:130px;">
+                      {% endif %}
                       <i class="facebook icon"></i>
                       Facebook
                     </button>
                     </a>
+                      <br>
+                      <br>
+                      OR
+                    <br>
+                    <br>
+                    <div class = "content">
+                    {% if cta == 'join' %}
+                      <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join">
+                  <button class="ui linkedin button" style="width:130px;">
+                      {% else %}
+                      <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}">
+                  <button class="ui linkedin button" style="width:130px;">
+                      {% endif %}
+                        <i class="linkedin icon"></i>
+                        LinkedIn
+                      </button>
+                      </a>
+                    </div>
                   </div>
                   <br>
 
@@ -180,7 +207,7 @@
   <li><a href="#purpose">PURPOSE</a></li>
   <li><a href="#about">ABOUT</a></li>
   <li><a href="#members">MEMBERS</a></li>
-  <li><a href="#discussion">CONVERSATIONS</a></li>
+  <li><a href="#conversations">CONVERSATIONS</a></li>
 </ul>
 </div>
 
@@ -208,7 +235,7 @@
                  {% endif %}
 
                     <div class="ui container"  style=" overflow-y:auto;white-space:nowrap;" >
-                        <div class="ui big horizontal divided list">
+                        <div class="ui big horizontal  list">
                         {% for admin in admins%}
                             {% for i in admin %}
                                 <div class="item">
@@ -309,12 +336,12 @@
                   {% elif Nom_mem_state == 4 %}
                                 <button class="ui fluid button " style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;" disabled>Already a Member</button>
                  {% elif Nom_mem_state == 5 %}
-                 <button class="ui fluid button " style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;" onclick="join()" > Join Group(Declined)  </button>
+                 <button class="ui fluid button " style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;" onclick="join('{{community.id}}')" > Join Group(Declined)  </button>
                  {% elif source == 'email' %}
               ]<button class="ui fluid button " style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;" onclick="accept_admin();"> Accept invitation </button>
 
                   {% elif is_joined == -1 %}
-            <button class="ui fluid button " style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;" onclick="join()"> Join Group  </button>
+            <button class="ui fluid button " style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;" onclick="join('{{community.id}}')"> Join Group  </button>
 
                             {% elif is_joined == 1 %}
                                 <button class="ui fluid button " style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;"   id="invite" onclick="invite();" > Join Group  </button>

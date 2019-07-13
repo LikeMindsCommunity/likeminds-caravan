@@ -20,9 +20,8 @@ url  = settings.URL
 #uncomment to run it in localhost
 #url='http://localhost:8000'
 
-
-
 api_url=url+'/api/'
+
 def index(request):
 
     '''function to show promotion page'''
@@ -77,24 +76,33 @@ def dashboard(request):
                             usr1.fb_link = data['link']
 
             if social_user.provider == 'linkedin-oauth2':
-                url = 'https://api.linkedin.com/v1/people/~:(id,email-address,first-name,last-name,headline,interests,location:(name),picture-url,public-profile-url,positions:(id,title,start-date,end-date,company,summary),educations:(id,school-name,field-of-study,start-date,end-date,degree))?format=json&oauth2_access_token='+social_user.extra_data['access_token']
-                print(url)
+                # accessing Linked In API to get user basic information
+                url = 'https://api.linkedin.com/v2/me?projection=(id,firstName,emailAddress,lastName,vanityName,headline,interests,location,picture-url,name,profilePicture(displayImage~:playableStreams))&oauth2_access_token='+social_user.extra_data['access_token']
+                email_url = 'https://api.linkedin.com/v2/emailAddress?q=members&projection=(elements*(handle~))&oauth2_access_token='+social_user.extra_data['access_token']
                 response = rqst.get(url)
-                data = json.loads(response.text)
-                print(data)
-                info = Userinfo()
-                usr1 = Userinfo.objects.all().filter(email = data['email'])
+                # getting public details of user from Linked In
+                data_main = json.loads(response.text)
+                response = rqst.get(email_url)
+                # getting emial of user from Linked In
+                email_data = json.loads(response.text)
+                # getting specific details from received Json
+                user_name = data_main['firstName']['localized']['en_US'] + " " + data_main['lastName']['localized']['en_US']
+                profile_picture = data_main['profilePicture']['displayImage~']['elements'][2]['identifiers'][0]['identifier']
+                email = email_data['elements'][0]['handle~']['emailAddress']
+                # checking if there is any user having details with the email we got from linkedIn
+                usr1 = Userinfo.objects.all().filter(email = email)
                 if not usr1:
-                    info.name = data['firstName']+" "+data['lastName']
-                    info.email = data['emailAddress'] 
-                    info.city = data['location']['name']
-                    info.image_url = data['pictureUrl']
-                    info.linkedin_link = data['publicProfileUrl']
+                    # if there is no user having th email , create a user info for the user
+                    info = Userinfo()
+                    info.name = user_name
+                    info.email = email
+                    info.image_url = profile_picture
+                    #info.linkedin_link = data['publicProfileUrl']
+                    info.login_type = 'linkedIn'
+                    info.login_json = [data_main,email_data]
                     info.user_id = request.user
                     info.save()
-                else:
-                    usr1.linkedin_link = data['publicProfileUrl']
-        print("user ================================  ",user)
+                    created = True
         if created:
             print("created")
             user_id = user.id
@@ -113,8 +121,7 @@ def dashboard(request):
         for j in my_communities:
             my_community.append(j)
         communities = Community.objects.filter(hide_community='0').order_by('-active_since')
-        print("usr at last  ======== ",usr)
-        return render (request, 'dashboard.html', { 'usr': usr, 'communities' : communities, 'my_communities':my_community[:2], "my_communities_count": len(my_community) })
+        return render (request, 'dashboard.html', {'usr': usr, 'communities' : communities, 'my_communities':my_community[:2], "my_communities_count": len(my_community) })
     else:
         user = []
     communities = Community.objects.filter(hide_community='0').order_by('-active_since')
@@ -170,7 +177,7 @@ def dashboard(request):
 
 
 def community(request, community_id):
-    #-----accept admin APi part---------------
+    # ----- accept admin APi part ---------------
     res= request.GET.dict()
     if 'source' in res:
         source =res['source']
@@ -179,6 +186,14 @@ def community(request, community_id):
         source = ''
     if 'cta' in res:
         cta = res['cta']
+        print("cta == ",cta)
+        if cta == 'join' and request.user.is_authenticated:
+            questions,user,data,community = join_community(request, community_id)
+            if questions:
+                return render(request, 'response_form.html', {"data": data, 'usr': user, 'community': community})
+            else:
+                return render(request, 'thankyou.html',
+                            {'usr': user, 'similar_communities': data, 'community': community})
     else:
         cta =''
     community = get_object_or_404(Community, pk = community_id)
@@ -193,22 +208,16 @@ def community(request, community_id):
                 user = Userinfo.objects.all().filter(user_id = core_user)
             else:
                 user = Userinfo.objects.all().filter(user_id = request.user)
-            print("user info created")
-        print("cur sess mail",user[0].email)
         core_user = User.objects.all().filter(email = user[0].email).first()
         print("core user == ",core_user.email)
         Nominated_mem = Members.objects.filter(member_id=core_user.id,community_id=community)
         try:
-            print("try block Nominated_mem")
             if Nominated_mem:
                 Nom_mem_state=Nominated_mem[0].state
             else:
                 try:
-                    print("get details from temp admin")
                     check=get_nominated_admin_details(request,member_id=core_user.id,community_id=community.id,email=core_user.email)
-                    print("get nominated admin details",check)
                     if check:
-                        print("creating member")
                         member=Members()
                         member.member_id=core_user
                         member.community_id = community
@@ -223,19 +232,15 @@ def community(request, community_id):
             print("except block Nominated_mem")
             Nom_mem_state = 0
     elif not request.user.is_authenticated and source == 'email':
-        print("not authenticated block Nominated_mem and source is email")
         Nom_mem_state= 0
     elif not request.user.is_authenticated:
-        print("not authenticated block Nominated_mem")
         Nom_mem_state= 0
     elif source=='email':
-        print("source block Nominated_mem")
         Nom_mem_state= 0
     else:
         Nom_mem_state= 0
-    #------------------------------------------
+    # ------------------------------------------------------------------
     all_members=Members.objects.filter(community_id=community.id)
-    print("nom mem state == ",Nom_mem_state)
     members=[]
     admin_details=[]
     is_joined=-1
@@ -583,13 +588,10 @@ def logout_view(request):
 def join_community(request, community_id):
 
     '''function to join community'''
-
-
     if request.user.is_authenticated:
         user = Userinfo.objects.all().filter(user_id = request.user)
     else :
         user = []
-
 
     member_id = request.user.id
 
@@ -620,10 +622,7 @@ def join_community(request, community_id):
 
         params = {'member_id': member_id, 'community_id': community_id}
         rqst.post(join_url,params=params,json=json_dict)
-
-
-        return render(request, 'thankyou.html', {'usr':user, 'similar_communities':similar_communities,'community':community})
-
+        return False, user, similar_communities, community
 
     else:
         data = Form_data.objects.all().filter(community_id = community_id)
@@ -631,10 +630,9 @@ def join_community(request, community_id):
         if not data:
             params = {'member_id': member_id, 'community_id': community_id}
             rqst.post(join_url, params=params, json={})
-            return render(request, 'thankyou.html', {'usr':user, 'similar_communities':similar_communities,'community':community})
+            return False,user,similar_communities,community
         else:
-            return render(request,'response_form.html',{"data":data, 'usr':user, 'community':community})
-    
+            return True,user,data,community
 
 @login_required
 def form_data(request, community_id):

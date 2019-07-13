@@ -113,24 +113,38 @@
                   </div>
                   <div class="center aligned container">
                   <div class="content">
+                      {% if cta == 'join' %}
+                      <a  href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}&cta=join">
+                  <button class="ui facebook button" style="width:130px;">
+                      {% else %}
                       <a  href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}">
-                  <button class="ui facebook button">
+                  <button class="ui facebook button" style="width:130px;">
+                      {% endif %}
                       <i class="facebook icon"></i>
                       Facebook
                     </button>
                     </a>
+                      <br>
+                      <br>
+                      OR
+                    <br>
+                    <br>
+                    <div class = "content">
+                        {% if cta == 'join' %}
+                      <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join">
+                  <button class="ui facebook button" style="width:130px;">
+                      {% else %}
+                      <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}">
+                  <button class="ui facebook button" style="width:130px;">
+                      {% endif %}
+                        <i class="linkedin icon"></i>
+                        LinkedIn
+                      </button>
+                      </a>
+                    </div>
                   </div>
                   <br>
                   </div></div></div></div></div></div></div>
-                    </div>
-                    </div>
-
-              </div>
-              </div>
-
-             </div>
-
-        </div>
 
 
 

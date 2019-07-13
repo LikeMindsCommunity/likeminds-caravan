@@ -10,7 +10,7 @@
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
 
     <link rel="stylesheet" type="text/css" href="{% static 'notes/main.css' %}">
-
+     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 
 
 
@@ -107,9 +107,8 @@ a.article-title:hover {
 }
 </style>
 </head>
+
 <body>
-
-
 
 	<main role="main" class="container" >
   <div class="row">
@@ -126,8 +125,10 @@ a.article-title:hover {
 
 
     </div>
+
     <h2><a class="article-title" href="{% url 'update_user'  user.email%}">{{ user.name }}</a></h2>
-    <p class="article-content">{{ user.email }}</p>
+    <p class="article-content"><b>Facebook:</b>{{ user.fb_link }}</p>
+    <p class="article-content"><b>LinkedIn:</b>{{ user.linkedin_link }}</p>
   </div>
 </article>
   {% endfor %}

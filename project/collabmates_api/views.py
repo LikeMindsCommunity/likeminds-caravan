@@ -10,25 +10,35 @@ from categories import Category_list
 from django.views.decorators.csrf import csrf_exempt
 from datetime import datetime 
 import time
-from .notification import send_follow_notification,send_notification_to_admins,send_notification_for_join_requests,send_notification_for_new_collabcard_posted
+from .notification import send_follow_notification,send_notification_to_admins,send_notification_for_join_requests,send_notification_for_new_collabcard_posted,send_notification_to_proposed_admin
 from django.db.models import Q
 import dateutil.relativedelta
-from .tasks import send_email_to_nominated_admin,send_email_to_proposed_admin
+from .tasks import send_email_to_nominated_admin
 from django.conf import settings
+from togther.tasks import send_email_to_proposed_admin
+from django.core.paginator import Paginator
 
 url  = settings.URL
 
 def communities(request):
+
+    '''function to get all the communities'''
+
     if request.method == 'GET':
         response = request.GET.dict()
         if 'member_id' in response:
             user_id = response['member_id']
+        if 'page' in response:
+            page_number=response['page']
+        else:
+            page_number=1
         if 'category_id' in response:
             if response['category_id'] != '':
-                community=filter_by_category(response)     
+                community=filter_by_category(response,page_number)
                 return JsonResponse({'communities': community})
             else:
                 queryset = Community.objects.filter(hide_community='0').order_by('-created_at')
+                queryset=pagination(queryset,page_number)
                 community = []
                 for i in queryset:
                     serializer_class = CommunitySerializer(i)
@@ -49,7 +59,7 @@ def communities(request):
                     community.append(new_dict)
                 return JsonResponse({'communities': community})
 
-def filter_by_category(response):
+def filter_by_category(response,page_number):
     """  filtering communities according to the category of the community  """
     if 'category_id' in response:
         if response['category_id'] != '':
@@ -65,7 +75,8 @@ def filter_by_category(response):
                     if c.hide_community == '0':
                         communities.append(c)
             community = []
-            communities = communities[::-1]
+            communities=communities[::-1]
+            communities=pagination(communities,page_number)
             for i in communities:
                 serializer_class = CommunitySerializer(i)
                 new_dict = {}
@@ -78,6 +89,20 @@ def filter_by_category(response):
                 new_dict['date'] = i.active_since
                 community.append(new_dict)
             return community
+
+
+def pagination(queryset,page_number):
+
+    '''function to create pagination and return a query set for page number'''
+
+    paginator = Paginator(queryset, 20)
+    max_page=len(paginator.page_range)
+    if max_page < int(page_number):
+        return []
+    queryset = paginator.get_page(page_number)
+
+    return queryset
+
 
 def your_communities(request,user_id):
     '''This function is used to see your communities based on user id'''
@@ -270,7 +295,6 @@ def join_community(request, community_id):
 def join_community_responses(request):
 
     '''function to join community'''
-
     res = json.loads(request.body)
     user_id = request.GET.get('member_id')
     community_id = request.GET.get('community_id')
@@ -286,7 +310,6 @@ def join_community_responses(request):
         current_state=Members.objects.filter(member_id=user,community_id=community).values('state')
         if current_state[0]['state'] == 5:
             Members.objects.filter(member_id=user, community_id=community).update(state=3)
-
     except:
         member = Members()
         member.member_id = user
@@ -916,11 +939,13 @@ def check_member(email,community_id,member_id,res):
     CommunityName=community.name
     email=email.lower().strip()
     ProposedAdmin=ProposedAdmin.name
+
     try:
         user = Userinfo.objects.filter(email=email)
 
         if user:
             print("user is present")
+            NominatedAdmin_id = user[0].user_id.id
             NominatedAdmin=user[0].name
         else:
             print("user is not present")
@@ -937,7 +962,9 @@ def check_member(email,community_id,member_id,res):
             print("member is meber")
             Members.objects.filter(community_id = community,member_id = user[0].user_id.id).update(state=6)
             send_email_to_nominated_admin.delay(NominatedAdmin=NominatedAdmin,email=email,ProposedAdmin=ProposedAdmin,proposedAdminState = proposedAdminState,CommunityName=CommunityName,community_id =community.id)
+            send_notification_to_proposed_admin(nominated_admin_id = NominatedAdmin_id, community_id= community.id, proposed_admin_name=ProposedAdmin )
         elif member and member[0].state == 6:
+            send_notification_to_proposed_admin(nominated_admin_id = NominatedAdmin_id, community_id= community.id, proposed_admin_name=ProposedAdmin )
             print("member is already nominated")
         else:
             print("member is created")
@@ -947,7 +974,7 @@ def check_member(email,community_id,member_id,res):
             member.state = 6
             member.save()
             send_email_to_nominated_admin.delay(NominatedAdmin=NominatedAdmin,email=email,ProposedAdmin=ProposedAdmin,proposedAdminState = proposedAdminState,CommunityName=CommunityName,community_id =community.id)
-
+            send_notification_to_proposed_admin(nominated_admin_id = NominatedAdmin_id, community_id= community.id, proposed_admin_name=ProposedAdmin )
         return True
     return False
 
@@ -1159,7 +1186,7 @@ def accept_invitation(request):
             send_email_to_proposed_admin.delay(NominatedAdmin=nom_admin[0].name,email=prop_admin.email,ProposedAdmin=prop_admin.name,proposedAdminState=2,CommunityName=community.name,community_id = community.id)
             return JsonResponse({'success':True})
     else:
-        Members.objects.filter(community_id=community, member_id=core_user.id).update(state=1)
+        Members.objects.filter(community_id=community, member_id=member_id).update(state=1)
         # updating member count of the community
         update_member_count(community.id)
         # sending email to promoter , that user has accepted his request to beacome a promoter
@@ -1176,3 +1203,36 @@ def update_member_count(community_id):
     # updating count
     Community.objects.filter(id=community_id).update(members_count = len(count))
     return
+
+@csrf_exempt
+def edit_community(request):
+
+    '''function to edit the community'''
+
+    community_id=request.GET.get('community_id')
+
+    json_body=json.loads(request.body)
+
+    key=json_body['key']
+    value=json_body['value']
+
+    if key == 'purpose':
+        purpose_collabcard=Community.objects.filter(id=community_id).values('purpose_collabcard')
+        purpose_collabcard=purpose_collabcard[0]['purpose_collabcard']
+        Collabcard.objects.filter(id=purpose_collabcard).update(title=value)
+        Community.objects.filter(id=community_id).update(purpose=value)
+    else:
+        Community.objects.filter(id=community_id).update(**{key: value})
+
+    community=Community.objects.get(id=community_id)
+
+    serializer_class = CommunitySerializer(community)
+    new_dict = {}
+    new_dict.update(serializer_class.data)
+
+    return JsonResponse({'success': True,'community':new_dict})
+
+
+
+
+

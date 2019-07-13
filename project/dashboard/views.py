@@ -32,7 +32,6 @@ def dashboard(request):
       dashboard_list.append(community_dic)
 
 
-  print(dashboard_list)
   return render(request,'dashboard/dashboard.html',{'communities':dashboard_list})
 
 
@@ -83,7 +82,11 @@ def update_form(request,community_id):
 
 def community_delete(request,community_id):
     '''function to delete the community'''
-    Community.objects.filter(id=community_id).delete()
+    community=Community.objects.get(id=community_id)
+    community.hide_community='2'
+    community.save()
+    #deleting the member state
+    Members.objects.filter(community_id=community_id).update(state=0)
     return redirect('admin_dashboard')
 
 
@@ -224,7 +227,7 @@ def add_tags(request):
 def all_user(request):
 
     '''dashboard to show all users'''
-    userinfo=Userinfo.objects.all()
+    userinfo=Userinfo.objects.all().order_by('-user_id')
 
     return render(request, 'dashboard/all_user.html', {'all_user': userinfo})
 
@@ -243,7 +246,7 @@ def update_user(request,email):
             user_info_form = UserForm(instance=user_info)
             context = {'user_info_form': user_info_form,'user_info':user_info}
         except Exception as e:
-            print(e)
+
             context={'error':'Some Technical Error'}
 
 
@@ -263,14 +266,8 @@ def send_invitation(request,community_id):
             proposed_email=send_nominated_email.cleaned_data['proposed_email']
             proposer_email=send_nominated_email.cleaned_data['proposer_email']
             proposed_no=send_nominated_email.cleaned_data['proposed_no']
-            print("proposed name  == ",proposed_name)
-            print("proposed email  == ",proposed_email)
-            print("proposed no  == ",proposed_no)
-            print("proposer name  == ",proposer_name)
-            print("proposer email  == ",proposer_email)
             proposed_admin = User.objects.filter(email=proposer_email).first()
-            print("proposer check  == ",proposed_admin)
-            print("proposer id  == ",proposed_admin.id)
+
             admin = temp_admin()
             admin.name = proposed_name
             admin.email = proposed_email
@@ -285,21 +282,15 @@ def send_invitation(request,community_id):
         context={'send_email':send_nominated_email}
         return render(request,'dashboard/send_invitation.html',context)
 
-def check_community_admin(community_id,proposed_admin_id):
-    community = Community.objects.filter(id= community_id)
-    promoter_id = User.objects.get(id = proposed_admin_id)
-    promoter = Members.objects.filter(community_id =  community,member_id = promoter_id)
+
 
 
 def check_member(email,community_id,member_id,proposed_name):
     ProposedAdmin = User.objects.filter(id = member_id).first()
-    print("proposed admin == ",ProposedAdmin)
     community = Community.objects.get(id = community_id)
-    print("community == ",community.id)
     CommunityName=community.name
     email=email.lower().strip()
     proposedAdminState = Members.objects.filter(member_id=ProposedAdmin.id,community_id = community)
-    print("proposed adminn state == ",proposedAdminState,"    ",proposedAdminState[0].state)
     proposedAdminState = proposedAdminState[0].state
     ProposedAdmin = Userinfo.objects.get(user_id  = ProposedAdmin.id)
     ProposedAdmin = ProposedAdmin.name
@@ -307,20 +298,16 @@ def check_member(email,community_id,member_id,proposed_name):
         user = Userinfo.objects.filter(email=email)
 
         if user:
-            print("user is present")
             NominatedAdmin=user[0].name
         else:
-            print("user is not present")
             send_email_to_nominated_admin(NominatedAdmin=proposed_name,email=email,ProposedAdmin=ProposedAdmin,proposedAdminState = proposedAdminState,CommunityName=CommunityName,community_id =community.id)
             return False
     except:
-        print("except block email")
         send_email_to_nominated_admin(NominatedAdmin=proposed_name,email=email,ProposedAdmin=ProposedAdmin,proposedAdminState = proposedAdminState,CommunityName=CommunityName,community_id =community.id)
         return False
     if user:
         member =Members.objects.filter(community_id = community,member_id = user[0].user_id.id)
         if member and member[0].state == 4:
-            print("already a member")
             Members.objects.filter(community_id = community,member_id = user[0].user_id.id).update(state=6)
             send_email_to_nominated_admin(NominatedAdmin=NominatedAdmin,email=email,ProposedAdmin=ProposedAdmin,proposedAdminState = proposedAdminState,CommunityName=CommunityName,community_id =community.id)
         elif member and member[0].state == 6:
@@ -401,6 +388,7 @@ def delete_members(request,community_id,member_id):
     if promoter_count == 1 and (member_state==1 or member_state==2):
         return HttpResponse("You cannot Delete the promoter.First make a promoter in order to delete")
     Members.objects.filter(community_id=community_id,member_id=member_id).delete()
+    update_member_count(community_id)
     return redirect('admin_dashboard')
 
 
@@ -422,7 +410,6 @@ def add_questions(request,community_id):
     }
 
     question_data=request.GET.get('data',None)
-    print(question_data)
     if question_data is not None:
         question_data=json.loads(question_data)
 
@@ -456,13 +443,23 @@ def delete_questions(request,question_id):
 def analytics(request):
     '''function to show the analytics'''
     community_count=Community.objects.all().count()
-    community_count_hiden=Community.objects.filter(hide_community='0').count()
+    public_communities=Community.objects.filter(hide_community='0').count()
+    private_communities=Community.objects.filter(hide_community='1').count()
     user_count=Userinfo.objects.all().count()
-    promoter_count=Members.objects.values('member_id').distinct().count()
+    promoter_member_count=Members.objects.filter(~Q(state=0)).values('member_id').distinct().count()
+
+    working_communitites=Community.objects.filter(Q(hide_community= 2))
+
+
+    promoter_count=Members.objects.filter(Q(state=1)|Q(state=2)).values('member_id').distinct().count()
+    member_count=Members.objects.filter(state=4).values('member_id').distinct().count()
     context={
         'community_count':community_count,
-        'community_count_hidden':community_count_hiden,
+        'public_communities':public_communities,
+        'private_communities':private_communities,
         'user_count':user_count,
-        'promoter_count':promoter_count
+        'promoter_member_count':promoter_member_count,
+        'promoter_count':promoter_count,
+        'member_count':member_count
     }
     return render(request,'dashboard/analytics.html',context)
