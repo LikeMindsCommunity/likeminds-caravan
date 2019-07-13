@@ -11,7 +11,7 @@ urlpatterns = [
     path('community/<int:community_id>&cta=join', views.join_community, name="join_community"),
     path('requests', views.check_requests,name="check_requests"),
     path('requests/<int:community_id>/user_response/<int:user_id>', views.user_response,name="user_response"),
-    path('community/<int:community_id>/', views.community, name="comunity"),
+    path('community/<int:community_id>', views.community, name="comunity"),
     path('community/<int:community_id>/members_list', views.members_list, name="members_list"),
     path('create_community/', views.creategroup, name="create"),
     path('profile/<int:user_id>', views.profile, name="profile"),
