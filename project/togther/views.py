@@ -202,7 +202,7 @@ def community(request, community_id):
     if request.user.is_authenticated:
         user = Userinfo.objects.all().filter(user_id = request.user)
         if not user:
-            created,email = update_user_info(request)
+            created,email,user = update_user_info(request)
             if not created:
                 core_user = User.objects.all().filter(email = email).first()
                 user = Userinfo.objects.all().filter(user_id = core_user)
