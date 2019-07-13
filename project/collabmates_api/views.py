@@ -1205,7 +1205,7 @@ def accept_invitation(request):
             send_email_to_proposed_admin.delay(NominatedAdmin=nom_admin[0].name,email=prop_admin.email,ProposedAdmin=prop_admin.name,proposedAdminState=2,CommunityName=community.name,community_id = community.id)
             return JsonResponse({'success':True})
     else:
-        Members.objects.filter(community_id=community, member_id=core_user.id).update(state=1)
+        Members.objects.filter(community_id=community, member_id=member_id).update(state=1)
         # updating member count of the community
         update_member_count(community.id)
         # sending email to promoter , that user has accepted his request to beacome a promoter
