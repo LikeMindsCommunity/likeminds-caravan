@@ -83,7 +83,6 @@ def dashboard(request):
                 # getting public details of user from Linked In
                 data_main = json.loads(response.text)
                 response = rqst.get(email_url)
-                # getting emial of user from Linked In
                 email_data = json.loads(response.text)
                 # getting specific details from received Json
                 user_name = data_main['firstName']['localized']['en_US'] + " " + data_main['lastName']['localized']['en_US']
@@ -307,7 +306,6 @@ def update_user_info(request):
                 # getting public details of user from Linked In
                 data_main = json.loads(response.text)
                 response = rqst.get(email_url)
-                # getting emial of user from Linked In
                 email_data = json.loads(response.text)
                 # getting specific details from received Json
                 user_name = data_main['firstName']['localized']['en_US'] + " " + data_main['lastName']['localized']['en_US']
