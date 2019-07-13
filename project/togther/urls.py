@@ -24,7 +24,7 @@ urlpatterns = [
     path('thankyou', views.thankyou, name="thankyou"),
     path('collabcard/<int:card_id>', views.collabcard, name="card"),
     path('view_answers/<int:card_id>',views.view_answers,name = 'view_answers'),
-    path('accept_admin/<int:community_id>/',views.accept_admin,name='accept_admin'),
+    path('accept_admin/<int:community_id>',views.accept_admin,name='accept_admin'),
     path('', views.index, name='index')
 
 ]
