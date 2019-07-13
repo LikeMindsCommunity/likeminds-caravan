@@ -204,7 +204,7 @@ def send_notification_to_proposed_admin(nominated_admin_id,community_id,proposed
         message['payload'] = {
             'title': str(community_name),
             'sub_title': str(proposed_admin_name) + " has nominated you as a promoter of this community ",
-            'route': 'route://community_collabcard?community_id=' + str(community_id)
+            'route': 'route://community?community_id=' + str(community_id)
         }
 
         send_notification_to_multiple_devices(token_list, message)
