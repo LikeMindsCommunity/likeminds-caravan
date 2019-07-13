@@ -803,37 +803,18 @@ def update_answer_text(card_id):
                 ans_text+=" responded"
                 Collabcard.objects.filter(id=card_id).update(answer_text=ans_text)
 
-            count = 2
-            # check if only Three different users have answered
-            # not more than Three different users should have answered
-            if len(user_list) == 3:
-                for ID in user_list:
-                    username = Userinfo.objects.get(user_id=ID)
-                    ans_text += username.name
-                    if count > 1:
-                        ans_text += ", "
-                        count -= 1
-
-                    elif count != 0:
-                        ans_text += " and "
-                        count -= 1
-                ans_text += " responded"
-                Collabcard.objects.filter(id=card_id).update(answer_text=ans_text)
 
 
-            count = 2
+
             # if more than two different users have answered
-            if len(user_list) > 3:
+            if len(user_list) >= 3:
                 for ID in user_list:
-                    if count ==0:
-                        break
                     username = Userinfo.objects.get(user_id = ID)
                     ans_text += username.name
-                    if count >1:
-                        ans_text += ", "
-                    count-=1
+                    break
 
-                ans_text+= " & "+str(len(user_list)-2) + " others responded"
+
+                ans_text+= " & "+str(len(user_list)-1) + " others responded"
                 Collabcard.objects.filter(id=card_id).update(answer_text=ans_text)
         
 

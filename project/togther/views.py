@@ -96,7 +96,6 @@ def dashboard(request):
                     user.name = user_name
                     user.email = email
                     user.image_url = profile_picture
-                    #info.linkedin_link = data['publicProfileUrl']
                     user.login_type = 'linkedIn'
                     user.login_json = [data_main,email_data]
                     user.user_id = request.user
