@@ -132,10 +132,10 @@
                     <div class = "content">
                         {% if cta == 'join' %}
                       <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join">
-                  <button class="ui facebook button" style="width:130px;">
+                  <button class="ui linkedin button" style="width:130px;">
                       {% else %}
                       <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}">
-                  <button class="ui facebook button" style="width:130px;">
+                  <button class="ui linkedin button" style="width:130px;">
                       {% endif %}
                         <i class="linkedin icon"></i>
                         LinkedIn

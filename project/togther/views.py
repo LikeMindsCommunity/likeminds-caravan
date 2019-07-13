@@ -83,7 +83,7 @@ def dashboard(request):
                 # getting public details of user from Linked In
                 data_main = json.loads(response.text)
                 response = rqst.get(email_url)
-                # getting emial of user from Linked In
+                # getting email of user from Linked In
                 email_data = json.loads(response.text)
                 # getting specific details from received Json
                 user_name = data_main['firstName']['localized']['en_US'] + " " + data_main['lastName']['localized']['en_US']
@@ -93,15 +93,14 @@ def dashboard(request):
                 usr1 = Userinfo.objects.all().filter(email = email)
                 if not usr1:
                     # if there is no user having th email , create a user info for the user
-                    info = Userinfo()
-                    info.name = user_name
-                    info.email = email
-                    info.image_url = profile_picture
-                    #info.linkedin_link = data['publicProfileUrl']
-                    info.login_type = 'linkedIn'
-                    info.login_json = [data_main,email_data]
-                    info.user_id = request.user
-                    info.save()
+                    user = Userinfo()
+                    user.name = user_name
+                    user.email = email
+                    user.image_url = profile_picture
+                    user.login_type = 'linkedIn'
+                    user.login_json = [data_main,email_data]
+                    user.user_id = request.user
+                    user.save()
                     created = True
         if created:
             print("created")
@@ -298,7 +297,39 @@ def update_user_info(request):
                         user.save()
                         print("created userinfo")
                         created =True
-            return created,data['email']
+                return created, data['email'], user
+            if social_user.provider == 'linkedin-oauth2':
+                # accessing Linked In API to get user basic information
+                url = 'https://api.linkedin.com/v2/me?projection=(id,firstName,emailAddress,lastName,vanityName,headline,interests,location,picture-url,name,profilePicture(displayImage~:playableStreams))&oauth2_access_token=' + \
+                      social_user.extra_data['access_token']
+                email_url = 'https://api.linkedin.com/v2/emailAddress?q=members&projection=(elements*(handle~))&oauth2_access_token=' + \
+                            social_user.extra_data['access_token']
+                response = rqst.get(url)
+                # getting public details of user from Linked In
+                data_main = json.loads(response.text)
+                response = rqst.get(email_url)
+                # getting email of user from Linked In
+                email_data = json.loads(response.text)
+                # getting specific details from received Json
+                user_name = data_main['firstName']['localized']['en_US'] + " " + data_main['lastName']['localized'][
+                    'en_US']
+                profile_picture = data_main['profilePicture']['displayImage~']['elements'][2]['identifiers'][0][
+                    'identifier']
+                email = email_data['elements'][0]['handle~']['emailAddress']
+                # checking if there is any user having details with the email we got from linkedIn
+                usr1 = Userinfo.objects.all().filter(email=email)
+                if not usr1:
+                    # if there is no user having th email , create a user info for the user
+                    user = Userinfo()
+                    user.name = user_name
+                    user.email = email
+                    user.image_url = profile_picture
+                    user.login_type = 'linkedIn'
+                    user.login_json = [data_main, email_data]
+                    user.user_id = request.user
+                    user.save()
+                    created = True
+                return created, email, user
 
 def get_nominated_admin_details(request,member_id,community_id,email):
     print("fetching non admin details from DB")
