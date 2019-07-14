@@ -127,6 +127,7 @@ a.article-title:hover {
     </div>
 
     <h2><a class="article-title" href="{% url 'update_user'  user.email%}">{{ user.name }}</a></h2>
+        <p class="article-content"><b>Email:</b>{{ user.email }}</p>
     <p class="article-content"><b>Facebook:</b>{{ user.fb_link }}</p>
     <p class="article-content"><b>LinkedIn:</b>{{ user.linkedin_link }}</p>
   </div>
