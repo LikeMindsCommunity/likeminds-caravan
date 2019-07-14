@@ -331,7 +331,7 @@ def send_email_to_nominated_admin(NominatedAdmin,email,ProposedAdmin,CommunityNa
     fail_silently=True
     to = email
     url = settings.URL
-    url = url + "/community/" + str(community_id) + "/?source=email&cta=accept_admin"
+    url = url + "/community/" + str(community_id) + "?source=email&cta=accept_admin"
     subject =str(ProposedAdmin)+ " has proposed you as promoter of "+str(CommunityName)+" community"
     if proposedAdminState == 1:
         print("proposed admin state  == 1")
