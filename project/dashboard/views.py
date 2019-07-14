@@ -9,7 +9,7 @@ from django.template.loader import get_template
 from django.shortcuts import render
 from django.core.mail import EmailMultiAlternatives
 # Create your views here.
-from collabmates_api.notification import send_notification_for_join_requests
+from collabmates_api.notification import send_notification_for_join_requests,send_notification_to_proposed_admin
 from django.conf import settings
 import json
 url  = settings.URL
@@ -299,6 +299,7 @@ def check_member(email,community_id,member_id,proposed_name):
 
         if user:
             NominatedAdmin=user[0].name
+            NominatedAdmin_id = user[0].user_id.id
         else:
             send_email_to_nominated_admin(NominatedAdmin=proposed_name,email=email,ProposedAdmin=ProposedAdmin,proposedAdminState = proposedAdminState,CommunityName=CommunityName,community_id =community.id)
             return False
@@ -310,6 +311,7 @@ def check_member(email,community_id,member_id,proposed_name):
         if member and member[0].state == 4:
             Members.objects.filter(community_id = community,member_id = user[0].user_id.id).update(state=6)
             send_email_to_nominated_admin(NominatedAdmin=NominatedAdmin,email=email,ProposedAdmin=ProposedAdmin,proposedAdminState = proposedAdminState,CommunityName=CommunityName,community_id =community.id)
+            send_notification_to_proposed_admin(nominated_admin_id = NominatedAdmin_id, community_id= community.id, proposed_admin_name=ProposedAdmin )
         elif member and member[0].state == 6:
             print("member is already a nominated promoter")
         else:
@@ -320,7 +322,7 @@ def check_member(email,community_id,member_id,proposed_name):
             member.state = 6
             member.save()
             send_email_to_nominated_admin(NominatedAdmin=NominatedAdmin,email=email,ProposedAdmin=ProposedAdmin,proposedAdminState = proposedAdminState,CommunityName=CommunityName,community_id =community.id)
-
+            send_notification_to_proposed_admin(nominated_admin_id = NominatedAdmin_id, community_id= community.id, proposed_admin_name=ProposedAdmin )
         return True
     return False
 
