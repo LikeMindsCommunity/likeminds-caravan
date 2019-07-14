@@ -859,6 +859,7 @@ def login(request):
                 userinfo=Userinfo()
                 usr=User()
                 usr.username=user_name
+                usr.email = email
                 usr.save()
                 userinfo.user_id=usr
                 userinfo.email=email
