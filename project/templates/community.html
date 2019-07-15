@@ -49,7 +49,7 @@
                 function join(community_id){
                     console.log(1);
                     {% if user.is_authenticated %}
-                       window.location.href = "/"+"community/"+community_id+"?cta=join";
+                       window.open("/"+"community/"+community_id+"?cta=join",'_self');
                     {% else %}
                     $('.test')
                     .modal('show')
