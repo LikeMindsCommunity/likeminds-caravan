@@ -52,7 +52,7 @@ ul {
   border: 1px solid #dddddd;
   border-radius: 3px;
   margin-bottom: 20px;
-  width:1100px;
+  width:1170px;
 }
 
 .article-title {
@@ -108,12 +108,13 @@ a.article-title:hover {
 </style>
 </head>
 
-<a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 float-right" href="{% url 'all_user' %}">Users</a>
+<a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 " href="{% url 'all_user' %}">Users</a>
 <a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 " href="{% url 'analytics' %}">Analytics</a>
+<a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 " href="{% url 'deleted_communities' %}">Deleted Communitites</a>
 
 <body>
 
-
+<br/><br/>
 
 	<main role="main" class="container" >
   <div class="row">
@@ -132,7 +133,10 @@ a.article-title:hover {
       <a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 " href="{% url 'all_members' community.id %}">Members&nbsp;({{community.pending_member_count}})</a>
       <a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 " href="{% url 'show_tags' community.id %}">Tags</a>
       <a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 " href="{% url 'add_questions' community.id %}">Questions({{community.question_count}})</a>
-      <a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 " href="{% url 'send_invitation' community.id %}">Send Invitation</a>
+      <a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 " href="{% url 'send_invitation' community.id %}">Nominate Promoter</a>
+      <a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 " href="{% url 'analytics_community' community.id %}">Analytics</a>
+
+
 
 
 

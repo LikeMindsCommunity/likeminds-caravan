@@ -195,8 +195,6 @@ def community(request, community_id):
     else:
         cta =''
     community = get_object_or_404(Community, pk = community_id)
-    if community.hide_community == '1':
-        return HttpResponse('This community is temporarily not available')
     if request.user.is_authenticated:
         user = Userinfo.objects.all().filter(user_id = request.user)
         if not user:

@@ -21,6 +21,8 @@ def dashboard(request):
   dashboard_list=[]
   for i in community_list:
       community_dic={}
+      if i.hide_community == '2':
+          continue
       community_dic['id']=i.id
       community_dic['name']=i.name
       community_dic['image_url']=i.image_url
@@ -90,6 +92,16 @@ def community_delete(request,community_id):
     return redirect('admin_dashboard')
 
 
+def deleted_communities(request):
+
+    '''function to show all the deleted communities'''
+
+    community_list=Community.objects.filter(hide_community='2')
+    context={
+        'community_list':community_list
+    }
+    return render(request,'dashboard/delete_communities.html',context)
+
 def add_dashboard_admin(request,community_id):
 
     '''function to add admin'''
@@ -120,7 +132,6 @@ def add_dashboard_admin(request,community_id):
 def update_member_count(community_id):
     community = Community.objects.get(id=community_id)
     count = Members.objects.filter(community_id=community).filter(Q(state=1)|Q(state=2)|Q(state=4))
-    print("length == ",len(count))
     community = Community.objects.filter(id=community_id).update(members_count = len(count))
     return
 
@@ -366,8 +377,10 @@ def all_members(request,community_id):
             member['state']='Pending'
         elif i.state == 4:
             member['state']='Member'
-        else:
-            continue
+        elif i.state == 6:
+            member['state']='Nominated Promoter'
+        elif i.state == 5:
+            member['state']='Declined by Promoter'
 
         image_url=Userinfo.objects.filter(user_id=i.member_id).values('image_file')
         image_url=image_url[0]['image_file']
@@ -467,3 +480,25 @@ def analytics(request):
         'member_count':member_count
     }
     return render(request,'dashboard/analytics.html',context)
+
+def analytics_community(request,community_id):
+
+    '''function to show analytics of community'''
+
+    collabcard=Collabcard.objects.filter(community_id=community_id)
+    collabcard_count=0
+    collabcard_answer_count=0
+
+    for each_collabcard in collabcard:
+        collabcard_count=collabcard_count+1
+        answer_count=card_answers.objects.filter(card_id=each_collabcard.id).count()
+        collabcard_answer_count=collabcard_answer_count+answer_count
+
+
+    context={
+        'conversations_count':collabcard_count,
+        'answers_count':collabcard_answer_count
+    }
+
+
+    return render(request,'dashboard/community_analytics.html',context)

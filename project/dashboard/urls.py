@@ -20,5 +20,7 @@ urlpatterns = [
     path('add_questions/<int:community_id>', add_questions, name='add_questions'),
     path('delete_questions/<int:question_id>', delete_questions, name='delete_questions'),
     path('analytics', analytics, name='analytics'),
+    path('analytics_community/<int:community_id>', analytics_community, name='analytics_community'),
+    path('deleted_communities', deleted_communities, name='deleted_communities'),
 
 ]
