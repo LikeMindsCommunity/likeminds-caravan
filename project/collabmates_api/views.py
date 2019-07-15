@@ -859,6 +859,7 @@ def login(request):
                 userinfo=Userinfo()
                 usr=User()
                 usr.username=user_name
+                usr.email = email
                 usr.save()
                 userinfo.user_id=usr
                 userinfo.email=email
@@ -964,6 +965,7 @@ def check_member(email,community_id,member_id,res):
             send_email_to_nominated_admin.delay(NominatedAdmin=NominatedAdmin,email=email,ProposedAdmin=ProposedAdmin,proposedAdminState = proposedAdminState,CommunityName=CommunityName,community_id =community.id)
             send_notification_to_proposed_admin(nominated_admin_id = NominatedAdmin_id, community_id= community.id, proposed_admin_name=ProposedAdmin )
         elif member and member[0].state == 6:
+            send_email_to_nominated_admin.delay(NominatedAdmin=NominatedAdmin,email=email,ProposedAdmin=ProposedAdmin,proposedAdminState = proposedAdminState,CommunityName=CommunityName,community_id =community.id)
             send_notification_to_proposed_admin(nominated_admin_id = NominatedAdmin_id, community_id= community.id, proposed_admin_name=ProposedAdmin )
             print("member is already nominated")
         else:
