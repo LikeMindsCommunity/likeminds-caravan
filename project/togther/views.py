@@ -290,6 +290,8 @@ def update_user_info(request):
                         if 'location' in data:
                             user.city = data['location']['name']
                         user.image_url = image_url
+                        user.login_type = 'facebook'
+                        user.login_json = data
                         user.user_id = core_user
                         user.save()
                         print("created userinfo")
