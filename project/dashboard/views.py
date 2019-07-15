@@ -387,6 +387,7 @@ def all_members(request,community_id):
         member['image_file']=image_url
         member['community_id']=community_id
         members_list.append(member)
+
     return render(request,'dashboard/all_members.html',{'member_list':members_list})
 
 

@@ -1,4 +1,19 @@
-Category_list_backup = [ { "id" : 'al' , "title": 'Alumni'},
+import psycopg2
+from django.conf import  settings
+
+# file to store configuration of the system
+
+
+# database details
+db_user="apoorv"
+db_password="khare"
+db_host=settings.DB_HOST
+db_database="togther"
+
+
+
+Category_list_backup = [
+{ "id" : 'al' , "title": 'Alumni'},
 { "id" : 'cl' , "title": 'College'},
 { "id" : 'sc' , "title": 'School'},
 { "id" : 'pf' , "title": 'Profession'},
@@ -36,7 +51,11 @@ Category_list_backup = [ { "id" : 'al' , "title": 'Alumni'},
 { "id" : 'ar' , "title": 'Art'},
 { "id" : 'fa' , "title": 'Fashion'},
 { "id" : 'br' , "title": 'Brand'},
+{ "id" : 'le' , "title": 'Learning'},
+{ "id" : 'lg' , "title": 'Legacy'},
+
 ]
+
 Category_list = [
 { "id" : 'in' , "title":  'Interests'},
 { "id" : 'ca' , "title": 'Cause'},
@@ -47,3 +66,44 @@ Category_list = [
 { "id" : 'lg' , "title": 'Legacy'},
 { "id" : 'le' , "title": 'Learning'},
 ]
+
+def get_connection():
+    '''function to create a postgres connection'''
+    try:
+        connection = psycopg2.connect(user=db_user,
+                                      password=db_password,
+                                      host=db_host,
+                                      port=db_port,
+                                      database=db_database)
+        return connection
+    except (Exception, psycopg2.Error) as error:
+        print ("Error while connecting  to PostgreSQL", error)
+
+
+def add_cateogy_to_database(categoty_id,category_name):
+
+    try:
+        connection=get_connection()
+        curr=connection.cursor()
+        sql="insert into togther_tags(category_id,category_name) values(%s,%s)"
+        parameter_list=[categoty_id,category_name]
+        curr.execute(sql,parameter_list)
+        connection.commit()
+        curr.close()
+        connection.close()
+    except (Exception, psycopg2.Error) as error:
+        print ("Error while connecting to PostgreSQL", error)
+
+
+if __name__ == '__main__':
+
+    for category in Category_list_backup:
+        add_cateogy_to_database(category['id'],category['title'])
+    print('Inserted Successfully')
+
+
+
+
+
+
+
