@@ -134,8 +134,22 @@ a.article-title:hover {
     <a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 " href="{% url 'decline_member' member.community_id  member.id.id %}">Decline</a>
     {% endif %}
   </div>
+        {% endfor %}
+        <div class="col-md-8">
+      {% for user in unregitered_users_list %}
+<!--    <article class="media content-section" >-->
+<!--      <img class = "rounded-circle article-img" src="#">-->
+  <div class="media-body" >
+    <div class="article-metadata" >
+
+    </div>
+    <h2><a class="article-title" href="#">{{ user.name}}</a></h2>
+      <p class="article-content" style="color:green;"> {{user.email}}</p>
+      <p class="article-content" style="color:green;"> {{user.contact_number}}</p>
+            <p class="article-content" style="color:green;"> {{user.state}}</p>
+  </div>
 </article>
-  {% endfor %}
+            {% endfor %}
     </div>
   </div>
 </main>
