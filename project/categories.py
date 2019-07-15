@@ -95,7 +95,7 @@ def add_cateogy_to_database(categoty_id,category_name):
         print ("Error while connecting to PostgreSQL", error)
 
 
-if __name__ == '__main__':
+def run():
 
     for category in Category_list_backup:
         add_cateogy_to_database(category['id'],category['title'])
