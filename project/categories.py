@@ -9,6 +9,7 @@ db_user="apoorv"
 db_password="khare"
 db_host=settings.DB_HOST
 db_database="togther"
+db_port="5432"
 
 
 
