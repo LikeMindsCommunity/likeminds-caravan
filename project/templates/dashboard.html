@@ -323,13 +323,13 @@ function save(){
     {% for community in communities %}
 
     <div class="ui link fluid cards" >
-            <div class="ui fluid card "onclick="open_community('{{community.id}}');">
+            <div class="ui fluid card "onclick="">
 
                     <div class=" fluid image">
                       <img src="{{community.image_url.url}}" style="max-height: 400px;">
                     </div>
                     <div class="content">
-                      <div class="header" style="padding-bottom: 5px;"><a href="../community/{{community.id}}" style="color:#1cb39b;">{{community.name}}</a></div>
+                      <div class="header" style="padding-bottom: 5px;"><a href="{% url 'comunity' community.id %}" style="color:#1cb39b;">{{community.name}}</a></div>
 
                       <span class="left floated" style="width:50%;">
                             <i class="map marker alternate icon"></i>
