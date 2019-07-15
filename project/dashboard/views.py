@@ -387,7 +387,21 @@ def all_members(request,community_id):
         member['image_file']=image_url
         member['community_id']=community_id
         members_list.append(member)
-    return render(request,'dashboard/all_members.html',{'member_list':members_list})
+    unregistered_users = temp_admin.objects.filter(community_id=community_id)
+    unregitered_users_list = []
+    for user in unregistered_users:
+        member={}
+        member['name'] = user.name
+        member['email'] = user.email
+        member['contact_number'] = user.contact_number
+        member['state'] = 'Unregistred user NOMINATED as promoter'
+        userinfo=Userinfo.objects.filter(email = user.email)
+        if userinfo :
+            continue
+
+        unregitered_users_list.append(member)
+
+    return render(request,'dashboard/all_members.html',{'member_list':members_list,'unregitered_users_list':unregitered_users_list})
 
 
 
