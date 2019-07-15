@@ -6,7 +6,6 @@ from django.contrib.auth.models import User
 import json
 from django.http.response import JsonResponse
 from collabmates_api.serializers import CommunitySerializer
-from categories import Category_list
 from django.views.decorators.csrf import csrf_exempt
 from datetime import datetime 
 import time
@@ -63,20 +62,21 @@ def filter_by_category(response,page_number):
     """  filtering communities according to the category of the community  """
     if 'category_id' in response:
         if response['category_id'] != '':
+
             category = response['category_id']
-            for i in Category_list:
-                if i['id'] == category:
-                    cat = i['title'] 
-            category_objects = Category.objects.all().filter(category =cat)
+            category_name=Tags.objects.filter(category_id=category).values('category_name')
+            cat=category_name[0]['category_name']
+            category_objects = Category.objects.filter(category =cat)
+            category_objects=pagination(category_objects,page_number)
             communities = []
             for i in category_objects:
                 if i.category == cat:
                     c = Community.objects.get(id = i.community_id.id)
                     if c.hide_community == '0':
                         communities.append(c)
+
             community = []
             communities=communities[::-1]
-            communities=pagination(communities,page_number)
             for i in communities:
                 serializer_class = CommunitySerializer(i)
                 new_dict = {}
@@ -136,6 +136,8 @@ def your_communities(request,user_id):
 
         else:
             member_id=user_id
+            if each_community[0].hide_community == '2':
+                continue
             my_communities.append(each_community[0])
     my_community =[]
 
@@ -346,6 +348,19 @@ def category_filter(request, category):
     return JsonResponse({'communities': community})
 
 def categories(request):
+
+
+    tags=Tags.objects.all()
+    Category_list=[]
+    for category in tags:
+        category_dict={}
+
+        if category.category_name == 'Interests' or category.category_name == 'Cause' or  category.category_name == 'Industry' or category.category_name == 'Profession'  or category.category_name == 'Fan' or category.category_name == 'Sports'  or category.category_name == 'Legacy' or category.category_name == 'Learning':
+            category_dict['id']=category.category_id
+            category_dict['title']=category.category_name
+            Category_list.append(category_dict)
+
+
     return JsonResponse ({'category_list': Category_list})
 
 def user(request, user_id):
@@ -441,14 +456,17 @@ def create_community(request):
                 if i['key'] == 'Type of community' :
                     categories = i['value']
                     categories = categories.split(", ")
-                    for j in categories:
-                        for i in Category_list:
-                            if i['id'] == j:
-                                cat = i['title'] 
-                        category = Category()
-                        category.category = cat
-                        category.community_id_id = group.id
-                        category.save()
+                    for category in categories:
+                        try:
+                            category_name=Tags.objects.filter(category_id=category).values('category_name')
+                            cat=category_name[0]['category_name']
+                            category = Category()
+                            category.category = cat
+                            category.community_id_id = group.id
+                            category.save()
+                        except:
+                            print('Error!! unable to fetch details')
+
             # create user as a admin for the community as the user is creating the community as a admin
             print(group)
             user = User.objects.get(id = user_id)
