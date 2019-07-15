@@ -177,3 +177,13 @@ class follow_collabcard(models.Model):
 
 class get_notified(models.Model):
     email = models.EmailField()
+
+
+
+class Tags(models.Model):
+
+    '''Model to show tags from database'''
+
+    category_id=models.CharField(max_length=10)
+    category_name=models.CharField(max_length=50)
+    state=models.CharField(max_length=20,null=True)
