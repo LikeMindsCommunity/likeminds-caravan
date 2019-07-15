@@ -66,8 +66,8 @@ def filter_by_category(response,page_number):
             category = response['category_id']
             category_name=Tags.objects.filter(category_id=category).values('category_name')
             cat=category_name[0]['category_name']
-            category_objects = Category.objects.all().filter(category =cat)
-
+            category_objects = Category.objects.filter(category =cat)
+            category_objects=pagination(category_objects,page_number)
             communities = []
             for i in category_objects:
                 if i.category == cat:
@@ -77,7 +77,6 @@ def filter_by_category(response,page_number):
 
             community = []
             communities=communities[::-1]
-            communities=pagination(communities,page_number)
             for i in communities:
                 serializer_class = CommunitySerializer(i)
                 new_dict = {}
@@ -137,6 +136,8 @@ def your_communities(request,user_id):
 
         else:
             member_id=user_id
+            if each_community[0].hide_community == '2':
+                continue
             my_communities.append(each_community[0])
     my_community =[]
 
