@@ -48,7 +48,7 @@ class Admins (models.Model):
     def __str__(self):
         return self.community_id.name
 
-class Category (models.Model):
+class Community_tags (models.Model):
     community_id = models.ForeignKey(Community, on_delete = models.CASCADE)
     category = models.CharField(max_length = 200)
 
