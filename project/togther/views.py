@@ -367,7 +367,7 @@ def accept_admin(request,community_id):
             Members.objects.filter(community_id=community, member_id=core_user.id).update(state=1)
             update_member_count(community.id)
             # set user hidden tag
-            set_user_tag(member_id, community.id)
+            set_user_tag(core_user.id, community.id)
             send_email_to_proposed_admin.delay(NominatedAdmin=nom_admin[0].name,email=prop_admin.email,ProposedAdmin=prop_admin.name,proposedAdminState =1,CommunityName=community.name,community_id = community.id)
             return HttpResponseRedirect("https://play.google.com/apps/testing/com.collabmates")
         elif member[0].state == 2:
@@ -376,14 +376,14 @@ def accept_admin(request,community_id):
             Members.objects.filter(community_id = community,member_id=core_user.id).update(state =1)
             update_member_count(community.id)
             # set user hidden tag
-            set_user_tag(member_id, community.id)
+            set_user_tag(core_user.id, community.id)
             send_email_to_proposed_admin.delay(NominatedAdmin=nom_admin[0].name,email=prop_admin.email,ProposedAdmin=prop_admin.name,proposedAdminState=2,CommunityName=community.name,community_id = community.id)
             return HttpResponseRedirect("https://play.google.com/apps/testing/com.collabmates")
     else:
         Members.objects.filter(community_id=community, member_id=core_user.id).update(state=1)
         update_member_count(community.id)
         # set user hidden tag
-        set_user_tag(member_id, community.id)
+        set_user_tag(core_user.id, community.id)
         send_email_to_proposed_admin.delay(NominatedAdmin=nom_admin[0].name,email=prop_admin.email,ProposedAdmin=prop_admin.name,proposedAdminState=1,CommunityName=community.name,community_id = community.id)
         return HttpResponseRedirect("https://play.google.com/apps/testing/com.collabmates")
 
