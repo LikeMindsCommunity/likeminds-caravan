@@ -130,7 +130,7 @@ def dashboard(request):
             if response['data'] != '':
                 category = response['data']
                 print(category)
-                categories = Category.objects.all()
+                categories = Community_tags.objects.all()
                 communities = []
                 for i in categories:
                     print(i, i.community_id)
@@ -413,7 +413,7 @@ def creategroup(request):
 
         categories = request.POST.getlist('category')
         for i in categories:
-            category = Category()
+            category = Community_tags()
             category.category = i
             category.community_id_id = group.id
             category.save()

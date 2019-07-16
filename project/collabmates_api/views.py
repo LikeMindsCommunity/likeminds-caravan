@@ -66,7 +66,7 @@ def filter_by_category(response,page_number):
             category = response['category_id']
             category_name=Tags.objects.filter(category_id=category).values('category_name')
             cat=category_name[0]['category_name']
-            category_objects = Category.objects.filter(category =cat)
+            category_objects = Community_tags.objects.filter(category =cat)
             category_objects=pagination(category_objects,page_number)
             communities = []
             for i in category_objects:
@@ -335,7 +335,7 @@ def join_community_responses(request):
 
 
 def category_filter(request, category):
-    categories = Category.objects.all()
+    categories = Community_tags.objects.all()
     communities = []
     for i in categories:
         if i.category == category:
@@ -460,7 +460,7 @@ def create_community(request):
                         try:
                             category_name=Tags.objects.filter(category_id=category).values('category_name')
                             cat=category_name[0]['category_name']
-                            category = Category()
+                            category = Community_tags()
                             category.category = cat
                             category.community_id_id = group.id
                             category.save()
