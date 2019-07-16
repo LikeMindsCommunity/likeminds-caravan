@@ -190,8 +190,25 @@ def community(request, community_id):
             if questions:
                 return render(request, 'response_form.html', {"data": data, 'usr': user, 'community': community})
             else:
+                community_tag=''
+                try:
+                   community_tag=Community_tags.objects.filter(community_id=community_id).values('category')
+
+                   for category in community_tag:
+
+                       if category['category'] == 'IIT Delhi':
+                           community_tag='iitd'
+                           break
+                       elif category['category'] == 'NSIT College':
+                           community_tag='nsit'
+                           break
+                except:
+                    return HttpResponse('The community is not tagged ')
+
+
+                print('dsadadadasdasdas',community_tag)
                 return render(request, 'thankyou.html',
-                            {'usr': user, 'similar_communities': data, 'community': community})
+                            {'usr': user, 'similar_communities': data, 'community': community,'community_tag':community_tag})
     else:
         cta =''
     community = get_object_or_404(Community, pk = community_id)
