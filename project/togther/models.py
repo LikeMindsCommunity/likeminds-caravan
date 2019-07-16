@@ -191,5 +191,5 @@ class Tags(models.Model):
 class userinfo_tags(models.Model):
     ''' Model to give user hidden tags '''
 
-    user_tag = models.CharField(max_length=20,null=True)
+    tag_name = models.CharField(max_length=20,null=True)
     user_id = models.IntegerField(null=True)

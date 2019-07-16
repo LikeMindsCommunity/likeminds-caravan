@@ -812,9 +812,9 @@ def set_user_tag(user_id,community_id):
         user_tag = userinfo_tags()
         user_tag.user_id = user_id
         if community_tag:
-            user_tag.user_tag = 'NSIT College'
+            user_tag.tag_name = 'NSIT College'
         else:
-            user_tag.user_tag = 'IIT Delhi'
+            user_tag.tag_name = 'IIT Delhi'
         user_tag.save()
     return
 
