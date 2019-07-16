@@ -40,16 +40,14 @@
 
                function open_community(id){
                     console.log(id);
-                    window.location.href ="../"+id;
+                    window.location.href ="../community/"+id;
                     console.log(window.location.href)
                 }
-
-
 
                 function join(community_id){
                     console.log(1);
                     {% if user.is_authenticated %}
-                       window.location.href = "/"+"community/"+community_id+"?cta=join";
+                       window.open("/"+"community/"+community_id+"?cta=join",'_self');
                     {% else %}
                     $('.test')
                     .modal('show')
@@ -59,10 +57,6 @@
 
 
                 function accept_admin(cta,community_id,Nom_mem_state){
-                    console.log('hello')
-                    console.log(cta);
-                    console.log(community_id)
-                    console.log(Nom_mem_state)
 
                     {% if user.is_authenticated %}
                     if (Nom_mem_state!=6)
@@ -166,8 +160,8 @@
                   </div>
                   <div class="center aligned container">
                   <div class="content">
-                      {% if cta == 'join' %}
-                      <a  href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join">
+                      {% if cta %}
+                      <a  href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta={{cta}}">
                   <button class="ui facebook button" style="width:130px;">
                       {% else %}
                       <a  href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}">
@@ -183,8 +177,8 @@
                     <br>
                     <br>
                     <div class = "content">
-                    {% if cta == 'join' %}
-                      <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join">
+                    {% if cta %}
+                      <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta={{cta}}">
                   <button class="ui linkedin button" style="width:130px;">
                       {% else %}
                       <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}">

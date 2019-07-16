@@ -130,7 +130,7 @@ def dashboard(request):
             if response['data'] != '':
                 category = response['data']
                 print(category)
-                categories = Category.objects.all()
+                categories = Community_tags.objects.all()
                 communities = []
                 for i in categories:
                     print(i, i.community_id)
@@ -190,8 +190,25 @@ def community(request, community_id):
             if questions:
                 return render(request, 'response_form.html', {"data": data, 'usr': user, 'community': community})
             else:
+                community_tag=''
+                try:
+                   community_tag=Community_tags.objects.filter(community_id=community_id).values('category')
+
+                   for category in community_tag:
+
+                       if category['category'] == 'IIT Delhi':
+                           community_tag='iitd'
+                           break
+                       elif category['category'] == 'NSIT College':
+                           community_tag='nsit'
+                           break
+                except:
+                    return HttpResponse('The community is not tagged ')
+
+
+                print('dsadadadasdasdas',community_tag)
                 return render(request, 'thankyou.html',
-                            {'usr': user, 'similar_communities': data, 'community': community})
+                            {'usr': user, 'similar_communities': data, 'community': community,'community_tag':community_tag})
     else:
         cta =''
     community = get_object_or_404(Community, pk = community_id)
@@ -265,7 +282,6 @@ def community(request, community_id):
 
 def update_user_info(request):
     user = Userinfo.objects.all().filter(user_id = request.user)
-    social_user = request.user.social_auth.filter(user_id = request.user.id).first()
     created =False
     if not user :
         social_user = request.user.social_auth.filter(user_id = request.user.id).first()
@@ -295,7 +311,7 @@ def update_user_info(request):
                         user.user_id = core_user
                         user.save()
                         print("created userinfo")
-                        created =True
+                        created = True
                 return created, data['email'], user
             if social_user.provider == 'linkedin-oauth2':
                 # accessing Linked In API to get user basic information
@@ -327,60 +343,47 @@ def update_user_info(request):
                 return created, email, user
 
 def get_nominated_admin_details(request,member_id,community_id,email):
-    print("fetching non admin details from DB")
+    ''' fetching non admin details from DB '''
     user = Userinfo.objects.all().filter(user_id = request.user)
-    print("cur sess mail",user[0].email)
     core_user = User.objects.all().filter(email = user[0].email).first()
-    print("core user email == ",core_user.email)
-    print("core user id == ",core_user.id)
     community = get_object_or_404(Community, pk = community_id)
-    print("community == ",community)
     details = temp_admin.objects.filter(community_id=community,email=core_user.email)
-    print("details == ",details)
     if details:
-        print("details are present")
         return True
     else:
-        print("details are not present")
         return False
 
 
-def accept_admin(request,community_id,cta=''):
+def accept_admin(request,community_id):
     community = Community.objects.get(id=community_id)
     member = Members.objects.filter(community_id = community).filter(Q(state=1)|Q(state=2))
     core_user = User.objects.all().filter(email = request.user.email).first()
-    print("core user == ",core_user.email)
     prop_admin = Userinfo.objects.get(user_id = member[0].member_id.id)
-    print("prop_admin name == ",prop_admin.name)
-    print("prop admin email == ",prop_admin.email)
     nom_admin = Userinfo.objects.all().filter(user_id = core_user.id)
-    print("nom_admin == ",nom_admin[0].name)
-    print("nom_admin  == ",nom_admin[0].email)
-    cur_sess_user_id = core_user.id
-
-    print("\n\nNomnatedAdmin  == ", nom_admin[0].name)
-    print(" to email == ",prop_admin.email)
-    print("proposed admin name == ",prop_admin.name)
 
     if len(member) == 1:
         if member[0].state == 1:
             print(nom_admin[0].name)
             Members.objects.filter(community_id=community, member_id=core_user.id).update(state=1)
-            print("email to proposed admin for single admin and done it")
             update_member_count(community.id)
+            # set user hidden tag
+            set_user_tag(core_user.id, community.id)
             send_email_to_proposed_admin.delay(NominatedAdmin=nom_admin[0].name,email=prop_admin.email,ProposedAdmin=prop_admin.name,proposedAdminState =1,CommunityName=community.name,community_id = community.id)
             return HttpResponseRedirect("https://play.google.com/apps/testing/com.collabmates")
         elif member[0].state == 2:
-            print("email to temp admin")
             temp_admin = Members.objects.filter(community_id = community,state=2)
             Members.objects.filter(community_id = community,member_id=temp_admin[0].member_id).update(state =4)
             Members.objects.filter(community_id = community,member_id=core_user.id).update(state =1)
             update_member_count(community.id)
+            # set user hidden tag
+            set_user_tag(core_user.id, community.id)
             send_email_to_proposed_admin.delay(NominatedAdmin=nom_admin[0].name,email=prop_admin.email,ProposedAdmin=prop_admin.name,proposedAdminState=2,CommunityName=community.name,community_id = community.id)
             return HttpResponseRedirect("https://play.google.com/apps/testing/com.collabmates")
     else:
         Members.objects.filter(community_id=community, member_id=core_user.id).update(state=1)
         update_member_count(community.id)
+        # set user hidden tag
+        set_user_tag(core_user.id, community.id)
         send_email_to_proposed_admin.delay(NominatedAdmin=nom_admin[0].name,email=prop_admin.email,ProposedAdmin=prop_admin.name,proposedAdminState=1,CommunityName=community.name,community_id = community.id)
         return HttpResponseRedirect("https://play.google.com/apps/testing/com.collabmates")
 
@@ -388,7 +391,7 @@ def update_member_count(community_id):
     community = Community.objects.get(id=community_id)
     count = Members.objects.filter(community_id=community).filter(Q(state=1)|Q(state=2)|Q(state=4))
     print("length == ",len(count))
-    community = Community.objects.filter(id=community_id).update(members_count = len(count))
+    Community.objects.filter(id=community_id).update(members_count = len(count))
     return
 
 @login_required
@@ -413,7 +416,7 @@ def creategroup(request):
 
         categories = request.POST.getlist('category')
         for i in categories:
-            category = Category()
+            category = Community_tags()
             category.category = i
             category.community_id_id = group.id
             category.save()
@@ -813,3 +816,28 @@ def view_answers(request, card_id):
         creator = Userinfo.objects.get(user_id = i.user.id)
         answers.append({'answer':answer ,'creator':creator})
     return render(request, 'answers.html',{'answers': answers, 'user':userinfo})
+
+def set_user_tag(user_id,community_id):
+    community = Community.objects.get(id = community_id)
+    community_tag = Community_tags.objects.filter(community_id = community,category = 'NSIT College')
+    if community_tag:
+        print(community_tag[0].category)
+        check = check_user_tag(user_id = user_id,category_tag = community_tag[0].category)
+    else:
+        check = check_user_tag(user_id = user_id,category_tag = 'IIT Delhi')
+    if not check:
+        user_tag = userinfo_tags()
+        user_tag.user_id = user_id
+        if community_tag:
+            user_tag.user_tag = 'NSIT College'
+        else:
+            user_tag.user_tag = 'IIT Delhi'
+        user_tag.save()
+    return
+
+def check_user_tag(user_id,category_tag):
+    user_tag = userinfo_tags.objects.filter(user_id =user_id,user_tag=category_tag)
+    if user_tag:
+        return True
+    else :
+        return False

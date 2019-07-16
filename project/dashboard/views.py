@@ -194,7 +194,7 @@ def decline_member(request,community_id,member_id):
 
 def show_tags(request,community_id):
     '''Taging communitites'''
-    categories=Category.objects.filter(community_id=community_id)
+    categories=Community_tags.objects.filter(community_id=community_id)
     category_string=""
     for i in categories:
         category_string=category_string+str(i) + ","
@@ -214,20 +214,20 @@ def add_tags(request):
     already_category=already_category.split(",")
 
     category_list=[]
-    community_category=Category.objects.filter(community_id=community_id)
+    community_category=Community_tags.objects.filter(community_id=community_id)
 
     for category in community_category:
         category_list.append(str(category))
 
     for category in category_list:
         if category not in already_category:
-            Category.objects.filter(community_id=community_id,category=category).delete()
+            Community_tags.objects.filter(community_id=community_id,category=category).delete()
 
     for category in categories:
 
-        selected_categories=Category.objects.filter(community_id=community_id,category=category)
+        selected_categories=Community_tags.objects.filter(community_id=community_id,category=category)
         if not selected_categories:
-            cat=Category()
+            cat=Community_tags()
             cat.community_id=Community.objects.get(id=community_id)
             cat.category=category
             cat.save()
