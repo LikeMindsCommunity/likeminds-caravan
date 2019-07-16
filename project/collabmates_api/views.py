@@ -16,6 +16,7 @@ from .tasks import send_email_to_nominated_admin
 from django.conf import settings
 from togther.tasks import send_email_to_proposed_admin
 from django.core.paginator import Paginator
+from togther.views import set_user_tag
 
 url  = settings.URL
 
@@ -1043,12 +1044,13 @@ def request_response(request):
         #updating the approve state
         Members.objects.filter(member_id=member_id,community_id=community).update(state=4)  # aprove state = 4
         community = Community.objects.get(id = community_id)
+        set_user_tag(user.id, community_id)
         members_count = community.members_count+1
         Community.objects.filter(id = community_id).update(members_count=members_count)
-        send_notification_for_join_requests(community_id,True,member_id)
+        #send_notification_for_join_requests(community_id,True,member_id)
     else:
         Members.objects.filter(member_id=member_id,community_id=community).update(state=5)  # decline state = 5
-        send_notification_for_join_requests(community_id, False, member_id)
+        #send_notification_for_join_requests(community_id, False, member_id)
     return JsonResponse({'success': True})
 
 
@@ -1182,16 +1184,19 @@ def accept_invitation(request):
     community_id=request.GET.get('community_id')
     community = Community.objects.get(id=community_id)
     promoter = Members.objects.filter(community_id = community).filter(Q(state=1)|Q(state=2))
-    prop_admin = Userinfo.objects.get(user_id = promoter[0].member_id.id)
     nom_admin = Userinfo.objects.all().filter(user_id = member_id)
     # ------------------------------------------------------------------------------
     # if only one promoter to a community
     if len(promoter) == 1:
-        # if the promter is actually a promoter
+        #if the community has only one promoter
+        prop_admin = Userinfo.objects.get(user_id=promoter[0].member_id.id)
+        # if the promoter is actually a promoter
         if promoter[0].state == 1:
             Members.objects.filter(community_id=community, member_id=member_id).update(state=1)
             # updating member count of the community
             update_member_count(community.id)
+            # set user hidden tag
+            set_user_tag(member_id, community.id)
             # sending email to promoter , that user has accepted his request to beacome a promoter
             send_email_to_proposed_admin.delay(NominatedAdmin=nom_admin[0].name,email=prop_admin.email,ProposedAdmin=prop_admin.name,proposedAdminState =1,CommunityName=community.name,community_id = community.id)
             return JsonResponse({'success':True})
@@ -1202,6 +1207,8 @@ def accept_invitation(request):
             Members.objects.filter(community_id = community,member_id=member_id).update(state =1)
             # updating member count of the community
             update_member_count(community.id)
+            # set user hidden tag
+            set_user_tag(member_id, community.id)
             # sending email to promoter , that user has accepted his request to beacome a promoter
             send_email_to_proposed_admin.delay(NominatedAdmin=nom_admin[0].name,email=prop_admin.email,ProposedAdmin=prop_admin.name,proposedAdminState=2,CommunityName=community.name,community_id = community.id)
             return JsonResponse({'success':True})
@@ -1209,6 +1216,8 @@ def accept_invitation(request):
         Members.objects.filter(community_id=community, member_id=member_id).update(state=1)
         # updating member count of the community
         update_member_count(community.id)
+        # set user hidden tag
+        set_user_tag(member_id, community.id)
         # sending email to promoter , that user has accepted his request to beacome a promoter
         send_email_to_proposed_admin.delay(NominatedAdmin=nom_admin[0].name,email=prop_admin.email,ProposedAdmin=prop_admin.name,proposedAdminState=1,CommunityName=community.name,community_id = community.id)
         return JsonResponse({'success':True})
