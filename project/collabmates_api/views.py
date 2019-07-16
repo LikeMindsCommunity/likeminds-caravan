@@ -1047,10 +1047,10 @@ def request_response(request):
         set_user_tag(user.id, community_id)
         members_count = community.members_count+1
         Community.objects.filter(id = community_id).update(members_count=members_count)
-        #send_notification_for_join_requests(community_id,True,member_id)
+        send_notification_for_join_requests(community_id,True,member_id)
     else:
         Members.objects.filter(member_id=member_id,community_id=community).update(state=5)  # decline state = 5
-        #send_notification_for_join_requests(community_id, False, member_id)
+        send_notification_for_join_requests(community_id, False, member_id)
     return JsonResponse({'success': True})
 
 
