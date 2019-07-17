@@ -817,27 +817,34 @@ def view_answers(request, card_id):
         answers.append({'answer':answer ,'creator':creator})
     return render(request, 'answers.html',{'answers': answers, 'user':userinfo})
 
+
 def set_user_tag(user_id,community_id):
     community = Community.objects.get(id = community_id)
-    community_tag = Community_tags.objects.filter(community_id = community,category = 'NSIT College')
-    if community_tag:
-        print(community_tag[0].category)
-        check = check_user_tag(user_id = user_id,category_tag = community_tag[0].category)
-    else:
-        check = check_user_tag(user_id = user_id,category_tag = 'IIT Delhi')
+    iit_tag = Community_tags.objects.filter(community_id = community,tags_id = 41)
+    nsit_tag = Community_tags.objects.filter(community_id = community,tags_id = 42)
+    check = True
+    if iit_tag:
+        print(iit_tag)
+        tag_id =41
+        check = check_user_tag(user_id = user_id,tag_id = tag_id)
+    elif nsit_tag:
+        print(nsit_tag)
+        tag_id = 42
+        check = check_user_tag(user_id=user_id, tag_id= tag_id)
     if not check:
         user_tag = userinfo_tags()
         user_tag.user_id = user_id
-        if community_tag:
-            user_tag.tag_name = 'NSIT College'
-        else:
-            user_tag.tag_name = 'IIT Delhi'
+        user_tag.tag_id = tag_id
         user_tag.save()
     return
 
-def check_user_tag(user_id,category_tag):
-    user_tag = userinfo_tags.objects.filter(user_id =user_id,user_tag=category_tag)
+def check_user_tag(user_id,tag_id):
+    user_tag = userinfo_tags.objects.filter(user_id =user_id,tag_id = tag_id)
     if user_tag:
         return True
     else :
         return False
+
+def get_user_tag(user_id):
+    user_tag = userinfo_tags.objects.all().filter(user_id=user_id)
+    return user_tag
