@@ -1192,6 +1192,12 @@ def collabcard_follow(request):
     '''Api to follow collabcard by members Post API'''
     collabcard_id=request.GET.get('collabcard_id','')
     member_id=request.GET.get('member_id','')
+    status=request.GET.get('value','true')
+
+    if status != 'true':
+        status=False
+
+
 
     collabcard=Collabcard.objects.get(id=collabcard_id)
     member_id=User.objects.get(id=member_id)
@@ -1202,9 +1208,12 @@ def collabcard_follow(request):
         follow.collabcard_id=collabcard
         follow.member_id=member_id
         follow.save()
+    else:
+        '''Deleting the collabcard '''
+        if status == False:
+            follow_collabcard.objects.filter(collabcard_id=collabcard,member_id=member_id).delete()
 
     return JsonResponse({'success':True})
-
 
 
 def is_collabcard_already_followed(collabcard,member_id):
