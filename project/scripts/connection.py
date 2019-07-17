@@ -5,7 +5,7 @@ import  psycopg2
 
 db_user="apoorv"
 db_password="khare"
-db_host="18.219.130.243"
+db_host="ec2-3-17-180-202.us-east-2.compute.amazonaws.com"
 db_database="togther"
 db_port="5432"
 
