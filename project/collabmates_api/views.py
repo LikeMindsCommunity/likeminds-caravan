@@ -64,19 +64,16 @@ def filter_by_category(response,page_number):
         if response['category_id'] != '':
 
             category = response['category_id']
-            category_name=Tags.objects.filter(category_id=category).values('category_name')
-            cat=category_name[0]['category_name']
-            category_objects = Community_tags.objects.filter(category =cat)
+            category=int(category)
+            category_objects = Community_tags.objects.filter(tags_id =category).order_by('-id')
             category_objects=pagination(category_objects,page_number)
             communities = []
             for i in category_objects:
-                if i.category == cat:
-                    c = Community.objects.get(id = i.community_id.id)
-                    if c.hide_community == '0':
-                        communities.append(c)
+                c = Community.objects.get(id = i.community_id.id)
+                if c.hide_community == '0':
+                    communities.append(c)
 
             community = []
-            communities=communities[::-1]
             for i in communities:
                 serializer_class = CommunitySerializer(i)
                 new_dict = {}
@@ -354,9 +351,8 @@ def categories(request):
     Category_list=[]
     for category in tags:
         category_dict={}
-
-        if category.category_name == 'Interests' or category.category_name == 'Cause' or  category.category_name == 'Industry' or category.category_name == 'Profession'  or category.category_name == 'Fan' or category.category_name == 'Sports'  or category.category_name == 'Legacy' or category.category_name == 'Learning':
-            category_dict['id']=category.category_id
+        if category.id == 4 or category.id == 8 or  category.id == 11 or category.id == 13 or category.id == 22 or category.id == 25  or category.id == 28 or category.id == 39:
+            category_dict['id']=str(category.id)
             category_dict['title']=category.category_name
             Category_list.append(category_dict)
 
@@ -456,16 +452,14 @@ def create_community(request):
                 if i['key'] == 'Type of community' :
                     categories = i['value']
                     categories = categories.split(", ")
-                    for category in categories:
-                        try:
-                            category_name=Tags.objects.filter(category_id=category).values('category_name')
-                            cat=category_name[0]['category_name']
-                            category = Community_tags()
-                            category.category = cat
-                            category.community_id_id = group.id
-                            category.save()
-                        except:
-                            print('Error!! unable to fetch details')
+                    for tags in categories:
+                        tags_id=int(tags)
+                        tags_object=Tags.objects.get(id=tags_id)
+                        community_tags=Community_tags()
+                        community_tags.category=tags_object.category_name
+                        community_tags.community_id_id=group.id
+                        community_tags.tags_id=tags_id
+                        community_tags.save()
 
             # create user as a admin for the community as the user is creating the community as a admin
             print(group)
