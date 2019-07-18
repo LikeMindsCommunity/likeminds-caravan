@@ -119,17 +119,18 @@ a.article-title:hover {
   <div class="media-body" >
     <div class="article-metadata" >
 
-
-
-
-
-
     </div>
-
     <h2><a class="article-title" href="{% url 'update_user'  user.email%}">{{ user.name }}</a></h2>
         <p class="article-content"><b>Email:</b>{{ user.email }}</p>
     <p class="article-content"><b>Facebook:</b>{{ user.fb_link }}</p>
     <p class="article-content"><b>LinkedIn:</b>{{ user.linkedin_link }}</p>
+      {% if user.tags_count == 2 %}
+      <a class="article-title" href="{% url 'update_user_tags' user.user_id %}"><p class="article-content" style="color:black;"><b style="color:INDIANRED;">Tags Count:</b>{{ user.tags }}</p></a>
+      {% elif user.tags_count == 1 %}
+      <a class="article-title" href="{% url 'update_user_tags' user.user_id %}" style="color:black; "><p class="article-content"><b style="color: lime;">Tags Count:</b>{{ user.tags }}</p></a>
+      {% else %}
+       <a class="article-title" href="{% url 'update_user_tags' user.user_id %}" style="color:black; "><p class="article-content"><b style="color: black;">Tags Count:</b>None</p></a>
+      {% endif %}
   </div>
 </article>
   {% endfor %}
