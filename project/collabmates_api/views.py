@@ -284,17 +284,30 @@ def your_communities(request,user_id):
         my_community.append(new_dict)
     return JsonResponse({'your_communities':my_community})
 
-
 def community(request, community_id):
     '''Community detail page'''
-    queryset = Community.objects.filter(id = community_id)
+    queryset = Community.objects.get(id = community_id)
     body = request.GET
-
+    print(body)
     if 'member_id' in body:
         user_id = body['member_id']
-    # getting communities serialaized data
-    community = serialize_community(queryset=queryset, user_id=user_id)
-    return JsonResponse({'communities': community})
+    #print(user_id)
+    member = Members.objects.all().filter(community_id = community_id)
+    is_member = False
+    user = User.objects.get(id = user_id)
+    for m in member:
+        if m.member_id == user:
+            is_member = True
+    serializer_class = CommunitySerializer(queryset)
+    community = serializer_class.data
+    if community['image_url']:
+        community['image_url'] = url+community['image_url']
+    else:
+        community['image_url'] = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQMUCHvC0wEVO5yDMe9wddUoagIqQ3VPH0nm8_VtjK5gk3M0mMO'
+    community['is_member']= is_member
+    community['share_url']= url+'/community/'+str(community['id'])
+    community['date'] =  queryset.active_since
+    return JsonResponse({'community': community})
 
 def similar_community(request, community_id):
     '''function to return similar communitites'''
