@@ -1295,14 +1295,19 @@ def edit_community(request):
     json_body=json.loads(request.body)
 
     key=json_body['key']
-    value=json_body['value']
 
     if key == 'purpose':
+        value = json_body['value']
         purpose_collabcard=Community.objects.filter(id=community_id).values('purpose_collabcard')
         purpose_collabcard=purpose_collabcard[0]['purpose_collabcard']
         Collabcard.objects.filter(id=purpose_collabcard).update(title=value)
         Community.objects.filter(id=community_id).update(purpose=value)
+
+    elif key == 'questions':
+        questions=json_body['questions']
+        edit_questions(questions,community_id)
     else:
+        value = json_body['value']
         Community.objects.filter(id=community_id).update(**{key: value})
 
     community=Community.objects.get(id=community_id)
@@ -1312,6 +1317,59 @@ def edit_community(request):
     new_dict.update(serializer_class.data)
 
     return JsonResponse({'success': True,'community':new_dict})
+
+
+def is_question_present(question,community_id):
+
+    '''function to checko whether the question is present or not'''
+
+    question=Form_data.objects.filter(community_id=community_id,data=question)
+
+    question_id=0
+
+    # if question is already present sending its questions id for deletion or updation
+    if question:
+        for each_question in question:
+            question_id=each_question.id
+            break
+
+    return question_id
+
+def edit_questions(questions,community_id):
+
+    '''function to edit questions of community'''
+
+    for question in questions:
+
+        is_present=is_question_present(question['key'],community_id)
+
+        if is_present:
+
+            if not question['value']:
+                # if value is empty -- Delete functionality
+                Form_data.objects.filter(id=is_present).delete()
+
+            else:
+                # if value is not empty but its details are present -- Update functionality
+                Form_data.objects.filter(id=is_present).update(data=question['value'])
+
+        else:
+
+            # if any new question is added -- Insert functionality
+            question_object=Form_data()
+            question_object.data=question['value']
+            community_object=Community.objects.get(id=community_id)
+            question_object.community_id=community_object
+            question_object.save()
+
+    print('questions updated successfully')
+
+
+
+
+
+
+
 
 
 
