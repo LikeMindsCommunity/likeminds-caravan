@@ -24,5 +24,7 @@ urlpatterns = [
     path('deleted_communities', deleted_communities, name='deleted_communities'),
     path('update_user_tags/<int:user_id>', user_tags, name='update_user_tags'),
     path('add_user_tags',add_user_tags,name='add_user_tags'),
+    path('hidden_tags/<int:community_id>', hidden_tags, name='hidden_tags'),
+    path('add_hidden_tags', add_hidden_tags, name='add_hidden_tags'),
 
 ]

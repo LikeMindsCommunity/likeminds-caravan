@@ -12,6 +12,7 @@ from django.core.mail import EmailMultiAlternatives
 from collabmates_api.notification import send_notification_for_join_requests,send_notification_to_proposed_admin
 from django.conf import settings
 import json
+from django.http.response import JsonResponse
 url  = settings.URL
 
 def dashboard(request):
@@ -196,6 +197,8 @@ def show_tags(request,community_id):
     categories=Community_tags.objects.filter(community_id=community_id)
     category_string=""
     for i in categories:
+        if i.tags_id == 41 or i.tags_id == 42:
+            continue
         category_string=category_string+str(i) + ","
     category_string=category_string[:-1]
     context={
@@ -229,8 +232,12 @@ def add_tags(request):
             cat=Community_tags()
             cat.community_id=Community.objects.get(id=community_id)
             cat.category=category
+            tags_id=Tags.objects.filter(category_name=category).values('id')
+            if len(tags_id) == 0:
+                continue
+            cat.tags_id=tags_id[0]['id']
             cat.save()
-
+    return JsonResponse({'success':True})
 
     return redirect('admin_dashboard')
 
@@ -272,7 +279,6 @@ def add_user_tags(request):
             user_tag.save()
 
     return render(request, 'dashboard/all_user.html', {'all_user': users_list})
-
 
 
 def all_user(request):
@@ -570,3 +576,46 @@ def analytics_community(request,community_id):
     }
 
     return render(request,'dashboard/community_analytics.html',context)
+
+
+def hidden_tags(request,community_id):
+
+    '''function to show hidden tags'''
+
+    hidden_tags=Community_tags.objects.filter(community_id=community_id).filter(Q(tags_id=41)|Q(tags_id=42))
+
+    hidden_tag=''
+    for tag in hidden_tags:
+        hidden_tag=hidden_tag+tag.category
+    context={
+        'hidden_tags':hidden_tag,
+        'community_id':community_id
+    }
+
+    return render(request,'dashboard/hidden_tags.html',context)
+
+
+
+def add_hidden_tags(request):
+
+    '''function to add hidden tags'''
+    hidden_tag_id=request.GET.get('hidden_tag_id')
+    community_id=request.GET.get('community_id')
+    tag_id=int(hidden_tag_id)
+    tag_name=Tags.objects.filter(id=tag_id).values('category_name')
+    tag_name=tag_name[0]['category_name']
+    is_tag_present=Community_tags.objects.filter(community_id=community_id).filter(Q(tags_id=41)|Q(tags_id=42))
+    community=Community.objects.get(id=community_id)
+    if not is_tag_present:
+        community_tags_object=Community_tags()
+        community_tags_object.category=tag_name
+        community_tags_object.community_id=community
+        community_tags_object.tags_id=tag_id
+        community_tags_object.save()
+        print('New Data Inserted')
+
+
+
+
+
+    return JsonResponse({'success':True})
