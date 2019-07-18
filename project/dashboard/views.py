@@ -34,7 +34,6 @@ def dashboard(request):
       community_dic['question_count']=Form_data.objects.filter(community_id=i).count()
       dashboard_list.append(community_dic)
 
-
   return render(request,'dashboard/dashboard.html',{'communities':dashboard_list})
 
 
@@ -240,13 +239,74 @@ def add_tags(request):
             cat.save()
     return JsonResponse({'success':True})
 
+    return redirect('admin_dashboard')
+
+def user_tags(request,user_id):
+    tags = userinfo_tags.objects.filter(user_id= user_id)
+    tags_list = []
+    for i in tags:
+        tag_name = Tags.objects.get(id = i.tag_id)
+        tags_list.append(tag_name.category_name)
+    tags = ','.join(tags_list)
+    context={'tags': tags,'user_id':user_id}
+    return render(request, 'dashboard/user_tags.html', context)
+
+def add_user_tags(request):
+    tags=request.GET.get('tags')
+    user_id=request.GET.get('user_id')
+    tags=tags.split(",")
+    already_tags=request.GET.get('already_tags')
+    already_tags=already_tags.split(",")
+
+    user_tags_list = []
+    user_tags = userinfo_tags.objects.filter(user_id=user_id)
+
+    for tag in user_tags:
+        tag_name = Tags.objects.get(id=tag.tag_id)
+        user_tags_list.append(tag_name)
+
+    for tag in tags:
+        if tag not in already_tags:
+            row=userinfo_tags.objects.filter(user_id=user_id).delete()
+
+    for tag in tags:
+        selected_tags = userinfo_tags.objects.filter(user_id=user_id,tag_id = tag)
+        print(selected_tags)
+        if not selected_tags:
+            user_tag = userinfo_tags()
+            user_tag.user_id = user_id
+            user_tag.tag_id = tag
+            user_tag.save()
+
+    return render(request, 'dashboard/all_user.html', {'all_user': users_list})
+
 
 def all_user(request):
 
     '''dashboard to show all users'''
     userinfo=Userinfo.objects.all().order_by('-user_id')
+    users_list = []
+    for i in userinfo:
+        user_dic = {}
+        user_dic['id'] = i.id
+        user_dic['user_id'] = i.user_id.id
+        user_dic['name'] = i.name
+        user_dic['email'] = i.email
+        user_dic['image_url'] = i.image_file
+        tags_count = userinfo_tags.objects.filter(user_id=i.user_id.id).count()
+        tags = userinfo_tags.objects.filter(user_id=i.user_id.id)
+        tags_list=[]
+        for t in tags:
+            tag = Tags.objects.get(id = t.tag_id)
+            tags_list.append(tag.category_name)
+        tags = ','.join(tags_list)
+        user_dic['tags'] = tags
+        user_dic['tags_count'] = tags_count
+        user_dic['fb_link'] = i.fb_link
+        user_dic['linkedin_link'] = i.linkedin_link
+        users_list.append(user_dic)
 
-    return render(request, 'dashboard/all_user.html', {'all_user': userinfo})
+    return render(request, 'dashboard/all_user.html', {'all_user': users_list})
 
 
 def update_user(request,email):
@@ -265,8 +325,6 @@ def update_user(request,email):
         except Exception as e:
 
             context={'error':'Some Technical Error'}
-
-
 
     return render(request,'dashboard/update_links.html',context)
 
@@ -365,7 +423,6 @@ def send_email_to_nominated_admin(NominatedAdmin,email,ProposedAdmin,CommunityNa
     return msg.send(fail_silently)
 
 
-
 def all_members(request,community_id):
 
     '''function to show all members of the community'''
@@ -410,7 +467,6 @@ def all_members(request,community_id):
 
 
 
-
 def delete_members(request,community_id,member_id):
 
     '''function to delete the members'''
@@ -427,7 +483,6 @@ def delete_members(request,community_id,member_id):
     Members.objects.filter(community_id=community_id,member_id=member_id).delete()
     update_member_count(community_id)
     return redirect('admin_dashboard')
-
 
 
 def add_questions(request,community_id):
@@ -501,6 +556,7 @@ def analytics(request):
     }
     return render(request,'dashboard/analytics.html',context)
 
+
 def analytics_community(request,community_id):
 
     '''function to show analytics of community'''
@@ -514,12 +570,10 @@ def analytics_community(request,community_id):
         answer_count=card_answers.objects.filter(card_id=each_collabcard.id).count()
         collabcard_answer_count=collabcard_answer_count+answer_count
 
-
     context={
         'conversations_count':collabcard_count,
         'answers_count':collabcard_answer_count
     }
-
 
     return render(request,'dashboard/community_analytics.html',context)
 
