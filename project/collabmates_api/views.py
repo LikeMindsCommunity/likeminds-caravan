@@ -1276,6 +1276,7 @@ def accept_invitation(request):
             print("member state == 6")
             # if he is previously not a member(he is nothing to that commuity) of this community
             # then delete the member
+            print("deleting state 6")
             Members.objects.filter(community_id=community, member_id=member_id).delete()
         elif member[0].state == 7:
             print("member state == 7")
