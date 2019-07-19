@@ -160,7 +160,7 @@ def your_communities(request,user_id):
     member_id=request.GET.get('member_id')
 
     user = User.objects.get(id = member_id)
-    communities = Members.objects.all().filter(member_id = user_id).filter(Q(state=1)|Q(state=2)|Q(state=4))
+    communities = Members.objects.all().filter(member_id = user_id).filter(Q(state=1)|Q(state=2)|Q(state=4)|Q(state=7))
     my_communities = []
 
     # making a tupple list and sorting communities based on date
@@ -1280,9 +1280,12 @@ def accept_invitation(request):
         member = Members.objects.filter(community_id=community, member_id=member_id)
         if member[0].state == 6:
             print("member state == 6")
-            # if he is previously not a member(he is nothing to that commuity) of this community
-            # then delete the member
-            print("deleting state 6")
+            # deleting his details from temp admin model
+            usr = Userinfo.objects.get(user_id = member[0].member_id)
+            temp = temp_admin.objects.filter(community_id=community,email= usr.email)
+            temp.delete()
+            # if he is previously not a member of this community
+            # then delete the member from members model
             Members.objects.filter(community_id=community, member_id=member_id).delete()
         elif member[0].state == 7:
             print("member state == 7")
