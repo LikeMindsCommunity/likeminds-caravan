@@ -12,6 +12,7 @@ from django.core.mail import EmailMultiAlternatives
 from collabmates_api.notification import send_notification_for_join_requests,send_notification_to_proposed_admin
 from django.conf import settings
 import json
+from django.http.response import JsonResponse
 url  = settings.URL
 
 def dashboard(request):
@@ -32,7 +33,6 @@ def dashboard(request):
       community_dic['active_since']=i.active_since
       community_dic['question_count']=Form_data.objects.filter(community_id=i).count()
       dashboard_list.append(community_dic)
-
 
   return render(request,'dashboard/dashboard.html',{'communities':dashboard_list})
 
@@ -197,6 +197,8 @@ def show_tags(request,community_id):
     categories=Community_tags.objects.filter(community_id=community_id)
     category_string=""
     for i in categories:
+        if i.tags_id == 41 or i.tags_id == 42:
+            continue
         category_string=category_string+str(i) + ","
     category_string=category_string[:-1]
     context={
@@ -230,17 +232,81 @@ def add_tags(request):
             cat=Community_tags()
             cat.community_id=Community.objects.get(id=community_id)
             cat.category=category
+            tags_id=Tags.objects.filter(category_name=category).values('id')
+            if len(tags_id) == 0:
+                continue
+            cat.tags_id=tags_id[0]['id']
             cat.save()
-
+    return JsonResponse({'success':True})
 
     return redirect('admin_dashboard')
+
+def user_tags(request,user_id):
+    tags = userinfo_tags.objects.filter(user_id= user_id)
+    tags_list = []
+    for i in tags:
+        tag_name = Tags.objects.get(id = i.tag_id)
+        tags_list.append(tag_name.category_name)
+    tags = ','.join(tags_list)
+    context={'tags': tags,'user_id':user_id}
+    return render(request, 'dashboard/user_tags.html', context)
+
+def add_user_tags(request):
+    tags=request.GET.get('tags')
+    user_id=request.GET.get('user_id')
+    tags=tags.split(",")
+    already_tags=request.GET.get('already_tags')
+    already_tags=already_tags.split(",")
+
+    user_tags_list = []
+    user_tags = userinfo_tags.objects.filter(user_id=user_id)
+
+    for tag in user_tags:
+        tag_name = Tags.objects.get(id=tag.tag_id)
+        user_tags_list.append(tag_name)
+
+    for tag in tags:
+        if tag not in already_tags:
+            row=userinfo_tags.objects.filter(user_id=user_id).delete()
+
+    for tag in tags:
+        selected_tags = userinfo_tags.objects.filter(user_id=user_id,tag_id = tag)
+        print(selected_tags)
+        if not selected_tags:
+            user_tag = userinfo_tags()
+            user_tag.user_id = user_id
+            user_tag.tag_id = tag
+            user_tag.save()
+
+    return render(request, 'dashboard/all_user.html', {'all_user': users_list})
+
 
 def all_user(request):
 
     '''dashboard to show all users'''
     userinfo=Userinfo.objects.all().order_by('-user_id')
+    users_list = []
+    for i in userinfo:
+        user_dic = {}
+        user_dic['id'] = i.id
+        user_dic['user_id'] = i.user_id.id
+        user_dic['name'] = i.name
+        user_dic['email'] = i.email
+        user_dic['image_url'] = i.image_file
+        tags_count = userinfo_tags.objects.filter(user_id=i.user_id.id).count()
+        tags = userinfo_tags.objects.filter(user_id=i.user_id.id)
+        tags_list=[]
+        for t in tags:
+            tag = Tags.objects.get(id = t.tag_id)
+            tags_list.append(tag.category_name)
+        tags = ','.join(tags_list)
+        user_dic['tags'] = tags
+        user_dic['tags_count'] = tags_count
+        user_dic['fb_link'] = i.fb_link
+        user_dic['linkedin_link'] = i.linkedin_link
+        users_list.append(user_dic)
 
-    return render(request, 'dashboard/all_user.html', {'all_user': userinfo})
+    return render(request, 'dashboard/all_user.html', {'all_user': users_list})
 
 
 def update_user(request,email):
@@ -259,8 +325,6 @@ def update_user(request,email):
         except Exception as e:
 
             context={'error':'Some Technical Error'}
-
-
 
     return render(request,'dashboard/update_links.html',context)
 
@@ -292,8 +356,6 @@ def send_invitation(request,community_id):
         send_nominated_email=SendNominatedEmail()
         context={'send_email':send_nominated_email}
         return render(request,'dashboard/send_invitation.html',context)
-
-
 
 
 def check_member(email,community_id,member_id,proposed_name):
@@ -361,7 +423,6 @@ def send_email_to_nominated_admin(NominatedAdmin,email,ProposedAdmin,CommunityNa
     return msg.send(fail_silently)
 
 
-
 def all_members(request,community_id):
 
     '''function to show all members of the community'''
@@ -406,7 +467,6 @@ def all_members(request,community_id):
 
 
 
-
 def delete_members(request,community_id,member_id):
 
     '''function to delete the members'''
@@ -423,7 +483,6 @@ def delete_members(request,community_id,member_id):
     Members.objects.filter(community_id=community_id,member_id=member_id).delete()
     update_member_count(community_id)
     return redirect('admin_dashboard')
-
 
 
 def add_questions(request,community_id):
@@ -497,6 +556,7 @@ def analytics(request):
     }
     return render(request,'dashboard/analytics.html',context)
 
+
 def analytics_community(request,community_id):
 
     '''function to show analytics of community'''
@@ -510,11 +570,52 @@ def analytics_community(request,community_id):
         answer_count=card_answers.objects.filter(card_id=each_collabcard.id).count()
         collabcard_answer_count=collabcard_answer_count+answer_count
 
-
     context={
         'conversations_count':collabcard_count,
         'answers_count':collabcard_answer_count
     }
 
-
     return render(request,'dashboard/community_analytics.html',context)
+
+
+def hidden_tags(request,community_id):
+
+    '''function to show hidden tags'''
+
+    hidden_tags=Community_tags.objects.filter(community_id=community_id).filter(Q(tags_id=41)|Q(tags_id=42))
+
+    hidden_tag=''
+    for tag in hidden_tags:
+        hidden_tag=hidden_tag+tag.category
+    context={
+        'hidden_tags':hidden_tag,
+        'community_id':community_id
+    }
+
+    return render(request,'dashboard/hidden_tags.html',context)
+
+
+
+def add_hidden_tags(request):
+
+    '''function to add hidden tags'''
+    hidden_tag_id=request.GET.get('hidden_tag_id')
+    community_id=request.GET.get('community_id')
+    tag_id=int(hidden_tag_id)
+    tag_name=Tags.objects.filter(id=tag_id).values('category_name')
+    tag_name=tag_name[0]['category_name']
+    is_tag_present=Community_tags.objects.filter(community_id=community_id).filter(Q(tags_id=41)|Q(tags_id=42))
+    community=Community.objects.get(id=community_id)
+    if not is_tag_present:
+        community_tags_object=Community_tags()
+        community_tags_object.category=tag_name
+        community_tags_object.community_id=community
+        community_tags_object.tags_id=tag_id
+        community_tags_object.save()
+        print('New Data Inserted')
+
+
+
+
+
+    return JsonResponse({'success':True})

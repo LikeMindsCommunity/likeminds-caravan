@@ -16,26 +16,19 @@
 </style>
 <body>
 
-<h2>Category Tags</h2>
+<h2 align="left">Hidden Tags</h2>
 
     <form id="my_form" onsubmit="return false">
       <div class="form-group center_div">
-        <label for="tag">Tags</label>
-        <input type="text" name="tags" id="previous_categories" value="{{category}}"  class="form-control" >
+        <label for="tag">Hidden Tags</label>
+        <input type="text" name="tags" id="previous_categories" value="{{hidden_tags}}"  readonly class="form-control" >
       </div>
       <br/><br/>
      <div class="form-group center_div">
 
-    <select name="select_tags" multiple id="my_select" class="form-control">
-          <option value="Profession">Profession</option>
-          <option value="Industry">Industry</option>
-          <option value="Legacy">legacy</option>
-          <option value="Interests">Interest</option>
-          <option value="Cause">Cause</option>
-          <option value="Sports">Sports</option>
-          <option value="Fan">Fan</option>
-          <option value="Learning">Learning</option>
-
+    <select name="select_tags"  id="my_select" class="form-control">
+          <option value="41">IIT Delhi</option>
+          <option value="42">NSIT College</option>
      </select>
      </div>
         <br/>
@@ -54,29 +47,18 @@
 
        $('#my_form').on('submit',function()
        {
-         category=$('#previous_categories').val();
-         selected=$('#my_select').val();
 
-         select=""
+         var hidden=$('#my_select').val()
+         console.log(hidden)
+         console.log({{community_id}})
+          temp={
+          'hidden_tag_id':hidden,
+          'community_id':{{community_id}}
+          }
 
-         for(var i=0;i<selected.length;i++){
-            select=select+selected[i]+","
-         }
-         select=select.substring(0, select.length - 1);
-         console.log(select)
-         community_id={{community_id}}
+          $.ajax({
 
-         temp={
-
-           'categories':select,
-           'community_id':community_id,
-           'already_category':category
-
-         }
-
-         $.ajax({
-
-            url:'/admin_dashboard/add_tags',
+            url:'/admin_dashboard/add_hidden_tags',
             data:temp,
             dataType:'json',
             success:function(data){
@@ -86,6 +68,8 @@
             }
 
          })
+
+
 
        })
 

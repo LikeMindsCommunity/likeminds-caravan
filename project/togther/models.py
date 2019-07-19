@@ -50,7 +50,9 @@ class Admins (models.Model):
 
 class Community_tags (models.Model):
     community_id = models.ForeignKey(Community, on_delete = models.CASCADE)
-    category = models.CharField(max_length = 200)
+    category = models.CharField(max_length = 200,null=True)
+    tags_id=models.IntegerField(default=0,null=True)
+    state=models.CharField(max_length=40,null=True)
 
     def __str__(self):
         return self.category
@@ -191,5 +193,5 @@ class Tags(models.Model):
 class userinfo_tags(models.Model):
     ''' Model to give user hidden tags '''
 
-    user_tag = models.CharField(max_length=20,null=True)
+    tag_id = models.IntegerField(null=True)
     user_id = models.IntegerField(null=True)
