@@ -360,32 +360,63 @@ def accept_admin(request,community_id):
     core_user = User.objects.all().filter(email = request.user.email).first()
     prop_admin = Userinfo.objects.get(user_id = member[0].member_id.id)
     nom_admin = Userinfo.objects.all().filter(user_id = core_user.id)
+    member_id = request.user.id
+    accepted = request.GET.get('value','true')
 
-    if len(member) == 1:
-        if member[0].state == 1:
-            print(nom_admin[0].name)
-            Members.objects.filter(community_id=community, member_id=core_user.id).update(state=1)
+    if accepted == 'true':
+
+        if len(member) == 1:
+            if member[0].state == 1:
+                print(nom_admin[0].name)
+                Members.objects.filter(community_id=community, member_id=core_user.id).update(state=1)
+                update_member_count(community.id)
+                # set user hidden tag
+                set_user_tag(core_user.id, community.id)
+                send_email_to_proposed_admin.delay(NominatedAdmin=nom_admin[0].name,email=prop_admin.email,ProposedAdmin=prop_admin.name,proposedAdminState =1,CommunityName=community.name,community_id = community.id)
+                return HttpResponseRedirect("https://play.google.com/apps/testing/com.collabmates")
+            elif member[0].state == 2:
+                temp_promoter = Members.objects.filter(community_id = community,state=2)
+                Members.objects.filter(community_id = community,member_id=temp_promoter[0].member_id).update(state =4)
+                Members.objects.filter(community_id = community,member_id=core_user.id).update(state =1)
+                update_member_count(community.id)
+                # set user hidden tag
+                set_user_tag(core_user.id, community.id)
+                send_email_to_proposed_admin.delay(NominatedAdmin=nom_admin[0].name,email=prop_admin.email,ProposedAdmin=prop_admin.name,proposedAdminState=2,CommunityName=community.name,community_id = community.id)
+                return HttpResponseRedirect("https://play.google.com/apps/testing/com.collabmates")
+        else:
+            # if there are more than two admins , sent mail to the promoter who invited this member
+            # getting the promoter ID from temp admin model
+            promoter_who_proposed = temp_admin.objects.filter(community_id=community, email=nom_admin[0].email)
+            # getting the promoter details
+            prop_admin = Userinfo.objects.get(user_id=promoter_who_proposed[0].member_id)
+            # make th current member a promoter of this community
+            Members.objects.filter(community_id=community, member_id=member_id).update(state=1)
+            # updating member count of the community
             update_member_count(community.id)
             # set user hidden tag
-            set_user_tag(core_user.id, community.id)
-            send_email_to_proposed_admin.delay(NominatedAdmin=nom_admin[0].name,email=prop_admin.email,ProposedAdmin=prop_admin.name,proposedAdminState =1,CommunityName=community.name,community_id = community.id)
-            return HttpResponseRedirect("https://play.google.com/apps/testing/com.collabmates")
-        elif member[0].state == 2:
-            temp_admin = Members.objects.filter(community_id = community,state=2)
-            Members.objects.filter(community_id = community,member_id=temp_admin[0].member_id).update(state =4)
-            Members.objects.filter(community_id = community,member_id=core_user.id).update(state =1)
-            update_member_count(community.id)
-            # set user hidden tag
-            set_user_tag(core_user.id, community.id)
-            send_email_to_proposed_admin.delay(NominatedAdmin=nom_admin[0].name,email=prop_admin.email,ProposedAdmin=prop_admin.name,proposedAdminState=2,CommunityName=community.name,community_id = community.id)
-            return HttpResponseRedirect("https://play.google.com/apps/testing/com.collabmates")
-    else:
-        Members.objects.filter(community_id=community, member_id=core_user.id).update(state=1)
-        update_member_count(community.id)
-        # set user hidden tag
-        set_user_tag(core_user.id, community.id)
-        send_email_to_proposed_admin.delay(NominatedAdmin=nom_admin[0].name,email=prop_admin.email,ProposedAdmin=prop_admin.name,proposedAdminState=1,CommunityName=community.name,community_id = community.id)
+            set_user_tag(member_id, community.id)
+            # sending email to promoter , that user has accepted his request to become a promoter
+            send_email_to_proposed_admin.delay(NominatedAdmin=nom_admin[0].name, email=prop_admin.email,
+                                               ProposedAdmin=prop_admin.name, proposedAdminState=1,
+                                               CommunityName=community.name, community_id=community.id)
         return HttpResponseRedirect("https://play.google.com/apps/testing/com.collabmates")
+    else:
+        # if nominated promoter didn't accept the invitation
+        member = Members.objects.filter(community_id=community, member_id=member_id)
+        if member[0].state == 6:
+            print("member state == 6")
+            # deleting his details from temp admin model
+            usr = Userinfo.objects.get(user_id = member[0].member_id)
+            temp = temp_admin.objects.filter(community_id=community,email= usr.email)
+            temp.delete()
+            # if he is previously not a member of this community
+            # then delete the member from members model
+            Members.objects.filter(community_id=community, member_id=member_id).delete()
+        elif member[0].state == 7:
+            print("member state == 7")
+            # if he is previously not a member of this community , then make him member again
+            Members.objects.filter(community_id=community, member_id=member_id).update(state=4)
+    return redirect('comunity',community_id)
 
 def update_member_count(community_id):
     community = Community.objects.get(id=community_id)
@@ -717,7 +748,7 @@ def form_data(request, community_id):
     else:
         return render(request,'form_data.html', {'usr':user})
     
-    return redirect('community', community_id)
+    return redirect('comunity', community_id)
 
 
 def thankyou(request):

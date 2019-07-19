@@ -413,10 +413,10 @@ def check_member(email,community_id,member_id,proposed_name):
     if user:
         member =Members.objects.filter(community_id = community,member_id = user[0].user_id.id)
         if member and member[0].state == 4:
-            Members.objects.filter(community_id = community,member_id = user[0].user_id.id).update(state=6)
+            Members.objects.filter(community_id = community,member_id = user[0].user_id.id).update(state=7)
             send_email_to_nominated_admin(NominatedAdmin=NominatedAdmin,email=email,ProposedAdmin=ProposedAdmin,proposedAdminState = proposedAdminState,CommunityName=CommunityName,community_id =community.id)
             send_notification_to_proposed_admin(nominated_admin_id = NominatedAdmin_id, community_id= community.id, proposed_admin_name=ProposedAdmin )
-        elif member and member[0].state == 6:
+        elif member and (member[0].state == 6 or member[0].state == 7):
             send_email_to_nominated_admin(NominatedAdmin=NominatedAdmin,email=email,ProposedAdmin=ProposedAdmin,proposedAdminState = proposedAdminState,CommunityName=CommunityName,community_id =community.id)
             send_notification_to_proposed_admin(nominated_admin_id = NominatedAdmin_id, community_id= community.id, proposed_admin_name=ProposedAdmin )
             print("member is already a nominated promoter")

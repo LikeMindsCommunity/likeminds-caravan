@@ -7,7 +7,7 @@
 
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
-        <link rel="shortcut icon" href="https://collabmates.com/media/media/favicon.ico">
+        <link rel="shortcut icon" href="https://beta.collabmates.com/media/media/ic_launcher_round.png">
 
         <meta name="author" content="colorlib">
 
@@ -60,12 +60,14 @@
                 function accept_admin(cta,community_id,Nom_mem_state){
 
                     {% if user.is_authenticated %}
-                    if (Nom_mem_state!=6)
+                    if (Nom_mem_state!=6 & Nom_mem_state!=7)
                     {
                       alert("Sorry!You are not the Nominated Promoter of this Community");
                       return;
                     }
-                    window.location.href = "/"+"accept_admin/"+community_id;
+                     $('.accept')
+                    .modal('show')
+                  ;
                     {% else %}
                     $('.test')
                     .modal('show')
@@ -196,6 +198,56 @@
                     </div>
                     <br>
 
+<div class="ui modal accept">
+
+                          <div class="ui fluid card " style="border: 2px solid #1ebea5; margin:0 0 ; padding: 10px 10px;">
+                 <h2 class="ui teal center aligned header">
+                   <div class="content">
+                     Respond to Invitation
+                   </div>
+                 </h2>
+                 <div class="content">
+                   <p class="center aligned">
+                    Send Response
+                  </p>
+                  </div>
+                  <div class="center aligned container">
+                  <div class="content">
+                      <a  href="../accept_admin/{{community.id}}?cta=accept_invitation&value=true">
+                  <button class="ui button" style="width:130px; color:green;">
+
+                      Accept
+                    </button>
+                    </a>
+                      <br>
+                      <br>
+
+                    <br>
+                    <br>
+                    <div class = "content">
+                      <a href="../accept_admin/{{community.id}}?cta=accept_invitation&value=false">
+                  <button class="ui button" style="width:130px; color:green;">
+
+                        Decline
+                      </button>
+                      </a>
+                    </div>
+                  </div>
+                  <br>
+
+                    </div>
+                    </div>
+</div>
+
+<div class="fixed top" id="menu">
+<ul>
+  <li><a href="#purpose">PURPOSE</a></li>
+  <li><a href="#about">ABOUT</a></li>
+  <li><a href="#members">MEMBERS</a></li>
+  <li><a href="#conversations">CONVERSATIONS</a></li>
+</ul>
+</div>
+=======
                 </div>
             </div>
         </div>
@@ -318,67 +370,40 @@
 
 
                     </div>
-                </div>
-            </div>
+                  </div>
 
+                  
+                  {% if Nom_mem_state == 6 %}
+                  <button class="ui fluid button " style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;" onclick="accept_admin('{{cta}}','{{community.id}}','{{Nom_mem_state}}');"> Respond to invitation </button>
+{% elif Nom_mem_state == 7 %}
+                  <button class="ui fluid button " style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;" onclick="accept_admin('{{cta}}','{{community.id}}','{{Nom_mem_state}}');"> Respond to invitation </button>
+{% elif Nom_mem_state == 3 %}
+                                <button class="ui fluid button " style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;" disabled> Pending Approval  </button>
+                            
+                  {% elif Nom_mem_state == 1%}
+                 <button class="ui fluid button " style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;" disabled>You are a promoter</button>
 
-            {% if Nom_mem_state == 6 %}
-            <button class="ui fluid button "
-                    style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;"
-                    onclick="accept_admin('{{cta}}','{{community.id}}','{{Nom_mem_state}}');"> Accept invitation
-            </button>
-            {% elif Nom_mem_state == 3 %}
-            <button class="ui fluid button "
-                    style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;"
-                    disabled> Pending Approval
-            </button>
+                  {% elif Nom_mem_state == 2 %}
+                                <button class="ui fluid button " style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;" disabled>You are a promoter</button>
+                  {% elif Nom_mem_state == 4 %}
+                                <button class="ui fluid button " style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;" disabled>Already a Member</button>
+                 {% elif Nom_mem_state == 5 %}
+                 <button class="ui fluid button " style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;" onclick="join('{{community.id}}')" > Join Group(Declined)  </button>
+                 {% elif source == 'email' %}
+              ]<button class="ui fluid button " style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;" onclick="accept_admin();">Respond to invitation </button>
 
-            {% elif Nom_mem_state == 1%}
-            <button class="ui fluid button "
-                    style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;"
-                    disabled>You are a promoter
-            </button>
+                  {% elif is_joined == -1 %}
+            <button class="ui fluid button " style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;" onclick="join('{{community.id}}')"> Join Group  </button>
 
-            {% elif Nom_mem_state == 2 %}
-            <button class="ui fluid button "
-                    style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;"
-                    disabled>You are a promoter
-            </button>
-            {% elif Nom_mem_state == 4 %}
-            <button class="ui fluid button "
-                    style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;"
-                    disabled>Already a Member
-            </button>
-            {% elif Nom_mem_state == 5 %}
-            <button class="ui fluid button "
-                    style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;"
-                    onclick="join('{{community.id}}')"> Join Group(Declined)
-            </button>
-            {% elif source == 'email' %}
-            ]
-            <button class="ui fluid button "
-                    style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;"
-                    onclick="accept_admin();"> Accept invitation
-            </button>
+                            {% elif is_joined == 1 %}
+                                <button class="ui fluid button " style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;"   id="invite" onclick="invite();" > Join Group  </button>
+                            {% endif %}
 
-            {% elif is_joined == -1 %}
-            <button class="ui fluid button "
-                    style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;"
-                    onclick="join('{{community.id}}')"> Join Group
-            </button>
-
-            {% elif is_joined == 1 %}
-            <button class="ui fluid button "
-                    style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;"
-                    id="invite" onclick="invite();"> Join Group
-            </button>
-            {% endif %}
-
-            <br>
-            <br>
-
-
-            <style>
+                        <br>
+                        <br>
+             
+              
+              <style>
             a.morelink {
                 text-decoration:none;
                 outline: none;
