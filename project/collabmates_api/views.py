@@ -1328,48 +1328,22 @@ def edit_community(request):
     return JsonResponse({'success': True,'community':new_dict})
 
 
-def is_question_present(question,community_id):
 
-    '''function to checko whether the question is present or not'''
-
-    question=Form_data.objects.filter(community_id=community_id,data=question)
-
-    question_id=0
-
-    # if question is already present sending its questions id for deletion or updation
-    if question:
-        for each_question in question:
-            question_id=each_question.id
-            break
-
-    return question_id
 
 def edit_questions(questions,community_id):
 
     '''function to edit questions of community'''
 
+    community_object=Community.objects.get(id=community_id)
+    Form_data.objects.filter(community_id=community_object).delete()
+    print('Previous Questions Deleted')
+
     for question in questions:
-
-        is_present=is_question_present(question['key'],community_id)
-
-        if is_present:
-
-            if not question['value']:
-                # if value is empty -- Delete functionality
-                Form_data.objects.filter(id=is_present).delete()
-
-            else:
-                # if value is not empty but its details are present -- Update functionality
-                Form_data.objects.filter(id=is_present).update(data=question['value'])
-
-        else:
-
-            # if any new question is added -- Insert functionality
-            question_object=Form_data()
-            question_object.data=question['value']
-            community_object=Community.objects.get(id=community_id)
-            question_object.community_id=community_object
-            question_object.save()
+    # if any new question is added -- Insert functionality
+        question_object=Form_data()
+        question_object.data=question['key']
+        question_object.community_id=community_object
+        question_object.save()
 
     print('questions updated successfully')
 
