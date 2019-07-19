@@ -60,7 +60,6 @@ def communities(request):
                 community = serialize_community(queryset=queryset, user_id=user_id)
                 return JsonResponse({'communities': community})
 
-
 def get_communities_by_tags(user_tag=0, category_tag=0,page_number=1):
     ''' fetching communities based on category tag and user hidden tag '''
     if category_tag != 0 and user_tag != 0:
@@ -68,9 +67,9 @@ def get_communities_by_tags(user_tag=0, category_tag=0,page_number=1):
             get communities ,which are the intersection of given category and user hidden tag '''
 
         # get communities based on category tag
-        category_tag = Community_tags.objects.filter(tags_id=category_tag).values('community_id')
+        category_tag = Community_tags.objects.filter(tags_id=category_tag).values('community_id').order_by("-community_id")
         # get communities based on user hidden tag
-        user_tag = Community_tags.objects.filter(tags_id=user_tag).values('community_id')
+        user_tag = Community_tags.objects.filter(tags_id=user_tag).values('community_id').order_by("-community_id")
         #intersect both of the querysets
         res = category_tag.intersection(user_tag)
         #paginating the resultant queryset
@@ -81,20 +80,20 @@ def get_communities_by_tags(user_tag=0, category_tag=0,page_number=1):
     if category_tag == 0 and user_tag == 0:
         # if there is not category tag and user does not have a hidden tag too
         # just return him all the communites
-        community =  Community_tags.objects.all().values('community_id')
+        community =  Community_tags.objects.all().values('community_id').order_by("-community_id")
         # paginating the communities
         queryset = pagination(community, page_number)
         return  queryset
 
     if category_tag == 0:
         # if there is no category tag , then return communites based on user hidden tag
-        user_tag = Community_tags.objects.filter(tags_id=user_tag).values('community_id')
+        user_tag = Community_tags.objects.filter(tags_id=user_tag).values('community_id').order_by("-community_id")
         queryset = pagination(user_tag, page_number)
         return queryset
 
     if user_tag == 0:
         # if there is no user hidden tag , then return communites based on category tag
-        category_tag = Community_tags.objects.filter(tags_id=category_tag).values('community_id')
+        category_tag = Community_tags.objects.filter(tags_id=category_tag).values('community_id').order_by("-community_id")
         queryset = pagination(category_tag, page_number)
         return queryset
 
