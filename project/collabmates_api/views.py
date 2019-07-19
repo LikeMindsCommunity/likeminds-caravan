@@ -1273,9 +1273,12 @@ def accept_invitation(request):
         member = Members.objects.filter(community_id=community, member_id=member_id)
         if member[0].state == 6:
             print("member state == 6")
-            # if he is previously not a member(he is nothing to that commuity) of this community
-            # then delete the member
-            print("deleting state 6")
+            # deleting his details from temp admin model
+            usr = Userinfo.objects.get(user_id = member[0].member_id)
+            temp = temp_admin.objects.filter(community_id=community,email= usr.email)
+            temp.delete()
+            # if he is previously not a member of this community
+            # then delete the member from members model
             Members.objects.filter(community_id=community, member_id=member_id).delete()
         elif member[0].state == 7:
             print("member state == 7")
