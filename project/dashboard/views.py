@@ -32,9 +32,32 @@ def dashboard(request):
       community_dic['pending_member_count'] = pending_members_count
       community_dic['active_since']=i.active_since
       community_dic['question_count']=Form_data.objects.filter(community_id=i).count()
+      tags_count=get_tags_count(i)
+      community_dic['tags_count']=tags_count['tags_count']
+      community_dic['hidden_tags_count']=tags_count['hidden_tags_count']
       dashboard_list.append(community_dic)
 
   return render(request,'dashboard/dashboard.html',{'communities':dashboard_list})
+
+def get_tags_count(community):
+
+    '''function to get count of tags from dashboard'''
+
+    tags_count=0
+    hidden_tags_count=0
+    community_tags=Community_tags.objects.filter(community_id=community)
+
+    for tag in community_tags:
+
+        if tag.tags_id == 41 or tag.tags_id == 42:
+            hidden_tags_count=hidden_tags_count+1
+            continue
+        tags_count=tags_count+1
+
+    tags={}
+    tags['tags_count']=tags_count
+    tags['hidden_tags_count']=hidden_tags_count
+    return tags
 
 
 def update_form(request,community_id):
@@ -238,6 +261,7 @@ def add_tags(request):
             cat.tags_id=tags_id[0]['id']
             cat.save()
     return JsonResponse({'success':True})
+
 
 def user_tags(request,user_id):
     ''' gives all the user tags  '''
