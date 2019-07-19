@@ -264,43 +264,52 @@ def add_tags(request):
 
 
 def user_tags(request,user_id):
+    ''' gives all the user tags  '''
     tags = userinfo_tags.objects.filter(user_id= user_id)
     tags_list = []
     for i in tags:
         tag_name = Tags.objects.get(id = i.tag_id)
         tags_list.append(tag_name.category_name)
+    # making a single string of all user tags
     tags = ','.join(tags_list)
     context={'tags': tags,'user_id':user_id}
     return render(request, 'dashboard/user_tags.html', context)
 
 def add_user_tags(request):
+    ''' adding or updating or deleting user hidden tags '''
     tags=request.GET.get('tags')
     user_id=request.GET.get('user_id')
     tags=tags.split(",")
     already_tags=request.GET.get('already_tags')
     already_tags=already_tags.split(",")
-
+    # get all of the user tags
     user_tags_list = []
     user_tags = userinfo_tags.objects.filter(user_id=user_id)
-
+    # making a list of it
     for tag in user_tags:
         tag_name = Tags.objects.get(id=tag.tag_id)
         user_tags_list.append(tag_name)
-
+    flag = True
     for tag in tags:
+        if tag == '0' :
+            # if selected none just delete all of them
+            userinfo_tags.objects.filter(user_id=user_id).delete()
+            flag = False
         if tag not in already_tags:
-            row=userinfo_tags.objects.filter(user_id=user_id).delete()
+            # if updated , delete the old ones which are not in the new list
+            userinfo_tags.objects.filter(user_id=user_id).delete()
+    if flag:
+        for tag in tags:
+            # create new tags for user which are now given
+            selected_tags = userinfo_tags.objects.filter(user_id=user_id,tag_id = tag)
+            print(selected_tags)
+            if not selected_tags:
+                user_tag = userinfo_tags()
+                user_tag.user_id = user_id
+                user_tag.tag_id = tag
+                user_tag.save()
 
-    for tag in tags:
-        selected_tags = userinfo_tags.objects.filter(user_id=user_id,tag_id = tag)
-        print(selected_tags)
-        if not selected_tags:
-            user_tag = userinfo_tags()
-            user_tag.user_id = user_id
-            user_tag.tag_id = tag
-            user_tag.save()
     return JsonResponse({'success':True})
-
 
 
 def all_user(request):
