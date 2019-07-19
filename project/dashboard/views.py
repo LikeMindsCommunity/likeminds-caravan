@@ -440,6 +440,8 @@ def all_members(request,community_id):
             member['state']='Member'
         elif i.state == 6:
             member['state']='Nominated Promoter'
+        elif i.state == 7:
+            member['state']='Nominated Promoter(already a member)'
         elif i.state == 5:
             member['state']='Declined by Promoter'
 
