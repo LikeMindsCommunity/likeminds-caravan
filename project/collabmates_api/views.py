@@ -160,7 +160,7 @@ def your_communities(request,user_id):
     member_id=request.GET.get('member_id')
 
     user = User.objects.get(id = member_id)
-    communities = Members.objects.all().filter(member_id = user_id).filter(Q(state=1)|Q(state=2)|Q(state=4))
+    communities = Members.objects.all().filter(member_id = user_id).filter(Q(state=1)|Q(state=2)|Q(state=4)|Q(state=7))
     my_communities = []
 
     # making a tupple list and sorting communities based on date
