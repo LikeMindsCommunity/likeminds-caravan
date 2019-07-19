@@ -283,67 +283,95 @@ def your_communities(request,user_id):
 
         my_community.append(new_dict)
     return JsonResponse({'your_communities':my_community})
+#
+# def community(request, community_id):
+#     '''Community detail page'''
+#     queryset = Community.objects.get(id = community_id)
+#     body = request.GET
+#     print(body)
+#     if 'member_id' in body:
+#         user_id = body['member_id']
+#     #print(user_id)
+#     member = Members.objects.all().filter(community_id = community_id)
+#     is_member = False
+#     user = User.objects.get(id = user_id)
+#     for m in member:
+#         if m.member_id == user:
+#             is_member = True
+#     serializer_class = CommunitySerializer(queryset)
+#     community = serializer_class.data
+#     if community['image_url']:
+#         community['image_url'] = url+community['image_url']
+#     else:
+#         community['image_url'] = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQMUCHvC0wEVO5yDMe9wddUoagIqQ3VPH0nm8_VtjK5gk3M0mMO'
+#     community['is_member']= is_member
+#     community['share_url']= url+'/community/'+str(community['id'])
+#     community['date'] =  queryset.active_since
+#     return JsonResponse({'community': community})
+
 
 def community(request, community_id):
     '''Community detail page'''
-    queryset = Community.objects.get(id = community_id)
+    queryset = Community.objects.filter(id = community_id)
     body = request.GET
-    print(body)
+
     if 'member_id' in body:
         user_id = body['member_id']
-    #print(user_id)
-    member = Members.objects.all().filter(community_id = community_id)
-    is_member = False
-    user = User.objects.get(id = user_id)
-    for m in member:
-        if m.member_id == user:
-            is_member = True
-    serializer_class = CommunitySerializer(queryset)
-    community = serializer_class.data
-    if community['image_url']:
-        community['image_url'] = url+community['image_url']
-    else:
-        community['image_url'] = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQMUCHvC0wEVO5yDMe9wddUoagIqQ3VPH0nm8_VtjK5gk3M0mMO'
-    community['is_member']= is_member
-    community['share_url']= url+'/community/'+str(community['id'])
-    community['date'] =  queryset.active_since
-    return JsonResponse({'community': community})
+    # getting communities serialaized data
+    community = serialize_community(queryset=queryset, user_id=user_id)
+    return JsonResponse({'community': community[0]})
+
 
 def similar_community(request, community_id):
     '''function to return similar communitites'''
     body = request.GET
     user_id = body['member_id']
     user_tag = get_user_tag(user_id)
+
     if user_tag:
         user_tag = user_tag[0].tag_id
     else:
         user_tag = 0
-    member = Members.objects.all().filter(community_id=community_id)
-    is_member = False
-    user = User.objects.get(id=user_id)
-    for m in member:
-        if m.member_id == user:
-            is_member = True
-    queryset = get_communities_by_tags(user_tag=user_tag)
-    similar_communities = []
-    for c in queryset:
-        i = Community.objects.get(id=c['community_id'])
-        if i.hide_community == '1' or i.hide_community == '2' or i.id == community_id:
-            print("community is hidden")
-            continue
-        serializer_class = CommunitySerializer(i)
-        new_dict = {}
-        new_dict.update(serializer_class.data)
-        if new_dict['image_url']:
-            new_dict['image_url'] = url + new_dict['image_url']
-        else:
-            new_dict[
-                'image_url'] = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQMUCHvC0wEVO5yDMe9wddUoagIqQ3VPH0nm8_VtjK5gk3M0mMO'
-        new_dict['share_url'] = url + '/community/' + str(new_dict['id'])
-        new_dict['is_member'] = is_member
-        new_dict['date'] = i.active_since
-        similar_communities.append(new_dict)
-    return JsonResponse({'communities': similar_communities})
+    # getting communities based on user hidden tags
+    queryset = get_communities_by_tags(user_tag=user_tag)[:11]
+    community = serialize_community(queryset=queryset, user_id=user_id)
+    return JsonResponse({'communities': community})
+
+# def similar_community(request, community_id):
+#     '''function to return similar communitites'''
+#     body = request.GET
+#     user_id = body['member_id']
+#     user_tag = get_user_tag(user_id)
+#     if user_tag:
+#         user_tag = user_tag[0].tag_id
+#     else:
+#         user_tag = 0
+#     member = Members.objects.all().filter(community_id=community_id)
+#     is_member = False
+#     user = User.objects.get(id=user_id)
+#     for m in member:
+#         if m.member_id == user:
+#             is_member = True
+#     queryset = get_communities_by_tags(user_tag=user_tag)
+#     similar_communities = []
+#     for c in queryset:
+#         i = Community.objects.get(id=c['community_id'])
+#         if i.hide_community == '1' or i.hide_community == '2' or i.id == community_id:
+#             print("community is hidden")
+#             continue
+#         serializer_class = CommunitySerializer(i)
+#         new_dict = {}
+#         new_dict.update(serializer_class.data)
+#         if new_dict['image_url']:
+#             new_dict['image_url'] = url + new_dict['image_url']
+#         else:
+#             new_dict[
+#                 'image_url'] = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQMUCHvC0wEVO5yDMe9wddUoagIqQ3VPH0nm8_VtjK5gk3M0mMO'
+#         new_dict['share_url'] = url + '/community/' + str(new_dict['id'])
+#         new_dict['is_member'] = is_member
+#         new_dict['date'] = i.active_since
+#         similar_communities.append(new_dict)
+#     return JsonResponse({'communities': similar_communities})
 
 def join_community(request, community_id):
 
