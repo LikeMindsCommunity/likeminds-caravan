@@ -71,7 +71,7 @@ def get_communities_by_tags(user_tag=0, category_tag=0,page_number=1):
         # get communities based on user hidden tag
         user_tag = Community_tags.objects.filter(tags_id=user_tag).values('community_id').order_by("-community_id").distinct()
         #intersect both of the querysets
-        res = category_tag.intersection(user_tag)
+        res = category_tag.intersection(user_tag).order_by("-community_id").distinct()
         #paginating the resultant queryset
         queryset = pagination(res, page_number)
         #return result
