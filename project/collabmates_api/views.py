@@ -134,6 +134,7 @@ def serialize_community(queryset,user_id ):
             new_dict['share_url'] = url + '/community/' + str(new_dict['id'])
             new_dict['date'] = c.active_since
             new_dict['members_count'] = update_member_count(c.id)
+
             community.append(new_dict)
     # return dictionary
     return community
@@ -293,6 +294,12 @@ def community(request, community_id):
         user_id = body['member_id']
     # getting communities serialaized data
     community = serialize_community(queryset=queryset, user_id=user_id)
+
+    if len(community) > 0:
+
+        community[0]['share_text_admin']= """Hi, I have added %s community on CollabMates. It will be good if you  join this community.\n"""%(community[0]['name'])
+        community[0]['share_text_member']="""I recently joined %s community on CollabMates. It will be good if you also join this community.\n"""%(community[0]['name'])
+        community[0]['share_text_anonymous']="""I recently discovered %s community on CollabMates. You can join this community using this link.\n"""%(community[0]['name'])
     return JsonResponse({'community': community[0]})
 
 

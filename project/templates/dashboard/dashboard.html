@@ -131,12 +131,26 @@ a.article-title:hover {
       <a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 " href="{% url 'add_dashboard_admin' community.id %}">Add Admin</a>
       <a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 " href="{% url 'add_dashboard_member' community.id %}">Add Member</a>
       <a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 " href="{% url 'all_members' community.id %}">Members&nbsp;({{community.pending_member_count}})</a>
-      <a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 " href="{% url 'show_tags' community.id %}">Tags</a>
+      {% if community.tags_count == 0 %}
+        <a class="btn btn-danger btn-sm mt-1 mb-1 mr-4 " href="{% url 'show_tags' community.id %}">Tags({{community.tags_count}})</a>
+      {% else %}
+           <a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 " href="{% url 'show_tags' community.id %}">Tags({{community.tags_count}})</a>
+      {% endif %}
 
-      <a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 " href="{% url 'hidden_tags' community.id %}">Hidden Tags</a>
+            {% if community.hidden_tags_count == 0 %}
 
-      <a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 " href="{% url 'add_questions' community.id %}">Questions({{community.question_count}})</a>
-      <br/><br/>
+      <a class="btn btn-danger btn-sm mt-1 mb-1 mr-4 " href="{% url 'hidden_tags' community.id %}">Hidden Tags({{community.hidden_tags_count}})</a>
+      {% else %}
+              <a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 " href="{% url 'hidden_tags' community.id %}">Hidden Tags({{community.hidden_tags_count}})</a>
+      {% endif %}
+
+      {% if community.question_count == 0 %}
+
+      <a class="btn btn-danger btn-sm mt-1 mb-1 mr-4 " href="{% url 'add_questions' community.id %}">Questions({{community.question_count}})</a>
+      {% else %}
+              <a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 " href="{% url 'add_questions' community.id %}">Questions({{community.question_count}})</a>
+      {% endif %}
+        <br/><br/>
       <a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 " href="{% url 'send_invitation' community.id %}">Nominate Promoter</a>
       <a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 " href="{% url 'analytics_community' community.id %}">Analytics</a>
 
