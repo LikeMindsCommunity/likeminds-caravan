@@ -60,7 +60,6 @@ def communities(request):
                 community = serialize_community(queryset=queryset, user_id=user_id)
                 return JsonResponse({'communities': community})
 
-
 def get_communities_by_tags(user_tag=0, category_tag=0,page_number=1):
     ''' fetching communities based on category tag and user hidden tag '''
     if category_tag != 0 and user_tag != 0:
@@ -68,9 +67,9 @@ def get_communities_by_tags(user_tag=0, category_tag=0,page_number=1):
             get communities ,which are the intersection of given category and user hidden tag '''
 
         # get communities based on category tag
-        category_tag = Community_tags.objects.filter(tags_id=category_tag).values('community_id')
+        category_tag = Community_tags.objects.filter(tags_id=category_tag).values('community_id').order_by("-community_id")
         # get communities based on user hidden tag
-        user_tag = Community_tags.objects.filter(tags_id=user_tag).values('community_id')
+        user_tag = Community_tags.objects.filter(tags_id=user_tag).values('community_id').order_by("-community_id")
         #intersect both of the querysets
         res = category_tag.intersection(user_tag)
         #paginating the resultant queryset
@@ -81,20 +80,20 @@ def get_communities_by_tags(user_tag=0, category_tag=0,page_number=1):
     if category_tag == 0 and user_tag == 0:
         # if there is not category tag and user does not have a hidden tag too
         # just return him all the communites
-        community =  Community_tags.objects.all().values('community_id')
+        community =  Community_tags.objects.all().values('community_id').order_by("-community_id")
         # paginating the communities
         queryset = pagination(community, page_number)
         return  queryset
 
     if category_tag == 0:
         # if there is no category tag , then return communites based on user hidden tag
-        user_tag = Community_tags.objects.filter(tags_id=user_tag).values('community_id')
+        user_tag = Community_tags.objects.filter(tags_id=user_tag).values('community_id').order_by("-community_id")
         queryset = pagination(user_tag, page_number)
         return queryset
 
     if user_tag == 0:
         # if there is no user hidden tag , then return communites based on category tag
-        category_tag = Community_tags.objects.filter(tags_id=category_tag).values('community_id')
+        category_tag = Community_tags.objects.filter(tags_id=category_tag).values('community_id').order_by("-community_id")
         queryset = pagination(category_tag, page_number)
         return queryset
 
@@ -1333,48 +1332,22 @@ def edit_community(request):
     return JsonResponse({'success': True,'community':new_dict})
 
 
-def is_question_present(question,community_id):
 
-    '''function to checko whether the question is present or not'''
-
-    question=Form_data.objects.filter(community_id=community_id,data=question)
-
-    question_id=0
-
-    # if question is already present sending its questions id for deletion or updation
-    if question:
-        for each_question in question:
-            question_id=each_question.id
-            break
-
-    return question_id
 
 def edit_questions(questions,community_id):
 
     '''function to edit questions of community'''
 
+    community_object=Community.objects.get(id=community_id)
+    Form_data.objects.filter(community_id=community_object).delete()
+    print('Previous Questions Deleted')
+
     for question in questions:
-
-        is_present=is_question_present(question['key'],community_id)
-
-        if is_present:
-
-            if not question['value']:
-                # if value is empty -- Delete functionality
-                Form_data.objects.filter(id=is_present).delete()
-
-            else:
-                # if value is not empty but its details are present -- Update functionality
-                Form_data.objects.filter(id=is_present).update(data=question['value'])
-
-        else:
-
-            # if any new question is added -- Insert functionality
-            question_object=Form_data()
-            question_object.data=question['value']
-            community_object=Community.objects.get(id=community_id)
-            question_object.community_id=community_object
-            question_object.save()
+    # if any new question is added -- Insert functionality
+        question_object=Form_data()
+        question_object.data=question['key']
+        question_object.community_id=community_object
+        question_object.save()
 
     print('questions updated successfully')
 

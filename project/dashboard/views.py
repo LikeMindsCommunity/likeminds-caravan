@@ -628,3 +628,88 @@ def add_hidden_tags(request):
 
 
     return JsonResponse({'success':True})
+
+
+
+def alpha_sign_up_mail(request,user_id):
+
+    '''function to send mail to alpha sign up'''
+
+    user_college=userinfo_tags.objects.filter(user_id=user_id).values('tag_id')
+    user_info=Userinfo.objects.filter(user_id=user_id)
+    user_name=''
+    user_email=''
+    for user in user_info:
+        user_name=user.name
+        user_email=user.email
+
+    if len(user_college) == 0:
+        return HttpResponse('Please Provide a tag for user')
+
+    url=''
+    college_name=''
+    if user_college[0]['tag_id'] == 41:                         #for IIT Delhi
+        college_name='IIT Delhi'
+        url='https://docs.google.com/forms/d/e/1FAIpQLSes87js8cTiGg0x-Vw9DYrnY1BCZTolba0B1WBvcVSYZSGAwg/viewform'
+    elif user_college[0]['tag_id'] == 42:                       #for NSIT College
+        college_name='NSIT'
+        url='https://docs.google.com/forms/d/e/1FAIpQLSfqN2z1wg6CCJ4ZKH1lxQQgJ8iUWEbtTT0R9NT64zg5f13_ig/viewform'
+    else:
+        return HttpResponse('Please Provide the tag first')
+
+    context={
+        'Name':user_name,
+        'college_name':college_name,
+        'url':url,
+        'email':user_email
+    }
+
+    send_mail_for_signup(context,True)
+    return HttpResponse('Alpha Mail is Sent')
+
+
+def testing_sign_up_mail(request,user_id):
+
+    '''function to send tester mail'''
+    user_name = ''
+    user_email = ''
+    user_info=Userinfo.objects.filter(user_id=user_id)
+    for user in user_info:
+        user_name = user.name
+        user_email = user.email
+
+    context = {
+        'Name': user_name,
+        'url': 'https://play.google.com/apps/testing/com.collabmates',
+        'email': user_email
+    }
+
+    send_mail_for_signup(context,False)
+    return HttpResponse('Tester Mail is Sent')
+
+
+def send_mail_for_signup(context,flag):
+
+    '''function to send mail both types of mails for tester and users'''
+
+    time.sleep(5)
+    fail_silently = True
+    to = context['email']
+
+    if flag:             #alpha signup
+
+        template = get_template("mails/alpha_sign_up.html").render(context)
+        subject="""Thanks for joining CollabMates! Here's the next step"""
+
+    else:
+        template = get_template("mails/testing_signup.html").render(context)
+        subject="""Access to the first version of CollabMates App"""
+
+
+    msg = EmailMultiAlternatives(subject,
+                                 template,
+                                 "hello@collabmates.com",
+                                 [to],
+                                 )
+    msg.attach_alternative(template, "text/html")
+    return msg.send(fail_silently)
