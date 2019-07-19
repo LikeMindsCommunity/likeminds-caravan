@@ -420,7 +420,7 @@ def user(request, user_id):
 
 def members(request, community_id):
     community = get_object_or_404(Community, pk = community_id)
-    member = Members.objects.filter(community_id = community).filter(Q(state=1)|Q(state=2)|Q(state=4))
+    member = Members.objects.filter(community_id = community).filter(Q(state=1)|Q(state=2)|Q(state=4)|Q(state=7))
     members = []
     for i in member:
         user = Userinfo.objects.filter(user_id = i.member_id)
