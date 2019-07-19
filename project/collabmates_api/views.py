@@ -297,9 +297,9 @@ def community(request, community_id):
 
     if len(community) > 0:
 
-        community[0]['share_text_admin']= """Hi, I have added %s community on CollabMates. It will be good if you  join this community."""%(community[0]['name'])
-        community[0]['share_text_member']="""I recently joined %s community on CollabMates. It will be good if you also join this community."""%(community[0]['name'])
-        community[0]['share_text_anonymous']="""I recently discovered %s community on CollabMates. You can join this community using this link."""%(community[0]['name'])
+        community[0]['share_text_admin']= """Hi, I have added %s community on CollabMates. It will be good if you  join this community.\n"""%(community[0]['name'])
+        community[0]['share_text_member']="""I recently joined %s community on CollabMates. It will be good if you also join this community.\n"""%(community[0]['name'])
+        community[0]['share_text_anonymous']="""I recently discovered %s community on CollabMates. You can join this community using this link.\n"""%(community[0]['name'])
     return JsonResponse({'community': community[0]})
 
 
