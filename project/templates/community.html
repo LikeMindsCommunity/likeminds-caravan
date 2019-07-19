@@ -1,39 +1,40 @@
 {% load static %}<!DOCTYPE html>
 <html>
-  <head>
+<head>
 
-      <html lang="zxx" class="no-js">
-          <head>
-            
-            <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-            
-            <link rel="shortcut icon" href="https://collabmates.com/media/media/favicon.ico">
-            
-            <meta name="author" content="colorlib">
-            
-          
-            
-            <meta name="keywords" content="">
-            
-            <meta charset="UTF-8">
-            
-            <title>{{community.name}}</title>
-              <meta property="og:site_name" content="Collabmates">
-            <meta name="description"
-                    content={{community.name}}/>
-                <meta property="og:image" itemprop="image" content='/media/{{community.image_url}}'/>
-              <meta property="og:title" content="{{community.name}}"/>
-                <meta property="og:description"
-                  content="{{community.purpose}}"/>
+    <html lang="zxx" class="no-js">
+    <head>
 
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.css"/>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.js"></script>
-    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-130288684-1"></script>
-     <link rel = "stylesheet" href="{% static 'css/community.css' %}">
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
-    <script>
+        <link rel="shortcut icon" href="https://collabmates.com/media/media/favicon.ico">
+
+        <meta name="author" content="colorlib">
+
+
+        <meta name="keywords" content="">
+
+        <meta charset="UTF-8">
+
+        <title>{{community.name}}</title>
+        <meta property="og:site_name" content="collabmates">
+        <meta name="description"
+              content={{community.name}}/>
+        <meta property="og:image" itemprop="image" content='/media/media/favicon.ico'/>
+        <meta property="og:title" content="{{community.name}}"/>
+        <meta property="og:description"
+              content="{{community.purpose}}"/>
+        <meta property="og:type" content="website"/>
+
+
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.css"/>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.js"></script>
+        <script async src="https://www.googletagmanager.com/gtag/js?id=UA-130288684-1"></script>
+        <link rel="stylesheet" href="{% static 'css/community.css' %}">
+
+        <script>
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
@@ -128,83 +129,86 @@
 
 
 
-     </script>
+
+        </script>
 
 
-  </head>
+    </head>
 
-<div style="margin:0 auto; max-width:786px;">
-<br/>
-<div class="ui small inverted menu" style="  background-color:#075e54; margin:0 0 0 0 !important;display: flex;align-items: center;justify-content: center;  padding-left: 20px;">
-<a href="../../communities"><i style="color:white; " class="big angle left icon"></i></a>
-            <div class="ui center aligned grid container" style = " color:white; margin: 4%;">
-                        
-                       <h2 style="margin-left:-10px; padding-left: 5px;"> {{community.name}}  </h2>
-   
+    <div style="margin:0 auto; max-width:786px;">
+        <br/>
+        <div class="ui small inverted menu"
+             style="  background-color:#075e54; margin:0 0 0 0 !important;display: flex;align-items: center;justify-content: center;  padding-left: 20px;">
+            <a href="../../communities"><i style="color:white; " class="big angle left icon"></i></a>
+            <div class="ui center aligned grid container" style=" color:white; margin: 4%;">
+
+                <h2 style="margin-left:-10px; padding-left: 5px;"> {{community.name}} </h2>
+
             </div>
-</div>
+        </div>
 
-{% block content %}
+        {% block content %}
 
-<div class="ui modal test">
-                      
-                          <div class="ui fluid card " style="border: 2px solid #1ebea5; margin:0 0 ; padding: 10px 10px;">
-                 <h2 class="ui teal center aligned header">
-                   <div class="content">
-                     Login to continue
-                   </div>
-                 </h2>
-                 <div class="content">
-                   <p class="center aligned">
-                    To join this community we need few basic information about you. This will help us to have relevant member in group.
-                  </p>
-                  </div>
-                  <div class="center aligned container">
-                  <div class="content">
-                      {% if cta %}
-                      <a  href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta={{cta}}">
-                  <button class="ui facebook button" style="width:130px;">
-                      {% else %}
-                      <a  href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}">
-                  <button class="ui facebook button" style="width:130px;">
-                      {% endif %}
-                      <i class="facebook icon"></i>
-                      Facebook
-                    </button>
-                    </a>
-                      <br>
-                      <br>
-                      OR
+        <div class="ui modal test">
+
+            <div class="ui fluid card " style="border: 2px solid #1ebea5; margin:0 0 ; padding: 10px 10px;">
+                <h2 class="ui teal center aligned header">
+                    <div class="content">
+                        Login to continue
+                    </div>
+                </h2>
+                <div class="content">
+                    <p class="center aligned">
+                        To join this community we need few basic information about you. This will help us to have
+                        relevant member in group.
+                    </p>
+                </div>
+                <div class="center aligned container">
+                    <div class="content">
+                        {% if cta %}
+                        <a href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta={{cta}}">
+                            <button class="ui facebook button" style="width:130px;">
+                                {% else %}
+                                <a href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}">
+                                    <button class="ui facebook button" style="width:130px;">
+                                        {% endif %}
+                                        <i class="facebook icon"></i>
+                                        Facebook
+                                    </button>
+                                </a>
+                                <br>
+                                <br>
+                                OR
+                                <br>
+                                <br>
+                                <div class="content">
+                                    {% if cta %}
+                                    <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta={{cta}}">
+                                        <button class="ui linkedin button" style="width:130px;">
+                                            {% else %}
+                                            <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}">
+                                                <button class="ui linkedin button" style="width:130px;">
+                                                    {% endif %}
+                                                    <i class="linkedin icon"></i>
+                                                    LinkedIn
+                                                </button>
+                                            </a>
+                                </div>
+                    </div>
                     <br>
-                    <br>
-                    <div class = "content">
-                    {% if cta %}
-                      <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta={{cta}}">
-                  <button class="ui linkedin button" style="width:130px;">
-                      {% else %}
-                      <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}">
-                  <button class="ui linkedin button" style="width:130px;">
-                      {% endif %}
-                        <i class="linkedin icon"></i>
-                        LinkedIn
-                      </button>
-                      </a>
-                    </div>
-                  </div>
-                  <br>
 
-                    </div>
-                    </div>
-</div>
+                </div>
+            </div>
+        </div>
 
-<div class="fixed top" id="menu">
-<ul>
-  <li><a href="#purpose">PURPOSE</a></li>
-  <li><a href="#about">ABOUT</a></li>
-  <li><a href="#members">MEMBERS</a></li>
-  <li><a href="#conversations">CONVERSATIONS</a></li>
-</ul>
-</div>
+        <div class="fixed top" id="menu">
+            <ul>
+                <li><a href="#purpose">PURPOSE</a></li>
+                <li><a href="#about">ABOUT</a></li>
+                <li><a href="#members">MEMBERS</a></li>
+                <li><a href="#conversations">CONVERSATIONS</a></li>
+            </ul>
+        </div>
 
 
         <div class="ui fluid card" id="purpose" style="margin-top:0px;">
@@ -214,138 +218,168 @@
             <div class="summary left aligned">
                 <p style="font-weight:100; padding:10px; color:#666666;">{{community.purpose}}</p>
             </div>
-            {% comment %} <div class="content" >
+            {% comment %}
+            <div class="content">
                 <a class="center aligned header">{{ community.name }}</a>
                 <span class="left floated text" style="width:50%;"><i class="map marker alternate icon"></i>{{community.location}}</span>
-                <span class="right floated text"><a href = "{% url 'members_list' community.id %}" style="color:#1cb39b;">{{community.members_count}} Members </a></span>
-            </div> {% endcomment %}
+                <span class="right floated text"><a href="{% url 'members_list' community.id %}" style="color:#1cb39b;">{{community.members_count}} Members </a></span>
+            </div>
+            {% endcomment %}
 
-<!-- rendering multiple admins -->
+            <!-- rendering multiple admins -->
 
-             <div class="content">
-                 {% if admin_length == 1 %}
-                            <h4>Promoter</h4>
-                 {% else %}
-                         <h4>Promoters</h4>
-                 {% endif %}
+            <div class="content">
+                {% if admin_length == 1 %}
+                <h4>Promoter</h4>
+                {% else %}
+                <h4>Promoters</h4>
+                {% endif %}
 
-                    <div class="ui container"  style=" overflow-y:auto;white-space:nowrap;" >
-                        <div class="ui big horizontal  list">
+                <div class="ui container" style=" overflow-y:auto;white-space:nowrap;">
+                    <div class="ui big horizontal  list">
                         {% for admin in admins%}
-                            {% for i in admin %}
-                                <div class="item">
-                                    <img class="ui tiny circular image" src="{{i.image_file.url}}">
-                                    <p></p>
-                                    <p style="font-size:65%;" >{{i.name}}</p>
-                                    <div class="content">
-                                    <br>
-
-                                    </div>
+                        {% for i in admin %}
+                        <div class="item">
+                            <img class="ui tiny circular image" src="{{i.image_file.url}}">
+                            <p></p>
+                            <p style="font-size:65%;">{{i.name}}</p>
+                            <div class="content">
+                                <br>
 
                             </div>
-                            {% endfor %}
-                        {% endfor %}
-<br/>
-                    </div>
-              </div>
-             </div>
 
-<!-- printing community about -->
+                        </div>
+                        {% endfor %}
+                        {% endfor %}
+                        <br/>
+                    </div>
+                </div>
+            </div>
+
+            <!-- printing community about -->
             {% if community.about != '' %}
             <div class="content ui fluid" id="about" style="background-color:#f0f5f5; ">
 
-            <h4>   About Community  </h4>
+                <h4> About Community </h4>
                 <p style="font-weight:50px;" id="more">{{community.about |linebreaks}}</p>
             </div>
             {% endif %}
 
-                  <div class="content" id="members">
-                            <h4>Members
-                               <!-- <a class="right floated" style=" color:#1cb39b; font-weight:100; " href="{% url 'members_list' community.id %}"> See all</a>-->
-                            </h4>    
-                      
-                    <div class="ui container"  style=" overflow-y:auto;white-space:nowrap;" >
-                        <div class="ui big horizontal  list">
+            <div class="content" id="members">
+                <h4>Members
+                    <!-- <a class="right floated" style=" color:#1cb39b; font-weight:100; " href="{% url 'members_list' community.id %}"> See all</a>-->
+                </h4>
+
+                <div class="ui container" style=" overflow-y:auto;white-space:nowrap;">
+                    <div class="ui big horizontal  list">
                         {% for i in members%}
-                        
-                            <div class="item">
-                                <img class="ui tiny circular image" src="{{i.image_file.url}}">
-                                 <p></p>
 
-                               <!-- <a href="../../profile/{{i.user_id.id}}">-->
+                        <div class="item">
+                            <img class="ui tiny circular image" src="{{i.image_file.url}}">
+                            <p></p>
 
-                                    <p style="font-size:65%;">{{i.name}}</p>
-                                </a>
-                                <div class="content">
+                            <!-- <a href="../../profile/{{i.user_id.id}}">-->
 
-                                </div>
+                            <p style="font-size:65%;">{{i.name}}</p>
+                            </a>
+                            <div class="content">
+
+                            </div>
 
                         </div>
                         {% endfor %}
 
-                    <br/><br/>
+                        <br/><br/>
                     </div>
-                    </div>
-                  
-                  <br>
-                  <div class="content">
-                            <h4>Similar Communities
-<!--                                <a class="right floated" style=" color:#1cb39b; font-weight:100; " href="{% url 'similar_community' 273 %}"> See all</a>-->
-                            </h4>
-                      
-                    <div class="ui container" style=" overflow-y:auto;white-space:nowrap;" >
-                                        
+                </div>
+
+                <br>
+                <div class="content">
+                    <h4>Similar Communities
+                        <!--                                <a class="right floated" style=" color:#1cb39b; font-weight:100; " href="{% url 'similar_community' 273 %}"> See all</a>-->
+                    </h4>
+
+                    <div class="ui container" style=" overflow-y:auto;white-space:nowrap;">
+
                         <div class="ui big horizontal divided list">
-                        {% for i in similar_communities %}
+                            {% for i in similar_communities %}
                             <div class="item" onclick="open_community({{i.id}});">
-                            <br><br>
-                            
+                                <br><br>
+
                                 <img class="ui avatar image" src="/media/{{i.image_url}}">
                                 <div class="content" style="font-size:14px;">
-                                <div class="header" style="font-size:1.2rem;">{{i.name}}</div>
-                                {{i.members_count}} Members
+                                    <div class="header" style="font-size:1.2rem;">{{i.name}}</div>
+                                    {{i.members_count}} Members
                                 </div>
                                 <br><br><br><br>
-                            
+
                             </div>
                             {% endfor %}
                         </div>
 
-                       
+
                     </div>
-                    </div>
-                  </div>
+                </div>
+            </div>
 
-                  
-                  {% if Nom_mem_state == 6 %}
-                  <button class="ui fluid button " style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;" onclick="accept_admin('{{cta}}','{{community.id}}','{{Nom_mem_state}}');"> Accept invitation </button>
-{% elif Nom_mem_state == 3 %}
-                                <button class="ui fluid button " style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;" disabled> Pending Approval  </button>
-                            
-                  {% elif Nom_mem_state == 1%}
-                 <button class="ui fluid button " style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;" disabled>You are a promoter</button>
 
-                  {% elif Nom_mem_state == 2 %}
-                                <button class="ui fluid button " style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;" disabled>You are a promoter</button>
-                  {% elif Nom_mem_state == 4 %}
-                                <button class="ui fluid button " style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;" disabled>Already a Member</button>
-                 {% elif Nom_mem_state == 5 %}
-                 <button class="ui fluid button " style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;" onclick="join('{{community.id}}')" > Join Group(Declined)  </button>
-                 {% elif source == 'email' %}
-              ]<button class="ui fluid button " style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;" onclick="accept_admin();"> Accept invitation </button>
+            {% if Nom_mem_state == 6 %}
+            <button class="ui fluid button "
+                    style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;"
+                    onclick="accept_admin('{{cta}}','{{community.id}}','{{Nom_mem_state}}');"> Accept invitation
+            </button>
+            {% elif Nom_mem_state == 3 %}
+            <button class="ui fluid button "
+                    style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;"
+                    disabled> Pending Approval
+            </button>
 
-                  {% elif is_joined == -1 %}
-            <button class="ui fluid button " style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;" onclick="join('{{community.id}}')"> Join Group  </button>
+            {% elif Nom_mem_state == 1%}
+            <button class="ui fluid button "
+                    style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;"
+                    disabled>You are a promoter
+            </button>
 
-                            {% elif is_joined == 1 %}
-                                <button class="ui fluid button " style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;"   id="invite" onclick="invite();" > Join Group  </button>
-                            {% endif %}
+            {% elif Nom_mem_state == 2 %}
+            <button class="ui fluid button "
+                    style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;"
+                    disabled>You are a promoter
+            </button>
+            {% elif Nom_mem_state == 4 %}
+            <button class="ui fluid button "
+                    style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;"
+                    disabled>Already a Member
+            </button>
+            {% elif Nom_mem_state == 5 %}
+            <button class="ui fluid button "
+                    style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;"
+                    onclick="join('{{community.id}}')"> Join Group(Declined)
+            </button>
+            {% elif source == 'email' %}
+            ]
+            <button class="ui fluid button "
+                    style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;"
+                    onclick="accept_admin();"> Accept invitation
+            </button>
 
-                        <br>
-                        <br>
-             
-              
-              <style>
+            {% elif is_joined == -1 %}
+            <button class="ui fluid button "
+                    style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;"
+                    onclick="join('{{community.id}}')"> Join Group
+            </button>
+
+            {% elif is_joined == 1 %}
+            <button class="ui fluid button "
+                    style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;"
+                    id="invite" onclick="invite();"> Join Group
+            </button>
+            {% endif %}
+
+            <br>
+            <br>
+
+
+            <style>
             a.morelink {
                 text-decoration:none;
                 outline: none;
@@ -359,8 +393,9 @@
                 margin: 10px;
             }
            
-        </style>
+
+            </style>
         </div>
-        </div>
-</div></html>
-{% endblock %}
+    </div>
+    </div></html>
+    {% endblock %}
