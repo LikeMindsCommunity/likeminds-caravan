@@ -18,10 +18,11 @@
             <meta charset="UTF-8">
             
             <title>{{community.name}}</title>
+              <meta property="og:site_name" content="Collabmates">
             <meta name="description"
                     content={{community.name}}/>
-                <meta property="og:image" content='http://www.collabmates.com/cover.png'/>
-              <meta property="og:title" content="CollabMates: Collaborate with your niche community"/>
+                <meta property="og:image" itemprop="image" content='/media/{{community.image_url}}'/>
+              <meta property="og:title" content="{{community.name}}"/>
                 <meta property="og:description"
                   content="{{community.purpose}}"/>
 
