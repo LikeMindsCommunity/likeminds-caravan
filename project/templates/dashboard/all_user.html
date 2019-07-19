@@ -125,13 +125,19 @@ a.article-title:hover {
     <p class="article-content"><b>Facebook:</b>{{ user.fb_link }}</p>
     <p class="article-content"><b>LinkedIn:</b>{{ user.linkedin_link }}</p>
       {% if user.tags_count == 2 %}
-      <a class="article-title" href="{% url 'update_user_tags' user.user_id %}"><p class="article-content" style="color:black;"><b style="color:INDIANRED;">Tags Count:</b>{{ user.tags }}</p></a>
+      <a class="article-title" href="{% url 'update_user_tags' user.user_id %}"><p class="article-content" style="color:black;"><b style="color:INDIANRED;">Tags : </b>{{ user.tags }}</p></a>
       {% elif user.tags_count == 1 %}
-      <a class="article-title" href="{% url 'update_user_tags' user.user_id %}" style="color:black; "><p class="article-content"><b style="color: lime;">Tags Count:</b>{{ user.tags }}</p></a>
+      <a class="article-title" href="{% url 'update_user_tags' user.user_id %}" style="color:black; "><p class="article-content"><b style="color: lime;">Tags : </b>{{ user.tags }}</p></a>
       {% else %}
-       <a class="article-title" href="{% url 'update_user_tags' user.user_id %}" style="color:black; "><p class="article-content"><b style="color: black;">Tags Count:</b>None</p></a>
+       <a class="article-title" href="{% url 'update_user_tags' user.user_id %}" style="color:black; "><p class="article-content"><b style="color: black;">Tags : </b>None</p></a>
       {% endif %}
   </div>
+
+      <a class="btn btn-primary btn-sm mt-1 mb-1 mr-4 " href="{% url 'alpha_sign_up_mail' user.user_id %}">Alpha SignUp</a>
+     <a class="btn btn-info btn-sm mt-1 mb-1 mr-4 " href="{% url 'testing_sign_up_mail' user.user_id %}">Tester Signup</a>
+
+
+
 </article>
   {% endfor %}
     </div>

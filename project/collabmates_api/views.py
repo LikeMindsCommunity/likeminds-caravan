@@ -134,6 +134,7 @@ def serialize_community(queryset,user_id ):
             new_dict['share_url'] = url + '/community/' + str(new_dict['id'])
             new_dict['date'] = c.active_since
             new_dict['members_count'] = update_member_count(c.id)
+
             community.append(new_dict)
     # return dictionary
     return community
@@ -159,7 +160,7 @@ def your_communities(request,user_id):
     member_id=request.GET.get('member_id')
 
     user = User.objects.get(id = member_id)
-    communities = Members.objects.all().filter(member_id = user_id).filter(Q(state=1)|Q(state=2)|Q(state=4))
+    communities = Members.objects.all().filter(member_id = user_id).filter(Q(state=1)|Q(state=2)|Q(state=4)|Q(state=7))
     my_communities = []
 
     # making a tupple list and sorting communities based on date
@@ -293,6 +294,12 @@ def community(request, community_id):
         user_id = body['member_id']
     # getting communities serialaized data
     community = serialize_community(queryset=queryset, user_id=user_id)
+
+    if len(community) > 0:
+
+        community[0]['share_text_admin']= """Hi, I have added %s community on CollabMates. It will be good if you  join this community.\n"""%(community[0]['name'])
+        community[0]['share_text_member']="""I recently joined %s community on CollabMates. It will be good if you also join this community.\n"""%(community[0]['name'])
+        community[0]['share_text_anonymous']="""I recently discovered %s community on CollabMates. You can join this community using this link.\n"""%(community[0]['name'])
     return JsonResponse({'community': community[0]})
 
 
@@ -413,7 +420,7 @@ def user(request, user_id):
 
 def members(request, community_id):
     community = get_object_or_404(Community, pk = community_id)
-    member = Members.objects.filter(community_id = community).filter(Q(state=1)|Q(state=2)|Q(state=4))
+    member = Members.objects.filter(community_id = community).filter(Q(state=1)|Q(state=2)|Q(state=4)|Q(state=7))
     members = []
     for i in member:
         user = Userinfo.objects.filter(user_id = i.member_id)
@@ -1008,10 +1015,10 @@ def check_member(email,community_id,member_id,res):
         print("member  == ",member)
         if member and member[0].state == 4:
             print("member is meber")
-            Members.objects.filter(community_id = community,member_id = user[0].user_id.id).update(state=6)
+            Members.objects.filter(community_id = community,member_id = user[0].user_id.id).update(state=7)
             send_email_to_nominated_admin.delay(NominatedAdmin=NominatedAdmin,email=email,ProposedAdmin=ProposedAdmin,proposedAdminState = proposedAdminState,CommunityName=CommunityName,community_id =community.id)
             send_notification_to_proposed_admin(nominated_admin_id = NominatedAdmin_id, community_id= community.id, proposed_admin_name=ProposedAdmin )
-        elif member and member[0].state == 6:
+        elif member and (member[0].state == 6 or member[0].state == 7):
             send_email_to_nominated_admin.delay(NominatedAdmin=NominatedAdmin,email=email,ProposedAdmin=ProposedAdmin,proposedAdminState = proposedAdminState,CommunityName=CommunityName,community_id =community.id)
             send_notification_to_proposed_admin(nominated_admin_id = NominatedAdmin_id, community_id= community.id, proposed_admin_name=ProposedAdmin )
             print("member is already nominated")
@@ -1224,40 +1231,68 @@ def accept_invitation(request):
     nom_admin = Userinfo.objects.all().filter(user_id = member_id)
     # ------------------------------------------------------------------------------
     # if only one promoter to a community
-    if len(promoter) == 1:
-        #if the community has only one promoter
-        prop_admin = Userinfo.objects.get(user_id=promoter[0].member_id.id)
-        # if the promoter is actually a promoter
-        if promoter[0].state == 1:
+
+    accepted = request.GET.get('value','true')
+
+    if accepted == 'true':
+        if len(promoter) == 1:
+            #if the community has only one promoter
+            prop_admin = Userinfo.objects.get(user_id=promoter[0].member_id.id)
+            # if the promoter is actually a promoter
+            if promoter[0].state == 1:
+                Members.objects.filter(community_id=community, member_id=member_id).update(state=1)
+                # updating member count of the community
+                update_member_count(community.id)
+                # set user hidden tag
+                set_user_tag(member_id, community.id)
+                # sending email to promoter , that user has accepted his request to beacome a promoter
+                send_email_to_proposed_admin.delay(NominatedAdmin=nom_admin[0].name,email=prop_admin.email,ProposedAdmin=prop_admin.name,proposedAdminState =1,CommunityName=community.name,community_id = community.id)
+                return JsonResponse({'success':True})
+            # if the promoter is a temporary promoter
+            elif promoter[0].state == 2:
+                temp_promoter = Members.objects.filter(community_id = community,state=2)
+                Members.objects.filter(community_id = community,member_id=temp_promoter[0].member_id).update(state =4)
+                Members.objects.filter(community_id = community,member_id=member_id).update(state =1)
+                # updating member count of the community
+                update_member_count(community.id)
+                # set user hidden tag
+                set_user_tag(member_id, community.id)
+                # sending email to promoter , that user has accepted his request to beacome a promoter
+                send_email_to_proposed_admin.delay(NominatedAdmin=nom_admin[0].name,email=prop_admin.email,ProposedAdmin=prop_admin.name,proposedAdminState=2,CommunityName=community.name,community_id = community.id)
+                return JsonResponse({'success':True})
+        else:
+            # if there are more than two admins , sent mail to the promoter who invited this member
+            # getting the promoter ID from temp admin model
+            promoter_who_proposed = temp_admin.objects.filter(community_id=community,email=nom_admin[0].email)
+            # getting the promoter details
+            prop_admin = Userinfo.objects.get(user_id=promoter_who_proposed[0].member_id)
+            # make th current member a promoter of this community
             Members.objects.filter(community_id=community, member_id=member_id).update(state=1)
             # updating member count of the community
             update_member_count(community.id)
             # set user hidden tag
             set_user_tag(member_id, community.id)
-            # sending email to promoter , that user has accepted his request to beacome a promoter
-            send_email_to_proposed_admin.delay(NominatedAdmin=nom_admin[0].name,email=prop_admin.email,ProposedAdmin=prop_admin.name,proposedAdminState =1,CommunityName=community.name,community_id = community.id)
-            return JsonResponse({'success':True})
-        # if the promoter is a temporary promoter
-        elif promoter[0].state == 2:
-            temp_admin = Members.objects.filter(community_id = community,state=2)
-            Members.objects.filter(community_id = community,member_id=temp_admin[0].member_id).update(state =4)
-            Members.objects.filter(community_id = community,member_id=member_id).update(state =1)
-            # updating member count of the community
-            update_member_count(community.id)
-            # set user hidden tag
-            set_user_tag(member_id, community.id)
-            # sending email to promoter , that user has accepted his request to beacome a promoter
-            send_email_to_proposed_admin.delay(NominatedAdmin=nom_admin[0].name,email=prop_admin.email,ProposedAdmin=prop_admin.name,proposedAdminState=2,CommunityName=community.name,community_id = community.id)
+            # sending email to promoter , that user has accepted his request to become a promoter
+            send_email_to_proposed_admin.delay(NominatedAdmin=nom_admin[0].name,email=prop_admin.email,ProposedAdmin=prop_admin.name,proposedAdminState=1,CommunityName=community.name,community_id = community.id)
             return JsonResponse({'success':True})
     else:
-        Members.objects.filter(community_id=community, member_id=member_id).update(state=1)
-        # updating member count of the community
-        update_member_count(community.id)
-        # set user hidden tag
-        set_user_tag(member_id, community.id)
-        # sending email to promoter , that user has accepted his request to beacome a promoter
-        send_email_to_proposed_admin.delay(NominatedAdmin=nom_admin[0].name,email=prop_admin.email,ProposedAdmin=prop_admin.name,proposedAdminState=1,CommunityName=community.name,community_id = community.id)
-        return JsonResponse({'success':True})
+        # if nominated promoter didn't accept the invitation
+        member = Members.objects.filter(community_id=community, member_id=member_id)
+        if member[0].state == 6:
+            print("member state == 6")
+            # deleting his details from temp admin model
+            usr = Userinfo.objects.get(user_id = member[0].member_id)
+            temp = temp_admin.objects.filter(community_id=community,email= usr.email)
+            temp.delete()
+            # if he is previously not a member of this community
+            # then delete the member from members model
+            Members.objects.filter(community_id=community, member_id=member_id).delete()
+        elif member[0].state == 7:
+            print("member state == 7")
+            # if he is previously not a member of this community , then make him member again
+            Members.objects.filter(community_id=community, member_id=member_id).update(state=4)
+        return JsonResponse({'success': True})
+
     return JsonResponse({'success': False})
 
 
@@ -1304,48 +1339,22 @@ def edit_community(request):
     return JsonResponse({'success': True,'community':new_dict})
 
 
-def is_question_present(question,community_id):
 
-    '''function to checko whether the question is present or not'''
-
-    question=Form_data.objects.filter(community_id=community_id,data=question)
-
-    question_id=0
-
-    # if question is already present sending its questions id for deletion or updation
-    if question:
-        for each_question in question:
-            question_id=each_question.id
-            break
-
-    return question_id
 
 def edit_questions(questions,community_id):
 
     '''function to edit questions of community'''
 
+    community_object=Community.objects.get(id=community_id)
+    Form_data.objects.filter(community_id=community_object).delete()
+    print('Previous Questions Deleted')
+
     for question in questions:
-
-        is_present=is_question_present(question['key'],community_id)
-
-        if is_present:
-
-            if not question['value']:
-                # if value is empty -- Delete functionality
-                Form_data.objects.filter(id=is_present).delete()
-
-            else:
-                # if value is not empty but its details are present -- Update functionality
-                Form_data.objects.filter(id=is_present).update(data=question['value'])
-
-        else:
-
-            # if any new question is added -- Insert functionality
-            question_object=Form_data()
-            question_object.data=question['value']
-            community_object=Community.objects.get(id=community_id)
-            question_object.community_id=community_object
-            question_object.save()
+    # if any new question is added -- Insert functionality
+        question_object=Form_data()
+        question_object.data=question['key']
+        question_object.community_id=community_object
+        question_object.save()
 
     print('questions updated successfully')
 

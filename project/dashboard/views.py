@@ -32,9 +32,32 @@ def dashboard(request):
       community_dic['pending_member_count'] = pending_members_count
       community_dic['active_since']=i.active_since
       community_dic['question_count']=Form_data.objects.filter(community_id=i).count()
+      tags_count=get_tags_count(i)
+      community_dic['tags_count']=tags_count['tags_count']
+      community_dic['hidden_tags_count']=tags_count['hidden_tags_count']
       dashboard_list.append(community_dic)
 
   return render(request,'dashboard/dashboard.html',{'communities':dashboard_list})
+
+def get_tags_count(community):
+
+    '''function to get count of tags from dashboard'''
+
+    tags_count=0
+    hidden_tags_count=0
+    community_tags=Community_tags.objects.filter(community_id=community)
+
+    for tag in community_tags:
+
+        if tag.tags_id == 41 or tag.tags_id == 42:
+            hidden_tags_count=hidden_tags_count+1
+            continue
+        tags_count=tags_count+1
+
+    tags={}
+    tags['tags_count']=tags_count
+    tags['hidden_tags_count']=hidden_tags_count
+    return tags
 
 
 def update_form(request,community_id):
@@ -239,46 +262,54 @@ def add_tags(request):
             cat.save()
     return JsonResponse({'success':True})
 
-    return redirect('admin_dashboard')
 
 def user_tags(request,user_id):
+    ''' gives all the user tags  '''
     tags = userinfo_tags.objects.filter(user_id= user_id)
     tags_list = []
     for i in tags:
         tag_name = Tags.objects.get(id = i.tag_id)
         tags_list.append(tag_name.category_name)
+    # making a single string of all user tags
     tags = ','.join(tags_list)
     context={'tags': tags,'user_id':user_id}
     return render(request, 'dashboard/user_tags.html', context)
 
 def add_user_tags(request):
+    ''' adding or updating or deleting user hidden tags '''
     tags=request.GET.get('tags')
     user_id=request.GET.get('user_id')
     tags=tags.split(",")
     already_tags=request.GET.get('already_tags')
     already_tags=already_tags.split(",")
-
+    # get all of the user tags
     user_tags_list = []
     user_tags = userinfo_tags.objects.filter(user_id=user_id)
-
+    # making a list of it
     for tag in user_tags:
         tag_name = Tags.objects.get(id=tag.tag_id)
         user_tags_list.append(tag_name)
-
+    flag = True
     for tag in tags:
+        if tag == '0' :
+            # if selected none just delete all of them
+            userinfo_tags.objects.filter(user_id=user_id).delete()
+            flag = False
         if tag not in already_tags:
-            row=userinfo_tags.objects.filter(user_id=user_id).delete()
+            # if updated , delete the old ones which are not in the new list
+            userinfo_tags.objects.filter(user_id=user_id).delete()
+    if flag:
+        for tag in tags:
+            # create new tags for user which are now given
+            selected_tags = userinfo_tags.objects.filter(user_id=user_id,tag_id = tag)
+            print(selected_tags)
+            if not selected_tags:
+                user_tag = userinfo_tags()
+                user_tag.user_id = user_id
+                user_tag.tag_id = tag
+                user_tag.save()
 
-    for tag in tags:
-        selected_tags = userinfo_tags.objects.filter(user_id=user_id,tag_id = tag)
-        print(selected_tags)
-        if not selected_tags:
-            user_tag = userinfo_tags()
-            user_tag.user_id = user_id
-            user_tag.tag_id = tag
-            user_tag.save()
-
-    return render(request, 'dashboard/all_user.html', {'all_user': users_list})
+    return JsonResponse({'success':True})
 
 
 def all_user(request):
@@ -382,10 +413,10 @@ def check_member(email,community_id,member_id,proposed_name):
     if user:
         member =Members.objects.filter(community_id = community,member_id = user[0].user_id.id)
         if member and member[0].state == 4:
-            Members.objects.filter(community_id = community,member_id = user[0].user_id.id).update(state=6)
+            Members.objects.filter(community_id = community,member_id = user[0].user_id.id).update(state=7)
             send_email_to_nominated_admin(NominatedAdmin=NominatedAdmin,email=email,ProposedAdmin=ProposedAdmin,proposedAdminState = proposedAdminState,CommunityName=CommunityName,community_id =community.id)
             send_notification_to_proposed_admin(nominated_admin_id = NominatedAdmin_id, community_id= community.id, proposed_admin_name=ProposedAdmin )
-        elif member and member[0].state == 6:
+        elif member and (member[0].state == 6 or member[0].state == 7):
             send_email_to_nominated_admin(NominatedAdmin=NominatedAdmin,email=email,ProposedAdmin=ProposedAdmin,proposedAdminState = proposedAdminState,CommunityName=CommunityName,community_id =community.id)
             send_notification_to_proposed_admin(nominated_admin_id = NominatedAdmin_id, community_id= community.id, proposed_admin_name=ProposedAdmin )
             print("member is already a nominated promoter")
@@ -440,6 +471,8 @@ def all_members(request,community_id):
             member['state']='Member'
         elif i.state == 6:
             member['state']='Nominated Promoter'
+        elif i.state == 7:
+            member['state']='Nominated Promoter(already a member)'
         elif i.state == 5:
             member['state']='Declined by Promoter'
 
@@ -619,3 +652,88 @@ def add_hidden_tags(request):
 
 
     return JsonResponse({'success':True})
+
+
+
+def alpha_sign_up_mail(request,user_id):
+
+    '''function to send mail to alpha sign up'''
+
+    user_college=userinfo_tags.objects.filter(user_id=user_id).values('tag_id')
+    user_info=Userinfo.objects.filter(user_id=user_id)
+    user_name=''
+    user_email=''
+    for user in user_info:
+        user_name=user.name
+        user_email=user.email
+
+    if len(user_college) == 0:
+        return HttpResponse('Please Provide a tag for user')
+
+    url=''
+    college_name=''
+    if user_college[0]['tag_id'] == 41:                         #for IIT Delhi
+        college_name='IIT Delhi'
+        url='https://docs.google.com/forms/d/e/1FAIpQLSes87js8cTiGg0x-Vw9DYrnY1BCZTolba0B1WBvcVSYZSGAwg/viewform'
+    elif user_college[0]['tag_id'] == 42:                       #for NSIT College
+        college_name='NSIT'
+        url='https://docs.google.com/forms/d/e/1FAIpQLSfqN2z1wg6CCJ4ZKH1lxQQgJ8iUWEbtTT0R9NT64zg5f13_ig/viewform'
+    else:
+        return HttpResponse('Please Provide the tag first')
+
+    context={
+        'Name':user_name,
+        'college_name':college_name,
+        'url':url,
+        'email':user_email
+    }
+
+    send_mail_for_signup(context,True)
+    return HttpResponse('Alpha Mail is Sent')
+
+
+def testing_sign_up_mail(request,user_id):
+
+    '''function to send tester mail'''
+    user_name = ''
+    user_email = ''
+    user_info=Userinfo.objects.filter(user_id=user_id)
+    for user in user_info:
+        user_name = user.name
+        user_email = user.email
+
+    context = {
+        'Name': user_name,
+        'url': 'https://play.google.com/apps/testing/com.collabmates',
+        'email': user_email
+    }
+
+    send_mail_for_signup(context,False)
+    return HttpResponse('Tester Mail is Sent')
+
+
+def send_mail_for_signup(context,flag):
+
+    '''function to send mail both types of mails for tester and users'''
+
+    time.sleep(5)
+    fail_silently = True
+    to = context['email']
+
+    if flag:             #alpha signup
+
+        template = get_template("mails/alpha_sign_up.html").render(context)
+        subject="""Thanks for joining CollabMates! Here's the next step"""
+
+    else:
+        template = get_template("mails/testing_signup.html").render(context)
+        subject="""Access to the first version of CollabMates App"""
+
+
+    msg = EmailMultiAlternatives(subject,
+                                 template,
+                                 "hello@collabmates.com",
+                                 [to],
+                                 )
+    msg.attach_alternative(template, "text/html")
+    return msg.send(fail_silently)

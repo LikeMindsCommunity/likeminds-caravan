@@ -29,6 +29,7 @@
     <select name="select_tags" multiple id="my_select" class="form-control">
           <option value="41">IIT Delhi</option>
           <option value="42">NSIT College</option>
+            <option value="0">NONE</option>
 
      </select>
      </div>
@@ -73,7 +74,7 @@
             dataType:'json',
             success:function(data){
                console.log('hello')
-               console.log(data)
+               location.reload(true)
 
             }
 
