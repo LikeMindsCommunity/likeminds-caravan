@@ -67,11 +67,11 @@ def get_communities_by_tags(user_tag=0, category_tag=0,page_number=1):
             get communities ,which are the intersection of given category and user hidden tag '''
 
         # get communities based on category tag
-        category_tag = Community_tags.objects.filter(tags_id=category_tag).values('community_id').order_by("-community_id").distinct()
+        category_tag = Community_tags.objects.filter(tags_id=category_tag).values('community_id')
         # get communities based on user hidden tag
-        user_tag = Community_tags.objects.filter(tags_id=user_tag).values('community_id').order_by("-community_id").distinct()
+        user_tag = Community_tags.objects.filter(tags_id=user_tag).values('community_id')
         #intersect both of the querysets
-        res = category_tag.intersection(user_tag).order_by("-community_id").distinct()
+        res = category_tag.intersection(user_tag).order_by("-community_id").distinct().order_by("-community_id")
         #paginating the resultant queryset
         queryset = pagination(res, page_number)
         #return result
