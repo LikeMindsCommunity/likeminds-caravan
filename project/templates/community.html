@@ -19,7 +19,8 @@
         <title>{{community.name}}</title>
         <meta name="description"
               content={{community.name}}/>
-        <meta property="og:image" itemprop="image" content='https://beta.collabmates.com/media/media/ic_launcher_round.png'/>
+        <meta property="og:image" itemprop="image"
+              content='https://beta.collabmates.com/media/media/ic_launcher_round.png'/>
         <meta property="og:title" content="{{community.name}}"/>
         <meta property="og:description"
               content="{{community.purpose}}"/>
@@ -91,7 +92,16 @@
   //jquery
 
    $(document).ready(function() {
-                    var showChar = 180;
+
+   for(var i=0;i<={{similar_community_length}};i++)
+   {
+   ans=$('#'+i).text();
+
+   ans=ans.substring(0,42)
+   ans=ans+'...'
+   $('#'+i).html(ans)
+   }
+             var showChar = 180;
                     var ellipsestext = "...";
                     var moretext = "more";
                     var lesstext = "less";
@@ -131,13 +141,14 @@
 
 
 
+
         </script>
 
 
     </head>
 
     <div style="margin:0 auto; max-width:786px;">
-        <br/>
+
         <div class="ui small inverted menu"
              style="  background-color:#075e54; margin:0 0 0 0 !important;display: flex;align-items: center;justify-content: center;  padding-left: 20px;">
             <a href="../../communities"><i style="color:white; " class="big angle left icon"></i></a>
@@ -198,47 +209,47 @@
                     </div>
                     <br>
 
+<!-- accept invitation model -->
+                    <div class="ui modal accept">
 
-<div class="ui modal accept">
+                        <div class="ui fluid card " style="border: 2px solid #1ebea5; margin:0 0 ; padding: 10px 10px;">
+                            <h2 class="ui teal center aligned header">
+                                <div class="content">
+                                    Respond to Invitation
+                                </div>
+                            </h2>
+                            <div class="content">
+                                <p class="center aligned">
+                                    Send Response
+                                </p>
+                            </div>
+                            <div class="center aligned container">
+                                <div class="content">
+                                    <a href="../accept_admin/{{community.id}}?cta=accept_invitation&value=true">
+                                        <button class="ui button" style="width:130px; color:green;">
 
-                          <div class="ui fluid card " style="border: 2px solid #1ebea5; margin:0 0 ; padding: 10px 10px;">
-                 <h2 class="ui teal center aligned header">
-                   <div class="content">
-                     Respond to Invitation
-                   </div>
-                 </h2>
-                 <div class="content">
-                   <p class="center aligned">
-                    Send Response
-                  </p>
-                  </div>
-                  <div class="center aligned container">
-                  <div class="content">
-                      <a  href="../accept_admin/{{community.id}}?cta=accept_invitation&value=true">
-                  <button class="ui button" style="width:130px; color:green;">
+                                            Accept
+                                        </button>
+                                    </a>
+                                    <br>
+                                    <br>
 
-                      Accept
-                    </button>
-                    </a>
-                      <br>
-                      <br>
+                                    <br>
+                                    <br>
+                                    <div class="content">
+                                        <a href="../accept_admin/{{community.id}}?cta=accept_invitation&value=false">
+                                            <button class="ui button" style="width:130px; color:green;">
 
-                    <br>
-                    <br>
-                    <div class = "content">
-                      <a href="../accept_admin/{{community.id}}?cta=accept_invitation&value=false">
-                  <button class="ui button" style="width:130px; color:green;">
+                                                Decline
+                                            </button>
+                                        </a>
+                                    </div>
+                                </div>
+                                <br>
 
-                        Decline
-                      </button>
-                      </a>
+                            </div>
+                        </div>
                     </div>
-                  </div>
-                  <br>
-
-                    </div>
-                    </div>
-</div>
 
 
                 </div>
@@ -319,13 +330,11 @@
                         {% for i in members%}
 
                         <div class="item">
-                            <img class="ui tiny circular image" src="{{i.image_file.url}}">
+                            <img class="ui tiny circular centered image" src="{{i.image_file.url}}"/>
                             <p></p>
-
                             <!-- <a href="../../profile/{{i.user_id.id}}">-->
 
                             <p style="font-size:65%;">{{i.name}}</p>
-                            </a>
                             <div class="content">
 
                             </div>
@@ -333,27 +342,29 @@
                         </div>
                         {% endfor %}
 
-                        <br/><br/>
+                        <br/>
                     </div>
                 </div>
-
+            </div>
                 <br>
-                <div class="content">
-                    <h4>Similar Communities
+                <div >
+                <div class="content ui fluid" style="background-color:#f0f5f5;">
+                    <h4 style="margin-left:12px;padding-top:10px;">Similar Communities
                         <!--                                <a class="right floated" style=" color:#1cb39b; font-weight:100; " href="{% url 'similar_community' 273 %}"> See all</a>-->
                     </h4>
 
                     <div class="ui container" style=" overflow-y:auto;white-space:nowrap;">
 
-                        <div class="ui big horizontal divided list">
+                        <div class="ui  horizontal  list" style="margin-left:10px;">
                             {% for i in similar_communities %}
-                            <div class="item" onclick="open_community({{i.id}});">
+
+                            <div class="ui card item" onclick="open_community({{i.id}});"  >
                                 <br><br>
 
-                                <img class="ui avatar image" src="/media/{{i.image_url}}">
-                                <div class="content" style="font-size:14px;">
-                                    <div class="header" style="font-size:1.2rem;">{{i.name}}</div>
-                                    {{i.members_count}} Members
+                                <img class="ui avatar image" src="/media/{{i.image_url}}" style="margin-left:5px;">
+                                <div class="content" style="font-size:12px;">
+                                    <div class="header" style="font-size:1rem;">{{i.name}}</div>
+                                    <p id="{{forloop.counter0}}"> {{i.purpose}}</p>
                                 </div>
                                 <br><br><br><br>
 
@@ -363,40 +374,70 @@
 
 
                     </div>
-                  </div>
+                </div>
+<br/>
 
+                {% if Nom_mem_state == 6 %}
+                <button class="ui fluid button "
+                        style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;"
+                        onclick="accept_admin('{{cta}}','{{community.id}}','{{Nom_mem_state}}');"> Respond to invitation
+                </button>
+                {% elif Nom_mem_state == 7 %}
+                <button class="ui fluid button "
+                        style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;"
+                        onclick="accept_admin('{{cta}}','{{community.id}}','{{Nom_mem_state}}');"> Respond to invitation
+                </button>
+                {% elif Nom_mem_state == 3 %}
+                <button class="ui fluid button "
+                        style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;"
+                        disabled> Pending Approval
+                </button>
 
-                  {% if Nom_mem_state == 6 %}
-                  <button class="ui fluid button " style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;" onclick="accept_admin('{{cta}}','{{community.id}}','{{Nom_mem_state}}');"> Respond to invitation </button>
-{% elif Nom_mem_state == 7 %}
-                  <button class="ui fluid button " style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;" onclick="accept_admin('{{cta}}','{{community.id}}','{{Nom_mem_state}}');"> Respond to invitation </button>
-{% elif Nom_mem_state == 3 %}
-                                <button class="ui fluid button " style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;" disabled> Pending Approval  </button>
+                {% elif Nom_mem_state == 1%}
+                <button class="ui fluid button "
+                        style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;"
+                        disabled>You are a promoter
+                </button>
 
-                  {% elif Nom_mem_state == 1%}
-                 <button class="ui fluid button " style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;" disabled>You are a promoter</button>
+                {% elif Nom_mem_state == 2 %}
+                <button class="ui fluid button "
+                        style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;"
+                        disabled>You are a promoter
+                </button>
+                {% elif Nom_mem_state == 4 %}
+                <button class="ui fluid button "
+                        style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;"
+                        disabled>Already a Member
+                </button>
+                {% elif Nom_mem_state == 5 %}
+                <button class="ui fluid button "
+                        style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;"
+                        onclick="join('{{community.id}}')"> Join Group(Declined)
+                </button>
+                {% elif source == 'email' %}
+                ]
+                <button class="ui fluid button "
+                        style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;"
+                        onclick="accept_admin();">Respond to invitation
+                </button>
 
-                  {% elif Nom_mem_state == 2 %}
-                                <button class="ui fluid button " style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;" disabled>You are a promoter</button>
-                  {% elif Nom_mem_state == 4 %}
-                                <button class="ui fluid button " style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;" disabled>Already a Member</button>
-                 {% elif Nom_mem_state == 5 %}
-                 <button class="ui fluid button " style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;" onclick="join('{{community.id}}')" > Join Group(Declined)  </button>
-                 {% elif source == 'email' %}
-              ]<button class="ui fluid button " style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;" onclick="accept_admin();">Respond to invitation </button>
+                {% elif is_joined == -1 %}
+                <button class="ui fluid button "
+                        style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;"
+                        onclick="join('{{community.id}}')"> Join Group
+                </button>
 
-                  {% elif is_joined == -1 %}
-            <button class="ui fluid button " style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;" onclick="join('{{community.id}}')"> Join Group  </button>
+                {% elif is_joined == 1 %}
+                <button class="ui fluid button "
+                        style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;"
+                        id="invite" onclick="invite();"> Join Group
+                </button>
+                {% endif %}
 
-                            {% elif is_joined == 1 %}
-                                <button class="ui fluid button " style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;"   id="invite" onclick="invite();" > Join Group  </button>
-                            {% endif %}
+                <br/>
+<br/>
 
-                        <br>
-                        <br>
-
-
-              <style>
+                <style>
             a.morelink {
                 text-decoration:none;
                 outline: none;
@@ -411,8 +452,10 @@
             }
 
 
-            </style>
+
+                </style>
+            </div>
         </div>
     </div>
-    </div></html>
+    </html>
     {% endblock %}
