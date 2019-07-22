@@ -71,7 +71,7 @@ def get_communities_by_tags(user_tag=0, category_tag=0,page_number=1):
         # get communities based on user hidden tag
         user_tag = Community_tags.objects.filter(tags_id=user_tag).values('community_id')
         #intersect both of the querysets
-        res = category_tag.intersection(user_tag).order_by("-community_id").distinct().order_by("-community_id")
+        res = category_tag.intersection(user_tag).order_by("-community_id").distinct()
         #paginating the resultant queryset
         queryset = pagination(res, page_number)
         #return result
@@ -80,10 +80,10 @@ def get_communities_by_tags(user_tag=0, category_tag=0,page_number=1):
     if category_tag == 0 and user_tag == 0:
         # if there is not category tag and user does not have a hidden tag too
         # just return him all the communites
-        community =  Community_tags.objects.all().values('community_id').order_by("-community_id").distinct()
+        community =  Community_tags.objects.values('community_id').order_by("-community_id").distinct()
         # paginating the communities
         queryset = pagination(community, page_number)
-        return  queryset
+        return queryset
 
     if category_tag == 0 and user_tag != 0:
         # if there is no category tag , then return communites based on user hidden tag
@@ -118,16 +118,14 @@ def serialize_community(queryset,user_id ):
             new_dict.update(serializer_class)
 
             # appending all other necessary details of community
-            if new_dict['image_url']:
-                new_dict['image_url'] = url +"/media/"+ str(new_dict['image_url'])
-            else:
+            if not new_dict['image_url']:
                 new_dict[
                     'image_url'] = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQMUCHvC0wEVO5yDMe9wddUoagIqQ3VPH0nm8_VtjK5gk3M0mMO'
 
             new_dict['is_member'] = ''
             new_dict['share_url'] = url + '/community/' + str(new_dict['id'])
             new_dict['date'] = c.active_since
-            new_dict['members_count'] = update_member_count(c.id)
+            new_dict['members_count'] = get_member_count(c)
 
             community.append(new_dict)
     # return dictionary
@@ -139,7 +137,7 @@ def get_community_dict(community):
         'id': community.id,
         'name': community.name,
         'purpose': community.purpose,
-        'image_url': community.image_url,
+        'image_url': url +"/media/"+str(community.image_url),
         'about': community.about,
         'location': community.location,
     }
@@ -167,6 +165,7 @@ def your_communities(request,user_id):
 
     user = User.objects.get(id = member_id)
     communities = Members.objects.all().filter(member_id = user_id).filter(Q(state=1)|Q(state=2)|Q(state=4)|Q(state=7))
+    print("communities === ",communities)
     my_communities = []
 
     # making a tupple list and sorting communities based on date
@@ -199,61 +198,45 @@ def your_communities(request,user_id):
 
     for i in my_communities:
         members = Members.objects.all().filter(community_id = i.id)
-        serializer_class = CommunitySerializer(i)
-        comm = serializer_class.data
+        serializer_class = get_community_dict(i)
+        comm = serializer_class
         for j in members:
             if j.member_id == user:
                 comm['is_member'] = True
             else:
                 comm['is_member'] = False
         new_dict = {}
-        new_dict.update(serializer_class.data)
-        if new_dict['image_url']:
-            new_dict['image_url'] = url+new_dict['image_url']
-        else:
+        new_dict.update(serializer_class)
+        if not new_dict['image_url']:
             new_dict['image_url'] = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQMUCHvC0wEVO5yDMe9wddUoagIqQ3VPH0nm8_VtjK5gk3M0mMO'
-        new_dict['share_url']= url+str(new_dict['id'])
-
+        new_dict['share_url']= url+'/community/'+str(new_dict['id'])
         is_admin = False
         community = Community.objects.get(id = new_dict['id'])
         community_admins = Members.objects.filter(community_id = i).filter(member_id =user_id)
         pending_requests = Members.objects.filter(community_id = community.id).filter(state = 3)
 
         if (community_admins[0].state == 1 or community_admins[0].state==2):
-            new_dict['pending_members_count'] = len(pending_requests)
+            new_dict['pending_members_count'] = pending_requests.count()
             is_admin = True
         else:
             new_dict['pending_members_count'] = 0
         new_dict['is_admin'] = is_admin
-        total_collabcards = Collabcard.objects.filter(community=community)
-        seen_collabcard = collabcard_seen.objects.filter(community=community, user=user_id)
+        total_collabcards = Collabcard.objects.filter(community=community).order_by("-id").values('id')
+        seen_collabcard = collabcard_seen.objects.filter(community=community, user=user_id).order_by("-id").values('card_id')
 
-        if (len(total_collabcards) - len(seen_collabcard)) < 0:
+        if (total_collabcards.count() - seen_collabcard.count()) <= 0:
             new_dict['collabcard_unseen'] =0
         else:
-            new_dict['collabcard_unseen'] = (len(total_collabcards) - len(seen_collabcard))
+            new_dict['collabcard_unseen'] = (total_collabcards.count() - seen_collabcard.count())
 
-        unseen_list=[]
-        total_list=[]
-        seen_list=[]
-        for j in total_collabcards:
-            total_list.append(j.id)
+        unseen_list  = total_collabcards.difference(seen_collabcard).values('id').distinct().order_by("-id")
 
-        for j in seen_collabcard:
-            seen_list.append(j.card_id)
+        if total_collabcards.count()>0:
 
-        for j in total_list:
-            if j not in seen_list:
-                unseen_list.append(j)
-
-        total_list=sorted(total_list)
-        unseen_list = sorted(unseen_list)
-        if len(total_collabcards)>0:
-
-            if len(unseen_list) != 0:
-                card = Collabcard.objects.get(id = unseen_list[0])
+            if unseen_list.count() != 0:
+                card = Collabcard.objects.get(id = unseen_list.values('id')[0]['id'])
             else:
-                card = Collabcard.objects.get(id = total_list[-1:][0])
+                card = Collabcard.objects.get(id = total_collabcards.values('id')[0]['id'])
 
             collabcard = {}
             collabcard['id'] = card.id
@@ -303,7 +286,7 @@ def community(request, community_id):
 
     if len(community) > 0:
 
-        community[0]['share_text_admin']= """Hi, I have added %s community on CollabMates. It will be good if you  join this community.\n"""%(community[0]['name'])
+        community[0]['share_text_admin']= """Hi, I have added %s community on CollabMates. It will be good if you can join this community.\n"""%(community[0]['name'])
         community[0]['share_text_member']="""I recently joined %s community on CollabMates. It will be good if you also join this community.\n"""%(community[0]['name'])
         community[0]['share_text_anonymous']="""I recently discovered %s community on CollabMates. You can join this community using this link.\n"""%(community[0]['name'])
     return JsonResponse({'community': community[0]})
@@ -1301,15 +1284,17 @@ def accept_invitation(request):
 
     return JsonResponse({'success': False})
 
+def get_member_count(community):
+    return Members.objects.filter(community_id=community).filter(Q(state=1)|Q(state=2)|Q(state=4)|Q(state=7)).count()
 
 def update_member_count(community_id):
     ''' update members count of a community , when a promoter or member joins a community '''
     community = Community.objects.get(id=community_id)
     # getting the count of members including admins in a community
-    count = Members.objects.filter(community_id=community).filter(Q(state=1)|Q(state=2)|Q(state=4))
+    count = Members.objects.filter(community_id=community).filter(Q(state=1)|Q(state=2)|Q(state=4)|Q(state=7)).count()
     # updating count
-    Community.objects.filter(id=community_id).update(members_count = len(count))
-    return len(count)
+    Community.objects.filter(id=community_id).update(members_count = count)
+    return
 
 @csrf_exempt
 def edit_community(request):
@@ -1343,8 +1328,6 @@ def edit_community(request):
     new_dict.update(serializer_class.data)
 
     return JsonResponse({'success': True,'community':new_dict})
-
-
 
 
 def edit_questions(questions,community_id):
