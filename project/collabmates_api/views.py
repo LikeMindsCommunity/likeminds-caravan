@@ -134,6 +134,7 @@ def serialize_community(queryset,user_id ):
 
 
 def get_community_dict(community):
+    # function to serialize a community object
     return {
         'id': community.id,
         'name': community.name,
