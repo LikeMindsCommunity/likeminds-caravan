@@ -130,13 +130,11 @@ def dashboard(request):
                 "-community_id").distinct()
             communities=[]
             for i in communities_by_tags:
-                print(i['community_id'])
                 c = Community.objects.get(id=i['community_id'])
                 communities.append(c)
 
         else:
             communities = Community.objects.filter(hide_community='0').order_by('-active_since')
-            print(communities)
         return render (request, 'dashboard.html', {'usr': usr, 'communities' : communities, 'my_communities':my_community[:2], "my_communities_count": len(my_community) })
     else:
         user = []
