@@ -85,13 +85,13 @@ def get_communities_by_tags(user_tag=0, category_tag=0,page_number=1):
         queryset = pagination(community, page_number)
         return  queryset
 
-    if category_tag == 0:
+    if category_tag == 0 and user_tag != 0:
         # if there is no category tag , then return communites based on user hidden tag
         user_tag = Community_tags.objects.filter(tags_id=user_tag).values('community_id').order_by("-community_id").distinct()
         queryset = pagination(user_tag, page_number)
         return queryset
 
-    if user_tag == 0:
+    if user_tag == 0 and category_tag != 0:
         # if there is no user hidden tag , then return communites based on category tag
         category_tag = Community_tags.objects.filter(tags_id=category_tag).values('community_id').order_by("-community_id").distinct()
         queryset = pagination(category_tag, page_number)
@@ -112,25 +112,19 @@ def serialize_community(queryset,user_id ):
 
         if c.hide_community == '0':
             # if not hidden , pass the community object to serializer
-            serializer_class = CommunitySerializer(c)
+            serializer_class = get_community_dict(c)
             new_dict = {}
             # form a dictionary of community objects
-            new_dict.update(serializer_class.data)
+            new_dict.update(serializer_class)
 
             # appending all other necessary details of community
             if new_dict['image_url']:
-                new_dict['image_url'] = url + new_dict['image_url']
+                new_dict['image_url'] = url +"/media/"+ str(new_dict['image_url'])
             else:
                 new_dict[
                     'image_url'] = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQMUCHvC0wEVO5yDMe9wddUoagIqQ3VPH0nm8_VtjK5gk3M0mMO'
 
-            member = Members.objects.all().filter(community_id=c.id)
-            is_member = False
-            for m in member:
-                if m.member_id == user_id:
-                    is_member = True
-
-            new_dict['is_member'] = is_member
+            new_dict['is_member'] = ''
             new_dict['share_url'] = url + '/community/' + str(new_dict['id'])
             new_dict['date'] = c.active_since
             new_dict['members_count'] = update_member_count(c.id)
@@ -138,6 +132,18 @@ def serialize_community(queryset,user_id ):
             community.append(new_dict)
     # return dictionary
     return community
+
+
+def get_community_dict(community):
+    return {
+        'id': community.id,
+        'name': community.name,
+        'purpose': community.purpose,
+        'image_url': community.image_url,
+        'about': community.about,
+        'location': community.location,
+    }
+
 
 
 def pagination(queryset,page_number):
