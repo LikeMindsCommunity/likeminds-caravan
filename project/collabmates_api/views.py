@@ -97,6 +97,7 @@ def get_communities_by_tags(user_tag=0, category_tag=0,page_number=1):
         queryset = pagination(category_tag, page_number)
         return queryset
 
+
 def serialize_community(queryset,user_id ):
     ''' this function gives us a dictionary of community/communities objects based on given queryset '''
     community = []
@@ -141,7 +142,6 @@ def get_community_dict(community):
         'about': community.about,
         'location': community.location,
     }
-
 
 
 def pagination(queryset,page_number):
@@ -269,7 +269,6 @@ def your_communities(request,user_id):
             usr["linkedin_link"] = user.linkedin_link
             collabcard['member'] = usr
 
-
         my_community.append(new_dict)
     return JsonResponse({'your_communities':my_community})
 
@@ -304,7 +303,31 @@ def similar_community(request, community_id):
         user_tag = 0
     # getting communities based on user hidden tags
     queryset = get_communities_by_tags(user_tag=user_tag)[:11]
-    community = serialize_community(queryset=queryset, user_id=user_id)
+    community = []
+    for i in queryset:
+
+        # if the queryset is of type dictionary
+        c = Community.objects.get(id=i['community_id'])
+        # check if the community is hidden or not
+
+        if c.hide_community == '0' and c.id != community_id:
+            # if not hidden , pass the community object to serializer
+            serializer_class = get_community_dict(c)
+            new_dict = {}
+            # form a dictionary of community objects
+            new_dict.update(serializer_class)
+
+            # appending all other necessary details of community
+            if not new_dict['image_url']:
+                new_dict[
+                    'image_url'] = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQMUCHvC0wEVO5yDMe9wddUoagIqQ3VPH0nm8_VtjK5gk3M0mMO'
+
+            new_dict['is_member'] = ''
+            new_dict['share_url'] = url + '/community/' + str(new_dict['id'])
+            new_dict['date'] = c.active_since
+            new_dict['members_count'] = get_member_count(c)
+
+            community.append(new_dict)
     return JsonResponse({'communities': community})
 
 def join_community(request, community_id):
@@ -976,6 +999,8 @@ def create_admin(request,community_id):
     return HttpResponse('Add Admin Api')
 
 def check_member(email,community_id,member_id,res):
+    """ check if the user is already a member of the invited community and make user as nominated promoter
+     if he is registered in collabmates and if the user is not registered just send the user a invitation email """
     ProposedAdmin = Userinfo.objects.get(user_id = member_id)
     community = Community.objects.get(id = community_id)
     proposedAdminState = Members.objects.filter(member_id=ProposedAdmin.user_id,community_id = community)
@@ -988,36 +1013,45 @@ def check_member(email,community_id,member_id,res):
         user = Userinfo.objects.filter(email=email)
 
         if user:
-            print("user is present")
+            """ if the user is present get user details """
             NominatedAdmin_id = user[0].user_id.id
             NominatedAdmin=user[0].name
         else:
-            print("user is not present")
+            """ if the user is not present just user a email"""
             send_email_to_nominated_admin.delay(NominatedAdmin=res['name'],email=email,ProposedAdmin=ProposedAdmin,proposedAdminState = proposedAdminState,CommunityName=CommunityName,community_id =community.id)
             return False
     except:
-        print("except block email")
+        """ if any error trying fetch the user details , then user is not registered , send an email"""
         send_email_to_nominated_admin.delay(NominatedAdmin=res['name'],email=email,ProposedAdmin=ProposedAdmin,proposedAdminState = proposedAdminState,CommunityName=CommunityName,community_id =community.id)
         return False
+
     if user:
+        # get the state of the user of the community he is proposed to become a promoter for
         member =Members.objects.filter(community_id = community,member_id = user[0].user_id.id)
-        print("member  == ",member)
+
         if member and member[0].state == 4:
-            print("member is meber")
+            # if the user is already a member , give him state 7
+            # state 7 is nominted promoter who is already a member of thet community
             Members.objects.filter(community_id = community,member_id = user[0].user_id.id).update(state=7)
+            # send mail and notification
             send_email_to_nominated_admin.delay(NominatedAdmin=NominatedAdmin,email=email,ProposedAdmin=ProposedAdmin,proposedAdminState = proposedAdminState,CommunityName=CommunityName,community_id =community.id)
             send_notification_to_proposed_admin(nominated_admin_id = NominatedAdmin_id, community_id= community.id, proposed_admin_name=ProposedAdmin )
+
         elif member and (member[0].state == 6 or member[0].state == 7):
+            # if he is nominated again just send hime a remainding mail and notification
             send_email_to_nominated_admin.delay(NominatedAdmin=NominatedAdmin,email=email,ProposedAdmin=ProposedAdmin,proposedAdminState = proposedAdminState,CommunityName=CommunityName,community_id =community.id)
             send_notification_to_proposed_admin(nominated_admin_id = NominatedAdmin_id, community_id= community.id, proposed_admin_name=ProposedAdmin )
-            print("member is already nominated")
+
         else:
-            print("member is created")
+            # if user is not anything to the community and he is nominated as promoter
+            # create a member instance , making the user a nominated promoter giving user state = 6
+            # state 6 is nominated member who was never involved in that community
             member =Members()
             member.community_id = community
             member.member_id = user[0].user_id
             member.state = 6
             member.save()
+            # send mail and notification
             send_email_to_nominated_admin.delay(NominatedAdmin=NominatedAdmin,email=email,ProposedAdmin=ProposedAdmin,proposedAdminState = proposedAdminState,CommunityName=CommunityName,community_id =community.id)
             send_notification_to_proposed_admin(nominated_admin_id = NominatedAdmin_id, community_id= community.id, proposed_admin_name=ProposedAdmin )
         return True
