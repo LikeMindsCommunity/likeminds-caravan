@@ -278,7 +278,7 @@ def community(request, community_id):
     else:
         user = []
     print("last")
-    return render (request, 'community.html', {'usr':user,'similar_communities':communities , 'community' : community,'admins': admin_details, 'is_joined':is_joined, 'members':members,'source':source,'cta':cta,'Nom_mem_state':Nom_mem_state,'admin_length':len(admin_details)})
+    return render (request, 'community.html', {'usr':user,'similar_communities':communities , 'community' : community,'admins': admin_details, 'is_joined':is_joined, 'members':members,'source':source,'cta':cta,'Nom_mem_state':Nom_mem_state,'admin_length':len(admin_details),'similar_community_length':len(communities)})
 
 def update_user_info(request):
     user = Userinfo.objects.all().filter(user_id = request.user)
