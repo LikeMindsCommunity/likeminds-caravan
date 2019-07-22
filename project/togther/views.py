@@ -39,8 +39,6 @@ def home(request):
 def dashboard(request):
     if request.user.is_authenticated:
         user = Userinfo.objects.all().filter(user_id = request.user)
-        print("user == ", user)
-        social_user = request.user.social_auth.filter(user_id = request.user.id).first()
         created =False
         if not user :
             social_user = request.user.social_auth.filter(user_id = request.user.id).first()
@@ -103,22 +101,40 @@ def dashboard(request):
                     created = True
         if created:
             print("created")
-            user_id = user.id
+            user_id = user.user_id
             print(user.id)
             usr =user
         else:
             print("user info already exists")
-            print(user)
-            user_id = user[0].id
+            user_id = user[0].user_id
             usr=user[0]
         communities1 = Members.objects.all().filter(member_id = user_id)
+
         my_communities = []
         for j in communities1:
             my_communities.append(j.community_id)
         my_community =[]
         for j in my_communities:
             my_community.append(j)
-        communities = Community.objects.filter(hide_community='0').order_by('-active_since')
+        user_id = request.user.id
+        user_tag = get_user_tag(user_id)
+        if user_tag:
+            # if member has a hidden tag
+            user_tag = user_tag[0].tag_id
+        else:
+            # if member does not have a hidden tag
+            user_tag = 0
+        if user_tag != 0:
+            # if there is no category tag , then return communites based on user hidden tag
+            communities_by_tags = Community_tags.objects.filter(tags_id=user_tag).values('community_id').order_by(
+                "-community_id").distinct()
+            communities=[]
+            for i in communities_by_tags:
+                c = Community.objects.get(id=i['community_id'])
+                communities.append(c)
+
+        else:
+            communities = Community.objects.filter(hide_community='0').order_by('-active_since')
         return render (request, 'dashboard.html', {'usr': usr, 'communities' : communities, 'my_communities':my_community[:2], "my_communities_count": len(my_community) })
     else:
         user = []
