@@ -18,8 +18,8 @@ from togther.tasks import send_email_to_proposed_admin
 from django.core.paginator import Paginator
 from togther.views import set_user_tag, get_user_tag
 
-# url  = settings.URL
-url = 'http://localhost:8000'
+url  = settings.URL
+
 
 def communities(request):
     '''function to get all the communities'''
