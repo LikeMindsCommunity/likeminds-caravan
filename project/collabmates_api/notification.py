@@ -213,7 +213,7 @@ def send_notification_to_proposed_admin(nominated_admin_id,community_id,proposed
 
 
 
-def send_notification_to_proposer(proposer,community):
+def send_notification_to_proposer(proposer,community,proposed_name):
 
     '''function to send notification if the proposed admin accepts invitation'''
 
@@ -226,7 +226,7 @@ def send_notification_to_proposer(proposer,community):
         message={}
         message['payload']={
             'title':str(community.name),
-            'sub_title':str(proposer.name) + " is now a promoter of the community",
+            'sub_title':str(proposed_name) + " is now a promoter of the community",
             'route':'route://community?community_id=' + str(community.id)
         }
 
