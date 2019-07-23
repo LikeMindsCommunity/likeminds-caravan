@@ -1271,7 +1271,7 @@ def accept_invitation(request):
                 set_user_tag(member_id, community.id)
                 #sending email to promoter , that user has accepted his request to beacome a promoter
                 send_email_to_proposed_admin.delay(NominatedAdmin=nom_admin[0].name,email=prop_admin.email,ProposedAdmin=prop_admin.name,proposedAdminState =1,CommunityName=community.name,community_id = community.id)
-                send_notification_to_proposer(prop_admin,community)
+                send_notification_to_proposer(prop_admin,community,nom_admin[0].name)
                 return JsonResponse({'success':True})
             # if the promoter is a temporary promoter
             elif promoter[0].state == 2:
@@ -1284,7 +1284,7 @@ def accept_invitation(request):
                 set_user_tag(member_id, community.id)
                 #sending email to promoter , that user has accepted his request to beacome a promoter
                 send_email_to_proposed_admin.delay(NominatedAdmin=nom_admin[0].name,email=prop_admin.email,ProposedAdmin=prop_admin.name,proposedAdminState=2,CommunityName=community.name,community_id = community.id)
-                send_notification_to_proposer(prop_admin, community)
+                send_notification_to_proposer(prop_admin, community,nom_admin[0].name)
                 return JsonResponse({'success':True})
         else:
             # if there are more than two admins , sent mail to the promoter who invited this member
@@ -1300,7 +1300,7 @@ def accept_invitation(request):
             set_user_tag(member_id, community.id)
             #sending email to promoter , that user has accepted his request to become a promoter
             send_email_to_proposed_admin.delay(NominatedAdmin=nom_admin[0].name,email=prop_admin.email,ProposedAdmin=prop_admin.name,proposedAdminState=1,CommunityName=community.name,community_id = community.id)
-            send_notification_to_proposer(prop_admin, community)
+            send_notification_to_proposer(prop_admin, community,nom_admin[0].name)
             return JsonResponse({'success':True})
     else:
         # if nominated promoter didn't accept the invitation
