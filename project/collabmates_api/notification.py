@@ -39,9 +39,11 @@ def get_token_for_fcm(member_id):
     try:
         conn = get_connection()
         curr = conn.cursor()
+
         curr.execute("select fcm_token from togther_userinfo where user_id_id=" + str(member_id))
         fcm_token = curr.fetchone()
-        return fcm_token[0]
+        if fcm_token:
+            return fcm_token[0]
     except (Exception, psycopg2.Error) as error:
         print ("Error while connecting to PostgreSQL  ", error)
 
@@ -208,6 +210,29 @@ def send_notification_to_proposed_admin(nominated_admin_id,community_id,proposed
         }
 
         send_notification_to_multiple_devices(token_list, message)
+
+
+
+def send_notification_to_proposer(proposer,community):
+
+    '''function to send notification if the proposed admin accepts invitation'''
+
+    fcm_token=get_token_for_fcm(proposer.user_id.id)
+
+    if fcm_token:
+        token_list=[]
+        token_list.append(fcm_token)
+
+        message={}
+        message['payload']={
+            'title':str(community.name),
+            'sub_title':str(proposer.name) + " is now a promoter of the community",
+            'route':'route://community?community_id=' + str(community.id)
+        }
+
+        send_notification_to_multiple_devices(token_list, message)
+    else:
+        print('No FCM token to send message')
 
 
 
