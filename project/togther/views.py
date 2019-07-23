@@ -843,15 +843,28 @@ def terms(request):
     return render(request,'terms.html')
 
 def collabcard(request, card_id):
-    if request.user.is_authenticated:
-        user = Userinfo.objects.all().filter(user_id = request.user)
-    else :
-        user = []
-    card = Collabcard.objects.get(id = card_id)
-    creator = Userinfo.objects.get(user_id = card.user)
-    community = card.community
-    print(user)
-    return render(request,'card.html' ,{'usr':user, 'card':card, 'creator': creator, 'community': community})
+
+    '''function to get data of collabcard'''
+
+    collabcard_url=api_url+'collabcard/' + str(card_id)
+    collabcard=rqst.get(collabcard_url)
+    collabcard_dict=json.loads(collabcard.content)
+
+    answers=collabcard_dict['answers']
+    if len(answers) == 0:
+        answer_text='Be the first to respond'
+    else:
+        answer_text=collabcard_dict['collabcard']['answer_text']
+    context={'card':collabcard_dict['collabcard']['title'],
+             'creator': collabcard_dict['collabcard']['member']['name'],
+             'image_url': collabcard_dict['collabcard']['member']['image_url'],
+             'collabcard_id':collabcard_dict['collabcard']['id'],
+             'answer_text':answer_text
+
+             }
+    return render(request,'card.html',context)
+
+
 
 @login_required 
 def view_answers(request, card_id):
