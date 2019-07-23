@@ -737,3 +737,28 @@ def send_mail_for_signup(context,flag):
                                  )
     msg.attach_alternative(template, "text/html")
     return msg.send(fail_silently)
+
+
+def send_tester_mail(request):
+    '''function to send tester mail to user you don't have the mail'''
+    if request.method == 'POST':
+        tester_form=Tester_mail_form(request.POST)
+
+        if tester_form.is_valid():
+            user_name=tester_form.cleaned_data['name']
+            user_email=tester_form.cleaned_data['email']
+
+            context = {
+                'Name': user_name,
+                'url': 'https://play.google.com/apps/testing/com.collabmates',
+                'email': user_email
+            }
+            send_mail_for_signup(context, False)
+        else:
+            return HttpResponse('Some technical Error')
+        return HttpResponse('Tester Mail is Sent')
+
+    else:
+        tester_form=Tester_mail_form(request.POST)
+        context={'Tester_mail_form':tester_form}
+        return render(request,'dashboard/send_tester_mail.html',context)
