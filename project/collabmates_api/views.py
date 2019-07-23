@@ -9,7 +9,7 @@ from collabmates_api.serializers import CommunitySerializer
 from django.views.decorators.csrf import csrf_exempt
 from datetime import datetime 
 import time
-from .notification import send_follow_notification,send_notification_to_admins,send_notification_for_join_requests,send_notification_for_new_collabcard_posted,send_notification_to_proposed_admin
+from .notification import send_follow_notification,send_notification_to_admins,send_notification_for_join_requests,send_notification_for_new_collabcard_posted,send_notification_to_proposed_admin,send_notification_to_proposer
 from django.db.models import Q
 import dateutil.relativedelta
 from .tasks import send_email_to_nominated_admin
@@ -1269,8 +1269,9 @@ def accept_invitation(request):
                 update_member_count(community.id)
                 # set user hidden tag
                 set_user_tag(member_id, community.id)
-                # sending email to promoter , that user has accepted his request to beacome a promoter
+                #sending email to promoter , that user has accepted his request to beacome a promoter
                 send_email_to_proposed_admin.delay(NominatedAdmin=nom_admin[0].name,email=prop_admin.email,ProposedAdmin=prop_admin.name,proposedAdminState =1,CommunityName=community.name,community_id = community.id)
+                send_notification_to_proposer(prop_admin,community)
                 return JsonResponse({'success':True})
             # if the promoter is a temporary promoter
             elif promoter[0].state == 2:
@@ -1281,8 +1282,9 @@ def accept_invitation(request):
                 update_member_count(community.id)
                 # set user hidden tag
                 set_user_tag(member_id, community.id)
-                # sending email to promoter , that user has accepted his request to beacome a promoter
+                #sending email to promoter , that user has accepted his request to beacome a promoter
                 send_email_to_proposed_admin.delay(NominatedAdmin=nom_admin[0].name,email=prop_admin.email,ProposedAdmin=prop_admin.name,proposedAdminState=2,CommunityName=community.name,community_id = community.id)
+                send_notification_to_proposer(prop_admin, community)
                 return JsonResponse({'success':True})
         else:
             # if there are more than two admins , sent mail to the promoter who invited this member
@@ -1296,8 +1298,9 @@ def accept_invitation(request):
             update_member_count(community.id)
             # set user hidden tag
             set_user_tag(member_id, community.id)
-            # sending email to promoter , that user has accepted his request to become a promoter
+            #sending email to promoter , that user has accepted his request to become a promoter
             send_email_to_proposed_admin.delay(NominatedAdmin=nom_admin[0].name,email=prop_admin.email,ProposedAdmin=prop_admin.name,proposedAdminState=1,CommunityName=community.name,community_id = community.id)
+            send_notification_to_proposer(prop_admin, community)
             return JsonResponse({'success':True})
     else:
         # if nominated promoter didn't accept the invitation
