@@ -8,13 +8,14 @@
 <div class="card">
     <div class="content">
     
-      <div class="header"><img class="ui left aligned avatar image" src="{{creator.image_url}}">{{creator.name}}</div>
+      <div class="header"><img class="ui left aligned avatar image" src="{{image_url}}">{{creator}}</div>
       <div class="meta"></div>
       <div class="description">
       <br>
-        {{card.title}}
+        {{card}}
       </div>
-      
+        <br/>
+        <div style="font-size:12px;color:#00897b">{{answer_text}}</div>
     </div>
   </div>
   
@@ -25,7 +26,7 @@
 
       function join(){
       {% if user.is_authenticated %}
-          window.location.href = "../view_answers/{{card.id }}";
+          window.location.href = "../view_answers/{{collabcard_id}}";
       {% else %}
       $('.test')
       .modal('show');

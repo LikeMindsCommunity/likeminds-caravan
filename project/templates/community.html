@@ -35,6 +35,8 @@
         <link rel="stylesheet" href="{% static 'css/community.css' %}">
 
         <script>
+
+
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
@@ -101,6 +103,24 @@
    ans=ans+'...'
    $('#'+i).html(ans)
    }
+
+
+//function to auto accept the invitation
+   var community_id={{community.id}}
+   console.log(community_id)
+   {% if request.user.is_authenticated and cta == 'accept_admin' %}
+
+     if(localStorage.getItem('community_id') != community_id+""){
+        $(window).load(function(){
+           $('#accept').modal('show');
+            });
+        localStorage.setItem('community_id',community_id+"")
+    }
+   {% endif %}
+
+    console.log(localStorage)
+    //localStorage.clear()
+
              var showChar = 180;
                     var ellipsestext = "...";
                     var moretext = "more";
@@ -177,7 +197,7 @@
                 </div>
                 <div class="center aligned container">
                     <div class="content">
-                        {% if cta %}
+                        {% if cta != '' %}
                         <a href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta={{cta}}">
                             <button class="ui facebook button" style="width:130px;">
                                 {% else %}
@@ -194,7 +214,7 @@
                                 <br>
                                 <br>
                                 <div class="content">
-                                    {% if cta %}
+                                    {% if cta != '' %}
                                     <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta={{cta}}">
                                         <button class="ui linkedin button" style="width:130px;">
                                             {% else %}
@@ -210,7 +230,7 @@
                     <br>
 
 <!-- accept invitation model -->
-                    <div class="ui modal accept">
+                    <div class="ui modal accept" id="accept">
 
                         <div class="ui fluid card " style="border: 2px solid #1ebea5; margin:0 0 ; padding: 10px 10px;">
                             <h2 class="ui teal center aligned header">
