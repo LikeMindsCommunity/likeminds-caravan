@@ -165,27 +165,15 @@ def your_communities(request,user_id):
     member_id=request.GET.get('member_id')
 
     user = User.objects.get(id = member_id)
-    communities = Members.objects.all().filter(member_id = user_id).filter(Q(state=1)|Q(state=2)|Q(state=4)|Q(state=7))
-    print("communities === ",communities)
+    comm = Members.objects.select_related("community_id").filter(member_id = user).filter(Q(state=1)|Q(state=2)|Q(state=4)|Q(state=7)).order_by('-community_id__updated_at')
     my_communities = []
 
-    # making a tupple list and sorting communities based on date
-    tupple_list=[]
-    for each_community in communities:
-        update_time=Community.objects.filter(id=each_community.community_id.id).values('updated_at')
-
-        if len(update_time) == 0:
-
-            update_time=-9223372036854775808
-        else:
-            update_time=update_time[0]['updated_at']
-        x=(each_community.community_id,update_time)
-        tupple_list.append(x)
-
-    result = sorted(tupple_list, key= lambda x:x[1],reverse=True)
+    result=[]
+    for each_community in comm:
+        c = Community.objects.filter(id=each_community.community_id.id)
+        result.append(c)
 
     for each_community in result:
-
         if str(member_id) != str(user_id):
             if each_community[0].hide_community == '0':
                 my_communities.append(each_community[0])
@@ -222,23 +210,30 @@ def your_communities(request,user_id):
         else:
             new_dict['pending_members_count'] = 0
         new_dict['is_admin'] = is_admin
+        # getting the unseen cards
+        # getting the total cards of a community
         total_collabcards = Collabcard.objects.filter(community=community).order_by("-id").values('id')
+        # getting seen collabcards by the user from that community
         seen_collabcard = collabcard_seen.objects.filter(community=community, user=user_id).order_by("-id").values('card_id')
-
+        # unseen cards coubnt
         if (total_collabcards.count() - seen_collabcard.count()) <= 0:
+            # if zero or less than zero , unseen card count = 0
             new_dict['collabcard_unseen'] =0
         else:
             new_dict['collabcard_unseen'] = (total_collabcards.count() - seen_collabcard.count())
-
+        # getting unseen crad list by getting the difference between total cards and seen cards
         unseen_list  = total_collabcards.difference(seen_collabcard).values('id').distinct().order_by("-id")
 
         if total_collabcards.count()>0:
-
+        # if community has atleast one card
             if unseen_list.count() != 0:
+                # if the unseen cards are present
+                # show the latest unseen cards text
                 card = Collabcard.objects.get(id = unseen_list.values('id')[0]['id'])
             else:
+                # if no unseen cards , show latest card text
                 card = Collabcard.objects.get(id = total_collabcards.values('id')[0]['id'])
-
+            # show detaiuls of the latest card or latest unseen card
             collabcard = {}
             collabcard['id'] = card.id
             collabcard['title'] = card.title
@@ -252,10 +247,12 @@ def your_communities(request,user_id):
             else:
                 time =datetime.now()
                 time =str(time)
-                target_timestamp =datetime.strptime(time.strip(' \t\r\n'), "%Y-%m-%d %H:%M:%S.%f").strftime('%s') 
+                target_timestamp =datetime.strptime(time.strip(' \t\r\n'), "%Y-%m-%d %H:%M:%S.%f").strftime('%s')
+                # getting time stamp for the latest card
                 time_text = get_time_text(i.updated_at,target_timestamp)
 
             new_dict['updated_at'] = time_text
+            # getting user details who posted the latest card
             usr = {}
             user = Userinfo.objects.get(user_id = card.user)
             usr['id'] = user.user_id.id
@@ -364,13 +361,14 @@ def join_community_responses(request):
         current_state=Members.objects.filter(member_id=user,community_id=community).values('state')
         if current_state[0]['state'] == 5:
             Members.objects.filter(member_id=user, community_id=community).update(state=3)
+
     except:
+        # if not
         member = Members()
         member.member_id = user
         member.community_id = community
         member.state = 3  # pending members
         member.save()
-
     if 'questions' in res:
         for i in res['questions']:
             response = Form_response()
@@ -382,7 +380,6 @@ def join_community_responses(request):
     Community.objects.filter(id=community_id).update(updated_at=time.time())
 
     send_notification_to_admins(community_id,userinfo)
-
     return JsonResponse({'success':True})
 
 
@@ -883,7 +880,6 @@ def update_answer_text(card_id):
 
                 ans_text+= " & "+str(len(user_list)-1) + " others responded"
                 Collabcard.objects.filter(id=card_id).update(answer_text=ans_text)
-        
 
 @csrf_exempt
 def login(request):
