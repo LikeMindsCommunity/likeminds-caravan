@@ -94,7 +94,7 @@ WSGI_APPLICATION = 'project.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': 'togther',
+        'NAME': 'prod_dump_22_07_2019',
         'USER': 'apoorv',
         'PASSWORD': 'khare',
         'HOST': '127.0.0.1',
@@ -153,7 +153,7 @@ AUTHENTICATION_BACKENDS = (
     'social_core.backends.facebook.FacebookOAuth2',
     'social_core.backends.linkedin.LinkedinOAuth2',
     'django.contrib.auth.backends.ModelBackend',
-)   
+)
 
 SOCIAL_AUTH_FACEBOOK_KEY = '633859857057924'
 SOCIAL_AUTH_FACEBOOK_SECRET = 'f90d662fdb205e53f24a90009318a6d4'
@@ -235,7 +235,7 @@ EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 
 
-CORS_ORIGIN_ALLOW_ALL = True   
+CORS_ORIGIN_ALLOW_ALL = True
 
 FCM_DJANGO_SETTINGS = {
     "FCM_SERVER_KEY": "AAAAllezPSk:APA91bEYRnVqZGMS_YNTDwu4wJfQfbubN7jQtwvdAyZI6XvoRIjQPii9kj2joizPGJ8GhcoXpcIF5ftsZ-zyBuY9WzqS48b2JCZ51Lv8K9L56gMwBjLsW7tDSfntEqMtAQ9f8f024M5P",
