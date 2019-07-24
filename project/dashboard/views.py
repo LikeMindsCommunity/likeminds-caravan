@@ -578,6 +578,8 @@ def analytics(request):
 
     promoter_count=Members.objects.filter(Q(state=1)|Q(state=2)).values('member_id').distinct().count()
     member_count=Members.objects.filter(state=4).values('member_id').distinct().count()
+    conversations_count=Collabcard.objects.all().count()
+    responses_count=card_answers.objects.all().count()
     context={
         'community_count':community_count,
         'public_communities':public_communities,
@@ -585,7 +587,9 @@ def analytics(request):
         'user_count':user_count,
         'promoter_member_count':promoter_member_count,
         'promoter_count':promoter_count,
-        'member_count':member_count
+        'member_count':member_count,
+        'conversations_count':conversations_count,
+        'responses_count':responses_count
     }
     return render(request,'dashboard/analytics.html',context)
 
@@ -635,9 +639,18 @@ def add_hidden_tags(request):
     hidden_tag_id=request.GET.get('hidden_tag_id')
     community_id=request.GET.get('community_id')
     tag_id=int(hidden_tag_id)
+
+    if tag_id == 0:
+        query=Community_tags.objects.filter(community_id=community_id).filter(Q(tags_id=41)|Q(tags_id=42)).delete()
+        return JsonResponse({'success':'Tags Deleted'})
+
     tag_name=Tags.objects.filter(id=tag_id).values('category_name')
     tag_name=tag_name[0]['category_name']
     is_tag_present=Community_tags.objects.filter(community_id=community_id).filter(Q(tags_id=41)|Q(tags_id=42))
+
+    if is_tag_present:
+        for tag in is_tag_present:
+            Community_tags.objects.filter(id=tag.id).update(tags_id=tag_id,category=tag_name)
     community=Community.objects.get(id=community_id)
     if not is_tag_present:
         community_tags_object=Community_tags()
@@ -737,3 +750,28 @@ def send_mail_for_signup(context,flag):
                                  )
     msg.attach_alternative(template, "text/html")
     return msg.send(fail_silently)
+
+
+def send_tester_mail(request):
+    '''function to send tester mail to user you don't have the mail'''
+    if request.method == 'POST':
+        tester_form=Tester_mail_form(request.POST)
+
+        if tester_form.is_valid():
+            user_name=tester_form.cleaned_data['name']
+            user_email=tester_form.cleaned_data['email']
+
+            context = {
+                'Name': user_name,
+                'url': 'https://play.google.com/apps/testing/com.collabmates',
+                'email': user_email
+            }
+            send_mail_for_signup(context, False)
+        else:
+            return HttpResponse('Some technical Error')
+        return HttpResponse('Tester Mail is Sent')
+
+    else:
+        tester_form=Tester_mail_form(request.POST)
+        context={'Tester_mail_form':tester_form}
+        return render(request,'dashboard/send_tester_mail.html',context)

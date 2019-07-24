@@ -82,4 +82,11 @@ class SendNominatedEmail(forms.Form):
     proposed_name=forms.CharField(label='proposed_name', widget=forms.TextInput(attrs={'placeholder': 'Person who is nominted' ,'class':'form-control form-group'}))
     proposed_email=forms.EmailField(label='proposed_email', widget=forms.TextInput(attrs={'placeholder': 'Email' ,'class':'form-control form-group'}))
     proposed_no=forms.CharField(required=False,label='Contact no', widget=forms.TextInput(attrs={'placeholder': 'Optional' ,'class':'form-control form-group'}))
-    
+
+
+
+
+class Tester_mail_form(forms.Form):
+
+    name=forms.CharField(label='name',widget=forms.TextInput(attrs={'placeholder':'Name of person who recievs mail','class':'form-control form-group'}))
+    email=forms.EmailField(label='email', widget=forms.TextInput(attrs={'placeholder': 'Email' ,'class':'form-control form-group'}))

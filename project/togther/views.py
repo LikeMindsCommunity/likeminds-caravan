@@ -18,7 +18,7 @@ from django.core.mail import EmailMultiAlternatives
 url  = settings.URL
 
 #uncomment to run it in localhost
-#url='http://localhost:8000'
+# url='http://localhost:8000'
 
 api_url=url+'/api/'
 
@@ -37,88 +37,50 @@ def home(request):
         
 
 def dashboard(request):
+    ''' function to show all communities and filter based on categories '''
     if request.user.is_authenticated:
         user = Userinfo.objects.all().filter(user_id = request.user)
-        print("user == ", user)
-        social_user = request.user.social_auth.filter(user_id = request.user.id).first()
         created =False
         if not user :
-            social_user = request.user.social_auth.filter(user_id = request.user.id).first()
-            if social_user:
-                if social_user.provider == 'facebook':
-                    url = "https://graph.facebook.com/v2.9/"+social_user.extra_data['id']+"?fields=name,email,gender,location,picture,link&access_token="+social_user.extra_data['access_token']
-                    response = rqst.get(url)
-                    image_url = "http://graph.facebook.com/"+social_user.extra_data['id']+"/picture?width=400&height=400"
-                    data = json.loads(response.text)
-                    print(data)
-                    core_user = User.objects.all().filter(email = data['email']).first()
-                    print("django user == ",core_user)
-                    if core_user:
-                        user = Userinfo.objects.all().filter(user_id = core_user)
-                        print("userinfo== ",user)
-                        if not user:
-                            user = Userinfo()
-                            if 'name' in data:
-                                user.name = data['name']
-                            if 'email' in data:
-                                user.email = data['email'] 
-                            if 'location' in data:
-                                user.city = data['location']['name']
-                            user.image_url = image_url
-                            user.user_id = core_user
-                            user.login_type = 'facebook'
-                            user.login_json = data
-                            user.save()
-                            print("created userinfo")
-                            created =True
-                    else:
-                        if 'link' in data:
-                            usr1.fb_link = data['link']
-
-            if social_user.provider == 'linkedin-oauth2':
-                # accessing Linked In API to get user basic information
-                url = 'https://api.linkedin.com/v2/me?projection=(id,firstName,emailAddress,lastName,vanityName,headline,interests,location,picture-url,name,profilePicture(displayImage~:playableStreams))&oauth2_access_token='+social_user.extra_data['access_token']
-                email_url = 'https://api.linkedin.com/v2/emailAddress?q=members&projection=(elements*(handle~))&oauth2_access_token='+social_user.extra_data['access_token']
-                response = rqst.get(url)
-                # getting public details of user from Linked In
-                data_main = json.loads(response.text)
-                response = rqst.get(email_url)
-                email_data = json.loads(response.text)
-                # getting specific details from received Json
-                user_name = data_main['firstName']['localized']['en_US'] + " " + data_main['lastName']['localized']['en_US']
-                profile_picture = data_main['profilePicture']['displayImage~']['elements'][2]['identifiers'][0]['identifier']
-                email = email_data['elements'][0]['handle~']['emailAddress']
-                # checking if there is any user having details with the email we got from linkedIn
-                usr1 = Userinfo.objects.all().filter(email = email)
-                if not usr1:
-                    # if there is no user having th email , create a user info for the user
-                    user = Userinfo()
-                    user.name = user_name
-                    user.email = email
-                    user.image_url = profile_picture
-                    user.login_type = 'linkedIn'
-                    user.login_json = [data_main,email_data]
-                    user.user_id = request.user
-                    user.save()
-                    created = True
+            # if there is no user info for the user who is currently logged in
+            # create userinfo for current user
+            created, email, user = update_user_info(request)
         if created:
             print("created")
-            user_id = user.id
+            user_id = user.user_id
             print(user.id)
             usr =user
         else:
             print("user info already exists")
-            print(user)
-            user_id = user[0].id
+            user_id = user[0].user_id
             usr=user[0]
         communities1 = Members.objects.all().filter(member_id = user_id)
+
         my_communities = []
         for j in communities1:
             my_communities.append(j.community_id)
         my_community =[]
         for j in my_communities:
             my_community.append(j)
-        communities = Community.objects.filter(hide_community='0').order_by('-active_since')
+        user_id = request.user.id
+        # get user tag from function 'get_user_tag'
+        user_tag = get_user_tag(user_id)
+        if user_tag:
+            # if member has a hidden tag
+            user_tag = user_tag[0].tag_id
+        else:
+            # if member does not have a hidden tag
+            user_tag = 0
+        if user_tag != 0:
+            # if there is no category tag , then return communites based on user hidden tag
+            communities_by_tags = Community_tags.objects.filter(tags_id=user_tag).values('community_id').order_by(
+                "-community_id").distinct()
+            communities=[]
+            for i in communities_by_tags:
+                c = Community.objects.get(id=i['community_id'])
+                communities.append(c)
+        else:
+            communities = Community.objects.filter(hide_community='0').order_by('-active_since')
         return render (request, 'dashboard.html', {'usr': usr, 'communities' : communities, 'my_communities':my_community[:2], "my_communities_count": len(my_community) })
     else:
         user = []
@@ -205,8 +167,6 @@ def community(request, community_id):
                 except:
                     return HttpResponse('The community is not tagged ')
 
-
-                print('dsadadadasdasdas',community_tag)
                 return render(request, 'thankyou.html',
                             {'usr': user, 'similar_communities': data, 'community': community,'community_tag':community_tag})
     else:
@@ -278,7 +238,7 @@ def community(request, community_id):
     else:
         user = []
     print("last")
-    return render (request, 'community.html', {'usr':user,'similar_communities':communities , 'community' : community,'admins': admin_details, 'is_joined':is_joined, 'members':members,'source':source,'cta':cta,'Nom_mem_state':Nom_mem_state,'admin_length':len(admin_details)})
+    return render (request, 'community.html', {'usr':user,'similar_communities':communities , 'community' : community,'admins': admin_details, 'is_joined':is_joined, 'members':members,'source':source,'cta':cta,'Nom_mem_state':Nom_mem_state,'admin_length':len(admin_details),'similar_community_length':len(communities)})
 
 def update_user_info(request):
     user = Userinfo.objects.all().filter(user_id = request.user)
@@ -355,68 +315,18 @@ def get_nominated_admin_details(request,member_id,community_id,email):
 
 
 def accept_admin(request,community_id):
-    community = Community.objects.get(id=community_id)
-    member = Members.objects.filter(community_id = community).filter(Q(state=1)|Q(state=2))
-    core_user = User.objects.all().filter(email = request.user.email).first()
-    prop_admin = Userinfo.objects.get(user_id = member[0].member_id.id)
-    nom_admin = Userinfo.objects.all().filter(user_id = core_user.id)
-    member_id = request.user.id
+    ''' function to accept promoter invitation or decilne the invitation from web '''
+    # getting value attribute which says whether the user accepted or declined it
     accepted = request.GET.get('value','true')
+    # forming url to call accept admin android api
+    accept_url = api_url + 'accept_invitation'
+    # preparing the necessary parameters to be passed to accept_admin android api
+    params = {'member_id': request.user.id, 'community_id': community_id,'value':accepted}
+    # calling accept_admin android api and passing params
+    rqst.post(accept_url,params=params)
+    # redirecting to playstore
+    return HttpResponseRedirect("https://play.google.com/apps/testing/com.collabmates")
 
-    if accepted == 'true':
-
-        if len(member) == 1:
-            if member[0].state == 1:
-                print(nom_admin[0].name)
-                Members.objects.filter(community_id=community, member_id=core_user.id).update(state=1)
-                update_member_count(community.id)
-                # set user hidden tag
-                set_user_tag(core_user.id, community.id)
-                send_email_to_proposed_admin.delay(NominatedAdmin=nom_admin[0].name,email=prop_admin.email,ProposedAdmin=prop_admin.name,proposedAdminState =1,CommunityName=community.name,community_id = community.id)
-                return HttpResponseRedirect("https://play.google.com/apps/testing/com.collabmates")
-            elif member[0].state == 2:
-                temp_promoter = Members.objects.filter(community_id = community,state=2)
-                Members.objects.filter(community_id = community,member_id=temp_promoter[0].member_id).update(state =4)
-                Members.objects.filter(community_id = community,member_id=core_user.id).update(state =1)
-                update_member_count(community.id)
-                # set user hidden tag
-                set_user_tag(core_user.id, community.id)
-                send_email_to_proposed_admin.delay(NominatedAdmin=nom_admin[0].name,email=prop_admin.email,ProposedAdmin=prop_admin.name,proposedAdminState=2,CommunityName=community.name,community_id = community.id)
-                return HttpResponseRedirect("https://play.google.com/apps/testing/com.collabmates")
-        else:
-            # if there are more than two admins , sent mail to the promoter who invited this member
-            # getting the promoter ID from temp admin model
-            promoter_who_proposed = temp_admin.objects.filter(community_id=community, email=nom_admin[0].email)
-            # getting the promoter details
-            prop_admin = Userinfo.objects.get(user_id=promoter_who_proposed[0].member_id)
-            # make th current member a promoter of this community
-            Members.objects.filter(community_id=community, member_id=member_id).update(state=1)
-            # updating member count of the community
-            update_member_count(community.id)
-            # set user hidden tag
-            set_user_tag(member_id, community.id)
-            # sending email to promoter , that user has accepted his request to become a promoter
-            send_email_to_proposed_admin.delay(NominatedAdmin=nom_admin[0].name, email=prop_admin.email,
-                                               ProposedAdmin=prop_admin.name, proposedAdminState=1,
-                                               CommunityName=community.name, community_id=community.id)
-        return HttpResponseRedirect("https://play.google.com/apps/testing/com.collabmates")
-    else:
-        # if nominated promoter didn't accept the invitation
-        member = Members.objects.filter(community_id=community, member_id=member_id)
-        if member[0].state == 6:
-            print("member state == 6")
-            # deleting his details from temp admin model
-            usr = Userinfo.objects.get(user_id = member[0].member_id)
-            temp = temp_admin.objects.filter(community_id=community,email= usr.email)
-            temp.delete()
-            # if he is previously not a member of this community
-            # then delete the member from members model
-            Members.objects.filter(community_id=community, member_id=member_id).delete()
-        elif member[0].state == 7:
-            print("member state == 7")
-            # if he is previously not a member of this community , then make him member again
-            Members.objects.filter(community_id=community, member_id=member_id).update(state=4)
-    return redirect('comunity',community_id)
 
 def update_member_count(community_id):
     community = Community.objects.get(id=community_id)
@@ -827,26 +737,49 @@ def terms(request):
     return render(request,'terms.html')
 
 def collabcard(request, card_id):
-    if request.user.is_authenticated:
-        user = Userinfo.objects.all().filter(user_id = request.user)
-    else :
-        user = []
-    card = Collabcard.objects.get(id = card_id)
-    creator = Userinfo.objects.get(user_id = card.user)
-    community = card.community
-    print(user)
-    return render(request,'card.html' ,{'usr':user, 'card':card, 'creator': creator, 'community': community})
+
+    '''function to get data of collabcard'''
+
+    collabcard_url=api_url+'collabcard/' + str(card_id)
+    collabcard=rqst.get(collabcard_url)
+    collabcard_dict=json.loads(collabcard.content)
+
+    answers=collabcard_dict['answers']
+    if len(answers) == 0:
+        answer_text='Be the first to respond'
+    else:
+        answer_text=collabcard_dict['collabcard']['answer_text']
+    context={'card':collabcard_dict['collabcard']['title'],
+             'creator': collabcard_dict['collabcard']['member']['name'],
+             'image_url': collabcard_dict['collabcard']['member']['image_url'],
+             'collabcard_id':collabcard_dict['collabcard']['id'],
+             'answer_text':answer_text
+
+             }
+    return render(request,'card.html',context)
+
+
 
 @login_required 
 def view_answers(request, card_id):
-    cards = Collabcard.objects.get(id = card_id)
-    answer = card_answers.objects.filter(card = cards)
-    userinfo = Userinfo.objects.get(user_id = cards.user)
-    answers = []
-    for i in answer:
-        creator = Userinfo.objects.get(user_id = i.user.id)
-        answers.append({'answer':answer ,'creator':creator})
-    return render(request, 'answers.html',{'answers': answers, 'user':userinfo})
+
+    '''function to show the answers on web'''
+    collabcard_url=api_url+'collabcard/' + str(card_id)
+    collabcard=rqst.get(collabcard_url)
+    collabcard_dict=json.loads(collabcard.content)
+
+    context = {'card': collabcard_dict['collabcard']['title'],
+               'creator': collabcard_dict['collabcard']['member']['name'],
+               'user_image_url': collabcard_dict['collabcard']['member']['image_url'],
+               'answers':collabcard_dict['answers']
+
+               }
+    return render(request,'answers.html',context)
+
+
+
+
+
 
 
 def set_user_tag(user_id,community_id):

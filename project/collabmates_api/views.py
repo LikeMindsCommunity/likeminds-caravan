@@ -9,7 +9,7 @@ from collabmates_api.serializers import CommunitySerializer
 from django.views.decorators.csrf import csrf_exempt
 from datetime import datetime 
 import time
-from .notification import send_follow_notification,send_notification_to_admins,send_notification_for_join_requests,send_notification_for_new_collabcard_posted,send_notification_to_proposed_admin
+from .notification import send_follow_notification,send_notification_to_admins,send_notification_for_join_requests,send_notification_for_new_collabcard_posted,send_notification_to_proposed_admin,send_notification_to_proposer
 from django.db.models import Q
 import dateutil.relativedelta
 from .tasks import send_email_to_nominated_admin
@@ -67,9 +67,9 @@ def get_communities_by_tags(user_tag=0, category_tag=0,page_number=1):
             get communities ,which are the intersection of given category and user hidden tag '''
 
         # get communities based on category tag
-        category_tag = Community_tags.objects.filter(tags_id=category_tag).values('community_id').order_by("-community_id").distinct()
+        category_tag = Community_tags.objects.filter(tags_id=category_tag).values('community_id')
         # get communities based on user hidden tag
-        user_tag = Community_tags.objects.filter(tags_id=user_tag).values('community_id').order_by("-community_id").distinct()
+        user_tag = Community_tags.objects.filter(tags_id=user_tag).values('community_id')
         #intersect both of the querysets
         res = category_tag.intersection(user_tag).order_by("-community_id").distinct()
         #paginating the resultant queryset
@@ -80,22 +80,23 @@ def get_communities_by_tags(user_tag=0, category_tag=0,page_number=1):
     if category_tag == 0 and user_tag == 0:
         # if there is not category tag and user does not have a hidden tag too
         # just return him all the communites
-        community =  Community_tags.objects.all().values('community_id').order_by("-community_id").distinct()
+        community =  Community_tags.objects.values('community_id').order_by("-community_id").distinct()
         # paginating the communities
         queryset = pagination(community, page_number)
-        return  queryset
+        return queryset
 
-    if category_tag == 0:
+    if category_tag == 0 and user_tag != 0:
         # if there is no category tag , then return communites based on user hidden tag
         user_tag = Community_tags.objects.filter(tags_id=user_tag).values('community_id').order_by("-community_id").distinct()
         queryset = pagination(user_tag, page_number)
         return queryset
 
-    if user_tag == 0:
+    if user_tag == 0 and category_tag != 0:
         # if there is no user hidden tag , then return communites based on category tag
         category_tag = Community_tags.objects.filter(tags_id=category_tag).values('community_id').order_by("-community_id").distinct()
         queryset = pagination(category_tag, page_number)
         return queryset
+
 
 def serialize_community(queryset,user_id ):
     ''' this function gives us a dictionary of community/communities objects based on given queryset '''
@@ -112,32 +113,36 @@ def serialize_community(queryset,user_id ):
 
         if c.hide_community == '0':
             # if not hidden , pass the community object to serializer
-            serializer_class = CommunitySerializer(c)
+            serializer_class = get_community_dict(c)
             new_dict = {}
             # form a dictionary of community objects
-            new_dict.update(serializer_class.data)
+            new_dict.update(serializer_class)
 
             # appending all other necessary details of community
-            if new_dict['image_url']:
-                new_dict['image_url'] = url + new_dict['image_url']
-            else:
+            if not new_dict['image_url']:
                 new_dict[
                     'image_url'] = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQMUCHvC0wEVO5yDMe9wddUoagIqQ3VPH0nm8_VtjK5gk3M0mMO'
 
-            member = Members.objects.all().filter(community_id=c.id)
-            is_member = False
-            for m in member:
-                if m.member_id == user_id:
-                    is_member = True
-
-            new_dict['is_member'] = is_member
+            new_dict['is_member'] = ''
             new_dict['share_url'] = url + '/community/' + str(new_dict['id'])
             new_dict['date'] = c.active_since
-            new_dict['members_count'] = update_member_count(c.id)
+            new_dict['members_count'] = get_member_count(c)
 
             community.append(new_dict)
     # return dictionary
     return community
+
+
+def get_community_dict(community):
+    # function to serialize a community object
+    return {
+        'id': community.id,
+        'name': community.name,
+        'purpose': community.purpose,
+        'image_url': url +"/media/"+str(community.image_url),
+        'about': community.about,
+        'location': community.location,
+    }
 
 
 def pagination(queryset,page_number):
@@ -154,21 +159,134 @@ def pagination(queryset,page_number):
     return queryset
 
 
+# def your_communities(request,user_id):
+#     '''This function is used to see your communities based on user id'''
+#
+#     member_id=request.GET.get('member_id')
+#
+#     user = User.objects.get(id = member_id)
+#     comm = Members.objects.select_related("community_id").filter(member_id = user).filter(Q(state=1)|Q(state=2)|Q(state=4)|Q(state=7)).order_by('-community_id__updated_at')
+#     my_communities = []
+#
+#     result=[]
+#     for each_community in comm:
+#         c = Community.objects.filter(id=each_community.community_id.id)
+#         result.append(c)
+#
+#     for each_community in result:
+#         if str(member_id) != str(user_id):
+#             if each_community[0].hide_community == '0':
+#                 my_communities.append(each_community[0])
+#
+#         else:
+#             member_id=user_id
+#             if each_community[0].hide_community == '2':
+#                 continue
+#             my_communities.append(each_community[0])
+#     my_community =[]
+#
+#     for i in my_communities:
+#         members = Members.objects.all().filter(community_id = i.id)
+#         serializer_class = get_community_dict(i)
+#         comm = serializer_class
+#         for j in members:
+#             if j.member_id == user:
+#                 comm['is_member'] = True
+#             else:
+#                 comm['is_member'] = False
+#         new_dict = {}
+#         new_dict.update(serializer_class)
+#         if not new_dict['image_url']:
+#             new_dict['image_url'] = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQMUCHvC0wEVO5yDMe9wddUoagIqQ3VPH0nm8_VtjK5gk3M0mMO'
+#         new_dict['share_url']= url+'/community/'+str(new_dict['id'])
+#         is_admin = False
+#         community = Community.objects.get(id = new_dict['id'])
+#         community_admins = Members.objects.filter(community_id = i).filter(member_id =user_id)
+#         pending_requests = Members.objects.filter(community_id = community.id).filter(state = 3)
+#
+#         if (community_admins[0].state == 1 or community_admins[0].state==2):
+#             new_dict['pending_members_count'] = pending_requests.count()
+#             is_admin = True
+#         else:
+#             new_dict['pending_members_count'] = 0
+#         new_dict['is_admin'] = is_admin
+#         # getting the unseen cards
+#         # getting the total cards of a community
+#         total_collabcards = Collabcard.objects.filter(community=community).order_by("-id").values('id')
+#         # getting seen collabcards by the user from that community
+#         seen_collabcard = collabcard_seen.objects.filter(community=community, user=user_id).order_by("-id").values('card_id')
+#         # unseen cards coubnt
+#         if (total_collabcards.count() - seen_collabcard.count()) <= 0:
+#             # if zero or less than zero , unseen card count = 0
+#             new_dict['collabcard_unseen'] =0
+#         else:
+#             new_dict['collabcard_unseen'] = (total_collabcards.count() - seen_collabcard.count())
+#         # getting unseen crad list by getting the difference between total cards and seen cards
+#         unseen_list  = total_collabcards.difference(seen_collabcard).values('id').distinct().order_by("-id")
+#
+#         if total_collabcards.count()>0:
+#         # if community has atleast one card
+#             if unseen_list.count() != 0:
+#                 # if the unseen cards are present
+#                 # show the latest unseen cards text
+#                 card = Collabcard.objects.get(id = unseen_list.values('id')[0]['id'])
+#             else:
+#                 # if no unseen cards , show latest card text
+#                 card = Collabcard.objects.get(id = total_collabcards.values('id')[0]['id'])
+#             # show detaiuls of the latest card or latest unseen card
+#             collabcard = {}
+#             collabcard['id'] = card.id
+#             collabcard['title'] = card.title
+#             collabcard['community'] = community.id
+#             collabcard['share_url'] = url+'/collabcard/'+str(card.id)
+#             collabcard['answer_text'] = ''
+#             new_dict['collabcard'] = collabcard
+#
+#             if str(i.updated_at) == "-9223372036854775808":
+#                 time_text=""
+#             else:
+#                 time =datetime.now()
+#                 time =str(time)
+#                 target_timestamp =datetime.strptime(time.strip(' \t\r\n'), "%Y-%m-%d %H:%M:%S.%f").strftime('%s')
+#                 # getting time stamp for the latest card
+#                 time_text = get_time_text(i.updated_at,target_timestamp)
+#
+#             new_dict['updated_at'] = time_text
+#             # getting user details who posted the latest card
+#             usr = {}
+#             user = Userinfo.objects.get(user_id = card.user)
+#             usr['id'] = user.user_id.id
+#             usr["name"] = user.name
+#             usr["email"] = user.email
+#             usr["city"] = user.city
+#             usr["headline"] = user.headline
+#             usr["contact_number"] = user.contact_number
+#             usr["image_url"] = url+user.image_file.url
+#             usr["about"] = user.about
+#             usr["fb_link"] = user.fb_link
+#             usr["linkedin_link"] = user.linkedin_link
+#             collabcard['member'] = usr
+#
+#         my_community.append(new_dict)
+#     return JsonResponse({'your_communities':my_community})
+
 def your_communities(request,user_id):
     '''This function is used to see your communities based on user id'''
 
     member_id=request.GET.get('member_id')
 
     user = User.objects.get(id = member_id)
+    # getting communities of the member from member model based on member state
     communities = Members.objects.all().filter(member_id = user_id).filter(Q(state=1)|Q(state=2)|Q(state=4)|Q(state=7))
     my_communities = []
 
     # making a tupple list and sorting communities based on date
     tupple_list=[]
+    # sorting communities based on its updated time
     for each_community in communities:
         update_time=Community.objects.filter(id=each_community.community_id.id).values('updated_at')
 
-        if len(update_time) == 0:
+        if update_time.count() == 0:
 
             update_time=-9223372036854775808
         else:
@@ -262,7 +380,7 @@ def your_communities(request,user_id):
             else:
                 time =datetime.now()
                 time =str(time)
-                target_timestamp =datetime.strptime(time.strip(' \t\r\n'), "%Y-%m-%d %H:%M:%S.%f").strftime('%s') 
+                target_timestamp =datetime.strptime(time.strip(' \t\r\n'), "%Y-%m-%d %H:%M:%S.%f").strftime('%s')
                 time_text = get_time_text(i.updated_at,target_timestamp)
 
             new_dict['updated_at'] = time_text
@@ -297,7 +415,7 @@ def community(request, community_id):
 
     if len(community) > 0:
 
-        community[0]['share_text_admin']= """Hi, I have added %s community on CollabMates. It will be good if you  join this community.\n"""%(community[0]['name'])
+        community[0]['share_text_admin']= """Hi, I have added %s community on CollabMates. It will be good if you can join this community.\n"""%(community[0]['name'])
         community[0]['share_text_member']="""I recently joined %s community on CollabMates. It will be good if you also join this community.\n"""%(community[0]['name'])
         community[0]['share_text_anonymous']="""I recently discovered %s community on CollabMates. You can join this community using this link.\n"""%(community[0]['name'])
     return JsonResponse({'community': community[0]})
@@ -315,7 +433,31 @@ def similar_community(request, community_id):
         user_tag = 0
     # getting communities based on user hidden tags
     queryset = get_communities_by_tags(user_tag=user_tag)[:11]
-    community = serialize_community(queryset=queryset, user_id=user_id)
+    community = []
+    for i in queryset:
+
+        # if the queryset is of type dictionary
+        c = Community.objects.get(id=i['community_id'])
+        # check if the community is hidden or not
+
+        if c.hide_community == '0' and c.id != community_id:
+            # if not hidden , pass the community object to serializer
+            serializer_class = get_community_dict(c)
+            new_dict = {}
+            # form a dictionary of community objects
+            new_dict.update(serializer_class)
+
+            # appending all other necessary details of community
+            if not new_dict['image_url']:
+                new_dict[
+                    'image_url'] = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQMUCHvC0wEVO5yDMe9wddUoagIqQ3VPH0nm8_VtjK5gk3M0mMO'
+
+            new_dict['is_member'] = ''
+            new_dict['share_url'] = url + '/community/' + str(new_dict['id'])
+            new_dict['date'] = c.active_since
+            new_dict['members_count'] = get_member_count(c)
+
+            community.append(new_dict)
     return JsonResponse({'communities': community})
 
 def join_community(request, community_id):
@@ -351,13 +493,14 @@ def join_community_responses(request):
         current_state=Members.objects.filter(member_id=user,community_id=community).values('state')
         if current_state[0]['state'] == 5:
             Members.objects.filter(member_id=user, community_id=community).update(state=3)
+
     except:
+        # if not
         member = Members()
         member.member_id = user
         member.community_id = community
         member.state = 3  # pending members
         member.save()
-
     if 'questions' in res:
         for i in res['questions']:
             response = Form_response()
@@ -369,7 +512,6 @@ def join_community_responses(request):
     Community.objects.filter(id=community_id).update(updated_at=time.time())
 
     send_notification_to_admins(community_id,userinfo)
-
     return JsonResponse({'success':True})
 
 
@@ -870,7 +1012,6 @@ def update_answer_text(card_id):
 
                 ans_text+= " & "+str(len(user_list)-1) + " others responded"
                 Collabcard.objects.filter(id=card_id).update(answer_text=ans_text)
-        
 
 @csrf_exempt
 def login(request):
@@ -987,6 +1128,8 @@ def create_admin(request,community_id):
     return HttpResponse('Add Admin Api')
 
 def check_member(email,community_id,member_id,res):
+    """ check if the user is already a member of the invited community and make user as nominated promoter
+     if he is registered in collabmates and if the user is not registered just send the user a invitation email """
     ProposedAdmin = Userinfo.objects.get(user_id = member_id)
     community = Community.objects.get(id = community_id)
     proposedAdminState = Members.objects.filter(member_id=ProposedAdmin.user_id,community_id = community)
@@ -999,36 +1142,45 @@ def check_member(email,community_id,member_id,res):
         user = Userinfo.objects.filter(email=email)
 
         if user:
-            print("user is present")
+            """ if the user is present get user details """
             NominatedAdmin_id = user[0].user_id.id
             NominatedAdmin=user[0].name
         else:
-            print("user is not present")
+            """ if the user is not present just user a email"""
             send_email_to_nominated_admin.delay(NominatedAdmin=res['name'],email=email,ProposedAdmin=ProposedAdmin,proposedAdminState = proposedAdminState,CommunityName=CommunityName,community_id =community.id)
             return False
     except:
-        print("except block email")
+        """ if any error trying fetch the user details , then user is not registered , send an email"""
         send_email_to_nominated_admin.delay(NominatedAdmin=res['name'],email=email,ProposedAdmin=ProposedAdmin,proposedAdminState = proposedAdminState,CommunityName=CommunityName,community_id =community.id)
         return False
+
     if user:
+        # get the state of the user of the community he is proposed to become a promoter for
         member =Members.objects.filter(community_id = community,member_id = user[0].user_id.id)
-        print("member  == ",member)
+
         if member and member[0].state == 4:
-            print("member is meber")
+            # if the user is already a member , give him state 7
+            # state 7 is nominted promoter who is already a member of thet community
             Members.objects.filter(community_id = community,member_id = user[0].user_id.id).update(state=7)
+            # send mail and notification
             send_email_to_nominated_admin.delay(NominatedAdmin=NominatedAdmin,email=email,ProposedAdmin=ProposedAdmin,proposedAdminState = proposedAdminState,CommunityName=CommunityName,community_id =community.id)
             send_notification_to_proposed_admin(nominated_admin_id = NominatedAdmin_id, community_id= community.id, proposed_admin_name=ProposedAdmin )
+
         elif member and (member[0].state == 6 or member[0].state == 7):
+            # if he is nominated again just send hime a remainding mail and notification
             send_email_to_nominated_admin.delay(NominatedAdmin=NominatedAdmin,email=email,ProposedAdmin=ProposedAdmin,proposedAdminState = proposedAdminState,CommunityName=CommunityName,community_id =community.id)
             send_notification_to_proposed_admin(nominated_admin_id = NominatedAdmin_id, community_id= community.id, proposed_admin_name=ProposedAdmin )
-            print("member is already nominated")
+
         else:
-            print("member is created")
+            # if user is not anything to the community and he is nominated as promoter
+            # create a member instance , making the user a nominated promoter giving user state = 6
+            # state 6 is nominated member who was never involved in that community
             member =Members()
             member.community_id = community
             member.member_id = user[0].user_id
             member.state = 6
             member.save()
+            # send mail and notification
             send_email_to_nominated_admin.delay(NominatedAdmin=NominatedAdmin,email=email,ProposedAdmin=ProposedAdmin,proposedAdminState = proposedAdminState,CommunityName=CommunityName,community_id =community.id)
             send_notification_to_proposed_admin(nominated_admin_id = NominatedAdmin_id, community_id= community.id, proposed_admin_name=ProposedAdmin )
         return True
@@ -1245,8 +1397,9 @@ def accept_invitation(request):
                 update_member_count(community.id)
                 # set user hidden tag
                 set_user_tag(member_id, community.id)
-                # sending email to promoter , that user has accepted his request to beacome a promoter
+                #sending email to promoter , that user has accepted his request to beacome a promoter
                 send_email_to_proposed_admin.delay(NominatedAdmin=nom_admin[0].name,email=prop_admin.email,ProposedAdmin=prop_admin.name,proposedAdminState =1,CommunityName=community.name,community_id = community.id)
+                send_notification_to_proposer(prop_admin,community,nom_admin[0].name)
                 return JsonResponse({'success':True})
             # if the promoter is a temporary promoter
             elif promoter[0].state == 2:
@@ -1257,8 +1410,9 @@ def accept_invitation(request):
                 update_member_count(community.id)
                 # set user hidden tag
                 set_user_tag(member_id, community.id)
-                # sending email to promoter , that user has accepted his request to beacome a promoter
+                #sending email to promoter , that user has accepted his request to beacome a promoter
                 send_email_to_proposed_admin.delay(NominatedAdmin=nom_admin[0].name,email=prop_admin.email,ProposedAdmin=prop_admin.name,proposedAdminState=2,CommunityName=community.name,community_id = community.id)
+                send_notification_to_proposer(prop_admin, community,nom_admin[0].name)
                 return JsonResponse({'success':True})
         else:
             # if there are more than two admins , sent mail to the promoter who invited this member
@@ -1272,8 +1426,9 @@ def accept_invitation(request):
             update_member_count(community.id)
             # set user hidden tag
             set_user_tag(member_id, community.id)
-            # sending email to promoter , that user has accepted his request to become a promoter
+            #sending email to promoter , that user has accepted his request to become a promoter
             send_email_to_proposed_admin.delay(NominatedAdmin=nom_admin[0].name,email=prop_admin.email,ProposedAdmin=prop_admin.name,proposedAdminState=1,CommunityName=community.name,community_id = community.id)
+            send_notification_to_proposer(prop_admin, community,nom_admin[0].name)
             return JsonResponse({'success':True})
     else:
         # if nominated promoter didn't accept the invitation
@@ -1295,15 +1450,17 @@ def accept_invitation(request):
 
     return JsonResponse({'success': False})
 
+def get_member_count(community):
+    return Members.objects.filter(community_id=community).filter(Q(state=1)|Q(state=2)|Q(state=4)|Q(state=7)).count()
 
 def update_member_count(community_id):
     ''' update members count of a community , when a promoter or member joins a community '''
     community = Community.objects.get(id=community_id)
     # getting the count of members including admins in a community
-    count = Members.objects.filter(community_id=community).filter(Q(state=1)|Q(state=2)|Q(state=4))
+    count = Members.objects.filter(community_id=community).filter(Q(state=1)|Q(state=2)|Q(state=4)|Q(state=7)).count()
     # updating count
-    Community.objects.filter(id=community_id).update(members_count = len(count))
-    return len(count)
+    Community.objects.filter(id=community_id).update(members_count = count)
+    return
 
 @csrf_exempt
 def edit_community(request):
@@ -1337,8 +1494,6 @@ def edit_community(request):
     new_dict.update(serializer_class.data)
 
     return JsonResponse({'success': True,'community':new_dict})
-
-
 
 
 def edit_questions(questions,community_id):
