@@ -3,14 +3,15 @@
 
 {% block content %}
 <div class="content"  style="background:rgba(0,137,123,0.5)">
+
 <div class="ui container">
 <div class="ui big horizontal divided list">
 
     <div class="item">
     <br>
-        <img class="ui avatar image" src="{{user.image_url}}" style="float:left;">
+        <img class="ui avatar image" src="{{user_image_url}}" style="float:left;">
         <div class="content" style="font-size:12px; float:left ;width:85%;">
-        <div  style="font-size:1rem; color: #00897b !important;">{{answers.0.answer.0.card.title}}</div>
+        <div  style="font-size:1rem; color: #00897b !important;">{{card}}</div>
         </div>
         <br><br><br><br>
     </div>
@@ -18,19 +19,21 @@
 </div>
 </div>
 </div>
-<div class="ui raised padded text container segment" style="margin: 1em 1em !important;">
+
 {% for i in answers %}
+<div class="ui raised padded text container segment" style="margin: 1em 1em !important;">
 <div class="card">
     <div class="content">
     
-      <div ><img class="ui left aligned avatar image"  src="{{i.creator.image_url}}">{{i.creator.name}}</div>
+      <div ><img class="ui left aligned avatar image"  src="{{i.member.image_url}}">{{i.member.name}}</div>
       <div class="meta"></div>
       <div class="description" style="font-size:14px;">
       <br>
-        {{i.answer.0.answer}}
+        {{i.answer}}
       </div>
     </div>
   </div>
+</div>
 {% endfor %}
 </div>
 

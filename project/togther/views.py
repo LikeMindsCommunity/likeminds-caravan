@@ -868,14 +868,24 @@ def collabcard(request, card_id):
 
 @login_required 
 def view_answers(request, card_id):
-    cards = Collabcard.objects.get(id = card_id)
-    answer = card_answers.objects.filter(card = cards)
-    userinfo = Userinfo.objects.get(user_id = cards.user)
-    answers = []
-    for i in answer:
-        creator = Userinfo.objects.get(user_id = i.user.id)
-        answers.append({'answer':answer ,'creator':creator})
-    return render(request, 'answers.html',{'answers': answers, 'user':userinfo})
+
+    '''function to show the answers on web'''
+    collabcard_url=api_url+'collabcard/' + str(card_id)
+    collabcard=rqst.get(collabcard_url)
+    collabcard_dict=json.loads(collabcard.content)
+
+    context = {'card': collabcard_dict['collabcard']['title'],
+               'creator': collabcard_dict['collabcard']['member']['name'],
+               'user_image_url': collabcard_dict['collabcard']['member']['image_url'],
+               'answers':collabcard_dict['answers']
+
+               }
+    return render(request,'answers.html',context)
+
+
+
+
+
 
 
 def set_user_tag(user_id,community_id):
