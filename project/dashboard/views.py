@@ -13,7 +13,14 @@ from collabmates_api.notification import send_notification_for_join_requests,sen
 from django.conf import settings
 import json
 from django.http.response import JsonResponse
-url  = settings.URL
+import requests as rqst
+
+url = settings.URL
+
+# uncomment to run it in localhost
+# url='http://localhost:8000'
+
+api_url = url + '/api/'
 
 def dashboard(request):
   '''function to give list of community to edit'''
@@ -335,8 +342,10 @@ def all_user(request):
         user_dic['tags_count'] = tags_count
         user_dic['fb_link'] = i.fb_link
         user_dic['linkedin_link'] = i.linkedin_link
-        users_list.append(user_dic)
 
+        communities_count = Members.objects.all().filter(member_id=i.user_id).count()
+        user_dic['communities_count']=communities_count
+        users_list.append(user_dic)
     return render(request, 'dashboard/all_user.html', {'all_user': users_list})
 
 
@@ -775,3 +784,48 @@ def send_tester_mail(request):
         tester_form=Tester_mail_form(request.POST)
         context={'Tester_mail_form':tester_form}
         return render(request,'dashboard/send_tester_mail.html',context)
+
+def user_communities(request,user_id):
+    """ function to get user communities """
+
+    my_communities,count = get_user_communities(user_id)
+    communities=[]
+    for community in my_communities:
+        comm={"name":community.name}
+        mem_state_url = api_url + 'members_state'
+        params = {'member_id': user_id,"community_id" : community.id}
+        response = rqst.get(mem_state_url,params=params)
+        if response.status_code == 200:
+            state = json.loads(response.content.decode('utf-8'))['state']
+            if state and state ==1:
+                comm['state'] = 'Promoter'
+            elif state and state ==2:
+                comm['state'] = "Temporary Promoter"
+            elif state and state == 3:
+                comm['state'] = 'Pending'
+            elif state and state == 4:
+                comm['state'] = 'Member'
+            elif state and state == 6:
+                comm['state'] = 'Nominated Promoter'
+            elif state and state == 7:
+                comm['state'] = 'Nominated Promoter(already a member)'
+            elif state and state == 5:
+                comm['state'] = 'Declined by Promoter'
+
+        communities.append(comm)
+
+    return render(request,'dashboard/user_communities.html',{"my_communities":communities,'count':count})
+
+def get_user_communities(user_id):
+    ''' function to get users communities '''
+    
+    communities1 = Members.objects.all().filter(member_id=user_id)
+
+    my_communities = []
+    for j in communities1:
+        my_communities.append(j.community_id)
+    my_community = []
+    for j in my_communities:
+        my_community.append(j)
+
+    return my_community,communities1.count()
