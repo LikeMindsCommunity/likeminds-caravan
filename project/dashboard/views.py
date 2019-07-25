@@ -820,13 +820,13 @@ def user_communities(request,user_id):
 def get_user_communities(user_id):
     ''' function to get users communities '''
 
-    communities1 = Members.objects.all().filter(member_id=user_id)
+    communities = Members.objects.all().filter(member_id=user_id)
 
     my_communities = []
-    for j in communities1:
-        my_communities.append(j.community_id)
+    for community in communities:
+        my_communities.append(community.community_id)
     my_community = []
-    for j in my_communities:
-        my_community.append(j)
+    for community in my_communities:
+        my_community.append(community)
 
-    return my_community,communities1.count()
+    return my_community,communities.count()
