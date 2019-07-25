@@ -797,20 +797,21 @@ def user_communities(request,user_id):
         response = rqst.get(mem_state_url,params=params)
         if response.status_code == 200:
             state = json.loads(response.content.decode('utf-8'))['state']
-            if state and state ==1:
-                comm['state'] = 'Promoter'
-            elif state and state ==2:
-                comm['state'] = "Temporary Promoter"
-            elif state and state == 3:
-                comm['state'] = 'Pending'
-            elif state and state == 4:
-                comm['state'] = 'Member'
-            elif state and state == 6:
-                comm['state'] = 'Nominated Promoter'
-            elif state and state == 7:
-                comm['state'] = 'Nominated Promoter(already a member)'
-            elif state and state == 5:
-                comm['state'] = 'Declined by Promoter'
+            if state
+                if state ==1:
+                    comm['state'] = 'Promoter'
+                elif state ==2:
+                    comm['state'] = "Temporary Promoter"
+                elif state == 3:
+                    comm['state'] = 'Pending'
+                elif state == 4:
+                    comm['state'] = 'Member'
+                elif state == 6:
+                    comm['state'] = 'Nominated Promoter'
+                elif state == 7:
+                    comm['state'] = 'Nominated Promoter(already a member)'
+                elif state == 5:
+                    comm['state'] = 'Declined by Promoter'
 
         communities.append(comm)
 
@@ -818,7 +819,7 @@ def user_communities(request,user_id):
 
 def get_user_communities(user_id):
     ''' function to get users communities '''
-    
+
     communities1 = Members.objects.all().filter(member_id=user_id)
 
     my_communities = []
