@@ -343,7 +343,7 @@ def all_user(request):
         user_dic['fb_link'] = i.fb_link
         user_dic['linkedin_link'] = i.linkedin_link
 
-        communities_count = Members.objects.all().filter(member_id=i.user_id).count()
+        communities_count = Members.objects.all().filter(member_id=i.user_id).filter(~Q(state=0)).count()
         user_dic['communities_count']=communities_count
         users_list.append(user_dic)
     return render(request, 'dashboard/all_user.html', {'all_user': users_list})
@@ -812,7 +812,6 @@ def user_communities(request,user_id):
                     comm['state'] = 'Nominated Promoter(already a member)'
                 elif state == 5:
                     comm['state'] = 'Declined by Promoter'
-
         communities.append(comm)
 
     return render(request,'dashboard/user_communities.html',{"my_communities":communities,'count':count})
@@ -820,7 +819,7 @@ def user_communities(request,user_id):
 def get_user_communities(user_id):
     ''' function to get users communities '''
 
-    communities = Members.objects.all().filter(member_id=user_id)
+    communities = Members.objects.all().filter(member_id=user_id).filter(~Q(state=0))
 
     my_communities = []
     for community in communities:
