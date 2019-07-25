@@ -797,7 +797,7 @@ def user_communities(request,user_id):
         response = rqst.get(mem_state_url,params=params)
         if response.status_code == 200:
             state = json.loads(response.content.decode('utf-8'))['state']
-            if state
+            if state:
                 if state ==1:
                     comm['state'] = 'Promoter'
                 elif state ==2:
