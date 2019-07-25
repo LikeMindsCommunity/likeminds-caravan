@@ -135,8 +135,11 @@ a.article-title:hover {
 
       <a class="btn btn-primary btn-sm mt-1 mb-1 mr-4 " href="{% url 'alpha_sign_up_mail' user.user_id %}">Alpha SignUp</a>
      <a class="btn btn-info btn-sm mt-1 mb-1 mr-4 " href="{% url 'testing_sign_up_mail' user.user_id %}">Tester Signup</a>
-
-
+           {% if user.communities_count == 0 %}
+        <a class="btn btn-danger btn-sm mt-1 mb-1 mr-4 " href="{% url 'user_communities' user.user_id %}">Communities : ({{user.communities_count}})</a>
+        {% else %}
+        <a class="btn btn-info btn-sm mt-1 mb-1 mr-4 " href="{% url 'user_communities' user.user_id %}">Communities : ({{user.communities_count}})</a>
+{% endif %}
 
 </article>
   {% endfor %}
