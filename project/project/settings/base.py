@@ -97,7 +97,7 @@ DATABASES = {
         'NAME': 'togther',
         'USER': 'nateshr',
         'PASSWORD': 'connectNRpostgresql',
-        'HOST': 'http://collabmatesdatabase.cgx3gr7xnezq.ap-south-1.rds.amazonaws.com',
+        'HOST': 'collabmatesdatabase.cgx3gr7xnezq.ap-south-1.rds.amazonaws.com',
         'PORT': '5432',
     }
 }
