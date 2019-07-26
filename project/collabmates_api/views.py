@@ -5,7 +5,7 @@ from togther.forms import *
 from django.contrib.auth.models import User
 import json
 from django.http.response import JsonResponse
-from collabmates_api.serializers import CommunitySerializer
+from collabmates_api.serializers import *
 from django.views.decorators.csrf import csrf_exempt
 from datetime import datetime 
 import time
@@ -16,7 +16,7 @@ from .tasks import send_email_to_nominated_admin
 from django.conf import settings
 from togther.tasks import send_email_to_proposed_admin
 from django.core.paginator import Paginator
-from togther.views import set_user_tag, get_user_tag
+from togther.views import set_user_tag, get_user_tag,get_nominated_admin_details
 
 url  = settings.URL
 
@@ -113,7 +113,7 @@ def serialize_community(queryset,user_id ):
 
         if c.hide_community == '0':
             # if not hidden , pass the community object to serializer
-            serializer_class = get_community_dict(c)
+            serializer_class = CommunitySerializer(c)
             new_dict = {}
             # form a dictionary of community objects
             new_dict.update(serializer_class)
@@ -131,18 +131,6 @@ def serialize_community(queryset,user_id ):
             community.append(new_dict)
     # return dictionary
     return community
-
-
-def get_community_dict(community):
-    # function to serialize a community object
-    return {
-        'id': community.id,
-        'name': community.name,
-        'purpose': community.purpose,
-        'image_url': url +"/media/"+str(community.image_url),
-        'about': community.about,
-        'location': community.location,
-    }
 
 
 def pagination(queryset,page_number):
@@ -198,94 +186,72 @@ def your_communities(request,user_id):
     my_community =[]
 
     for i in my_communities:
-        members = Members.objects.all().filter(community_id = i.id)
+        # members = Members.objects.all().filter(community_id = i.id)
         serializer_class = CommunitySerializer(i)
-        comm = serializer_class.data
-        for j in members:
-            if j.member_id == user:
-                comm['is_member'] = True
-            else:
-                comm['is_member'] = False
+        # for j in members:
+        #     if j.member_id == user:
+        #         serializer_class['is_member'] = True
+        #     else:
+        #         serializer_class['is_member'] = False
+        serializer_class['is_member'] = ''
         new_dict = {}
-        new_dict.update(serializer_class.data)
-        if new_dict['image_url']:
-            new_dict['image_url'] = url+new_dict['image_url']
-        else:
+        new_dict.update(serializer_class)
+        if not new_dict['image_url']:
             new_dict['image_url'] = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQMUCHvC0wEVO5yDMe9wddUoagIqQ3VPH0nm8_VtjK5gk3M0mMO'
-        new_dict['share_url']= url+str(new_dict['id'])
-
+        new_dict['share_url']= url+'/community/'+str(new_dict['id'])
         is_admin = False
         community = Community.objects.get(id = new_dict['id'])
         community_admins = Members.objects.filter(community_id = i).filter(member_id =user_id)
         pending_requests = Members.objects.filter(community_id = community.id).filter(state = 3)
 
         if (community_admins[0].state == 1 or community_admins[0].state==2):
-            new_dict['pending_members_count'] = len(pending_requests)
+            new_dict['pending_members_count'] = pending_requests.count()
             is_admin = True
         else:
             new_dict['pending_members_count'] = 0
         new_dict['is_admin'] = is_admin
-        total_collabcards = Collabcard.objects.filter(community=community)
-        seen_collabcard = collabcard_seen.objects.filter(community=community, user=user_id)
-
-        if (len(total_collabcards) - len(seen_collabcard)) < 0:
+        # getting the unseen cards
+        # getting the total cards of a community
+        total_collabcards = Collabcard.objects.filter(community=community).order_by("-id").values('id')
+        # getting seen collabcards by the user from that community
+        seen_collabcard = collabcard_seen.objects.filter(community=community, user=user_id).order_by("-id").values('card_id')
+        # unseen cards coubnt
+        if (total_collabcards.count() - seen_collabcard.count()) <= 0:
+            # if zero or less than zero , unseen card count = 0
             new_dict['collabcard_unseen'] =0
         else:
-            new_dict['collabcard_unseen'] = (len(total_collabcards) - len(seen_collabcard))
+            new_dict['collabcard_unseen'] = (total_collabcards.count() - seen_collabcard.count())
+        # getting unseen crad list by getting the difference between total cards and seen cards
+        unseen_list  = total_collabcards.difference(seen_collabcard).values('id').distinct().order_by("-id")
 
-        unseen_list=[]
-        total_list=[]
-        seen_list=[]
-        for j in total_collabcards:
-            total_list.append(j.id)
-
-        for j in seen_collabcard:
-            seen_list.append(j.card_id)
-
-        for j in total_list:
-            if j not in seen_list:
-                unseen_list.append(j)
-
-        total_list=sorted(total_list)
-        unseen_list = sorted(unseen_list)
-        if len(total_collabcards)>0:
-
-            if len(unseen_list) != 0:
-                card = Collabcard.objects.get(id = unseen_list[0])
+        if total_collabcards.count()>0:
+        # if community has atleast one card
+            if unseen_list.count() != 0:
+                # if the unseen cards are present
+                # show the latest unseen cards text
+                card = Collabcard.objects.get(id = unseen_list.values('id')[0]['id'])
             else:
-                card = Collabcard.objects.get(id = total_list[-1:][0])
+                # if no unseen cards , show latest card text
+                card = Collabcard.objects.get(id = total_collabcards.values('id')[0]['id'])
+            # show details of the latest card or latest unseen card
+            # get json form of card object
+            collabcard = CollabcardSerializer(card,community)
 
-            collabcard = {}
-            collabcard['id'] = card.id
-            collabcard['title'] = card.title
-            collabcard['community'] = community.id
-            collabcard['share_url'] = url+'/collabcard/'+str(card.id)
-            collabcard['answer_text'] = ''
             new_dict['collabcard'] = collabcard
 
             if str(i.updated_at) == "-9223372036854775808":
                 time_text=""
             else:
-                time =datetime.now()
-                time =str(time)
-                target_timestamp =datetime.strptime(time.strip(' \t\r\n'), "%Y-%m-%d %H:%M:%S.%f").strftime('%s')
-                time_text = get_time_text(i.updated_at,target_timestamp)
+                # getting time stamp for the latest card
+                time_text = get_time_text(i.updated_at)
 
             new_dict['updated_at'] = time_text
-            usr = {}
+            # get user details who posted the latest card
             user = Userinfo.objects.get(user_id = card.user)
-            usr['id'] = user.user_id.id
-            usr["name"] = user.name
-            usr["email"] = user.email
-            usr["city"] = user.city
-            usr["headline"] = user.headline
-            usr["contact_number"] = user.contact_number
-            usr["image_url"] = url+user.image_file.url
-            usr["about"] = user.about
-            usr["fb_link"] = user.fb_link
-            usr["linkedin_link"] = user.linkedin_link
-            collabcard['member'] = usr
+            # get json form of userinfo object
+            usr = UserinfoSerializer(user)
 
+            collabcard['member'] = usr
 
         my_community.append(new_dict)
     return JsonResponse({'your_communities':my_community})
@@ -330,7 +296,7 @@ def similar_community(request, community_id):
 
         if c.hide_community == '0' and c.id != community_id:
             # if not hidden , pass the community object to serializer
-            serializer_class = get_community_dict(c)
+            serializer_class = CommunitySerializer(c)
             new_dict = {}
             # form a dictionary of community objects
             new_dict.update(serializer_class)
@@ -399,7 +365,7 @@ def join_community_responses(request):
             response.save()
     Community.objects.filter(id=community_id).update(updated_at=time.time())
 
-    send_notification_to_admins(community_id,userinfo)
+    send_notification_to_admins.delay(community_id,userinfo)
     return JsonResponse({'success':True})
 
 
@@ -413,11 +379,11 @@ def category_filter(request, category):
     community = []
     for i in communities:
         serializer_class = CommunitySerializer(i)
-        community.append(serializer_class.data)
+        community.append(serializer_class)
     return JsonResponse({'communities': community})
 
 def categories(request):
-
+    ''' function to get all categories  '''
 
     tags=Tags.objects.all()
     Category_list=[]
@@ -433,23 +399,13 @@ def categories(request):
 
 def user(request, user_id):
     info = Userinfo.objects.all().filter(user_id = user_id)
-    user = {}
-    print (info)
-    for i in info:
-        user['id'] = i.user_id.id
-        user["name"] = i.name
-        user["email"] = i.email
-        user["city"] = i.city
-        user["headline"] = i.headline
-        user["contact_number"] = i.contact_number
-        user["image_url"] = url+i.image_file.url
-        user["about"] = i.about
-        user["fb_link"] = i.fb_link
-        user["linkedin_link"] = i.linkedin_link
-    return JsonResponse ({'user': user})
+    usr = UserinfoSerializer(info[0])
+    return JsonResponse ({'user': usr})
 
 def members(request, community_id):
+    ''' function to get all the mebers of a community including admins and nominated members '''
     community = get_object_or_404(Community, pk = community_id)
+    # get members of the community
     member = Members.objects.filter(community_id = community).filter(Q(state=1)|Q(state=2)|Q(state=4)|Q(state=7))
     members = []
     for i in member:
@@ -458,46 +414,31 @@ def members(request, community_id):
             user = user[0]
         else:
             continue
-        usr = {}
-        usr['id'] = user.user_id.id
-        usr["name"] = user.name
-        usr["email"] = user.email
-        usr["city"] = user.city
-        usr["headline"] = user.headline
-        usr["contact_number"] = user.contact_number
-        usr["image_url"] = url+user.image_file.url
-        usr["about"] = user.about
-        usr["fb_link"] = user.fb_link
-        usr["linkedin_link"] = user.linkedin_link
+        # get user json
+        usr = UserinfoSerializer(user)
+        usr['member_state'] = i.state
         members.append(usr)
     return JsonResponse ({'members': members})
 
 def admins(request, community_id):
+    ''' function to get admins of a community '''
     admins = Members.objects.filter(community_id = community_id).filter(Q(state=1)|Q(state=2))
     users = []
     for admin in admins:
         user = Userinfo.objects.filter(user_id = admin.member_id.id)
-        usr={}
-        usr = {}
-        usr['id'] = user[0].user_id.id
-        usr["name"] = user[0].name
-        usr["email"] = user[0].email
-        usr["city"] = user[0].city
-        usr["headline"] = user[0].headline
-        usr["contact_number"] = user[0].contact_number
-        usr["image_url"] = url+user[0].image_file.url
-        usr["about"] = user[0].about
-        usr["fb_link"] = user[0].fb_link
-        usr["linkedin_link"] = user[0].linkedin_link
+        # get user serialized
+        usr = UserinfoSerializer(user)
         users.append(usr)
     return JsonResponse ({'members': users})
 
 @csrf_exempt
 def create_community(request):
+    ''' function create a community '''
+
     is_admin = request.GET.get('is_admin')
     if is_admin == 'true':
+        # if community is created as a admin
         user_id = request.GET.get('member_id')
-        print(user_id)
         if request.method == 'POST':
             res = json.loads(request.body)
             img = request.FILES.dict()
@@ -519,7 +460,8 @@ def create_community(request):
             group.updated_at=time.time()
             group.created_at=time.time()
             group.save()
-            #saving the category of the community
+
+            #saving the categories of the community
             for i in res['items']:
                 if i['key'] == 'Type of community' :
                     categories = i['value']
@@ -534,17 +476,18 @@ def create_community(request):
                         community_tags.save()
 
             # create user as a admin for the community as the user is creating the community as a admin
-            print(group)
             user = User.objects.get(id = user_id)
             community = Community.objects.get(id = group.id)
+
+            # creating member as promoter
             member = Members()
             member.member_id = user
             member.community_id = community
             member.state=1                                  # admin state
             member.save()
+
             #creating a card while a comunity is created
             card = Collabcard()
-            print(community)
             if community.purpose != '':
                 card.title = "Created this community "+community.purpose
             else:
@@ -553,168 +496,152 @@ def create_community(request):
             card.user = user
             card.date_epoch =time.time()
             card.save()
+
             Community.objects.filter(id=group.id).update(purpose_collabcard = card.id)
+            # created card will be auto followed by the creator if the card
             follow=follow_collabcard()
             follow.collabcard_id=card
             follow.member_id=user
             follow.save()
             #getting details of the user who is creating the community
             user = Userinfo.objects.get(user_id = user.id)
-            usr = {}
-            usr['id'] = user.user_id.id
-            usr["name"] = user.name
-            usr["email"] = user.email
-            usr["city"] = user.city
-            usr["headline"] = user.headline
-            usr["contact_number"] = user.contact_number
-            usr["image_url"] = url+user.image_file.url
-            usr["about"] = user.about
-            usr["fb_link"] = user.fb_link
-            usr["linkedin_link"] = user.linkedin_link
+
+            # get user serialized json
+            usr = UserinfoSerializer(user)
             serializer_class = CommunitySerializer(community)
             new_dict = {}
-            new_dict.update(serializer_class.data)
+            new_dict.update(serializer_class)
             if new_dict['image_url']:
                 new_dict['image_url'] = url+new_dict['image_url']
             else:
                 new_dict['image_url'] = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQMUCHvC0wEVO5yDMe9wddUoagIqQ3VPH0nm8_VtjK5gk3M0mMO'
             new_dict['share_url']= url+'/community/'+str(new_dict['id'])
+
             #new_dict['date'] = community['active_since']
             ans_text =''
+
             #saving the questions to be asked while joining a community
             for questions in res['questions']:
                 question = Form_data()
                 question.data = questions["key"]
                 question.community_id = community
                 question.save()
+
             collabcard_share_url=url+'/collabcard/'+str(card.id)
+
+            # forming card dict
             crd = {'id':card.id , 'title':card.title, 'member':usr,'answer_text': ans_text,'share_url':collabcard_share_url}
-            print(crd)
             #send_email_to_admin_of_community.delay(CommmunityAdminName=user.name,CommunityName=res['name'],email=user.email)
             return JsonResponse({'success':True, 'community':new_dict, 'collabcard':crd})
     else:
+        # if community is created as a member
         member_id = request.GET.get('member_id')
         if request.method == 'POST':
             res = json.loads(request.body)
-            print(res)
+
+            # creating new community
             group = Community()
             group.members_count = group.members_count + 1
             group.name = res['name']
             group.updated_at=time.time()
             group.created_at=time.time()
             group.save()
-            community = Community.objects.get(id = group.id)
+
             user = User.objects.get(id=member_id)
+
+            # creating member as temporary promoter
             member = Members()
             member.member_id = user
-            member.community_id = community
+            member.community_id = group
             member.state=2                              # temperary admin state
             member.save()
-            serializer_class = CommunitySerializer(community)
+            # get community serialized json
+            serializer_class = CommunitySerializer(group)
             new_dict = {}
-            new_dict.update(serializer_class.data)
+            new_dict.update(serializer_class)
             if new_dict['image_url']:
                 new_dict['image_url'] = url+new_dict['image_url']
             else:
                 new_dict['image_url'] = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQMUCHvC0wEVO5yDMe9wddUoagIqQ3VPH0nm8_VtjK5gk3M0mMO'
             new_dict['share_url']= url+'/community/'+str(new_dict['id'])
             user_id = request.GET.get('member_id')
-            user = User.objects.get(id = user_id)
-            user = Userinfo.objects.get(user_id = user.id)
+            user = Userinfo.objects.get(user_id = user_id)
             #send_email_to_temp_admin_of_community.delay(CommmunityAdminName=user.name,CommunityName=res['name'],email=user.email)
         return JsonResponse({'success':True, 'community':new_dict})
     return HttpResponse("Create Community Api")
 
 @csrf_exempt
 def create_card(request):
+    ''' function to create a card '''
+
     user_id = request.GET.get('member_id')
     community_id = request.GET.get('community_id')
-    print (user_id, community_id)
-    useer = User.objects.get(id = user_id)
+
+    # useer = User.objects.get(id = user_id)
     user = Userinfo.objects.get(user_id = user_id)
     community = Community.objects.get(id = community_id)
     if request.method == 'POST':
         res = json.loads(request.body)
+        # creating card
         card = Collabcard()
         card.title = res['title']
         card.community = community
-        card.user = useer
+        card.user = user.user_id
         card.date_epoch=time.time()
         card.save()
         # if the community does not have a purpose card then a purpose will be created
         # the first card created for a community is the purpose card
         if not community.purpose_collabcard:
             Community.objects.filter(id=community_id).update(purpose_collabcard  = card.id)
-        send_notification_for_new_collabcard_posted(community_id,res['title'],user_id,user.name)
+
+        # sending notification to the user
+        send_notification_for_new_collabcard_posted.delay(community_id,res['title'],user_id,user.name)
         Community.objects.filter(id=community_id).update(updated_at=time.time())
-        collabcard = {}
-        collabcard['id'] = card.id
-        collabcard['title'] = card.title
-        collabcard['community'] = community.id
-        collabcard['share_url'] = url+'/collabcard/'+str(card.id)
-        collabcard['answer_text'] = ''
-        new_dict = {}
-        new_dict = collabcard
-        new_dict['date'] = datetime.today().strftime('%Y-%m-%d')
-        usr = {}
-        usr['id'] = user.user_id.id
-        usr["name"] = user.name
-        usr["email"] = user.email
-        usr["city"] = user.city
-        usr["headline"] = user.headline
-        usr["contact_number"] = user.contact_number
-        usr["image_url"] = url+user.image_file.url
-        usr["about"] = user.about
-        usr["fb_link"] = user.fb_link
-        usr["linkedin_link"] = user.linkedin_link
+
+        collabcard = CollabcardSerializer(card, community)
+
+        collabcard['date'] = datetime.today().strftime('%d-%m-%Y')
+
+        # get user object's serialized json
+        usr = UserinfoSerializer(user)
         collabcard['member'] = usr
+
+        # card creator auto follows the card
         follow=follow_collabcard()
         follow.collabcard_id=card
-        follow.member_id=useer
+        follow.member_id=user.user_id
         follow.save()
-        return JsonResponse({'success':True,'collabcard':new_dict})
+
+        return JsonResponse({'success':True,'collabcard':collabcard})
     return JsonResponse()
 
 def collabcard(request, card_id):
+    ''' function to get card details, answers and images '''
+    # get the card object
     cards = Collabcard.objects.get(id = card_id)
+
+    # coverting current time into epoch time for getting time stamp of answers and card
+
+    # get all the answers of the card
     answer = card_answers.objects.filter(card = cards)
     answers = []
     for i in answer:
-        usr = {}
+        # get user object's serialized json
         user = Userinfo.objects.get(user_id = i.user.id)
-        usr['id'] = user.user_id.id
-        usr["name"] = user.name
-        usr["email"] = user.email
-        usr["city"] = user.city
-        usr["headline"] = user.headline
-        usr["contact_number"] = user.contact_number
-        usr["image_url"] = url+user.image_file.url
-        usr["about"] = user.about
-        usr["fb_link"] = user.fb_link
-        usr["linkedin_link"] = user.linkedin_link
-        # coverting current time into epoch time
+        usr = UserinfoSerializer(user)
 
+        # coverting current time into epoch time
         if str(i.date_epoch) == "-9223372036854775808":
             time_text=""
         else:
-            time =datetime.now()
-            time =str(time)
-            target_timestamp =datetime.strptime(time.strip(' \t\r\n'), "%Y-%m-%d %H:%M:%S.%f").strftime('%s') 
-            time_text = get_time_text(i.date_epoch,target_timestamp)
+            # get time stamp for each answer
+            time_text = get_time_text(i.date_epoch)
         
         answers.append({'id':i.id,'answer':i.answer,'created_at':time_text ,'member': usr})
     user = Userinfo.objects.get(user_id = cards.user.id)
-    usr = {}
-    usr['id'] = user.user_id.id
-    usr["name"] = user.name
-    usr["email"] = user.email
-    usr["city"] = user.city
-    usr["headline"] = user.headline
-    usr["contact_number"] = user.contact_number
-    usr["image_url"] = url+user.image_file.url
-    usr["about"] = user.about
-    usr["fb_link"] = user.fb_link
-    usr["linkedin_link"] = user.linkedin_link
+    # serializing user object
+    usr = UserinfoSerializer(user)
+    # get the card image if any
     images = card_images.objects.filter(collabcard = card_id)
     img_list = []
     for j in images:
@@ -724,41 +651,54 @@ def collabcard(request, card_id):
     card['share_url'] = url+'/collabcard/'+str(cards.id)
     card['answer_text']= cards.answer_text
 
-    # coverting current time into epoch time
-    time =datetime.now()
-    time =str(time)
-    target_timestamp =datetime.strptime(time.strip(' \t\r\n'), "%Y-%m-%d %H:%M:%S.%f").strftime('%s') 
-
-    time_text = get_time_text(cards.date_epoch,target_timestamp)
+    # get tine stamp for card
+    time_text = get_time_text(cards.date_epoch)
     card['created_at'] = time_text
     return JsonResponse({"collabcard": card, 'answers':answers})
 
-def get_time_text(created_time,current_time ):
+def get_time_text(created_time):
+    """ function to get time stamp """
 
-    dt1 = datetime.fromtimestamp(created_time)
-    dt2 = datetime.fromtimestamp(int(current_time))
-    rd = dateutil.relativedelta.relativedelta (dt2, dt1)
+    # get current time and convert it into epoch time
+    time = datetime.now()
+    time = str(time)
+    current_time = datetime.strptime(time.strip(' \t\r\n'), "%Y-%m-%d %H:%M:%S.%f").strftime('%s')
 
-    if rd.days :
-        if rd.days == 1:
-            return str(rd.days)+" day ago"
-        if rd.days < 7 :
-            return str(rd.days)+" days ago"
-        elif rd.days == 7:
+    created = datetime.fromtimestamp(created_time)
+    current = datetime.fromtimestamp(int(current_time))
+    difference = dateutil.relativedelta.relativedelta (current, created)
+
+    if difference.days :
+        # if difference is in days
+        if difference.days == 1:
+            return str(difference.days)+" day ago"
+
+        elif difference.days < 7 :
+            return str(difference.days)+" days ago"
+
+        elif difference.days == 7:
             return "1 week ago"
+        # if difference is more than one week return created date
         return time.strftime('%d/%m/%Y', time.localtime(created_time))
-    elif rd.hours:
-        if rd.hours == 1:
-            return str(rd.hours)+" hour ago"
-        return str(rd.hours)+" hours ago"
-    elif rd.minutes:
-        if rd.minutes ==1:
-            return str(rd.minutes)+" min ago"
-        return str(rd.minutes)+" mins ago"
+    elif difference.hours:
+        # if difference is in hours
+        if difference.hours == 1:
+            return str(difference.hours)+" hour ago"
+
+        return str(difference.hours)+" hours ago"
+    elif difference.minutes:
+        # if difference is in hours
+        if difference.minutes ==1:
+            return str(difference.minutes)+" min ago"
+
+        return str(difference.minutes)+" mins ago"
     else:
+        # if difference is in seconds
         return "Just Now"
 
 def community_cards(request, community_id):
+    ''' function get all the cards in a community '''
+
     community = Community.objects.get(id = community_id)
     cards = Collabcard.objects.filter(community = community_id).order_by('id')
     member_id=request.GET.get('member_id')
@@ -766,30 +706,24 @@ def community_cards(request, community_id):
     card = []
     for i in cards:
         user = Userinfo.objects.get(user_id = i.user)
-        usr = {}
-        usr['id'] = user.user_id.id
-        usr["name"] = user.name
-        usr["email"] = user.email
-        usr["city"] = user.city
-        usr["headline"] = user.headline
-        usr["contact_number"] = user.contact_number
-        usr["image_url"] = url+user.image_file.url
-        usr["about"] = user.about
-        usr["fb_link"] = user.fb_link
-        usr["linkedin_link"] = user.linkedin_link
+        # serialize user object
+        usr = UserinfoSerializer(user)
+        # get card images --------------------------------------------------------
         images = card_images.objects.filter(collabcard = i)
         img_list = []
         for j in images:
             img = {'image_url': url+j.image_url.url}
             img_list.append(img)
+        # -----------------------------------------------------------------------
         share_url = url+'/collabcard/'+str(i.id)
+
+        # get time stamp
         if str(i.date_epoch) == "-9223372036854775808":
+            # if there is no time stamp , return nothing
             time_text=""
         else:
-            time =datetime.now()
-            time =str(time)
-            target_timestamp =datetime.strptime(time.strip(' \t\r\n'), "%Y-%m-%d %H:%M:%S.%f").strftime('%s') 
-            time_text = get_time_text(i.date_epoch,target_timestamp)
+            # get time stamp
+            time_text = get_time_text(i.date_epoch)
         ans_text = i.answer_text
         card_dict={'id': i.id,
                    'title': i.title,
@@ -846,7 +780,7 @@ def create_answer(request):
             follow.member_id = user
             follow.save()
 
-        send_follow_notification(card,user,res['title'])
+        send_follow_notification.delay(card,user,res['title'])
 
         #calling update_answer_text 
         update_answer_text(card_id)
@@ -887,9 +821,6 @@ def update_answer_text(card_id):
                 ans_text+=" responded"
                 Collabcard.objects.filter(id=card_id).update(answer_text=ans_text)
 
-
-
-
             # if more than two different users have answered
             if len(user_list) >= 3:
                 for ID in user_list:
@@ -897,29 +828,41 @@ def update_answer_text(card_id):
                     ans_text += username.name
                     break
 
-
                 ans_text+= " & "+str(len(user_list)-1) + " others responded"
                 Collabcard.objects.filter(id=card_id).update(answer_text=ans_text)
 
 @csrf_exempt
 def login(request):
-
-    if request.method == 'POST':
-        res = json.loads(request.body)
+    ''' function to login a user '''
+    res = json.loads(request.body)
+    email = res['email']
+    email = email.lower().strip()
+    user = User.objects.filter(email=email)
+    if user:
+        userinfo = Userinfo.objects.filter(email=email)
+        # get serialized user object
+        usr = UserinfoSerializer(userinfo[0])
+        print("im returniing here,============================================")
+        return JsonResponse({'user': usr})
+    elif request.method == 'POST':
+        # res = json.loads(request.body)
         dic_form=res
         json_to_save=json.dumps(dic_form)
         login_type=request.GET.get('type')
+        # if user is logging in from facebook
         if login_type == 'facebook':
-            email=res['email']
-            email=email.lower().strip()
+            # email=res['email']
+            # converting email to lower case and removing unwanted space
+            # email=email.lower().strip()
             user =User.objects.filter(email=email)
             if not user:
+                # creating user if no user is associated with that email
                 usr = User()
                 usr.username = res['name']
                 usr.email = res['email']
                 usr.save()
-            userinfo = Userinfo.objects.all().filter(email = res['email'])
-            if not userinfo:
+                # if there is no user then user will not have userinfo too
+                # creating user info
                 userinfo = Userinfo()
                 userinfo.user_id = usr
                 userinfo.email = res['email']
@@ -933,11 +876,12 @@ def login(request):
                 userinfo.login_json=json_to_save
                 userinfo.save()
         else:
+            # if user is logging in with linkedIn
             user_name=res['firstName']['localized']['en_US'] + " " + res['lastName']['localized']['en_US']
             profile_picture=res['profilePicture']['displayImage~']['elements'][2]['identifiers'][0]['identifier']
             email=res['email']['elements'][0]['handle~']['emailAddress']
             userinfo = Userinfo.objects.filter(email=email)
-
+            # create user and userinfo if there is no user with this email
             if not userinfo:
                 userinfo=Userinfo()
                 usr=User()
@@ -953,50 +897,44 @@ def login(request):
                 userinfo.save()
 
         userinfo=Userinfo.objects.filter(email=email)
-        usr = {}
-        usr['id'] = userinfo[0].user_id.id
-        usr["name"] = userinfo[0].name
-        usr["email"] = userinfo[0].email
-        usr["city"] = userinfo[0].city
-        usr["headline"] = userinfo[0].headline
-        usr["contact_number"] = userinfo[0].contact_number
-        usr["image_url"] = url+userinfo[0].image_file.url
-        usr["about"] = userinfo[0].about
-        usr["fb_link"] = userinfo[0].fb_link
-        usr["linkedin_link"] = userinfo[0].linkedin_link
+        # get serialized user object
+        usr = UserinfoSerializer(userinfo[0])
         return JsonResponse ({'user': usr})
 
     return HttpResponse('Login Api')
 
 @csrf_exempt
 def image_upload(request):
+    ''' function to upload community images '''
     body = request.GET
     if request.method =='POST':
-        if 'member_id' in body:
-            user_id = body['member_id']
-        # user = User.objects.get(id = user_id)
-        res = request.FILES['file']
-        image_url = res
+        # if 'member_id' in body:
+        #     user_id = body['member_id']
+        #     user = User.objects.get(id = user_id)
+        new_image = request.FILES['file']
         if 'community_id' in body:
+             # if image to be updated in community
             community_id = body['community_id']
             community = Community.objects.get(id = community_id)
-            community.image_url = image_url
+            community.image_url = new_image
             community.save()
-        if 'collabcard_id' in body:
+        elif 'collabcard_id' in body:
+            # if image to be updated in collabcard
             collabcard_id = body['collabcard_id']
             collabcard = Collabcard.objects.get(id = collabcard_id)
             card_image = card_images()
-            card_image.image_url = image_url
+            card_image.image_url = new_image
             card_image.collabcard = collabcard
             card_image.save()
         return JsonResponse({'success':True})
 
 @csrf_exempt
 def create_admin(request,community_id):
-    # saving admin details given by creator of a community
-    # when the creator is creating a community as a member
+    ''' saving admin details given by user of a community
+     when the user is creating a community as a member '''
     if request.method == 'POST':
         res = json.loads(request.body)
+        # saving the nominated promoter details
         admin = temp_admin()
         if 'name' in res:
             admin.name = res['name']
@@ -1006,11 +944,11 @@ def create_admin(request,community_id):
             admin.contact_number = res['contact_no']
         if 'member_id' in res:
             member_id = res['member_id']
-        #member = Members.objects.get(id = member_id)
         community = Community.objects.get(id = community_id)
         admin.community = community
         admin.member_id = member_id
         admin.save()
+        # checking if there is any person with given mail , and make him nominated promoter
         check = check_member(res['email_id'],community_id,res['member_id'],res)
         return JsonResponse({'success':True})
     return HttpResponse('Add Admin Api')
@@ -1052,12 +990,12 @@ def check_member(email,community_id,member_id,res):
             Members.objects.filter(community_id = community,member_id = user[0].user_id.id).update(state=7)
             # send mail and notification
             send_email_to_nominated_admin.delay(NominatedAdmin=NominatedAdmin,email=email,ProposedAdmin=ProposedAdmin,proposedAdminState = proposedAdminState,CommunityName=CommunityName,community_id =community.id)
-            send_notification_to_proposed_admin(nominated_admin_id = NominatedAdmin_id, community_id= community.id, proposed_admin_name=ProposedAdmin )
+            send_notification_to_proposed_admin.delay(nominated_admin_id = NominatedAdmin_id, community_id= community.id, proposed_admin_name=ProposedAdmin )
 
         elif member and (member[0].state == 6 or member[0].state == 7):
             # if he is nominated again just send hime a remainding mail and notification
             send_email_to_nominated_admin.delay(NominatedAdmin=NominatedAdmin,email=email,ProposedAdmin=ProposedAdmin,proposedAdminState = proposedAdminState,CommunityName=CommunityName,community_id =community.id)
-            send_notification_to_proposed_admin(nominated_admin_id = NominatedAdmin_id, community_id= community.id, proposed_admin_name=ProposedAdmin )
+            send_notification_to_proposed_admin.delay(nominated_admin_id = NominatedAdmin_id, community_id= community.id, proposed_admin_name=ProposedAdmin )
 
         else:
             # if user is not anything to the community and he is nominated as promoter
@@ -1070,12 +1008,13 @@ def check_member(email,community_id,member_id,res):
             member.save()
             # send mail and notification
             send_email_to_nominated_admin.delay(NominatedAdmin=NominatedAdmin,email=email,ProposedAdmin=ProposedAdmin,proposedAdminState = proposedAdminState,CommunityName=CommunityName,community_id =community.id)
-            send_notification_to_proposed_admin(nominated_admin_id = NominatedAdmin_id, community_id= community.id, proposed_admin_name=ProposedAdmin )
+            send_notification_to_proposed_admin.delay(nominated_admin_id = NominatedAdmin_id, community_id= community.id, proposed_admin_name=ProposedAdmin )
         return True
     return False
 
 
 def pending_members(request,community_id):
+    ''' function to get members requested to join in a community '''
     community = Community.objects.get(id = community_id)
     pend_requests=Members.objects.filter(community_id=community).filter(state = 3)
     pending_requests = []
@@ -1083,19 +1022,12 @@ def pending_members(request,community_id):
         print(i.member_id.id,"  ==  ",type(i))
         resp = Form_response.objects.filter(community = community_id).filter(user = i.member_id.id)
         user = Userinfo.objects.get(user_id = i.member_id.id)
-        usr = {}
-        usr['id'] = user.user_id.id
-        usr["name"] = user.name
-        usr["email"] = user.email
-        usr["city"] = user.city
-        usr["headline"] = user.headline
-        usr["contact_number"] = user.contact_number       
-        usr["image_url"] = url+user.image_file.url
-        usr["about"] = user.about
-        usr["fb_link"] = user.fb_link
-        usr["linkedin_link"] = user.linkedin_link
+        # serilaizing userinfo object
+        usr = UserinfoSerializer(user)
         user_response = []
         for j in resp:
+            # getting the answers of the users who requested to join
+            # for the questions that have been asked while requestiong to join in a community
             response_object = {}
             response_object['key'] = j.data
             response_object['value'] = j.response
@@ -1106,6 +1038,7 @@ def pending_members(request,community_id):
 
 @csrf_exempt
 def request_response(request):
+    ''' function to approve or decline a members who requested to join '''
     res = json.loads(request.body)
     if 'member_id' in res:
         member_id = res['member_id']
@@ -1116,22 +1049,28 @@ def request_response(request):
     community = Community.objects.get(id = community_id)
     user = User.objects.get(id= member_id)
     if accepted == True :
+        # if accepted , then make him a member of the community
         #updating the approve state
         Members.objects.filter(member_id=member_id,community_id=community).update(state=4)  # aprove state = 4
         community = Community.objects.get(id = community_id)
         set_user_tag(user.id, community_id)
         members_count = community.members_count+1
         Community.objects.filter(id = community_id).update(members_count=members_count)
-        send_notification_for_join_requests(community_id,True,member_id)
+        # send notification
+        send_notification_for_join_requests.delay(community_id,True,member_id)
     else:
+        # if rejected , chaange user state to 5
         Members.objects.filter(member_id=member_id,community_id=community).update(state=5)  # decline state = 5
-        send_notification_for_join_requests(community_id, False, member_id)
+        # and also send notification
+        send_notification_for_join_requests.delay(community_id, False, member_id)
     return JsonResponse({'success': True})
 
 
 def pending_request_count(request,community_id):
-    no_of_pending_members = Members.objects.filter(community_id = community_id).filter(state = 3)
-    return JsonResponse({'pending_request_count': len(no_of_pending_members)})
+    ''' fucntion to get peding members count of a community '''
+
+    no_of_pending_members = Members.objects.filter(community_id = community_id).filter(state = 3).count()
+    return JsonResponse({'pending_request_count': no_of_pending_members})
 
 @csrf_exempt
 def collabcards_seen(request):
@@ -1150,6 +1089,7 @@ def collabcards_seen(request):
 
     seen_card = collabcard_seen.objects.filter(community = community,user=user,card=card)
     if not seen_card:
+        # if the card has not yet been seen by the user, update the database
        collab_seen=collabcard_seen()
        collab_seen.card=card
        collab_seen.user=user
@@ -1188,19 +1128,6 @@ def members_state(request):
             state = 0
 
     return JsonResponse({'state':state})
-
-def get_nominated_admin_details(community_id,email):
-    '''fetching nominated promoter details from temp admin table'''
-    community = get_object_or_404(Community, pk = community_id)
-    details = temp_admin.objects.filter(community_id=community,email=email)
-    if details:
-        '''details are present,return s true'''
-        print('details are present')
-        return True
-    else:
-        '''details are not present, returns false'''
-        print('details are not present')
-        return False
 
 
 @csrf_exempt
@@ -1287,7 +1214,7 @@ def accept_invitation(request):
                 set_user_tag(member_id, community.id)
                 #sending email to promoter , that user has accepted his request to beacome a promoter
                 send_email_to_proposed_admin.delay(NominatedAdmin=nom_admin[0].name,email=prop_admin.email,ProposedAdmin=prop_admin.name,proposedAdminState =1,CommunityName=community.name,community_id = community.id)
-                send_notification_to_proposer(prop_admin,community,nom_admin[0].name)
+                send_notification_to_proposer.delay(prop_admin,community,nom_admin[0].name)
                 return JsonResponse({'success':True})
             # if the promoter is a temporary promoter
             elif promoter[0].state == 2:
@@ -1300,7 +1227,7 @@ def accept_invitation(request):
                 set_user_tag(member_id, community.id)
                 #sending email to promoter , that user has accepted his request to beacome a promoter
                 send_email_to_proposed_admin.delay(NominatedAdmin=nom_admin[0].name,email=prop_admin.email,ProposedAdmin=prop_admin.name,proposedAdminState=2,CommunityName=community.name,community_id = community.id)
-                send_notification_to_proposer(prop_admin, community,nom_admin[0].name)
+                send_notification_to_proposer.delay(prop_admin, community,nom_admin[0].name)
                 return JsonResponse({'success':True})
         else:
             # if there are more than two admins , sent mail to the promoter who invited this member
@@ -1316,7 +1243,7 @@ def accept_invitation(request):
             set_user_tag(member_id, community.id)
             #sending email to promoter , that user has accepted his request to become a promoter
             send_email_to_proposed_admin.delay(NominatedAdmin=nom_admin[0].name,email=prop_admin.email,ProposedAdmin=prop_admin.name,proposedAdminState=1,CommunityName=community.name,community_id = community.id)
-            send_notification_to_proposer(prop_admin, community,nom_admin[0].name)
+            send_notification_to_proposer.delay(prop_admin, community,nom_admin[0].name)
             return JsonResponse({'success':True})
     else:
         # if nominated promoter didn't accept the invitation
@@ -1379,7 +1306,7 @@ def edit_community(request):
 
     serializer_class = CommunitySerializer(community)
     new_dict = {}
-    new_dict.update(serializer_class.data)
+    new_dict.update(serializer_class)
 
     return JsonResponse({'success': True,'community':new_dict})
 

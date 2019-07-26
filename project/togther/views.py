@@ -14,6 +14,7 @@ from .tasks import *
 from django.db.models import Q
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
+# from collabmates_api.views import get_nominated_admin_details
 
 url = settings.URL
 
@@ -175,7 +176,7 @@ def community(request, community_id):
                 return render(request, 'thankyou.html',
                               {'usr': user, 'similar_communities': data, 'community': community,
                                'community_tag': community_tag})
-    # -----------------------------------------------------------------------------------------------------------
+            # -----------------------------------------------------------------------------------------------------------
     else:
         cta = ''
     community = get_object_or_404(Community, pk=community_id)
@@ -191,7 +192,7 @@ def community(request, community_id):
                 member_state = member[0].state
             else:
                 try:
-                    check = get_nominated_admin_details(request, community_id=community.id)
+                    check = get_nominated_admin_details(email=request.user.email, community_id=community.id)
                     if check:
                         member = Members()
                         member.member_id = request.user
@@ -219,15 +220,17 @@ def community(request, community_id):
         member_state = 0
     # ------------------------------------------------------------------
     members, admin_details = get_members_of_community(community)
-    communities = Community.objects.filter(hide_community='0')
+    # if user is not authenticated, give some communities as similar communities
+    communities=Community.objects.filter(hide_community='0')[:10]
 
     if request.user.is_authenticated:
-        # similar_comm_url = api_url + 'similar_communities/'+str(community.id)
-        # params = {'member_id': request.user.id}
-        # response = rqst.get(similar_comm_url,params=params)
-        #
-        # if response.status_code == 200:
-        #     communities = json.loads(response.content.decode('utf-8'))['communities'][:10]
+        # calling similar communities api
+        similar_comm_url = api_url + 'similar_communities/'+str(community.id)
+        params = {'member_id': request.user.id}
+        response = rqst.get(similar_comm_url,params=params)
+
+        if response.status_code == 200:
+            communities = json.loads(response.content.decode('utf-8'))['communities'][:10]
 
         user = Userinfo.objects.all().filter(user_id=request.user.id)
     else:
@@ -236,7 +239,8 @@ def community(request, community_id):
                                               'community': community, 'admins': admin_details,
                                               'members': members, 'source': source,
                                               'cta': cta, 'Nom_mem_state': member_state,
-                                              'admin_length': len(admin_details)})
+                                              'admin_length': len(admin_details),
+                                              'similar_community_length':len(communities)})
 
 
 def get_members_of_community(community):
@@ -256,7 +260,7 @@ def get_members_of_community(community):
 
     return members, admin_details
 
-
+@login_required
 def update_user_info(request):
     user = Userinfo.objects.all().filter(user_id=request.user)
     if not user:
@@ -322,17 +326,7 @@ def update_user_info(request):
 
                 return user
 
-
-def get_nominated_admin_details(request, community_id):
-    ''' fetching non admin details from DB '''
-    community = get_object_or_404(Community, pk=community_id)
-    details = temp_admin.objects.filter(community_id=community, email=request.user.email)
-    if details:
-        return True
-    else:
-        return False
-
-
+@login_required
 def accept_admin(request, community_id):
     ''' function to accept promoter invitation or decilne the invitation from web '''
     # getting value attribute which says whether the user accepted or declined it
@@ -345,13 +339,6 @@ def accept_admin(request, community_id):
     rqst.post(accept_url, params=params)
     # redirecting to playstore
     return HttpResponseRedirect("https://play.google.com/apps/testing/com.collabmates")
-
-
-def update_member_count(community_id):
-    community = Community.objects.get(id=community_id)
-    count = Members.objects.filter(community_id=community).filter(Q(state=1) | Q(state=2) | Q(state=4)).count()
-    Community.objects.filter(id=community_id).update(members_count=count)
-    return count
 
 
 @login_required
@@ -594,11 +581,11 @@ def join_community(request, community_id):
         user = []
 
     member_id = request.user.id
-
+    # calling similar communities api
     similar_communitites_url = api_url + 'similar_communities/' + str(community_id)
     res = rqst.get(similar_communitites_url, params={'member_id': member_id})
     similar_communitites = json.loads(res.content)
-    similar_communities = similar_communitites['communities']
+    similar_communities = similar_communitites['communities'][:10]
 
     join_url = api_url + 'join_community'
 
@@ -622,6 +609,7 @@ def join_community(request, community_id):
 
         params = {'member_id': member_id, 'community_id': community_id}
         rqst.post(join_url, params=params, json=json_dict)
+        # return false to show thank you page the user has now answered the questions
         return False, user, similar_communities, community
 
     else:
@@ -630,8 +618,10 @@ def join_community(request, community_id):
         if not data:
             params = {'member_id': member_id, 'community_id': community_id}
             rqst.post(join_url, params=params, json={})
+            # return false to show thank you page as there are no questions for this community
             return False, user, similar_communities, community
         else:
+            # return true to take the user to questions page
             return True, user, data, community
 
 
@@ -704,6 +694,7 @@ def thankyou(request):
 
 
 def send_email(email):
+    ''' function to send email to user to be notified '''
     fail_silently = True
     to = email
     subject = email + " wants to be Notified"
@@ -848,3 +839,18 @@ def get_user_tag(user_id):
     ''' function to get user hidden tag '''
     user_tag = userinfo_tags.objects.all().filter(user_id=user_id)
     return user_tag
+
+
+def get_nominated_admin_details(community_id,email):
+    '''fetching nominated promoter details from temp admin table'''
+    community = get_object_or_404(Community, pk = community_id)
+    details = temp_admin.objects.filter(community_id=community,email=email)
+    if details:
+        '''details are present,return s true'''
+        print('details are present')
+        return True
+    else:
+        '''details are not present, returns false'''
+        print('details are not present')
+        return False
+
