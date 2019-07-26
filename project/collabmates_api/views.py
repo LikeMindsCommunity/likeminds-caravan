@@ -834,29 +834,21 @@ def update_answer_text(card_id):
 @csrf_exempt
 def login(request):
     ''' function to login a user '''
-    res = json.loads(request.body)
-    email = res['email']
-    email = email.lower().strip()
-    user = User.objects.filter(email=email)
-    if user:
-        userinfo = Userinfo.objects.filter(email=email)
-        # get serialized user object
-        usr = UserinfoSerializer(userinfo[0])
-        print("im returniing here,============================================")
-        return JsonResponse({'user': usr})
-    elif request.method == 'POST':
-        # res = json.loads(request.body)
+
+    if request.method == 'POST':
+        res = json.loads(request.body)
         dic_form=res
         json_to_save=json.dumps(dic_form)
         login_type=request.GET.get('type')
         # if user is logging in from facebook
         if login_type == 'facebook':
-            # email=res['email']
+            email=res['email']
             # converting email to lower case and removing unwanted space
-            # email=email.lower().strip()
+            email=email.lower().strip()
             user =User.objects.filter(email=email)
+
             if not user:
-                # creating user if no user is associated with that email
+                # creating a user if no user is associated with that email
                 usr = User()
                 usr.username = res['name']
                 usr.email = res['email']
