@@ -95,9 +95,9 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
         'NAME': 'togther',
-        'USER': 'apoorv',
-        'PASSWORD': 'khare',
-        'HOST': '127.0.0.1',
+        'USER': 'nateshr',
+        'PASSWORD': 'connectNRpostgresql',
+        'HOST': 'http://collabmatesdatabase.cgx3gr7xnezq.ap-south-1.rds.amazonaws.com',
         'PORT': '5432',
     }
 }
