@@ -7,18 +7,17 @@ from togther.forms import *
 import requests as rqst
 from django.contrib.auth.models import User
 import json
+from django.db.models import Q
 from django.http.response import JsonResponse
 from django.core.mail import send_mail
 from django.http import HttpResponseRedirect
 from .tasks import *
-from django.db.models import Q
-from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
-
-url = settings.URL
+from collabmates_api.serializers import *
+#url = settings.URL
 
 # uncomment to run it in localhost
-# url='http://localhost:8000'
+url='http://localhost:8000'
 
 api_url = url + '/api/'
 
@@ -780,6 +779,11 @@ def collabcard(request, card_id):
     collabcard_url = api_url + 'collabcard/' + str(card_id)
     collabcard = rqst.get(collabcard_url)
     collabcard_dict = json.loads(collabcard.content)
+    try:
+        user=Userinfo.objects.get(user_id=request.user.id)
+        print(user.image_file.url)
+    except:
+        print('Some error is there')
 
     answers = collabcard_dict['answers']
     if len(answers) == 0:
@@ -790,7 +794,10 @@ def collabcard(request, card_id):
                'creator': collabcard_dict['collabcard']['member']['name'],
                'image_url': collabcard_dict['collabcard']['member']['image_url'],
                'collabcard_id': collabcard_dict['collabcard']['id'],
-               'answer_text': answer_text
+               'answer_text': answer_text,
+               'answers':collabcard_dict['answers'],
+               'card_id':card_id,
+               'user_image_url':user.image_file.url
 
                }
     return render(request, 'card.html', context)
@@ -801,15 +808,43 @@ def view_answers(request, card_id):
     '''function to show the answers on web'''
     collabcard_url = api_url + 'collabcard/' + str(card_id)
     collabcard = rqst.get(collabcard_url)
-    collabcard_dict = json.loads(collabcard.content)
+    try:
+        collabcard_dict = json.loads(collabcard.content)
+    except ValueError:
+        print('Json Decode error')
 
     context = {'card': collabcard_dict['collabcard']['title'],
                'creator': collabcard_dict['collabcard']['member']['name'],
                'user_image_url': collabcard_dict['collabcard']['member']['image_url'],
-               'answers': collabcard_dict['answers']
+               'answers': collabcard_dict['answers'],
+               'card_id': card_id,
 
                }
     return render(request, 'answers.html', context)
+
+def create_message(request):
+    '''function to create a message to show'''
+    member_id=request.GET.get('member_id')
+    user_info=Userinfo.objects.get(user_id=member_id)
+    user=UserinfoSerializer(user_info)
+    collabcard_id=request.GET.get('collabcard_id')
+    params={
+        'member_id':member_id,
+        'collabcard_id':collabcard_id
+    }
+    msg=request.GET.get('message')
+
+    json_body={
+        'title':msg
+    }
+    link=api_url+'create_answer'
+    create_answer=rqst.post(link,params=params,json=json_body)
+    return JsonResponse({'success':True,'msg':msg,'image_url':user['image_url'],'name':user['name']})
+
+
+
+
+
 
 
 def set_user_tag(user_id, community_id):
@@ -848,3 +883,6 @@ def get_user_tag(user_id):
     ''' function to get user hidden tag '''
     user_tag = userinfo_tags.objects.all().filter(user_id=user_id)
     return user_tag
+
+
+
