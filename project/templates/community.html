@@ -441,17 +441,12 @@
                         onclick="accept_admin();">Respond to invitation
                 </button>
 
-                {% elif is_joined == -1 %}
+                {% elif Nom_mem_state == 0 %}
                 <button class="ui fluid button "
                         style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;"
                         onclick="join('{{community.id}}')"> Join Group
                 </button>
 
-                {% elif is_joined == 1 %}
-                <button class="ui fluid button "
-                        style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;"
-                        id="invite" onclick="invite();"> Join Group
-                </button>
                 {% endif %}
 
                 <br/>

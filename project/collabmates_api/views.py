@@ -18,6 +18,8 @@ from togther.tasks import send_email_to_proposed_admin
 from django.core.paginator import Paginator
 from togther.views import set_user_tag, get_user_tag
 
+from .firebase import update_last_answer_id
+
 url  = settings.URL
 
 
@@ -553,6 +555,8 @@ def create_community(request):
             card.user = user
             card.date_epoch =time.time()
             card.save()
+            # saving details in firebase
+            update_last_answer_id(card.id,"")
             Community.objects.filter(id=group.id).update(purpose_collabcard = card.id)
             follow=follow_collabcard()
             follow.collabcard_id=card
@@ -672,37 +676,23 @@ def create_card(request):
         follow.collabcard_id=card
         follow.member_id=useer
         follow.save()
+        update_last_answer_id(card.id,"")
         return JsonResponse({'success':True,'collabcard':new_dict})
     return JsonResponse()
 
 def collabcard(request, card_id):
+    '''function to give collabcard and answer'''
     cards = Collabcard.objects.get(id = card_id)
     answer = card_answers.objects.filter(card = cards)
-    answers = []
-    for i in answer:
-        usr = {}
-        user = Userinfo.objects.get(user_id = i.user.id)
-        usr['id'] = user.user_id.id
-        usr["name"] = user.name
-        usr["email"] = user.email
-        usr["city"] = user.city
-        usr["headline"] = user.headline
-        usr["contact_number"] = user.contact_number
-        usr["image_url"] = url+user.image_file.url
-        usr["about"] = user.about
-        usr["fb_link"] = user.fb_link
-        usr["linkedin_link"] = user.linkedin_link
-        # coverting current time into epoch time
+    answer_id=request.GET.get('answer_id','')
 
-        if str(i.date_epoch) == "-9223372036854775808":
-            time_text=""
-        else:
-            time =datetime.now()
-            time =str(time)
-            target_timestamp =datetime.strptime(time.strip(' \t\r\n'), "%Y-%m-%d %H:%M:%S.%f").strftime('%s') 
-            time_text = get_time_text(i.date_epoch,target_timestamp)
-        
-        answers.append({'id':i.id,'answer':i.answer,'created_at':time_text ,'member': usr})
+    if answer_id:
+        answer_id=int(answer_id)
+        answer=card_answers.objects.filter(card=cards,id__gt=answer_id)
+        answers=get_answer_data(answer)
+        return JsonResponse({'answers': answers})
+    else:
+        answers=get_answer_data(answer)
     user = Userinfo.objects.get(user_id = cards.user.id)
     usr = {}
     usr['id'] = user.user_id.id
@@ -732,6 +722,39 @@ def collabcard(request, card_id):
     time_text = get_time_text(cards.date_epoch,target_timestamp)
     card['created_at'] = time_text
     return JsonResponse({"collabcard": card, 'answers':answers})
+
+
+
+def get_answer_data(answer):
+
+    '''function to get answer for a particular collabcard from database database'''
+    answers = []
+    for i in answer:
+        usr = {}
+        user = Userinfo.objects.get(user_id=i.user.id)
+        usr['id'] = user.user_id.id
+        usr["name"] = user.name
+        usr["email"] = user.email
+        usr["city"] = user.city
+        usr["headline"] = user.headline
+        usr["contact_number"] = user.contact_number
+        usr["image_url"] = url + user.image_file.url
+        usr["about"] = user.about
+        usr["fb_link"] = user.fb_link
+        usr["linkedin_link"] = user.linkedin_link
+        # coverting current time into epoch time
+
+        if str(i.date_epoch) == "-9223372036854775808":
+            time_text = ""
+        else:
+            time = datetime.now()
+            time = str(time)
+            target_timestamp = datetime.strptime(time.strip(' \t\r\n'), "%Y-%m-%d %H:%M:%S.%f").strftime('%s')
+            time_text = get_time_text(i.date_epoch, target_timestamp)
+
+        answers.append({'id': i.id, 'answer': i.answer, 'created_at': time_text, 'member': usr})
+    return answers
+
 
 def get_time_text(created_time,current_time ):
 
@@ -836,6 +859,7 @@ def create_answer(request):
         ans.user = user
         ans.date_epoch=time.time()
         ans.save()
+        update_last_answer_id(card_id,ans.id)
 
 
         #auto following the collabcard if answer is created

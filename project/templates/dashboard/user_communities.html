@@ -1,0 +1,12 @@
+<html>
+
+
+<body>
+<h1>User Communities</h1><br>
+
+{% for community in my_communities %}
+<h2>{{ forloop.counter }}.  {{community.name}}:({{community.state}})</h2>
+<br>
+{% endfor %}
+</body>
+</html>
