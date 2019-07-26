@@ -236,7 +236,7 @@ def community(request, community_id):
                                               'community': community, 'admins': admin_details,
                                               'members': members, 'source': source,
                                               'cta': cta, 'Nom_mem_state': member_state,
-                                              'admin_length': len(admin_details)})
+                                              'admin_length': len(admin_details),'similar_community_length':len(communities)})
 
 
 def get_members_of_community(community):
