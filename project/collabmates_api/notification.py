@@ -6,11 +6,12 @@ from django.conf import  settings
 
 
 # database details
-db_user="apoorv"
-db_password="khare"
+db_user=settings.DATABASES['default']['USER']
+db_password=settings.DATABASES['default']['PASSWORD']
 db_host=settings.DB_HOST
-db_port="5432"
-db_database="togther"
+db_port=settings.DATABASES['default']['PORT']
+db_database=settings.DATABASES['default']['NAME']
+
 
 
 
