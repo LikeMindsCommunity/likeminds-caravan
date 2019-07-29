@@ -628,7 +628,7 @@ def create_card(request):
         follow.save()
 
         update_last_answer_id(card.id,"")
-        return JsonResponse({'success':True,'collabcard':new_dict})
+        return JsonResponse({'success':True,'collabcard':collabcard})
     return JsonResponse()
 
 
