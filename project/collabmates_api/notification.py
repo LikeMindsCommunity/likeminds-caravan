@@ -32,6 +32,7 @@ def get_connection():
                                       port=db_port,
                                       database=db_database)
         return connection
+
     except (Exception, psycopg2.Error) as error:
         print ("Error while connecting  to PostgreSQL", error)
 
@@ -47,6 +48,7 @@ def get_token_for_fcm(member_id):
         fcm_token = curr.fetchone()
         if fcm_token:
             return fcm_token[0]
+
     except (Exception, psycopg2.Error) as error:
         print ("Error while connecting to PostgreSQL  ", error)
 
@@ -60,8 +62,8 @@ def get_community_name(community_id):
         curr.close()
         conn.close()
         return community_name
-    except (Exception, psycopg2.Error) as error:
 
+    except (Exception, psycopg2.Error) as error:
         print ("Error while connecting to PostgreSQL", error)
 
 
@@ -101,15 +103,12 @@ def send_follow_notification(card_id,user_id,answer):
         token_list=[]
 
         for member in member_list:
-
-            if member[0] != user_id:
-                print('member ============= ',member[0])
+            if str(member[0]) != user_id:
                 fcm_token = get_token_for_fcm(member[0])
                 token_list.append(fcm_token)
         send_notification_to_multiple_devices(token_list,message)
 
     except (Exception, psycopg2.Error) as error:
-
         print ("Error while connecting to PostgreSQL", error)
 
 
