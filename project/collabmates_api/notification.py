@@ -102,10 +102,10 @@ def send_follow_notification(card_id,user_id,answer):
 
         for member in member_list:
 
-            if member[0] == user_id:
-                continue
-            fcm_token = get_token_for_fcm(member[0])
-            token_list.append(fcm_token)
+            if member[0] != user_id:
+                print('member ============= ',member[0])
+                fcm_token = get_token_for_fcm(member[0])
+                token_list.append(fcm_token)
         send_notification_to_multiple_devices(token_list,message)
 
     except (Exception, psycopg2.Error) as error:
