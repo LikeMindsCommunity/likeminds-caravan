@@ -349,19 +349,19 @@ def all_user(request):
     return render(request, 'dashboard/all_user.html', {'all_user': users_list})
 
 
-def update_user(request,email):
+def update_user(request,user_id):
 
     if request.method == 'POST':
 
-        user_info = Userinfo.objects.get(email=email)
-        user_info_form=UserForm(request.POST,request.FILES or None,instance=user_info)
+        user_info = Userinfo.objects.filter(user_id = user_id)
+        user_info_form=UserForm(request.POST,request.FILES or None,instance=user_info[0])
         user_info_form.save()
         return redirect('all_user')
     else:
         try:
-            user_info = Userinfo.objects.get(email=email)
-            user_info_form = UserForm(instance=user_info)
-            context = {'user_info_form': user_info_form,'user_info':user_info}
+            user_info = Userinfo.objects.filter(user_id = user_id)
+            user_info_form = UserForm(instance=user_info[0])
+            context = {'user_info_form': user_info_form,'user_info':user_info[0]}
         except Exception as e:
 
             context={'error':'Some Technical Error'}
