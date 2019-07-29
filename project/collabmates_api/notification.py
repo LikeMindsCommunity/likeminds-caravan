@@ -1,3 +1,5 @@
+from __future__ import absolute_import, unicode_literals
+from celery import shared_task
 import psycopg2
 from pyfcm import FCMNotification
 from django.conf import  settings
@@ -73,7 +75,7 @@ def send_notification_to_multiple_devices(token_list,message):
 
     return result
 
-
+@shared_task
 def send_follow_notification(card,user,answer):
 
     '''function to send notification to followed members'''
@@ -111,7 +113,7 @@ def send_follow_notification(card,user,answer):
         print ("Error while connecting to PostgreSQL", error)
 
 
-
+@shared_task
 def send_notification_to_admins(community_id,name):
     '''function to send notification to community admins'''
     try:
@@ -139,7 +141,7 @@ def send_notification_to_admins(community_id,name):
 
         print ("Error while connecting to PostgreSQL", error)
 
-
+@shared_task
 def send_notification_for_join_requests(community_id,flag,member_id):
     '''function to send notification for approval or denial'''
     community_name=get_community_name(community_id)
@@ -162,7 +164,7 @@ def send_notification_for_join_requests(community_id,flag,member_id):
 
     send_notification_to_multiple_devices(token_list,message)
 
-
+@shared_task
 def send_notification_for_new_collabcard_posted(community_id,collabcard_title,poster_id,poster_name):
     '''function to send notification to all members when new collabcard is posted'''
     try:
@@ -193,7 +195,7 @@ def send_notification_for_new_collabcard_posted(community_id,collabcard_title,po
         print ("Error while connecting to PostgreSQL", error)
 
 
-
+@shared_task
 def send_notification_to_proposed_admin(nominated_admin_id,community_id,proposed_admin_name):
     '''function to send notification to proposed admin'''
 
@@ -213,7 +215,7 @@ def send_notification_to_proposed_admin(nominated_admin_id,community_id,proposed
         send_notification_to_multiple_devices(token_list, message)
 
 
-
+@shared_task
 def send_notification_to_proposer(proposer,community,proposed_name):
 
     '''function to send notification if the proposed admin accepts invitation'''

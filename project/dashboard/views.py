@@ -208,7 +208,7 @@ def aprove_member(request,community_id,member_id):
     Members.objects.filter(community_id=community,member_id=member_id).update(state=4)
     update_member_count(community_id)
     url='/admin_dashboard/all_members/'+str(community_id)
-    send_notification_for_join_requests(community_id,True,member_id)
+    send_notification_for_join_requests.delay(community_id,True,member_id)
     return redirect(url)
 
 def decline_member(request,community_id,member_id):
@@ -217,7 +217,7 @@ def decline_member(request,community_id,member_id):
 
     Members.objects.filter(community_id=community,member_id=member_id).update(state=5)
     url='/admin_dashboard/all_members/'+str(community_id)
-    send_notification_for_join_requests(community_id,False,member_id)
+    send_notification_for_join_requests.delay(community_id,False,member_id)
 
     return redirect(url)
 
@@ -424,10 +424,10 @@ def check_member(email,community_id,member_id,proposed_name):
         if member and member[0].state == 4:
             Members.objects.filter(community_id = community,member_id = user[0].user_id.id).update(state=7)
             send_email_to_nominated_admin(NominatedAdmin=NominatedAdmin,email=email,ProposedAdmin=ProposedAdmin,proposedAdminState = proposedAdminState,CommunityName=CommunityName,community_id =community.id)
-            send_notification_to_proposed_admin(nominated_admin_id = NominatedAdmin_id, community_id= community.id, proposed_admin_name=ProposedAdmin )
+            send_notification_to_proposed_admin.delay(nominated_admin_id = NominatedAdmin_id, community_id= community.id, proposed_admin_name=ProposedAdmin )
         elif member and (member[0].state == 6 or member[0].state == 7):
             send_email_to_nominated_admin(NominatedAdmin=NominatedAdmin,email=email,ProposedAdmin=ProposedAdmin,proposedAdminState = proposedAdminState,CommunityName=CommunityName,community_id =community.id)
-            send_notification_to_proposed_admin(nominated_admin_id = NominatedAdmin_id, community_id= community.id, proposed_admin_name=ProposedAdmin )
+            send_notification_to_proposed_admin.delay(nominated_admin_id = NominatedAdmin_id, community_id= community.id, proposed_admin_name=ProposedAdmin )
             print("member is already a nominated promoter")
         else:
             print("member is created")
@@ -437,7 +437,7 @@ def check_member(email,community_id,member_id,proposed_name):
             member.state = 6
             member.save()
             send_email_to_nominated_admin(NominatedAdmin=NominatedAdmin,email=email,ProposedAdmin=ProposedAdmin,proposedAdminState = proposedAdminState,CommunityName=CommunityName,community_id =community.id)
-            send_notification_to_proposed_admin(nominated_admin_id = NominatedAdmin_id, community_id= community.id, proposed_admin_name=ProposedAdmin )
+            send_notification_to_proposed_admin.delay(nominated_admin_id = NominatedAdmin_id, community_id= community.id, proposed_admin_name=ProposedAdmin )
         return True
     return False
 
