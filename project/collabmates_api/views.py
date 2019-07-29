@@ -214,6 +214,16 @@ def your_communities(request,user_id):
         else:
             new_dict['pending_members_count'] = 0
         new_dict['is_admin'] = is_admin
+        # getiing members count
+        new_dict['members_count'] = get_member_count(i)
+        # get time stamp
+        if str(i.updated_at) == "-9223372036854775808":
+            time_text = ""
+        else:
+            # getting time stamp for the latest card
+            time_text = get_time_text(i.updated_at)
+
+        new_dict['updated_at'] = time_text
         # getting the unseen cards
         # getting the total cards of a community
         total_collabcards = Collabcard.objects.filter(community=community).order_by("-id").values('id')
@@ -243,14 +253,6 @@ def your_communities(request,user_id):
 
             new_dict['collabcard'] = collabcard
 
-            if str(i.updated_at) == "-9223372036854775808":
-                time_text=""
-            else:
-                # getting time stamp for the latest card
-                time_text = get_time_text(i.updated_at)
-
-            new_dict['updated_at'] = time_text
-            new_dict['members_count'] = get_member_count(i)
             # get user details who posted the latest card
             user = Userinfo.objects.get(user_id = card.user)
             # get json form of userinfo object
