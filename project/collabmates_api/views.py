@@ -62,6 +62,7 @@ def communities(request):
                 community = serialize_community(queryset=queryset, user_id=user_id)
                 return JsonResponse({'communities': community})
 
+
 def get_communities_by_tags(user_tag=0, category_tag=0,page_number=1):
     ''' fetching communities based on category tag and user hidden tag '''
     if category_tag != 0 and user_tag != 0:
@@ -147,6 +148,7 @@ def pagination(queryset,page_number):
     queryset = paginator.get_page(page_number)
 
     return queryset
+
 
 def your_communities(request,user_id):
     '''This function is used to see your communities based on user id'''
@@ -248,6 +250,7 @@ def your_communities(request,user_id):
                 time_text = get_time_text(i.updated_at)
 
             new_dict['updated_at'] = time_text
+            new_dict['member_count'] = get_member_count(i)
             # get user details who posted the latest card
             user = Userinfo.objects.get(user_id = card.user)
             # get json form of userinfo object
@@ -315,6 +318,7 @@ def similar_community(request, community_id):
 
             community.append(new_dict)
     return JsonResponse({'communities': community})
+
 
 def join_community(request, community_id):
 
@@ -399,10 +403,12 @@ def categories(request):
 
     return JsonResponse ({'category_list': Category_list})
 
+
 def user(request, user_id):
     info = Userinfo.objects.all().filter(user_id = user_id)
     usr = UserinfoSerializer(info[0])
     return JsonResponse ({'user': usr})
+
 
 def members(request, community_id):
     ''' function to get all the mebers of a community including admins and nominated members '''
@@ -414,13 +420,14 @@ def members(request, community_id):
         user = Userinfo.objects.filter(user_id = i.member_id)
         if user:
             user = user[0]
+            # get user json
+            usr = UserinfoSerializer(user)
+            usr['member_state'] = i.state
+            members.append(usr)
         else:
             continue
-        # get user json
-        usr = UserinfoSerializer(user)
-        usr['member_state'] = i.state
-        members.append(usr)
     return JsonResponse ({'members': members})
+
 
 def admins(request, community_id):
     ''' function to get admins of a community '''
@@ -429,9 +436,10 @@ def admins(request, community_id):
     for admin in admins:
         user = Userinfo.objects.filter(user_id = admin.member_id.id)
         # get user serialized
-        usr = UserinfoSerializer(user)
+        usr = UserinfoSerializer(user[0])
         users.append(usr)
     return JsonResponse ({'members': users})
+
 
 @csrf_exempt
 def create_community(request):
@@ -574,6 +582,7 @@ def create_community(request):
         return JsonResponse({'success':True, 'community':new_dict})
     return HttpResponse("Create Community Api")
 
+
 @csrf_exempt
 def create_card(request):
     ''' function to create a card '''
@@ -619,6 +628,7 @@ def create_card(request):
         update_last_answer_id(card.id,"")
         return JsonResponse({'success':True,'collabcard':new_dict})
     return JsonResponse()
+
 
 def collabcard(request, card_id):
     ''' function to get card details, answers and images '''
@@ -680,26 +690,13 @@ def get_answer_data(answer):
     '''function to get answer for a particular collabcard from database database'''
     answers = []
     for i in answer:
-        usr = {}
-        user = Userinfo.objects.get(user_id=i.user.id)
-        usr['id'] = user.user_id.id
-        usr["name"] = user.name
-        usr["email"] = user.email
-        usr["city"] = user.city
-        usr["headline"] = user.headline
-        usr["contact_number"] = user.contact_number
-        usr["image_url"] = url + user.image_file.url
-        usr["about"] = user.about
-        usr["fb_link"] = user.fb_link
-        usr["linkedin_link"] = user.linkedin_link
+        user = Userinfo.objects.filter(user_id=i.user.id)
+        usr = UserinfoSerializer(user[0])
         # coverting current time into epoch time
 
         if str(i.date_epoch) == "-9223372036854775808":
             time_text = ""
         else:
-            time = datetime.now()
-            time = str(time)
-            # target_timestamp = datetime.strptime(time.strip(' \t\r\n'), "%Y-%m-%d %H:%M:%S.%f").strftime('%s')
             time_text = get_time_text(i.date_epoch)
 
         answers.append({'id': i.id, 'answer': i.answer, 'created_at': time_text, 'member': usr})
@@ -710,14 +707,10 @@ def get_time_text(created_time):
     """ function to get time stamp """
 
     # get current time and convert it into epoch time
-    time = datetime.now()
-    time = str(time)
-    current_time = datetime.strptime(time.strip(' \t\r\n'), "%Y-%m-%d %H:%M:%S.%f").strftime('%s')
-    print("created time    ===================  ",current_time)
+    present_time = str(datetime.now())
+    current_time = datetime.strptime(present_time.strip(' \t\r\n'), "%Y-%m-%d %H:%M:%S.%f").strftime('%s')
     created = datetime.fromtimestamp(created_time)
-    print("created ============= ",created)
     current = datetime.fromtimestamp(int(current_time))
-    print("current ================== ",current)
     difference = dateutil.relativedelta.relativedelta (current, created)
 
     if difference.days :
@@ -731,7 +724,6 @@ def get_time_text(created_time):
         elif difference.days == 7:
             return "1 week ago"
         # if difference is more than one week return created date
-        print("===================  ", time.strftime('%d/%m/%Y', time.localtime(created_time)))
         return time.strftime('%d/%m/%Y', time.localtime(created_time))
     elif difference.hours:
         # if difference is in hours
@@ -1373,15 +1365,6 @@ def edit_questions(questions,community_id):
         question_object.save()
 
     print('questions updated successfully')
-
-
-
-
-
-
-
-
-
 
 
 
