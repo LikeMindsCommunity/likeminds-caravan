@@ -699,8 +699,8 @@ def get_answer_data(answer):
         else:
             time = datetime.now()
             time = str(time)
-            target_timestamp = datetime.strptime(time.strip(' \t\r\n'), "%Y-%m-%d %H:%M:%S.%f").strftime('%s')
-            time_text = get_time_text(i.date_epoch, target_timestamp)
+            # target_timestamp = datetime.strptime(time.strip(' \t\r\n'), "%Y-%m-%d %H:%M:%S.%f").strftime('%s')
+            time_text = get_time_text(i.date_epoch)
 
         answers.append({'id': i.id, 'answer': i.answer, 'created_at': time_text, 'member': usr})
     return answers
@@ -713,7 +713,7 @@ def get_time_text(created_time):
     time = datetime.now()
     time = str(time)
     current_time = datetime.strptime(time.strip(' \t\r\n'), "%Y-%m-%d %H:%M:%S.%f").strftime('%s')
-
+    print("===================  ",current_time)
     created = datetime.fromtimestamp(created_time)
     current = datetime.fromtimestamp(int(current_time))
     difference = dateutil.relativedelta.relativedelta (current, created)
@@ -729,6 +729,7 @@ def get_time_text(created_time):
         elif difference.days == 7:
             return "1 week ago"
         # if difference is more than one week return created date
+        print("===================  ", time.strftime('%d/%m/%Y', time.localtime(created_time)))
         return time.strftime('%d/%m/%Y', time.localtime(created_time))
     elif difference.hours:
         # if difference is in hours
