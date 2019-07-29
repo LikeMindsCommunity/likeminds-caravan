@@ -713,9 +713,11 @@ def get_time_text(created_time):
     time = datetime.now()
     time = str(time)
     current_time = datetime.strptime(time.strip(' \t\r\n'), "%Y-%m-%d %H:%M:%S.%f").strftime('%s')
-    print("===================  ",current_time)
+    print("created time    ===================  ",current_time)
     created = datetime.fromtimestamp(created_time)
+    print("created ============= ",created)
     current = datetime.fromtimestamp(int(current_time))
+    print("current ================== ",current)
     difference = dateutil.relativedelta.relativedelta (current, created)
 
     if difference.days :
