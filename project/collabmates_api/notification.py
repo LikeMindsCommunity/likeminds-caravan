@@ -76,7 +76,7 @@ def send_notification_to_multiple_devices(token_list,message):
     return result
 
 @shared_task
-def send_follow_notification(card,user,answer):
+def send_follow_notification(card_id,user_id,answer):
 
     '''function to send notification to followed members'''
 
@@ -84,10 +84,10 @@ def send_follow_notification(card,user,answer):
         connection=get_connection()
         curr=connection.cursor()
         sql="select member_id_id from togther_follow_collabcard where collabcard_id_id=%s"
-        parameter_list=[card.id]
+        parameter_list=[card_id]
         curr.execute(sql,parameter_list)
         member_list=curr.fetchall()
-        curr.execute("select name from togther_userinfo where user_id_id=%s",[user.id])
+        curr.execute("select name from togther_userinfo where user_id_id=%s",[user_id])
         answerer_name=curr.fetchone()
         curr.close()
         connection.close()
@@ -96,13 +96,13 @@ def send_follow_notification(card,user,answer):
         message['payload']={
             "title":str(answerer_name[0]) + " responded",
             "sub_title":answer,
-            "route":"route://collabcard?collabcard_id="+str(card.id)
+            "route":"route://collabcard?collabcard_id="+str(card_id)
         }
         token_list=[]
 
         for member in member_list:
 
-            if member[0] == user.id:
+            if member[0] == user_id:
                 continue
             fcm_token = get_token_for_fcm(member[0])
             token_list.append(fcm_token)

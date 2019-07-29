@@ -826,7 +826,7 @@ def create_answer(request):
             follow.member_id = user
             follow.save()
 
-        send_follow_notification.delay(card,user,res['title'])
+        send_follow_notification.delay(card_id=card_id,user_id=user_id,answer=res['title'])
 
         #calling update_answer_text 
         update_answer_text(card_id)
