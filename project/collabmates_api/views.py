@@ -250,7 +250,7 @@ def your_communities(request,user_id):
                 time_text = get_time_text(i.updated_at)
 
             new_dict['updated_at'] = time_text
-            new_dict['member_count'] = get_member_count(i)
+            new_dict['members_count'] = get_member_count(i)
             # get user details who posted the latest card
             user = Userinfo.objects.get(user_id = card.user)
             # get json form of userinfo object
