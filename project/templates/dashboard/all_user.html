@@ -115,12 +115,12 @@ a.article-title:hover {
     <div class="col-md-8">
       {% for user in all_user %}
     <article class="media content-section" >
-      <img class = "rounded-circle article-img" src="{{ user.image_file.url }}">
+      <img class = "rounded-circle article-img" src="{{ user.image_url.url }}">
   <div class="media-body" >
     <div class="article-metadata" >
 
     </div>
-    <h2><a class="article-title" href="{% url 'update_user'  user.email%}">{{ user.name }}</a></h2>
+    <h2><a class="article-title" href="{% url 'update_user'  user.user_id%}">{{ user.name }}</a></h2>
         <p class="article-content"><b>Email:</b>{{ user.email }}</p>
     <p class="article-content"><b>Facebook:</b>{{ user.fb_link }}</p>
     <p class="article-content"><b>LinkedIn:</b>{{ user.linkedin_link }}</p>
