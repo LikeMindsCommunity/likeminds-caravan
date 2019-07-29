@@ -13,8 +13,8 @@ from django.core.mail import send_mail
 from django.http import HttpResponseRedirect
 from .tasks import *
 from django.core.mail import EmailMultiAlternatives
-
 from collabmates_api.serializers import *
+
 url = settings.URL
 # uncomment to run it in localhost
 #url='http://localhost:8000'
@@ -771,9 +771,9 @@ def collabcard(request, card_id):
     collabcard_dict = json.loads(collabcard.content)
     try:
         user=Userinfo.objects.get(user_id=request.user.id)
-        print(user.image_file.url)
+        user_image=user.image_file.url
     except:
-        print('Some error is there')
+        user_image=''
 
     answers = collabcard_dict['answers']
     if len(answers) == 0:
@@ -787,8 +787,7 @@ def collabcard(request, card_id):
                'answer_text': answer_text,
                'answers':collabcard_dict['answers'],
                'card_id':card_id,
-               'user_image_url':user.image_file.url
-
+               'user_image_url':user_image
                }
     return render(request, 'card.html', context)
 
