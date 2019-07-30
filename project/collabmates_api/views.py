@@ -544,6 +544,7 @@ def create_community(request):
             collabcard_share_url=url+'/collabcard/'+str(card.id)
 
             # forming card dict
+
             crd = {'id':card.id , 'title':card.title, 'member':usr,'answer_text': ans_text,'share_url':collabcard_share_url}
             #send_email_to_admin_of_community.delay(CommmunityAdminName=user.name,CommunityName=res['name'],email=user.email)
             return JsonResponse({'success':True, 'community':new_dict, 'collabcard':crd})
@@ -602,6 +603,8 @@ def create_card(request):
         card.title = res['title']
         card.community = community
         card.user = user.user_id
+        if 'share_link' in res:
+            card.share_link=res['share_link']
         card.date_epoch=time.time()
         card.save()
         # if the community does not have a purpose card then a purpose will be created
@@ -642,21 +645,6 @@ def collabcard(request, card_id):
 
     # get all the answers of the card
     answer = card_answers.objects.filter(card = cards)
-    
-    answers = []
-    for i in answer:
-        # get user object's serialized json
-        user = Userinfo.objects.get(user_id = i.user.id)
-        usr = UserinfoSerializer(user)
-
-        # coverting current time into epoch time
-        if str(i.date_epoch) == "-9223372036854775808":
-            time_text=""
-        else:
-            # get time stamp for each answer
-            time_text = get_time_text(i.date_epoch)
-        
-        answers.append({'id':i.id,'answer':i.answer,'created_at':time_text ,'member': usr})
 
     answer_id=request.GET.get('answer_id','')
 
@@ -674,13 +662,12 @@ def collabcard(request, card_id):
     # get the card image if any
     images = card_images.objects.filter(collabcard = card_id)
     img_list = []
-    for j in images:
-        img = {'image_url': url+j.image_url.url}
+    for image in images:
+        img = {'image_url': url+image.image_url.url}
         img_list.append(img)
-    card = {'id': cards.id, 'title':cards.title, 'member':usr,'community' :cards.community.id,'images':img_list }
-    card['share_url'] = url+'/collabcard/'+str(cards.id)
-    card['answer_text']= cards.answer_text
-
+    card=CollabcardSerializer(cards,cards.community)
+    card['images']=img_list
+    card['member']=usr
     # get tine stamp for card
     time_text = get_time_text(cards.date_epoch)
     card['created_at'] = time_text
@@ -779,7 +766,8 @@ def community_cards(request, community_id):
                    'share_url' : share_url,
                    'answer_text': ans_text ,
                    'created_at':time_text,
-                   'state':get_status_of_collabcard(member_id,community,i)
+                   'state':get_status_of_collabcard(member_id,community,i),
+                   'share_link':i.share_link
                    }
         card.append(card_dict)
     return JsonResponse ({'collabcards': card})
