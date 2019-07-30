@@ -660,19 +660,18 @@ def collabcard(request, card_id):
     # serializing user object
     usr = UserinfoSerializer(user)
     # get the card image if any
-    images = Card_Attachment.objects.filter(collabcard = card_id,type='Image')
-    img_list = []
-    for image in images:
-        img = {'image_url': url+image.attachment.url}
-        img_list.append(img)
+
+    files=get_collabcard_files(card_id)
     card=CollabcardSerializer(cards,cards.community)
-    card['images']=img_list
+    card['images']=files[0]
     card['member']=usr
+    card['pdf']=files[1]
     # get tine stamp for card
     time_text = get_time_text(cards.date_epoch)
     card['created_at'] = time_text
     return JsonResponse({"collabcard": card, 'answers':answers})
   
+
 
 def get_answer_data(answer):
 
@@ -690,6 +689,22 @@ def get_answer_data(answer):
 
         answers.append({'id': i.id, 'answer': i.answer, 'created_at': time_text, 'member': usr})
     return answers
+
+def get_collabcard_files(card_id):
+
+    '''function to return pdf and image files of a collabcard'''
+
+    files = Card_Attachment.objects.filter(collabcard=card_id)
+    img_list=[]
+    pdf=[]
+    for file in files:
+        if file.type == 'Image':
+            img = {'image_url': url + file.attachment.url}
+            img_list.append(img)
+        elif file.type == 'Pdf':
+            pdf_url = {'pdf_file': url + file.attachment.url}
+            pdf.append(pdf_url)
+    return (img_list,pdf)
 
 
 def get_time_text(created_time):
@@ -743,11 +758,8 @@ def community_cards(request, community_id):
         # serialize user object
         usr = UserinfoSerializer(user)
         # get card images --------------------------------------------------------
-        images = Card_Attachment.objects.filter(collabcard = i,type='Image')
-        img_list = []
-        for j in images:
-            img = {'image_url': url+j.attachment.url}
-            img_list.append(img)
+        files=get_collabcard_files(i)
+
         # -----------------------------------------------------------------------
         share_url = url+'/collabcard/'+str(i.id)
 
@@ -762,7 +774,8 @@ def community_cards(request, community_id):
         card_dict={'id': i.id,
                    'title': i.title,
                    'member':usr,
-                   'images':img_list,
+                   'images':files[0],
+                   'pdf':files[1],
                    'share_url' : share_url,
                    'answer_text': ans_text ,
                    'created_at':time_text,
