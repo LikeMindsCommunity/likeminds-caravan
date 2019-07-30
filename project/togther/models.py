@@ -135,6 +135,7 @@ class Collabcard (models.Model):
     answers_count = models.IntegerField(default=0)
     date_epoch=models.BigIntegerField(default=-9223372036854775808)
     answer_text = models.CharField(max_length = 100, default = '')
+    share_link=models.CharField(max_length=2048,default='')
 
 class Comments (models.Model):
     comment =  models.CharField(max_length = 1000)
