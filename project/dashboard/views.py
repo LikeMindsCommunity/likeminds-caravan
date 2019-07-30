@@ -113,9 +113,6 @@ def update_form(request,community_id):
             community.save()
         community_form.save()
 
-        if os.path.isfile(old_file.path):
-            os.remove(old_file.path)
-
         return redirect('admin_dashboard')
     else:
         community=Community.objects.get(id=community_id)
@@ -376,7 +373,7 @@ def update_user(request,user_id):
             if not old_image_file == new_image_file:
                 # if both are not same delete old file
                 if os.path.isfile(old_image_file.path):
-                    # if file is present 
+                    # if file is present
                     os.remove(old_image_file.path)
 
         user_info_form.save()
