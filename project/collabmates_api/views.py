@@ -947,11 +947,14 @@ def image_upload(request):
             try:
                 # delete old image of the community if exists
                 community.image_url.delete(save=True)
+                print("deleted successfully =======================")
             except:
                 # else do nothing
                 pass
             community.image_url = new_image
+            print("updtaed succesfilly ======================")
             community.save()
+            print("saved succesfully v=================")
         elif 'collabcard_id' in body:
 
             # if image to be updated in collabcard
