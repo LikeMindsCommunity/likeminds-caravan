@@ -1,16 +1,7 @@
 import pyrebase
+from django.conf import settings
 
-
-#firebase configurations for testing purposes
-firebaseConfig = {
-    'apiKey': "AIzaSyCmu_u-n31x2WMQlWAciP5RDXGn2qMuXrg",
-    'authDomain': "collabmates-3d601.firebaseapp.com",
-    'databaseURL': "https://collabmates-3d601.firebaseio.com",
-    'projectId': "collabmates-3d601",
-    'storageBucket': "collabmates-3d601.appspot.com",
-    'messagingSenderId': "645716458793",
-    'appId': "1:645716458793:web:779debf3286d6049"
-  };
+firebaseConfig=settings.FIREBASE_CONFIG
 
 firebase = pyrebase.initialize_app(firebaseConfig)
 
