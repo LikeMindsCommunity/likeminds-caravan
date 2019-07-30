@@ -944,15 +944,15 @@ def image_upload(request):
              # if image to be updated in community
             community_id = body['community_id']
             community = Community.objects.get(id = community_id)
-            old_image_file = community.image_url
-            # deleting the old file after new file is updated
-            # get the new image file
-            new_image_file = request.FILES['file']
-            if not old_image_file == new_image_file:
-                # if both are not same delete old file
-                if os.path.isfile(old_image_file.path):
-                    os.remove(old_image_file.path)
-                    print("deleted succesfully =============== ")
+            # old_image_file = community.image_url
+            # # deleting the old file after new file is updated
+            # # get the new image file
+            # new_image_file = request.FILES['file']
+            # if not old_image_file == new_image_file:
+            #     # if both are not same delete old file
+            #     if os.path.isfile(old_image_file.path):
+            #         os.remove(old_image_file.path)
+            #         print("deleted succesfully =============== ")
             community.image_url = new_image
             print("updtaed succesfilly ======================")
             community.save()
