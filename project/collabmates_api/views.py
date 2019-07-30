@@ -932,7 +932,7 @@ def image_upload(request):
                     os.remove(old_image_file.path)
 
             community.image_url = new_image_file
-             print("============= updated")
+            print("============= updated")
             community.save()
 
         elif 'collabcard_id' in body:
