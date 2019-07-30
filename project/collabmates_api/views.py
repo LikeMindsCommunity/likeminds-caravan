@@ -660,10 +660,10 @@ def collabcard(request, card_id):
     # serializing user object
     usr = UserinfoSerializer(user)
     # get the card image if any
-    images = card_images.objects.filter(collabcard = card_id)
+    images = Card_Attachment.objects.filter(collabcard = card_id,type='Image')
     img_list = []
     for image in images:
-        img = {'image_url': url+image.image_url.url}
+        img = {'image_url': url+image.attachment.url}
         img_list.append(img)
     card=CollabcardSerializer(cards,cards.community)
     card['images']=img_list
@@ -743,10 +743,10 @@ def community_cards(request, community_id):
         # serialize user object
         usr = UserinfoSerializer(user)
         # get card images --------------------------------------------------------
-        images = card_images.objects.filter(collabcard = i)
+        images = Card_Attachment.objects.filter(collabcard = i,type='Image')
         img_list = []
         for j in images:
-            img = {'image_url': url+j.image_url.url}
+            img = {'image_url': url+j.attachment.url}
             img_list.append(img)
         # -----------------------------------------------------------------------
         share_url = url+'/collabcard/'+str(i.id)
@@ -962,17 +962,46 @@ def image_upload(request):
             collabcard = Collabcard.objects.get(id = collabcard_id)
             try:
                 # delete old image of the card if exists
-                card_image = card_images.objects.get(collabcard = collabcard)
+                card_image = Card_Attachment.objects.get(collabcard = collabcard)
                 # deletes the associated file too
-                card_image.image_url.delete(save=True)
+                card_image.attachment.delete(save=True)
 
             except:
                 # else create a new card image
-                card_image = card_images()
+                card_image = Card_Attachment()
                 card_image.collabcard = collabcard
-            card_image.image_url = new_image
+            card_image.attachment = new_image
+            card_image.type='Image'
             card_image.save()
         return JsonResponse({'success':True})
+
+
+@csrf_exempt
+def upload_attachment(request):
+    '''function to upload attachments'''
+    body=request.GET
+    if request.method == 'POST':
+        attachment=request.FILES['file']
+        if 'community_id' in body:
+            # if image to be updated in community
+            community_id = body['community_id']
+            community = Community.objects.get(id=community_id)
+            community.image_url = attachment
+            community.save()
+        elif 'collabcard_id' in body:
+            attachment_type=body['type']
+            collabcard_id = body['collabcard_id']
+            collabcard = Collabcard.objects.get(id = collabcard_id)
+
+            file=Card_Attachment()
+            file.attachment=attachment
+            file.collabcard=collabcard
+            file.type=attachment_type
+            file.save()
+        return JsonResponse({'success':True})
+    return JsonResponse({'success': False})
+
+
 
 @csrf_exempt
 def create_admin(request,community_id):
