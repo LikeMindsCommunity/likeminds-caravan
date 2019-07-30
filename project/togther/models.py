@@ -137,6 +137,8 @@ class Collabcard (models.Model):
     answer_text = models.CharField(max_length = 100, default = '')
     share_link=models.CharField(max_length=2048,default='')
 
+
+
 class Comments (models.Model):
     comment =  models.CharField(max_length = 1000)
     card = models.ForeignKey(Collabcard, on_delete=models.CASCADE)
@@ -163,9 +165,13 @@ class temp_admin (models.Model):
     member_id = models.IntegerField(default=0)
     #member_id = models.ForeignKey(User, on_delete = models.CASCADE)
 
-class card_images (models.Model):
+class Card_Attachment (models.Model):
+
+    '''model to save files of collabcard'''
+
     collabcard = models.ForeignKey(Collabcard, on_delete = models.CASCADE)
-    image_url = models.ImageField(upload_to="media/collabcardImages")
+    attachment = models.FileField(upload_to="media/collabcard_files")
+    type=models.CharField(max_length=50,default='')
 
 class collabcard_seen(models.Model):
     card = models.ForeignKey(Collabcard, on_delete= models.CASCADE)
