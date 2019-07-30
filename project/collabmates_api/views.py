@@ -917,7 +917,7 @@ def image_upload(request):
                     os.remove(old_image_file.path)
             else:
                 print("else both are not same ============== ", old_image_file == new_image_file)
-             community.image_url = new_image
+            community.image_url = new_image
             community.save()
 
         elif 'collabcard_id' in body:
