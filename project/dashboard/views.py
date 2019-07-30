@@ -14,6 +14,7 @@ from django.conf import settings
 import json
 from django.http.response import JsonResponse
 import requests as rqst
+import os
 
 url = settings.URL
 
@@ -73,6 +74,7 @@ def update_form(request,community_id):
 
 
         community=Community.objects.get(id=community_id)
+        old_image_file = community.image_url
         community_form=CommunityForm(request.POST,request.FILES,instance=community)
         admins=Members.objects.filter(community_id=community).filter(Q(state=1)|Q(state=2))
         member_id=0
@@ -81,6 +83,14 @@ def update_form(request,community_id):
             purpose=community_form.cleaned_data['purpose']
             for_string=purpose.split(' ', 1)[0]
             purpose = "Created this community " + for_string.lower() + purpose.split("For", 1)[1]
+            # deleting the old file after new file is updated
+            # get the new image file
+            new_image_file = community_form.cleaned_data['image_url']
+            if not old_image_file == new_image_file:
+                # if both are not same delete old file
+                if os.path.isfile(old_image_file.path):
+                    os.remove(old_image_file.path)
+
         else:
             print("some error is there")
         if admins:
@@ -353,9 +363,21 @@ def update_user(request,user_id):
 
     if request.method == 'POST':
 
-        user_info = Userinfo.objects.filter(user_id = user_id)
-        user_info_form=UserForm(request.POST,request.FILES or None,instance=user_info[0])
+        user_info = Userinfo.objects.get(user_id = user_id)
+        old_image_file = user_info.image_file
+        user_info_form=UserForm(request.POST,request.FILES or None,instance=user_info)
+        # deleting the old file after new file is updated
+        if user_info_form.is_valid():
+            # get the new image file
+            new_image_file = user_info_form.cleaned_data['image_file']
+            if not old_image_file == new_image_file:
+                # if both are not same delete old file
+                if os.path.isfile(old_image_file.path):
+                    # if file is present
+                    os.remove(old_image_file.path)
+
         user_info_form.save()
+
         return redirect('all_user')
     else:
         try:

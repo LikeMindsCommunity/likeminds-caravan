@@ -17,7 +17,7 @@ from django.conf import settings
 from togther.tasks import send_email_to_proposed_admin
 from django.core.paginator import Paginator
 from togther.views import set_user_tag, get_user_tag,get_nominated_admin_details
-
+import os
 from .firebase import update_last_answer_id
 
 url  = settings.URL
@@ -944,15 +944,30 @@ def image_upload(request):
              # if image to be updated in community
             community_id = body['community_id']
             community = Community.objects.get(id = community_id)
+            try:
+                # delete old image of the community if exists
+                community.image_url.delete(save=True)
+            except:
+                # else do nothing
+                pass
             community.image_url = new_image
             community.save()
         elif 'collabcard_id' in body:
+
             # if image to be updated in collabcard
             collabcard_id = body['collabcard_id']
             collabcard = Collabcard.objects.get(id = collabcard_id)
-            card_image = card_images()
+            try:
+                # delete old image of the card if exists
+                card_image = card_images.objects.get(collabcard = collabcard)
+                # deletes the associated file too
+                card_image.image_url.delete(save=True)
+
+            except:
+                # else create a new card image
+                card_image = card_images()
+                card_image.collabcard = collabcard
             card_image.image_url = new_image
-            card_image.collabcard = collabcard
             card_image.save()
         return JsonResponse({'success':True})
 
