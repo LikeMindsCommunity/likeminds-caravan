@@ -953,12 +953,14 @@ def image_upload(request):
             community.image_url = new_image
             community.save()
         elif 'collabcard_id' in body:
+
             # if image to be updated in collabcard
             collabcard_id = body['collabcard_id']
             collabcard = Collabcard.objects.get(id = collabcard_id)
             try:
                 # delete old image of the card if exists
                 card_image = card_images.objects.get(collabcard = collabcard)
+                # deletes the associated file too
                 card_image.image_url.delete(save=True)
 
             except:

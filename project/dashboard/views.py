@@ -376,6 +376,7 @@ def update_user(request,user_id):
             if not old_image_file == new_image_file:
                 # if both are not same delete old file
                 if os.path.isfile(old_image_file.path):
+                    # if file is present 
                     os.remove(old_image_file.path)
 
         user_info_form.save()
