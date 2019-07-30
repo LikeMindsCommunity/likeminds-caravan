@@ -912,14 +912,10 @@ def image_upload(request):
             new_image_file = request.FILES['file']
             if not old_image_file == new_image_file:
                 # if both are not same delete old file
-                print("if both are same ============== ",old_image_file != new_image_file)
-                print("file present =========== ",os.path.isfile(old_image_file.path))
                 if os.path.isfile(old_image_file.path):
-                    print("================== deleting")
                     os.remove(old_image_file.path)
 
             community.image_url = new_image_file
-            print("============= updated")
             community.save()
 
         elif 'collabcard_id' in body:
