@@ -944,13 +944,13 @@ def image_upload(request):
              # if image to be updated in community
             community_id = body['community_id']
             community = Community.objects.get(id = community_id)
-            try:
-                # delete old image of the community if exists
-                community.image_url.delete(save=True)
-                print("deleted successfully =======================")
-            except:
-                # else do nothing
-                pass
+            # try:
+            #     # delete old image of the community if exists
+            #     community.image_url.delete(save=True)
+            #     print("deleted successfully =======================")
+            # except:
+            #     # else do nothing
+            #     pass
             community.image_url = new_image
             print("updtaed succesfilly ======================")
             community.save()
