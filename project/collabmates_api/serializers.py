@@ -2,8 +2,10 @@ from django.contrib.auth.models import User, Group
 from rest_framework import serializers
 from togther.models import *
 from django.conf import settings
+from django.db.models import Q
 
 url  = settings.URL
+
 #
 # class CommunitySerializer(serializers.HyperlinkedModelSerializer):
 #     class Meta:
@@ -12,14 +14,24 @@ url  = settings.URL
 
 def CommunitySerializer(community):
     # function to serialize a community object
-    return {
+    new_dict =  {
         'id': community.id,
         'name': community.name,
         'purpose': community.purpose,
-        'image_url': url + community.image_url.url,
+        'image_url': community.image_url.url,
         'about': community.about,
         'location': community.location,
     }
+    if new_dict['image_url'] == "/media/https%3A/upload.wikimedia.org/wikipedia/en/0/09/Community_title.jpg":
+        new_dict[
+            'image_url'] = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQMUCHvC0wEVO5yDMe9wddUoagIqQ3VPH0nm8_VtjK5gk3M0mMO'
+    else:
+        new_dict['image_url'] = url + new_dict['image_url']
+    new_dict['is_member'] = ''
+    new_dict['share_url'] = url + '/community/' + str(new_dict['id'])
+    new_dict['date'] = community.active_since
+    new_dict['members_count'] = get_member_count(community)
+    return new_dict
 
 def UserinfoSerializer(user):
     # function to serialize a community object
@@ -44,5 +56,10 @@ def CollabcardSerializer(card,community):
     'community' : community.id,
     'share_url' : url + '/collabcard/' + str(card.id),
     'answer_text' : card.answer_text,
-    'share_link':card.share_link
+    # 'share_link':card.share_link
     }
+
+
+def get_member_count(community):
+    return Members.objects.filter(community_id=community).filter(
+        Q(state=1) | Q(state=2) | Q(state=4) | Q(state=7)).count()

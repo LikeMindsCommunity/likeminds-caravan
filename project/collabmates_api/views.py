@@ -121,18 +121,8 @@ def serialize_community(queryset,user_id ):
             # form a dictionary of community objects
             new_dict.update(serializer_class)
 
-            # appending all other necessary details of community
-            if not new_dict['image_url']:
-                new_dict[
-                    'image_url'] = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQMUCHvC0wEVO5yDMe9wddUoagIqQ3VPH0nm8_VtjK5gk3M0mMO'
-
-            new_dict['is_member'] = ''
-            new_dict['share_url'] = url + '/community/' + str(new_dict['id'])
-            new_dict['date'] = c.active_since
-            new_dict['members_count'] = get_member_count(c)
-
             community.append(new_dict)
-    # return dictionary
+
     return community
 
 
@@ -155,7 +145,7 @@ def your_communities(request,user_id):
 
     member_id=request.GET.get('member_id')
 
-    user = User.objects.get(id = member_id)
+    # user = User.objects.get(id = member_id)
     # getting communities of the member from member model based on member state
     communities = Members.objects.all().filter(member_id = user_id).filter(Q(state=1)|Q(state=2)|Q(state=4)|Q(state=7))
     my_communities = []
@@ -190,19 +180,11 @@ def your_communities(request,user_id):
     my_community =[]
 
     for i in my_communities:
-        # members = Members.objects.all().filter(community_id = i.id)
         serializer_class = CommunitySerializer(i)
-        # for j in members:
-        #     if j.member_id == user:
-        #         serializer_class['is_member'] = True
-        #     else:
-        #         serializer_class['is_member'] = False
+
         serializer_class['is_member'] = ''
         new_dict = {}
         new_dict.update(serializer_class)
-        if not new_dict['image_url']:
-            new_dict['image_url'] = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQMUCHvC0wEVO5yDMe9wddUoagIqQ3VPH0nm8_VtjK5gk3M0mMO'
-        new_dict['share_url']= url+'/community/'+str(new_dict['id'])
         is_admin = False
         community = Community.objects.get(id = new_dict['id'])
         community_admins = Members.objects.filter(community_id = i).filter(member_id =user_id)
@@ -214,8 +196,7 @@ def your_communities(request,user_id):
         else:
             new_dict['pending_members_count'] = 0
         new_dict['is_admin'] = is_admin
-        # getiing members count
-        new_dict['members_count'] = get_member_count(i)
+
         # get time stamp
         if str(i.updated_at) == "-9223372036854775808":
             time_text = ""
@@ -308,15 +289,6 @@ def similar_community(request, community_id):
             # form a dictionary of community objects
             new_dict.update(serializer_class)
 
-            # appending all other necessary details of community
-            if not new_dict['image_url']:
-                new_dict[
-                    'image_url'] = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQMUCHvC0wEVO5yDMe9wddUoagIqQ3VPH0nm8_VtjK5gk3M0mMO'
-
-            new_dict['is_member'] = ''
-            new_dict['share_url'] = url + '/community/' + str(new_dict['id'])
-            new_dict['date'] = c.active_since
-            new_dict['members_count'] = get_member_count(c)
 
             community.append(new_dict)
     return JsonResponse({'communities': community})
@@ -525,13 +497,7 @@ def create_community(request):
             serializer_class = CommunitySerializer(community)
             new_dict = {}
             new_dict.update(serializer_class)
-            if new_dict['image_url']:
-                new_dict['image_url'] = url+new_dict['image_url']
-            else:
-                new_dict['image_url'] = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQMUCHvC0wEVO5yDMe9wddUoagIqQ3VPH0nm8_VtjK5gk3M0mMO'
-            new_dict['share_url']= url+'/community/'+str(new_dict['id'])
 
-            #new_dict['date'] = community['active_since']
             ans_text =''
 
             #saving the questions to be asked while joining a community
@@ -574,11 +540,7 @@ def create_community(request):
             serializer_class = CommunitySerializer(group)
             new_dict = {}
             new_dict.update(serializer_class)
-            if new_dict['image_url']:
-                new_dict['image_url'] = url+new_dict['image_url']
-            else:
-                new_dict['image_url'] = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQMUCHvC0wEVO5yDMe9wddUoagIqQ3VPH0nm8_VtjK5gk3M0mMO'
-            new_dict['share_url']= url+'/community/'+str(new_dict['id'])
+
             user_id = request.GET.get('member_id')
             user = Userinfo.objects.get(user_id = user_id)
             #send_email_to_temp_admin_of_community.delay(CommmunityAdminName=user.name,CommunityName=res['name'],email=user.email)
@@ -1340,8 +1302,6 @@ def accept_invitation(request):
 
     return JsonResponse({'success': False})
 
-def get_member_count(community):
-    return Members.objects.filter(community_id=community).filter(Q(state=1)|Q(state=2)|Q(state=4)|Q(state=7)).count()
 
 def update_member_count(community_id):
     ''' update members count of a community , when a promoter or member joins a community '''
