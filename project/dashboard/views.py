@@ -15,6 +15,7 @@ import json
 from django.http.response import JsonResponse
 import requests as rqst
 import os
+import re
 
 url = settings.URL
 
@@ -72,9 +73,15 @@ def update_form(request,community_id):
     '''function to update form for community and also purpose collabcard'''
     if request.method == 'POST':
 
-
         community=Community.objects.get(id=community_id)
         old_image_file = community.image_url
+        # get the version of the image
+        version = re.findall(r'\w*__image__(\d+)', old_image_file.name)
+        if version:
+            version = int(version[0]) + 1
+        else:
+            version = 1
+
         community_form=CommunityForm(request.POST,request.FILES,instance=community)
         admins=Members.objects.filter(community_id=community).filter(Q(state=1)|Q(state=2))
         member_id=0
@@ -90,7 +97,6 @@ def update_form(request,community_id):
                 # if both are not same delete old file
                 if os.path.isfile(old_image_file.path):
                     os.remove(old_image_file.path)
-
         else:
             print("some error is there")
         if admins:
@@ -112,6 +118,21 @@ def update_form(request,community_id):
             community.purpose_collabcard=collabcard.id
             community.save()
         community_form.save()
+
+        community=Community.objects.get(id=community_id)
+        old_image_file = community.image_url
+        # deleting the old file after new file is updated
+        # get the new image file
+
+        new_image_file = community_form.cleaned_data['image_url']
+
+        new_image_file.name = str(community_id) + '__image__' + str(version) + '.jpg'
+        if not old_image_file == new_image_file:
+            # if both are not same delete old file
+            if os.path.isfile(old_image_file.path):
+                os.remove(old_image_file.path)
+            community.image_url = new_image_file
+            community.save()
 
         return redirect('admin_dashboard')
     else:
@@ -370,6 +391,7 @@ def update_user(request,user_id):
         if user_info_form.is_valid():
             # get the new image file
             new_image_file = user_info_form.cleaned_data['image_file']
+
             if not old_image_file == new_image_file:
                 # if both are not same delete old file
                 if os.path.isfile(old_image_file.path):
@@ -377,6 +399,18 @@ def update_user(request,user_id):
                     os.remove(old_image_file.path)
 
         user_info_form.save()
+        # saving with the new name
+        user_info = Userinfo.objects.get(user_id = user_id)
+        old_image_file = user_info.image_file
+        new_image_file = user_info_form.cleaned_data['image_file']
+        new_image_file.name ='profile_picture_' + str(user_info).replace(" ", "_") + '.jpeg'
+
+        if not old_image_file == new_image_file:
+            # if both are not same delete old file
+            if os.path.isfile(old_image_file.path):
+                os.remove(old_image_file.path)
+            user_info.image_file = new_image_file
+            user_info.save()
 
         return redirect('all_user')
     else:

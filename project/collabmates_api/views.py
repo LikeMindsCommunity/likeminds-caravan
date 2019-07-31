@@ -19,6 +19,7 @@ from django.core.paginator import Paginator
 from togther.views import set_user_tag, get_user_tag,get_nominated_admin_details
 import os
 from .firebase import update_last_answer_id
+import re
 
 url  = settings.URL
 
@@ -104,24 +105,27 @@ def get_communities_by_tags(user_tag=0, category_tag=0,page_number=1):
 def serialize_community(queryset,user_id ):
     ''' this function gives us a dictionary of community/communities objects based on given queryset '''
     community = []
-    for i in queryset:
+    for community in queryset:
 
         try:
             # if the queryset is of type dictionary
-            c = Community.objects.get(id=i['community_id'])
+            comm = Community.objects.get(id=community['community_id'])
         except:
             # if the queryset if a lazy community object
-            c = Community.objects.get(id=i.id)
+            comm = Community.objects.get(id=community.id)
         # check if the community is hidden or not
 
-        if c.hide_community == '0':
+        if comm.hide_community == '0':
             # if not hidden , pass the community object to serializer
-            serializer_class = CommunitySerializer(c)
+            serialized_object = CommunitySerializer(comm)
             new_dict = {}
             # form a dictionary of community objects
-            new_dict.update(serializer_class)
+            new_dict.update(serialized_object)
 
             community.append(new_dict)
+        elif comm.hide_community == '1':
+
+            pass
 
     return community
 
@@ -179,15 +183,15 @@ def your_communities(request,user_id):
             my_communities.append(each_community[0])
     my_community =[]
 
-    for i in my_communities:
-        serializer_class = CommunitySerializer(i)
+    for comm in my_communities:
+        serialized_object = CommunitySerializer(comm)
 
-        serializer_class['is_member'] = ''
+        serialized_object['is_member'] = ''
         new_dict = {}
-        new_dict.update(serializer_class)
+        new_dict.update(serialized_object)
         is_admin = False
         community = Community.objects.get(id = new_dict['id'])
-        community_admins = Members.objects.filter(community_id = i).filter(member_id =user_id)
+        community_admins = Members.objects.filter(community_id = comm).filter(member_id =user_id)
         pending_requests = Members.objects.filter(community_id = community.id).filter(state = 3)
 
         if (community_admins[0].state == 1 or community_admins[0].state==2):
@@ -198,11 +202,11 @@ def your_communities(request,user_id):
         new_dict['is_admin'] = is_admin
 
         # get time stamp
-        if str(i.updated_at) == "-9223372036854775808":
+        if str(comm.updated_at) == "-9223372036854775808":
             time_text = ""
         else:
             # getting time stamp for the latest card
-            time_text = get_time_text(i.updated_at)
+            time_text = get_time_text(comm.updated_at)
 
         new_dict['updated_at'] = time_text
         # getting the unseen cards
@@ -210,7 +214,7 @@ def your_communities(request,user_id):
         total_collabcards = Collabcard.objects.filter(community=community).order_by("-id").values('id')
         # getting seen collabcards by the user from that community
         seen_collabcard = collabcard_seen.objects.filter(community=community, user=user_id).order_by("-id").values('card_id')
-        # unseen cards coubnt
+        # unseen cards count
         if (total_collabcards.count() - seen_collabcard.count()) <= 0:
             # if zero or less than zero , unseen card count = 0
             new_dict['collabcard_unseen'] =0
@@ -247,20 +251,20 @@ def your_communities(request,user_id):
 
 def community(request, community_id):
     '''Community detail page'''
-    queryset = Community.objects.filter(id = community_id)
-    body = request.GET
 
-    if 'member_id' in body:
-        user_id = body['member_id']
-    # getting communities serialaized data
-    community = serialize_community(queryset=queryset, user_id=user_id)
+    community = Community.objects.get(id=community_id)
 
-    if len(community) > 0:
+    serialized_object = CommunitySerializer(community)
+    new_dict = {}
+    # form a dictionary of community objects
+    new_dict.update(serialized_object)
 
-        community[0]['share_text_admin']= """Hi, I have added %s community on CollabMates. It will be good if you can join this community.\n"""%(community[0]['name'])
-        community[0]['share_text_member']="""I recently joined %s community on CollabMates. It will be good if you also join this community.\n"""%(community[0]['name'])
-        community[0]['share_text_anonymous']="""I recently discovered %s community on CollabMates. You can join this community using this link.\n"""%(community[0]['name'])
-    return JsonResponse({'community': community[0]})
+    if community:
+
+        new_dict['share_text_admin']= """Hi, I have added %s community on CollabMates. It will be good if you can join this community.\n"""%(new_dict['name'])
+        new_dict['share_text_member']="""I recently joined %s community on CollabMates. It will be good if you also join this community.\n"""%(new_dict['name'])
+        new_dict['share_text_anonymous']="""I recently discovered %s community on CollabMates. You can join this community using this link.\n"""%(new_dict['name'])
+    return JsonResponse({'community': new_dict})
 
 
 def similar_community(request, community_id):
@@ -276,18 +280,18 @@ def similar_community(request, community_id):
     # getting communities based on user hidden tags
     queryset = get_communities_by_tags(user_tag=user_tag)[:11]
     community = []
-    for i in queryset:
+    for comm in queryset:
 
         # if the queryset is of type dictionary
-        c = Community.objects.get(id=i['community_id'])
+        comm_object = Community.objects.get(id=comm['community_id'])
         # check if the community is hidden or not
 
-        if c.hide_community == '0' and c.id != community_id:
+        if comm_object.hide_community == '0' and comm_object.id != community_id:
             # if not hidden , pass the community object to serializer
-            serializer_class = CommunitySerializer(c)
+            serialized_object = CommunitySerializer(c)
             new_dict = {}
             # form a dictionary of community objects
-            new_dict.update(serializer_class)
+            new_dict.update(serialized_object)
 
 
             community.append(new_dict)
@@ -352,14 +356,14 @@ def join_community_responses(request):
 def category_filter(request, category):
     categories = Community_tags.objects.all()
     communities = []
-    for i in categories:
-        if i.category == category:
-            c = Community.objects.get(id = i.community_id.id)
+    for cat in categories:
+        if cat.category == category:
+            c = Community.objects.get(id = cat.community_id.id)
             communities.append(c)
     community = []
-    for i in communities:
-        serializer_class = CommunitySerializer(i)
-        community.append(serializer_class)
+    for comm_object in communities:
+        serialized_object = CommunitySerializer(comm_object)
+        community.append(serialized_object)
     return JsonResponse({'communities': community})
 
 def categories(request):
@@ -390,13 +394,13 @@ def members(request, community_id):
     # get members of the community
     member = Members.objects.filter(community_id = community).filter(Q(state=1)|Q(state=2)|Q(state=4)|Q(state=7))
     members = []
-    for i in member:
-        user = Userinfo.objects.filter(user_id = i.member_id)
+    for mem in member:
+        user = Userinfo.objects.filter(user_id = mem.member_id)
         if user:
             user = user[0]
             # get user json
             usr = UserinfoSerializer(user)
-            usr['member_state'] = i.state
+            usr['member_state'] = mem.state
             members.append(usr)
         else:
             continue
@@ -430,34 +434,32 @@ def create_community(request):
             group = Community()
             group.members_count = group.members_count + 1
             group.name = res['name']
-            for i in res['items']:
-                if i['key'] == 'Purpose of the community':
-                    group.purpose = i['value']
-                if i['key'] == 'Geography of the community':
-                    group.location = i['value']
-                if i['key'] == 'About the community (Optional)':
-                    group.about = i['value'] 
-                if 'image' in img:
+            for dict in res['items']:
+                if dict['key'] == 'Purpose of the community':
+                    group.purpose = dict['value']
+                elif dict['key'] == 'Geography of the community':
+                    group.location = dict['value']
+                elif dict['key'] == 'About the community (Optional)':
+                    group.about = dict['value']
+                elif 'image' in img:
                     group.image_url = img['image']
-                if i['key'] == 'whatsapp_link' :
-                    group.whatsapp_group_link = i['whatsapp_link']
+                elif dict['key'] == 'whatsapp_link' :
+                    group.whatsapp_group_link = dict['whatsapp_link']
+                    # saving the categories of the community
+                elif dict['key'] == 'Type of community':
+                    categories = dict['value']
+                    categories = categories.split(", ")
+                    for tags in categories:
+                        tags_id = int(tags)
+                        tags_object = Tags.objects.get(id=tags_id)
+                        community_tags = Community_tags()
+                        community_tags.category = tags_object.category_name
+                        community_tags.community_id_id = group.id
+                        community_tags.tags_id = tags_id
+                        community_tags.save()
             group.updated_at=time.time()
             group.created_at=time.time()
             group.save()
-
-            #saving the categories of the community
-            for i in res['items']:
-                if i['key'] == 'Type of community' :
-                    categories = i['value']
-                    categories = categories.split(", ")
-                    for tags in categories:
-                        tags_id=int(tags)
-                        tags_object=Tags.objects.get(id=tags_id)
-                        community_tags=Community_tags()
-                        community_tags.category=tags_object.category_name
-                        community_tags.community_id_id=group.id
-                        community_tags.tags_id=tags_id
-                        community_tags.save()
 
             # create user as a admin for the community as the user is creating the community as a admin
             user = User.objects.get(id = user_id)
@@ -494,9 +496,9 @@ def create_community(request):
 
             # get user serialized json
             usr = UserinfoSerializer(user)
-            serializer_class = CommunitySerializer(community)
+            serialized_object = CommunitySerializer(community)
             new_dict = {}
-            new_dict.update(serializer_class)
+            new_dict.update(serialized_object)
 
             ans_text =''
 
@@ -537,14 +539,14 @@ def create_community(request):
             member.state=2                              # temperary admin state
             member.save()
             # get community serialized json
-            serializer_class = CommunitySerializer(group)
+            serialized_object = CommunitySerializer(group)
             new_dict = {}
-            new_dict.update(serializer_class)
+            new_dict.update(serialized_object)
 
             user_id = request.GET.get('member_id')
             user = Userinfo.objects.get(user_id = user_id)
             #send_email_to_temp_admin_of_community.delay(CommmunityAdminName=user.name,CommunityName=res['name'],email=user.email)
-        return JsonResponse({'success':True, 'community':new_dict})
+            return JsonResponse({'success':True, 'community':new_dict})
     return HttpResponse("Create Community Api")
 
 
@@ -640,17 +642,17 @@ def get_answer_data(answer):
 
     '''function to get answer for a particular collabcard from database database'''
     answers = []
-    for i in answer:
-        user = Userinfo.objects.filter(user_id=i.user.id)
+    for ans in answer:
+        user = Userinfo.objects.filter(user_id=ans.user.id)
         usr = UserinfoSerializer(user[0])
         # coverting current time into epoch time
 
-        if str(i.date_epoch) == "-9223372036854775808":
+        if str(ans.date_epoch) == "-9223372036854775808":
             time_text = ""
         else:
-            time_text = get_time_text(i.date_epoch)
+            time_text = get_time_text(ans.date_epoch)
 
-        answers.append({'id': i.id, 'answer': i.answer, 'created_at': time_text, 'member': usr})
+        answers.append({'id': ans.id, 'answer': ans.answer, 'created_at': time_text, 'member': usr})
     return answers
 
 
@@ -700,36 +702,36 @@ def community_cards(request, community_id):
     member_id=request.GET.get('member_id')
 
     card = []
-    for i in cards:
-        user = Userinfo.objects.get(user_id = i.user)
+    for card in cards:
+        user = Userinfo.objects.get(user_id = card.user)
         # serialize user object
         usr = UserinfoSerializer(user)
         # get card images --------------------------------------------------------
-        images = Card_Attachment.objects.filter(collabcard = i,type='Image')
+        images = Card_Attachment.objects.filter(collabcard = card,type='Image')
         img_list = []
         for j in images:
             img = {'image_url': url+j.attachment.url}
             img_list.append(img)
         # -----------------------------------------------------------------------
-        share_url = url+'/collabcard/'+str(i.id)
+        share_url = url+'/collabcard/'+str(card.id)
 
         # get time stamp
-        if str(i.date_epoch) == "-9223372036854775808":
+        if str(card.date_epoch) == "-9223372036854775808":
             # if there is no time stamp , return nothing
             time_text=""
         else:
             # get time stamp
-            time_text = get_time_text(i.date_epoch)
-        ans_text = i.answer_text
-        card_dict={'id': i.id,
-                   'title': i.title,
+            time_text = get_time_text(card.date_epoch)
+        ans_text = card.answer_text
+        card_dict={'id': card.id,
+                   'title': card.title,
                    'member':usr,
                    'images':img_list,
                    'share_url' : share_url,
                    'answer_text': ans_text ,
                    'created_at':time_text,
-                   'state':get_status_of_collabcard(member_id,community,i),
-                   'share_link':i.share_link
+                   'state':get_status_of_collabcard(member_id,community,card),
+                   'share_link':card.share_link
                    }
         card.append(card_dict)
     return JsonResponse ({'collabcards': card})
@@ -907,16 +909,23 @@ def image_upload(request):
             community_id = body['community_id']
             community = Community.objects.get(id = community_id)
             old_image_file = community.image_url
+
             # # deleting the old file after new file is updated
             # # get the new image file
-            new_image_file = request.FILES['file']
-            if not old_image_file == new_image_file:
-                # if both are not same delete old file
+            version =  re.findall(r'\w*__image__(\d+)',old_image_file.name)
+            if version:
+                version = int(version[0])+1
+            else:
+                version = 1
+            new_image.name = str(community_id) + '__image__' + str(version) + '.jpg'
+
+            if not old_image_file == new_image:
+                #     # if both are not same delete old file
                 if os.path.isfile(old_image_file.path):
                     os.remove(old_image_file.path)
 
-            community.image_url = new_image_file
-            community.save()
+                community.image_url = new_image
+                community.save()
 
         elif 'collabcard_id' in body:
 
@@ -949,6 +958,14 @@ def upload_attachment(request):
             # if image to be updated in community
             community_id = body['community_id']
             community = Community.objects.get(id=community_id)
+            old_image_file = community.image_url
+            # deleting the old file after new file is updated
+            # get the new image file
+            if not old_image_file == attachment:
+                # if both are not same delete old file
+                if os.path.isfile(old_image_file.path):
+                    os.remove(old_image_file.path)
+
             community.image_url = attachment
             community.save()
         elif 'collabcard_id' in body:
@@ -1340,9 +1357,9 @@ def edit_community(request):
 
     community=Community.objects.get(id=community_id)
 
-    serializer_class = CommunitySerializer(community)
+    serialized_object = CommunitySerializer(community)
     new_dict = {}
-    new_dict.update(serializer_class)
+    new_dict.update(serialized_object)
 
     return JsonResponse({'success': True,'community':new_dict})
 
@@ -1365,4 +1382,6 @@ def edit_questions(questions,community_id):
     print('questions updated successfully')
 
 
+def send_mail_and_notification():
 
+    pass
