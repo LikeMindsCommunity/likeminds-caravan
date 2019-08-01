@@ -756,7 +756,7 @@ def community_cards(request, community_id):
     cards = Collabcard.objects.filter(community = community_id).order_by('id')
     member_id=request.GET.get('member_id')
 
-    card = []
+    card_list = []
     for card in cards:
         user = Userinfo.objects.get(user_id = card.user)
         # serialize user object
@@ -788,8 +788,8 @@ def community_cards(request, community_id):
                    'state':get_status_of_collabcard(member_id,community,card),
                    'share_link':card.share_link
                    }
-        card.append(card_dict)
-    return JsonResponse ({'collabcards': card})
+        card_list.append(card_dict)
+    return JsonResponse ({'collabcards': card_list})
 
 def get_status_of_collabcard(member_id,community,card):
     '''function to get the state of collabcard'''
