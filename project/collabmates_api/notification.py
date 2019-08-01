@@ -215,7 +215,7 @@ def send_notification_to_proposed_admin(nominated_admin_id,community_id,proposed
 
 
 @shared_task
-def send_notification_to_proposer(proposer_id,community,proposed_name):
+def send_notification_to_proposer(proposer_id,community_name,community_id,proposed_name):
 
     '''function to send notification if the proposed admin accepts invitation'''
 
@@ -227,9 +227,9 @@ def send_notification_to_proposer(proposer_id,community,proposed_name):
 
         message={}
         message['payload']={
-            'title':str(community.name),
+            'title':str(community_name),
             'sub_title':str(proposed_name) + " is now a promoter of the community",
-            'route':'route://community?community_id=' + str(community.id)
+            'route':'route://community?community_id=' + str(community_id)
         }
 
         send_notification_to_multiple_devices(token_list, message)
