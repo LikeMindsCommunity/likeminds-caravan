@@ -348,8 +348,8 @@ def join_community_responses(request):
             response.community = community.id
             response.save()
     Community.objects.filter(id=community_id).update(updated_at=time.time())
-
-    send_notification_to_admins.delay(community_id,userinfo)
+    name=userinfo.name
+    send_notification_to_admins.delay(community_id,name)
     return JsonResponse({'success':True})
 
 
@@ -450,6 +450,7 @@ def create_community(request):
                     group.save()
                     categories = dict['value']
                     categories = categories.split(", ")
+                    group.save()
                     for tags in categories:
                         tags_id = int(tags)
                         tags_object = Tags.objects.get(id=tags_id)
@@ -634,9 +635,6 @@ def send_email_for_collabcard(community,user,card):
             context['to']=userinfo.email
             #print(context)
             send_email_for_new_collabcard_posted.delay(context)
-
-
-
 
 
 
@@ -1174,6 +1172,7 @@ def request_response(request):
         Members.objects.filter(member_id=member_id,community_id=community).update(state=5)  # decline state = 5
         # and also send notification
         send_notification_for_join_requests.delay(community_id, False, member_id)
+        Form_response.objects.filter(user=member_id,community=community_id).delete()
     return JsonResponse({'success': True})
 
 
