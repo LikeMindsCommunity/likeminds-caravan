@@ -104,7 +104,7 @@ def get_communities_by_tags(user_tag=0, category_tag=0,page_number=1):
 
 def serialize_community(queryset,user_id ):
     ''' this function gives us a dictionary of community/communities objects based on given queryset '''
-    community = []
+    communities = []
     for community in queryset:
 
         try:
@@ -122,12 +122,12 @@ def serialize_community(queryset,user_id ):
             # form a dictionary of community objects
             new_dict.update(serialized_object)
 
-            community.append(new_dict)
+            communities.append(new_dict)
         elif comm.hide_community == '1':
 
             pass
 
-    return community
+    return communities
 
 
 def pagination(queryset,page_number):
