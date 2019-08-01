@@ -625,8 +625,7 @@ def collabcard(request, card_id):
     usr = UserinfoSerializer(user)
     # get the card image if any
 
-    files=
-    _files(card_id)
+    files= get_collabcard_files(card_id)
     card=CollabcardSerializer(cards,cards.community)
     card['images']=files[0]
     card['member']=usr
