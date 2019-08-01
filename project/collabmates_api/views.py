@@ -322,8 +322,8 @@ def join_community_responses(request):
     user = User.objects.get(id = user_id)
     community = Community.objects.get(id = community_id)
 
-    userinfo = Userinfo.objects.get(user_id=user_id)
-
+    userinfo = Userinfo.objects.get(user_id=user.id)
+    print("=====================  ",userinfo)
     #inserting in members table if the member status is pending and inserting it to database with status=3
 
     #If the member is declined from the community and he applied again
