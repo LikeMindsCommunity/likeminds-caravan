@@ -10,19 +10,18 @@ from django.conf import settings
 url  = settings.URL
 
 
-@shared_task
-def send_email():
-	time.sleep(300)
-	fail_silently=True
-	subject="Thanks for joining CollabMates! Here's what to expect"
-	template = get_template("mails/welcome_mail_zero.html").render()
-	msg = EmailMultiAlternatives(subject,
-	                                 template,
-	                                 "hello@collabmates.com",
-	                                 [to],
-	                                 )
-	msg.attach_alternative(template, "text/html")
-	return msg.send(fail_silently)
+# @shared_task
+# def send_email():
+# 	fail_silently=True
+# 	subject="Thanks for joining CollabMates! Here's what to expect"
+# 	template = get_template("mails/collabcard_posted.html").render()
+# 	msg = EmailMultiAlternatives(subject,
+# 	                                 template,
+# 	                                 "hello@collabmates.com",
+# 	                                 [to],
+# 	                                 )
+# 	msg.attach_alternative(template, "text/html")
+# 	return msg.send(fail_silently)
 
 @shared_task
 def send_email_to_nominated_admin(NominatedAdmin,email,ProposedAdmin,CommunityName,community_id,proposedAdminState):
@@ -98,3 +97,21 @@ def send_email_to_proposed_admin(NominatedAdmin, email, ProposedAdmin, Community
 								 )
 	msg.attach_alternative(template, "text/html")
 	return msg.send(fail_silently)
+
+@shared_task
+def send_email_for_new_collabcard_posted(context):
+
+	'''function to send the email when a new collabcard is posted'''
+
+	to = context['to']
+	fail_silently = True
+	subject = str(context['collabcard_creater']) + " has started a new Conversation in "+ str(context['community_name'])+ " community"
+	template = get_template("mails/collabcard_posted.html").render(context)
+	msg = EmailMultiAlternatives(subject,
+								 template,
+								 "hello@collabmates.com",
+								 [to],
+								 )
+	msg.attach_alternative(template, "text/html")
+	return msg.send(fail_silently)
+
