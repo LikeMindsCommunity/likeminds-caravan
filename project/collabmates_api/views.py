@@ -288,7 +288,7 @@ def similar_community(request, community_id):
 
         if comm_object.hide_community == '0' and comm_object.id != community_id:
             # if not hidden , pass the community object to serializer
-            serialized_object = CommunitySerializer(c)
+            serialized_object = CommunitySerializer(comm_object)
             new_dict = {}
             # form a dictionary of community objects
             new_dict.update(serialized_object)
