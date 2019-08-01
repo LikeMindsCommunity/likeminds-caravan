@@ -447,6 +447,7 @@ def create_community(request):
                     group.whatsapp_group_link = dict['whatsapp_link']
                     # saving the categories of the community
                 elif dict['key'] == 'Type of community':
+                    group.save()
                     categories = dict['value']
                     categories = categories.split(", ")
                     for tags in categories:
