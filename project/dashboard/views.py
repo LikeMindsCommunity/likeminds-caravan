@@ -362,8 +362,14 @@ def all_user(request):
         user_dic['name'] = i.name
         user_dic['email'] = i.email
         user_dic['image_url'] = i.image_file
-        tags_count = userinfo_tags.objects.filter(user_id=i.user_id.id).count()
+        if i.fcm_token:
+            print("has token")
+            user_dic['fcm_token'] = 1
+        else:
+            print("no token")
+            user_dic['fcm_token'] = 0
         tags = userinfo_tags.objects.filter(user_id=i.user_id.id)
+        tags_count = tags.count()
         tags_list=[]
         for t in tags:
             tag = Tags.objects.get(id = t.tag_id)

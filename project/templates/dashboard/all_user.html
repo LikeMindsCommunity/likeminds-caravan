@@ -131,6 +131,11 @@ a.article-title:hover {
       {% else %}
        <a class="article-title" href="{% url 'update_user_tags' user.user_id %}" style="color:black; "><p class="article-content"><b style="color: black;">Tags : </b>None</p></a>
       {% endif %}
+      {% if user.fcm_token == 0 %}
+      <p class="article-content"><b style="color: indianred;">FCM TOKEN </b></p>
+      {% elif user.fcm_token == 1 %}
+       <p class="article-content"><b style="color: lime;">FCM TOKEN </b></p>
+      {% endif %}
   </div>
 
       <a class="btn btn-primary btn-sm mt-1 mb-1 mr-4 " href="{% url 'alpha_sign_up_mail' user.user_id %}">Alpha SignUp</a>
