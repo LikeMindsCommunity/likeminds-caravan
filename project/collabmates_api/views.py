@@ -12,7 +12,7 @@ import time
 from .notification import send_follow_notification,send_notification_to_admins,send_notification_for_join_requests,send_notification_for_new_collabcard_posted,send_notification_to_proposed_admin,send_notification_to_proposer
 from django.db.models import Q
 import dateutil.relativedelta
-from .tasks import send_email_to_nominated_admin
+from .tasks import send_email_to_nominated_admin,send_email_for_new_collabcard_posted
 from django.conf import settings
 from togther.tasks import send_email_to_proposed_admin
 from django.core.paginator import Paginator
@@ -576,6 +576,7 @@ def create_card(request):
 
         # sending notification to the user
         send_notification_for_new_collabcard_posted.delay(community_id,res['title'],user_id,user.name)
+        send_email_for_collabcard(community,user,card)
         Community.objects.filter(id=community_id).update(updated_at=time.time())
 
         collabcard = CollabcardSerializer(card, community)
@@ -595,6 +596,45 @@ def create_card(request):
         update_last_answer_id(card.id,"")
         return JsonResponse({'success':True,'collabcard':collabcard})
     return JsonResponse()
+
+def send_email_for_collabcard(community,user,card):
+
+    '''function to make the format of email to send when a new collabcard is posted'''
+
+
+    members=Members.objects.filter(community_id=community)
+    college_tag=Community_tags.objects.filter(community_id=community).filter(Q(tags_id=41)|Q(tags_id=42))
+    form_link=url
+    for tag in college_tag:
+        if tag.tags_id == 41:
+            form_link='https://docs.google.com/forms/d/e/1FAIpQLSes87js8cTiGg0x-Vw9DYrnY1BCZTolba0B1WBvcVSYZSGAwg/viewform'
+        elif tag.tags_id == 42:
+            form_link='https://docs.google.com/forms/d/e/1FAIpQLSfqN2z1wg6CCJ4ZKH1lxQQgJ8iUWEbtTT0R9NT64zg5f13_ig/viewform'
+
+
+    for member in members:
+        context = {
+            'community_name': community.name,
+            'collabcard_creater': user.name,
+            'collabcard_creater_image':url+user.image_file.url,
+            'creater_header': user.headline,
+            'url':  url + '/collabcard/' + str(card.id),
+            'form_link':form_link
+        }
+
+        if member.member_id.id == user.user_id.id:
+            continue
+        if member.state == 1 or member.state == 2 or member.state == 4:
+            userinfo=Userinfo.objects.get(user_id=member.member_id)
+            context['reciever']=userinfo.name
+            context['reciever_image']=url+userinfo.image_file.url
+            context['to']=userinfo.email
+            #print(context)
+            send_email_for_new_collabcard_posted.delay(context)
+
+
+
+
 
 
 def collabcard(request, card_id):
