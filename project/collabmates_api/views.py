@@ -763,7 +763,7 @@ def community_cards(request, community_id):
         usr = UserinfoSerializer(user)
         # get card images --------------------------------------------------------
 
-        files=get_collabcard_files(i)
+        files=get_collabcard_files(card)
 
 
         # -----------------------------------------------------------------------
