@@ -215,11 +215,11 @@ def send_notification_to_proposed_admin(nominated_admin_id,community_id,proposed
 
 
 @shared_task
-def send_notification_to_proposer(proposer,community,proposed_name):
+def send_notification_to_proposer(proposer_id,community,proposed_name):
 
     '''function to send notification if the proposed admin accepts invitation'''
 
-    fcm_token=get_token_for_fcm(proposer.user_id.id)
+    fcm_token=get_token_for_fcm(proposer_id)
 
     if fcm_token:
         token_list=[]

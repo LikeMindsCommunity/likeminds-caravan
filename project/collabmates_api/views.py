@@ -1352,7 +1352,9 @@ def accept_invitation(request):
             set_user_tag(member_id, community.id)
             #sending email to promoter , that user has accepted his request to become a promoter
             send_email_to_proposed_admin.delay(NominatedAdmin=nom_admin[0].name,email=prop_admin.email,ProposedAdmin=prop_admin.name,proposedAdminState=1,CommunityName=community.name,community_id = community.id)
-            send_notification_to_proposer.delay(prop_admin, community,nom_admin[0].name)
+            proposer_id=prop_admin.user_id.id
+            nom_admin_name=nom_admin[0].name
+            send_notification_to_proposer.delay(proposer_id, community,nom_admin_name)
             return JsonResponse({'success':True})
     else:
         # if nominated promoter didn't accept the invitation
