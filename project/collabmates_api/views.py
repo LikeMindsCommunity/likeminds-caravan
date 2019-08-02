@@ -650,10 +650,13 @@ def collabcard(request, card_id):
     answer = card_answers.objects.filter(card = cards)
 
     answer_id=request.GET.get('answer_id','')
+    user_id = request.GET.get('member_id', '')
 
     if answer_id:
         answer_id=int(answer_id)
-        answer=card_answers.objects.filter(card=cards,id__gte=answer_id)
+
+        answer=card_answers.objects.filter(card=cards,id__gte=answer_id).filter(~Q(user__id = user_id))
+
         answers=get_answer_data(answer)
         return JsonResponse({'answers': answers})
     else:
