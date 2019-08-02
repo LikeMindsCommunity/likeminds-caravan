@@ -39,7 +39,7 @@ def dashboard(request):
       community_dic['purpose']=i.purpose
       pending_members_count=Members.objects.filter(community_id=i,state=3).count()
       community_dic['pending_member_count'] = pending_members_count
-      members_count = Members.objects.filter(community_id=i).filter(Q(state =1)|Q(state =2)|Q(state=4)).count()
+      members_count = Members.objects.filter(community_id=i).filter(Q(state=1)|Q(state=2)|Q(state=4)|Q(state=7)).count()
       community_dic['members_count'] = members_count
       community_dic['active_since']=i.active_since
       community_dic['question_count']=Form_data.objects.filter(community_id=i).count()
