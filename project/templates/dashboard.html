@@ -42,7 +42,7 @@
   </head>
   <body>
         
-        <div class="ui small inverted menu" style=" height:60px; background-color:#075e54; margin:0 0 0 0 !important;">
+        <div class="ui small inverted menu" style=" height:60px; background-color:#075e54; margin:0 0 0 0 !important;max-width:100%;">
             <div class="ui grid container" style = "margin-left:0!important; margin-top:0px;">
                 <div class="eight wide column" style="padding:10px; ">
                   
@@ -198,132 +198,13 @@ function save(){
 </style>
 <body>
 
-            <div class="ui fluid container" style="padding: 0px 0px; margin: 0px 0px 0px 0px !important;" >
-            <br>
-<!--                <img class="ui medium rounded fluid image" style="width:100vw;" onclick="create();"src="/media/group_2.png">-->
-              </div>
+           <br/>
 
-              <div class=" ui fluid container" style=" padding:0px 10px;">
-                  <div class="ui grid">
-
-                      <div class="sixteen wide column" style=" margin: 0 auto; padding-right:5px;  ">
-
-<!--                          <h3 style="margin: 10px;">Recommended Communities </h3>-->
-
-                          <!-- <div class="ui center aligned search" >
-                          <div class="ui fluid icon input" id = 'result' >
-                            <input class="ui fluid prompt"   type="text"  placeholder=" Categories..." id = 'cat' style="width:100%; padding-right: 0px !important;">
-                            <i class="search icon" onclick="filter()"></i>
-                          </div>
-                          <div class="results" ></div>
-                        </div> -->
-<!--                        <select id='selUser' style=" margin-left: 10px; padding-left:10px; width:85%; height:30px; background:white; border: 0.5px solid silver; color: grey; border-radius:50px;">-->
-
-<!--                            <option value=" ">Explore by Category</option>-->
-<!--  <option value="alumni">Alumni</option>-->
-
-<!--  <option value="college">College</option>-->
-
-<!--  <option value="school">School</option>-->
-
-<!--  <option value="profession">Profession</option>-->
-
-<!--  <option value="native roots">Native Roots</option>-->
-
-<!--  <option value="parenting">Parenting</option>-->
-
-<!--  <option value="events">Events</option>-->
-
-<!--  <option value="interests">Interests</option>-->
-
-<!--  <option value="education">Education</option>-->
-
-<!--  <option value="achievements">Achievements</option>-->
-
-<!--  <option value="learning">Learning</option>-->
-
-<!--  <option value="opportunities">Opportunities</option>-->
-
-<!--  <option value="sports">Sports</option>-->
-
-<!--  <option value="activities">Activities</option>-->
-
-<!--  <option value="travel">Travel</option>-->
-
-<!--  <option value="hobbies">Hobbies</option>-->
-
-<!--  <option value="religious">Religious</option>-->
-
-<!--  <option value="political">Political</option>-->
-
-<!--  <option value="social">Social</option>-->
-
-<!--  <option value="music">Music</option>-->
-
-<!--  <option value="belief">Belief</option>-->
-
-<!--  <option value="fan">Fan</option>-->
-
-<!--  <option value="startups">Startups</option>-->
-
-<!--  <option value="finance">Finance</option>-->
-
-<!--  <option value="industry">Industry</option>-->
-
-<!--  <option value="skill">Skill</option>-->
-
-<!--  <option value="family">Family</option>-->
-
-<!--  <option value="cause">Cause</option>-->
-<!--    <option value="legacy">Legacy</option>-->
-
-
-<!--  <option value="neighborhood">Neighborhood</option>-->
-
-<!--  <option value="health &amp; wellness">Health &amp; Wellness</option>-->
-
-<!--  <option value="Sports &amp; Fitness">Sports &amp; Fitness</option>-->
-
-<!--  <option value="Food &amp; Drink">Food &amp; Drink</option>-->
-
-<!--  <option value="Language &amp; Culture">Language &amp; Culture</option>-->
-
-<!--  <option value="movement">Movement</option>-->
-
-<!--  <option value="games">Games</option>-->
-
-<!--  <option value="art">Art</option>-->
-
-<!--  <option value="fashion">Fashion</option>-->
-
-<!--  <option value="brand">Brand</option>-->
-<!--                          </select>-->
-
-
-<!--                          <br/>-->
-<!--                          <div id='result'></div>-->
-<!--                          </div>-->
-<!--                        </div>-->
-
-                        <!-- <div class="eight wide column" style="padding-left:0px;">
-                        <div class="ui right aligned search" >
-                          <div class="ui fluid icon input">
-                                <input class="ui fluid prompt" type="text"  id='lct' placeholder="Location...." style=" width: 95% ; padding-right: 2px !important; margin-left:2px;">
-                                <i class="map marker alternate icon"></i>
-                              </div>
-                              <div class="results"></div>
-                      </div>
-                      </div> -->
-
-                  </div>
-
-
-    <div class="ui fluid container" style="padding: 0 20px" id = 'comm_card'>
         {{request.user.userinfo}}
     {% for community in communities %}
 
     <div class="ui link fluid cards" >
-            <div class="ui fluid card "onclick="">
+            <div class="ui fluid card "onclick="" style="margin-right:0px;">
 
                     <div class=" fluid image">
                       <img src="{{community.image_url.url}}" style="max-height: 400px;">
@@ -358,7 +239,7 @@ function save(){
     {% endfor %}
     <a id="back2Top" title="Back to top" href="#">&#10148;</a>
 
-</div>
+
 <script>
 
     function create(){
