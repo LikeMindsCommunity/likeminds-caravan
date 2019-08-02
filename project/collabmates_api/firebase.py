@@ -12,7 +12,6 @@ FIREBASE_CONFIG = {
   };
 
 firebaseConfig=FIREBASE_CONFIG
-print(firebaseConfig)
 firebase = pyrebase.initialize_app(firebaseConfig)
 
 database=firebase.database()
@@ -32,4 +31,3 @@ def update_last_answer_id(card_id,answer_id):
     print('Data Updated successfully in firebase')
 
 
-update_last_answer_id(197,12)
