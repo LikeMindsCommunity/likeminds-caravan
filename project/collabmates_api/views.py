@@ -447,7 +447,6 @@ def create_community(request):
                     group.whatsapp_group_link = dict['whatsapp_link']
                     # saving the categories of the community
                 elif dict['key'] == 'Type of community':
-                    group.save()
                     categories = dict['value']
                     categories = categories.split(", ")
                     group.save()
@@ -723,7 +722,10 @@ def get_time_text(created_time):
     current = datetime.fromtimestamp(int(current_time))
     difference = dateutil.relativedelta.relativedelta (current, created)
 
-    if difference.days :
+    if difference.months:
+        return time.strftime('%d/%m/%Y', time.localtime(created_time))
+
+    elif difference.days:
         # if difference is in days
         if difference.days == 1:
             return str(difference.days)+" day ago"
@@ -735,6 +737,7 @@ def get_time_text(created_time):
             return "1 week ago"
         # if difference is more than one week return created date
         return time.strftime('%d/%m/%Y', time.localtime(created_time))
+
     elif difference.hours:
         # if difference is in hours
         if difference.hours == 1:
@@ -764,10 +767,7 @@ def community_cards(request, community_id):
         # serialize user object
         usr = UserinfoSerializer(user)
         # get card images --------------------------------------------------------
-
         files=get_collabcard_files(card)
-
-
         # -----------------------------------------------------------------------
         share_url = url+'/collabcard/'+str(card.id)
 
