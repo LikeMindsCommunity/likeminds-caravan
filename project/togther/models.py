@@ -70,6 +70,8 @@ class Userinfo (models.Model):
     name = models.CharField(max_length = 200)
     email = models.CharField(max_length = 200)
     city = models.CharField(max_length = 100, null = True)
+    latitude = models.FloatField(null = True)
+    longitude = models.FloatField(null=True)
     headline = models.CharField(max_length = 200, null= True)
     contact_number = models.CharField(max_length = 200,null = True)
     gender = models.IntegerField(null = True)

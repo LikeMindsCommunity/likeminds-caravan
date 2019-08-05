@@ -16,10 +16,11 @@ from .tasks import send_email_to_nominated_admin,send_email_for_new_collabcard_p
 from django.conf import settings
 from togther.tasks import send_email_to_proposed_admin
 from django.core.paginator import Paginator
-from togther.views import set_user_tag, get_user_tag,get_nominated_admin_details
+from togther.views import set_user_tag, get_user_tag,get_nominated_admin_details,update_member_count
 import os
 from .firebase import update_last_answer_id
 import re
+import googlemaps
 
 url  = settings.URL
 
@@ -130,11 +131,11 @@ def serialize_community(queryset,user_id ):
     return communities
 
 
-def pagination(queryset,page_number):
+def pagination(queryset,page_number,paginate_by=20):
 
     '''function to create pagination and return a query set for page number'''
 
-    paginator = Paginator(queryset, 20)
+    paginator = Paginator(queryset, paginate_by)
     max_page=len(paginator.page_range)
 
     if max_page < int(page_number):
@@ -148,6 +149,7 @@ def your_communities(request,user_id):
     '''This function is used to see your communities based on user id'''
 
     member_id=request.GET.get('member_id')
+    page_number = request.GET.get('page',1)
 
     # user = User.objects.get(id = member_id)
     # getting communities of the member from member model based on member state
@@ -169,7 +171,7 @@ def your_communities(request,user_id):
         tupple_list.append(x)
 
     result = sorted(tupple_list, key= lambda x:x[1],reverse=True)
-
+    result = pagination(result,page_number,paginate_by=15)
     for each_community in result:
 
         if str(member_id) != str(user_id):
@@ -182,10 +184,11 @@ def your_communities(request,user_id):
                 continue
             my_communities.append(each_community[0])
     my_community =[]
-
+    count=1
     for comm in my_communities:
         serialized_object = CommunitySerializer(comm)
-
+        serialized_object['count'] = count
+        count += 1
         serialized_object['is_member'] = ''
         new_dict = {}
         new_dict.update(serialized_object)
@@ -220,7 +223,7 @@ def your_communities(request,user_id):
             new_dict['collabcard_unseen'] =0
         else:
             new_dict['collabcard_unseen'] = (total_collabcards.count() - seen_collabcard.count())
-        # getting unseen crad list by getting the difference between total cards and seen cards
+        # getting unseen card list by getting the difference between total cards and seen cards
         unseen_list  = total_collabcards.difference(seen_collabcard).values('id').distinct().order_by("-id")
 
         if total_collabcards.count()>0:
@@ -721,10 +724,13 @@ def get_time_text(created_time):
     created = datetime.fromtimestamp(created_time)
     current = datetime.fromtimestamp(int(current_time))
     difference = dateutil.relativedelta.relativedelta (current, created)
-
-    if difference.months:
+    # print("diffrence ======== ",difference)
+    if difference.years:
+        # if difference is more than one week return created date
         return time.strftime('%d/%m/%Y', time.localtime(created_time))
-
+    elif difference.months:
+        # if difference is more than one week return created date
+        return time.strftime('%d/%m/%Y', time.localtime(created_time))
     elif difference.days:
         # if difference is in days
         if difference.days == 1:
@@ -1384,16 +1390,6 @@ def accept_invitation(request):
 
     return JsonResponse({'success': False})
 
-
-def update_member_count(community_id):
-    ''' update members count of a community , when a promoter or member joins a community '''
-    community = Community.objects.get(id=community_id)
-    # getting the count of members including admins in a community
-    count = Members.objects.filter(community_id=community).filter(Q(state=1)|Q(state=2)|Q(state=4)|Q(state=7)).count()
-    # updating count
-    Community.objects.filter(id=community_id).update(members_count = count)
-    return
-
 @csrf_exempt
 def edit_community(request):
 
@@ -1449,3 +1445,21 @@ def edit_questions(questions,community_id):
 def send_mail_and_notification():
 
     pass
+
+@csrf_exempt
+def update_location(request,user_id):
+    lat = request.GET.get('lat')
+    long = request.GET.get('long')
+    userinfo = Userinfo.objects.get(user_id =user_id)
+    userinfo.latitude = lat
+    userinfo.longitude = long
+    userinfo.save()
+    return JsonResponse({'success':True})
+
+def get_user_location(request,user_id):
+    userinfo = Userinfo.objects.get(user_id=user_id)
+    gmaps = googlemaps.Client(key='AIzaSyD5xLop8EukMmCiVrfMTcPQ3eLl7XK2LR4')
+    location_response = gmaps.reverse_geocode((userinfo.latitude,userinfo.longitude))
+    # location_response = 'https://maps.googleapis.com/maps/api/geocode/json?latlng='+str(userinfo.latitude)+','+str(userinfo.longitude)+'&key=AIzaSyD5xLop8EukMmCiVrfMTcPQ3eLl7XK2LR4 '
+    return JsonResponse(location_response,safe=False)
+

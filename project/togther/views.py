@@ -55,12 +55,14 @@ def dashboard(request):
                       {'usr': user, 'communities': communities, 'my_communities': my_community[:2],
                        "my_communities_count": len(my_community)})
     communities = Community.objects.filter(hide_community='0').order_by('-active_since')
-    if request.method == 'GET':
-        response = request.GET.dict()
-        print(response)
-        if 'data' in response:
-            if response['data'] != '':
-                get_communities_by_tags(user_tag=0, category_tag=0)
+    for community in communities:
+        update_member_count(community.id)
+    # if request.method == 'GET':
+    #     response = request.GET.dict()
+    #     print(response)
+    #     if 'data' in response:
+    #         if response['data'] != '':
+    #             get_communities_by_tags(user_tag=0, category_tag=0)
 
     return render(request, 'dashboard.html', {'communities': communities})
 
@@ -81,6 +83,7 @@ def get_communities_by_user_tag(request):
             "-community_id").distinct()
         communities = []
         for i in communities_by_tags:
+            update_member_count(i['community_id'])
             c = Community.objects.get(id=i['community_id'])
             communities.append(c)
     else:
@@ -831,11 +834,6 @@ def create_message(request):
     return JsonResponse({'success':True,'msg':msg,'image_url':user['image_url'],'name':user['name']})
 
 
-
-
-
-
-
 def set_user_tag(user_id, community_id):
     ''' function to set hidden tag for user '''
     community = Community.objects.get(id=community_id)
@@ -874,7 +872,6 @@ def get_user_tag(user_id):
     return user_tag
 
 
-
 def get_nominated_admin_details(community_id,email):
     '''fetching nominated promoter details from temp admin table'''
     community = get_object_or_404(Community, pk = community_id)
@@ -888,3 +885,12 @@ def get_nominated_admin_details(community_id,email):
         print('details are not present')
         return False
 
+
+def update_member_count(community_id):
+    ''' update members count of a community , when a promoter or member joins a community '''
+    community = Community.objects.get(id=community_id)
+    # getting the count of members including admins in a community
+    count = Members.objects.filter(community_id=community).filter(Q(state=1)|Q(state=2)|Q(state=4)|Q(state=7)).count()
+    # updating count
+    Community.objects.filter(id=community_id).update(members_count = count)
+    return count
