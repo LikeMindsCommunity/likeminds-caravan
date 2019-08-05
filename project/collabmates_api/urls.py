@@ -32,6 +32,8 @@ urlpatterns = [
     path('collabcard_follow',api_views.collabcard_follow,name='collabcard_follow'),
     path('accept_invitation',views.accept_invitation,name='accept_invitation'),
     path('edit_community', views.edit_community, name='edit_community'),
-    path('upload_attachment',api_views.upload_attachment,name='upload_attachment')
+    path('upload_attachment',api_views.upload_attachment,name='upload_attachment'),
+    path('update_location/<int:user_id>',api_views.update_location,name='upload_location'),
+    path('fetch_location/<int:user_id>',api_views.get_user_location,name='fetch_location'),
 
 ]
