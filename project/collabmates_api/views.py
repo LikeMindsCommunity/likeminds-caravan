@@ -153,36 +153,38 @@ def your_communities(request,user_id):
 
     # user = User.objects.get(id = member_id)
     # getting communities of the member from member model based on member state
-    communities = Members.objects.all().filter(member_id = user_id).filter(Q(state=1)|Q(state=2)|Q(state=4)|Q(state=7))
+    communities = Members.objects.all().filter(member_id = user_id).filter(Q(state=1)|Q(state=2)|Q(state=4)|Q(state=7)).order_by("-community_id__updated_at")
     my_communities = []
 
     # making a tupple list and sorting communities based on date
-    tupple_list=[]
-    # sorting communities based on its updated time
-    for each_community in communities:
-        update_time=Community.objects.filter(id=each_community.community_id.id).values('updated_at')
+    # tupple_list=[]
+    # # sorting communities based on its updated time
+    # for each_community in communities:
+    #     update_time=Community.objects.filter(id=each_community.community_id.id).values('updated_at')
+    #
+    #     if update_time.count() == 0:
+    #
+    #         update_time=-9223372036854775808
+    #     else:
+    #         update_time=update_time[0]['updated_at']
+    #     x=(each_community.community_id,update_time)
+    #     tupple_list.append(x)
+    #
+    # result = sorted(tupple_list, key= lambda x:x[1],reverse=True)
+    # result = pagination(result,page_number,paginate_by=15)
+    result = pagination(communities,page_number,paginate_by=15)
 
-        if update_time.count() == 0:
-
-            update_time=-9223372036854775808
-        else:
-            update_time=update_time[0]['updated_at']
-        x=(each_community.community_id,update_time)
-        tupple_list.append(x)
-
-    result = sorted(tupple_list, key= lambda x:x[1],reverse=True)
-    result = pagination(result,page_number,paginate_by=15)
     for each_community in result:
-
+        print("=======================  ",each_community.community_id.updated_at)
         if str(member_id) != str(user_id):
-            if each_community[0].hide_community == '0':
-                my_communities.append(each_community[0])
+            if each_community.community_id.hide_community == '0':
+                my_communities.append(each_community.community_id)
 
         else:
             member_id=user_id
-            if each_community[0].hide_community == '2':
+            if each_community.community_id.hide_community == '2':
                 continue
-            my_communities.append(each_community[0])
+            my_communities.append(each_community.community_id)
     my_community =[]
     count=1
     for comm in my_communities:
@@ -1448,11 +1450,11 @@ def send_mail_and_notification():
 
 @csrf_exempt
 def update_location(request,user_id):
-    lat = request.GET.get('lat')
-    long = request.GET.get('long')
+    latitude = request.GET.get('lat')
+    longitude = request.GET.get('long')
     userinfo = Userinfo.objects.get(user_id =user_id)
-    userinfo.latitude = lat
-    userinfo.longitude = long
+    userinfo.latitude = latitude
+    userinfo.longitude = longitude
     userinfo.save()
     return JsonResponse({'success':True})
 
