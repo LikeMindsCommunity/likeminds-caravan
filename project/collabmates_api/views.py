@@ -153,7 +153,7 @@ def your_communities(request,user_id):
 
     # user = User.objects.get(id = member_id)
     # getting communities of the member from member model based on member state
-    communities = Members.objects.all().filter(member_id = user_id).filter(Q(state=1)|Q(state=2)|Q(state=4)|Q(state=7)).order_by("-community_id__updated_at")
+    communities = Members.objects.filter(member_id = user_id).filter(Q(state=1)|Q(state=2)|Q(state=4)|Q(state=7)).order_by("-community_id__updated_at")
 
     result = pagination(communities,page_number,paginate_by=15)
     my_community = []
@@ -237,6 +237,8 @@ def comunte(each_community,user_id):
         collabcard['member'] = usr
 
     return new_dict
+
+
 def community(request, community_id):
     '''Community detail page'''
 
