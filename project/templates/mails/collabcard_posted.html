@@ -24,7 +24,43 @@
 
 .web_display{
 
-    padding-top:0; padding-right:120px; padding-bottom:9px; padding-left:120px;
+    padding-top:0; padding-right:170px; padding-bottom:9px; padding-left:170px;
+
+}
+
+
+.bottom_text{
+
+font-size:12px;
+
+}
+
+}
+
+
+@media screen and (max-width: 600px){
+
+.TextHead{
+
+font-size:18px;
+
+}
+
+.profile_text{
+
+font-size:16px;
+
+}
+
+.profile_heading{
+
+font-size:14px;
+
+}
+
+.bottom_text{
+
+font-size:12px;
 
 }
 }
@@ -52,7 +88,7 @@
                                                                 <img src="https://collabmates.com/media/media/ic_launcher_round.png"
                                                                      style="width:45px"/>
 
-                                                            <td style="padding-top:4px; padding-right:18px; padding-bottom:9px; padding-left:350px;overflow:hidden; white-space:nowrap">
+                                                            <td style="padding-top:4px; padding-right:10px; padding-bottom:9px; padding-left:300px;overflow:hidden; white-space:nowrap">
                                                             <p>{{reciever}}</p>
                                                             </td>
 
@@ -67,10 +103,10 @@
                                                     <!--conversation count -->
                                                     <table align="left" border="0" cellpadding="0" cellspacing="0"
                                                            style="max-width:100%; min-width:100%; background-color:white;"
-                                                           width="100%" class="mcnTextContentContainer">
+                                                           width="100%" >
                                                         <tr>
                                                             <td style="padding-top:40px; padding-right:18px; padding-bottom:40px; padding-left:18px;text-align:center"
-                                                                class="mcnTextContent">
+                                                                class="TextHead">
                                                                 1 new conversation in <b>{{community_name}}</b>
                                                                 Community
                                                             </td>
@@ -79,8 +115,8 @@
 
                                                     <!-- Profile Section -->
                                                     <table align="left" border="0" cellpadding="0" cellspacing="0"
-                                                           style="max-width:100%; min-width:100%; background-color:white;margin-top:6px;"
-                                                           width="100%" class="mcnTextContentContainer">
+                                                           style="max-width:100%; min-width:100%; background-color:white;margin-top:2px;"
+                                                           width="100%" >
                                                         <tr>
                                                             <td style="padding-top:15px; padding-right:18px; padding-bottom:1px; padding-left:18px;text-align:center"
                                                                 class="mcnTextContent">
@@ -92,14 +128,14 @@
 
                                                         <tr>
                                                             <td style="padding-top:0px; padding-right:18px; padding-bottom:0px; padding-left:14px;text-align:center"
-                                                                class="mcnTextContent">
+                                                                class="profile_text">
                                                                 <b>{{collabcard_creater}}</b>
                                                             </td>
                                                         </tr>
                                                         {% if creater_header != None %}
                                                         <tr>
-                                                            <td style="padding-top:0px; padding-right:18px; padding-bottom:25px; padding-left:14px;text-align:center;font-size:13px;"
-                                                                class="mcnTextContent">
+                                                            <td style="padding-top:15px; padding-right:18px; padding-bottom:15px; padding-left:14px;text-align:center;font-size:13px;"
+                                                                class="profile_heading">
                                                                 {{creater_header}}
                                                             </td>
                                                         </tr>
@@ -157,8 +193,8 @@
                                                             </td>
 
 
-                                                            <td style="padding-top:20px; padding-bottom:20px;font-size:12px;"
-                                                                class="mcnTextContent">
+                                                            <td style="padding-top:20px; padding-bottom:20px;padding-left:20px;padding-right:20px;"
+                                                                class="bootom_text">
                                                                 <a href="{{form_link}}">
                                                                     Get early access to the CollabMates App by signing
                                                                     up for our alpha program
