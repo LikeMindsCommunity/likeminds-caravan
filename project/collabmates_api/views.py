@@ -154,106 +154,89 @@ def your_communities(request,user_id):
     # user = User.objects.get(id = member_id)
     # getting communities of the member from member model based on member state
     communities = Members.objects.all().filter(member_id = user_id).filter(Q(state=1)|Q(state=2)|Q(state=4)|Q(state=7)).order_by("-community_id__updated_at")
-    my_communities = []
 
-    # making a tupple list and sorting communities based on date
-    # tupple_list=[]
-    # # sorting communities based on its updated time
-    # for each_community in communities:
-    #     update_time=Community.objects.filter(id=each_community.community_id.id).values('updated_at')
-    #
-    #     if update_time.count() == 0:
-    #
-    #         update_time=-9223372036854775808
-    #     else:
-    #         update_time=update_time[0]['updated_at']
-    #     x=(each_community.community_id,update_time)
-    #     tupple_list.append(x)
-    #
-    # result = sorted(tupple_list, key= lambda x:x[1],reverse=True)
-    # result = pagination(result,page_number,paginate_by=15)
     result = pagination(communities,page_number,paginate_by=15)
-
+    my_community = []
+    count = 1
     for each_community in result:
         print("=======================  ",each_community.community_id.updated_at)
         if str(member_id) != str(user_id):
             if each_community.community_id.hide_community == '0':
-                my_communities.append(each_community.community_id)
+                dict = comunte(each_community,user_id)
+                my_community.append(dict)
+                # my_communities.append(each_community.community_id)
 
         else:
             member_id=user_id
             if each_community.community_id.hide_community == '2':
                 continue
-            my_communities.append(each_community.community_id)
-    my_community =[]
-    count=1
-    for comm in my_communities:
-        serialized_object = CommunitySerializer(comm)
-        serialized_object['count'] = count
-        count += 1
-        serialized_object['is_member'] = ''
-        new_dict = {}
-        new_dict.update(serialized_object)
-        is_admin = False
-        community = Community.objects.get(id = new_dict['id'])
-        community_admins = Members.objects.filter(community_id = comm).filter(member_id =user_id)
-        pending_requests = Members.objects.filter(community_id = community.id).filter(state = 3)
-
-        if (community_admins[0].state == 1 or community_admins[0].state==2):
-            new_dict['pending_members_count'] = pending_requests.count()
-            is_admin = True
-        else:
-            new_dict['pending_members_count'] = 0
-        new_dict['is_admin'] = is_admin
-
-        # get time stamp
-        if str(comm.updated_at) == "-9223372036854775808":
-            time_text = ""
-        else:
-            # getting time stamp for the latest card
-            time_text = get_time_text(comm.updated_at)
-
-        new_dict['updated_at'] = time_text
-        # getting the unseen cards
-        # getting the total cards of a community
-        total_collabcards = Collabcard.objects.filter(community=community).order_by("-id").values('id')
-        # getting seen collabcards by the user from that community
-        seen_collabcard = collabcard_seen.objects.filter(community=community, user=user_id).order_by("-id").values('card_id')
-        # unseen cards count
-        if (total_collabcards.count() - seen_collabcard.count()) <= 0:
-            # if zero or less than zero , unseen card count = 0
-            new_dict['collabcard_unseen'] =0
-        else:
-            new_dict['collabcard_unseen'] = (total_collabcards.count() - seen_collabcard.count())
-        # getting unseen card list by getting the difference between total cards and seen cards
-        unseen_list  = total_collabcards.difference(seen_collabcard).values('id').distinct().order_by("-id")
-
-        if total_collabcards.count()>0:
-        # if community has atleast one card
-            if unseen_list.count() != 0:
-                # if the unseen cards are present
-                # show the latest unseen cards text
-                card = Collabcard.objects.get(id = unseen_list.values('id')[0]['id'])
-            else:
-                # if no unseen cards , show latest card text
-                card = Collabcard.objects.get(id = total_collabcards.values('id')[0]['id'])
-            # show details of the latest card or latest unseen card
-            # get json form of card object
-            collabcard = CollabcardSerializer(card,community)
-
-            new_dict['collabcard'] = collabcard
-
-            # get user details who posted the latest card
-            user = Userinfo.objects.get(user_id = card.user)
-            # get json form of userinfo object
-            usr = UserinfoSerializer(user)
-
-            collabcard['member'] = usr
-
-        my_community.append(new_dict)
+            dict = comunte(each_community,user_id)
+            my_community.append(dict)
     return JsonResponse({'your_communities':my_community})
 
+def comunte(each_community,user_id):
+    serialized_object = CommunitySerializer(each_community.community_id)
+    serialized_object['is_member'] = ''
+    new_dict = {}
+    new_dict.update(serialized_object)
+    is_admin = False
+    # community = Community.objects.get(id=new_dict['id'])
+    # community_admins = Members.objects.filter(community_id=each_community.community_id.id).filter(member_id=user_id)
+    pending_requests = Members.objects.filter(community_id=each_community.community_id).filter(state=3)
 
+    if (each_community.state == 1 or each_community.state == 2):
+        new_dict['pending_members_count'] = pending_requests.count()
+        is_admin = True
+    else:
+        new_dict['pending_members_count'] = 0
+    new_dict['is_admin'] = is_admin
+
+    # get time stamp
+    if str(each_community.community_id.updated_at) == "-9223372036854775808":
+        time_text = ""
+    else:
+        # getting time stamp for the latest card
+        time_text = get_time_text(each_community.community_id.updated_at)
+
+    new_dict['updated_at'] = time_text
+    # getting the unseen cards
+    # getting the total cards of a community
+    total_collabcards = Collabcard.objects.filter(community=each_community.community_id).order_by("-id").values('id')
+    # getting seen collabcards by the user from that community
+    seen_collabcard = collabcard_seen.objects.filter(community=each_community.community_id, user=user_id).order_by(
+        "-id").values('card_id')
+    # unseen cards count
+    if (total_collabcards.count() - seen_collabcard.count()) <= 0:
+        # if zero or less than zero , unseen card count = 0
+        new_dict['collabcard_unseen'] = 0
+    else:
+        new_dict['collabcard_unseen'] = (total_collabcards.count() - seen_collabcard.count())
+    # getting unseen card list by getting the difference between total cards and seen cards
+    unseen_list = total_collabcards.difference(seen_collabcard).values('id').distinct().order_by("-id")
+
+    if total_collabcards.count() > 0:
+        # if community has atleast one card
+        if unseen_list.count() != 0:
+            # if the unseen cards are present
+            # show the latest unseen cards text
+            card = Collabcard.objects.get(id=unseen_list.values('id')[0]['id'])
+        else:
+            # if no unseen cards , show latest card text
+            card = Collabcard.objects.get(id=total_collabcards.values('id')[0]['id'])
+        # show details of the latest card or latest unseen card
+        # get json form of card object
+        collabcard = CollabcardSerializer(card, each_community.community_id)
+
+        new_dict['collabcard'] = collabcard
+
+        # get user details who posted the latest card
+        user = Userinfo.objects.get(user_id=card.user)
+        # get json form of userinfo object
+        usr = UserinfoSerializer(user)
+
+        collabcard['member'] = usr
+
+    return new_dict
 def community(request, community_id):
     '''Community detail page'''
 
