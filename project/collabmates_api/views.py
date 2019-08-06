@@ -158,7 +158,7 @@ def your_communities(request,user_id):
     if not communities.exists():
         print("empty")
         return JsonResponse({'your_communities': []})
-    result = pagination(communities,page_number,paginate_by=15)
+    result = pagination(communities,page_number,paginate_by=10)
     my_community = []
     count = 1
     for each_community in result:
