@@ -645,12 +645,13 @@ def analytics(request):
     private_communities=Community.objects.filter(hide_community='1').count()
     user_count=Userinfo.objects.all().count()
     promoter_member_count=Members.objects.filter(~Q(state=0)).values('member_id').distinct().count()
-
     working_communitites=Community.objects.filter(Q(hide_community= 2))
 
 
     promoter_count=Members.objects.filter(Q(state=1)|Q(state=2)).values('member_id').distinct().count()
+    total_promoter_count = Members.objects.filter(Q(state=1)|Q(state=2)).values('member_id').count()
     member_count=Members.objects.filter(state=4).values('member_id').distinct().count()
+    total_member_count = Members.objects.filter(state=4).values('member_id').count()
     conversations_count=Collabcard.objects.all().count()
     responses_count=card_answers.objects.all().count()
     context={
@@ -662,7 +663,9 @@ def analytics(request):
         'promoter_count':promoter_count,
         'member_count':member_count,
         'conversations_count':conversations_count,
-        'responses_count':responses_count
+        'responses_count':responses_count,
+        'total_promoter_count': total_promoter_count,
+        'total_member_count': total_member_count,
     }
     return render(request,'dashboard/analytics.html',context)
 
