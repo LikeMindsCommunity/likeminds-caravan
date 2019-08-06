@@ -150,7 +150,7 @@ def your_communities(request,user_id):
     '''This function is used to see your communities based on user id'''
 
     member_id=request.GET.get('member_id')
-    page_number = request.GET.get('page',1)
+    page_number = request.GET.get('page','')
 
     # user = User.objects.get(id = member_id)
     # getting communities of the member from member model based on member state
@@ -158,11 +158,16 @@ def your_communities(request,user_id):
     if not communities.exists():
         print("empty")
         return JsonResponse({'your_communities': []})
-    result = pagination(communities,page_number,paginate_by=10)
+    if page_number:
+        result = pagination(communities,page_number,paginate_by=10)
+    else:
+        result=communities
     my_community = []
-    count = 1
+    count = 0
     for each_community in result:
         print("=======================  ",each_community.community_id.updated_at)
+
+        count=count+1
         if str(member_id) != str(user_id):
             if each_community.community_id.hide_community == '0':
                 dict = get_community_card_details(each_community,user_id)
@@ -175,6 +180,7 @@ def your_communities(request,user_id):
                 continue
             dict = get_community_card_details(each_community,user_id)
             my_community.append(dict)
+    print(count)
     return JsonResponse({'your_communities':my_community})
 
 def get_community_card_details(each_community,user_id):
