@@ -991,11 +991,10 @@ def image_upload(request):
             # if image to be updated in collabcard
             collabcard_id = body['collabcard_id']
             collabcard = Collabcard.objects.get(id = collabcard_id)
-            try:
-                # delete old image of the card if exists
-                card_image = Card_Attachment.objects.get(collabcard = collabcard)
-                old_image_file=card_image.attachment
 
+            card_image = Card_Attachment.objects.filter(collabcard = collabcard).order_by('-id')
+            if card_image:
+                old_image_file=card_image[0].attachment
                 if os.path.isfile(old_image_file.path):
                     version = re.findall(r'\w*__image__(\d+)', old_image_file.name)
                     if version:
@@ -1009,8 +1008,7 @@ def image_upload(request):
                     card_image.type = 'Image'
                     card_image.save()
 
-            except:
-                # else create a new card image
+            else:
                 card_image = Card_Attachment()
                 new_image.name = str(collabcard_id) + '__image__' + str(0) + '.jpg'
                 card_image.collabcard = collabcard
