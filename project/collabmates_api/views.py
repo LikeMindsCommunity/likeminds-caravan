@@ -372,7 +372,7 @@ def categories(request):
     Category_list=[]
     for category in tags:
         category_dict={}
-        if category.id == 4 or category.id == 8 or  category.id == 11 or category.id == 13 or category.id == 22 or category.id == 25  or category.id == 28 or category.id == 39:
+        if category.id == 4 or category.id == 8  or category.id == 13 or category.id == 22 or category.id == 25  or category.id == 28 or category.id == 39 or category.id == 40:
             category_dict['id']=str(category.id)
             category_dict['title']=category.category_name
             Category_list.append(category_dict)
