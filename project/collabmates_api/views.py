@@ -994,16 +994,29 @@ def image_upload(request):
             try:
                 # delete old image of the card if exists
                 card_image = Card_Attachment.objects.get(collabcard = collabcard)
-                # deletes the associated file too
-                card_image.attachment.delete(save=True)
+                old_image_file=card_image.attachment
+
+                if os.path.isfile(old_image_file.path):
+                    version = re.findall(r'\w*__image__(\d+)', old_image_file.name)
+                    if version:
+                        version = int(version[0]) + 1
+                    else:
+                        version = 1
+                    new_image.name = str(collabcard_id) + '__image__' + str(version) + '.jpg'
+                    card_image = Card_Attachment()
+                    card_image.collabcard = collabcard
+                    card_image.attachment = new_image
+                    card_image.type = 'Image'
+                    card_image.save()
 
             except:
                 # else create a new card image
                 card_image = Card_Attachment()
+                new_image.name = str(collabcard_id) + '__image__' + str(0) + '.jpg'
                 card_image.collabcard = collabcard
-            card_image.attachment = new_image
-            card_image.type='Image'
-            card_image.save()
+                card_image.attachment = new_image
+                card_image.type='Image'
+                card_image.save()
         return JsonResponse({'success':True})
 
 
