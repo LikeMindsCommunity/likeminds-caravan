@@ -70,6 +70,8 @@ class Userinfo (models.Model):
     name = models.CharField(max_length = 200)
     email = models.CharField(max_length = 200)
     city = models.CharField(max_length = 100, null = True)
+    latitude = models.FloatField(null = True)
+    longitude = models.FloatField(null=True)
     headline = models.CharField(max_length = 200, null= True)
     contact_number = models.CharField(max_length = 200,null = True)
     gender = models.IntegerField(null = True)
@@ -135,6 +137,9 @@ class Collabcard (models.Model):
     answers_count = models.IntegerField(default=0)
     date_epoch=models.BigIntegerField(default=-9223372036854775808)
     answer_text = models.CharField(max_length = 100, default = '')
+    share_link=models.CharField(max_length=2048,default='')
+
+
 
 class Comments (models.Model):
     comment =  models.CharField(max_length = 1000)
@@ -162,9 +167,13 @@ class temp_admin (models.Model):
     member_id = models.IntegerField(default=0)
     #member_id = models.ForeignKey(User, on_delete = models.CASCADE)
 
-class card_images (models.Model):
+class Card_Attachment (models.Model):
+
+    '''model to save files of collabcard'''
+
     collabcard = models.ForeignKey(Collabcard, on_delete = models.CASCADE)
-    image_url = models.ImageField(upload_to="media/collabcardImages")
+    attachment = models.FileField(upload_to="media/collabcard_files")
+    type=models.CharField(max_length=50,default='')
 
 class collabcard_seen(models.Model):
     card = models.ForeignKey(Collabcard, on_delete= models.CASCADE)

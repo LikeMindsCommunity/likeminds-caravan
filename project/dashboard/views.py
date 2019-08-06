@@ -14,6 +14,8 @@ from django.conf import settings
 import json
 from django.http.response import JsonResponse
 import requests as rqst
+import os
+import re
 
 url = settings.URL
 
@@ -37,6 +39,8 @@ def dashboard(request):
       community_dic['purpose']=i.purpose
       pending_members_count=Members.objects.filter(community_id=i,state=3).count()
       community_dic['pending_member_count'] = pending_members_count
+      members_count = Members.objects.filter(community_id=i).filter(Q(state=1)|Q(state=2)|Q(state=4)|Q(state=7)).count()
+      community_dic['members_count'] = members_count
       community_dic['active_since']=i.active_since
       community_dic['question_count']=Form_data.objects.filter(community_id=i).count()
       tags_count=get_tags_count(i)
@@ -71,8 +75,15 @@ def update_form(request,community_id):
     '''function to update form for community and also purpose collabcard'''
     if request.method == 'POST':
 
-
         community=Community.objects.get(id=community_id)
+        old_image_file = community.image_url
+        # get the version of the image
+        version = re.findall(r'\w*__image__(\d+)', old_image_file.name)
+        if version:
+            version = int(version[0]) + 1
+        else:
+            version = 1
+
         community_form=CommunityForm(request.POST,request.FILES,instance=community)
         admins=Members.objects.filter(community_id=community).filter(Q(state=1)|Q(state=2))
         member_id=0
@@ -81,6 +92,13 @@ def update_form(request,community_id):
             purpose=community_form.cleaned_data['purpose']
             for_string=purpose.split(' ', 1)[0]
             purpose = "Created this community " + for_string.lower() + purpose.split("For", 1)[1]
+            # deleting the old file after new file is updated
+            # get the new image file
+            new_image_file = community_form.cleaned_data['image_url']
+            if not old_image_file == new_image_file:
+                # if both are not same delete old file
+                if os.path.isfile(old_image_file.path):
+                    os.remove(old_image_file.path)
         else:
             print("some error is there")
         if admins:
@@ -102,6 +120,21 @@ def update_form(request,community_id):
             community.purpose_collabcard=collabcard.id
             community.save()
         community_form.save()
+
+        community=Community.objects.get(id=community_id)
+        old_image_file = community.image_url
+        # deleting the old file after new file is updated
+        # get the new image file
+
+        new_image_file = community_form.cleaned_data['image_url']
+
+        new_image_file.name = str(community_id) + '__image__' + str(version) + '.jpg'
+        if not old_image_file == new_image_file:
+            # if both are not same delete old file
+            if os.path.isfile(old_image_file.path):
+                os.remove(old_image_file.path)
+            community.image_url = new_image_file
+            community.save()
 
         return redirect('admin_dashboard')
     else:
@@ -208,7 +241,7 @@ def aprove_member(request,community_id,member_id):
     Members.objects.filter(community_id=community,member_id=member_id).update(state=4)
     update_member_count(community_id)
     url='/admin_dashboard/all_members/'+str(community_id)
-    send_notification_for_join_requests(community_id,True,member_id)
+    send_notification_for_join_requests.delay(community_id,True,member_id)
     return redirect(url)
 
 def decline_member(request,community_id,member_id):
@@ -217,7 +250,7 @@ def decline_member(request,community_id,member_id):
 
     Members.objects.filter(community_id=community,member_id=member_id).update(state=5)
     url='/admin_dashboard/all_members/'+str(community_id)
-    send_notification_for_join_requests(community_id,False,member_id)
+    send_notification_for_join_requests.delay(community_id,False,member_id)
 
     return redirect(url)
 
@@ -331,8 +364,14 @@ def all_user(request):
         user_dic['name'] = i.name
         user_dic['email'] = i.email
         user_dic['image_url'] = i.image_file
-        tags_count = userinfo_tags.objects.filter(user_id=i.user_id.id).count()
+        if i.fcm_token:
+            print("has token")
+            user_dic['fcm_token'] = 1
+        else:
+            print("no token")
+            user_dic['fcm_token'] = 0
         tags = userinfo_tags.objects.filter(user_id=i.user_id.id)
+        tags_count = tags.count()
         tags_list=[]
         for t in tags:
             tag = Tags.objects.get(id = t.tag_id)
@@ -349,19 +388,44 @@ def all_user(request):
     return render(request, 'dashboard/all_user.html', {'all_user': users_list})
 
 
-def update_user(request,email):
+def update_user(request,user_id):
 
     if request.method == 'POST':
 
-        user_info = Userinfo.objects.get(email=email)
+        user_info = Userinfo.objects.get(user_id = user_id)
+        old_image_file = user_info.image_file
         user_info_form=UserForm(request.POST,request.FILES or None,instance=user_info)
+        # deleting the old file after new file is updated
+        if user_info_form.is_valid():
+            # get the new image file
+            new_image_file = user_info_form.cleaned_data['image_file']
+
+            if not old_image_file == new_image_file:
+                # if both are not same delete old file
+                if os.path.isfile(old_image_file.path):
+                    # if file is present
+                    os.remove(old_image_file.path)
+
         user_info_form.save()
+        # saving with the new name
+        user_info = Userinfo.objects.get(user_id = user_id)
+        old_image_file = user_info.image_file
+        new_image_file = user_info_form.cleaned_data['image_file']
+        new_image_file.name ='profile_picture_' + str(user_info).replace(" ", "_") + '.jpeg'
+
+        if not old_image_file == new_image_file:
+            # if both are not same delete old file
+            if os.path.isfile(old_image_file.path):
+                os.remove(old_image_file.path)
+            user_info.image_file = new_image_file
+            user_info.save()
+
         return redirect('all_user')
     else:
         try:
-            user_info = Userinfo.objects.get(email=email)
-            user_info_form = UserForm(instance=user_info)
-            context = {'user_info_form': user_info_form,'user_info':user_info}
+            user_info = Userinfo.objects.filter(user_id = user_id)
+            user_info_form = UserForm(instance=user_info[0])
+            context = {'user_info_form': user_info_form,'user_info':user_info[0]}
         except Exception as e:
 
             context={'error':'Some Technical Error'}
@@ -424,10 +488,10 @@ def check_member(email,community_id,member_id,proposed_name):
         if member and member[0].state == 4:
             Members.objects.filter(community_id = community,member_id = user[0].user_id.id).update(state=7)
             send_email_to_nominated_admin(NominatedAdmin=NominatedAdmin,email=email,ProposedAdmin=ProposedAdmin,proposedAdminState = proposedAdminState,CommunityName=CommunityName,community_id =community.id)
-            send_notification_to_proposed_admin(nominated_admin_id = NominatedAdmin_id, community_id= community.id, proposed_admin_name=ProposedAdmin )
+            send_notification_to_proposed_admin.delay(nominated_admin_id = NominatedAdmin_id, community_id= community.id, proposed_admin_name=ProposedAdmin )
         elif member and (member[0].state == 6 or member[0].state == 7):
             send_email_to_nominated_admin(NominatedAdmin=NominatedAdmin,email=email,ProposedAdmin=ProposedAdmin,proposedAdminState = proposedAdminState,CommunityName=CommunityName,community_id =community.id)
-            send_notification_to_proposed_admin(nominated_admin_id = NominatedAdmin_id, community_id= community.id, proposed_admin_name=ProposedAdmin )
+            send_notification_to_proposed_admin.delay(nominated_admin_id = NominatedAdmin_id, community_id= community.id, proposed_admin_name=ProposedAdmin )
             print("member is already a nominated promoter")
         else:
             print("member is created")
@@ -437,7 +501,7 @@ def check_member(email,community_id,member_id,proposed_name):
             member.state = 6
             member.save()
             send_email_to_nominated_admin(NominatedAdmin=NominatedAdmin,email=email,ProposedAdmin=ProposedAdmin,proposedAdminState = proposedAdminState,CommunityName=CommunityName,community_id =community.id)
-            send_notification_to_proposed_admin(nominated_admin_id = NominatedAdmin_id, community_id= community.id, proposed_admin_name=ProposedAdmin )
+            send_notification_to_proposed_admin.delay(nominated_admin_id = NominatedAdmin_id, community_id= community.id, proposed_admin_name=ProposedAdmin )
         return True
     return False
 
@@ -581,12 +645,13 @@ def analytics(request):
     private_communities=Community.objects.filter(hide_community='1').count()
     user_count=Userinfo.objects.all().count()
     promoter_member_count=Members.objects.filter(~Q(state=0)).values('member_id').distinct().count()
-
     working_communitites=Community.objects.filter(Q(hide_community= 2))
 
 
     promoter_count=Members.objects.filter(Q(state=1)|Q(state=2)).values('member_id').distinct().count()
+    total_promoter_count = Members.objects.filter(Q(state=1)|Q(state=2)).values('member_id').count()
     member_count=Members.objects.filter(state=4).values('member_id').distinct().count()
+    total_member_count = Members.objects.filter(state=4).values('member_id').count()
     conversations_count=Collabcard.objects.all().count()
     responses_count=card_answers.objects.all().count()
     context={
@@ -598,7 +663,9 @@ def analytics(request):
         'promoter_count':promoter_count,
         'member_count':member_count,
         'conversations_count':conversations_count,
-        'responses_count':responses_count
+        'responses_count':responses_count,
+        'total_promoter_count': total_promoter_count,
+        'total_member_count': total_member_count,
     }
     return render(request,'dashboard/analytics.html',context)
 

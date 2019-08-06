@@ -19,3 +19,13 @@ DATABASES = {
         'PORT': '5432',
     }
 }
+
+FIREBASE_CONFIG = {
+  'apiKey': "AIzaSyBNQa1N9u_UuLOW6IwapYzsmPVTqQwOy2E",
+  'authDomain': "charealtime.firebaseapp.com",
+  'databaseURL': "https://charealtime.firebaseio.com",
+  'projectId': "charealtime",
+  'storageBucket': "charealtime.appspot.com",
+  'messagingSenderId': "746515926836",
+  'appId': "1:746515926836:web:c2a732a40f5882f1"
+};

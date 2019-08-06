@@ -1,3 +1,5 @@
+from __future__ import absolute_import, unicode_literals
+from celery import shared_task
 import psycopg2
 from pyfcm import FCMNotification
 from django.conf import  settings
@@ -30,6 +32,7 @@ def get_connection():
                                       port=db_port,
                                       database=db_database)
         return connection
+
     except (Exception, psycopg2.Error) as error:
         print ("Error while connecting  to PostgreSQL", error)
 
@@ -45,6 +48,7 @@ def get_token_for_fcm(member_id):
         fcm_token = curr.fetchone()
         if fcm_token:
             return fcm_token[0]
+
     except (Exception, psycopg2.Error) as error:
         print ("Error while connecting to PostgreSQL  ", error)
 
@@ -58,8 +62,8 @@ def get_community_name(community_id):
         curr.close()
         conn.close()
         return community_name
-    except (Exception, psycopg2.Error) as error:
 
+    except (Exception, psycopg2.Error) as error:
         print ("Error while connecting to PostgreSQL", error)
 
 
@@ -73,8 +77,8 @@ def send_notification_to_multiple_devices(token_list,message):
 
     return result
 
-
-def send_follow_notification(card,user,answer):
+@shared_task
+def send_follow_notification(card_id,user_id,answer):
 
     '''function to send notification to followed members'''
 
@@ -82,10 +86,10 @@ def send_follow_notification(card,user,answer):
         connection=get_connection()
         curr=connection.cursor()
         sql="select member_id_id from togther_follow_collabcard where collabcard_id_id=%s"
-        parameter_list=[card.id]
+        parameter_list=[card_id]
         curr.execute(sql,parameter_list)
         member_list=curr.fetchall()
-        curr.execute("select name from togther_userinfo where user_id_id=%s",[user.id])
+        curr.execute("select name from togther_userinfo where user_id_id=%s",[user_id])
         answerer_name=curr.fetchone()
         curr.close()
         connection.close()
@@ -94,24 +98,21 @@ def send_follow_notification(card,user,answer):
         message['payload']={
             "title":str(answerer_name[0]) + " responded",
             "sub_title":answer,
-            "route":"route://collabcard?collabcard_id="+str(card.id)
+            "route":"route://collabcard?collabcard_id="+str(card_id)
         }
         token_list=[]
 
         for member in member_list:
-
-            if member[0] == user.id:
-                continue
-            fcm_token = get_token_for_fcm(member[0])
-            token_list.append(fcm_token)
+            if str(member[0]) != user_id:
+                fcm_token = get_token_for_fcm(member[0])
+                token_list.append(fcm_token)
         send_notification_to_multiple_devices(token_list,message)
 
     except (Exception, psycopg2.Error) as error:
-
         print ("Error while connecting to PostgreSQL", error)
 
 
-
+@shared_task
 def send_notification_to_admins(community_id,name):
     '''function to send notification to community admins'''
     try:
@@ -139,7 +140,7 @@ def send_notification_to_admins(community_id,name):
 
         print ("Error while connecting to PostgreSQL", error)
 
-
+@shared_task
 def send_notification_for_join_requests(community_id,flag,member_id):
     '''function to send notification for approval or denial'''
     community_name=get_community_name(community_id)
@@ -162,7 +163,7 @@ def send_notification_for_join_requests(community_id,flag,member_id):
 
     send_notification_to_multiple_devices(token_list,message)
 
-
+@shared_task
 def send_notification_for_new_collabcard_posted(community_id,collabcard_title,poster_id,poster_name):
     '''function to send notification to all members when new collabcard is posted'''
     try:
@@ -193,7 +194,7 @@ def send_notification_for_new_collabcard_posted(community_id,collabcard_title,po
         print ("Error while connecting to PostgreSQL", error)
 
 
-
+@shared_task
 def send_notification_to_proposed_admin(nominated_admin_id,community_id,proposed_admin_name):
     '''function to send notification to proposed admin'''
 
@@ -213,12 +214,12 @@ def send_notification_to_proposed_admin(nominated_admin_id,community_id,proposed
         send_notification_to_multiple_devices(token_list, message)
 
 
-
-def send_notification_to_proposer(proposer,community,proposed_name):
+@shared_task
+def send_notification_to_proposer(proposer_id,community_name,community_id,proposed_name):
 
     '''function to send notification if the proposed admin accepts invitation'''
 
-    fcm_token=get_token_for_fcm(proposer.user_id.id)
+    fcm_token=get_token_for_fcm(proposer_id)
 
     if fcm_token:
         token_list=[]
@@ -226,9 +227,9 @@ def send_notification_to_proposer(proposer,community,proposed_name):
 
         message={}
         message['payload']={
-            'title':str(community.name),
+            'title':str(community_name),
             'sub_title':str(proposed_name) + " is now a promoter of the community",
-            'route':'route://community?community_id=' + str(community.id)
+            'route':'route://community?community_id=' + str(community_id)
         }
 
         send_notification_to_multiple_devices(token_list, message)

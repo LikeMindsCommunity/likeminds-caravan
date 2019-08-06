@@ -1,11 +1,14 @@
 {% extends 'base.html' %}
 
-
 {% block content %}
 
 
 <div class="ui raised padded text container segment" style="margin: 8px 8px !important;">
-<div class="card">
+  <div align="right">
+<button class="ui button" style="background-color:#00897b;color:white" id="refresh"><i class="fa fa-refresh" aria-hidden="true"></i></button>
+</div>
+    <div class="card">
+
     <div class="content">
     
       <div class="header"><img class="ui left aligned avatar image" src="{{image_url}}">{{creator}}</div>
@@ -20,18 +23,114 @@
   </div>
   
 </div>
+{% if request.user.is_authenticated %}
+{% for i in answers %}
+              {% if i.member.id == request.user.id %}
+                  <div class="ui raised padded text container segment" style="margin: 1em 1em !important;background:rgba(0,137,123,0.5)">
+               {% else %}
+                      <div class="ui raised padded text container segment" style="margin: 1em 1em !important;" >
+              {% endif %}
+              <div class="card">
+                  <div class="content">
 
-<button class="ui fluid button " style=" z-index:2;width:60%; left:20%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; " onclick ="join();" >View Answers  </button>
+                    <div ><img class="ui left aligned avatar image"  src="{{i.member.image_url}}">{{i.member.name}}</div>
+                    <div class="meta"></div>
+                    <div class="description" style="font-size:14px;">
+                    <br>
+                      {{i.answer}}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              {% endfor %}
+<div id="answer"></div>
+<div id="show" >
+
+              <div class="ui action input" style="margin: 1em 1em;width:90.3%;">
+                <input type="text" id="msg">
+                <button class="ui button" style="background-color:#00897b;color:white" id="send"><i class="fa fa-paper-plane" aria-hidden="true"></i></button>
+</div>
+{% else %}
+<button class="ui fluid button " style=" z-index:2;width:60%; left:20%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; " id="view_answer" >View Answers  </button>
+{% endif %}
+
+</div>
+
 <script>
+$(document).ready(function(){
+setInterval(function(){
+console.log('hit')
+location.reload(true);
+},120000)
+$('#send').click(function(){
 
-      function join(){
-      {% if user.is_authenticated %}
-          window.location.href = "../view_answers/{{collabcard_id}}";
+  {% if user.is_authenticated %}
+      create_new_message();
       {% else %}
-      $('.test')
-      .modal('show');
+       $('.test')
+          .modal('show');
       {% endif %}
-  }
+})
+
+$('#view_answer').click(function(){
+
+          $('.test')
+          .modal('show');
+
+})
+function create_new_message(){
+
+    //function to create new answer for collabcard
+
+        var member_id={{request.user.id}}
+        var collabcard_id={{card_id}}
+        var msg=$('#msg').val();
+        if(msg == ''){
+        return;
+        }
+
+         var html=`
+                <div class="card">
+                 <div class="ui raised padded text container segment" style="margin: 1em 1em !important;background:rgba(0,137,123,0.5)" id="show" >
+                    <div class="card">
+                        <div class="content">
+
+                          <div ><img class="ui left aligned avatar image"  src="{{user_image_url}}">{{request.user}}</div>
+                          <div class="meta"></div>
+                          <div class="description" style="font-size:14px;">
+                          <br>
+                            ${msg}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                `
+       $('#answer').append(html)
+        $('#msg').val('');
+        message={
+        'collabcard_id':collabcard_id,
+        'member_id':member_id,
+        'message':msg
+        }
+       $.ajax({
+
+            url:'/create_message',
+            data:message,
+            dataType:'json',
+            success:function(data){
+
+              console.log('success')
+            }
+
+         })
+        }
+$('#refresh').click(function(){
+location.reload(true)
+
+})
+
+})
+
 </script>
 
 {% endblock %}
