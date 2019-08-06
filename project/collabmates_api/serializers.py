@@ -56,7 +56,7 @@ def CollabcardSerializer(card,community):
     'community' : community.id,
     'share_url' : url + '/collabcard/' + str(card.id),
     'answer_text' : card.answer_text,
-    # 'share_link':card.share_link
+    'share_link':card.share_link
     }
 
 
