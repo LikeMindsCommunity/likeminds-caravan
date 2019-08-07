@@ -35,5 +35,6 @@ urlpatterns = [
     path('upload_attachment',api_views.upload_attachment,name='upload_attachment'),
     path('update_location/<int:user_id>',api_views.update_location,name='upload_location'),
     path('fetch_location/<int:user_id>',api_views.get_user_location,name='fetch_location'),
+    path('decode_url', api_views.decode_url, name='decode_url'),
 
 ]
