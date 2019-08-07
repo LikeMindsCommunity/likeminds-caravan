@@ -286,6 +286,7 @@ def add_tags(request):
 
     for category in category_list:
         if category not in already_category:
+            
             # do not delete the hidden tags of a community
             if category == 'NSIT College' or category == 'IIT Delhi':
                 continue
