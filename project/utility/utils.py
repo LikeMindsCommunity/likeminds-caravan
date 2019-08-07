@@ -35,6 +35,5 @@ def decode_meta_from_url(url):
     else:
         og_tags['url']=''
 
-    info=Userinfo.objects.all()
     return og_tags
 
