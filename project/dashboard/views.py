@@ -286,6 +286,8 @@ def add_tags(request):
 
     for category in category_list:
         if category not in already_category:
+            if category == 'NSIT College' or category == 'IIT Delhi':
+                continue
             Community_tags.objects.filter(community_id=community_id,category=category).delete()
 
     for category in categories:
