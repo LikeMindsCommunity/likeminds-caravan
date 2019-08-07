@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     'collabmates_api',
     'dashboard',
     'crispy_forms',
+    'utility',
 ]
 
 MIDDLEWARE = [

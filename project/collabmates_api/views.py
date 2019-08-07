@@ -21,8 +21,7 @@ import os
 from .firebase import update_last_answer_id
 import re
 import googlemaps
-from django.db.models import Max
-
+from utility.utils import decode_meta_from_url
 url  = settings.URL
 
 
@@ -1469,4 +1468,14 @@ def get_user_location(request,user_id):
     location_response = gmaps.reverse_geocode((userinfo.latitude,userinfo.longitude))
     # location_response = 'https://maps.googleapis.com/maps/api/geocode/json?latlng='+str(userinfo.latitude)+','+str(userinfo.longitude)+'&key=AIzaSyD5xLop8EukMmCiVrfMTcPQ3eLl7XK2LR4 '
     return JsonResponse(location_response,safe=False)
+
+
+def decode_url(request):
+    '''function to send og tags of the link'''
+
+    url=request.GET.get('url')
+
+    og_tags=decode_meta_from_url(url)
+
+    return JsonResponse({'og_tags':og_tags})
 
