@@ -50,18 +50,19 @@ def UserinfoSerializer(user):
 
 def CollabcardSerializer(card,community):
     # function to serialize a community object
-    og_tags=""
+    collabcard={
+        'id': card.id,
+        'title': card.title,
+        'community': community.id,
+        'share_url': url + '/collabcard/' + str(card.id),
+        'answer_text': card.answer_text,
+        'share_link': card.share_link,
+    }
     if card.og_tags:
         og_tags=json.loads(card.og_tags)
-    return {
-    'id' : card.id,
-    'title' : card.title,
-    'community' : community.id,
-    'share_url' : url + '/collabcard/' + str(card.id),
-    'answer_text' : card.answer_text,
-    'share_link':card.share_link,
-    'og_tags':og_tags
-    }
+        collabcard['og_tags']=og_tags
+
+    return collabcard
 
 
 def get_member_count(community):

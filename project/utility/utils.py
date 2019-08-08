@@ -15,25 +15,27 @@ def decode_meta_from_url(url):
     description=soup.find("meta",property="og:description")
     url=soup.find("meta",property="og:url")
     og_tags={}
-    if title['content']:
+
+    try:
         og_tags['title']=title['content']
-    else:
-        og_tags['title']=''
+    except:
+        pass
 
-    if image['content']:
+    try:
         og_tags['image'] = image['content']
-    else:
-        og_tags['image'] = ''
+    except:
+        pass
 
-    if description['content']:
+    try:
         og_tags['description'] = description['content']
-    else:
-        og_tags['description'] = ''
+    except:
+        pass
 
-    if url['content']:
+    try:
         og_tags['url']=url['content']
-    else:
-        og_tags['url']=''
+    except:
+        pass
+
 
     return og_tags
 

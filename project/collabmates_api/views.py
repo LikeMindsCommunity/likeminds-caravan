@@ -789,9 +789,6 @@ def community_cards(request, community_id):
             # get time stamp
             time_text = get_time_text(card.date_epoch)
         ans_text = card.answer_text
-        og_tags=""
-        if card.og_tags:
-            og_tags=json.loads(card.og_tags)
         card_dict={'id': card.id,
                    'title': card.title,
                    'member':usr,
@@ -802,8 +799,10 @@ def community_cards(request, community_id):
                    'created_at':time_text,
                    'state':get_status_of_collabcard(member_id,community,card),
                    'share_link':card.share_link,
-                   'og_tags':og_tags
                    }
+        if card.og_tags:
+            og_tags=json.loads(card.og_tags)
+            card_dict['og_tags']=og_tags
         card_list.append(card_dict)
     return JsonResponse ({'collabcards': card_list})
 
