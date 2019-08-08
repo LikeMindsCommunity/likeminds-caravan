@@ -115,7 +115,7 @@ def update_form(request,community_id):
             collabcard.save()
         except:
             collabcard=Collabcard()
-            collabcard.title = purpos
+            collabcard.title = purpose
             collabcard.user = member_id
             collabcard.community_id = community_id
             collabcard.date_epoch = time.time()
@@ -279,14 +279,15 @@ def add_tags(request):
     community_category=Community_tags.objects.filter(community_id=community_id)
 
     for category in community_category:
+
+        # do not delete the hidden tags of a community
+        if category.tags_id == 41 or category.tags_id ==42:
+            continue
         category_list.append(str(category))
 
     for category in category_list:
         if category not in already_category:
-
-            # do not delete the hidden tags of a community
-            if category == 'NSIT College' or category == 'IIT Delhi':
-                continue
+            
             Community_tags.objects.filter(community_id=community_id,category=category).delete()
 
     for category in categories:
