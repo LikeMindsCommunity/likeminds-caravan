@@ -115,7 +115,7 @@ def update_form(request,community_id):
             collabcard.save()
         except:
             collabcard=Collabcard()
-            collabcard.title = purpos
+            collabcard.title = purpose
             collabcard.user = member_id
             collabcard.community_id = community_id
             collabcard.date_epoch = time.time()
