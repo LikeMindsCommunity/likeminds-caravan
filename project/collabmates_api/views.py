@@ -16,12 +16,14 @@ from .tasks import send_email_to_nominated_admin,send_email_for_new_collabcard_p
 from django.conf import settings
 from togther.tasks import send_email_to_proposed_admin
 from django.core.paginator import Paginator
-from togther.views import set_user_tag, get_user_tag,get_nominated_admin_details,update_member_count
+from togther.views import set_user_tag, get_user_tag, get_nominated_admin_details, update_member_count
 import os
 from .firebase import update_last_answer_id
 import re
 import googlemaps
-from django.db.models import Max
+from utility.utils import *
+import requests as rqst
+
 
 url  = settings.URL
 
@@ -182,6 +184,7 @@ def your_communities(request,user_id):
             my_community.append(dict)
     print(count)
     return JsonResponse({'your_communities':my_community})
+
 
 def get_community_card_details(each_community,user_id):
     community = each_community.community_id
@@ -364,6 +367,7 @@ def category_filter(request, category):
         serialized_object = CommunitySerializer(comm_object)
         community.append(serialized_object)
     return JsonResponse({'communities': community})
+
 
 def categories(request):
     ''' function to get all categories  '''
@@ -599,6 +603,7 @@ def create_card(request):
         return JsonResponse({'success':True,'collabcard':collabcard})
     return JsonResponse()
 
+
 def send_email_for_collabcard(community,user,card):
 
     '''function to make the format of email to send when a new collabcard is posted'''
@@ -633,7 +638,6 @@ def send_email_for_collabcard(community,user,card):
             context['to']=userinfo.email
             #print(context)
             send_email_for_new_collabcard_posted.delay(context)
-
 
 
 def collabcard(request, card_id):
@@ -676,7 +680,6 @@ def collabcard(request, card_id):
     return JsonResponse({"collabcard": card, 'answers':answers})
   
 
-
 def get_answer_data(answer):
 
     '''function to get answer for a particular collabcard from database database'''
@@ -693,6 +696,7 @@ def get_answer_data(answer):
 
         answers.append({'id': ans.id, 'answer': ans.answer, 'created_at': time_text, 'member': usr})
     return answers
+
 
 def get_collabcard_files(card_id):
 
@@ -756,6 +760,7 @@ def get_time_text(created_time):
         # if difference is in seconds
         return "Just Now"
 
+
 def community_cards(request, community_id):
     ''' function get all the cards in a community '''
 
@@ -795,6 +800,7 @@ def community_cards(request, community_id):
         card_list.append(card_dict)
     return JsonResponse ({'collabcards': card_list})
 
+
 def get_status_of_collabcard(member_id,community,card):
     '''function to get the state of collabcard'''
     state=0
@@ -808,6 +814,7 @@ def get_status_of_collabcard(member_id,community,card):
             state=2
 
     return state
+
 
 @csrf_exempt
 def create_answer(request):
@@ -845,6 +852,7 @@ def create_answer(request):
         update_answer_text(card_id)
 
         return JsonResponse({'success':True})
+
 
 def update_answer_text(card_id):
         '''function for updating the answer_text feild in collab card model'''
@@ -889,6 +897,7 @@ def update_answer_text(card_id):
 
                 ans_text+= " & "+str(len(user_list)-1) + " others responded"
                 Collabcard.objects.filter(id=card_id).update(answer_text=ans_text)
+
 
 @csrf_exempt
 def login(request):
@@ -953,6 +962,7 @@ def login(request):
         return JsonResponse ({'user': usr})
 
     return HttpResponse('Login Api')
+
 
 @csrf_exempt
 def image_upload(request):
@@ -1078,6 +1088,7 @@ def create_admin(request,community_id):
         return JsonResponse({'success':True})
     return HttpResponse('Add Admin Api')
 
+
 def check_member(email,community_id,member_id,res):
     """ check if the user is already a member of the invited community and make user as nominated promoter
      if he is registered in collabmates and if the user is not registered just send the user a invitation email """
@@ -1161,6 +1172,7 @@ def pending_members(request,community_id):
         pending_requests.append(usr)
     return JsonResponse({'pending_members': pending_requests})
 
+
 @csrf_exempt
 def request_response(request):
     ''' function to approve or decline a members who requested to join '''
@@ -1197,6 +1209,7 @@ def pending_request_count(request,community_id):
 
     no_of_pending_members = Members.objects.filter(community_id = community_id).filter(state = 3).count()
     return JsonResponse({'pending_request_count': no_of_pending_members})
+
 
 @csrf_exempt
 def collabcards_seen(request):
@@ -1313,6 +1326,7 @@ def is_collabcard_already_followed(collabcard,member_id):
 
     return is_present
 
+
 @csrf_exempt
 def accept_invitation(request):
     ''' accept promoter request '''
@@ -1397,6 +1411,7 @@ def accept_invitation(request):
 
     return JsonResponse({'success': False})
 
+
 @csrf_exempt
 def edit_community(request):
 
@@ -1450,11 +1465,14 @@ def edit_questions(questions,community_id):
 
 
 def send_mail_and_notification():
-
     pass
 
+
 @csrf_exempt
-def update_location(request,user_id):
+def update_location(request):
+    ''' function to update user location lat and long co-ordinates '''
+
+    user_id = request.GET.get('member_id')
     latitude = request.GET.get('lat')
     longitude = request.GET.get('long')
     userinfo = Userinfo.objects.get(user_id =user_id)
@@ -1463,10 +1481,51 @@ def update_location(request,user_id):
     userinfo.save()
     return JsonResponse({'success':True})
 
+
 def get_user_location(request,user_id):
+    ''' function to fetch user location '''
+
+    type = request.GET.get('type','')
     userinfo = Userinfo.objects.get(user_id=user_id)
-    gmaps = googlemaps.Client(key='AIzaSyD5xLop8EukMmCiVrfMTcPQ3eLl7XK2LR4')
+    print("lat and long === ",userinfo.latitude , userinfo.longitude)
+
+    gmaps = googlemaps.Client(key='AIzaSyDN10TwCPVMdLEE6vvTiglKHGlkTIYKduc')
     location_response = gmaps.reverse_geocode((userinfo.latitude,userinfo.longitude))
-    # location_response = 'https://maps.googleapis.com/maps/api/geocode/json?latlng='+str(userinfo.latitude)+','+str(userinfo.longitude)+'&key=AIzaSyD5xLop8EukMmCiVrfMTcPQ3eLl7XK2LR4 '
-    return JsonResponse(location_response,safe=False)
+
+    addr=location_response[0]['formatted_address']
+    address=addr.split(',')
+    if type and type=='address':
+        response = {'location':addr}
+
+    elif type and type=='country':
+        country = address[-1].strip()
+        print("country ==== ",country)
+        response = {'location': country}
+
+    elif type and type=='state':
+        state = address[-2].split(' ')[1].strip()
+        print('state ===== ', state)
+        response = {'location':state}
+
+    elif type and type=='pincode':
+        pincode = address[-2].split(' ')[2]
+        print("pincode === ",pincode)
+        response = {'location': address}
+
+    elif type and type=='city':
+        district = address[-3].strip()
+        print("district ==== ",district)
+        response = {'location': district}
+
+    return JsonResponse(response,safe=False)
+
+
+def decode_url(request):
+    '''function to send og tags of the link'''
+
+    url=request.GET.get('url')
+
+    og_tags=decode_meta_from_url(url)
+
+    return JsonResponse({'og_tags':og_tags})
 

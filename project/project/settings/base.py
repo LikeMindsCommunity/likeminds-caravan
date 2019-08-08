@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     'collabmates_api',
     'dashboard',
     'crispy_forms',
+    'utility',
 ]
 
 MIDDLEWARE = [
@@ -149,23 +150,20 @@ SOCIAL_AUTH_LINKEDIN_OAUTH2_KEY = '8616kilc3dqagd'        #Client ID
 SOCIAL_AUTH_LINKEDIN_OAUTH2_SECRET = 'g2LdZt5KN9HRF1IB'  #Client Secret
 # SOCIAL_AUTH_LINKEDIN_OAUTH2_SCOPE = ['r_basicprofile','r_emailaddress','rw_company_admin','w_share']
 SOCIAL_AUTH_LINKEDIN_OAUTH2_SCOPE = ['r_basicprofile','r_emailaddress']
-SOCIAL_AUTH_LINKEDIN_OAUTH2_WHITELISTED_DOMAINS=['*','gmail.com','linkedin.com']
+# SOCIAL_AUTH_LINKEDIN_OAUTH2_WHITELISTED_DOMAINS=['*','gmail.com','linkedin.com']
 
 SOCIAL_AUTH_LOGIN_URL = ""
 SOCIAL_AUTH_LOGIN_REDIRECT_URL = "dashboard"
 SOCIAL_AUTH_LOGIN_ERROR_URL = "error"
 
-SOCIAL_AUTH_LINKEDIN_OAUTH2_FIELD_SELECTORS = ['emailAddress','vanityName', 'formatted-name', 'public-profile-url', 'picture-url','headline', 'industry']
-# Arrange to add the fields to UserSocialAuth.extra_data
-SOCIAL_AUTH_LINKEDIN_OAUTH2_EXTRA_DATA = [('id', 'id'),
-                                   ('firstName', 'first_name'),
-                                   ('lastName', 'last_name'),
-                                   ('emailAddress', 'email_address'),
-                                   ('headline', 'headline'),
-                                   ('industry', 'industry'),
-                                   ('pictureUrl', 'picture_url'),
-                                   ('publicProfileUrl', 'profile_url'),
-                                   ('formattedName', 'name'),]
+SOCIAL_AUTH_LINKEDIN_OAUTH2_FIELD_SELECTORS = ['email-address', 'formatted-name', 'public-profile-url', 'picture-url']
+
+SOCIAL_AUTH_LINKEDIN_OAUTH2_EXTRA_DATA = [
+    ('id', 'id'),
+    ('formattedName', 'name'),
+    ('emailAddress', 'email_address'),
+    ('pictureUrl', 'picture_url'),
+    ('publicProfileUrl', 'profile_url'),]
 
 SOCIAL_AUTH_PIPELINE = (
     # Get the information we can about the user and return it in a simple

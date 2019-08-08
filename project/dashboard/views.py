@@ -50,6 +50,7 @@ def dashboard(request):
 
   return render(request,'dashboard/dashboard.html',{'communities':dashboard_list})
 
+
 def get_tags_count(community):
 
     '''function to get count of tags from dashboard'''
@@ -88,6 +89,7 @@ def update_form(request,community_id):
         admins=Members.objects.filter(community_id=community).filter(Q(state=1)|Q(state=2))
         member_id=0
         purpose=""
+        rename = False
         if community_form.is_valid():
             purpose=community_form.cleaned_data['purpose']
             for_string=purpose.split(' ', 1)[0]
@@ -99,6 +101,7 @@ def update_form(request,community_id):
                 # if both are not same delete old file
                 if os.path.isfile(old_image_file.path):
                     os.remove(old_image_file.path)
+                    rename =True
         else:
             print("some error is there")
         if admins:
@@ -121,19 +124,13 @@ def update_form(request,community_id):
             community.save()
         community_form.save()
 
-        community=Community.objects.get(id=community_id)
-        old_image_file = community.image_url
-        # deleting the old file after new file is updated
-        # get the new image file
-
-        new_image_file = community_form.cleaned_data['image_url']
-
-        new_image_file.name = str(community_id) + '__image__' + str(version) + '.jpg'
-        if not old_image_file == new_image_file:
-            # if both are not same delete old file
-            if os.path.isfile(old_image_file.path):
-                os.remove(old_image_file.path)
-            community.image_url = new_image_file
+        # renaming the image
+        if rename:
+            community=Community.objects.get(id=community_id)
+            new_name = 'media/'+str(community_id) + '__image__' + str(version) + '.jpg'
+            old_path = community.image_url.path
+            community.image_url.name = new_name
+            os.rename(old_path, community.image_url.path)
             community.save()
 
         return redirect('admin_dashboard')
@@ -282,10 +279,15 @@ def add_tags(request):
     community_category=Community_tags.objects.filter(community_id=community_id)
 
     for category in community_category:
+
+        # do not delete the hidden tags of a community
+        if category.tags_id == 41 or category.tags_id ==42:
+            continue
         category_list.append(str(category))
 
     for category in category_list:
         if category not in already_category:
+            
             Community_tags.objects.filter(community_id=community_id,category=category).delete()
 
     for category in categories:
@@ -399,26 +401,20 @@ def update_user(request,user_id):
         if user_info_form.is_valid():
             # get the new image file
             new_image_file = user_info_form.cleaned_data['image_file']
-
             if not old_image_file == new_image_file:
                 # if both are not same delete old file
                 if os.path.isfile(old_image_file.path):
                     # if file is present
                     os.remove(old_image_file.path)
-
         user_info_form.save()
         # saving with the new name
         user_info = Userinfo.objects.get(user_id = user_id)
-        old_image_file = user_info.image_file
-        new_image_file = user_info_form.cleaned_data['image_file']
-        new_image_file.name ='profile_picture_' + str(user_info).replace(" ", "_") + '.jpeg'
-
-        if not old_image_file == new_image_file:
-            # if both are not same delete old file
-            if os.path.isfile(old_image_file.path):
-                os.remove(old_image_file.path)
-            user_info.image_file = new_image_file
-            user_info.save()
+        # renaming the image
+        new_name ='media/profile_pics/profile_picture_' + str(user_info).replace(" ", "_") + '.jpeg'
+        old_path = user_info.image_file.path
+        user_info.image_file.name = new_name
+        os.rename(old_path, user_info.image_file.path)
+        user_info.save()
 
         return redirect('all_user')
     else:
