@@ -50,6 +50,9 @@ def UserinfoSerializer(user):
 
 def CollabcardSerializer(card,community):
     # function to serialize a community object
+    og_tags=""
+    if card.og_tags:
+        og_tags=json.loads(card.og_tags)
     return {
     'id' : card.id,
     'title' : card.title,
@@ -57,7 +60,7 @@ def CollabcardSerializer(card,community):
     'share_url' : url + '/collabcard/' + str(card.id),
     'answer_text' : card.answer_text,
     'share_link':card.share_link,
-    'og_tags':json.loads(card.og_tags)
+    'og_tags':og_tags
     }
 
 
