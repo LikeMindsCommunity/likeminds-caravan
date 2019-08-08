@@ -3,7 +3,7 @@ from rest_framework import serializers
 from togther.models import *
 from django.conf import settings
 from django.db.models import Q
-
+import  json
 url  = settings.URL
 
 #
@@ -56,7 +56,8 @@ def CollabcardSerializer(card,community):
     'community' : community.id,
     'share_url' : url + '/collabcard/' + str(card.id),
     'answer_text' : card.answer_text,
-    'share_link':card.share_link
+    'share_link':card.share_link,
+    'og_tags':json.loads(card.og_tags)
     }
 
 

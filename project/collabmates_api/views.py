@@ -573,6 +573,9 @@ def create_card(request):
         card.user = user.user_id
         if 'share_link' in res:
             card.share_link=res['share_link']
+            og_tags = decode_meta_from_url(res['share_link'])
+            card.og_tags=json.dumps(og_tags)
+
         card.date_epoch=time.time()
         card.save()
         # if the community does not have a purpose card then a purpose will be created
@@ -795,7 +798,8 @@ def community_cards(request, community_id):
                    'answer_text': ans_text ,
                    'created_at':time_text,
                    'state':get_status_of_collabcard(member_id,community,card),
-                   'share_link':card.share_link
+                   'share_link':card.share_link,
+                   'og_tags':card.og_tags
                    }
         card_list.append(card_dict)
     return JsonResponse ({'collabcards': card_list})
