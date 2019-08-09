@@ -29,9 +29,7 @@ def decode_meta_from_url(url):
         og_tags['description'] = description['content']
     except:
         pass
-
     og_tags['url']=url
-
     return og_tags
 
 def get_nominated_admin_details(community_id,email):
