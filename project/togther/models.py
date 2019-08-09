@@ -66,7 +66,8 @@ class Form_data (models.Model):
         return self.community_id.name
 
 class Userinfo (models.Model):
-    user_id = models.ForeignKey(User, on_delete=models.CASCADE)
+    
+    user_id = models.OneToOneField(User, on_delete=models.CASCADE)
     name = models.CharField(max_length = 200)
     email = models.CharField(max_length = 200)
     city = models.CharField(max_length = 100, null = True)
