@@ -67,18 +67,19 @@ $(document).ready(function(){
                             <div class="ui medium image">
                                 <img src="${data['image_url']}">
                             </div>
+                            <div style="margin-left:15px;">
+                                ${str}
+                            </div>
+                        </div>
 
-                            ${str}
-
-                        <div class="actions">
                             <div class="ui black deny button decline" id="${member_id}">
                                 Decline
                             </div>
-                            <div class="ui positive right labeled icon button approve" id="${member_id}" >
+                            &nbsp;&nbsp<div class="ui positive right labeled icon button approve" id="${member_id}" >
                                 Approve
                                 <i class="checkmark icon"></i>
                             </div>
-                        </div>
+
                     </div>`
 
 
