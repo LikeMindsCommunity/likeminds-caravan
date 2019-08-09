@@ -21,7 +21,7 @@ import os
 from .firebase import update_last_answer_id
 import re
 import googlemaps
-from utility.utils import *
+from utility.utils import decode_meta_from_url
 import requests as rqst
 
 
