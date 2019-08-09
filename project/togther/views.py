@@ -25,6 +25,7 @@ api_url = url + '/api/'
 
 
 def pending_members_mail(request,user_id):
+    '''24 hour mail'''
     members = Members.objects.select_related('community_id','member_id')
     pending_members = members.filter(state=3)#.distinct('community_id')
     count=1

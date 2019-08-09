@@ -1478,6 +1478,7 @@ def update_location(request):
     latitude = request.GET.get('latitude')
     longitude = request.GET.get('longitude')
     userinfo = Userinfo.objects.get(user_id =user_id)
+
     if not userinfo.latitude and not userinfo.longitude:
         userinfo.latitude = latitude
         userinfo.longitude = longitude
