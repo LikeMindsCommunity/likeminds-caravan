@@ -1479,8 +1479,8 @@ def update_location(request):
     ''' function to update user location lat and long co-ordinates '''
 
     user_id = request.GET.get('member_id')
-    latitude = request.GET.get('lat')
-    longitude = request.GET.get('long')
+    latitude = request.GET.get('latitude')
+    longitude = request.GET.get('longitude')
     userinfo = Userinfo.objects.get(user_id =user_id)
     userinfo.latitude = latitude
     userinfo.longitude = longitude
