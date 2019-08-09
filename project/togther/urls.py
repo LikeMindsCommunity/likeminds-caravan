@@ -27,5 +27,7 @@ urlpatterns = [
     path('accept_admin/<int:community_id>',views.accept_admin,name='accept_admin'),
     path('', views.index, name='index'),
     path('create_message', views.create_message, name='create_message'),
+    path('pending_list/<int:community_id>', views.pending_list, name='pending_list'),
+    path('questions_responses', views.questions_responses, name='questions_responses'),
 
 ]
