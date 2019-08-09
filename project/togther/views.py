@@ -14,6 +14,8 @@ from django.http import HttpResponseRedirect
 from .tasks import *
 from django.core.mail import EmailMultiAlternatives
 from collabmates_api.serializers import *
+from django.template.loader import get_template
+
 
 url = settings.URL
 # uncomment to run it in localhost
@@ -21,6 +23,47 @@ url = settings.URL
 
 api_url = url + '/api/'
 
+
+def pending_members_mail(request,user_id):
+    members = Members.objects.select_related('community_id','member_id')
+    pending_members = members.filter(state=3)#.distinct('community_id')
+    count=1
+    for member in pending_members:
+        pending_members_in_community = pending_members.filter(community_id=member.community_id)
+        admins_of_community = members.filter(community_id=member.community_id).filter(Q(state=1)|Q(state=2))
+        # print("==== ",member.community_id.id,)
+
+        if pending_members_in_community.exists() and admins_of_community.exists():
+
+            for admin in admins_of_community:
+                print("==== ", admin.member_id.id ,'>>>>' ,count)
+
+                to = admin.member_id.email
+                fail_silently = True
+                pending_count = pending_members_in_community.count()
+                if pending_count == 1:
+                    subject = "Name has requested to join "+str(admin.community_id.name)
+                elif pending_count > 1:
+                    subject = '<<Name has (if 1) >> or <<Y new members have (if >1)>> requested to join <<community name>>'
+                print(subject)
+                # template = get_template("mails/pending_members.html").render({'promoter': admin.member_id.userinfo.name,
+                #                            'promoter_image':admin.member_id.userinfo.image_file.url,
+                #                            'pending_members': pending_members_in_community[5],
+                #                            'pending_member_count':1,
+                #                            'community_name': admin.community_id.name})
+                # msg = EmailMultiAlternatives(subject,
+                #                              template,
+                #                              "hello@collabmates.com",
+                #                              [to],
+                #                              )
+                # msg.attach_alternative(template, "text/html")
+                # return msg.send(fail_silently)
+                context = {'promoter': admin.member_id.userinfo.name,
+                           'promoter_image':admin.member_id.userinfo.image_file.url,
+                           'pending_members': pending_members_in_community[:5],
+                           'pending_member_count':1,
+                           'community_name': admin.community_id.name}
+                return render(request,'mails/pending_members.html',context)
 
 def index(request):
     '''function to show promotion page'''

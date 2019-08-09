@@ -1,3 +1,5 @@
+from __future__ import absolute_import, unicode_literals
+from celery import shared_task
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import HttpResponse
 from togther.models import *
@@ -23,6 +25,7 @@ import re
 import googlemaps
 from utility.utils import *
 import requests as rqst
+
 
 
 url  = settings.URL
@@ -1062,7 +1065,6 @@ def upload_attachment(request):
     return JsonResponse({'success': False})
 
 
-
 @csrf_exempt
 def create_admin(request,community_id):
     ''' saving admin details given by user of a community
@@ -1473,19 +1475,40 @@ def update_location(request):
     ''' function to update user location lat and long co-ordinates '''
 
     user_id = request.GET.get('member_id')
-    latitude = request.GET.get('lat')
-    longitude = request.GET.get('long')
+    latitude = request.GET.get('latitude')
+    longitude = request.GET.get('longitude')
     userinfo = Userinfo.objects.get(user_id =user_id)
-    userinfo.latitude = latitude
-    userinfo.longitude = longitude
-    userinfo.save()
+    if not userinfo.latitude and not userinfo.longitude:
+        userinfo.latitude = latitude
+        userinfo.longitude = longitude
+        city = get_user_location(request,userinfo.user_id,'city')
+        city = json.loads(city.content.decode('utf-8'))
+        userinfo.city = city['location']
+        userinfo.save()
+        update_user_city_tag(user_id, userinfo.city)
     return JsonResponse({'success':True})
 
 
-def get_user_location(request,user_id):
-    ''' function to fetch user location '''
+# @shared_task
+def update_user_city_tag(user_id,city):
+    ''' function to update city tag for user '''
+    try:
+        tag = Tags.objects.get(category_name = city)
+    except:
+        tag = Tags()
+        tag.category_name = city
+        tag.state =1
+        tag.save()
+    user_tag = userinfo_tags()
+    user_tag.tag_id = tag.id
+    user_tag.user_id = user_id
+    user_tag.save()
 
-    type = request.GET.get('type','')
+
+def get_user_location(request,user_id,type=''):
+    ''' function to fetch user location '''
+    if not type:
+        type = request.GET.get('type','')
     userinfo = Userinfo.objects.get(user_id=user_id)
     print("lat and long === ",userinfo.latitude , userinfo.longitude)
 
