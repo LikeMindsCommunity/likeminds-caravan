@@ -2,6 +2,10 @@ $(document).ready(function(){
 
 
     //pending list page
+    $('#close_no_pending').click(function(){
+        $('#no_pending').css("display","none");
+    })
+
     $('.view_response').click(function(e){
 
        try{

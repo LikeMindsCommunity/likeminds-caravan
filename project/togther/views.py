@@ -14,7 +14,7 @@ from django.http import HttpResponseRedirect
 from .tasks import *
 from django.core.mail import EmailMultiAlternatives
 from collabmates_api.serializers import *
-
+import traceback
 url = settings.URL
 # uncomment to run it in localhost
 #url='http://localhost:8000'
@@ -910,17 +910,28 @@ def pending_list(request,community_id):
         user_image_url=userinfo.image_file.url
         link=api_url+'members_state?member_id='+str(request.user.id)+'&community_id='+str(community_id)
         state=rqst.get(link)
-        state=json.loads(state.content)
-        if state['state'] == 1 or state['state'] == 2:
-            is_promoter='true'
+        try:
+            state=json.loads(state.content)
+            if state['state'] == 1 or state['state'] == 2:
+                is_promoter='true'
+        except Exception as e:
+            traceback.print_exc()
+    pending_list=[]
+    error=False
+    try:
+        pending_list = json.loads(res.content)['pending_members']
+    except Exception as e:
+        error=True
+        traceback.print_exc()
 
-    pending_list=json.loads(res.content)['pending_members']
 
     context={
         'pending_list':pending_list,
         'community_id':community_id,
         'user_image_url':url+user_image_url,
-        'is_promoter':is_promoter
+        'is_promoter':is_promoter,
+        'list_length':len(pending_list),
+        'error':error
     }
     return render(request,'pending_list.html',context)
 
