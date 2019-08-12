@@ -1482,6 +1482,7 @@ def update_location(request):
     if not userinfo.latitude and not userinfo.longitude:
         userinfo.latitude = latitude
         userinfo.longitude = longitude
+        userinfo.save()
         city = get_user_location(request,userinfo.user_id,'city')
         city = json.loads(city.content.decode('utf-8'))
         userinfo.city = city['location']
