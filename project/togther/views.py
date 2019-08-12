@@ -15,7 +15,7 @@ from .tasks import *
 from django.core.mail import EmailMultiAlternatives
 from collabmates_api.serializers import *
 from django.template.loader import get_template
-
+import traceback
 
 url = settings.URL
 # uncomment to run it in localhost
@@ -938,3 +938,63 @@ def update_member_count(community_id):
     # updating count
     Community.objects.filter(id=community_id).update(members_count = count)
     return count
+
+
+def pending_list(request,community_id):
+
+    '''function to show pending list in html'''
+
+    link=api_url+'pending_members/'+str(community_id)
+
+    res = rqst.get(link)
+    user_image_url=""
+    is_promoter = 'false'
+    if request.user.is_authenticated:
+        userinfo=Userinfo.objects.get(user_id=request.user.id)
+        user_image_url=userinfo.image_file.url
+        link=api_url+'members_state?member_id='+str(request.user.id)+'&community_id='+str(community_id)
+        state=rqst.get(link)
+        try:
+            state=json.loads(state.content)
+            if state['state'] == 1 or state['state'] == 2:
+                is_promoter='true'
+        except Exception as e:
+            traceback.print_exc()
+    pending_list=[]
+    error=False
+    try:
+        pending_list = json.loads(res.content)['pending_members']
+    except Exception as e:
+        error=True
+        traceback.print_exc()
+
+
+    context={
+        'pending_list':pending_list,
+        'community_id':community_id,
+        'user_image_url':url+user_image_url,
+        'is_promoter':is_promoter,
+        'list_length':len(pending_list),
+        'error':error
+    }
+    return render(request,'pending_list.html',context)
+
+
+def questions_responses(request):
+
+    '''function to get responses of the particular user to show'''
+    member_id=request.GET.get('member_id')
+    community_id=request.GET.get('community_id')
+    userinfo=Userinfo.objects.get(user_id=member_id)
+    form_response=Form_response.objects.filter(user=member_id,community=community_id)
+    response_list=[]
+    for data in form_response:
+        response={}
+        response['question']=data.data
+        response['answer']=data.response
+        response_list.append(response)
+    context={
+        'image_url':url+userinfo.image_file.url,
+        'response_list':response_list
+    }
+    return JsonResponse(context)
