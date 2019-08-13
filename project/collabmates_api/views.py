@@ -680,6 +680,7 @@ def collabcard(request, card_id):
     card['images']=files[0]
     card['member']=usr
     card['pdf']=files[1]
+    card['state']= get_status_of_collabcard(member_id = user_id,community = cards.community,card = cards )
     # get tine stamp for card
     time_text = get_time_text(cards.date_epoch)
     card['created_at'] = time_text
