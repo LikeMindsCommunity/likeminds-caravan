@@ -61,7 +61,7 @@ def get_tags_count(community):
 
     for tag in community_tags:
 
-        if tag.tags_id == 41 or tag.tags_id == 42:
+        if tag.state == str(1):
             hidden_tags_count=hidden_tags_count+1
             continue
         tags_count=tags_count+1
@@ -254,7 +254,7 @@ def decline_member(request,community_id,member_id):
 
 def show_tags(request,community_id):
     '''Taging communitites'''
-    categories=Community_tags.objects.filter(community_id=community_id)
+    categories=Community_tags.objects.filter(community_id=community_id).exclude(state=1)
     category_string=""
     for i in categories:
         if i.tags_id == 41 or i.tags_id == 42:
@@ -687,18 +687,35 @@ def analytics_community(request,community_id):
     return render(request,'dashboard/community_analytics.html',context)
 
 
+def is_tag_present(tag,hide_status):
+    '''function to check whether the tag is present or not'''
+    tags=Tags.objects.filter(category_name=tag)
+
+    if tags:
+        return tags[0].id
+    else:
+        new_tag=Tags()
+        new_tag.category_name=tag
+        if hide_status:
+            new_tag.state=1
+        new_tag.save()
+        return new_tag.id
+
+
+
 def hidden_tags(request,community_id):
 
     '''function to show hidden tags'''
 
-    hidden_tags=Community_tags.objects.filter(community_id=community_id).filter(Q(tags_id=41)|Q(tags_id=42))
-
+    hidden_tags=Community_tags.objects.filter(community_id=community_id,state=1)
+    community_location=Community.objects.get(id=community_id)
     hidden_tag=''
     for tag in hidden_tags:
-        hidden_tag=hidden_tag+tag.category
+        hidden_tag=hidden_tag+tag.category+","
     context={
-        'hidden_tags':hidden_tag,
-        'community_id':community_id
+        'hidden_tags':hidden_tag[:-1],
+        'community_id':community_id,
+        'community_location':community_location.location
     }
 
     return render(request,'dashboard/hidden_tags.html',context)
@@ -710,8 +727,9 @@ def add_hidden_tags(request):
     '''function to add hidden tags'''
     hidden_tag_id=request.GET.get('hidden_tag_id')
     community_id=request.GET.get('community_id')
+    location=request.GET.get('location')
+    add_location_tags(location,community_id)
     tag_id=int(hidden_tag_id)
-
     if tag_id == 0:
         query=Community_tags.objects.filter(community_id=community_id).filter(Q(tags_id=41)|Q(tags_id=42)).delete()
         return JsonResponse({'success':'Tags Deleted'})
@@ -729,6 +747,7 @@ def add_hidden_tags(request):
         community_tags_object.category=tag_name
         community_tags_object.community_id=community
         community_tags_object.tags_id=tag_id
+        community_tags_object.state = '1'
         community_tags_object.save()
         print('New Data Inserted')
 
@@ -738,7 +757,35 @@ def add_hidden_tags(request):
 
     return JsonResponse({'success':True})
 
+def delete_hidden_tags(request):
 
+    '''function to delete the hidden tags'''
+    community_id=request.GET.get('community_id')
+    community=Community.objects.get(id=community_id)
+    delete=Community_tags.objects.filter(community_id=community,state=1).delete()
+    return JsonResponse({'delete':delete})
+
+
+def add_location_tags(location,community_id):
+
+    '''function to add location tags for a communities'''
+
+    location_list=location.split(",")
+
+    for data in location_list:
+        if data:
+            tag_id=is_tag_present(data,True)
+            is_present=Community_tags.objects.filter(community_id=community_id,tags_id=tag_id)
+            community = Community.objects.get(id=community_id)
+            if not is_present:
+                community_tags_object = Community_tags()
+                community_tags_object.category = data
+                community_tags_object.community_id = community
+                community_tags_object.state='1'
+                community_tags_object.tags_id = tag_id
+                community_tags_object.save()
+
+    print('location Inserted Successfully')
 
 def alpha_sign_up_mail(request,user_id):
 
