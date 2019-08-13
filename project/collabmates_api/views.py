@@ -799,9 +799,6 @@ def community_cards(request, community_id):
         card_dict['images'] = files[0]
         card_dict['pdf'] = files[1]
 
-        if card.og_tags:
-            og_tags=json.loads(card.og_tags)
-            card_dict['og_tags']=og_tags
         card_list.append(card_dict)
     return JsonResponse ({'collabcards': card_list})
 
