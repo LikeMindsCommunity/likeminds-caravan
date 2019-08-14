@@ -25,9 +25,8 @@ def debug_task(self):
 app.conf.beat_schedule = {
     'pending_members_mail_at_8_AM': {
         'task': 'collabmates_api.tasks.pending_members_mail',
-        # 'schedule': crontab(minute="*/10"),  # change to `crontab(minute=0, hour=0)` if you want it to run daily at midnight
-        'schedule':60.0,
+        'schedule': crontab(hour=8,minute=0),  #  minute="*/10" change to `crontab(minute=0, hour=0)` if you want it to run daily at midnight
+        #'schedule':60.0, #for testing purpose
     },
 }
-
-app.conf.timezone = 'UTC'
+# app.conf.timezone = 'Asia/Kolkata'

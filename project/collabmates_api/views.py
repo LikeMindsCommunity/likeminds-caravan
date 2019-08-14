@@ -680,7 +680,8 @@ def collabcard(request, card_id):
     card['images']=files[0]
     card['member']=usr
     card['pdf']=files[1]
-    card['state']= get_status_of_collabcard(member_id = user_id,community = cards.community,card = cards )
+    if user_id:
+        card['state']= get_status_of_collabcard(member_id = user_id,community = cards.community,card = cards )
     # get tine stamp for card
     time_text = get_time_text(cards.date_epoch)
     card['created_at'] = time_text
@@ -1486,24 +1487,30 @@ def update_location(request):
         city = json.loads(city.content.decode('utf-8'))
         userinfo.city = city['location']
         userinfo.save()
-        update_user_city_tag(user_id, userinfo.city)
+
+        all_location_tags = get_user_location(request, userinfo.user_id, 'all')
+
+
+        update_user_city_tag(user_id, all_location_tags)
     return JsonResponse({'success':True})
 
 
-# @shared_task
-def update_user_city_tag(user_id,city):
+@shared_task
+def update_user_city_tag(user_id,location):
     ''' function to update city tag for user '''
-    try:
-        tag = Tags.objects.get(category_name = city)
-    except:
-        tag = Tags()
-        tag.category_name = city
-        tag.state =1
-        tag.save()
-    user_tag = userinfo_tags()
-    user_tag.tag_id = tag.id
-    user_tag.user_id = user_id
-    user_tag.save()
+    for loc in location:
+        print("loc ====== ",loc)
+        try:
+            tag = Tags.objects.get(category_name = loc)
+        except:
+            tag = Tags()
+            tag.category_name = loc
+            tag.state =1
+            tag.save()
+        user_tag = userinfo_tags()
+        user_tag.tag_id = tag.id
+        user_tag.user_id = user_id
+        user_tag.save()
 
 
 def get_user_location(request,user_id,type=''):
@@ -1518,28 +1525,44 @@ def get_user_location(request,user_id,type=''):
 
     addr=location_response[0]['formatted_address']
     address=addr.split(',')
-    if type and type=='address':
+    if type and type == 'address':
         response = {'location':addr}
 
-    elif type and type=='country':
+    elif type and type == 'country':
         country = address[-1].strip()
         print("country ==== ",country)
         response = {'location': country}
 
-    elif type and type=='state':
-        state = address[-2].split(' ')[1].strip()
+    elif type and type == 'state':
+        state = address[-2][:-7].strip()
         print('state ===== ', state)
         response = {'location':state}
 
-    elif type and type=='pincode':
-        pincode = address[-2].split(' ')[2]
+    elif type and type == 'pincode':
+        pincode = address[-2][-6:].strip()
         print("pincode === ",pincode)
         response = {'location': address}
 
-    elif type and type=='city':
-        district = address[-3].strip()
-        print("district ==== ",district)
-        response = {'location': district}
+    elif type and type == 'city':
+
+        city = address[-3].strip()
+        print("city ==== ",city)
+        response = {'location': city}
+
+    elif type and type == 'all':
+
+        # return list [city,state,country,pincode]
+
+        # response = {}
+        # response['city']  = address[-3].strip()
+        # response['pincode'] = address[-2][-6:].strip()
+        # response['state'] = address[-2][:-7].strip()
+        # response['country'] = address[-1].strip()
+
+        return [address[-3].strip(),
+                address[-2][:-7].strip(),
+                address[-1].strip(),
+                address[-2][-6:].strip()]
 
     return JsonResponse(response,safe=False)
 
@@ -1552,4 +1575,6 @@ def decode_url(request):
     og_tags=decode_meta_from_url(url)
 
     return JsonResponse({'og_tags':og_tags})
+
+
 
