@@ -73,10 +73,18 @@ def communities(request):
 def get_communities_by_tags(user_tag=0, category_tag=0,page_number=1,user_id=None):
     ''' fetching communities based on category tag and user hidden tag '''
     if category_tag != 0 and user_tag != 0:
-        ''' if category tag and user tag ,both are provided
+        ''' if category tag and user tag ,bith are provided
             get communities ,which are the intersection of given category and user hidden tag '''
-        relevant_list = get_relevant_list(user_id,user_tag,category_tag)
-        queryset=pagination(relevant_list,page_number)
+
+        # get communities based on category tag
+        category_tag = Community_tags.objects.filter(tags_id=category_tag).values('community_id')
+        # get communities based on user hidden tag
+        user_tag = Community_tags.objects.filter(tags_id=user_tag).values('community_id')
+        #intersect both of the querysets
+        res = category_tag.intersection(user_tag).order_by("-community_id").distinct()
+        #paginating the resultant queryset
+        queryset = pagination(res, page_number)
+        #return result
         return queryset
 
     if category_tag == 0 and user_tag == 0:
@@ -89,8 +97,8 @@ def get_communities_by_tags(user_tag=0, category_tag=0,page_number=1,user_id=Non
 
     if category_tag == 0 and user_tag != 0:
         # if there is no category tag , then return communites based on user hidden tag
-        relevant_list = get_relevant_list(user_id,user_tag)
-        queryset = pagination(relevant_list, page_number)
+        user_tag = Community_tags.objects.filter(tags_id=user_tag).values('community_id').order_by("-community_id").distinct()
+        queryset = pagination(user_tag, page_number)
         return queryset
 
     if user_tag == 0 and category_tag != 0:
