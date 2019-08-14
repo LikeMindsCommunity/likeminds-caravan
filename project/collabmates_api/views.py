@@ -280,8 +280,12 @@ def similar_community(request, community_id):
     community = []
     for comm in queryset:
 
-        # if the queryset is of type dictionary
-        comm_object = Community.objects.get(id=comm)
+        
+        try:
+            comm_object = Community.objects.get(id=comm)
+        except:
+            # if the queryset is of type dictionary
+            comm_object = Community.objects.get(id=comm['community_id'])
         # check if the community is hidden or not
 
         if comm_object.hide_community == '0' and comm_object.id != community_id:
