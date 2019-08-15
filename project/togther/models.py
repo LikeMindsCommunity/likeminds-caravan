@@ -66,7 +66,7 @@ class Form_data (models.Model):
         return self.community_id.name
 
 class Userinfo (models.Model):
-    
+
     user_id = models.OneToOneField(User, on_delete=models.CASCADE)
     name = models.CharField(max_length = 200)
     email = models.CharField(max_length = 200)
@@ -192,7 +192,6 @@ class get_notified(models.Model):
     email = models.EmailField()
 
 
-
 class Tags(models.Model):
 
     '''Model to show tags from database'''
@@ -206,3 +205,4 @@ class userinfo_tags(models.Model):
 
     tag_id = models.IntegerField(null=True)
     user_id = models.IntegerField(null=True)
+
