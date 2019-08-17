@@ -29,3 +29,6 @@ FIREBASE_CONFIG = {
   'messagingSenderId': "746515926836",
   'appId': "1:746515926836:web:c2a732a40f5882f1"
 };
+
+TIME_ZONE = 'Asia/Kolkata'
+# CELERY_TIMEZONE = 'Asia/Kolkata'

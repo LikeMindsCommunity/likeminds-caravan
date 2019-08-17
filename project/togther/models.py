@@ -66,7 +66,8 @@ class Form_data (models.Model):
         return self.community_id.name
 
 class Userinfo (models.Model):
-    user_id = models.ForeignKey(User, on_delete=models.CASCADE)
+
+    user_id = models.OneToOneField(User, on_delete=models.CASCADE)
     name = models.CharField(max_length = 200)
     email = models.CharField(max_length = 200)
     city = models.CharField(max_length = 100, null = True)
@@ -138,6 +139,7 @@ class Collabcard (models.Model):
     date_epoch=models.BigIntegerField(default=-9223372036854775808)
     answer_text = models.CharField(max_length = 100, default = '')
     share_link=models.CharField(max_length=2048,default='')
+    og_tags=models.CharField(max_length=2048,default='')
 
 
 
@@ -190,7 +192,6 @@ class get_notified(models.Model):
     email = models.EmailField()
 
 
-
 class Tags(models.Model):
 
     '''Model to show tags from database'''
@@ -204,3 +205,4 @@ class userinfo_tags(models.Model):
 
     tag_id = models.IntegerField(null=True)
     user_id = models.IntegerField(null=True)
+

@@ -1,0 +1,93 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block scripts %}
+<script>
+    {% if request.user.is_authenticated %}
+    var community={{community_id}}
+    var is_promoter={{is_promoter}}
+    {% else %}
+     $('.test').modal('show')
+    {% endif %}
+</script>
+<script src="{% static 'js/togther/main.js' %}"></script>
+      {% endblock %}
+
+   {% block user_image %}
+<img class="ui avatar image" src="{{user_image_url}}"/>
+      {% endblock %}
+{% block content %}
+
+<body>
+
+<br/>
+
+<!-- If the user is not a promoter -->
+<div class="ui negative message" id="negative" style="display:none">
+  <i class="close icon" id="close_negative"></i>
+  <div class="header">
+      Sorry!! You are not the promoter of this community
+  </div>
+  </div>
+<!---->
+
+<!-- If there are no pending requests -->
+{% if request.user.is_authenticated %}
+    {% if list_length == 0 and not error %}
+    <div class="ui info message"  id="no_pending">
+      <i class="close icon" id="close_no_pending"></i>
+      <div class="header">
+        You don't have a pending member request
+      </div>
+    </div>
+    {% endif %}
+{% endif %}
+
+<!---->
+
+<!-- showing members list -->
+{% for member in pending_list %}
+    <div class="ui cards" >
+      <div class="card" style="width:100%;">
+        <div class="content">
+          <img class="left floated  ui image" src="{{member.image_url}}" style="border-radius:50%;width:50px;">
+
+        {% if member.fb_link != None %}
+         <button class="ui circular right floated  facebook icon button "  onclick="location.href ='{{member.fb_link}}'">
+            <i class="facebook icon"></i>
+        </button>
+        {% else %}
+            <button class="ui circular right floated  disabled facebook icon button "  >
+            <i class="facebook icon"></i>
+        </button>
+        {% endif %}
+
+
+         {% if member.linkedin_link != None %}
+         <button class="ui circular right floated linkedin icon button " onclick="location.href ='{{member.linkedin_link}}'" >
+            <i class="linkedin icon"></i>
+        </button>
+        {% else %}
+            <button class="ui circular right floated disabled linkedin icon button ">
+            <i class="linkedin icon"></i>
+        </button>
+        {% endif %}
+
+
+
+            <p style="font-size:14px; font-weight:bold;padding-top:12px;">{{ member.name }}</p>
+
+        </div>
+
+        <div class="extra content">
+
+            <div class="ui right floated basic green button view_response" id="{{member.id}}">VIEW RESPONSE</div>
+        </div>
+      </div>
+
+    </div>
+  {% endfor %}
+<div id="set"></div>
+</body>
+{% endblock %}
+

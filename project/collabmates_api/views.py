@@ -1,3 +1,5 @@
+from __future__ import absolute_import, unicode_literals
+from celery import shared_task
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import HttpResponse
 from togther.models import *
@@ -21,8 +23,8 @@ import os
 from .firebase import update_last_answer_id
 import re
 import googlemaps
-from utility.utils import *
-import requests as rqst
+from utility.utils import decode_meta_from_url
+from .raw_queries import get_relevant_list
 
 
 url  = settings.URL
@@ -56,19 +58,19 @@ def communities(request):
                 # get category id'''
                 category = int(category)
                 # get the related communities according to category asked and user hidden tag
-                community = get_communities_by_tags(category_tag=category, user_tag=user_tag,page_number = page_number)
+                community = get_communities_by_tags(category_tag=category, user_tag=user_tag,page_number = page_number,user_id=user_id)
                 # serialize the communities objects recieved from above function
-                community = serialize_community(queryset =community,user_id =user_id)
+                community = serialize_community(queryset =community)
                 # send communities JSON response '''
                 return JsonResponse({'communities': community})
             else:
                 # if category is not provided, get categories according to the user tag if user has one
-                queryset = get_communities_by_tags(user_tag=user_tag,page_number = page_number)
-                community = serialize_community(queryset=queryset, user_id=user_id)
+                queryset = get_communities_by_tags(user_tag=user_tag,page_number = page_number,user_id=user_id)
+                community = serialize_community(queryset=queryset)
                 return JsonResponse({'communities': community})
 
 
-def get_communities_by_tags(user_tag=0, category_tag=0,page_number=1):
+def get_communities_by_tags(user_tag=0, category_tag=0,page_number=1,user_id=None):
     ''' fetching communities based on category tag and user hidden tag '''
     if category_tag != 0 and user_tag != 0:
         ''' if category tag and user tag ,bith are provided
@@ -106,7 +108,7 @@ def get_communities_by_tags(user_tag=0, category_tag=0,page_number=1):
         return queryset
 
 
-def serialize_community(queryset,user_id ):
+def serialize_community(queryset):
     ''' this function gives us a dictionary of community/communities objects based on given queryset '''
     communities = []
     for community in queryset:
@@ -116,7 +118,10 @@ def serialize_community(queryset,user_id ):
             comm = Community.objects.get(id=community['community_id'])
         except:
             # if the queryset if a lazy community object
-            comm = Community.objects.get(id=community.id)
+            try:
+                comm = Community.objects.get(id=community.id)
+            except:
+                comm=Community.objects.get(id=community)
         # check if the community is hidden or not
 
         if comm.hide_community == '0':
@@ -137,7 +142,6 @@ def serialize_community(queryset,user_id ):
 def pagination(queryset,page_number,paginate_by=20):
 
     '''function to create pagination and return a query set for page number'''
-
     paginator = Paginator(queryset, paginate_by)
     max_page=len(paginator.page_range)
 
@@ -280,12 +284,16 @@ def similar_community(request, community_id):
     else:
         user_tag = 0
     # getting communities based on user hidden tags
-    queryset = get_communities_by_tags(user_tag=user_tag)[:11]
+    queryset = get_communities_by_tags(user_tag=user_tag,user_id=user_id)[:11]
     community = []
     for comm in queryset:
 
-        # if the queryset is of type dictionary
-        comm_object = Community.objects.get(id=comm['community_id'])
+        
+        try:
+            comm_object = Community.objects.get(id=comm)
+        except:
+            # if the queryset is of type dictionary
+            comm_object = Community.objects.get(id=comm['community_id'])
         # check if the community is hidden or not
 
         if comm_object.hide_community == '0' and comm_object.id != community_id:
@@ -573,6 +581,9 @@ def create_card(request):
         card.user = user.user_id
         if 'share_link' in res:
             card.share_link=res['share_link']
+            og_tags = decode_meta_from_url(res['share_link'])
+            card.og_tags=json.dumps(og_tags)
+
         card.date_epoch=time.time()
         card.save()
         # if the community does not have a purpose card then a purpose will be created
@@ -674,6 +685,8 @@ def collabcard(request, card_id):
     card['images']=files[0]
     card['member']=usr
     card['pdf']=files[1]
+    if user_id:
+        card['state']= get_status_of_collabcard(member_id = user_id,community = cards.community,card = cards )
     # get tine stamp for card
     time_text = get_time_text(cards.date_epoch)
     card['created_at'] = time_text
@@ -785,18 +798,13 @@ def community_cards(request, community_id):
         else:
             # get time stamp
             time_text = get_time_text(card.date_epoch)
-        ans_text = card.answer_text
-        card_dict={'id': card.id,
-                   'title': card.title,
-                   'member':usr,
-                   'images':files[0],
-                   'pdf':files[1],
-                   'share_url' : share_url,
-                   'answer_text': ans_text ,
-                   'created_at':time_text,
-                   'state':get_status_of_collabcard(member_id,community,card),
-                   'share_link':card.share_link
-                   }
+        card_dict = CollabcardSerializer(card, card.community)
+        card_dict['state'] = get_status_of_collabcard(member_id,community,card)
+        card_dict['created_at'] = time_text
+        card_dict['member'] = usr
+        card_dict['images'] = files[0]
+        card_dict['pdf'] = files[1]
+
         card_list.append(card_dict)
     return JsonResponse ({'collabcards': card_list})
 
@@ -1060,7 +1068,6 @@ def upload_attachment(request):
             file.save()
         return JsonResponse({'success':True})
     return JsonResponse({'success': False})
-
 
 
 @csrf_exempt
@@ -1473,19 +1480,48 @@ def update_location(request):
     ''' function to update user location lat and long co-ordinates '''
 
     user_id = request.GET.get('member_id')
-    latitude = request.GET.get('lat')
-    longitude = request.GET.get('long')
+    latitude = request.GET.get('latitude')
+    longitude = request.GET.get('longitude')
     userinfo = Userinfo.objects.get(user_id =user_id)
-    userinfo.latitude = latitude
-    userinfo.longitude = longitude
-    userinfo.save()
+
+    if not userinfo.latitude and not userinfo.longitude:
+        userinfo.latitude = latitude
+        userinfo.longitude = longitude
+        userinfo.save()
+        city = get_user_location(request,userinfo.user_id,'city')
+        city = json.loads(city.content.decode('utf-8'))
+        userinfo.city = city['location']
+        userinfo.save()
+
+        all_location_tags = get_user_location(request, userinfo.user_id, 'all')
+
+
+        update_user_city_tag(user_id, all_location_tags)
     return JsonResponse({'success':True})
 
 
-def get_user_location(request,user_id):
-    ''' function to fetch user location '''
+@shared_task
+def update_user_city_tag(user_id,location):
+    ''' function to update city tag for user '''
+    for loc in location:
+        print("loc ====== ",loc)
+        try:
+            tag = Tags.objects.get(category_name = loc)
+        except:
+            tag = Tags()
+            tag.category_name = loc
+            tag.state =1
+            tag.save()
+        user_tag = userinfo_tags()
+        user_tag.tag_id = tag.id
+        user_tag.user_id = user_id
+        user_tag.save()
 
-    type = request.GET.get('type','')
+
+def get_user_location(request,user_id,type=''):
+    ''' function to fetch user location '''
+    if not type:
+        type = request.GET.get('type','')
     userinfo = Userinfo.objects.get(user_id=user_id)
     print("lat and long === ",userinfo.latitude , userinfo.longitude)
 
@@ -1494,28 +1530,44 @@ def get_user_location(request,user_id):
 
     addr=location_response[0]['formatted_address']
     address=addr.split(',')
-    if type and type=='address':
+    if type and type == 'address':
         response = {'location':addr}
 
-    elif type and type=='country':
+    elif type and type == 'country':
         country = address[-1].strip()
         print("country ==== ",country)
         response = {'location': country}
 
-    elif type and type=='state':
-        state = address[-2].split(' ')[1].strip()
+    elif type and type == 'state':
+        state = address[-2][:-7].strip()
         print('state ===== ', state)
         response = {'location':state}
 
-    elif type and type=='pincode':
-        pincode = address[-2].split(' ')[2]
+    elif type and type == 'pincode':
+        pincode = address[-2][-6:].strip()
         print("pincode === ",pincode)
         response = {'location': address}
 
-    elif type and type=='city':
-        district = address[-3].strip()
-        print("district ==== ",district)
-        response = {'location': district}
+    elif type and type == 'city':
+
+        city = address[-3].strip()
+        print("city ==== ",city)
+        response = {'location': city}
+
+    elif type and type == 'all':
+
+        # return list [city,state,country,pincode]
+
+        # response = {}
+        # response['city']  = address[-3].strip()
+        # response['pincode'] = address[-2][-6:].strip()
+        # response['state'] = address[-2][:-7].strip()
+        # response['country'] = address[-1].strip()
+
+        return [address[-3].strip(),
+                address[-2][:-7].strip(),
+                address[-1].strip(),
+                address[-2][-6:].strip()]
 
     return JsonResponse(response,safe=False)
 
@@ -1528,4 +1580,6 @@ def decode_url(request):
     og_tags=decode_meta_from_url(url)
 
     return JsonResponse({'og_tags':og_tags})
+
+
 

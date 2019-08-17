@@ -13,32 +13,46 @@
     margin: 0 auto;
     width:80% /* value of your choice which suits your alignment */
 }
+
 </style>
 <body>
 
-<h2 align="left">Hidden Tags</h2>
+<h2 align="center">Hidden Tags</h2>
 
-    <form id="my_form" onsubmit="return false">
-      <div class="form-group center_div">
+<form id="my_form" onsubmit="return false">
+    <div class="form-group center_div">
         <label for="tag">Hidden Tags</label>
-        <input type="text" name="tags" id="previous_categories" value="{{hidden_tags}}"  readonly class="form-control" >
-      </div>
-      <br/><br/>
+        <input type="text" name="tags" id="previous_categories" value="{{hidden_tags}}" readonly class="form-control">
+    </div>
+    <br/><br/>
      <div class="form-group center_div">
-
-    <select name="select_tags"  id="my_select" class="form-control">
-          <option value="41">IIT Delhi</option>
-          <option value="42">NSIT College</option>
-          <option value="0">None</option>
-     </select>
-     </div>
-        <br/>
-      <div class="center_div">
+        <label for="tag">Community Location</label>
+        <input type="text" name="tags"  value="{{community_location}}" readonly class="form-control">
+    </div>
+    <br/><br/>
+    <div class="form-group center_div">
+        <div class="form-group ">
+            <label for="cities">City Tags</label>
+            <input type="text" placeholder="Enter the city.For Multiple cities put comma" class="form-control" id="cities">
+        </div>
+        <br/><br/>
+        <select name="select_tags" id="my_select" class="form-control">
+            <option value="41">IIT Delhi</option>
+            <option value="42">NSIT College</option>
+            <option value="0">None</option>
+        </select>
+    </div>
+    <br/>
+    <div class="center_div">
         <button type="submit" class="btn btn-default ">Submit</button>
-       </div>
 
-    </form>
+    </div>
+</form>
+<br/>
+    <div class="center_div">
 
+        <button class="btn btn-danger" id="clear" >Delete Hidden Tags</button>
+    </div>
 </body>
 </html>
 
@@ -46,15 +60,56 @@
 
     $(document).ready(function(){
 
+        //function to make first letter capital
+       const capitalize = (s) => {
+            if (typeof s !== 'string') return ''
+             return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+            }
+
+       $('#clear').click(function(){
+
+       community_id={{community_id}}
+       temp={
+
+       'community_id':community_id
+
+       }
+        $.ajax({
+
+            url:'/admin_dashboard/delete_hidden_tags',
+            data:temp,
+            dataType:'json',
+            success:function(data){
+
+                console.log(data)
+                location.reload(true)
+
+            }
+
+         })
+
+       })
+
        $('#my_form').on('submit',function()
        {
 
          var hidden=$('#my_select').val()
-         console.log(hidden)
-         console.log({{community_id}})
+         cities=$('#cities').val()
+         cities=cities.split(",");
+         var place=""
+         for(var i=0;i<cities.length;i++)
+         {
+            city=capitalize(cities[i].trim());
+            if(city){
+                place=place+city+","
+                }
+         }
+         city=place.substring(0,place.length-1)
+
           temp={
           'hidden_tag_id':hidden,
-          'community_id':{{community_id}}
+          'community_id':{{community_id}},
+          'location':city
           }
 
           $.ajax({
@@ -63,8 +118,8 @@
             data:temp,
             dataType:'json',
             success:function(data){
-               console.log(data)
-               location.reload(true)
+               console.log(data);
+               location.reload();
 
             }
 
@@ -75,4 +130,5 @@
        })
 
     })
+
 </script>
