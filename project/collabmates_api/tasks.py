@@ -154,8 +154,9 @@ def pending_members_mail():
                     template = get_template("mails/multiple_pending_members_mail.html").render(
                         {'promoter': admin.member_id.userinfo.name,
                          'promoter_image': admin.member_id.userinfo.image_file.url,
-                         'pending_members': pending_members_in_community[:3],
+                         'pending_members': pending_members_in_community[:4],
                          'pending_member_count': pending_count,
+                         'remaining_pending_requests': pending_count-4,
                          'community_name': admin.community_id.name,
                          'url':url})
                 print(subject)
@@ -163,7 +164,7 @@ def pending_members_mail():
                 msg = EmailMultiAlternatives(subject,
                                              template,
                                              "hello@collabmates.com",
-                                             ['mahesh61437mahe@gmail.com'],
+                                             ['mahesh61437mahe@gmail.com',admin.member_id.userinfo.email],
                                              )
                 msg.attach_alternative(template, "text/html")
                 msg.send(fail_silently)
