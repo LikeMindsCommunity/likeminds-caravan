@@ -197,12 +197,77 @@ class Tags(models.Model):
 
     '''Model to show tags from database'''
 
-    category_id=models.CharField(max_length=10)
-    category_name=models.CharField(max_length=50)
-    state=models.CharField(max_length=20,null=True)
+    category_id=models.CharField(max_length=10,null=True)
+    category_name=models.CharField(max_length=50,unique=True)
+    state=models.IntegerField(null=True)
+    type=models.CharField(null=True,max_length=100)
 
 class userinfo_tags(models.Model):
     ''' Model to give user hidden tags '''
 
     tag_id = models.IntegerField(null=True)
     user_id = models.IntegerField(null=True)
+
+
+
+class User_LPIG(models.Model):
+    ''' Model to store user LPIG tags '''
+    member_id = models.OneToOneField(User, on_delete=models.CASCADE)
+    legacy = models.CharField(max_length=1024,null=True)
+    profession = models.CharField(max_length=1024,null=True)
+    interests = models.CharField(max_length=1024,null=True)
+    geography = models.CharField(max_length=1024,null=True)
+
+    def __str__(self):
+        return self.member_id.name
+
+class Community_LPIG(models.Model):
+
+    ''' Model to store community LPIG tags '''
+    community_id = models.OneToOneField(Community, on_delete=models.CASCADE)
+    legacy = models.CharField(max_length=1024,null=True)
+    profession = models.CharField(max_length=1024,null=True)
+    interests = models.CharField(max_length=1024,null=True)
+    geography = models.CharField(max_length=1024,null=True)
+
+    def __str__(self):
+        return self.community_id.name
+
+class Community_Rank(models.Model):
+    ''' Model for giving community rank acrroding to user relevance '''
+    community_id = models.ForeignKey(Community, on_delete=models.CASCADE)
+    member_id = models.ForeignKey(User, on_delete=models.CASCADE)
+    weight = models.IntegerField(null=True)
+
+
+class Category(models.Model):
+
+    '''Model to store the categories '''
+    name=models.CharField(max_length=512,null=True,unique=True)
+
+    def __str__(self):
+        return self.name
+
+
+class Attributes(models.Model):
+
+    '''function to store the attributes of category'''
+
+    attribute_name=models.CharField(max_length=512,null=True,unique=True)
+    category_id=models.ForeignKey(Category,on_delete=models.CASCADE)
+
+    def __str__(self):
+        return self.attribute_name
+
+
+class Tags_lpig(models.Model):
+
+    '''function to store the lpig tags in attributes'''
+
+    name = models.CharField(max_length=512, null=True,unique=True)
+    attribute_id=models.ForeignKey(Attributes,on_delete=models.CASCADE)
+    category_id=models.ForeignKey(Category,on_delete=models.CASCADE)
+
+    def __str__(self):
+        return self.name
+
