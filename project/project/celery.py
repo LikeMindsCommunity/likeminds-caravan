@@ -29,4 +29,4 @@ app.conf.beat_schedule = {
         #'schedule':120.0, #for testing purpose
     },
 }
-# app.conf.timezone = 'Asia/Kolkata'
+app.conf.timezone = 'Asia/Kolkata'
