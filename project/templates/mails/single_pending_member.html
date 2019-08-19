@@ -88,12 +88,12 @@ font-size:8px;
                                                                 <img src="https://collabmates.com/media/media/ic_launcher_round.png"
                                                                      style="width:45px;height:45px;border-radius:50%;"/>
 
-                                                            <td style="padding-top:4px;padding-bottom:3px; padding-left:300px;overflow:hidden; white-space:nowrap;">
-                                                            <p>{{promoter}}</p>
+                                                            <td style="padding-top:4px;padding-bottom:3px; padding-left:400px;padding-right:10px;overflow:hidden; white-space:nowrap;text-align:right;">
+                                                            {{promoter}}
                                                             </td>
 
                                                             <td valign="center"
-                                                                style="padding-top:4px; padding-right:20px; padding-bottom:3px;padding-left:18px;">
+                                                                style="padding-top:4px; padding-right:0px; padding-bottom:3px;padding-left:18px;">
                                                                 <img src="{{url}}{{promoter_image}}"
                                                                      style="width:40px;height:40px; border-radius: 50%;"/>
                                                             </td>
@@ -105,10 +105,9 @@ font-size:8px;
                                                            style="max-width:100%; min-width:100%; background-color:white;"
                                                            width="100%" >
                                                         <tr>
-                                                            <td style="padding-top:20px; padding-right:18px; padding-bottom:20px; padding-left:18px;text-align:center"
-                                                                class="TextHead">
-                                                                1 new conversation in <b>{{community_name}}</b>
-                                                                Community
+                                                            <td style="background-color:#ffffff; padding-top:0px; padding-right:18px; padding-bottom:0px; padding-left:18px;text-align:center;"
+                                                                class="TextHead"><h4 style="color:black;font-family: Arial;font-size: 14px;font-weight:500;">
+                                                                1 pending member request in <b>{{community_name}}</b> community </h4>
                                                             </td>
                                                         </tr>
                                                     </table>
@@ -162,9 +161,9 @@ font-size:8px;
                                                                                     <td align="center" valign="middle"
                                                                                         style="font-family: Arial; font-size: 16px; padding: 10px;">
                                                                                         <a title="Respond to invitations"
-                                                                                           href="{{url}}/pending_list/{{community.id}}"
+                                                                                           href="{{url}}/pending_list/{{community_id}}"
                                                                                            target="_blank"
-                                                                                           style="font-weight: bold;letter-spacing: normal;line-height: 100%;text-align: center;text-decoration: none;color: #FFFFFF;font-size:12px;">Respond</a>
+                                                                                           style="font-weight: bold;letter-spacing: normal;line-height: 100%;text-align: center;text-decoration: none;color: #FFFFFF;font-size:12px;">Respond to Request</a>
                                                                                     </td>
                                                                                 </tr>
                                                                                 </tbody>

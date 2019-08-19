@@ -83,16 +83,3 @@ def get_user_tag(user_id):
     ''' function to get user hidden tag '''
     user_tag = userinfo_tags.objects.all().filter(user_id=user_id)
     return user_tag
-
-
-def get_or_create_tag(tag):
-    ''' function to update city tag for user '''
-    tag = tag.strip()
-    try:
-        tag = Tags.objects.get(category_name = tag)
-    except:
-        tag = Tags()
-        tag.category_name = loc
-        tag.state =1
-        tag.save()
-    return tag.id
