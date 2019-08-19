@@ -39,26 +39,26 @@ def read_excell_file():
             'interest_fan':sheet.cell_value(row,12)             #11 3
         }
 
-        # split_tags(data_dic['city'], 12, 4)
-        #
-        # split_tags(data_dic['profession_skill'], 5, 2)
-        # split_tags(data_dic['profession_industry'], 6, 2)
-        # split_tags(data_dic['profession_designation'], 7, 2)
-        #
-        # split_tags(data_dic['legacy_work'], 1, 1)
-        # split_tags(data_dic['legacy_education'], 2, 1)
-        # split_tags(data_dic['legacy_hometown'], 3, 1)
-        # split_tags(data_dic['legacy_lifestyle'], 4, 1)
-        #
-        # split_tags(data_dic['interest_cause'], 8, 3)
-        # split_tags(data_dic['interest_hobby'], 9, 3)
-        # split_tags(data_dic['interest_sports'], 10, 3)
-        # split_tags(data_dic['interest_fan'], 11, 3)
-        #
-        # split_tags("legacy_any", 16, 5)
-        # split_tags("profession_any", 16, 5)
-        # split_tags("interest_any", 16, 5)
-        # split_tags("Global", 16, 5)
+        split_tags(data_dic['city'], 12, 4)
+
+        split_tags(data_dic['profession_skill'], 5, 2)
+        split_tags(data_dic['profession_industry'], 6, 2)
+        split_tags(data_dic['profession_designation'], 7, 2)
+
+        split_tags(data_dic['legacy_work'], 1, 1)
+        split_tags(data_dic['legacy_education'], 2, 1)
+        split_tags(data_dic['legacy_hometown'], 3, 1)
+        split_tags(data_dic['legacy_lifestyle'], 4, 1)
+
+        split_tags(data_dic['interest_cause'], 8, 3)
+        split_tags(data_dic['interest_hobby'], 9, 3)
+        split_tags(data_dic['interest_sports'], 10, 3)
+        split_tags(data_dic['interest_fan'], 11, 3)
+
+        split_tags("legacy_any", 16, 5)
+        split_tags("profession_any", 16, 5)
+        split_tags("interest_any", 16, 5)
+        split_tags("Global", 16, 5)
 
 
         all_data.append(data_dic)
