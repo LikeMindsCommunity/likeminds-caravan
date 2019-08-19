@@ -3,8 +3,8 @@
 
 import  psycopg2
 
-db_user="apoorv"
-db_password="khare"
+db_user="postgres"
+db_password="postgres"
 db_host="13.235.187.102"
 db_database="togther"
 db_port="5432"
