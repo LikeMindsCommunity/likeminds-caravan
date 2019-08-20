@@ -264,8 +264,8 @@ def compute_rank():
         for community in community_tags:
             score = get_relevant_score(user, community)
             if score[2] != 0:
-                #ranking_tags(score)
-                print(score)
+                ranking_tags(score)
+                #print(score)
 
 
 
