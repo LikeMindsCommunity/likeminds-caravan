@@ -131,6 +131,10 @@ def get_relevant_score(user,community):
     #     if legacy in legacy_community_list:
     #         count_legacy += 1
 
+    if legacy_community_list is None or profession_community_list is None or interest_community_list is None:
+        return (user['user_id'],community['community_id'],0)
+
+
     for legacy in legacy_community_list:
         if legacy in legacy_user_list:
             count_legacy+=1
@@ -151,7 +155,7 @@ def get_relevant_score(user,community):
             count_profession += 1
 
 
-    if count_legacy==0 or count_interest==0 or count_profession==0 or count_geography==0:
+    if count_legacy==0 or count_geography==0 or count_interest == 0 or count_profession == 0:
         relevance_score=0
     else:
         relevance_score=count_legacy+count_profession+count_interest+count_geography
@@ -237,27 +241,29 @@ def compute_rank():
     community_tags = []
     for community in all_communities:
         filter_tag = filter_tags(community_id=community[1])
-
-        if filter_tag['legacy'] is None:
-            filter_tag['legacy'] = [global_tags['legacy_any']]
-
-        if filter_tag['profession'] is None:
-            filter_tag['profession'] = [global_tags['profession_any']]
-
-        if filter_tag['interests'] is None:
-            filter_tag['interests'] = [global_tags['interest_any']]
-
-        if filter_tag['geography'] is None:
-            filter_tag['geography'] = [global_tags['Global']]
+        #
+        # if filter_tag['legacy'] is None:
+        #     filter_tag['legacy'] = [global_tags['legacy_any']]
+        #
+        # if filter_tag['profession'] is None:
+        #     filter_tag['profession'] = [global_tags['profession_any']]
+        #
+        # if filter_tag['interests'] is None:
+        #     filter_tag['interests'] = [global_tags['interest_any']]
+        #
+        # if filter_tag['geography'] is None:
+        #     filter_tag['geography'] = [global_tags['Global']]
 
         community_tags.append(filter_tag)
 
     # getting relevance score
+
     for user in user_tags:
         for community in community_tags:
             score = get_relevant_score(user, community)
             if score[2] != 0:
                 ranking_tags(score)
+                #print(score)
 
 
 
