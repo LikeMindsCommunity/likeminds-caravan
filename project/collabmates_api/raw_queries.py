@@ -33,10 +33,11 @@ def filter_tags(user_id=0,community_id=0):
     '''function to return the filtered tags based on LPIG'''
     sql=""
     if user_id:
-        sql="select * from togther_user_lpig where member_id_id="+str(user_id)
+        sql="select id,member_id_id,geography,interests,legacy,profession from togther_user_lpig where member_id_id="+str(user_id)
     elif community_id:
-        sql = "select * from togther_community_lpig where community_id_id=" + str(community_id)
+        sql = "select id,community_id_id,geography,interests,legacy,profession from togther_community_lpig where community_id_id=" + str(community_id)
     res=get_all_tags(sql)
+
     if res is None:
         return {}
     legacy=None
@@ -157,8 +158,10 @@ def get_relevant_score(user,community):
 
     if count_legacy==0 or count_geography==0 or count_interest == 0 or count_profession == 0:
         relevance_score=0
-    else:
+    elif count_legacy and count_geography and count_profession and count_interest:
         relevance_score=count_legacy+count_profession+count_interest+count_geography
+    else:
+        relevance_score=0
 
     return (user['user_id'],community['community_id'],relevance_score)
 
@@ -243,18 +246,18 @@ def compute_rank():
     for community in all_communities:
         filter_tag = filter_tags(community_id=community[0])
 
-        #
-        # if filter_tag['legacy'] is None:
-        #     filter_tag['legacy'] = [global_tags['legacy_any']]
-        #
-        # if filter_tag['profession'] is None:
-        #     filter_tag['profession'] = [global_tags['profession_any']]
-        #
-        # if filter_tag['interests'] is None:
-        #     filter_tag['interests'] = [global_tags['interest_any']]
-        #
-        # if filter_tag['geography'] is None:
-        #     filter_tag['geography'] = [global_tags['Global']]
+
+        if filter_tag['legacy'] is None:
+            filter_tag['legacy'] = [global_tags['legacy_any']]
+
+        if filter_tag['profession'] is None:
+            filter_tag['profession'] = [global_tags['profession_any']]
+
+        if filter_tag['interests'] is None:
+            filter_tag['interests'] = [global_tags['interest_any']]
+
+        if filter_tag['geography'] is None:
+            filter_tag['geography'] = [global_tags['Global']]
 
         community_tags.append(filter_tag)
 
