@@ -24,11 +24,8 @@ from .firebase import update_last_answer_id
 import re
 import googlemaps
 from utility.utils import decode_meta_from_url
-from .raw_queries import get_relevant_list
-
 
 url  = settings.URL
-
 
 def communities(request):
     '''function to get all the communities'''
