@@ -226,21 +226,23 @@ def update_tag(tag,id):
 def compute_rank():
 
     '''function to run '''
-    sql = "select * from togther_user_lpig"
+    sql = "select member_id_id from togther_user_lpig"
     all_user = get_all_data(sql)
     user_tags = []
 
     global_tags = get_global_id()
     for user in all_user:
-        filter_tag = filter_tags(user_id=user[1])
+        filter_tag = filter_tags(user_id=user[0])
         user_tags.append(filter_tag)
 
     # getting all communities
-    sql = "select * from togther_community_lpig"
+    sql = "select community_id_id from togther_community_lpig"
     all_communities = get_all_data(sql)
     community_tags = []
+    print(all_communities)
     for community in all_communities:
-        filter_tag = filter_tags(community_id=community[1])
+        filter_tag = filter_tags(community_id=community[0])
+
         #
         # if filter_tag['legacy'] is None:
         #     filter_tag['legacy'] = [global_tags['legacy_any']]
@@ -262,8 +264,8 @@ def compute_rank():
         for community in community_tags:
             score = get_relevant_score(user, community)
             if score[2] != 0:
-                ranking_tags(score)
-                #print(score)
+                #ranking_tags(score)
+                print(score)
 
 
 
