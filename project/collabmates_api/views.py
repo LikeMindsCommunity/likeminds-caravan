@@ -84,12 +84,19 @@ def get_communities_by_tags(user_tag=0, category_tag=0,page_number=1,user_id=Non
         #return result
         return queryset
 
+
+
     if category_tag == 0 and user_tag == 0:
         # if there is not category tag and user does not have a hidden tag too
         # just return him all the communites
         community =  Community_tags.objects.values('community_id').order_by("-community_id").distinct()
         # paginating the communities
         queryset = pagination(community, page_number)
+        return queryset
+
+    if user_id:
+        user_tag = Community_Rank.objects.filter(member_id=user_id).values('community_id').order_by("-weight").distinct()
+        queryset = pagination(user_tag, page_number)
         return queryset
 
     if category_tag == 0 and user_tag != 0:
