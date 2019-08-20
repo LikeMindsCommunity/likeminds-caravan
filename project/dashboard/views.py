@@ -16,6 +16,8 @@ from django.http.response import JsonResponse
 import requests as rqst
 import os
 import re
+from django.views.decorators.csrf import csrf_exempt
+
 
 url = settings.URL
 
@@ -265,6 +267,7 @@ def show_tags(request,community_id):
         'category':category_string,
         'community_id':community_id
     }
+
     return render(request,"dashboard/category.html",context)
 
 def add_tags(request):
@@ -277,6 +280,7 @@ def add_tags(request):
 
     category_list=[]
     community_category=Community_tags.objects.filter(community_id=community_id)
+
 
     for category in community_category:
 
@@ -568,7 +572,6 @@ def all_members(request,community_id):
     return render(request,'dashboard/all_members.html',{'member_list':members_list,'unregitered_users_list':unregitered_users_list})
 
 
-
 def delete_members(request,community_id,member_id):
 
     '''function to delete the members'''
@@ -691,53 +694,140 @@ def hidden_tags(request,community_id):
 
     '''function to show hidden tags'''
 
-    hidden_tags=Community_tags.objects.filter(community_id=community_id).filter(Q(tags_id=41)|Q(tags_id=42))
+    legacy_tags = list(Tags_lpig.objects.filter(category_id__id = '1').values_list('name', flat=True))
+    profession_tags = list(Tags_lpig.objects.filter(category_id__id = '2').values_list('name', flat=True))
+    interests_tags = list(Tags_lpig.objects.filter(category_id__id = '3').values_list('name', flat=True))
+    geography_tags = list(Tags_lpig.objects.filter(category_id__id = '4').values_list('name', flat=True))
 
-    hidden_tag=''
-    for tag in hidden_tags:
-        hidden_tag=hidden_tag+tag.category
+    legacy_tags.append('legacy_any')
+    profession_tags.append('profession_any')
+    interests_tags.append('interests_any')
+    geography_tags.append('Global')
+
+    hidden_tags = Community_LPIG.objects.filter(community_id=community_id)
+    hidden_legacy_tag = ''
+    hidden_profession_tag = ''
+    hidden_interests_tag = ''
+    hidden_geography_tag = ''
+    if hidden_tags.exists():
+        hidden_tags = hidden_tags[0]
+        if not hidden_tags.legacy == None:
+            hidden_legacy_tags = json.loads(hidden_tags.legacy)
+            for tag in hidden_legacy_tags:
+                tag_object = Tags_lpig.objects.get(pk=tag)
+                hidden_legacy_tag=hidden_legacy_tag+tag_object.name+","
+
+        if not hidden_tags.profession == None:
+
+            hidden_profession_tags = json.loads(hidden_tags.profession)
+            for tag in hidden_profession_tags:
+                tag_object = Tags_lpig.objects.get(pk=tag)
+                hidden_profession_tag=hidden_profession_tag+tag_object.name+","
+
+        if not hidden_tags.interests == None:
+
+            hidden_interests_tags = json.loads(hidden_tags.interests)
+            for tag in hidden_interests_tags:
+                tag_object = Tags_lpig.objects.get(pk=tag)
+                hidden_interests_tag=hidden_interests_tag+tag_object.name+","
+
+        if not hidden_tags.geography == None:
+
+            hidden_geography_tags = json.loads(hidden_tags.geography)
+            for tag in hidden_geography_tags:
+                tag_object = Tags_lpig.objects.get(pk=tag)
+                hidden_geography_tag = hidden_geography_tag+tag_object.name+","
+
     context={
-        'hidden_tags':hidden_tag,
+        'legacy_tags':legacy_tags,
+        'profession_tags':profession_tags,
+        'interests_tags':interests_tags,
+        'geography_tags':geography_tags,
+        'hidden_legacy_tag':hidden_legacy_tag,
+        'hidden_profession_tag': hidden_profession_tag,
+        'hidden_interests_tag': hidden_interests_tag,
+        'hidden_geography_tag': hidden_geography_tag,
         'community_id':community_id
     }
 
     return render(request,'dashboard/hidden_tags.html',context)
 
 
-
 def add_hidden_tags(request):
 
     '''function to add hidden tags'''
-    hidden_tag_id=request.GET.get('hidden_tag_id')
+    hidden_tags=request.GET.get('hidden_tags')
     community_id=request.GET.get('community_id')
-    tag_id=int(hidden_tag_id)
+    # tag_id=int(hidden_tags)
+    tag_type = request.GET.get('type', '')
 
-    if tag_id == 0:
-        query=Community_tags.objects.filter(community_id=community_id).filter(Q(tags_id=41)|Q(tags_id=42)).delete()
-        return JsonResponse({'success':'Tags Deleted'})
+    tags = hidden_tags.split(",")
 
-    tag_name=Tags.objects.filter(id=tag_id).values('category_name')
-    tag_name=tag_name[0]['category_name']
-    is_tag_present=Community_tags.objects.filter(community_id=community_id).filter(Q(tags_id=41)|Q(tags_id=42))
-
-    if is_tag_present:
-        for tag in is_tag_present:
-            Community_tags.objects.filter(id=tag.id).update(tags_id=tag_id,category=tag_name)
-    community=Community.objects.get(id=community_id)
-    if not is_tag_present:
-        community_tags_object=Community_tags()
-        community_tags_object.category=tag_name
-        community_tags_object.community_id=community
-        community_tags_object.tags_id=tag_id
-        community_tags_object.save()
-        print('New Data Inserted')
-
-
-
-
+    tags_list = get_or_create_tag_attributes_list(tags, tag_type)
+    save_community_lpig_tags(tags_list, community_id, tag_type)
 
     return JsonResponse({'success':True})
 
+
+def save_community_lpig_tags(tags_list,community_id,tag_type):
+    community = Community.objects.get(id=community_id)
+
+    try:
+        community_tag = Community_LPIG.objects.get(community_id=community)
+    except:
+        community_tag = Community_LPIG()
+        community_tag.community_id = community
+
+    if tag_type and tag_type == 'Legacy':
+        if len(tags_list)==0:
+            community_tag.legacy = None
+        else:
+            community_tag.legacy = json.dumps(tags_list)
+
+    elif tag_type and tag_type == 'Profession':
+        if len(tags_list)==0:
+            community_tag.profession = None
+        else:
+            community_tag.profession = json.dumps(tags_list)
+
+    elif tag_type and tag_type == 'Interests':
+        if len(tags_list)==0:
+            community_tag.interests = None
+        else:
+            community_tag.interests = json.dumps(tags_list)
+
+    elif tag_type and tag_type == 'Geography':
+        if len(tags_list)==0:
+            community_tag.geography = None
+        else:
+            community_tag.geography = json.dumps(tags_list)
+    community_tag.save()
+
+
+def get_or_create_tag_attributes_list(tags,tag_type):
+
+    tags_list=[]
+
+    if len(tags) == 1 and tags[0]=='':
+        return tags_list
+    for tag in tags:
+
+        try:
+            tag = Tags_lpig.objects.get(name=tag)
+        except:
+            # pass
+            new_tag = tag
+            category = Category.objects.filter(Q(name__icontains = tag_type))[0]
+            attribute = Attributes.objects.filter(Q(attribute_name__icontains = tag_type),Q(attribute_name__icontains = 'Uncategorized'))[0]
+            tag = Tags_lpig()
+            tag.name = new_tag
+            tag.category_id = category
+            tag.attribute_id = attribute
+            tag.save()
+        print(tag.name)
+
+        tags_list.append(tag.id)
+    return tags_list
 
 
 def alpha_sign_up_mail(request,user_id):
@@ -892,3 +982,106 @@ def get_user_communities(user_id):
         my_community.append(community)
 
     return my_community,communities.count()
+
+@csrf_exempt
+def create_tag(request):
+    print("insode", request.method)
+    if request.method == 'POST':
+        category = request.POST.get('category')
+        attribute = request.POST.get('attribute')
+        new_tag = request.POST.get('new_tag')
+        new_tag = new_tag.strip().capitalize()
+
+        get_or_create_sub_tags(new_tag, category, attribute)
+
+        return redirect('create_tag')
+
+    else:
+        categories = Category.objects.filter(~Q(name__icontains = 'ncategorized'))
+        legacy_attributes  = Attributes.objects.filter(Q(attribute_name__icontains = 'Legacy'),~Q(attribute_name__icontains = 'uncategorized'))
+        profession_attributes  = Attributes.objects.filter(Q(attribute_name__icontains = 'Profession'),~Q(attribute_name__icontains = 'uncategorized'))
+        interests_attributes  = Attributes.objects.filter(Q(attribute_name__icontains = 'Interests'),~Q(attribute_name__icontains = 'uncategorized'))
+        geography_attributes  = Attributes.objects.filter(Q(attribute_name__icontains = 'Geography'),~Q(attribute_name__icontains = 'uncategorized'))
+        global_attributes = Attributes.objects.filter(Q(attribute_name__icontains='Global'),~Q(attribute_name__icontains = 'uncategorized'))
+
+        return render(request, 'dashboard/create_tag.html', {'categories': categories,
+                                                     'legacy_attributes': legacy_attributes,
+                                                     'profession_attributes': profession_attributes,
+                                                     'geography_attributes': geography_attributes,
+                                                     'interests_attributes': interests_attributes,
+                                                     'global_attributes': global_attributes, })
+
+def get_or_create_sub_tags(new_tag,category,attribute):
+
+    try:
+        tag = Tags_lpig.objects.get(name=new_tag)
+    except:
+        category = Category.objects.get(id = category)
+        attribute = Attributes.objects.get(id = attribute)
+        tag = Tags_lpig()
+        tag.name = new_tag
+        tag.category_id = category
+        tag.attribute_id = attribute
+        tag.save()
+    return tag
+
+
+@csrf_exempt
+def categorize_tag(request):
+    print("insode ====== ",request.method)
+
+    if request.method == 'POST':
+        category = request.POST.get('category')
+        attribute = request.POST.get('attribute')
+        uncategorized = request.POST.get('uncategorized')
+
+        print(category,attribute,uncategorized)
+
+        update_uncategorize_tag(uncategorized, category, attribute)
+
+        return redirect('categorize_tag')
+
+    else:
+
+        categories = Category.objects.filter(~Q(name__icontains='ncategorized'))
+
+        legacy_uncat = Attributes.objects.filter(Q(attribute_name__icontains='Legacy_unca'))[0]
+        profession_uncat = Attributes.objects.filter(Q(attribute_name__icontains='Profession_unca'))[0]
+        interests_uncat = Attributes.objects.filter(Q(attribute_name__icontains='Interests_unca'))[0]
+        geography_uncat = Attributes.objects.filter(Q(attribute_name__icontains='Geography_unca'))[0]
+
+        uncategortized_tags = Tags_lpig.objects.filter(Q(attribute_id = legacy_uncat.id )|
+                                                       Q(attribute_id = profession_uncat.id )|
+                                                       Q(attribute_id = interests_uncat.id )|
+                                                       Q(attribute_id = geography_uncat.id ))
+
+
+        legacy_attributes  = Attributes.objects.filter(Q(attribute_name__icontains = 'Legacy')
+                                                       ,~Q(attribute_name__icontains = 'uncategorized'))
+        profession_attributes  = Attributes.objects.filter(Q(attribute_name__icontains = 'Profession')
+                                                           ,~Q(attribute_name__icontains = 'uncategorized'))
+        interests_attributes  = Attributes.objects.filter(Q(attribute_name__icontains = 'Interests')
+                                                          ,~Q(attribute_name__icontains = 'uncategorized'))
+        geography_attributes  = Attributes.objects.filter(Q(attribute_name__icontains = 'Geography')
+                                                          ,~Q(attribute_name__icontains = 'uncategorized'))
+        global_attributes = Attributes.objects.filter(Q(attribute_name__icontains='Global')
+                                                      ,~Q(attribute_name__icontains = 'uncategorized'))
+
+        return render(request, 'dashboard/categorize_tags.html', {'categories': categories,
+                                                                  'uncategortized_tags':uncategortized_tags,
+                                                                  'legacy_attributes': legacy_attributes,
+                                                                  'profession_attributes': profession_attributes,
+                                                                  'geography_attributes': geography_attributes,
+                                                                  'interests_attributes': interests_attributes,
+                                                                  'global_attributes': global_attributes, })
+
+
+def update_uncategorize_tag(uncategorized, category, attribute):
+    
+    category = Category.objects.get(id=category)
+    attribute = Attributes.objects.get(id=attribute)
+
+    tag = Tags_lpig.objects.get(id  = uncategorized)
+    tag.attribute_id = attribute
+    tag.category_id = category
+    tag.save()

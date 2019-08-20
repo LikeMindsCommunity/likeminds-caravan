@@ -30,5 +30,8 @@ urlpatterns = [
     path('testing_sign_up_mail/<int:user_id>', testing_sign_up_mail, name='testing_sign_up_mail'),
     path('send_tester_mail', send_tester_mail, name='send_tester_mail'),
     path('user_communities/<int:user_id>', user_communities, name='user_communities'),
+    path('add_community_tags/<int:community_id>', hidden_tags, name='add_community_tags'),
+    path('create_tag',create_tag,name = 'create_tag'),
+    path('categorize_tag',categorize_tag,name = 'categorize_tag'),
 
 ]
