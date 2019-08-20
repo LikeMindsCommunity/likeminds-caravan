@@ -6,7 +6,7 @@ import  psycopg2
 db_user="postgres"
 db_password="postgres"
 db_host="13.235.187.102"
-db_database="prod_dump_22_07_2019"
+db_database="prod_dump"
 db_port="5432"
 
 
