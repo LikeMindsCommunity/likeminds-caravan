@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html>
+<!-- Latest compiled and minified CSS -->
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+      integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+<!-- jQuery library -->
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+<!-- Latest compiled JavaScript -->
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/js/bootstrap.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.3.1.min.js"
+        integrity="sha384-tsQFqpEReu7ZLhBV2VZlAu7zcOV+rXbYlF2cqB8txI/8aZajjp4Bqd+V6D5IgvKT"
+        crossorigin="anonymous"></script>
+
+<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"
+        integrity="sha256-VazP97ZCwtekAsvgPBSUwPFKdrwD3unUfSGVYrahUqU=" crossorigin="anonymous"></script>
+<link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+<style>
+    .center_div{
+    margin: 0 auto;
+    width:80% /* value of your choice which suits your alignment */
+}
+
+</style>
+
+<body>
+<h2 style="padding-top:20px;padding-left:50px;">Create Tag</h2>
+
+
+
+<div style=" width:1000px;padding-top:20px;padding-left:50px;">
+<form id="tag_form" >
+
+  <div class="form-row">
+    <div class="form-group col-md-6">
+      <label for="new_tag">Tag name</label>
+      <input type="text" class="form-control" id="new_tag" placeholder="New Tag Name Here">
+    </div>
+
+  </div>
+<br>
+  <div class="form-row">
+
+    <div class="form-group col-md-4">
+      <label for="category">Category</label>
+      <select id="category" class="form-control">
+        <option selected style="color:black;">Choose...</option>
+        {% for cat in categories %}
+          <option value="{{cat.id}}">{{cat.name}}</option>
+        {% endfor %}
+      </select>
+    </div>
+      &nbsp&nbsp&nbsp&nbsp&nbsp&nbsp
+      <div class="form-group col-md-4">
+      <label for="attribute">Attribute</label>
+      <select id="attribute" class="form-control">
+        <option selected>Choose...</option>
+
+
+
+
+      </select>
+    </div>
+
+  </div>
+    <br>
+    <br>
+
+  <button id="submit" type="submit" class="btn btn-primary">Submit</button>
+</form>
+</div>
+
+<script>
+var options="";
+$("#category").on('change',function(){
+    var value=$(this).val();
+    $('#attribute').find('option').remove();
+    if(value=="1")
+    {
+    {% for attr in legacy_attributes %}
+               $("#attribute").append('<option value="{{attr.id}}">{{attr.attribute_name}}</option>');
+
+    {% endfor %}
+
+    }
+    else if(value=="2")
+    {
+    {% for attr in profession_attributes %}
+               $("#attribute").append('<option value="{{attr.id}}">{{attr.attribute_name}}</option>');
+
+    {% endfor %}
+    }
+
+    else if(value=="3")
+    {
+    {% for attr in interests_attributes %}
+               $("#attribute").append('<option value="{{attr.id}}">{{attr.attribute_name}}</option>');
+
+    {% endfor %}
+    }
+
+    else if(value=="4")
+    {
+    {% for attr in geography_attributes %}
+               $("#attribute").append('<option value="{{attr.id}}">{{attr.attribute_name}}</option>');
+    {% endfor %}
+    }
+
+    else if(value=="5")
+    {
+    {% for attr in global_attributes %}
+               $("#attribute").append('<option value="{{attr.id}}">{{attr.attribute_name}}</option>');
+    {% endfor %}
+
+    }
+
+    else
+        $("#attribute").find('option').remove()
+});
+
+
+
+    $(document).ready(function(){
+
+       $('#tag_form').on('submit',function()
+       {
+         category=$('#category').val();
+         attribute=$('#attribute').val();
+         new_tag = $('#new_tag').val();
+
+         select=""
+
+         temp={
+            'category':category,
+           'attribute':attribute,
+           'new_tag':new_tag
+
+         }
+
+         $.ajax({
+
+            url:'/admin_dashboard/create_tag',
+            type: "POST",
+            data:temp,
+            dataType:'json',
+            success:function(data){
+               console.log('hello')
+               location.reload(true)
+
+            }
+
+         })
+
+       })
+
+    })
+</script>
+</body>
+</html>

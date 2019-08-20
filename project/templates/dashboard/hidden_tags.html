@@ -1,4 +1,6 @@
+
 <!DOCTYPE html>
+{% load static %}
 <html>
 <!-- Latest compiled and minified CSS -->
 <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/css/bootstrap.min.css">
@@ -8,108 +10,167 @@
 
 <!-- Latest compiled JavaScript -->
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/js/bootstrap.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha384-tsQFqpEReu7ZLhBV2VZlAu7zcOV+rXbYlF2cqB8txI/8aZajjp4Bqd+V6D5IgvKT" crossorigin="anonymous"></script>
+<script src="{% static 'js/jquery.tagsinput-revisited.js' %}"></script>
+<link rel="stylesheet" href="{% static 'css/jquery.tagsinput-revisited.css' %}">
+<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js" integrity="sha256-VazP97ZCwtekAsvgPBSUwPFKdrwD3unUfSGVYrahUqU=" crossorigin="anonymous"></script>
+<link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
 <style>
+
     .center_div{
     margin: 0 auto;
     width:80% /* value of your choice which suits your alignment */
 }
-
 </style>
 <body>
 
-<h2 align="center">Hidden Tags</h2>
+<div style="padding-top:25px; padding-left:20px;">
+<a class="btn btn-warning" href="{% url 'create_tag' %}" role="button">Create Tag</a>
+&nbsp &nbsp &nbsp
+<a class="btn btn-primary" href="{% url 'categorize_tag' %}" role="button">Categorize Tag</a>
+</div>
+<h2 align="left" style="padding-left:20px">Hidden Tags</h2>
 
-<form id="my_form" onsubmit="return false">
-    <div class="form-group center_div">
-        <label for="tag">Hidden Tags</label>
-        <input type="text" name="tags" id="previous_categories" value="{{hidden_tags}}" readonly class="form-control">
-    </div>
-    <br/><br/>
+
+<BR>
+<BR>
+
+    <form id="legacy_form" onsubmit="return false">
      <div class="form-group center_div">
-        <label for="tag">Community Location</label>
-        <input type="text" name="tags"  value="{{community_location}}" readonly class="form-control">
-    </div>
-    <br/><br/>
-    <div class="form-group center_div">
-        <div class="form-group ">
-            <label for="cities">City Tags</label>
-            <input type="text" placeholder="Enter the city.For Multiple cities put comma" class="form-control" id="cities">
+            <label for="legacy">Legacy Tags :</label>
+            <input id="legacy" name="legacy" type="text" value="{{hidden_legacy_tag}}">
         </div>
-        <br/><br/>
-        <select name="select_tags" id="my_select" class="form-control">
-            <option value="41">IIT Delhi</option>
-            <option value="42">NSIT College</option>
-            <option value="0">None</option>
-        </select>
-    </div>
-    <br/>
-    <div class="center_div">
+      <br>
+
+      <div class="center_div">
         <button type="submit" class="btn btn-default ">Submit</button>
+       </div>
+        <br>
 
-    </div>
-</form>
-<br/>
-    <div class="center_div">
+    </form>
 
-        <button class="btn btn-danger" id="clear" >Delete Hidden Tags</button>
-    </div>
+
+    <form id="profession_form" onsubmit="return false">
+        <br>
+     <div class="form-group center_div">
+            <label for="profession">Profession Tags :</label>
+            <input id="profession" name="legacy" type="text" value="{{hidden_profession_tag}}">
+        </div>
+      <br>
+
+      <div class="center_div">
+        <button type="submit" class="btn btn-default ">Submit</button>
+       </div>
+        <br>
+
+
+    </form>
+<br>
+    <form id="interests_form" onsubmit="return false">
+     <div class="form-group center_div">
+            <label for="interests">Interests Tags :</label>
+            <input id="interests" name="legacy" type="text" value="{{hidden_interests_tag}}">
+        </div>
+      <br>
+
+      <div class="center_div">
+        <button type="submit" class="btn btn-default ">Submit</button>
+       </div>
+        <br>
+
+    </form>
+<br>
+
+
+    <form id="geography_form" onsubmit="return false">
+     <div class="form-group center_div">
+            <label for="geography">Geography Tags :</label>
+            <input id="geography" name="legacy" type="text" value="{{hidden_geography_tag}}">
+        </div>
+      <br>
+
+      <div class="center_div">
+        <button type="submit" class="btn btn-default ">Submit</button>
+       </div>
+        <br>
+
+    </form>
+
+
 </body>
 </html>
 
+
 <script>
+$('#legacy').tagsInput({
+
+  'autocomplete': {
+  source:[
+  {%for tag in legacy_tags %}
+  '{{tag}}',
+  {%endfor%}
+  ]
+
+  }
+
+
+});
+
+$('#profession').tagsInput({
+
+  'autocomplete': {
+    source: [
+  {%for tag in profession_tags %}
+  '{{tag}}',
+  {%endfor%}
+    ]
+  }
+
+
+});
+
+
+$('#interests').tagsInput({
+
+  'autocomplete': {
+    source: [
+  {%for tag in interests_tags %}
+  '{{tag}}',
+  {%endfor%}
+    ]
+  }
+
+
+});
+
+
+$('#geography').tagsInput({
+
+  'autocomplete': {
+    source: [
+  {%for tag in geography_tags %}
+  '{{tag}}',
+  {%endfor%}
+    ]
+  }
+
+
+});
+
+
 
     $(document).ready(function(){
 
-        //function to make first letter capital
-       const capitalize = (s) => {
-            if (typeof s !== 'string') return ''
-             return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
-            }
-
-       $('#clear').click(function(){
-
-       community_id={{community_id}}
-       temp={
-
-       'community_id':community_id
-
-       }
-        $.ajax({
-
-            url:'/admin_dashboard/delete_hidden_tags',
-            data:temp,
-            dataType:'json',
-            success:function(data){
-
-                console.log(data)
-                location.reload(true)
-
-            }
-
-         })
-
-       })
-
-       $('#my_form').on('submit',function()
+       $('#legacy_form').on('submit',function()
        {
 
-         var hidden=$('#my_select').val()
-         cities=$('#cities').val()
-         cities=cities.split(",");
-         var place=""
-         for(var i=0;i<cities.length;i++)
-         {
-            city=capitalize(cities[i].trim());
-            if(city){
-                place=place+city+","
-                }
-         }
-         city=place.substring(0,place.length-1)
-
+         var hidden=$('#legacy').val()
+         console.log(hidden)
+         console.log({{community_id}})
           temp={
-          'hidden_tag_id':hidden,
+          'hidden_tags':hidden,
           'community_id':{{community_id}},
-          'location':city
+          'type':'Legacy'
           }
 
           $.ajax({
@@ -118,8 +179,8 @@
             data:temp,
             dataType:'json',
             success:function(data){
-               console.log(data);
-               location.reload();
+               console.log(data)
+               location.reload(true)
 
             }
 
@@ -131,4 +192,107 @@
 
     })
 
+
+
+
+    $(document).ready(function(){
+
+       $('#profession_form').on('submit',function()
+       {
+
+         var hidden=$('#profession').val()
+         console.log(hidden)
+         console.log({{community_id}})
+          temp={
+          'hidden_tags':hidden,
+          'community_id':{{community_id}},
+          'type':'Profession'
+          }
+
+          $.ajax({
+
+            url:'/admin_dashboard/add_hidden_tags',
+            data:temp,
+            dataType:'json',
+            success:function(data){
+               console.log(data)
+               location.reload(true)
+
+            }
+
+         })
+
+
+
+       })
+
+    })
+
+
+     $(document).ready(function(){
+
+       $('#interests_form').on('submit',function()
+       {
+
+         var hidden=$('#interests').val()
+         console.log(hidden)
+         console.log({{community_id}})
+          temp={
+          'hidden_tags':hidden,
+          'community_id':{{community_id}},
+          'type':'Interests'
+          }
+
+          $.ajax({
+
+            url:'/admin_dashboard/add_hidden_tags',
+            data:temp,
+            dataType:'json',
+            success:function(data){
+               console.log(data)
+               location.reload(true)
+
+            }
+
+         })
+
+
+
+       })
+
+    })
+
+
+     $(document).ready(function(){
+
+       $('#geography_form').on('submit',function()
+       {
+
+         var hidden=$('#geography').val()
+         console.log(hidden)
+         console.log({{community_id}})
+          temp={
+          'hidden_tags':hidden,
+          'community_id':{{community_id}},
+          'type':'Geography'
+          }
+
+          $.ajax({
+
+            url:'/admin_dashboard/add_hidden_tags',
+            data:temp,
+            dataType:'json',
+            success:function(data){
+               console.log(data)
+               location.reload(true)
+
+            }
+
+         })
+
+
+
+       })
+
+    })
 </script>
