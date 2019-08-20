@@ -16,8 +16,6 @@ from django.http.response import JsonResponse
 import requests as rqst
 import os
 import re
-from django.views.decorators.csrf import csrf_exempt
-
 
 url = settings.URL
 
@@ -63,7 +61,7 @@ def get_tags_count(community):
 
     for tag in community_tags:
 
-        if tag.tags_id == 41 or tag.tags_id == 42:
+        if tag.state == str(1):
             hidden_tags_count=hidden_tags_count+1
             continue
         tags_count=tags_count+1
@@ -256,7 +254,7 @@ def decline_member(request,community_id,member_id):
 
 def show_tags(request,community_id):
     '''Taging communitites'''
-    categories=Community_tags.objects.filter(community_id=community_id)
+    categories=Community_tags.objects.filter(community_id=community_id).exclude(state=1)
     category_string=""
     for i in categories:
         if i.tags_id == 41 or i.tags_id == 42:
@@ -267,7 +265,6 @@ def show_tags(request,community_id):
         'category':category_string,
         'community_id':community_id
     }
-
     return render(request,"dashboard/category.html",context)
 
 def add_tags(request):
@@ -280,7 +277,6 @@ def add_tags(request):
 
     category_list=[]
     community_category=Community_tags.objects.filter(community_id=community_id)
-
 
     for category in community_category:
 
@@ -572,6 +568,7 @@ def all_members(request,community_id):
     return render(request,'dashboard/all_members.html',{'member_list':members_list,'unregitered_users_list':unregitered_users_list})
 
 
+
 def delete_members(request,community_id,member_id):
 
     '''function to delete the members'''
@@ -688,6 +685,22 @@ def analytics_community(request,community_id):
     }
 
     return render(request,'dashboard/community_analytics.html',context)
+
+
+def is_tag_present(tag,hide_status):
+    '''function to check whether the tag is present or not'''
+    tags=Tags.objects.filter(category_name=tag)
+
+    if tags:
+        return tags[0].id
+    else:
+        new_tag=Tags()
+        new_tag.category_name=tag
+        if hide_status:
+            new_tag.state=1
+        new_tag.save()
+        return new_tag.id
+
 
 
 def hidden_tags(request,community_id):
@@ -829,6 +842,35 @@ def get_or_create_tag_attributes_list(tags,tag_type):
         tags_list.append(tag.id)
     return tags_list
 
+def delete_hidden_tags(request):
+
+    '''function to delete the hidden tags'''
+    community_id=request.GET.get('community_id')
+    community=Community.objects.get(id=community_id)
+    delete=Community_tags.objects.filter(community_id=community,state=1).delete()
+    return JsonResponse({'delete':delete})
+
+
+def add_location_tags(location,community_id):
+
+    '''function to add location tags for a communities'''
+
+    location_list=location.split(",")
+
+    for data in location_list:
+        if data:
+            tag_id=is_tag_present(data,True)
+            is_present=Community_tags.objects.filter(community_id=community_id,tags_id=tag_id)
+            community = Community.objects.get(id=community_id)
+            if not is_present:
+                community_tags_object = Community_tags()
+                community_tags_object.category = data
+                community_tags_object.community_id = community
+                community_tags_object.state='1'
+                community_tags_object.tags_id = tag_id
+                community_tags_object.save()
+
+    print('location Inserted Successfully')
 
 def alpha_sign_up_mail(request,user_id):
 
@@ -983,7 +1025,8 @@ def get_user_communities(user_id):
 
     return my_community,communities.count()
 
-@csrf_exempt
+  
+  @csrf_exempt
 def create_tag(request):
     print("insode", request.method)
     if request.method == 'POST':
@@ -1077,7 +1120,7 @@ def categorize_tag(request):
 
 
 def update_uncategorize_tag(uncategorized, category, attribute):
-    
+
     category = Category.objects.get(id=category)
     attribute = Attributes.objects.get(id=attribute)
 

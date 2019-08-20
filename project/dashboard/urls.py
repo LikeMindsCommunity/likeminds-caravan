@@ -33,5 +33,6 @@ urlpatterns = [
     path('add_community_tags/<int:community_id>', hidden_tags, name='add_community_tags'),
     path('create_tag',create_tag,name = 'create_tag'),
     path('categorize_tag',categorize_tag,name = 'categorize_tag'),
+    path('delete_hidden_tags', delete_hidden_tags, name='delete_hidden_tags'),
 
 ]

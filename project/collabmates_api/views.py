@@ -24,8 +24,7 @@ from .firebase import update_last_answer_id
 import re
 import googlemaps
 from utility.utils import decode_meta_from_url
-import requests as rqst
-
+from .raw_queries import get_relevant_list
 
 
 url  = settings.URL
@@ -59,19 +58,19 @@ def communities(request):
                 # get category id'''
                 category = int(category)
                 # get the related communities according to category asked and user hidden tag
-                community = get_communities_by_tags(category_tag=category, user_tag=user_tag,page_number = page_number)
+                community = get_communities_by_tags(category_tag=category, user_tag=user_tag,page_number = page_number,user_id=user_id)
                 # serialize the communities objects recieved from above function
-                community = serialize_community(queryset =community,user_id =user_id)
+                community = serialize_community(queryset =community)
                 # send communities JSON response '''
                 return JsonResponse({'communities': community})
             else:
                 # if category is not provided, get categories according to the user tag if user has one
-                queryset = get_communities_by_tags(user_tag=user_tag,page_number = page_number)
-                community = serialize_community(queryset=queryset, user_id=user_id)
+                queryset = get_communities_by_tags(user_tag=user_tag,page_number = page_number,user_id=user_id)
+                community = serialize_community(queryset=queryset)
                 return JsonResponse({'communities': community})
 
 
-def get_communities_by_tags(user_tag=0, category_tag=0,page_number=1):
+def get_communities_by_tags(user_tag=0, category_tag=0,page_number=1,user_id=None):
     ''' fetching communities based on category tag and user hidden tag '''
     if category_tag != 0 and user_tag != 0:
         ''' if category tag and user tag ,bith are provided
@@ -109,7 +108,7 @@ def get_communities_by_tags(user_tag=0, category_tag=0,page_number=1):
         return queryset
 
 
-def serialize_community(queryset,user_id ):
+def serialize_community(queryset):
     ''' this function gives us a dictionary of community/communities objects based on given queryset '''
     communities = []
     for community in queryset:
@@ -119,7 +118,10 @@ def serialize_community(queryset,user_id ):
             comm = Community.objects.get(id=community['community_id'])
         except:
             # if the queryset if a lazy community object
-            comm = Community.objects.get(id=community.id)
+            try:
+                comm = Community.objects.get(id=community.id)
+            except:
+                comm=Community.objects.get(id=community)
         # check if the community is hidden or not
 
         if comm.hide_community == '0':
@@ -140,7 +142,6 @@ def serialize_community(queryset,user_id ):
 def pagination(queryset,page_number,paginate_by=20):
 
     '''function to create pagination and return a query set for page number'''
-
     paginator = Paginator(queryset, paginate_by)
     max_page=len(paginator.page_range)
 
@@ -283,12 +284,16 @@ def similar_community(request, community_id):
     else:
         user_tag = 0
     # getting communities based on user hidden tags
-    queryset = get_communities_by_tags(user_tag=user_tag)[:11]
+    queryset = get_communities_by_tags(user_tag=user_tag,user_id=user_id)[:11]
     community = []
     for comm in queryset:
 
-        # if the queryset is of type dictionary
-        comm_object = Community.objects.get(id=comm['community_id'])
+        
+        try:
+            comm_object = Community.objects.get(id=comm)
+        except:
+            # if the queryset is of type dictionary
+            comm_object = Community.objects.get(id=comm['community_id'])
         # check if the community is hidden or not
 
         if comm_object.hide_community == '0' and comm_object.id != community_id:
