@@ -1026,7 +1026,7 @@ def get_user_communities(user_id):
     return my_community,communities.count()
 
   
-  @csrf_exempt
+@csrf_exempt
 def create_tag(request):
     print("insode", request.method)
     if request.method == 'POST':
