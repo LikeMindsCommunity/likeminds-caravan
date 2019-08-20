@@ -16,6 +16,7 @@ from django.http.response import JsonResponse
 import requests as rqst
 import os
 import re
+from django.views.decorators.csrf import csrf_exempt
 
 url = settings.URL
 
