@@ -9,7 +9,7 @@ from django.template.loader import get_template
 from django.shortcuts import render
 from django.core.mail import EmailMultiAlternatives
 # Create your views here.
-from collabmates_api.notification import send_notification_for_join_requests,send_notification_to_proposed_admin
+from collabmates_api.notification import send_notification_for_join_requests, send_notification_to_proposed_admin
 from django.conf import settings
 import json
 from django.http.response import JsonResponse
@@ -305,54 +305,6 @@ def add_tags(request):
             cat.save()
     return JsonResponse({'success':True})
 
-
-def user_tags(request,user_id):
-    ''' gives all the user tags  '''
-    tags = userinfo_tags.objects.filter(user_id= user_id)
-    tags_list = []
-    for i in tags:
-        tag_name = Tags.objects.get(id = i.tag_id)
-        tags_list.append(tag_name.category_name)
-    # making a single string of all user tags
-    tags = ','.join(tags_list)
-    context={'tags': tags,'user_id':user_id}
-    return render(request, 'dashboard/user_tags.html', context)
-
-def add_user_tags(request):
-    ''' adding or updating or deleting user hidden tags '''
-    tags=request.GET.get('tags')
-    user_id=request.GET.get('user_id')
-    tags=tags.split(",")
-    already_tags=request.GET.get('already_tags')
-    already_tags=already_tags.split(",")
-    # get all of the user tags
-    user_tags_list = []
-    user_tags = userinfo_tags.objects.filter(user_id=user_id)
-    # making a list of it
-    for tag in user_tags:
-        tag_name = Tags.objects.get(id=tag.tag_id)
-        user_tags_list.append(tag_name)
-    flag = True
-    for tag in tags:
-        if tag == '0' :
-            # if selected none just delete all of them
-            userinfo_tags.objects.filter(user_id=user_id).delete()
-            flag = False
-        if tag not in already_tags:
-            # if updated , delete the old ones which are not in the new list
-            userinfo_tags.objects.filter(user_id=user_id).delete()
-    if flag:
-        for tag in tags:
-            # create new tags for user which are now given
-            selected_tags = userinfo_tags.objects.filter(user_id=user_id,tag_id = tag)
-            print(selected_tags)
-            if not selected_tags:
-                user_tag = userinfo_tags()
-                user_tag.user_id = user_id
-                user_tag.tag_id = tag
-                user_tag.save()
-
-    return JsonResponse({'success':True})
 
 
 def all_user(request):
@@ -713,10 +665,6 @@ def hidden_tags(request,community_id):
     interests_tags = list(Tags_lpig.objects.filter(category_id__id = '3').values_list('name', flat=True))
     geography_tags = list(Tags_lpig.objects.filter(category_id__id = '4').values_list('name', flat=True))
 
-    legacy_tags.append('legacy_any')
-    profession_tags.append('profession_any')
-    interests_tags.append('interests_any')
-    geography_tags.append('Global')
 
     hidden_tags = Community_LPIG.objects.filter(community_id=community_id)
     hidden_legacy_tag = ''
@@ -770,14 +718,21 @@ def hidden_tags(request,community_id):
 def add_hidden_tags(request):
 
     '''function to add hidden tags'''
-    hidden_tags=request.GET.get('hidden_tags')
+    legacy_hidden_tags=request.GET.get('legacy_hidden')
     community_id=request.GET.get('community_id')
-    # tag_id=int(hidden_tags)
+
     tag_type = request.GET.get('type', '')
 
-    tags = hidden_tags.split(",")
+    profession_hidden = request.GET.get('profession_hidden')
+    interests_hidden = request.GET.get('interests_hidden')
+    geography_hidden = request.GET.get('geography_hidden')
 
-    tags_list = get_or_create_tag_attributes_list(tags, tag_type)
+    print(profession_hidden)
+
+    legacy_tags = legacy_hidden_tags.split(",")
+    profession_hidden = profession_hidden.split(",")
+
+    tags_list = get_or_create_tag_attributes_list(legacy_tags, tag_type)
     save_community_lpig_tags(tags_list, community_id, tag_type)
 
     return JsonResponse({'success':True})
@@ -840,7 +795,8 @@ def get_or_create_tag_attributes_list(tags,tag_type):
             tag.save()
         print(tag.name)
 
-        tags_list.append(tag.id)
+        if tag.id not in tags_list:
+            tags_list.append(tag.id)
     return tags_list
 
 def delete_hidden_tags(request):
@@ -1129,3 +1085,121 @@ def update_uncategorize_tag(uncategorized, category, attribute):
     tag.attribute_id = attribute
     tag.category_id = category
     tag.save()
+
+
+
+def user_tags(request,user_id):
+    ''' gives all the user tags  '''
+
+    legacy_tags = list(Tags_lpig.objects.filter(category_id__id = '1').values_list('name', flat=True))
+    profession_tags = list(Tags_lpig.objects.filter(category_id__id = '2').values_list('name', flat=True))
+    interests_tags = list(Tags_lpig.objects.filter(category_id__id = '3').values_list('name', flat=True))
+    geography_tags = list(Tags_lpig.objects.filter(category_id__id = '4').values_list('name', flat=True))
+
+
+    hidden_tags = User_LPIG.objects.filter(member_id=user_id)
+    hidden_legacy_tag = ''
+    hidden_profession_tag = ''
+    hidden_interests_tag = ''
+    hidden_geography_tag = ''
+    if hidden_tags.exists():
+        hidden_tags = hidden_tags[0]
+        if not hidden_tags.legacy == None:
+            hidden_legacy_tags = json.loads(hidden_tags.legacy)
+            for tag in hidden_legacy_tags:
+                tag_object = Tags_lpig.objects.get(pk=tag)
+                hidden_legacy_tag=hidden_legacy_tag+tag_object.name+","
+
+        if not hidden_tags.profession == None:
+
+            hidden_profession_tags = json.loads(hidden_tags.profession)
+            for tag in hidden_profession_tags:
+                tag_object = Tags_lpig.objects.get(pk=tag)
+                hidden_profession_tag=hidden_profession_tag+tag_object.name+","
+
+        if not hidden_tags.interests == None:
+
+            hidden_interests_tags = json.loads(hidden_tags.interests)
+            for tag in hidden_interests_tags:
+                tag_object = Tags_lpig.objects.get(pk=tag)
+                hidden_interests_tag=hidden_interests_tag+tag_object.name+","
+
+        if not hidden_tags.geography == None:
+
+            hidden_geography_tags = json.loads(hidden_tags.geography)
+            for tag in hidden_geography_tags:
+                tag_object = Tags_lpig.objects.get(pk=tag)
+                hidden_geography_tag = hidden_geography_tag+tag_object.name+","
+
+    context={
+        'legacy_tags':legacy_tags,
+        'profession_tags':profession_tags,
+        'interests_tags':interests_tags,
+        'geography_tags':geography_tags,
+        'hidden_legacy_tag':hidden_legacy_tag,
+        'hidden_profession_tag': hidden_profession_tag,
+        'hidden_interests_tag': hidden_interests_tag,
+        'hidden_geography_tag': hidden_geography_tag,
+        'user_id':user_id
+    }
+
+    return render(request, 'dashboard/user_tags.html', context)
+
+def add_user_tags(request):
+    ''' adding or updating or deleting user hidden tags '''
+    hidden_tags=request.GET.get('hidden_tags')
+    user_id=request.GET.get('user_id')
+
+    tag_type = request.GET.get('type', '')
+
+    # profession_hidden = request.GET.get('profession_hidden')
+    # interests_hidden = request.GET.get('interests_hidden')
+    # geography_hidden = request.GET.get('geography_hidden')
+    #
+    # print(profession_hidden)
+
+    tags = hidden_tags.split(",")
+    # profession_hidden = profession_hidden.split(",")
+
+    tags_list = get_or_create_tag_attributes_list(tags, tag_type)
+    save_user_lpig_tags(tags_list, user_id, tag_type)
+
+    return JsonResponse({'success':True})
+
+
+def save_user_lpig_tags(tags_list,user_id,tag_type):
+    print("=========== ",user_id)
+    user = User.objects.get(id=user_id)
+
+    try:
+        user_tag = User_LPIG.objects.get(member_id=user)
+    except:
+        user_tag = User_LPIG()
+        user_tag.member_id = user
+
+    if tag_type and tag_type == 'Legacy':
+        if len(tags_list)==0:
+            user_tag.legacy = None
+        else:
+            user_tag.legacy = json.dumps(tags_list)
+
+    elif tag_type and tag_type == 'Profession':
+        if len(tags_list)==0:
+            user_tag.profession = None
+        else:
+            user_tag.profession = json.dumps(tags_list)
+
+    elif tag_type and tag_type == 'Interests':
+        if len(tags_list)==0:
+            user_tag.interests = None
+        else:
+            user_tag.interests = json.dumps(tags_list)
+
+    elif tag_type and tag_type == 'Geography':
+        if len(tags_list)==0:
+            user_tag.geography = None
+        else:
+            user_tag.geography = json.dumps(tags_list)
+    user_tag.save()
+
+

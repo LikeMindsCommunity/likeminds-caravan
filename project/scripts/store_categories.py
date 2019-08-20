@@ -47,6 +47,8 @@ if __name__=="__main__":
     insert_categories("Geography")
     insert_categories("Global")
 
+    insert_categories("Uncategorized")
+
 
     #inserting attribues
     insert_attributes("Legacy_work",1)
@@ -69,6 +71,11 @@ if __name__=="__main__":
     insert_attributes("Geography_pincode", 4)
 
     insert_attributes("Global",5)
+
+    insert_attributes("Legacy_uncategorized",1)
+    insert_attributes("Profession_uncategorized",2)
+    insert_attributes("Interests_uncategorized",3)
+    insert_attributes("Geography_uncategorized",4)
 
 
 
