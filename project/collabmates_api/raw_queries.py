@@ -1,100 +1,270 @@
+# from __future__ import absolute_import, unicode_literals
+# from celery import shared_task
+
+import json
 import psycopg2
-from .notification import get_connection
-from collections import OrderedDict
 
-def get_all_tags_of_user(user_id):
+envir=False
+try:
+    from .notification import notification
+except:
+    envir=True
+    import sys
+    sys.path.append("..")
+    from scripts.connection import get_connection
 
-    '''function to get all hidden tags of user'''
+def get_all_tags(sql):
+
+    '''function to get tags based on sql'''
     try:
         conn = get_connection()
         curr = conn.cursor()
-
-        sql="select tag_id from togther_userinfo_tags where user_id="+str(user_id)
         curr.execute(sql)
         res=curr.fetchall()
         curr.close()
         conn.close()
-        return res
+        if res:
+            return res[0]
+
     except (Exception, psycopg2.Error) as error:
         print("Error while connecting to PostgreSQL  ", error)
 
-
-
-def get_communities_by_hidden_tags(tags_list):
-
-    '''function to get communitites based on tags'''
-
+def filter_tags(user_id=0,community_id=0):
+    '''function to return the filtered tags based on LPIG'''
     sql=""
-    if len(tags_list) == 1:
-        sql="select community_id_id from togther_community_tags where tags_id="+str(tags_list[0])+"order by community_id_id desc"
-    elif len(tags_list) == 2:
-        sql="select community_id_id from togther_community_tags where tags_id="+str(tags_list[0])+" UNION ALL "+"select community_id_id from togther_community_tags where tags_id="+str(tags_list[1])+"order by community_id_id desc"
-    elif len(tags_list)>2:
-        for tag in tags_list:
-            sql=sql+"select community_id_id from togther_community_tags where tags_id="+str(tag)+" UNION ALL "
+    if user_id:
+        sql="select * from togther_user_lpig where member_id_id="+str(user_id)
+    elif community_id:
+        sql = "select * from togther_community_lpig where community_id_id=" + str(community_id)
+    res=get_all_tags(sql)
+    if res is None:
+        return {}
+    legacy=None
+    profession=None
+    interests=None
+    geo_list = []
+    if res[4]:
+        legacy=json.loads(res[4])
 
-        #removing the last unioun all
-        sql=sql[:-11]
-        sql=sql+" order by community_id_id desc"
+    if res[5]:
+        profession=json.loads(res[5])
+
+    if res[3]:
+        interests=json.loads(res[3])
+
+    if res[2]:
+
+        geo_list=json.loads(res[2])
+
+    tags={}
+
+    if user_id:
+        tags['user_id']=user_id
+
+    if community_id:
+        tags['community_id']=community_id
+    tags['legacy']=legacy
+    tags['profession']=profession
+    tags['interests']=interests
+    tags['geography']=geo_list
+    return tags
+
+def get_all_data(sql):
+    '''function to get all data based on a sql query'''
     try:
         conn = get_connection()
         curr = conn.cursor()
         curr.execute(sql)
-        res = curr.fetchall()
+        res=curr.fetchall()
         curr.close()
         conn.close()
         if res:
             return res
+
     except (Exception, psycopg2.Error) as error:
         print("Error while connecting to PostgreSQL  ", error)
 
-def is_tag_present(community_id,tags_id):
+def get_global_id():
 
-    '''function to check whether the particular tag present for a particular community'''
+    '''function that will give the global id to the user'''
     try:
         conn = get_connection()
         curr = conn.cursor()
-        sql="select id from togther_community_tags where community_id_id=%s and tags_id=%s"
-        parameters_list=[community_id,tags_id]
-        curr.execute(sql,parameters_list)
+        sql="select * from togther_tags_lpig where category_id_id=5"
+        curr.execute(sql)
+        res = curr.fetchall()
+        curr.close()
+        conn.close()
+        global_tags={}
+        if res:
+            for tag in res:
+                global_tags[tag[1]]=tag[0]
+            return global_tags
+
+    except (Exception, psycopg2.Error) as error:
+        print("Error while connecting to PostgreSQL  ", error)
+
+def get_relevant_score(user,community):
+
+    '''function to get relevant score of community'''
+
+    legacy_user_list = user['legacy']
+    geo_user_list = user['geography']
+    interest_user_list = user['interests']
+    profession_user_list = user['profession']
+
+    #community attributes
+    legacy_community_list=community['legacy']
+    geo_community_list=community['geography']
+    interest_community_list=community['interests']
+    profession_community_list=community['profession']
+
+
+
+
+    count_legacy=0
+    count_geography=0
+    count_interest=0
+    count_profession=0
+
+    # for legacy in legacy_user_list:
+    #     if legacy in legacy_community_list:
+    #         count_legacy += 1
+
+    for legacy in legacy_community_list:
+        if legacy in legacy_user_list:
+            count_legacy+=1
+
+    if count_legacy != len(legacy_community_list):
+         count_legacy=0
+
+    for geography in geo_user_list:
+        if geography in geo_community_list:
+            count_geography += 1
+
+    for interest in interest_user_list:
+        if interest in interest_community_list:
+            count_interest += 1
+
+    for profession in profession_user_list:
+        if profession in profession_community_list:
+            count_profession += 1
+
+
+    if count_legacy==0 or count_interest==0 or count_profession==0 or count_geography==0:
+        relevance_score=0
+    else:
+        relevance_score=count_legacy+count_profession+count_interest+count_geography
+
+    return (user['user_id'],community['community_id'],relevance_score)
+
+
+#community ranking based on user tags
+
+def ranking_tags(tag):
+
+    '''function to map communities and user based on rank.It inserts data for the tags'''
+
+    id=is_tag_present(tag)
+    if id:
+        print("Already Present==",id)
+        update_tag(tag,id)
+        return
+    try:
+        conn = get_connection()
+        curr = conn.cursor()
+        sql = "insert into togther_community_rank(member_id_id,community_id_id,weight) values(%s,%s,%s)"
+        parameter = [tag[0], tag[1], tag[2]]
+        curr.execute(sql, parameter)
+        conn.commit()
+        count = curr.rowcount
+        print(count, "Record inserted successfully into community_rank table")
+        curr.close()
+        conn.close()
+    except (Exception, psycopg2.Error) as error:
+        print("Error while connecting  to PostgreSQL", error)
+
+def is_tag_present(tag):
+
+    '''function to check whether the tag is already present in rank table or not'''
+
+    try:
+        conn = get_connection()
+        curr = conn.cursor()
+        sql = "select * from  togther_community_rank where member_id_id=%s and community_id_id=%s"
+        parameter = [tag[0],tag[1]]
+        curr.execute(sql, parameter)
         res = curr.fetchone()
         curr.close()
         conn.close()
         if res:
-            return True
+            return res[0]
         return False
     except (Exception, psycopg2.Error) as error:
-        print("Error while connecting to PostgreSQL  ", error)
+        print("Error while connecting  to PostgreSQL", error)
 
-def get_relevant_list(user_id,college_tag,category_tag=0):
+def update_tag(tag,id):
 
-    '''function to get relevant communities for the user'''
-    user_tags=get_all_tags_of_user(user_id)
-    tags_list=[]
-    for tag in user_tags:
-       tags_list.append(tag[0])
-    tags=get_communities_by_hidden_tags(tags_list)
-    relevance=dict()
+    '''function to update data in community rank table'''
+
+    try:
+        conn = get_connection()
+        curr = conn.cursor()
+        sql = "update togther_community_rank set member_id_id=%s,community_id_id=%s,weight=%s where id=%s"
+        parameter = [tag[0], tag[1], tag[2],id]
+        curr.execute(sql, parameter)
+        conn.commit()
+        curr.close()
+        conn.close()
+    except (Exception, psycopg2.Error) as error:
+        print("Error while connecting  to PostgreSQL", error)
+
+def compute_rank():
+
+    '''function to run '''
+    sql = "select * from togther_user_lpig"
+    all_user = get_all_data(sql)
+    user_tags = []
+
+    global_tags = get_global_id()
+    for user in all_user:
+        filter_tag = filter_tags(user_id=user[1])
+        user_tags.append(filter_tag)
+
+    # getting all communities
+    sql = "select * from togther_community_lpig"
+    all_communities = get_all_data(sql)
+    community_tags = []
+    for community in all_communities:
+        filter_tag = filter_tags(community_id=community[1])
+
+        if filter_tag['legacy'] is None:
+            filter_tag['legacy'] = [global_tags['legacy_any']]
+
+        if filter_tag['profession'] is None:
+            filter_tag['profession'] = [global_tags['profession_any']]
+
+        if filter_tag['interests'] is None:
+            filter_tag['interests'] = [global_tags['interest_any']]
+
+        if filter_tag['geography'] is None:
+            filter_tag['geography'] = [global_tags['Global']]
+
+        community_tags.append(filter_tag)
+
+    # getting relevance score
+    for user in user_tags:
+        for community in community_tags:
+            score = get_relevant_score(user, community)
+            if score[2] != 0:
+                ranking_tags(score)
 
 
-    for tag in tags:
-        if category_tag == 0:
-            if is_tag_present(tag[0],college_tag):
-                if tag[0] not in relevance:
-                    relevance[tag[0]] = 1
-                else:
-                    relevance[tag[0]] = relevance[tag[0]] + 1
-        elif is_tag_present(tag[0],category_tag):
-            if is_tag_present(tag[0],college_tag):
-                if tag[0] not in relevance:
-                    relevance[tag[0]] = 1
-                else:
-                    relevance[tag[0]] = relevance[tag[0]] + 1
 
-    relevant_dict = OrderedDict(sorted(relevance.items(),
-                                      key=lambda kv: kv[1], reverse=True))
-    relevance_list=list(relevant_dict.keys())
-    return relevance_list
 
-# if __name__=="__main__":
-#     get_relevant_list(110)
+if envir:
+    if __name__ == "__main__":
+        print("python file")
+        compute_rank()
+
+
