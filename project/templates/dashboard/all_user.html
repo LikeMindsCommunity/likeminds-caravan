@@ -1,20 +1,20 @@
- {% load static %}
 <!DOCTYPE html>
+{% load static %}
 <html>
 {% if request.user.is_superuser %}
 <head>
-	<meta charset="utf-8">
+    <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
     <!-- Bootstrap CSS -->
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+          integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
 
     <link rel="stylesheet" type="text/css" href="{% static 'notes/main.css' %}">
-     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 
 
-
-<style type="text/css">
+    <style type="text/css">
 
   body {
   background: #fafafa;
@@ -105,55 +105,76 @@ a.article-title:hover {
 .btn-orange {
  background-color: #f08c35;
 }
-</style>
+
+    </style>
 </head>
 
 <body>
 
-	<main role="main" class="container" >
-  <div class="row">
-    <div class="col-md-8">
-      {% for user in all_user %}
-    <article class="media content-section" >
-      <img class = "rounded-circle article-img" src="{{ user.image_url.url }}">
-  <div class="media-body" >
-    <div class="article-metadata" >
+<main role="main" class="container">
+    <div class="row">
+        <div class="col-md-8">
+            {% for user in all_user %}
+            <article class="media content-section">
+                <img class="rounded-circle article-img" src="{{ user.image_url.url }}">
+                <div class="media-body">
+                    <div class="article-metadata">
 
+                        <a class="btn btn-primary btn-sm mt-1 mb-1 mr-4 " href="{% url 'alpha_sign_up_mail' user.user_id %}">Alpha
+                    SignUp</a>
+                <a class="btn btn-info btn-sm mt-1 mb-1 mr-4 " href="{% url 'testing_sign_up_mail' user.user_id %}">Tester
+                    Signup</a>
+                {% if user.communities_count == 0 %}
+                <a class="btn btn-danger btn-sm mt-1 mb-1 mr-4 " href="{% url 'user_communities' user.user_id %}">Communities
+                    : ({{user.communities_count}})</a>
+                {% else %}
+                <a class="btn btn-info btn-sm mt-1 mb-1 mr-4 " href="{% url 'user_communities' user.user_id %}">Communities
+                    : ({{user.communities_count}})</a>
+                {% endif %}
+
+                <a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 " href="{% url 'update_user_tags' user.user_id %}">User Tags</a>
+
+
+
+                    </div>
+                        <h2><a class="article-title" href="{% url 'update_user'  user.user_id%}">{{ user.name }}</a>
+                        </h2>
+                        <p class="article-content"><b>Email:</b>{{ user.email }}</p>
+                        <p class="article-content"><b>Facebook:</b>{{ user.fb_link }}</p>
+                        <p class="article-content"><b>LinkedIn:</b>{{ user.linkedin_link }}</p>
+                        {% if user.tags_count == 2 %}
+                        <a class="article-title" href="{% url 'update_user_tags' user.user_id %}"><p
+                                class="article-content" style="color:black;"><b style="color:INDIANRED;">Tags : </b>{{
+                            user.tags }}</p></a>
+                        {% elif user.tags_count == 1 %}
+                        <a class="article-title" href="{% url 'update_user_tags' user.user_id %}" style="color:black; ">
+                            <p class="article-content"><b style="color: lime;">Tags : </b>{{ user.tags }}</p></a>
+                        {% else %}
+                        <a class="article-title" href="{% url 'update_user_tags' user.user_id %}" style="color:black; ">
+                            <p class="article-content"><b style="color: black;">Tags : </b>None</p></a>
+                        {% endif %}
+                        {% if user.fcm_token == 0 %}
+                        <p class="article-content"><b style="color: indianred;">FCM TOKEN </b></p>
+                        {% elif user.fcm_token == 1 %}
+                        <p class="article-content"><b style="color: lime;">FCM TOKEN </b></p>
+                        {% endif %}
+
+
+            </div>
+            </article>
+            {% endfor %}
+        </div>
     </div>
-    <h2><a class="article-title" href="{% url 'update_user'  user.user_id%}">{{ user.name }}</a></h2>
-        <p class="article-content"><b>Email:</b>{{ user.email }}</p>
-    <p class="article-content"><b>Facebook:</b>{{ user.fb_link }}</p>
-    <p class="article-content"><b>LinkedIn:</b>{{ user.linkedin_link }}</p>
-      {% if user.tags_count == 2 %}
-      <a class="article-title" href="{% url 'update_user_tags' user.user_id %}"><p class="article-content" style="color:black;"><b style="color:INDIANRED;">Tags : </b>{{ user.tags }}</p></a>
-      {% elif user.tags_count == 1 %}
-      <a class="article-title" href="{% url 'update_user_tags' user.user_id %}" style="color:black; "><p class="article-content"><b style="color: lime;">Tags : </b>{{ user.tags }}</p></a>
-      {% else %}
-       <a class="article-title" href="{% url 'update_user_tags' user.user_id %}" style="color:black; "><p class="article-content"><b style="color: black;">Tags : </b>None</p></a>
-      {% endif %}
-      {% if user.fcm_token == 0 %}
-      <p class="article-content"><b style="color: indianred;">FCM TOKEN </b></p>
-      {% elif user.fcm_token == 1 %}
-       <p class="article-content"><b style="color: lime;">FCM TOKEN </b></p>
-      {% endif %}
-  </div>
-
-      <a class="btn btn-primary btn-sm mt-1 mb-1 mr-4 " href="{% url 'alpha_sign_up_mail' user.user_id %}">Alpha SignUp</a>
-     <a class="btn btn-info btn-sm mt-1 mb-1 mr-4 " href="{% url 'testing_sign_up_mail' user.user_id %}">Tester Signup</a>
-           {% if user.communities_count == 0 %}
-        <a class="btn btn-danger btn-sm mt-1 mb-1 mr-4 " href="{% url 'user_communities' user.user_id %}">Communities : ({{user.communities_count}})</a>
-        {% else %}
-        <a class="btn btn-info btn-sm mt-1 mb-1 mr-4 " href="{% url 'user_communities' user.user_id %}">Communities : ({{user.communities_count}})</a>
-{% endif %}
-
-</article>
-  {% endfor %}
-    </div>
-  </div>
 </main>
-	<script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+<script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"
+        integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN"
+        crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"
+        integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
+        crossorigin="anonymous"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"
+        integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
+        crossorigin="anonymous"></script>
 
 </body>
 {% endif %}

@@ -8,7 +8,6 @@ import time
 from django.template.loader import get_template
 from django.shortcuts import render
 from django.core.mail import EmailMultiAlternatives
-# Create your views here.
 from collabmates_api.notification import send_notification_for_join_requests, send_notification_to_proposed_admin
 from django.conf import settings
 import json

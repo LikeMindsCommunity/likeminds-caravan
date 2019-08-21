@@ -17,9 +17,9 @@ from collabmates_api.serializers import *
 from django.template.loader import get_template
 import traceback
 
-url = settings.URL
+#url = settings.URL
 # uncomment to run it in localhost
-#url='http://localhost:8000'
+url='http://localhost:8000'
 
 api_url = url + '/api/'
 
@@ -834,7 +834,8 @@ def collabcard(request, card_id):
                'answer_text': answer_text,
                'answers':collabcard_dict['answers'],
                'card_id':card_id,
-               'user_image_url':user_image
+               'user_image_url':user_image,
+               'share_link': collabcard_dict['collabcard']['share_link']
                }
     return render(request, 'card.html', context)
 
