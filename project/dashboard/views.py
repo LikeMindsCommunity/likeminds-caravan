@@ -1107,6 +1107,9 @@ def user_tags(request,user_id):
         if not hidden_tags.legacy == None:
             hidden_legacy_tags = json.loads(hidden_tags.legacy)
             for tag in hidden_legacy_tags:
+                global_tag = Tags_lpig.objects.get(name='legacy_any')
+                if tag == global_tag.id:
+                    continue
                 tag_object = Tags_lpig.objects.get(pk=tag)
                 hidden_legacy_tag=hidden_legacy_tag+tag_object.name+","
 
@@ -1114,6 +1117,9 @@ def user_tags(request,user_id):
 
             hidden_profession_tags = json.loads(hidden_tags.profession)
             for tag in hidden_profession_tags:
+                global_tag = Tags_lpig.objects.get(name='profession_any')
+                if tag == global_tag.id:
+                    continue
                 tag_object = Tags_lpig.objects.get(pk=tag)
                 hidden_profession_tag=hidden_profession_tag+tag_object.name+","
 
@@ -1121,6 +1127,9 @@ def user_tags(request,user_id):
 
             hidden_interests_tags = json.loads(hidden_tags.interests)
             for tag in hidden_interests_tags:
+                global_tag = Tags_lpig.objects.get(name='interest_any')
+                if tag == global_tag.id:
+                    continue
                 tag_object = Tags_lpig.objects.get(pk=tag)
                 hidden_interests_tag=hidden_interests_tag+tag_object.name+","
 
@@ -1128,6 +1137,9 @@ def user_tags(request,user_id):
 
             hidden_geography_tags = json.loads(hidden_tags.geography)
             for tag in hidden_geography_tags:
+                global_tag = Tags_lpig.objects.get(name='Global')
+                if tag == global_tag.id:
+                    continue
                 tag_object = Tags_lpig.objects.get(pk=tag)
                 hidden_geography_tag = hidden_geography_tag+tag_object.name+","
 
@@ -1181,24 +1193,32 @@ def save_user_lpig_tags(tags_list,user_id,tag_type):
         if len(tags_list)==0:
             user_tag.legacy = None
         else:
+            global_tag = Tags_lpig.objects.get(name='legacy_any')
+            tags_list.append(global_tag.id)
             user_tag.legacy = json.dumps(tags_list)
 
     elif tag_type and tag_type == 'Profession':
         if len(tags_list)==0:
             user_tag.profession = None
         else:
+            global_tag = Tags_lpig.objects.get(name='profession_any')
+            tags_list.append(global_tag.id)
             user_tag.profession = json.dumps(tags_list)
 
     elif tag_type and tag_type == 'Interests':
         if len(tags_list)==0:
             user_tag.interests = None
         else:
+            global_tag = Tags_lpig.objects.get(name='interest_any')
+            tags_list.append(global_tag.id)
             user_tag.interests = json.dumps(tags_list)
 
     elif tag_type and tag_type == 'Geography':
         if len(tags_list)==0:
             user_tag.geography = None
         else:
+            global_tag = Tags_lpig.objects.get(name='Global')
+            tags_list.append(global_tag.id)
             user_tag.geography = json.dumps(tags_list)
     user_tag.save()
 
