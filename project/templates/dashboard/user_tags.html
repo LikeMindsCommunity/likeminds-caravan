@@ -42,10 +42,6 @@
         </div>
       <br>
 
-      <div class="center_div">
-        <button type="submit" class="btn btn-default ">Submit</button>
-       </div>
-        <br>
 
     </form>
 
@@ -56,11 +52,7 @@
             <label for="profession">Profession Tags :</label>
             <input id="profession" name="legacy" type="text" value="{{hidden_profession_tag}}">
         </div>
-      <br>
 
-      <div class="center_div">
-        <button type="submit" class="btn btn-default ">Submit</button>
-       </div>
         <br>
 
 
@@ -73,10 +65,7 @@
         </div>
       <br>
 
-      <div class="center_div">
-        <button type="submit" class="btn btn-default ">Submit</button>
-       </div>
-        <br>
+
 
     </form>
 <br>
@@ -88,6 +77,8 @@
             <input id="geography" name="legacy" type="text" value="{{hidden_geography_tag}}">
         </div>
       <br>
+       <br>
+
 
       <div class="center_div">
         <button type="submit" class="btn btn-default ">Submit</button>
@@ -161,18 +152,21 @@ $('#geography').tagsInput({
 
     $(document).ready(function(){
 
-       $('#legacy_form').on('submit',function()
+       $('#geography_form').on('submit',function()
        {
 
-         var legacy_hidden=$('#legacy').val()
-         var profession_hidden=$('#profession').val()
-         var interests_hidden=$('#interests').val()
-         var geography_hidden=$('#geography').val()
+         var legacy_tags=$('#legacy').val()
+         var profession_tags=$('#profession').val()
+         var interests_tags=$('#interests').val()
+         var grography_tags=$('#geography').val()
 
 
          console.log({{user_id}})
           temp={
-          'hidden_tags':legacy_hidden,
+          'legacy_tags':legacy_tags,
+          'profession_tags':profession_tags,
+          'interests_tags':interests_tags,
+          'grography_tags':grography_tags,
           'user_id':{{user_id}},
           'type':'Legacy',
 
@@ -197,107 +191,4 @@ $('#geography').tagsInput({
 
     })
 
-
-
-
-    $(document).ready(function(){
-
-       $('#profession_form').on('submit',function()
-       {
-
-         var hidden=$('#profession').val()
-         console.log(hidden)
-         console.log({{user_id}})
-          temp={
-          'hidden_tags':hidden,
-          'user_id':{{user_id}},
-          'type':'Profession'
-          }
-
-          $.ajax({
-
-            url:'/admin_dashboard/add_user_tags',
-            data:temp,
-            dataType:'json',
-            success:function(data){
-               console.log(data)
-               location.reload(true)
-
-            }
-
-         })
-
-
-
-       })
-
-    })
-
-
-     $(document).ready(function(){
-
-       $('#interests_form').on('submit',function()
-       {
-
-         var hidden=$('#interests').val()
-         console.log(hidden)
-         console.log({{user_id}})
-          temp={
-          'hidden_tags':hidden,
-          'user_id':{{user_id}},
-          'type':'Interests'
-          }
-
-          $.ajax({
-
-            url:'/admin_dashboard/add_user_tags',
-            data:temp,
-            dataType:'json',
-            success:function(data){
-               console.log(data)
-               location.reload(true)
-
-            }
-
-         })
-
-
-
-       })
-
-    })
-
-
-     $(document).ready(function(){
-
-       $('#geography_form').on('submit',function()
-       {
-
-         var hidden=$('#geography').val()
-         console.log(hidden)
-         console.log({{user_id}})
-          temp={
-          'hidden_tags':hidden,
-          'user_id':{{user_id}},
-          'type':'Geography'
-          }
-
-          $.ajax({
-
-            url:'/admin_dashboard/add_user_tags',
-            data:temp,
-            dataType:'json',
-            success:function(data){
-               console.log(data)
-               location.reload(true)
-
-            }
-
-         })
-
-
-
-       })
-
-    })
 </script>

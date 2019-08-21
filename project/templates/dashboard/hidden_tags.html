@@ -32,8 +32,8 @@
 <h2 align="left" style="padding-left:20px">Hidden Tags</h2>
 
 
-<BR>
-<BR>
+<br>
+<br>
 
     <form id="legacy_form" onsubmit="return false">
      <div class="form-group center_div">
@@ -42,10 +42,6 @@
         </div>
       <br>
 
-      <div class="center_div">
-        <button type="submit" class="btn btn-default ">Submit</button>
-       </div>
-        <br>
 
     </form>
 
@@ -58,10 +54,6 @@
         </div>
       <br>
 
-      <div class="center_div">
-        <button type="submit" class="btn btn-default ">Submit</button>
-       </div>
-        <br>
 
 
     </form>
@@ -73,10 +65,7 @@
         </div>
       <br>
 
-      <div class="center_div">
-        <button type="submit" class="btn btn-default ">Submit</button>
-       </div>
-        <br>
+
 
     </form>
 <br>
@@ -88,6 +77,7 @@
             <input id="geography" name="legacy" type="text" value="{{hidden_geography_tag}}">
         </div>
       <br>
+        <br>
 
       <div class="center_div">
         <button type="submit" class="btn btn-default ">Submit</button>
@@ -161,120 +151,24 @@ $('#geography').tagsInput({
 
     $(document).ready(function(){
 
-       $('#legacy_form').on('submit',function()
-       {
-
-         var hidden=$('#legacy').val()
-         console.log(hidden)
-         console.log({{community_id}})
-          temp={
-          'hidden_tags':hidden,
-          'community_id':{{community_id}},
-          'type':'Legacy'
-          }
-
-          $.ajax({
-
-            url:'/admin_dashboard/add_hidden_tags',
-            data:temp,
-            dataType:'json',
-            success:function(data){
-               console.log(data)
-               location.reload(true)
-
-            }
-
-         })
-
-
-
-       })
-
-    })
-
-
-
-
-    $(document).ready(function(){
-
-       $('#profession_form').on('submit',function()
-       {
-
-         var hidden=$('#profession').val()
-         console.log(hidden)
-         console.log({{community_id}})
-          temp={
-          'hidden_tags':hidden,
-          'community_id':{{community_id}},
-          'type':'Profession'
-          }
-
-          $.ajax({
-
-            url:'/admin_dashboard/add_hidden_tags',
-            data:temp,
-            dataType:'json',
-            success:function(data){
-               console.log(data)
-               location.reload(true)
-
-            }
-
-         })
-
-
-
-       })
-
-    })
-
-
-     $(document).ready(function(){
-
-       $('#interests_form').on('submit',function()
-       {
-
-         var hidden=$('#interests').val()
-         console.log(hidden)
-         console.log({{community_id}})
-          temp={
-          'hidden_tags':hidden,
-          'community_id':{{community_id}},
-          'type':'Interests'
-          }
-
-          $.ajax({
-
-            url:'/admin_dashboard/add_hidden_tags',
-            data:temp,
-            dataType:'json',
-            success:function(data){
-               console.log(data)
-               location.reload(true)
-
-            }
-
-         })
-
-
-
-       })
-
-    })
-
-
-     $(document).ready(function(){
-
        $('#geography_form').on('submit',function()
        {
 
-         var hidden=$('#geography').val()
-         console.log(hidden)
-         console.log({{community_id}})
+         var legacy_tags=$('#legacy').val()
+         var profession_tags=$('#profession').val()
+         var interests_tags=$('#interests').val()
+         var grography_tags=$('#geography').val()
+
+
+         console.log({{user_id}})
           temp={
-          'hidden_tags':hidden,
+          'legacy_tags':legacy_tags,
+          'profession_tags':profession_tags,
+          'interests_tags':interests_tags,
+          'grography_tags':grography_tags,
           'community_id':{{community_id}},
-          'type':'Geography'
+          'type':'Legacy',
+
           }
 
           $.ajax({

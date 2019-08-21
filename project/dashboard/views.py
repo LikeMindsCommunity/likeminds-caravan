@@ -718,27 +718,37 @@ def hidden_tags(request,community_id):
 def add_hidden_tags(request):
 
     '''function to add hidden tags'''
-    legacy_hidden_tags=request.GET.get('legacy_hidden')
+
+    legacy_tags=request.GET.get('legacy_tags')
     community_id=request.GET.get('community_id')
 
-    tag_type = request.GET.get('type', '')
+    profession_tags = request.GET.get('profession_tags')
+    interest_tags = request.GET.get('interests_tags')
+    grography_tags = request.GET.get('grography_tags')
 
-    profession_hidden = request.GET.get('profession_hidden')
-    interests_hidden = request.GET.get('interests_hidden')
-    geography_hidden = request.GET.get('geography_hidden')
 
-    print(profession_hidden)
+    legacy_tags = legacy_tags.split(",")
+    profession_tags = profession_tags.split(",")
+    interest_tags = interest_tags.split(",")
+    grography_tags = grography_tags.split(",")
 
-    legacy_tags = legacy_hidden_tags.split(",")
-    profession_hidden = profession_hidden.split(",")
+    legacy_tags = get_or_create_tag_attributes_list(legacy_tags, 'Legacy')
+    profession_tags = get_or_create_tag_attributes_list(profession_tags, 'Profession')
+    interest_tags = get_or_create_tag_attributes_list(interest_tags, 'Interests')
+    grography_tags = get_or_create_tag_attributes_list(grography_tags, 'Geography')
 
-    tags_list = get_or_create_tag_attributes_list(legacy_tags, tag_type)
-    save_community_lpig_tags(tags_list, community_id, tag_type)
+
+    save_community_lpig_tags(community_id= community_id,
+                        legacy_tags= legacy_tags ,
+                        profession_tags = profession_tags,
+                        interest_tags=interest_tags,
+                        grography_tags=grography_tags)
 
     return JsonResponse({'success':True})
 
 
-def save_community_lpig_tags(tags_list,community_id,tag_type):
+def save_community_lpig_tags(community_id,legacy_tags,profession_tags,interest_tags,grography_tags):
+
     community = Community.objects.get(id=community_id)
 
     try:
@@ -747,29 +757,25 @@ def save_community_lpig_tags(tags_list,community_id,tag_type):
         community_tag = Community_LPIG()
         community_tag.community_id = community
 
-    if tag_type and tag_type == 'Legacy':
-        if len(tags_list)==0:
-            community_tag.legacy = None
-        else:
-            community_tag.legacy = json.dumps(tags_list)
+    if len(legacy_tags)==0:
+        community_tag.legacy = None
+    else:
+        community_tag.legacy = json.dumps(legacy_tags)
 
-    elif tag_type and tag_type == 'Profession':
-        if len(tags_list)==0:
-            community_tag.profession = None
-        else:
-            community_tag.profession = json.dumps(tags_list)
+    if len(profession_tags)==0:
+        community_tag.profession = None
+    else:
+        community_tag.profession = json.dumps(profession_tags)
 
-    elif tag_type and tag_type == 'Interests':
-        if len(tags_list)==0:
-            community_tag.interests = None
-        else:
-            community_tag.interests = json.dumps(tags_list)
+    if len(interest_tags)==0:
+        community_tag.interests = None
+    else:
+        community_tag.interests = json.dumps(interest_tags)
 
-    elif tag_type and tag_type == 'Geography':
-        if len(tags_list)==0:
-            community_tag.geography = None
-        else:
-            community_tag.geography = json.dumps(tags_list)
+    if len(grography_tags)==0:
+        community_tag.geography = None
+    else:
+        community_tag.geography = json.dumps(grography_tags)
     community_tag.save()
 
 
@@ -1159,27 +1165,39 @@ def user_tags(request,user_id):
 
 def add_user_tags(request):
     ''' adding or updating or deleting user hidden tags '''
-    hidden_tags=request.GET.get('hidden_tags')
+    legacy_tags=request.GET.get('legacy_tags')
     user_id=request.GET.get('user_id')
 
     tag_type = request.GET.get('type', '')
 
-    # profession_hidden = request.GET.get('profession_hidden')
-    # interests_hidden = request.GET.get('interests_hidden')
-    # geography_hidden = request.GET.get('geography_hidden')
+    profession_tags = request.GET.get('profession_tags')
+    interest_tags = request.GET.get('interests_tags')
+    grography_tags = request.GET.get('grography_tags')
     #
     # print(profession_hidden)
 
-    tags = hidden_tags.split(",")
-    # profession_hidden = profession_hidden.split(",")
+    legacy_tags = legacy_tags.split(",")
+    profession_tags = profession_tags.split(",")
+    interest_tags = interest_tags.split(",")
+    grography_tags = grography_tags.split(",")
 
-    tags_list = get_or_create_tag_attributes_list(tags, tag_type)
-    save_user_lpig_tags(tags_list, user_id, tag_type)
+    legacy_tags = get_or_create_tag_attributes_list(legacy_tags, 'Legacy')
+    profession_tags = get_or_create_tag_attributes_list(profession_tags, 'Profession')
+    interest_tags = get_or_create_tag_attributes_list(interest_tags, 'Interests')
+    grography_tags = get_or_create_tag_attributes_list(grography_tags, 'Geography')
+
+
+    save_user_lpig_tags(user_id= user_id,
+                        legacy_tags= legacy_tags ,
+                        profession_tags = profession_tags,
+                        interest_tags=interest_tags,
+                        grography_tags=grography_tags)
+
 
     return JsonResponse({'success':True})
 
 
-def save_user_lpig_tags(tags_list,user_id,tag_type):
+def save_user_lpig_tags(user_id,legacy_tags,profession_tags,interest_tags,grography_tags):
     print("=========== ",user_id)
     user = User.objects.get(id=user_id)
 
@@ -1189,29 +1207,24 @@ def save_user_lpig_tags(tags_list,user_id,tag_type):
         user_tag = User_LPIG()
         user_tag.member_id = user
 
-    if tag_type and tag_type == 'Legacy':
+    global_legacy_tag = Tags_lpig.objects.get(name='legacy_any')
+    legacy_tags.append(global_legacy_tag.id)
+    user_tag.legacy = json.dumps(legacy_tags)
 
-        global_tag = Tags_lpig.objects.get(name='legacy_any')
-        tags_list.append(global_tag.id)
-        user_tag.legacy = json.dumps(tags_list)
 
-    elif tag_type and tag_type == 'Profession':
+    global_profession_tag = Tags_lpig.objects.get(name='profession_any')
+    profession_tags.append(global_profession_tag.id)
+    user_tag.profession = json.dumps(profession_tags)
 
-        global_tag = Tags_lpig.objects.get(name='profession_any')
-        tags_list.append(global_tag.id)
-        user_tag.profession = json.dumps(tags_list)
 
-    elif tag_type and tag_type == 'Interests':
+    global_interest_tag = Tags_lpig.objects.get(name='interest_any')
+    interest_tags.append(global_interest_tag.id)
+    user_tag.interests = json.dumps(interest_tags)
 
-        global_tag = Tags_lpig.objects.get(name='interest_any')
-        tags_list.append(global_tag.id)
-        user_tag.interests = json.dumps(tags_list)
 
-    elif tag_type and tag_type == 'Geography':
-        
-        global_tag = Tags_lpig.objects.get(name='Global')
-        tags_list.append(global_tag.id)
-        user_tag.geography = json.dumps(tags_list)
+    global_tag = Tags_lpig.objects.get(name='Global')
+    grography_tags.append(global_tag.id)
+    user_tag.geography = json.dumps(grography_tags)
     user_tag.save()
 
 
