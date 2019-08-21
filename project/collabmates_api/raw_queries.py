@@ -1,6 +1,6 @@
 # from __future__ import absolute_import, unicode_literals
 # from celery import shared_task
-
+import time
 import json
 import psycopg2
 
@@ -269,6 +269,12 @@ def compute_rank():
 if envir:
     if __name__ == "__main__":
         print("python file")
+        start_time=time.time()
         compute_rank()
+        end_time=time.time()
+
+        print("Execution Time--")
+        print(end_time-start_time)
+
 
 
