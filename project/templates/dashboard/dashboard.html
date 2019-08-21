@@ -1,20 +1,19 @@
- {% load static %}
+{% load static %}
 <!DOCTYPE html>
 <html>
 {% if request.user.is_superuser %}
 <head>
-	<meta charset="utf-8">
+    <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
     <!-- Bootstrap CSS -->
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+          integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
 
     <link rel="stylesheet" type="text/css" href="{% static 'notes/main.css' %}">
 
 
-
-
-<style type="text/css">
+    <style type="text/css">
 
   body {
   background: #fafafa;
@@ -105,7 +104,8 @@ a.article-title:hover {
 .btn-orange {
  background-color: #f08c35;
 }
-</style>
+
+    </style>
 </head>
 
 <a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 " href="{% url 'all_user' %}">Users</a>
@@ -117,66 +117,69 @@ a.article-title:hover {
 
 <br/><br/>
 
-	<main role="main" class="container" >
-  <div class="row">
-    <div class="col-md-8">
-      {% for community in communities %}
-    <article class="media content-section" >
-      <img class = "rounded-circle article-img" src="{{ community.image_url.url }}">
-  <div class="media-body" >
-    <div class="article-metadata" >
+<main role="main" class="container">
+    <div class="row">
+        <div class="col-md-8">
+            {% for community in communities %}
+            <article class="media content-section">
+                <img class="rounded-circle article-img" src="{{ community.image_url.url }}">
+                <div class="media-body">
+                    <div class="article-metadata">
 
-<!--      <small class="text-muted">{{ community.active_since|date:"F d, Y" }}</small>-->
-      <a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 " href="{% url 'update_form' community.id %}">Update</a>
-      <a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 " href="{% url 'community_delete' community.id %}">Delete</a>
-      <a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 " href="{% url 'add_dashboard_admin' community.id %}">Add Admin</a>
-      <a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 " href="{% url 'add_dashboard_member' community.id %}">Add Member</a>
-      {% if community.pending_member_count != 0 %}
-      <a class="btn btn-danger btn-sm mt-1 mb-1 mr-4 " href="{% url 'all_members' community.id %}">Members&nbsp;({{community.members_count}})</a>
-      {% else %}
-      <a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 " href="{% url 'all_members' community.id %}">Members&nbsp;({{community.members_count}})</a>
-      {% endif %}
-      {% if community.tags_count == 0 %}
-        <a class="btn btn-danger btn-sm mt-1 mb-1 mr-4 " href="{% url 'show_tags' community.id %}">Tags({{community.tags_count}})</a>
-      {% else %}
-           <a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 " href="{% url 'show_tags' community.id %}">Tags({{community.tags_count}})</a>
-      {% endif %}
-
-            {% if community.hidden_tags_count == 0 %}
-
-      <a class="btn btn-danger btn-sm mt-1 mb-1 mr-4 " href="{% url 'hidden_tags' community.id %}">Hidden Tags({{community.hidden_tags_count}})</a>
-      {% else %}
-              <a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 " href="{% url 'hidden_tags' community.id %}">Hidden Tags({{community.hidden_tags_count}})</a>
-      {% endif %}
-
-      {% if community.question_count == 0 %}
-
-      <a class="btn btn-danger btn-sm mt-1 mb-1 mr-4 " href="{% url 'add_questions' community.id %}">Questions({{community.question_count}})</a>
-      {% else %}
-              <a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 " href="{% url 'add_questions' community.id %}">Questions({{community.question_count}})</a>
-      {% endif %}
-        <br/><br/>
-      <a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 " href="{% url 'send_invitation' community.id %}">Nominate Promoter</a>
-      <a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 " href="{% url 'analytics_community' community.id %}">Analytics</a>
+                        <!--      <small class="text-muted">{{ community.active_since|date:"F d, Y" }}</small>-->
+                        <a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 " href="{% url 'update_form' community.id %}">Update</a>
+                        <a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 "
+                           href="{% url 'community_delete' community.id %}">Delete</a>
+                        <a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 "
+                           href="{% url 'add_dashboard_admin' community.id %}">Add Admin</a>
+                        <a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 "
+                           href="{% url 'add_dashboard_member' community.id %}">Add Member</a>
+                        {% if community.pending_member_count != 0 %}
+                        <a class="btn btn-danger btn-sm mt-1 mb-1 mr-4 " href="{% url 'all_members' community.id %}">Members&nbsp;({{community.members_count}})</a>
+                        {% else %}
+                        <a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 " href="{% url 'all_members' community.id %}">Members&nbsp;({{community.members_count}})</a>
+                        {% endif %}
 
 
+                        {% if community.hidden_tags_count == 0 %}
+
+                        <a class="btn btn-danger btn-sm mt-1 mb-1 mr-4 " href="{% url 'hidden_tags' community.id %}">Tags({{community.hidden_tags_count}})</a>
+                        {% else %}
+                        <a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 " href="{% url 'hidden_tags' community.id %}">Tags({{community.hidden_tags_count}})</a>
+                        {% endif %}
+
+                        {% if community.question_count == 0 %}
+
+                        <a class="btn btn-danger btn-sm mt-1 mb-1 mr-4 " href="{% url 'add_questions' community.id %}">Questions({{community.question_count}})</a>
+                        {% else %}
+                        <a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 " href="{% url 'add_questions' community.id %}">Questions({{community.question_count}})</a>
+                        {% endif %}
+                        <br/><br/>
+                        <a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 "
+                           href="{% url 'send_invitation' community.id %}">Nominate Promoter</a>
+                        <a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 "
+                           href="{% url 'analytics_community' community.id %}">Analytics</a>
 
 
-
-
-
+                    </div>
+                    <h2><a class="article-title" href="{% url 'update_form' community.id %}">{{ community.name }}</a>
+                    </h2>
+                    <p class="article-content">{{ community.purpose }}</p>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
     </div>
-    <h2><a class="article-title" href="{% url 'update_form' community.id %}">{{ community.name }}</a></h2>
-    <p class="article-content">{{ community.purpose }}</p>
-  </div>
-</article>
-  {% endfor %}
-    </div>
-  </div>
 </main>
-	<script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+<script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"
+        integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN"
+        crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"
+        integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
+        crossorigin="anonymous"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"
+        integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
+        crossorigin="anonymous"></script>
 
 </body>
 {% endif %}
