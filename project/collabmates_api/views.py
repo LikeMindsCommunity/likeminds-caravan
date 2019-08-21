@@ -62,6 +62,7 @@ def communities(request):
                 return JsonResponse({'communities': community})
             else:
                 # if category is not provided, get categories according to the user tag if user has one
+
                 queryset = get_communities_by_tags(user_tag=user_tag,page_number = page_number,user_id=user_id)
                 community = serialize_community(queryset=queryset)
                 return JsonResponse({'communities': community})
@@ -69,6 +70,16 @@ def communities(request):
 
 def get_communities_by_tags(user_tag=0, category_tag=0,page_number=1,user_id=None):
     ''' fetching communities based on category tag and user hidden tag '''
+
+    is_user_tags = User_LPIG.objects.filter(member_id=user_id)
+
+    if is_user_tags:
+        if user_id:
+            user_tag = Community_Rank.objects.filter(member_id=user_id).values('community_id').order_by(
+                "-weight").distinct()
+            queryset = pagination(user_tag, page_number)
+            return queryset
+
     if category_tag != 0 and user_tag != 0:
         ''' if category tag and user tag ,bith are provided
             get communities ,which are the intersection of given category and user hidden tag '''
@@ -94,10 +105,7 @@ def get_communities_by_tags(user_tag=0, category_tag=0,page_number=1,user_id=Non
         queryset = pagination(community, page_number)
         return queryset
 
-    if user_id:
-        user_tag = Community_Rank.objects.filter(member_id=user_id).values('community_id').order_by("-weight").distinct()
-        queryset = pagination(user_tag, page_number)
-        return queryset
+
 
     if category_tag == 0 and user_tag != 0:
         # if there is no category tag , then return communites based on user hidden tag
