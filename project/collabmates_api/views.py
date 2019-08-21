@@ -734,7 +734,7 @@ def get_collabcard_files(card_id):
         if file.type == 'Image':
             img = {'image_url': url + file.attachment.url}
             img_list.append(img)
-        elif file.type == 'Pdf':
+        elif file.type == 'pdf':
             pdf_url = {'pdf_file': url + file.attachment.url}
             pdf.append(pdf_url)
     return (img_list,pdf)
