@@ -676,6 +676,9 @@ def hidden_tags(request,community_id):
         if not hidden_tags.legacy == None:
             hidden_legacy_tags = json.loads(hidden_tags.legacy)
             for tag in hidden_legacy_tags:
+                global_tag = Tags_lpig.objects.get(name='legacy_any')
+                if tag == global_tag.id:
+                    continue
                 tag_object = Tags_lpig.objects.get(pk=tag)
                 hidden_legacy_tag=hidden_legacy_tag+tag_object.name+","
 
@@ -683,6 +686,9 @@ def hidden_tags(request,community_id):
 
             hidden_profession_tags = json.loads(hidden_tags.profession)
             for tag in hidden_profession_tags:
+                global_tag = Tags_lpig.objects.get(name='profession_any')
+                if tag == global_tag.id:
+                    continue
                 tag_object = Tags_lpig.objects.get(pk=tag)
                 hidden_profession_tag=hidden_profession_tag+tag_object.name+","
 
@@ -690,6 +696,9 @@ def hidden_tags(request,community_id):
 
             hidden_interests_tags = json.loads(hidden_tags.interests)
             for tag in hidden_interests_tags:
+                global_tag = Tags_lpig.objects.get(name='interest_any')
+                if tag == global_tag.id:
+                    continue
                 tag_object = Tags_lpig.objects.get(pk=tag)
                 hidden_interests_tag=hidden_interests_tag+tag_object.name+","
 
@@ -697,6 +706,9 @@ def hidden_tags(request,community_id):
 
             hidden_geography_tags = json.loads(hidden_tags.geography)
             for tag in hidden_geography_tags:
+                global_tag = Tags_lpig.objects.get(name='Global')
+                if tag == global_tag.id:
+                    continue
                 tag_object = Tags_lpig.objects.get(pk=tag)
                 hidden_geography_tag = hidden_geography_tag+tag_object.name+","
 
@@ -758,22 +770,30 @@ def save_community_lpig_tags(community_id,legacy_tags,profession_tags,interest_t
         community_tag.community_id = community
 
     if len(legacy_tags)==0:
-        community_tag.legacy = None
+        global_legacy_tag = Tags_lpig.objects.get(name='legacy_any')
+        legacy_tags.append(global_legacy_tag.id)
+        community_tag.legacy = json.dumps(legacy_tags)
     else:
         community_tag.legacy = json.dumps(legacy_tags)
 
     if len(profession_tags)==0:
-        community_tag.profession = None
+        global_profession_tag = Tags_lpig.objects.get(name='profession_any')
+        profession_tags.append(global_profession_tag.id)
+        community_tag.profession = json.dumps(profession_tags)
     else:
         community_tag.profession = json.dumps(profession_tags)
 
     if len(interest_tags)==0:
-        community_tag.interests = None
+        global_interest_tag = Tags_lpig.objects.get(name='interest_any')
+        interest_tags.append(global_interest_tag.id)
+        community_tag.interests = json.dumps(interest_tags)
     else:
         community_tag.interests = json.dumps(interest_tags)
 
     if len(grography_tags)==0:
-        community_tag.geography = None
+        global_tag = Tags_lpig.objects.get(name='Global')
+        grography_tags.append(global_tag.id)
+        community_tag.geography = json.dumps(grography_tags)
     else:
         community_tag.geography = json.dumps(grography_tags)
     community_tag.save()
