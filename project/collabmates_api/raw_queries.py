@@ -174,9 +174,8 @@ def ranking_tags(tag):
 
     id=is_tag_present(tag)
     if id:
-        print("Already Present==",id)
-        update_tag(tag,id)
-        return
+        delele_tag_by_id(id)
+
     try:
         conn = get_connection()
         curr = conn.cursor()
@@ -226,14 +225,29 @@ def update_tag(tag,id):
     except (Exception, psycopg2.Error) as error:
         print("Error while connecting  to PostgreSQL", error)
 
+def delele_tag_by_id(id):
+
+    '''function to delete tag by id'''
+
+    try:
+        conn = get_connection()
+        curr = conn.cursor()
+        sql = "delete from togther_community_rank where id=%s"
+        parameter = [id]
+        curr.execute(sql, parameter)
+        conn.commit()
+        curr.close()
+        conn.close()
+    except (Exception, psycopg2.Error) as error:
+        print("Error while connecting  to PostgreSQL", error)
+
+
 def compute_rank():
 
     '''function to run '''
     sql = "select member_id_id from togther_user_lpig"
     all_user = get_all_data(sql)
     user_tags = []
-
-    global_tags = get_global_id()
     for user in all_user:
         filter_tag = filter_tags(user_id=user[0])
         user_tags.append(filter_tag)
@@ -242,36 +256,15 @@ def compute_rank():
     sql = "select community_id_id from togther_community_lpig"
     all_communities = get_all_data(sql)
     community_tags = []
-    print(all_communities)
     for community in all_communities:
         filter_tag = filter_tags(community_id=community[0])
-
-
-        if filter_tag['legacy'] is None:
-            filter_tag['legacy'] = [global_tags['legacy_any']]
-
-        if filter_tag['profession'] is None:
-            filter_tag['profession'] = [global_tags['profession_any']]
-
-        if filter_tag['interests'] is None:
-            filter_tag['interests'] = [global_tags['interest_any']]
-
-        if filter_tag['geography'] is None:
-            filter_tag['geography'] = [global_tags['Global']]
-
         community_tags.append(filter_tag)
-
-    # getting relevance score
 
     for user in user_tags:
         for community in community_tags:
             score = get_relevant_score(user, community)
             if score[2] != 0:
                 ranking_tags(score)
-                #print(score)
-
-
-
 
 if envir:
     if __name__ == "__main__":
