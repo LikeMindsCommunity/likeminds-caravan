@@ -242,29 +242,76 @@ def delele_tag_by_id(id):
         print("Error while connecting  to PostgreSQL", error)
 
 
-def compute_rank():
+def action_for_user_crete_or_community_create(user_id,community_id):
 
-    '''function to run '''
-    sql = "select member_id_id from togther_user_lpig"
-    all_user = get_all_data(sql)
+    '''function to handle the create user or create community'''
     user_tags = []
-    for user in all_user:
-        filter_tag = filter_tags(user_id=user[0])
-        user_tags.append(filter_tag)
-
-    # getting all communities
-    sql = "select community_id_id from togther_community_lpig"
-    all_communities = get_all_data(sql)
     community_tags = []
-    for community in all_communities:
-        filter_tag = filter_tags(community_id=community[0])
-        community_tags.append(filter_tag)
+    if user_id is None and community_id is None:
+        sql = "select member_id_id from togther_user_lpig"
+        all_user = get_all_data(sql)
+        user_tags = []
+        for user in all_user:
+            filter_tag = filter_tags(user_id=user[0])
+            user_tags.append(filter_tag)
 
+        # getting all communities
+        sql = "select community_id_id from togther_community_lpig"
+        all_communities = get_all_data(sql)
+        community_tags = []
+        for community in all_communities:
+            filter_tag = filter_tags(community_id=community[0])
+            community_tags.append(filter_tag)
+    
+    elif user_id is not None and community_id is None:
+        all_user = [(user_id,)]
+        user_tags = []
+        for user in all_user:
+            filter_tag = filter_tags(user_id=user[0])
+            user_tags.append(filter_tag)
+
+            # getting all communities
+            sql = "select community_id_id from togther_community_lpig"
+            all_communities = get_all_data(sql)
+            community_tags = []
+            for community in all_communities:
+                filter_tag = filter_tags(community_id=community[0])
+                community_tags.append(filter_tag)
+
+    elif user_id is None and community_id is not None:
+        sql = "select member_id_id from togther_user_lpig"
+        all_user = get_all_data(sql)
+        user_tags = []
+        for user in all_user:
+            filter_tag = filter_tags(user_id=user[0])
+            user_tags.append(filter_tag)
+
+        all_communities = [(community_id,)]
+        community_tags = []
+        for community in all_communities:
+            filter_tag = filter_tags(community_id=community[0])
+            community_tags.append(filter_tag)
+
+    return (user_tags,community_tags)
+
+def compute_rank(user_id=None,community_id=None):
+
+    '''function to compute the rank of community '''
+
+    action=action_for_user_crete_or_community_create(user_id,community_id)
+    user_tags=action[0]
+    community_tags=action[1]
+
+    print(user_tags)
+    print("\n\n")
+    print(community_tags)
     for user in user_tags:
         for community in community_tags:
             score = get_relevant_score(user, community)
             if score[2] != 0:
                 ranking_tags(score)
+                #print(score)
+
 
 if envir:
     if __name__ == "__main__":
