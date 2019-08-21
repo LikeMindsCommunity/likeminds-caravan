@@ -262,7 +262,7 @@ def action_for_user_crete_or_community_create(user_id,community_id):
         for community in all_communities:
             filter_tag = filter_tags(community_id=community[0])
             community_tags.append(filter_tag)
-    
+
     elif user_id is not None and community_id is None:
         all_user = [(user_id,)]
         user_tags = []
@@ -302,15 +302,11 @@ def compute_rank(user_id=None,community_id=None):
     user_tags=action[0]
     community_tags=action[1]
 
-    print(user_tags)
-    print("\n\n")
-    print(community_tags)
     for user in user_tags:
         for community in community_tags:
             score = get_relevant_score(user, community)
             if score[2] != 0:
                 ranking_tags(score)
-                #print(score)
 
 
 if envir:
