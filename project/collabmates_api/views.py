@@ -1106,8 +1106,11 @@ def create_admin(request,community_id):
         if 'name' in res:
             admin.name = res['name']
         if 'email_id' in res:
-            if res['email_id'] == promoter_email:
-                return JsonResponse({'success':True})
+            try:
+                if res['email_id'] == promoter_email:
+                    return JsonResponse({'success':True})
+            except:
+                pass
             admin.email = res['email_id']
         if 'contact_no' in res:
             admin.contact_number = res['contact_no']
