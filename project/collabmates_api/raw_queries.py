@@ -1,12 +1,12 @@
-# from __future__ import absolute_import, unicode_literals
-# from celery import shared_task
+from __future__ import absolute_import, unicode_literals
+from celery import shared_task
 import time
 import json
 import psycopg2
 
 envir=False
 try:
-    from .notification import notification
+    from .notification import get_connection
 except:
     envir=True
     import sys
@@ -294,6 +294,7 @@ def action_for_user_crete_or_community_create(user_id,community_id):
 
     return (user_tags,community_tags)
 
+@shared_task
 def compute_rank(user_id=None,community_id=None):
 
     '''function to compute the rank of community '''
