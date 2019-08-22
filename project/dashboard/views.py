@@ -16,6 +16,7 @@ import requests as rqst
 import os
 import re
 from django.views.decorators.csrf import csrf_exempt
+from collabmates_api.raw_queries import compute_rank
 
 url = settings.URL
 
@@ -747,6 +748,8 @@ def hidden_tags(request,community_id):
 
     '''function to show hidden tags'''
 
+    community = Community.objects.get(pk = community_id)
+
     legacy_tags = list(Tags_lpig.objects.filter(category_id__id = '1').values_list('name', flat=True))
     profession_tags = list(Tags_lpig.objects.filter(category_id__id = '2').values_list('name', flat=True))
     interests_tags = list(Tags_lpig.objects.filter(category_id__id = '3').values_list('name', flat=True))
@@ -820,7 +823,8 @@ def hidden_tags(request,community_id):
         'hidden_profession_tag': hidden_profession_tag,
         'hidden_interests_tag': hidden_interests_tag,
         'hidden_geography_tag': hidden_geography_tag,
-        'community_id':community_id
+        'community_id':community_id,
+        'community_name':community.name
     }
 
     return render(request,'dashboard/hidden_tags.html',context)
@@ -843,6 +847,7 @@ def add_hidden_tags(request):
     interest_tags = interest_tags.split(",")
     grography_tags = grography_tags.split(",")
 
+
     legacy_tags = get_or_create_tag_attributes_list(legacy_tags, 'Legacy')
     profession_tags = get_or_create_tag_attributes_list(profession_tags, 'Profession')
     interest_tags = get_or_create_tag_attributes_list(interest_tags, 'Interests')
@@ -854,6 +859,8 @@ def add_hidden_tags(request):
                         profession_tags = profession_tags,
                         interest_tags=interest_tags,
                         grography_tags=grography_tags)
+
+    compute_rank.delay(community_id=community_id)
 
     return JsonResponse({'success':True})
 
@@ -1215,6 +1222,7 @@ def update_uncategorize_tag(uncategorized, category, attribute):
 
 def user_tags(request,user_id):
     ''' gives all the user tags  '''
+    user = User.objects.get(pk = user_id)
 
     legacy_tags = list(Tags_lpig.objects.filter(category_id__id = '1').values_list('name', flat=True))
     profession_tags = list(Tags_lpig.objects.filter(category_id__id = '2').values_list('name', flat=True))
@@ -1289,7 +1297,8 @@ def user_tags(request,user_id):
         'hidden_profession_tag': hidden_profession_tag,
         'hidden_interests_tag': hidden_interests_tag,
         'hidden_geography_tag': hidden_geography_tag,
-        'user_id':user_id
+        'user_id':user_id,
+        'user_name':user.userinfo.name
     }
 
     return render(request, 'dashboard/user_tags.html', context)
@@ -1299,13 +1308,11 @@ def add_user_tags(request):
     legacy_tags=request.GET.get('legacy_tags')
     user_id=request.GET.get('user_id')
 
-    tag_type = request.GET.get('type', '')
 
     profession_tags = request.GET.get('profession_tags')
     interest_tags = request.GET.get('interests_tags')
     grography_tags = request.GET.get('grography_tags')
-    #
-    # print(profession_hidden)
+
 
     legacy_tags = legacy_tags.split(",")
     profession_tags = profession_tags.split(",")
@@ -1324,7 +1331,7 @@ def add_user_tags(request):
                         interest_tags=interest_tags,
                         grography_tags=grography_tags)
 
-
+    compute_rank.delay(user_id = user_id)
     return JsonResponse({'success':True})
 
 
