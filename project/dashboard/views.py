@@ -748,6 +748,8 @@ def hidden_tags(request,community_id):
 
     '''function to show hidden tags'''
 
+    community = Community.objects.get(pk = community_id)
+
     legacy_tags = list(Tags_lpig.objects.filter(category_id__id = '1').values_list('name', flat=True))
     profession_tags = list(Tags_lpig.objects.filter(category_id__id = '2').values_list('name', flat=True))
     interests_tags = list(Tags_lpig.objects.filter(category_id__id = '3').values_list('name', flat=True))
@@ -822,7 +824,7 @@ def hidden_tags(request,community_id):
         'hidden_interests_tag': hidden_interests_tag,
         'hidden_geography_tag': hidden_geography_tag,
         'community_id':community_id,
-        'community_name':hidden_tags.community_id.name
+        'community_name':community.name
     }
 
     return render(request,'dashboard/hidden_tags.html',context)
@@ -1220,6 +1222,7 @@ def update_uncategorize_tag(uncategorized, category, attribute):
 
 def user_tags(request,user_id):
     ''' gives all the user tags  '''
+    user = User.objects.get(pk = user_id)
 
     legacy_tags = list(Tags_lpig.objects.filter(category_id__id = '1').values_list('name', flat=True))
     profession_tags = list(Tags_lpig.objects.filter(category_id__id = '2').values_list('name', flat=True))
@@ -1295,7 +1298,7 @@ def user_tags(request,user_id):
         'hidden_interests_tag': hidden_interests_tag,
         'hidden_geography_tag': hidden_geography_tag,
         'user_id':user_id,
-        'user_name':hidden_tags.member_id.userinfo.name
+        'user_name':user.userinfo.name
     }
 
     return render(request, 'dashboard/user_tags.html', context)
