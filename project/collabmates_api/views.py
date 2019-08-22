@@ -1479,7 +1479,8 @@ def update_location(request):
     user_id = request.GET.get('member_id')
     latitude = request.GET.get('latitude')
     longitude = request.GET.get('longitude')
-    userinfo = Userinfo.objects.get(user_id =user_id)
+    userinfo = Userinfo.objects.get(user_id__id =user_id)
+    print(userinfo.id,userinfo.name)
 
     if not userinfo.latitude and not userinfo.longitude:
         userinfo.latitude = latitude
@@ -1492,33 +1493,67 @@ def update_location(request):
 
         all_location_tags = get_user_location(request, userinfo.user_id, 'all')
 
+        update_user_city_tag( userinfo.user_id, all_location_tags)
 
-        update_user_city_tag(user_id, all_location_tags)
     return JsonResponse({'success':True})
 
 
 @shared_task
 def update_user_city_tag(user_id,location):
     ''' function to update city tag for user '''
-    for loc in location:
-        print("loc ====== ",loc)
+
+    for attr,loc_tag in location.items():
+
         try:
-            tag = Tags.objects.get(category_name = loc)
+
+            hidden_tags = User_LPIG.objects.get(member_id=user_id)
+            if not hidden_tags.geography == None:
+
+                hidden_geography_tags = json.loads(hidden_tags.geography)
+
+                tag_id = get_or_create_lpig_tags(tag = loc_tag,attr = attr,category = 'Geography')
+
+                if not tag_id in hidden_geography_tags:
+                    hidden_geography_tags.append(tag_id)
+                    print(hidden_geography_tags)
+                    hidden_tags.geography = json.dumps(hidden_geography_tags)
+                    hidden_tags.save()
+
         except:
-            tag = Tags()
-            tag.category_name = loc
-            tag.state =1
-            tag.save()
-        user_tag = userinfo_tags()
-        user_tag.tag_id = tag.id
-        user_tag.user_id = user_id
-        user_tag.save()
+
+            tag_id = get_or_create_lpig_tags(tag=loc_tag, attr=attr, category='Geography')
+            user_lpig = User_LPIG()
+            user_lpig.member_id = user_id
+            user_lpig.geography = json.dumps([tag_id, 18])
+            user_lpig.save()
+
+    return
+
+
+
+def get_or_create_lpig_tags(tag,category,attr):
+    ''' function to create new tags '''
+    try:
+        tag = Tags_lpig.objects.get(name=tag)
+
+    except:
+        new_tag = tag
+        category = Category.objects.filter(Q(name__icontains=category))[0]
+        attribute = Attributes.objects.filter(Q(attribute_name__icontains=attr))[0]
+        tag = Tags_lpig()
+        tag.name = new_tag
+        tag.category_id = category
+        tag.attribute_id = attribute
+        tag.save()
+    return tag.id
 
 
 def get_user_location(request,user_id,type=''):
     ''' function to fetch user location '''
+    flag = True
     if not type:
         type = request.GET.get('type','')
+        flag = False
     userinfo = Userinfo.objects.get(user_id=user_id)
     print("lat and long === ",userinfo.latitude , userinfo.longitude)
 
@@ -1555,16 +1590,15 @@ def get_user_location(request,user_id,type=''):
 
         # return list [city,state,country,pincode]
 
-        # response = {}
-        # response['city']  = address[-3].strip()
-        # response['pincode'] = address[-2][-6:].strip()
-        # response['state'] = address[-2][:-7].strip()
-        # response['country'] = address[-1].strip()
+        response = {}
+        response['city']  = address[-3].strip()
+        response['pincode'] = address[-2][-6:].strip()
+        response['state'] = address[-2][:-7].strip()
+        response['country'] = address[-1].strip()
 
-        return [address[-3].strip(),
-                address[-2][:-7].strip(),
-                address[-1].strip(),
-                address[-2][-6:].strip()]
+        if flag:
+            return response
+
 
     return JsonResponse(response,safe=False)
 
