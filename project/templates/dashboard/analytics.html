@@ -1,22 +1,56 @@
+{% extends "base.html" %}
 <html>
 
 
 <body>
+{% block content %}
+<br/>
+<br/>
+<div class="ui cards">
 
-<h1>Analytics</h1>
-<h2>Total Community Count:{{community_count}}</h2>
-<h2>Public Communities:{{public_communities}}</h2>
-<h2>Private Communities:{{private_communities}}</h2>
+    <!-- create flow -->
+  <div class="card">
+    <div class="content">
+      <div class="header">Create Flow</div>
+      <br/>
+      <div class="description">
+        <h4>Total Community :{{community_count}}</h4>
+        <h4>Public Communities:{{public_communities}}</h4>
+        <h4>Private Communities:{{private_communities}}</h4>
+      </div>
+    </div>
+  </div>
 
-<h2>User Count:{{user_count}}</h2>
-<h2>Promoter/Members Count:{{promoter_member_count}}</h2>
-<h2>Promoter Count:{{promoter_count}}</h2>
-<h2>Member Count:{{member_count}}</h2>
-<h2>Conversations Count:{{conversations_count}}</h2>
-<h2>Responses Count:{{responses_count}}</h2>
-<h2>Total Promoter Count:{{total_promoter_count}}</h2>
-<h2>Total Members Count:{{total_member_count}}</h2>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp
+    <!-- Join flow -->
+  <div class="card">
+    <div class="content">
+      <div class="header">Join Flow</div>
+      <div class="description">
+        <h4>User :{{user_count}}</h4>
+        <h4>Promoter/Members :{{promoter_member_count}}</h4>
+        <h4>Unique Promoter :{{promoter_count}}</h4>
+        <h4>Unique Member :{{member_count}}</h4>
+        <h4>Total Promoter :{{total_promoter_count}}</h4>
+        <h4>Total Members :{{total_member_count}}</h4>
+      </div>
+    </div>
+  </div>
+
+<!-- Engagement Flow -->
+    <div class="card">
+        <div class="content">
+            <div class="header">Engagement Flow</div>
+            <div class="description">
+                <h4>Conversations :{{conversations_count}}</h4>
+                <h4>Responses :{{responses_count}}</h4>
+            </div>
+        </div>
+    </div>
+
+</div>
 
 
+{% endblock %}
 </body>
 </html>

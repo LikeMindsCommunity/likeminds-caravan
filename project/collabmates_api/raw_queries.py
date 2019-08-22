@@ -1,12 +1,12 @@
-# from __future__ import absolute_import, unicode_literals
-# from celery import shared_task
-
+from __future__ import absolute_import, unicode_literals
+from celery import shared_task
+import time
 import json
 import psycopg2
 
 envir=False
 try:
-    from .notification import notification
+    from .notification import get_connection
 except:
     envir=True
     import sys
@@ -33,10 +33,11 @@ def filter_tags(user_id=0,community_id=0):
     '''function to return the filtered tags based on LPIG'''
     sql=""
     if user_id:
-        sql="select * from togther_user_lpig where member_id_id="+str(user_id)
+        sql="select id,member_id_id,geography,interests,legacy,profession from togther_user_lpig where member_id_id="+str(user_id)
     elif community_id:
-        sql = "select * from togther_community_lpig where community_id_id=" + str(community_id)
+        sql = "select id,community_id_id,geography,interests,legacy,profession from togther_community_lpig where community_id_id=" + str(community_id)
     res=get_all_tags(sql)
+
     if res is None:
         return {}
     legacy=None
@@ -157,8 +158,10 @@ def get_relevant_score(user,community):
 
     if count_legacy==0 or count_geography==0 or count_interest == 0 or count_profession == 0:
         relevance_score=0
-    else:
+    elif count_legacy and count_geography and count_profession and count_interest:
         relevance_score=count_legacy+count_profession+count_interest+count_geography
+    else:
+        relevance_score=0
 
     return (user['user_id'],community['community_id'],relevance_score)
 
@@ -171,9 +174,8 @@ def ranking_tags(tag):
 
     id=is_tag_present(tag)
     if id:
-        print("Already Present==",id)
-        update_tag(tag,id)
-        return
+        delele_tag_by_id(id)
+
     try:
         conn = get_connection()
         curr = conn.cursor()
@@ -223,54 +225,102 @@ def update_tag(tag,id):
     except (Exception, psycopg2.Error) as error:
         print("Error while connecting  to PostgreSQL", error)
 
-def compute_rank():
+def delele_tag_by_id(id):
 
-    '''function to run '''
-    sql = "select * from togther_user_lpig"
-    all_user = get_all_data(sql)
+    '''function to delete tag by id'''
+
+    try:
+        conn = get_connection()
+        curr = conn.cursor()
+        sql = "delete from togther_community_rank where id=%s"
+        parameter = [id]
+        curr.execute(sql, parameter)
+        conn.commit()
+        curr.close()
+        conn.close()
+    except (Exception, psycopg2.Error) as error:
+        print("Error while connecting  to PostgreSQL", error)
+
+
+def action_for_user_crete_or_community_create(user_id,community_id):
+
+    '''function to handle the create user or create community'''
     user_tags = []
-
-    global_tags = get_global_id()
-    for user in all_user:
-        filter_tag = filter_tags(user_id=user[1])
-        user_tags.append(filter_tag)
-
-    # getting all communities
-    sql = "select * from togther_community_lpig"
-    all_communities = get_all_data(sql)
     community_tags = []
-    for community in all_communities:
-        filter_tag = filter_tags(community_id=community[1])
-        #
-        # if filter_tag['legacy'] is None:
-        #     filter_tag['legacy'] = [global_tags['legacy_any']]
-        #
-        # if filter_tag['profession'] is None:
-        #     filter_tag['profession'] = [global_tags['profession_any']]
-        #
-        # if filter_tag['interests'] is None:
-        #     filter_tag['interests'] = [global_tags['interest_any']]
-        #
-        # if filter_tag['geography'] is None:
-        #     filter_tag['geography'] = [global_tags['Global']]
+    if user_id is None and community_id is None:
+        sql = "select member_id_id from togther_user_lpig"
+        all_user = get_all_data(sql)
+        user_tags = []
+        for user in all_user:
+            filter_tag = filter_tags(user_id=user[0])
+            user_tags.append(filter_tag)
 
-        community_tags.append(filter_tag)
+        # getting all communities
+        sql = "select community_id_id from togther_community_lpig"
+        all_communities = get_all_data(sql)
+        community_tags = []
+        for community in all_communities:
+            filter_tag = filter_tags(community_id=community[0])
+            community_tags.append(filter_tag)
 
-    # getting relevance score
+    elif user_id is not None and community_id is None:
+        all_user = [(user_id,)]
+        user_tags = []
+        for user in all_user:
+            filter_tag = filter_tags(user_id=user[0])
+            user_tags.append(filter_tag)
 
+            # getting all communities
+            sql = "select community_id_id from togther_community_lpig"
+            all_communities = get_all_data(sql)
+            community_tags = []
+            for community in all_communities:
+                filter_tag = filter_tags(community_id=community[0])
+                community_tags.append(filter_tag)
+
+    elif user_id is None and community_id is not None:
+        sql = "select member_id_id from togther_user_lpig"
+        all_user = get_all_data(sql)
+        user_tags = []
+        for user in all_user:
+            filter_tag = filter_tags(user_id=user[0])
+            user_tags.append(filter_tag)
+
+        all_communities = [(community_id,)]
+        community_tags = []
+        for community in all_communities:
+            filter_tag = filter_tags(community_id=community[0])
+            community_tags.append(filter_tag)
+
+    return (user_tags,community_tags)
+
+@shared_task
+def compute_rank(user_id=None,community_id=None):
+
+    '''function to compute the rank of community '''
+
+    action=action_for_user_crete_or_community_create(user_id,community_id)
+    user_tags=action[0]
+    community_tags=action[1]
     for user in user_tags:
         for community in community_tags:
             score = get_relevant_score(user, community)
+            id = is_tag_present(score)
+            if id:
+                delele_tag_by_id(id)
             if score[2] != 0:
                 ranking_tags(score)
-                #print(score)
-
-
 
 
 if envir:
     if __name__ == "__main__":
         print("python file")
+        start_time=time.time()
         compute_rank()
+        end_time=time.time()
+
+        print("Execution Time--")
+        print(end_time-start_time)
+
 
 

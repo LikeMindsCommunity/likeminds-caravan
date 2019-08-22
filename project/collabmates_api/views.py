@@ -62,6 +62,7 @@ def communities(request):
                 return JsonResponse({'communities': community})
             else:
                 # if category is not provided, get categories according to the user tag if user has one
+
                 queryset = get_communities_by_tags(user_tag=user_tag,page_number = page_number,user_id=user_id)
                 community = serialize_community(queryset=queryset)
                 return JsonResponse({'communities': community})
@@ -69,6 +70,16 @@ def communities(request):
 
 def get_communities_by_tags(user_tag=0, category_tag=0,page_number=1,user_id=None):
     ''' fetching communities based on category tag and user hidden tag '''
+
+    is_user_tags = User_LPIG.objects.filter(member_id=user_id)
+
+    if is_user_tags:
+        if user_id:
+            user_tag = Community_Rank.objects.filter(member_id=user_id).values('community_id').order_by(
+                "-weight").distinct()
+            queryset = pagination(user_tag, page_number)
+            return queryset
+
     if category_tag != 0 and user_tag != 0:
         ''' if category tag and user tag ,bith are provided
             get communities ,which are the intersection of given category and user hidden tag '''
@@ -84,6 +95,8 @@ def get_communities_by_tags(user_tag=0, category_tag=0,page_number=1,user_id=Non
         #return result
         return queryset
 
+
+
     if category_tag == 0 and user_tag == 0:
         # if there is not category tag and user does not have a hidden tag too
         # just return him all the communites
@@ -92,9 +105,11 @@ def get_communities_by_tags(user_tag=0, category_tag=0,page_number=1,user_id=Non
         queryset = pagination(community, page_number)
         return queryset
 
+
+
     if category_tag == 0 and user_tag != 0:
         # if there is no category tag , then return communites based on user hidden tag
-        user_tag = Community_tags.objects.filter(tags_id=user_tag).values('community_id').order_by("-community_id").distinct()
+        user_tag = Community_Rank.objects.values('community_id').order_by("-weight").distinct()
         queryset = pagination(user_tag, page_number)
         return queryset
 
@@ -719,7 +734,7 @@ def get_collabcard_files(card_id):
         if file.type == 'Image':
             img = {'image_url': url + file.attachment.url}
             img_list.append(img)
-        elif file.type == 'Pdf':
+        elif file.type == 'pdf':
             pdf_url = {'pdf_file': url + file.attachment.url}
             pdf.append(pdf_url)
     return (img_list,pdf)
@@ -1075,6 +1090,14 @@ def create_admin(request,community_id):
         res = json.loads(request.body)
         # saving the nominated promoter details
         admin = temp_admin()
+        if 'nominate_member_id' in res:
+            nominated_member_id=res['nominate_member_id']
+            try:
+                user_data=Userinfo.objects.get(user_id=nominated_member_id)
+                res['name']=user_data.name
+                res['email_id']=user_data.email
+            except:
+                print("Error in object")
         if 'name' in res:
             admin.name = res['name']
         if 'email_id' in res:
@@ -1612,4 +1635,39 @@ def decode_url(request):
     return JsonResponse({'og_tags':og_tags})
 
 
+def all_members(request):
+    '''function to send all user data '''
+    page=request.GET.get('page')
+    community_id=request.GET.get('community_id')
+    all_users=Userinfo.objects.all()
 
+    query_set=pagination(all_users,page,paginate_by=20)
+    user_data=[]
+    for user in query_set:
+        user_object=UserinfoSerializer(user)
+        state=Members.objects.filter(community_id=community_id,member_id_id=user.user_id).values('state')
+        if state:
+            state=state[0]['state']
+        else:
+            state=0
+        user_object['state']=state
+        user_data.append(user_object)
+
+    return JsonResponse({'members':user_data})
+
+def member_activity(request):
+
+    '''function to check whether the member created the collabcard or not'''
+
+    state=0
+    community_id=request.GET.get('community_id')
+    user_id=request.GET.get('member_id')
+
+    community=Community.objects.get(pk=community_id)
+    member=User.objects.get(pk=user_id)
+
+    status=Collabcard.objects.filter(community=community,user=member)
+
+    if status:
+        state=1
+    return JsonResponse({'state':state})
