@@ -1594,7 +1594,7 @@ def decode_url(request):
     return JsonResponse({'og_tags':og_tags})
 
 
-def api_members(request):
+def all_members(request):
     '''function to send all user data '''
     page=request.GET.get('page')
     community_id=request.GET.get('community_id')
