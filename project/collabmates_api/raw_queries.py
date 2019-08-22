@@ -302,10 +302,12 @@ def compute_rank(user_id=None,community_id=None):
     action=action_for_user_crete_or_community_create(user_id,community_id)
     user_tags=action[0]
     community_tags=action[1]
-
     for user in user_tags:
         for community in community_tags:
             score = get_relevant_score(user, community)
+            id = is_tag_present(score)
+            if id:
+                delele_tag_by_id(id)
             if score[2] != 0:
                 ranking_tags(score)
 
