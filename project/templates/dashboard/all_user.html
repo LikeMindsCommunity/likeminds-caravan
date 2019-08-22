@@ -131,8 +131,11 @@ a.article-title:hover {
                 <a class="btn btn-info btn-sm mt-1 mb-1 mr-4 " href="{% url 'user_communities' user.user_id %}">Communities
                     : ({{user.communities_count}})</a>
                 {% endif %}
-
-                <a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 " href="{% url 'update_user_tags' user.user_id %}">User Tags</a>
+                {% if user.tags_count == 0 %}
+                <a class="btn btn-danger btn-sm mt-1 mb-1 mr-4 " href="{% url 'update_user_tags' user.user_id %}">User Tags : ({{user.tags_count}})</a>
+                {% elif user.tags_count > 0 %}
+                <a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 " href="{% url 'update_user_tags' user.user_id %}">User Tags : ({{user.tags_count}})</a>
+                {% endif %}
 
 
 
