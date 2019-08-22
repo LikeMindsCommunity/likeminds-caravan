@@ -1620,7 +1620,7 @@ def all_members(request):
         user_object['state']=state
         user_data.append(user_object)
 
-    return JsonResponse({'user_data':user_data})
+    return JsonResponse({'members':user_data})
 
 def member_activity(request):
 
