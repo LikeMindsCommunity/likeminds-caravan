@@ -907,7 +907,8 @@ def get_or_create_tag_attributes_list(tags,tag_type):
     for tag in tags:
 
         try:
-            tag = Tags_lpig.objects.get(name=tag)
+            tag = Tags_lpig.objects.filter(Q(name__icontains = tag))
+            tag=tag[0]
         except:
             # pass
             new_tag = tag

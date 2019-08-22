@@ -31,7 +31,6 @@
 </div>
 <h2 align="left" style="padding-left:20px">Hidden Tags</h2>
 
-
 <br>
 <br>
 
@@ -90,7 +89,7 @@
 
 </body>
 </html>
-
+{% autoescape off %}
 
 <script>
 $('#legacy').tagsInput({
@@ -107,12 +106,15 @@ $('#legacy').tagsInput({
 
 });
 
+
 $('#profession').tagsInput({
 
   'autocomplete': {
     source: [
   {%for tag in profession_tags %}
+
   '{{tag}}',
+
   {%endfor%}
     ]
   }
@@ -192,3 +194,5 @@ $('#geography').tagsInput({
     })
 
 </script>
+
+{% endautoescape %}
