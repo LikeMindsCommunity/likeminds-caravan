@@ -427,9 +427,8 @@ def get_user_tags_count(user_id):
                 else:
                     tags_count += 1
 
-
-
     return tags_count
+
 
 def update_user(request,user_id):
 
@@ -767,8 +766,11 @@ def hidden_tags(request,community_id):
                 global_tag = Tags_lpig.objects.get(name='legacy_any')
                 if tag == global_tag.id:
                     continue
-                tag_object = Tags_lpig.objects.get(pk=tag)
-                hidden_legacy_tag=hidden_legacy_tag+tag_object.name+","
+                try:
+                    tag_object = Tags_lpig.objects.get(pk=tag)
+                    hidden_legacy_tag=hidden_legacy_tag+tag_object.name+","
+                except:
+                    pass
 
         if not hidden_tags.profession == None:
 
@@ -777,8 +779,11 @@ def hidden_tags(request,community_id):
                 global_tag = Tags_lpig.objects.get(name='profession_any')
                 if tag == global_tag.id:
                     continue
-                tag_object = Tags_lpig.objects.get(pk=tag)
-                hidden_profession_tag=hidden_profession_tag+tag_object.name+","
+                try:
+                    tag_object = Tags_lpig.objects.get(pk=tag)
+                    hidden_profession_tag=hidden_profession_tag+tag_object.name+","
+                except:
+                    pass
 
         if not hidden_tags.interests == None:
 
@@ -787,8 +792,11 @@ def hidden_tags(request,community_id):
                 global_tag = Tags_lpig.objects.get(name='interest_any')
                 if tag == global_tag.id:
                     continue
-                tag_object = Tags_lpig.objects.get(pk=tag)
-                hidden_interests_tag=hidden_interests_tag+tag_object.name+","
+                try:
+                    tag_object = Tags_lpig.objects.get(pk=tag)
+                    hidden_interests_tag=hidden_interests_tag+tag_object.name+","
+                except:
+                    pass
 
         if not hidden_tags.geography == None:
 
@@ -797,8 +805,11 @@ def hidden_tags(request,community_id):
                 global_tag = Tags_lpig.objects.get(name='Global')
                 if tag == global_tag.id:
                     continue
-                tag_object = Tags_lpig.objects.get(pk=tag)
-                hidden_geography_tag = hidden_geography_tag+tag_object.name+","
+                try:
+                    tag_object = Tags_lpig.objects.get(pk=tag)
+                    hidden_geography_tag = hidden_geography_tag+tag_object.name+","
+                except:
+                    pass
 
     context={
         'legacy_tags':legacy_tags,
@@ -1223,8 +1234,11 @@ def user_tags(request,user_id):
                 global_tag = Tags_lpig.objects.get(name='legacy_any')
                 if tag == global_tag.id:
                     continue
-                tag_object = Tags_lpig.objects.get(pk=tag)
-                hidden_legacy_tag=hidden_legacy_tag+tag_object.name+","
+                try:
+                    tag_object = Tags_lpig.objects.get(pk=tag)
+                    hidden_legacy_tag=hidden_legacy_tag+tag_object.name+","
+                except:
+                    pass
 
         if not hidden_tags.profession == None:
 
@@ -1233,8 +1247,11 @@ def user_tags(request,user_id):
                 global_tag = Tags_lpig.objects.get(name='profession_any')
                 if tag == global_tag.id:
                     continue
-                tag_object = Tags_lpig.objects.get(pk=tag)
-                hidden_profession_tag=hidden_profession_tag+tag_object.name+","
+                try:
+                    tag_object = Tags_lpig.objects.get(pk=tag)
+                    hidden_profession_tag=hidden_profession_tag+tag_object.name+","
+                except:
+                    pass
 
         if not hidden_tags.interests == None:
 
@@ -1243,8 +1260,11 @@ def user_tags(request,user_id):
                 global_tag = Tags_lpig.objects.get(name='interest_any')
                 if tag == global_tag.id:
                     continue
-                tag_object = Tags_lpig.objects.get(pk=tag)
-                hidden_interests_tag=hidden_interests_tag+tag_object.name+","
+                try:
+                    tag_object = Tags_lpig.objects.get(pk=tag)
+                    hidden_interests_tag=hidden_interests_tag+tag_object.name+","
+                except:
+                    pass
 
         if not hidden_tags.geography == None:
 
@@ -1253,8 +1273,11 @@ def user_tags(request,user_id):
                 global_tag = Tags_lpig.objects.get(name='Global')
                 if tag == global_tag.id:
                     continue
-                tag_object = Tags_lpig.objects.get(pk=tag)
-                hidden_geography_tag = hidden_geography_tag+tag_object.name+","
+                try:
+                    tag_object = Tags_lpig.objects.get(pk=tag)
+                    hidden_geography_tag = hidden_geography_tag+tag_object.name+","
+                except:
+                    pass
 
     context={
         'legacy_tags':legacy_tags,
