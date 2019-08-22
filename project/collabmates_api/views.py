@@ -1090,6 +1090,14 @@ def create_admin(request,community_id):
         res = json.loads(request.body)
         # saving the nominated promoter details
         admin = temp_admin()
+        if 'nominate_member_id' in res:
+            nominated_member_id=res['nominate_member_id']
+            try:
+                user_data=Userinfo.objects.get(user_id=nominated_member_id)
+                res['name']=user_data.name
+                res['email_id']=user_data.email
+            except:
+                print("Error in object")
         if 'name' in res:
             admin.name = res['name']
         if 'email_id' in res:
