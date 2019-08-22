@@ -1594,4 +1594,39 @@ def decode_url(request):
     return JsonResponse({'og_tags':og_tags})
 
 
+def api_members(request):
+    '''function to send all user data '''
+    page=request.GET.get('page')
+    community_id=request.GET.get('community_id')
+    all_users=Userinfo.objects.all()
 
+    query_set=pagination(all_users,page,paginate_by=20)
+    user_data=[]
+    for user in query_set:
+        user_object=UserinfoSerializer(user)
+        state=Members.objects.filter(community_id=community_id,member_id_id=user.user_id).values('state')
+        if state:
+            state=state[0]['state']
+        else:
+            state=0
+        user_object['state']=state
+        user_data.append(user_object)
+
+    return JsonResponse({'user_data':user_data})
+
+def member_activity(request):
+
+    '''function to check whether the member created the collabcard or not'''
+
+    state=0
+    community_id=request.GET.get('community_id')
+    user_id=request.GET.get('member_id')
+
+    community=Community.objects.get(pk=community_id)
+    member=User.objects.get(pk=user_id)
+
+    status=Collabcard.objects.filter(community=community,user=member)
+
+    if status:
+        state=1
+    return JsonResponse({'state':state})
