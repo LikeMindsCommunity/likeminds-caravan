@@ -1090,6 +1090,11 @@ def create_admin(request,community_id):
         res = json.loads(request.body)
         # saving the nominated promoter details
         admin = temp_admin()
+        if 'member_id' in res:
+
+            member_id = res['member_id']
+            promoter = Userinfo.objects.get(user_id=member_id)
+            promoter_email = promoter.email
         if 'nominate_member_id' in res:
             nominated_member_id=res['nominate_member_id']
             try:
@@ -1101,6 +1106,11 @@ def create_admin(request,community_id):
         if 'name' in res:
             admin.name = res['name']
         if 'email_id' in res:
+            try:
+                if res['email_id'] == promoter_email:
+                    return JsonResponse({'success':True})
+            except:
+                pass
             admin.email = res['email_id']
         if 'contact_no' in res:
             admin.contact_number = res['contact_no']
@@ -1639,7 +1649,7 @@ def all_members(request):
     '''function to send all user data '''
     page=request.GET.get('page')
     community_id=request.GET.get('community_id')
-    all_users=Userinfo.objects.all()
+    all_users=Userinfo.objects.all().order_by("name")
 
     query_set=pagination(all_users,page,paginate_by=20)
     user_data=[]
