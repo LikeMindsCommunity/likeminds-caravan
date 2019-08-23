@@ -24,6 +24,7 @@ from .firebase import update_last_answer_id
 import re
 import googlemaps
 from utility.utils import decode_meta_from_url
+from .raw_queries import compute_rank
 
 url  = settings.URL
 
@@ -1529,12 +1530,11 @@ def update_location(request):
         userinfo.latitude = latitude
         userinfo.longitude = longitude
         userinfo.save()
-        city = get_user_location(request,userinfo.user_id,'city')
-        city = json.loads(city.content.decode('utf-8'))
-        userinfo.city = city['location']
-        userinfo.save()
-
         all_location_tags = get_user_location(request, userinfo.user_id, 'all')
+        city = all_location_tags['city']
+        userinfo.city = city
+        userinfo.address = all_location_tags['address']
+        userinfo.save()
 
         update_user_city_tag( userinfo.user_id, all_location_tags)
 
@@ -1549,7 +1549,8 @@ def update_user_city_tag(user_id,location):
 
     for attr,loc_tag in location.items():
 
-
+        if attr == 'address':
+            continue
         try:
 
             hidden_tags = User_LPIG.objects.get(member_id=user_id)
@@ -1581,13 +1582,13 @@ def update_user_city_tag(user_id,location):
     return
 
 
-
 def get_or_create_lpig_tags(tag,category,attr):
     ''' function to create new tags '''
     try:
         tag = Tags_lpig.objects.get(name=tag)
 
     except:
+        attr = category+"_uncat"
         new_tag = tag
         category = Category.objects.filter(Q(name__icontains=category))[0]
         attribute = Attributes.objects.filter(Q(attribute_name__icontains=attr))[0]
@@ -1595,6 +1596,8 @@ def get_or_create_lpig_tags(tag,category,attr):
         tag.name = new_tag
         tag.category_id = category
         tag.attribute_id = attribute
+        tag.save()
+        tag.tag_id = tag.id
         tag.save()
     return tag.id
 
@@ -1606,12 +1609,13 @@ def get_user_location(request,user_id,type=None):
         type = request.GET.get('type','')
         flag = False
     userinfo = Userinfo.objects.get(user_id=user_id)
-    print("lat and long === ",userinfo.latitude , userinfo.longitude)
 
     gmaps = googlemaps.Client(key='AIzaSyDN10TwCPVMdLEE6vvTiglKHGlkTIYKduc')
     location_response = gmaps.reverse_geocode((userinfo.latitude,userinfo.longitude))
 
-    addr=location_response[0]['formatted_address']
+
+    addr=location_response[1]['formatted_address']
+    print(addr)
     address=addr.split(',')
     if type and type == 'address':
         response = {'location':addr}
@@ -1646,12 +1650,13 @@ def get_user_location(request,user_id,type=None):
         response['pincode'] = address[-2][-6:].strip()
         response['state'] = address[-2][:-7].strip()
         response['country'] = address[-1].strip()
+        response['address'] = addr
 
         if flag:
             return response
 
 
-    return JsonResponse(response,safe=False)
+    return JsonResponse(location_response,safe=False)
 
 
 def decode_url(request):
@@ -1700,3 +1705,4 @@ def member_activity(request):
     if status:
         state=1
     return JsonResponse({'state':state})
+
