@@ -34,5 +34,6 @@ urlpatterns = [
     path('create_tag',create_tag,name = 'create_tag'),
     path('categorize_tag',categorize_tag,name = 'categorize_tag'),
     path('delete_hidden_tags', delete_hidden_tags, name='delete_hidden_tags'),
+    path('map_tags', map_tags, name='map_tags'),
 
 ]

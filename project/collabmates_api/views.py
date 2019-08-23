@@ -1170,6 +1170,17 @@ def check_member(email,community_id,member_id,res):
             send_email_to_nominated_admin.delay(NominatedAdmin=NominatedAdmin,email=email,ProposedAdmin=ProposedAdmin,proposedAdminState = proposedAdminState,CommunityName=CommunityName,community_id =community.id)
             send_notification_to_proposed_admin.delay(nominated_admin_id = NominatedAdmin_id, community_id= community.id, proposed_admin_name=ProposedAdmin )
 
+        elif member and (member[0].state == 1 or member[0].state == 2):
+            return True
+
+        elif member and (member[0].state == 3 or member[0].state == 5):
+            Members.objects.filter(community_id = community,member_id = user[0].user_id.id).update(state=6)
+            send_email_to_nominated_admin.delay(NominatedAdmin=NominatedAdmin, email=email, ProposedAdmin=ProposedAdmin,
+                                                proposedAdminState=proposedAdminState, CommunityName=CommunityName,
+                                                community_id=community.id)
+            send_notification_to_proposed_admin.delay(nominated_admin_id=NominatedAdmin_id, community_id=community.id,
+                                                      proposed_admin_name=ProposedAdmin)
+
         else:
             # if user is not anything to the community and he is nominated as promoter
             # create a member instance , making the user a nominated promoter giving user state = 6
@@ -1534,7 +1545,10 @@ def update_location(request):
 def update_user_city_tag(user_id,location):
     ''' function to update city tag for user '''
 
+    global_tag = Tags_lpig.objects.get(name='Global')
+
     for attr,loc_tag in location.items():
+
 
         try:
 
@@ -1551,12 +1565,17 @@ def update_user_city_tag(user_id,location):
                     hidden_tags.geography = json.dumps(hidden_geography_tags)
                     hidden_tags.save()
 
+                if not global_tag.id in hidden_geography_tags:
+                    hidden_geography_tags.append(global_tag.id)
+                    hidden_tags.geography = json.dumps(hidden_geography_tags)
+                    hidden_tags.save()
+
         except:
 
             tag_id = get_or_create_lpig_tags(tag=loc_tag, attr=attr, category='Geography')
             user_lpig = User_LPIG()
             user_lpig.member_id = user_id
-            user_lpig.geography = json.dumps([tag_id, 18])
+            user_lpig.geography = json.dumps([tag_id, global_tag.id])
             user_lpig.save()
 
     return
@@ -1580,7 +1599,7 @@ def get_or_create_lpig_tags(tag,category,attr):
     return tag.id
 
 
-def get_user_location(request,user_id,type=''):
+def get_user_location(request,user_id,type=None):
     ''' function to fetch user location '''
     flag = True
     if not type:
