@@ -955,10 +955,12 @@ def create_uncategorized_tag(tag,tag_type):
 def delete_hidden_tags(request):
 
     '''function to delete the hidden tags'''
-    community_id=request.GET.get('community_id')
-    community=Community.objects.get(id=community_id)
-    delete=Community_tags.objects.filter(community_id=community,state=1).delete()
-    return JsonResponse({'delete':delete})
+
+    tag = request.GET.get('del_uncategorized')
+    Tags_lpig.objects.filter(pk=tag).delete()
+
+    return JsonResponse({'success': True})
+
 
 
 def add_location_tags(location,community_id):
@@ -1138,7 +1140,6 @@ def get_user_communities(user_id):
   
 @csrf_exempt
 def create_tag(request):
-    print("insode", request.method)
     if request.method == 'POST':
         category = request.POST.get('category')
         attribute = request.POST.get('attribute')
@@ -1183,7 +1184,6 @@ def get_or_create_sub_tags(new_tag,category,attribute):
 
 @csrf_exempt
 def categorize_tag(request):
-    print("insode ====== ",request.method)
 
     if request.method == 'POST':
         category = request.POST.get('category')
