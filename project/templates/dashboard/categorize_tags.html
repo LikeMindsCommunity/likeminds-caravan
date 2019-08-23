@@ -88,6 +88,7 @@ $(window).load(function(){
 
 <br>
 
+
 <h2 style="padding-top:20px;padding-left:50px;">Mapping Tags</h2>
 
 
@@ -132,6 +133,44 @@ $(window).load(function(){
         <button id="submit_map" type="submit" class="btn btn-primary">Submit</button>
     </form>
 </div>
+<br>
+<br>
+
+<h2 style="padding-top:20px;padding-left:50px;">Delete Tags</h2>
+
+
+<div style=" width:1000px;padding-top:20px;padding-left:50px;">
+    <form id="delete_form">
+
+
+
+        <div class="form-row">
+
+            <div class="form-group col-md-4">
+                <label for="del_uncategorized">Uncategorized Tag</label>
+                <select id="del_uncategorized" class="form-control">
+                    <option selected style="color:black;">Choose...</option>
+                    {% for cat in uncategortized_tags %}
+                    <option value="{{cat.id}}">{{cat.name}}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+        </div>
+        <br>
+
+
+        <button id="submit_del" type="submit" class="btn btn-danger">Delete</button>
+    </form>
+</div>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
 
 {% autoescape off %}
 
@@ -193,8 +232,6 @@ $("#category").on('change',function(){
          attribute=$('#attribute').val();
          uncategorized = $('#uncategorized').val();
 
-         select=""
-
          temp={
             'category':category,
            'attribute':attribute,
@@ -227,8 +264,6 @@ $("#category").on('change',function(){
          map_uncategorized=$('#map_uncategorized').val();
          map_tags=$('#map_tags').val();
 
-         select=""
-
          temp={
             'uncategorized_tag':map_uncategorized,
            'mapped_tag':map_tags
@@ -253,6 +288,39 @@ $("#category").on('change',function(){
        })
 
     })
+
+
+    $(document).ready(function(){
+
+       $('#delete_form').on('submit',function()
+       {
+         del_uncategorized=$('#del_uncategorized').val();
+
+
+         temp={
+            'del_uncategorized':del_uncategorized,
+
+         }
+         console.log(temp)
+
+         $.ajax({
+
+            url:'/admin_dashboard/delete_hidden_tags',
+
+            data:temp,
+            dataType:'json',
+            success:function(data){
+               console.log('hello')
+               location.reload(true)
+
+            }
+
+         })
+
+       })
+
+    })
+
 
 </script>
 {% endautoescape %}
