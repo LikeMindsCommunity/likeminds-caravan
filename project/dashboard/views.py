@@ -1206,7 +1206,10 @@ def categorize_tag(request):
                                                        Q(attribute_id = interests_uncat.id )|
                                                        Q(attribute_id = geography_uncat.id ))
 
-        categortized_tags = Tags_lpig.objects.filter(~Q(attribute_id__id = legacy_uncat.id )|~Q(attribute_id__id = profession_uncat.id)|~Q(attribute_id__id = interests_uncat.id)|~Q(attribute_id__id = geography_uncat.id))
+        categortized_tags = Tags_lpig.objects.filter(~Q(attribute_id__id = legacy_uncat.id )|
+                                                     ~Q(attribute_id__id = profession_uncat.id)|
+                                                     ~Q(attribute_id__id = interests_uncat.id)|
+                                                     ~Q(attribute_id__id = geography_uncat.id)).order_by("name")
 
 
         legacy_attributes  = Attributes.objects.filter(Q(attribute_name__icontains = 'Legacy')
