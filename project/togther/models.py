@@ -266,7 +266,7 @@ class Tags_lpig(models.Model):
     name = models.CharField(max_length=512, null=True,unique=True)
     attribute_id=models.ForeignKey(Attributes,on_delete=models.CASCADE)
     category_id=models.ForeignKey(Category,on_delete=models.CASCADE)
-
+    correct_tag_id=models.IntegerField(null=True)
     def __str__(self):
         return self.name
 
