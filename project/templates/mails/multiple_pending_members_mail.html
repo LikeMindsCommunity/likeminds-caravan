@@ -156,8 +156,8 @@
                                                                 </td>
                                                             </tr>
                                                             <tr style="height:3px; " >
-    <td width="10px" bgcolor="#f2f2f2"></td>
-  </tr>
+                                                                <td width="10px" bgcolor="#f2f2f2"></td>
+                                                            </tr>
 
                                                                 <td align="center" style="padding:0 16px 5px">
                                                                     <table align="center" border="0"
@@ -352,7 +352,7 @@
                                                                                                                                    style="font-weight: bold;letter-spacing: normal;line-height: 100%;text-align: center;text-decoration: none;color: #FFFFFF;">
                                                                                                                                      {% if remaining_pending_requests > 0 %}
                                                                                                                                     See all requests
-                                                                                                                                    {% elif remaining_pending_requests == 0 %}
+                                                                                                                                    {% elif remaining_pending_requests <= 0 %}
                                                                                                                                     Respond to requests
                                                                                                                                     {% endif %}
                                                                                                                                 </a>
@@ -372,9 +372,19 @@
                                                                                                     </table>
                                                                                                 </a></td>
                                                                                             </tr>
-                                                                                            <tr>
-                                                                                                <table align="left" border="0" cellpadding="0" cellspacing="0"
-                                                           style="max-width:100%; min-width:100%; " width="100%">
+
+
+                                                                                            </tbody>
+                                                                                        </table>
+                                                                                    </td>
+
+                                                                                    </tbody>
+                                                                                </table>
+                                                                            </td>
+                                                                        </tr>
+                                                                        <tr>
+                                                                                                <table align="left" border="0" cellpadding="5" cellspacing="0"
+                                                           style="max-width:80%; min-width:100%; " width="100%">
 
                                                         <tr style="background-color:#f2f2f2">
                                                             <td style="padding-top:5px;padding-left:18px;">
@@ -398,18 +408,16 @@
 
                                                     </table>
                                                                                             </tr>
-                                                                                            </tbody>
-                                                                                        </table>
-                                                                                    </td>
-                                                                                    </tbody>
-                                                                                </table>
-                                                                            </td>
-                                                                        </tr>
+
+
                                                                        </tr>
+
                                                                         </tbody>
                                                                     </table>
                                                                 </td>
                                                             </tr>
+
+
 
 
                                                             </tbody>

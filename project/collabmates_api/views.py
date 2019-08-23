@@ -24,11 +24,9 @@ from .firebase import update_last_answer_id
 import re
 import googlemaps
 from utility.utils import decode_meta_from_url
-from .raw_queries import get_relevant_list
-
+from .raw_queries import compute_rank
 
 url  = settings.URL
-
 
 def communities(request):
     '''function to get all the communities'''
@@ -65,6 +63,7 @@ def communities(request):
                 return JsonResponse({'communities': community})
             else:
                 # if category is not provided, get categories according to the user tag if user has one
+
                 queryset = get_communities_by_tags(user_tag=user_tag,page_number = page_number,user_id=user_id)
                 community = serialize_community(queryset=queryset)
                 return JsonResponse({'communities': community})
@@ -72,6 +71,16 @@ def communities(request):
 
 def get_communities_by_tags(user_tag=0, category_tag=0,page_number=1,user_id=None):
     ''' fetching communities based on category tag and user hidden tag '''
+
+    is_user_tags = User_LPIG.objects.filter(member_id=user_id)
+
+    if is_user_tags:
+        if user_id:
+            user_tag = Community_Rank.objects.filter(member_id=user_id).values('community_id').order_by(
+                "-weight").distinct()
+            queryset = pagination(user_tag, page_number)
+            return queryset
+
     if category_tag != 0 and user_tag != 0:
         ''' if category tag and user tag ,bith are provided
             get communities ,which are the intersection of given category and user hidden tag '''
@@ -87,6 +96,8 @@ def get_communities_by_tags(user_tag=0, category_tag=0,page_number=1,user_id=Non
         #return result
         return queryset
 
+
+
     if category_tag == 0 and user_tag == 0:
         # if there is not category tag and user does not have a hidden tag too
         # just return him all the communites
@@ -95,9 +106,11 @@ def get_communities_by_tags(user_tag=0, category_tag=0,page_number=1,user_id=Non
         queryset = pagination(community, page_number)
         return queryset
 
+
+
     if category_tag == 0 and user_tag != 0:
         # if there is no category tag , then return communites based on user hidden tag
-        user_tag = Community_tags.objects.filter(tags_id=user_tag).values('community_id').order_by("-community_id").distinct()
+        user_tag = Community_Rank.objects.values('community_id').order_by("-weight").distinct()
         queryset = pagination(user_tag, page_number)
         return queryset
 
@@ -722,7 +735,7 @@ def get_collabcard_files(card_id):
         if file.type == 'Image':
             img = {'image_url': url + file.attachment.url}
             img_list.append(img)
-        elif file.type == 'Pdf':
+        elif file.type == 'pdf':
             pdf_url = {'pdf_file': url + file.attachment.url}
             pdf.append(pdf_url)
     return (img_list,pdf)
@@ -1078,9 +1091,27 @@ def create_admin(request,community_id):
         res = json.loads(request.body)
         # saving the nominated promoter details
         admin = temp_admin()
+        if 'member_id' in res:
+
+            member_id = res['member_id']
+            promoter = Userinfo.objects.get(user_id=member_id)
+            promoter_email = promoter.email
+        if 'nominate_member_id' in res:
+            nominated_member_id=res['nominate_member_id']
+            try:
+                user_data=Userinfo.objects.get(user_id=nominated_member_id)
+                res['name']=user_data.name
+                res['email_id']=user_data.email
+            except:
+                print("Error in object")
         if 'name' in res:
             admin.name = res['name']
         if 'email_id' in res:
+            try:
+                if res['email_id'] == promoter_email:
+                    return JsonResponse({'success':True})
+            except:
+                pass
             admin.email = res['email_id']
         if 'contact_no' in res:
             admin.contact_number = res['contact_no']
@@ -1139,6 +1170,17 @@ def check_member(email,community_id,member_id,res):
             # if he is nominated again just send hime a remainding mail and notification
             send_email_to_nominated_admin.delay(NominatedAdmin=NominatedAdmin,email=email,ProposedAdmin=ProposedAdmin,proposedAdminState = proposedAdminState,CommunityName=CommunityName,community_id =community.id)
             send_notification_to_proposed_admin.delay(nominated_admin_id = NominatedAdmin_id, community_id= community.id, proposed_admin_name=ProposedAdmin )
+
+        elif member and (member[0].state == 1 or member[0].state == 2):
+            return True
+
+        elif member and (member[0].state == 3 or member[0].state == 5):
+            Members.objects.filter(community_id = community,member_id = user[0].user_id.id).update(state=6)
+            send_email_to_nominated_admin.delay(NominatedAdmin=NominatedAdmin, email=email, ProposedAdmin=ProposedAdmin,
+                                                proposedAdminState=proposedAdminState, CommunityName=CommunityName,
+                                                community_id=community.id)
+            send_notification_to_proposed_admin.delay(nominated_admin_id=NominatedAdmin_id, community_id=community.id,
+                                                      proposed_admin_name=ProposedAdmin)
 
         else:
             # if user is not anything to the community and he is nominated as promoter
@@ -1482,53 +1524,97 @@ def update_location(request):
     user_id = request.GET.get('member_id')
     latitude = request.GET.get('latitude')
     longitude = request.GET.get('longitude')
-    userinfo = Userinfo.objects.get(user_id =user_id)
+    userinfo = Userinfo.objects.get(user_id__id =user_id)
 
     if not userinfo.latitude and not userinfo.longitude:
         userinfo.latitude = latitude
         userinfo.longitude = longitude
         userinfo.save()
-        city = get_user_location(request,userinfo.user_id,'city')
-        city = json.loads(city.content.decode('utf-8'))
-        userinfo.city = city['location']
+        all_location_tags = get_user_location(request, userinfo.user_id, 'all')
+        city = all_location_tags['city']
+        userinfo.city = city
+        userinfo.address = all_location_tags['address']
         userinfo.save()
 
-        all_location_tags = get_user_location(request, userinfo.user_id, 'all')
+        update_user_city_tag( userinfo.user_id, all_location_tags)
 
-
-        update_user_city_tag(user_id, all_location_tags)
     return JsonResponse({'success':True})
 
 
 @shared_task
 def update_user_city_tag(user_id,location):
     ''' function to update city tag for user '''
-    for loc in location:
-        print("loc ====== ",loc)
+
+    global_tag = Tags_lpig.objects.get(name='Global')
+
+    for attr,loc_tag in location.items():
+
+        if attr == 'address':
+            continue
         try:
-            tag = Tags.objects.get(category_name = loc)
+
+            hidden_tags = User_LPIG.objects.get(member_id=user_id)
+            if not hidden_tags.geography == None:
+
+                hidden_geography_tags = json.loads(hidden_tags.geography)
+
+                tag_id = get_or_create_lpig_tags(tag = loc_tag,attr = attr,category = 'Geography')
+
+                if not tag_id in hidden_geography_tags:
+                    hidden_geography_tags.append(tag_id)
+                    print(hidden_geography_tags)
+                    hidden_tags.geography = json.dumps(hidden_geography_tags)
+                    hidden_tags.save()
+
+                if not global_tag.id in hidden_geography_tags:
+                    hidden_geography_tags.append(global_tag.id)
+                    hidden_tags.geography = json.dumps(hidden_geography_tags)
+                    hidden_tags.save()
+
         except:
-            tag = Tags()
-            tag.category_name = loc
-            tag.state =1
-            tag.save()
-        user_tag = userinfo_tags()
-        user_tag.tag_id = tag.id
-        user_tag.user_id = user_id
-        user_tag.save()
+
+            tag_id = get_or_create_lpig_tags(tag=loc_tag, attr=attr, category='Geography')
+            user_lpig = User_LPIG()
+            user_lpig.member_id = user_id
+            user_lpig.geography = json.dumps([tag_id, global_tag.id])
+            user_lpig.save()
+
+    return
 
 
-def get_user_location(request,user_id,type=''):
+def get_or_create_lpig_tags(tag,category,attr):
+    ''' function to create new tags '''
+    try:
+        tag = Tags_lpig.objects.get(name=tag)
+
+    except:
+        attr = category+"_uncat"
+        new_tag = tag
+        category = Category.objects.filter(Q(name__icontains=category))[0]
+        attribute = Attributes.objects.filter(Q(attribute_name__icontains=attr))[0]
+        tag = Tags_lpig()
+        tag.name = new_tag
+        tag.category_id = category
+        tag.attribute_id = attribute
+        tag.save()
+        tag.tag_id = tag.id
+        tag.save()
+    return tag.id
+
+
+def get_user_location(request,user_id,type=None):
     ''' function to fetch user location '''
+    flag = True
     if not type:
         type = request.GET.get('type','')
+        flag = False
     userinfo = Userinfo.objects.get(user_id=user_id)
-    print("lat and long === ",userinfo.latitude , userinfo.longitude)
 
     gmaps = googlemaps.Client(key='AIzaSyDN10TwCPVMdLEE6vvTiglKHGlkTIYKduc')
     location_response = gmaps.reverse_geocode((userinfo.latitude,userinfo.longitude))
 
-    addr=location_response[0]['formatted_address']
+
+    addr=location_response[1]['formatted_address']
     address=addr.split(',')
     if type and type == 'address':
         response = {'location':addr}
@@ -1558,16 +1644,16 @@ def get_user_location(request,user_id,type=''):
 
         # return list [city,state,country,pincode]
 
-        # response = {}
-        # response['city']  = address[-3].strip()
-        # response['pincode'] = address[-2][-6:].strip()
-        # response['state'] = address[-2][:-7].strip()
-        # response['country'] = address[-1].strip()
+        response = {}
+        response['city']  = address[-3].strip()
+        response['pincode'] = address[-2][-6:].strip()
+        response['state'] = address[-2][:-7].strip()
+        response['country'] = address[-1].strip()
+        response['address'] = addr
 
-        return [address[-3].strip(),
-                address[-2][:-7].strip(),
-                address[-1].strip(),
-                address[-2][-6:].strip()]
+        if flag:
+            return response
+
 
     return JsonResponse(response,safe=False)
 
@@ -1582,4 +1668,40 @@ def decode_url(request):
     return JsonResponse({'og_tags':og_tags})
 
 
+def all_members(request):
+    '''function to send all user data '''
+    page=request.GET.get('page')
+    community_id=request.GET.get('community_id')
+    all_users=Userinfo.objects.all().order_by("name")
+
+    query_set=pagination(all_users,page,paginate_by=20)
+    user_data=[]
+    for user in query_set:
+        user_object=UserinfoSerializer(user)
+        state=Members.objects.filter(community_id=community_id,member_id_id=user.user_id).values('state')
+        if state:
+            state=state[0]['state']
+        else:
+            state=0
+        user_object['state']=state
+        user_data.append(user_object)
+
+    return JsonResponse({'members':user_data})
+
+def member_activity(request):
+
+    '''function to check whether the member created the collabcard or not'''
+
+    state=0
+    community_id=request.GET.get('community_id')
+    user_id=request.GET.get('member_id')
+
+    community=Community.objects.get(pk=community_id)
+    member=User.objects.get(pk=user_id)
+
+    status=Collabcard.objects.filter(community=community,user=member)
+
+    if status:
+        state=1
+    return JsonResponse({'state':state})
 

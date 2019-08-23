@@ -3,9 +3,10 @@
 
 import  psycopg2
 
-db_user="apoorv"
-db_password="khare"
-db_host="18.219.130.243"
+
+db_user="nateshr"
+db_password="connectNRpostgresql"
+db_host= 'collabmatesdatabase.cgx3gr7xnezq.ap-south-1.rds.amazonaws.com'
 db_database="togther"
 db_port="5432"
 
@@ -21,5 +22,4 @@ def get_connection():
         return connection
     except (Exception, psycopg2.Error) as error:
         print ("Error while connecting  to PostgreSQL", error)
-
 

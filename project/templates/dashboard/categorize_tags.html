@@ -1,0 +1,328 @@
+
+<!DOCTYPE html>
+<html>
+<!-- Latest compiled and minified CSS -->
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+      integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+<!-- jQuery library -->
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+<!-- Latest compiled JavaScript -->
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/js/bootstrap.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.3.1.min.js"
+        integrity="sha384-tsQFqpEReu7ZLhBV2VZlAu7zcOV+rXbYlF2cqB8txI/8aZajjp4Bqd+V6D5IgvKT"
+        crossorigin="anonymous"></script>
+
+<script type='text/javascript'
+  src='http://code.jquery.com/jquery-1.8.3.js'></script>
+<script type='text/javascript'
+  src="http://cdn.jsdelivr.net/select2/3.4.1/select2.min.js"></script>
+<link rel="stylesheet" type="text/css"
+  href="http://cdn.jsdelivr.net/select2/3.4.1/select2.css">
+<script type='text/javascript'
+  src="http://globaltradeconcierge.com/javascripts/bootstrap.min.js"></script>
+<script type='text/javascript'>
+$(window).load(function(){
+   $('#map_tags').select2();
+});
+</script>
+
+<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"
+        integrity="sha256-VazP97ZCwtekAsvgPBSUwPFKdrwD3unUfSGVYrahUqU=" crossorigin="anonymous"></script>
+<link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+<style>
+    .center_div{
+    margin: 0 auto;
+    width:80% /* value of your choice which suits your alignment */
+}
+
+
+</style>
+
+<body>
+<h2 style="padding-top:20px;padding-left:50px;">Categorize Tag</h2>
+
+
+<div style=" width:1000px;padding-top:20px;padding-left:50px;">
+    <form id="tag_form">
+
+         <div class="form-group col-md-4">
+                <label for="uncategorized">Uncategorized Tag</label>
+                <select id="uncategorized" class="form-control">
+                    <option selected style="color:black;">Choose...</option>
+                    {% for cat in uncategortized_tags %}
+                    <option value="{{cat.id}}">{{cat.name}}</option>
+                    {% endfor %}
+                </select>
+         </div>
+
+        <div class="form-row">
+
+            <div class="form-group col-md-4">
+                <label for="category">Category</label>
+                <select id="category" class="form-control">
+                    <option selected style="color:black;">Choose...</option>
+                    {% for cat in categories %}
+                    <option value="{{cat.id}}">{{cat.name}}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            &nbsp&nbsp&nbsp&nbsp&nbsp&nbsp
+            <div class="form-group col-md-4">
+                <label for="attribute">Attribute</label>
+                <select id="attribute" class="form-control">
+                    <option selected>Choose...</option>
+
+
+                </select>
+            </div>
+
+        </div>
+
+
+        <button id="submit" type="submit" class="btn btn-primary">Submit</button>
+    </form>
+</div>
+
+
+<br>
+
+
+<h2 style="padding-top:20px;padding-left:50px;">Mapping Tags</h2>
+
+
+<div style=" width:1000px;padding-top:20px;padding-left:50px;">
+    <form id="map_form">
+
+
+
+        <div class="form-row">
+
+            <div class="form-group col-md-4">
+                <label for="map_uncategorized">Uncategorized Tag</label>
+                <select id="map_uncategorized" class="form-control">
+                    <option selected style="color:black;">Choose...</option>
+                    {% for cat in uncategortized_tags %}
+                    <option value="{{cat.id}}">{{cat.name}}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            &nbsp&nbsp&nbsp&nbsp&nbsp&nbsp
+
+            <div class="form-group col-md-8">
+                <div>
+                <label for="map_tags">Category</label>
+                    </div>
+
+                <div>
+
+                  <select id="map_tags" data-placeholder="Select..." style="width:320px;height:40px;padding-bottom:10px;">
+                    {% for cat in categortized_tags %}
+                    <option value="{{cat.id}}">{{cat.name}}</option>
+                    {% endfor %}
+                  </select>
+                    </div>
+
+            </div>
+
+        </div>
+        <br>
+
+
+        <button id="submit_map" type="submit" class="btn btn-primary">Submit</button>
+    </form>
+</div>
+<br>
+<br>
+
+<h2 style="padding-top:20px;padding-left:50px;">Delete Tags</h2>
+
+
+<div style=" width:1000px;padding-top:20px;padding-left:50px;">
+    <form id="delete_form">
+
+
+
+        <div class="form-row">
+
+            <div class="form-group col-md-4">
+                <label for="del_uncategorized">Uncategorized Tag</label>
+                <select id="del_uncategorized" class="form-control">
+                    <option selected style="color:black;">Choose...</option>
+                    {% for cat in uncategortized_tags %}
+                    <option value="{{cat.id}}">{{cat.name}}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+        </div>
+        <br>
+
+
+        <button id="submit_del" type="submit" class="btn btn-danger">Delete</button>
+    </form>
+</div>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+
+{% autoescape off %}
+
+<script>
+var options="";
+$("#category").on('change',function(){
+    var value=$(this).val();
+    $('#attribute').find('option').remove();
+    if(value=="1")
+    {
+    {% for attr in legacy_attributes %}
+               $("#attribute").append('<option value="{{attr.id}}">{{attr.attribute_name}}</option>');
+
+    {% endfor %}
+
+    }
+    else if(value=="2")
+    {
+    {% for attr in profession_attributes %}
+               $("#attribute").append('<option value="{{attr.id}}">{{attr.attribute_name}}</option>');
+
+    {% endfor %}
+    }
+
+    else if(value=="3")
+    {
+    {% for attr in interests_attributes %}
+               $("#attribute").append('<option value="{{attr.id}}">{{attr.attribute_name}}</option>');
+
+    {% endfor %}
+    }
+
+    else if(value=="4")
+    {
+    {% for attr in geography_attributes %}
+               $("#attribute").append('<option value="{{attr.id}}">{{attr.attribute_name}}</option>');
+    {% endfor %}
+    }
+
+    else if(value=="5")
+    {
+    {% for attr in global_attributes %}
+               $("#attribute").append('<option value="{{attr.id}}">{{attr.attribute_name}}</option>');
+    {% endfor %}
+
+    }
+
+    else
+        $("#attribute").find('option').remove()
+});
+
+
+
+    $(document).ready(function(){
+
+       $('#tag_form').on('submit',function()
+       {
+         category=$('#category').val();
+         attribute=$('#attribute').val();
+         uncategorized = $('#uncategorized').val();
+
+         temp={
+            'category':category,
+           'attribute':attribute,
+           'uncategorized':uncategorized
+
+         }
+
+         $.ajax({
+
+            url:'/admin_dashboard/categorize_tag',
+            type: "POST",
+            data:temp,
+            dataType:'json',
+            success:function(data){
+               console.log('hello')
+               location.reload(true)
+
+            }
+
+         })
+
+       })
+
+    })
+
+    $(document).ready(function(){
+
+       $('#map_form').on('submit',function()
+       {
+         map_uncategorized=$('#map_uncategorized').val();
+         map_tags=$('#map_tags').val();
+
+         temp={
+            'uncategorized_tag':map_uncategorized,
+           'mapped_tag':map_tags
+
+         }
+         console.log(temp)
+
+         $.ajax({
+
+            url:'/admin_dashboard/map_tags',
+
+            data:temp,
+            dataType:'json',
+            success:function(data){
+               console.log('hello')
+               location.reload(true)
+
+            }
+
+         })
+
+       })
+
+    })
+
+
+    $(document).ready(function(){
+
+       $('#delete_form').on('submit',function()
+       {
+         del_uncategorized=$('#del_uncategorized').val();
+
+
+         temp={
+            'del_uncategorized':del_uncategorized,
+
+         }
+         console.log(temp)
+
+         $.ajax({
+
+            url:'/admin_dashboard/delete_hidden_tags',
+
+            data:temp,
+            dataType:'json',
+            success:function(data){
+               console.log('hello')
+               location.reload(true)
+
+            }
+
+         })
+
+       })
+
+    })
+
+
+</script>
+{% endautoescape %}
+</body>
+</html>

@@ -4,18 +4,20 @@ from togther.models import *
 from django.views.generic import *
 from .forms import *
 from django.db.models import Q
+from django.db.models import F
 import time
 from django.template.loader import get_template
 from django.shortcuts import render
 from django.core.mail import EmailMultiAlternatives
-# Create your views here.
-from collabmates_api.notification import send_notification_for_join_requests,send_notification_to_proposed_admin
+from collabmates_api.notification import send_notification_for_join_requests, send_notification_to_proposed_admin
 from django.conf import settings
 import json
 from django.http.response import JsonResponse
 import requests as rqst
 import os
 import re
+from django.views.decorators.csrf import csrf_exempt
+from collabmates_api.raw_queries import compute_rank
 
 url = settings.URL
 
@@ -43,9 +45,7 @@ def dashboard(request):
       community_dic['members_count'] = members_count
       community_dic['active_since']=i.active_since
       community_dic['question_count']=Form_data.objects.filter(community_id=i).count()
-      tags_count=get_tags_count(i)
-      community_dic['tags_count']=tags_count['tags_count']
-      community_dic['hidden_tags_count']=tags_count['hidden_tags_count']
+      community_dic['hidden_tags_count']=get_tags_count(i)
       dashboard_list.append(community_dic)
 
   return render(request,'dashboard/dashboard.html',{'communities':dashboard_list})
@@ -55,21 +55,55 @@ def get_tags_count(community):
 
     '''function to get count of tags from dashboard'''
 
-    tags_count=0
-    hidden_tags_count=0
-    community_tags=Community_tags.objects.filter(community_id=community)
+    hidden_tags = Community_LPIG.objects.filter(community_id=community)
 
-    for tag in community_tags:
+    tags_count = 0
 
-        if tag.state == str(1):
-            hidden_tags_count=hidden_tags_count+1
-            continue
-        tags_count=tags_count+1
+    if hidden_tags.exists():
+        hidden_tags = hidden_tags[0]
+        if not hidden_tags.legacy == None:
+            hidden_legacy_tags = json.loads(hidden_tags.legacy)
+            for tag in hidden_legacy_tags:
+                global_tag = Tags_lpig.objects.get(name='legacy_any')
+                if tag == global_tag.id:
+                    continue
+                else:
+                    tags_count += 1
 
-    tags={}
-    tags['tags_count']=tags_count
-    tags['hidden_tags_count']=hidden_tags_count
-    return tags
+        if not hidden_tags.profession == None:
+
+            hidden_profession_tags = json.loads(hidden_tags.profession)
+            for tag in hidden_profession_tags:
+                global_tag = Tags_lpig.objects.get(name='profession_any')
+                if tag == global_tag.id:
+                    continue
+
+                else:
+                    tags_count += 1
+
+        if not hidden_tags.interests == None:
+
+            hidden_interests_tags = json.loads(hidden_tags.interests)
+            for tag in hidden_interests_tags:
+                global_tag = Tags_lpig.objects.get(name='interest_any')
+                if tag == global_tag.id:
+                    continue
+
+                else:
+                    tags_count += 1
+
+        if not hidden_tags.geography == None:
+
+            hidden_geography_tags = json.loads(hidden_tags.geography)
+            for tag in hidden_geography_tags:
+                global_tag = Tags_lpig.objects.get(name='Global')
+                if tag == global_tag.id:
+                    continue
+
+                else:
+                    tags_count += 1
+
+    return tags_count
 
 
 def update_form(request,community_id):
@@ -305,54 +339,6 @@ def add_tags(request):
     return JsonResponse({'success':True})
 
 
-def user_tags(request,user_id):
-    ''' gives all the user tags  '''
-    tags = userinfo_tags.objects.filter(user_id= user_id)
-    tags_list = []
-    for i in tags:
-        tag_name = Tags.objects.get(id = i.tag_id)
-        tags_list.append(tag_name.category_name)
-    # making a single string of all user tags
-    tags = ','.join(tags_list)
-    context={'tags': tags,'user_id':user_id}
-    return render(request, 'dashboard/user_tags.html', context)
-
-def add_user_tags(request):
-    ''' adding or updating or deleting user hidden tags '''
-    tags=request.GET.get('tags')
-    user_id=request.GET.get('user_id')
-    tags=tags.split(",")
-    already_tags=request.GET.get('already_tags')
-    already_tags=already_tags.split(",")
-    # get all of the user tags
-    user_tags_list = []
-    user_tags = userinfo_tags.objects.filter(user_id=user_id)
-    # making a list of it
-    for tag in user_tags:
-        tag_name = Tags.objects.get(id=tag.tag_id)
-        user_tags_list.append(tag_name)
-    flag = True
-    for tag in tags:
-        if tag == '0' :
-            # if selected none just delete all of them
-            userinfo_tags.objects.filter(user_id=user_id).delete()
-            flag = False
-        if tag not in already_tags:
-            # if updated , delete the old ones which are not in the new list
-            userinfo_tags.objects.filter(user_id=user_id).delete()
-    if flag:
-        for tag in tags:
-            # create new tags for user which are now given
-            selected_tags = userinfo_tags.objects.filter(user_id=user_id,tag_id = tag)
-            print(selected_tags)
-            if not selected_tags:
-                user_tag = userinfo_tags()
-                user_tag.user_id = user_id
-                user_tag.tag_id = tag
-                user_tag.save()
-
-    return JsonResponse({'success':True})
-
 
 def all_user(request):
 
@@ -378,9 +364,13 @@ def all_user(request):
         for t in tags:
             tag = Tags.objects.get(id = t.tag_id)
             tags_list.append(tag.category_name)
-        tags = ','.join(tags_list)
-        user_dic['tags'] = tags
-        user_dic['tags_count'] = tags_count
+
+        user_tags = get_user_tags_count(i.user_id)
+
+        if user_tags > 0:
+            user_dic['tags_count'] = user_tags
+        else:
+            user_dic['tags_count'] = 0
         user_dic['fb_link'] = i.fb_link
         user_dic['linkedin_link'] = i.linkedin_link
 
@@ -388,6 +378,58 @@ def all_user(request):
         user_dic['communities_count']=communities_count
         users_list.append(user_dic)
     return render(request, 'dashboard/all_user.html', {'all_user': users_list})
+
+def get_user_tags_count(user_id):
+    tags_count =0
+    hidden_tags = User_LPIG.objects.filter(member_id=user_id)
+
+    if hidden_tags.exists():
+        hidden_tags = hidden_tags[0]
+        if not hidden_tags.legacy == None:
+            hidden_legacy_tags = json.loads(hidden_tags.legacy)
+            for tag in hidden_legacy_tags:
+                global_tag = Tags_lpig.objects.get(name='legacy_any')
+                if tag == global_tag.id:
+                    continue
+                else:
+                    tags_count += 1
+
+        if not hidden_tags.profession == None:
+
+            hidden_profession_tags = json.loads(hidden_tags.profession)
+            for tag in hidden_profession_tags:
+                global_tag = Tags_lpig.objects.get(name='profession_any')
+                if tag == global_tag.id:
+                    continue
+
+                else:
+                    tags_count += 1
+
+
+        if not hidden_tags.interests == None:
+
+            hidden_interests_tags = json.loads(hidden_tags.interests)
+            for tag in hidden_interests_tags:
+                global_tag = Tags_lpig.objects.get(name='interest_any')
+                if tag == global_tag.id:
+                    continue
+
+                else:
+                    tags_count += 1
+
+
+        if not hidden_tags.geography == None:
+
+            hidden_geography_tags = json.loads(hidden_tags.geography)
+            for tag in hidden_geography_tags:
+                global_tag = Tags_lpig.objects.get(name='Global')
+                if tag == global_tag.id:
+                    continue
+
+                else:
+                    tags_count += 1
+
+    return tags_count
 
 
 def update_user(request,user_id):
@@ -489,6 +531,17 @@ def check_member(email,community_id,member_id,proposed_name):
             send_email_to_nominated_admin(NominatedAdmin=NominatedAdmin,email=email,ProposedAdmin=ProposedAdmin,proposedAdminState = proposedAdminState,CommunityName=CommunityName,community_id =community.id)
             send_notification_to_proposed_admin.delay(nominated_admin_id = NominatedAdmin_id, community_id= community.id, proposed_admin_name=ProposedAdmin )
             print("member is already a nominated promoter")
+        elif member and (member[0].state == 1 or member[0].state == 2):
+            return True
+
+        elif member and (member[0].state == 3 or member[0].state == 5):
+            Members.objects.filter(community_id = community,member_id = user[0].user_id.id).update(state=6)
+            send_email_to_nominated_admin.delay(NominatedAdmin=NominatedAdmin, email=email, ProposedAdmin=ProposedAdmin,
+                                                proposedAdminState=proposedAdminState, CommunityName=CommunityName,
+                                                community_id=community.id)
+            send_notification_to_proposed_admin.delay(nominated_admin_id=NominatedAdmin_id, community_id=community.id,
+                                                      proposed_admin_name=ProposedAdmin)
+
         else:
             print("member is created")
             member =Members()
@@ -707,63 +760,207 @@ def hidden_tags(request,community_id):
 
     '''function to show hidden tags'''
 
-    hidden_tags=Community_tags.objects.filter(community_id=community_id,state=1)
-    community_location=Community.objects.get(id=community_id)
-    hidden_tag=''
-    for tag in hidden_tags:
-        hidden_tag=hidden_tag+tag.category+","
+    community = Community.objects.get(pk = community_id)
+
+    legacy_tags = list(Tags_lpig.objects.filter(category_id__id = '1').values_list('name', flat=True))
+    profession_tags = list(Tags_lpig.objects.filter(category_id__id = '2').values_list('name', flat=True))
+    interests_tags = list(Tags_lpig.objects.filter(category_id__id = '3').values_list('name', flat=True))
+    geography_tags = list(Tags_lpig.objects.filter(category_id__id = '4').values_list('name', flat=True))
+
+
+    hidden_tags = Community_LPIG.objects.filter(community_id=community_id)
+    hidden_legacy_tag = ''
+    hidden_profession_tag = ''
+    hidden_interests_tag = ''
+    hidden_geography_tag = ''
+    if hidden_tags.exists():
+        hidden_tags = hidden_tags[0]
+        if not hidden_tags.legacy == None:
+            hidden_legacy_tags = json.loads(hidden_tags.legacy)
+            for tag in hidden_legacy_tags:
+                global_tag = Tags_lpig.objects.get(name='legacy_any')
+                if tag == global_tag.id:
+                    continue
+                try:
+                    tag_object = Tags_lpig.objects.get(pk=tag)
+                    hidden_legacy_tag=hidden_legacy_tag+tag_object.name+","
+                except:
+                    pass
+
+        if not hidden_tags.profession == None:
+
+            hidden_profession_tags = json.loads(hidden_tags.profession)
+            for tag in hidden_profession_tags:
+                global_tag = Tags_lpig.objects.get(name='profession_any')
+                if tag == global_tag.id:
+                    continue
+                try:
+                    tag_object = Tags_lpig.objects.get(pk=tag)
+                    hidden_profession_tag=hidden_profession_tag+tag_object.name+","
+                except:
+                    pass
+
+        if not hidden_tags.interests == None:
+
+            hidden_interests_tags = json.loads(hidden_tags.interests)
+            for tag in hidden_interests_tags:
+                global_tag = Tags_lpig.objects.get(name='interest_any')
+                if tag == global_tag.id:
+                    continue
+                try:
+                    tag_object = Tags_lpig.objects.get(pk=tag)
+                    hidden_interests_tag=hidden_interests_tag+tag_object.name+","
+                except:
+                    pass
+
+        if not hidden_tags.geography == None:
+
+            hidden_geography_tags = json.loads(hidden_tags.geography)
+            for tag in hidden_geography_tags:
+                global_tag = Tags_lpig.objects.get(name='Global')
+                if tag == global_tag.id:
+                    continue
+                try:
+                    tag_object = Tags_lpig.objects.get(pk=tag)
+                    hidden_geography_tag = hidden_geography_tag+tag_object.name+","
+                except:
+                    pass
+
     context={
-        'hidden_tags':hidden_tag[:-1],
+        'legacy_tags':legacy_tags,
+        'profession_tags':profession_tags,
+        'interests_tags':interests_tags,
+        'geography_tags':geography_tags,
+        'hidden_legacy_tag':hidden_legacy_tag,
+        'hidden_profession_tag': hidden_profession_tag,
+        'hidden_interests_tag': hidden_interests_tag,
+        'hidden_geography_tag': hidden_geography_tag,
         'community_id':community_id,
-        'community_location':community_location.location
+        'community_name':community.name
     }
 
     return render(request,'dashboard/hidden_tags.html',context)
 
 
-
 def add_hidden_tags(request):
 
     '''function to add hidden tags'''
-    hidden_tag_id=request.GET.get('hidden_tag_id')
+
+    legacy_tags=request.GET.get('legacy_tags')
     community_id=request.GET.get('community_id')
-    location=request.GET.get('location')
-    add_location_tags(location,community_id)
-    tag_id=int(hidden_tag_id)
-    if tag_id == 0:
-        query=Community_tags.objects.filter(community_id=community_id).filter(Q(tags_id=41)|Q(tags_id=42)).delete()
-        return JsonResponse({'success':'Tags Deleted'})
 
-    tag_name=Tags.objects.filter(id=tag_id).values('category_name')
-    tag_name=tag_name[0]['category_name']
-    is_tag_present=Community_tags.objects.filter(community_id=community_id).filter(Q(tags_id=41)|Q(tags_id=42))
-
-    if is_tag_present:
-        for tag in is_tag_present:
-            Community_tags.objects.filter(id=tag.id).update(tags_id=tag_id,category=tag_name)
-    community=Community.objects.get(id=community_id)
-    if not is_tag_present:
-        community_tags_object=Community_tags()
-        community_tags_object.category=tag_name
-        community_tags_object.community_id=community
-        community_tags_object.tags_id=tag_id
-        community_tags_object.state = '1'
-        community_tags_object.save()
-        print('New Data Inserted')
+    profession_tags = request.GET.get('profession_tags')
+    interest_tags = request.GET.get('interests_tags')
+    grography_tags = request.GET.get('grography_tags')
 
 
+    legacy_tags = legacy_tags.split(",")
+    profession_tags = profession_tags.split(",")
+    interest_tags = interest_tags.split(",")
+    grography_tags = grography_tags.split(",")
 
 
+    legacy_tags = get_or_create_tag_attributes_list(legacy_tags, 'Legacy')
+    profession_tags = get_or_create_tag_attributes_list(profession_tags, 'Profession')
+    interest_tags = get_or_create_tag_attributes_list(interest_tags, 'Interests')
+    grography_tags = get_or_create_tag_attributes_list(grography_tags, 'Geography')
+
+
+    save_community_lpig_tags(community_id= community_id,
+                        legacy_tags= legacy_tags ,
+                        profession_tags = profession_tags,
+                        interest_tags=interest_tags,
+                        grography_tags=grography_tags)
+
+    compute_rank.delay(community_id=community_id)
 
     return JsonResponse({'success':True})
+
+
+def save_community_lpig_tags(community_id,legacy_tags,profession_tags,interest_tags,grography_tags):
+
+    community = Community.objects.get(id=community_id)
+
+    try:
+        community_tag = Community_LPIG.objects.get(community_id=community)
+    except:
+        community_tag = Community_LPIG()
+        community_tag.community_id = community
+
+    if len(legacy_tags)==0:
+        global_legacy_tag = Tags_lpig.objects.get(name='legacy_any')
+        legacy_tags.append(global_legacy_tag.id)
+        community_tag.legacy = json.dumps(legacy_tags)
+    else:
+        community_tag.legacy = json.dumps(legacy_tags)
+
+    if len(profession_tags)==0:
+        global_profession_tag = Tags_lpig.objects.get(name='profession_any')
+        profession_tags.append(global_profession_tag.id)
+        community_tag.profession = json.dumps(profession_tags)
+    else:
+        community_tag.profession = json.dumps(profession_tags)
+
+    if len(interest_tags)==0:
+        global_interest_tag = Tags_lpig.objects.get(name='interest_any')
+        interest_tags.append(global_interest_tag.id)
+        community_tag.interests = json.dumps(interest_tags)
+    else:
+        community_tag.interests = json.dumps(interest_tags)
+
+    if len(grography_tags)==0:
+        global_tag = Tags_lpig.objects.get(name='Global')
+        grography_tags.append(global_tag.id)
+        community_tag.geography = json.dumps(grography_tags)
+    else:
+        community_tag.geography = json.dumps(grography_tags)
+    community_tag.save()
+
+
+def get_or_create_tag_attributes_list(tags,tag_type):
+
+    tags_list=[]
+
+    if len(tags) == 1 and tags[0]=='':
+        return tags_list
+    for each_tag in tags:
+
+        tag = Tags_lpig.objects.filter(Q(name__icontains = each_tag))
+
+        if len(tag)>0:
+            tag=tag[0]
+
+        elif len(tag) == 0:
+            tag = create_uncategorized_tag(each_tag,tag_type)
+
+        if tag.id not in tags_list:
+            tags_list.append(tag.id)
+    return tags_list
+
+def create_uncategorized_tag(tag,tag_type):
+    new_tag = tag
+    print(new_tag,tag_type)
+    category = Category.objects.filter(Q(name__icontains=tag_type))[0]
+    attribute = Attributes.objects.filter(Q(attribute_name__icontains=tag_type), Q(attribute_name__icontains='Uncategorized'))[0]
+    tag = Tags_lpig()
+    tag.name = new_tag
+    tag.category_id = category
+    tag.attribute_id = attribute
+    tag.save()
+    tag.tag_id = tag.id
+    tag.save()
+    return tag
+
 
 def delete_hidden_tags(request):
 
     '''function to delete the hidden tags'''
-    community_id=request.GET.get('community_id')
-    community=Community.objects.get(id=community_id)
-    delete=Community_tags.objects.filter(community_id=community,state=1).delete()
-    return JsonResponse({'delete':delete})
+
+    tag = request.GET.get('del_uncategorized')
+    Tags_lpig.objects.filter(pk=tag).delete()
+
+    return JsonResponse({'success': True})
+
 
 
 def add_location_tags(location,community_id):
@@ -939,3 +1136,278 @@ def get_user_communities(user_id):
         my_community.append(community)
 
     return my_community,communities.count()
+
+  
+@csrf_exempt
+def create_tag(request):
+    if request.method == 'POST':
+        category = request.POST.get('category')
+        attribute = request.POST.get('attribute')
+        new_tag = request.POST.get('new_tag')
+        new_tag = new_tag.strip().capitalize()
+
+        get_or_create_sub_tags(new_tag, category, attribute)
+
+        return redirect('create_tag')
+
+    else:
+        categories = Category.objects.filter(~Q(name__icontains = 'ncategorized'))
+        legacy_attributes  = Attributes.objects.filter(Q(attribute_name__icontains = 'Legacy'),~Q(attribute_name__icontains = 'uncategorized'))
+        profession_attributes  = Attributes.objects.filter(Q(attribute_name__icontains = 'Profession'),~Q(attribute_name__icontains = 'uncategorized'))
+        interests_attributes  = Attributes.objects.filter(Q(attribute_name__icontains = 'Interests'),~Q(attribute_name__icontains = 'uncategorized'))
+        geography_attributes  = Attributes.objects.filter(Q(attribute_name__icontains = 'Geography'),~Q(attribute_name__icontains = 'uncategorized'))
+        global_attributes = Attributes.objects.filter(Q(attribute_name__icontains='Global'),~Q(attribute_name__icontains = 'uncategorized'))
+
+        return render(request, 'dashboard/create_tag.html', {'categories': categories,
+                                                     'legacy_attributes': legacy_attributes,
+                                                     'profession_attributes': profession_attributes,
+                                                     'geography_attributes': geography_attributes,
+                                                     'interests_attributes': interests_attributes,
+                                                     'global_attributes': global_attributes, })
+
+def get_or_create_sub_tags(new_tag,category,attribute):
+
+    try:
+        tag = Tags_lpig.objects.get(name=new_tag)
+    except:
+        category = Category.objects.get(id = category)
+        attribute = Attributes.objects.get(id = attribute)
+        tag = Tags_lpig()
+        tag.name = new_tag
+        tag.category_id = category
+        tag.attribute_id = attribute
+        tag.save()
+        tag.tag_id =tag.id
+        tag.save()
+    return tag
+
+
+@csrf_exempt
+def categorize_tag(request):
+
+    if request.method == 'POST':
+        category = request.POST.get('category')
+        attribute = request.POST.get('attribute')
+        uncategorized = request.POST.get('uncategorized')
+
+        print(category,attribute,uncategorized)
+
+        update_uncategorize_tag(uncategorized, category, attribute)
+
+        return redirect('categorize_tag')
+
+    else:
+
+        categories = Category.objects.filter(~Q(name__icontains='ncategorized'))
+
+        legacy_uncat = Attributes.objects.filter(Q(attribute_name__icontains='Legacy_unca'))[0]
+        profession_uncat = Attributes.objects.filter(Q(attribute_name__icontains='Profession_unca'))[0]
+        interests_uncat = Attributes.objects.filter(Q(attribute_name__icontains='Interests_unca'))[0]
+        geography_uncat = Attributes.objects.filter(Q(attribute_name__icontains='Geography_unca'))[0]
+
+        print(legacy_uncat.id,profession_uncat.id,interests_uncat.id,geography_uncat.id)
+
+        uncategortized_tags = Tags_lpig.objects.filter(Q(attribute_id = legacy_uncat.id )|
+                                                       Q(attribute_id = profession_uncat.id )|
+                                                       Q(attribute_id = interests_uncat.id )|
+                                                       Q(attribute_id = geography_uncat.id ))
+
+        categortized_tags = Tags_lpig.objects.filter(~Q(attribute_id__id = legacy_uncat.id )|
+                                                     ~Q(attribute_id__id = profession_uncat.id)|
+                                                     ~Q(attribute_id__id = interests_uncat.id)|
+                                                     ~Q(attribute_id__id = geography_uncat.id)).order_by("name")
+
+
+        legacy_attributes  = Attributes.objects.filter(Q(attribute_name__icontains = 'Legacy')
+                                                       ,~Q(attribute_name__icontains = 'uncategorized'))
+        profession_attributes  = Attributes.objects.filter(Q(attribute_name__icontains = 'Profession')
+                                                           ,~Q(attribute_name__icontains = 'uncategorized'))
+        interests_attributes  = Attributes.objects.filter(Q(attribute_name__icontains = 'Interests')
+                                                          ,~Q(attribute_name__icontains = 'uncategorized'))
+        geography_attributes  = Attributes.objects.filter(Q(attribute_name__icontains = 'Geography')
+                                                          ,~Q(attribute_name__icontains = 'uncategorized'))
+        global_attributes = Attributes.objects.filter(Q(attribute_name__icontains='Global')
+                                                      ,~Q(attribute_name__icontains = 'uncategorized'))
+
+        return render(request, 'dashboard/categorize_tags.html', {'categories': categories,
+                                                                  'uncategortized_tags':uncategortized_tags,
+                                                                  'categortized_tags': categortized_tags,
+                                                                  'legacy_attributes': legacy_attributes,
+                                                                  'profession_attributes': profession_attributes,
+                                                                  'geography_attributes': geography_attributes,
+                                                                  'interests_attributes': interests_attributes,
+                                                                  'global_attributes': global_attributes, })
+
+
+def update_uncategorize_tag(uncategorized, category, attribute):
+
+    category = Category.objects.get(id=category)
+    attribute = Attributes.objects.get(id=attribute)
+
+    tag = Tags_lpig.objects.get(id  = uncategorized)
+    tag.attribute_id = attribute
+    tag.category_id = category
+    tag.save()
+
+
+def user_tags(request,user_id):
+    ''' gives all the user tags  '''
+    user = User.objects.get(pk = user_id)
+
+    legacy_tags = list(Tags_lpig.objects.filter(category_id__id = '1').values_list('name', flat=True))
+    profession_tags = list(Tags_lpig.objects.filter(category_id__id = '2').values_list('name', flat=True))
+    interests_tags = list(Tags_lpig.objects.filter(category_id__id = '3').values_list('name', flat=True))
+    geography_tags = list(Tags_lpig.objects.filter(category_id__id = '4').values_list('name', flat=True))
+
+
+    hidden_tags = User_LPIG.objects.filter(member_id=user_id)
+    hidden_legacy_tag = ''
+    hidden_profession_tag = ''
+    hidden_interests_tag = ''
+    hidden_geography_tag = ''
+    if hidden_tags.exists():
+        hidden_tags = hidden_tags[0]
+        if not hidden_tags.legacy == None:
+            hidden_legacy_tags = json.loads(hidden_tags.legacy)
+            for tag in hidden_legacy_tags:
+                global_tag = Tags_lpig.objects.get(name='legacy_any')
+                if tag == global_tag.id:
+                    continue
+                try:
+                    tag_object = Tags_lpig.objects.get(pk=tag)
+                    hidden_legacy_tag=hidden_legacy_tag+tag_object.name+","
+                except:
+                    pass
+
+        if not hidden_tags.profession == None:
+
+            hidden_profession_tags = json.loads(hidden_tags.profession)
+            for tag in hidden_profession_tags:
+                global_tag = Tags_lpig.objects.get(name='profession_any')
+                if tag == global_tag.id:
+                    continue
+                try:
+                    tag_object = Tags_lpig.objects.get(pk=tag)
+                    hidden_profession_tag=hidden_profession_tag+tag_object.name+","
+                except:
+                    pass
+
+        if not hidden_tags.interests == None:
+
+            hidden_interests_tags = json.loads(hidden_tags.interests)
+            for tag in hidden_interests_tags:
+                global_tag = Tags_lpig.objects.get(name='interest_any')
+                if tag == global_tag.id:
+                    continue
+                try:
+                    tag_object = Tags_lpig.objects.get(pk=tag)
+                    hidden_interests_tag=hidden_interests_tag+tag_object.name+","
+                except:
+                    pass
+
+        if not hidden_tags.geography == None:
+
+            hidden_geography_tags = json.loads(hidden_tags.geography)
+            for tag in hidden_geography_tags:
+                global_tag = Tags_lpig.objects.get(name='Global')
+                if tag == global_tag.id:
+                    continue
+                try:
+                    tag_object = Tags_lpig.objects.get(pk=tag)
+                    hidden_geography_tag = hidden_geography_tag+tag_object.name+","
+                except:
+                    pass
+
+    context={
+        'legacy_tags':legacy_tags,
+        'profession_tags':profession_tags,
+        'interests_tags':interests_tags,
+        'geography_tags':geography_tags,
+        'hidden_legacy_tag':hidden_legacy_tag,
+        'hidden_profession_tag': hidden_profession_tag,
+        'hidden_interests_tag': hidden_interests_tag,
+        'hidden_geography_tag': hidden_geography_tag,
+        'user_id':user_id,
+        'user_name':user.userinfo.name
+    }
+
+    return render(request, 'dashboard/user_tags.html', context)
+
+def add_user_tags(request):
+    ''' adding or updating or deleting user hidden tags '''
+    legacy_tags=request.GET.get('legacy_tags')
+    user_id=request.GET.get('user_id')
+
+
+    profession_tags = request.GET.get('profession_tags')
+    interest_tags = request.GET.get('interests_tags')
+    grography_tags = request.GET.get('grography_tags')
+
+
+    legacy_tags = legacy_tags.split(",")
+    profession_tags = profession_tags.split(",")
+    interest_tags = interest_tags.split(",")
+    grography_tags = grography_tags.split(",")
+
+    legacy_tags = get_or_create_tag_attributes_list(legacy_tags, 'Legacy')
+    profession_tags = get_or_create_tag_attributes_list(profession_tags, 'Profession')
+    interest_tags = get_or_create_tag_attributes_list(interest_tags, 'Interests')
+    grography_tags = get_or_create_tag_attributes_list(grography_tags, 'Geography')
+
+
+    save_user_lpig_tags(user_id= user_id,
+                        legacy_tags= legacy_tags ,
+                        profession_tags = profession_tags,
+                        interest_tags=interest_tags,
+                        grography_tags=grography_tags)
+
+    compute_rank.delay(user_id = user_id)
+    return JsonResponse({'success':True})
+
+
+def save_user_lpig_tags(user_id,legacy_tags,profession_tags,interest_tags,grography_tags):
+    print("=========== ",user_id)
+    user = User.objects.get(id=user_id)
+
+    try:
+        user_tag = User_LPIG.objects.get(member_id=user)
+    except:
+        user_tag = User_LPIG()
+        user_tag.member_id = user
+
+    global_legacy_tag = Tags_lpig.objects.get(name='legacy_any')
+    legacy_tags.append(global_legacy_tag.id)
+    user_tag.legacy = json.dumps(legacy_tags)
+
+
+    global_profession_tag = Tags_lpig.objects.get(name='profession_any')
+    profession_tags.append(global_profession_tag.id)
+    user_tag.profession = json.dumps(profession_tags)
+
+
+    global_interest_tag = Tags_lpig.objects.get(name='interest_any')
+    interest_tags.append(global_interest_tag.id)
+    user_tag.interests = json.dumps(interest_tags)
+
+
+    global_tag = Tags_lpig.objects.get(name='Global')
+    grography_tags.append(global_tag.id)
+    user_tag.geography = json.dumps(grography_tags)
+    user_tag.save()
+
+
+def map_tags(request):
+    uncategorized_tag = request.GET.get('uncategorized_tag')
+    mapped_tag = request.GET.get('mapped_tag')
+
+    uncategorized_tag = Tags_lpig.objects.get(pk = uncategorized_tag)
+    mapped_tag = Tags_lpig.objects.get(pk=mapped_tag)
+
+    uncategorized_tag.category_id = mapped_tag.category_id
+    uncategorized_tag.attribute_id = mapped_tag.attribute_id
+    uncategorized_tag.tag_id = mapped_tag.id
+    uncategorized_tag.save()
+
+    compute_rank.delay()
+    return JsonResponse({'success': True})
+
