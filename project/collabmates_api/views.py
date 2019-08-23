@@ -1615,7 +1615,6 @@ def get_user_location(request,user_id,type=None):
 
 
     addr=location_response[1]['formatted_address']
-    print(addr)
     address=addr.split(',')
     if type and type == 'address':
         response = {'location':addr}
