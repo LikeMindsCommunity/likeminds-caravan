@@ -1656,7 +1656,7 @@ def get_user_location(request,user_id,type=None):
             return response
 
 
-    return JsonResponse(location_response,safe=False)
+    return JsonResponse(response,safe=False)
 
 
 def decode_url(request):
