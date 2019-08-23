@@ -530,6 +530,17 @@ def check_member(email,community_id,member_id,proposed_name):
             send_email_to_nominated_admin(NominatedAdmin=NominatedAdmin,email=email,ProposedAdmin=ProposedAdmin,proposedAdminState = proposedAdminState,CommunityName=CommunityName,community_id =community.id)
             send_notification_to_proposed_admin.delay(nominated_admin_id = NominatedAdmin_id, community_id= community.id, proposed_admin_name=ProposedAdmin )
             print("member is already a nominated promoter")
+        elif member and (member[0].state == 1 or member[0].state == 2):
+            return True
+
+        elif member and (member[0].state == 3 or member[0].state == 5):
+            Members.objects.filter(community_id = community,member_id = user[0].user_id.id).update(state=6)
+            send_email_to_nominated_admin.delay(NominatedAdmin=NominatedAdmin, email=email, ProposedAdmin=ProposedAdmin,
+                                                proposedAdminState=proposedAdminState, CommunityName=CommunityName,
+                                                community_id=community.id)
+            send_notification_to_proposed_admin.delay(nominated_admin_id=NominatedAdmin_id, community_id=community.id,
+                                                      proposed_admin_name=ProposedAdmin)
+
         else:
             print("member is created")
             member =Members()
