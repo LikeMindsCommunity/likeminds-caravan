@@ -105,10 +105,23 @@ def create_or_get_tag(tag_name,attribute_id,category_id):
         conn.close()
         id=is_tag_present(tag_name,attribute_id,category_id)
         if id:
+            update_correct_id(id)
             return id
     except (Exception, psycopg2.Error) as error:
         print ("Error while connecting  to PostgreSQL", error)
 
+def update_correct_id(id):
+    try:
+        conn=get_connection()
+        curr=conn.cursor()
+        sql="update togther_tags_lpig set correct_tag_id=%s where id=%s"
+        parameter=[id,id]
+        curr.execute(sql,parameter)
+        conn.commit()
+        curr.close()
+        conn.close()
+    except (Exception, psycopg2.Error) as error:
+        print ("Error while connecting  to PostgreSQL", error)
 
 def get_user_id(email):
 
@@ -295,6 +308,8 @@ if __name__=="__main__":
        if user_id:
             all_tags=get_all_list(data_dic)
             fill_user_tags(user_id,all_tags)
+
+
 
 
    print("Executing time:")
