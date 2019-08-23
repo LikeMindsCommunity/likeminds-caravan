@@ -4,6 +4,7 @@ from togther.models import *
 from django.views.generic import *
 from .forms import *
 from django.db.models import Q
+from django.db.models import F
 import time
 from django.template.loader import get_template
 from django.shortcuts import render
@@ -937,6 +938,8 @@ def get_or_create_tag_attributes_list(tags,tag_type):
             tag.category_id = category
             tag.attribute_id = attribute
             tag.save()
+            tag.tag_id = tag.id
+            tag.save()
         print(tag.name)
 
         if tag.id not in tags_list:
@@ -1167,6 +1170,8 @@ def get_or_create_sub_tags(new_tag,category,attribute):
         tag.category_id = category
         tag.attribute_id = attribute
         tag.save()
+        tag.tag_id =tag.id
+        tag.save()
     return tag
 
 
@@ -1194,10 +1199,14 @@ def categorize_tag(request):
         interests_uncat = Attributes.objects.filter(Q(attribute_name__icontains='Interests_unca'))[0]
         geography_uncat = Attributes.objects.filter(Q(attribute_name__icontains='Geography_unca'))[0]
 
+        print(legacy_uncat.id,profession_uncat.id,interests_uncat.id,geography_uncat.id)
+
         uncategortized_tags = Tags_lpig.objects.filter(Q(attribute_id = legacy_uncat.id )|
                                                        Q(attribute_id = profession_uncat.id )|
                                                        Q(attribute_id = interests_uncat.id )|
                                                        Q(attribute_id = geography_uncat.id ))
+
+        categortized_tags = Tags_lpig.objects.filter(~Q(attribute_id__id = legacy_uncat.id )|~Q(attribute_id__id = profession_uncat.id)|~Q(attribute_id__id = interests_uncat.id)|~Q(attribute_id__id = geography_uncat.id))
 
 
         legacy_attributes  = Attributes.objects.filter(Q(attribute_name__icontains = 'Legacy')
@@ -1213,6 +1222,7 @@ def categorize_tag(request):
 
         return render(request, 'dashboard/categorize_tags.html', {'categories': categories,
                                                                   'uncategortized_tags':uncategortized_tags,
+                                                                  'categortized_tags': categortized_tags,
                                                                   'legacy_attributes': legacy_attributes,
                                                                   'profession_attributes': profession_attributes,
                                                                   'geography_attributes': geography_attributes,
@@ -1375,4 +1385,20 @@ def save_user_lpig_tags(user_id,legacy_tags,profession_tags,interest_tags,grogra
     grography_tags.append(global_tag.id)
     user_tag.geography = json.dumps(grography_tags)
     user_tag.save()
+
+
+def map_tags(request):
+    uncategorized_tag = request.GET.get('uncategorized_tag')
+    mapped_tag = request.GET.get('mapped_tag')
+
+    uncategorized_tag = Tags_lpig.objects.get(pk = uncategorized_tag)
+    mapped_tag = Tags_lpig.objects.get(pk=mapped_tag)
+
+    uncategorized_tag.category_id = mapped_tag.category_id
+    uncategorized_tag.attribute_id = mapped_tag.attribute_id
+    uncategorized_tag.tag_id = mapped_tag.id
+    uncategorized_tag.save()
+
+    compute_rank.delay()
+    return JsonResponse({'success': True})
 
