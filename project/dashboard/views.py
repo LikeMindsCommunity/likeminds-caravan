@@ -923,28 +923,34 @@ def get_or_create_tag_attributes_list(tags,tag_type):
 
     if len(tags) == 1 and tags[0]=='':
         return tags_list
-    for tag in tags:
+    for each_tag in tags:
 
-        try:
-            tag = Tags_lpig.objects.filter(Q(name__icontains = tag))
+        tag = Tags_lpig.objects.filter(Q(name__icontains = each_tag))
+
+        if len(tag)>0:
             tag=tag[0]
-        except:
-            # pass
-            new_tag = tag
-            category = Category.objects.filter(Q(name__icontains = tag_type))[0]
-            attribute = Attributes.objects.filter(Q(attribute_name__icontains = tag_type),Q(attribute_name__icontains = 'Uncategorized'))[0]
-            tag = Tags_lpig()
-            tag.name = new_tag
-            tag.category_id = category
-            tag.attribute_id = attribute
-            tag.save()
-            tag.tag_id = tag.id
-            tag.save()
-        print(tag.name)
+
+        elif len(tag) == 0:
+            tag = create_uncategorized_tag(each_tag,tag_type)
 
         if tag.id not in tags_list:
             tags_list.append(tag.id)
     return tags_list
+
+def create_uncategorized_tag(tag,tag_type):
+    new_tag = tag
+    print(new_tag,tag_type)
+    category = Category.objects.filter(Q(name__icontains=tag_type))[0]
+    attribute = Attributes.objects.filter(Q(attribute_name__icontains=tag_type), Q(attribute_name__icontains='Uncategorized'))[0]
+    tag = Tags_lpig()
+    tag.name = new_tag
+    tag.category_id = category
+    tag.attribute_id = attribute
+    tag.save()
+    tag.tag_id = tag.id
+    tag.save()
+    return tag
+
 
 def delete_hidden_tags(request):
 
