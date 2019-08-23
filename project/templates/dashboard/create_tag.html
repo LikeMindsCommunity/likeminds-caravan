@@ -70,7 +70,7 @@
   <button id="submit" type="submit" class="btn btn-primary">Submit</button>
 </form>
 </div>
-
+{% autoescape off %}
 <script>
 var options="";
 $("#category").on('change',function(){
@@ -156,5 +156,6 @@ $("#category").on('change',function(){
 
     })
 </script>
+{% endautoescape %}
 </body>
 </html>
