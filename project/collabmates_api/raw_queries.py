@@ -28,9 +28,37 @@ def get_all_tags(sql):
 
     except (Exception, psycopg2.Error) as error:
         print("Error while connecting to PostgreSQL  ", error)
+def create_hashmap():
+
+    '''function to crate a hashmap in order to store relevant id of tags'''
+
+    correct_tags={}
+
+    sql="select id,tag_id from togther_tags_lpig"
+
+    tags=get_all_data(sql)
+
+    for tag in tags:
+        if tag[0]:
+            correct_tags[tag[0]]=tag[1]
+
+    return correct_tags
+
+
+def get_list_of_tag_id(tags,hashmap):
+
+    '''function to insert tag to tags list which is mapped in hashmap'''
+    tag_list=[]
+    for tag in tags:
+        tag_list.append(hashmap[tag])
+    return tag_list
+
 
 def filter_tags(user_id=0,community_id=0):
     '''function to return the filtered tags based on LPIG'''
+
+    hashmap=create_hashmap()
+
     sql=""
     if user_id:
         sql="select id,member_id_id,geography,interests,legacy,profession from togther_user_lpig where member_id_id="+str(user_id)
@@ -46,16 +74,20 @@ def filter_tags(user_id=0,community_id=0):
     geo_list = []
     if res[4]:
         legacy=json.loads(res[4])
+        legacy=get_list_of_tag_id(legacy,hashmap)
 
     if res[5]:
         profession=json.loads(res[5])
+        profession=get_list_of_tag_id(profession,hashmap)
 
     if res[3]:
         interests=json.loads(res[3])
+        interests=get_list_of_tag_id(interests,hashmap)
 
     if res[2]:
 
         geo_list=json.loads(res[2])
+        geo_list=get_list_of_tag_id(geo_list,hashmap)
 
     tags={}
 
@@ -321,6 +353,5 @@ if envir:
 
         print("Execution Time--")
         print(end_time-start_time)
-
 
 
