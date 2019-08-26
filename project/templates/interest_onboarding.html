@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+
+{% block content %}
+<br/>
+<body>
+
+<h2 class="ui center aligned header"> What things do you enjoy doing?</h2>
+<h4 class="ui center aligned header">We'll show you communities with people of similar interests</h4>
+<br/><br/>
+<div class="ui  form" onsubmit="return false">
+
+{% csrf_token %}
+
+
+
+    <!-- interest_hobby -->
+<div class="field">
+    <select name="" multiple="" class="ui search fluid dropdown interest_hobby" id="interest_hobby" >
+      <option value="">Pursuing these hobbies*</option>
+      {% for interest in interest_hobby %}
+        <option value="{{interest.id}}">{{interest.name}}</option>
+       {% endfor %}
+    </select>
+    <div class="ui pointing red basic label" id="error_interest_hobby" style="display:none">
+      Please enter your hobby
+    </div>
+</div>
+
+<br/>
+
+<!-- interest_sports -->
+<div class="field">
+    <select name="" multiple="" class="ui search fluid dropdown interest_sports" id="interest_sports" >
+      <option value="">Playing these sports</option>
+      {% for interest in interest_sports %}
+        <option value="{{interest.id}}">{{interest.name}}</option>
+       {% endfor %}
+    </select>
+</div>
+
+<!-- -->
+<br/>
+<!-- interest_fan -->
+<div class="field">
+
+
+    <select name="" multiple="" class="ui search fluid dropdown interest_fan" id="interest_fan">
+      <option value="">Following these teams, sports, genres or topics</option>
+      {% for interest in interest_fan %}
+        <option value="{{interest.id}}">{{interest.name}}</option>
+       {% endfor %}
+    </select>
+</div>
+
+<!-- -->
+<br/>
+<!-- interest_cause -->
+<div class="field">
+
+    <select name="" multiple="" class="ui search fluid dropdown interest_cause" id="interest_cause">
+      <option value="">Working on these causes</option>
+      {% for interest in interest_cause %}
+        <option value="{{interest.id}}">{{interest.name}}</option>
+       {% endfor %}
+    </select>
+</div>
+    <br/>
+<button class="ui button" type="submit" id="interest_submit">Done</button>
+<!-- -->
+</div>
+</body>
+
+
+<script>
+    $('.ui.dropdown.interest_hobby').dropdown({
+  allowAdditions: true,
+
+});
+
+
+   $('.ui.dropdown.interest_sports').dropdown({
+  allowAdditions: true,
+});
+
+
+   $('.ui.dropdown.interest_fan').dropdown({
+  allowAdditions: true,
+});
+
+    $('.ui.dropdown.interest_cause').dropdown({
+  allowAdditions: true,
+
+});
+
+$("#interest_submit").click(function(e){
+
+interest_hobby=$('#interest_hobby').val()
+
+
+if(interest_hobby == null){
+    $('#error_interest_hobby').css("display","block")
+    return;
+}
+
+
+interest_sports=$('#interest_sports').val()
+
+
+interest_fan=$('#interest_fan').val()
+
+interest_cause=$('#interest_cause').val()
+
+
+
+temp={
+
+'interest_hobby':interest_hobby,
+'interest_sports':interest_sports,
+'interest_fan':interest_fan,
+'csrfmiddlewaretoken': '{{ csrf_token }}',
+'interest_cause':interest_cause
+}
+
+{% if request.user.is_authenticated %}
+
+    $.ajax({
+
+        url:"/onboarding_interest",
+        type:"POST",
+        data:temp,
+        dataType: "json",
+        success:function(data){
+            //console.log(data)
+            location.href="/communities"
+
+        }
+
+
+
+    })
+{% else %}
+    $(".test").modal('show');
+{% endif %}
+})
+</script>
+{% endblock %}
+
