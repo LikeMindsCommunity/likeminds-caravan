@@ -73,6 +73,7 @@ class Userinfo (models.Model):
     city = models.CharField(max_length = 100, null = True)
     latitude = models.FloatField(null = True)
     longitude = models.FloatField(null=True)
+    address = models.CharField(max_length = 1024, null= True)
     headline = models.CharField(max_length = 200, null= True)
     contact_number = models.CharField(max_length = 200,null = True)
     gender = models.IntegerField(null = True)
@@ -269,4 +270,5 @@ class Tags_lpig(models.Model):
     tag_id=models.IntegerField(null=True)
     def __str__(self):
         return self.name
+
 

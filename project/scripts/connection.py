@@ -3,7 +3,6 @@
 
 import  psycopg2
 
-
 db_user="nateshr"
 db_password="connectNRpostgresql"
 db_host= 'collabmatesdatabase.cgx3gr7xnezq.ap-south-1.rds.amazonaws.com'

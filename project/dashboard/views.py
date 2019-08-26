@@ -925,7 +925,7 @@ def get_or_create_tag_attributes_list(tags,tag_type):
         return tags_list
     for each_tag in tags:
 
-        tag = Tags_lpig.objects.filter(Q(name__icontains = each_tag))
+        tag = Tags_lpig.objects.filter(name = each_tag)
 
         if len(tag)>0:
             tag=tag[0]
