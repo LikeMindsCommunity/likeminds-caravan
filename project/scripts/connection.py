@@ -7,6 +7,7 @@ db_user="nateshr"
 db_password="connectNRpostgresql"
 db_host= 'collabmatesdatabase.cgx3gr7xnezq.ap-south-1.rds.amazonaws.com'
 db_database="togther"
+db_port="5432"
 
 
 def get_connection():
