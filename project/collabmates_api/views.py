@@ -1674,10 +1674,9 @@ def all_members(request):
     community_id=request.GET.get('community_id')
     query_set=Userinfo.objects.all().order_by("name")
     user_data=[]
-    serializer = UserinfoSerializer
     for user in query_set:
 
-        user_object=serializer(user)
+        user_object=UserinfoSerializer(user)
         state=Members.objects.filter(community_id=community_id,member_id_id=user.user_id).values('state')
         if state:
             state=state[0]['state']
