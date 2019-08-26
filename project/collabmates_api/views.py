@@ -1672,11 +1672,10 @@ def all_members(request):
     '''function to send all user data '''
     page=request.GET.get('page')
     community_id=request.GET.get('community_id')
-    all_users=Userinfo.objects.all().order_by("name")
-
-    query_set=pagination(all_users,page,paginate_by=20)
+    query_set=Userinfo.objects.all().order_by("name")
     user_data=[]
     for user in query_set:
+
         user_object=UserinfoSerializer(user)
         state=Members.objects.filter(community_id=community_id,member_id_id=user.user_id).values('state')
         if state:
@@ -1685,8 +1684,10 @@ def all_members(request):
             state=0
         user_object['state']=state
         user_data.append(user_object)
+    user_data = sorted(user_data, key=lambda i: i['state'],reverse=True)
 
-    return JsonResponse({'members':user_data})
+    return JsonResponse({'members':user_data[20*(int(page)-1):20*int(page)]})
+
 
 def member_activity(request):
 
