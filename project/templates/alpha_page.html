@@ -1,0 +1,37 @@
+
+{% extends "base.html" %}
+
+{% block content %}
+<br/>
+<body>
+
+
+<div class="ui raised padded text container segment" style="margin: 3vw 3vw !important; padding: 12px 12px;">
+
+    {% if college %}
+    {% if mobile_os == 'Android' or mobile_os == 'Both'%}
+        <p class="ui center aligned header">You will shortly receive an email with link to the CollabMates App</p>
+    {% else %}
+         <p class="ui center aligned header">We are currently developing the iOS app and will notify you via email as soon as we release it</p>
+    {% endif %}
+<button class="ui fluid button "
+        style=" z-index:2;width:60%; left:20%; margin:0 auto; background-color: #00897b; border-radius:20px;
+        color:white; bottom:1%; position:fixed;" onclick="location.href='https://collabmates.com/communities'">
+   See communities now</button>
+
+{% else %}
+            <p class="ui center aligned header">We will notify you via email as soon as we release the app</p>
+{% endif %}
+
+
+</div>
+
+
+
+
+</body>
+{% endblock %}
+
+
+
+

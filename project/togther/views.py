@@ -1378,7 +1378,7 @@ def access_page(request):
 
 def alpha_page(request):
 
-    '''function to show the alpha  page based on prefereces'''
+    '''function to show the alpha  page based on prefereces to discover relevant communities'''
 
     user_legacy = User_LPIG.objects.filter(member_id=request.user).values('legacy')
     context = {}
