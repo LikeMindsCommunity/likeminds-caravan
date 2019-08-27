@@ -27,6 +27,9 @@
           <option value="iOS">iOS</option>
           <option value="Both">Both</option>
         </select>
+    <div class="ui pointing red basic label" id="error_mobile" style="display:none">
+      Please select your mobile OS
+    </div>
 </div>
 
 <!-- -->
@@ -67,9 +70,14 @@
     $('#submit').click(function(e){
 
         mobile_os=$('#mobile_os').val()
+        console.log(mobile_os)
         email=$('#email').val()
         mobile_no=$('#mobile_no').val()
+        if(mobile_os == null){
 
+               $('#error_mobile').css("display","block")
+               return;
+        }
         temp={
         'mobile_os':mobile_os,
         'email':email,
