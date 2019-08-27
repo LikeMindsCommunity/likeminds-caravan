@@ -20,8 +20,9 @@
 
 <!-- mobile type -->
 <div class="field padd">
-         <div class="form_field">Mobile OS</div>
+         <div class="form_field">Mobile OS&nbsp;&nbsp;<sub style="color:red;font-size:20px">*</sub></div>
        <select class="ui dropdown" id="mobile_os">
+        <option value="" disabled selected>Select from below options</option>
           <option value="Android">Android</option>
           <option value="iOS">iOS</option>
           <option value="Both">Both</option>
@@ -31,9 +32,9 @@
 <!-- -->
 <!-- Email -->
 <div class="field padd">
-    <div class="form_field">Email ID linked with Playstore/App store</div>
+    <div class="form_field">Email ID linked with Playstore/App store&nbsp;&nbsp;<sub style="color:red;font-size:20px">*</sub></div>
     <div class="field">
-        <input type="email" name="email" value="{{request.user.email}}" id="email">
+        <input type="email" name="email" value="{{request.user.email}}" id="email" placeholder="This is important to give you access of the app">
     </div>
 </div>
 
@@ -42,7 +43,7 @@
 <div class="field padd">
 <div class="form_field">Mobile Number</div>
     <div class="field">
-        <input type="text" name="mobile" placeholder="Optional" id="mobile_no"  minlength="10">
+        <input type="text" name="mobile" placeholder="We will not spam you or give this to anyone" id="mobile_no"  minlength="10">
     </div>
 
 </div>
