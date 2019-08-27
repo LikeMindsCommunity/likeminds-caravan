@@ -219,10 +219,14 @@ def community(request, community_id):
                             break
                 except:
                     return HttpResponse('The community is not tagged ')
+                onboard = False
+                user_lpig = User_LPIG.objects.filter(member_id = request.user)
+                if user_lpig.exists():
+                    onboard = True
 
                 return render(request, 'thankyou.html',
                               {'usr': user, 'similar_communities': data, 'community': community,
-                               'community_tag': community_tag})
+                               'community_tag': community_tag,'onboard':onboard})
             # -----------------------------------------------------------------------------------------------------------
     else:
         cta = ''
@@ -1083,7 +1087,106 @@ def get_user_tags_from_list(tag_list,type):
     return type_list
 
 
+def get_community_legacytags(community_id):
 
+    community_lpig = Community_LPIG.objects.filter(community_id=community_id)
+
+    community_legacy_education = []
+    community_legacy_work = []
+    community_legacy_hometown = []
+    community_geography = []
+
+    if community_lpig.exists():
+        community_lpig = community_lpig[0]
+        community_legacy = json.loads(community_lpig.legacy)
+        community_city = json.loads(community_lpig.geography)
+
+
+        for tag_id in community_legacy:
+            tag = Tags_lpig.objects.get(pk=tag_id)
+
+            if tag.category_id.id == 1 and tag.attribute_id.id == 1:
+                community_legacy_work.append(tag)
+
+            elif tag.category_id.id == 1 and tag.attribute_id.id == 2:
+                community_legacy_education.append(tag)
+
+
+            elif tag.category_id.id == 1 and tag.attribute_id.id == 3:
+                community_legacy_hometown.append(tag)
+
+        for tag_id in community_city:
+            tag = Tags_lpig.objects.get(pk=tag_id)
+            print(tag)
+            print(tag, tag.category_id.id, tag.attribute_id.id)
+
+            if tag.category_id.id == 4 and tag.attribute_id.id == 12:
+                community_geography.append(tag)
+
+
+    return community_legacy_work,community_legacy_education,community_legacy_hometown,community_geography
+
+
+def get_community_profession_tags(community_id):
+
+    community_lpig = Community_LPIG.objects.filter(community_id=community_id)
+
+    community_profession_industry = []
+    community_profession_skill = []
+    community_profession_designation = []
+
+    if community_lpig.exists():
+        community_lpig = community_lpig[0]
+        community_profession = json.loads(community_lpig.profession)
+
+
+        for tag_id in community_profession:
+            tag = Tags_lpig.objects.get(pk=tag_id)
+
+            if tag.category_id.id == 2 and tag.attribute_id.id == 5:
+                community_profession_skill.append(tag)
+
+            elif tag.category_id.id == 2 and tag.attribute_id.id == 6:
+                community_profession_industry.append(tag)
+
+            elif tag.category_id.id == 2 and tag.attribute_id.id == 7:
+                community_profession_designation.append(tag)
+
+
+    return community_profession_industry,community_profession_skill,community_profession_designation
+
+
+def get_community_interest_tags(community_id):
+
+    community_lpig = Community_LPIG.objects.filter(community_id=community_id)
+
+    community_interest_hobby = []
+    community_interest_sports = []
+    community_interest_fan = []
+    community_interest_cause = []
+
+    if community_lpig.exists():
+        community_lpig = community_lpig[0]
+        community_interests = json.loads(community_lpig.interests)
+
+        for tag_id in community_interests:
+            tag = Tags_lpig.objects.get(pk=tag_id)
+
+            if tag.category_id.id == 3 and tag.attribute_id.id == 9:
+                community_interest_hobby.append(tag)
+
+            elif tag.category_id.id == 3 and tag.attribute_id.id == 10:
+                community_interest_sports.append(tag)
+
+
+            elif tag.category_id.id == 3 and tag.attribute_id.id == 11:
+                community_interest_fan.append(tag)
+
+            elif tag.category_id.id == 3 and tag.attribute_id.id == 8:
+                community_interest_cause.append(tag)
+
+
+    return community_interest_hobby,community_interest_sports,community_interest_fan,community_interest_cause
 
 # onboarding flow
 
@@ -1091,6 +1194,11 @@ def onboarding(request):
 
     '''function to show the legacy'''
     if request.method == 'GET':
+
+        community_id = request.GET.get('community_id')
+
+        community_legacy_work, community_legacy_education, community_legacy_hometown, community_geography = get_community_legacytags(community_id)
+
         legacy_education=Tags_lpig.objects.filter(attribute_id=2)
         legacy_work=Tags_lpig.objects.filter(attribute_id=1)
         legacy_hometown=Tags_lpig.objects.filter(attribute_id=3)
@@ -1099,7 +1207,12 @@ def onboarding(request):
             'legacy_education':legacy_education,
             'legacy_work':legacy_work,
             'legacy_hometown':legacy_hometown,
-            'geography':geography
+            'geography':geography,
+            'community_legacy_work':community_legacy_work,
+            'community_legacy_education':community_legacy_education,
+            'community_legacy_hometown':community_legacy_hometown,
+            'community_geography':community_geography,
+            'community_id':community_id
         }
 
         return render(request,'onboarding.html',context)
@@ -1138,6 +1251,12 @@ def onboarding_profession(request):
     '''onboarding for profession'''
 
     if request.method == 'GET':
+
+        community_id = request.GET.get('community_id')
+
+        community_profession_industry,community_profession_skill,community_profession_designation = get_community_profession_tags(community_id)
+
+
         profession_industry = Tags_lpig.objects.filter(attribute_id=6)
         profession_skill = Tags_lpig.objects.filter(attribute_id=5)
         profession_designation = Tags_lpig.objects.filter(attribute_id=7)
@@ -1145,6 +1264,10 @@ def onboarding_profession(request):
             'profession_industry': profession_industry,
             'profession_skill': profession_skill,
             'profession_designation': profession_designation,
+            'community_profession_industry': community_profession_industry,
+            'community_profession_skill': community_profession_skill,
+            'community_profession_designation': community_profession_designation,
+            'community_id': community_id,
         }
 
         return render(request, 'onboarding_profession.html', context)
@@ -1179,6 +1302,11 @@ def onboarding_interest(request):
     '''onboarding for profession'''
 
     if request.method == 'GET':
+
+        community_id = request.GET.get('community_id')
+
+        community_interest_hobby, community_interest_sports, community_interest_fan, community_interest_cause = get_community_interest_tags(community_id)
+
         interest_hobby = Tags_lpig.objects.filter(attribute_id=9)
         interest_sports = Tags_lpig.objects.filter(attribute_id=10)
         interest_fan = Tags_lpig.objects.filter(attribute_id=11)
@@ -1189,9 +1317,14 @@ def onboarding_interest(request):
             'interest_sports': interest_sports,
             'interest_fan': interest_fan,
             'interest_cause': interest_cause,
+            'community_interest_hobby': community_interest_hobby,
+            'community_interest_sports': community_interest_sports,
+            'community_interest_fan': community_interest_fan,
+            'community_interest_cause': community_interest_cause
         }
 
         return render(request, 'interest_onboarding.html', context)
+
     else:
         user_id = request.user.id
         interest_hobby = request.POST.getlist('interest_hobby[]')
