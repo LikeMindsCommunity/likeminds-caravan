@@ -1215,3 +1215,45 @@ def onboarding_interest(request):
         insert_tags_for_user(user_id, type_list, "Interests")
         compute_rank.delay(user_id=user_id)
         return JsonResponse({'success': True})
+
+
+def access_page(request):
+
+    '''function to create an early access page and save early respose'''
+    if request.method == "GET":
+         return render(request,'access_page.html',{})
+    else:
+        user_id=request.user.id
+        mobile_os=request.POST.get('mobile_os')
+        email=request.POST.get('email')
+        mobile_no=request.POST.get('mobile_no')
+        try:
+            user_info=Userinfo.objects.get(user_id=user_id)
+            user_info.mobile_os=mobile_os
+            user_info.secondary_email=email
+            if mobile_no:
+                user_info.contact_number= mobile_no
+            else:
+                user_info.contact_number = None
+            user_info.save()
+        except:
+            print("error in userinfo")
+    return JsonResponse({'success': True})
+
+
+def alpha_page(request):
+
+    '''function to show the alpha  page based on prefereces'''
+
+    user_legacy = User_LPIG.objects.filter(member_id=request.user).values('legacy')
+    context = {}
+    if user_legacy:
+        legacy = user_legacy[0]['legacy']
+        if "6" in legacy:
+            context['college'] = "IIT DELHI"
+            context['mobile_os'] = request.user.userinfo.mobile_os
+        else:
+            context['college']=""
+    return render(request,'alpha_page.html',context)
+
+

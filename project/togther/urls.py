@@ -32,5 +32,7 @@ urlpatterns = [
     path('onboarding', views.onboarding, name='onboarding'),
     path('onboarding_profession', views.onboarding_profession, name='onboarding_profession'),
     path('onboarding_interest', views.onboarding_interest, name='onboarding_interest'),
+    path('access_page', views.access_page, name='access_page'),
+    path('alpha_page', views.alpha_page, name='alpha_page'),
 
 ]
