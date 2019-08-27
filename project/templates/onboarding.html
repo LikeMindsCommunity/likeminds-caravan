@@ -1,26 +1,16 @@
 {% extends "base.html" %}
+{% load staticfiles %}
+
 
 {% block content %}
-<style>
-    .padd{
-    padding-left:10px;
-    padding-right:10px;
-    padding-bottom:18px;
-    padding-top:0px;
 
-    }
-
-    .form_field{
-
-    padding-bottom:6px;
-
-    }
-</style>
-
+ {% block styles %}
+         <link rel="stylesheet" href="{% static 'css/main_css/onboarding.css' %}">
+ {% endblock %}
 <body>
 
-<h2 class="ui center aligned header " style="Arial, Helvetica, sans-serif;padding-left:10px;padding-right:10px;"> What all do you associate yourself with?</h2>
-<h4 class="ui center aligned header " style="font-family:Roboto;padding-left:5px;padding-right:5px;font-size:14px;font-style: italic;color:#00897b;">We'll show communities with people of similar background</h4>
+<h2 class="ui center aligned header" id="main_header"> What all do you associate yourself with?</h2>
+<h4 class="ui center aligned header" id="sec_header">We'll show communities with people of similar background</h4>
 <br/>
 <div class="ui  form" onsubmit="return false">
 
@@ -95,7 +85,7 @@
 </div>
 
     <div style="text-align:center;">
-        <button class="ui button" type="submit" id="legacy_submit" style="padding-left:60px;padding-right:60px;background-color: #00897b;border-radius:20px; color:white;">Continue</button>
+        <button class="ui button " type="submit" id="submit">Continue</button>
     </div>
 <br/>
 <!-- -->
@@ -127,7 +117,7 @@
 
 });
 
-$("#legacy_submit").click(function(e){
+$("#submit").click(function(e){
 
 loc=$('#geography_city').val()
 

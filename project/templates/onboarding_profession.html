@@ -1,12 +1,19 @@
 {% extends "base.html" %}
-
+{% load staticfiles %}
 {% block content %}
+
+
+<!-- css styling -->
+ {% block styles %}
+         <link rel="stylesheet" href="{% static 'css/main_css/onboarding.css' %}">
+ {% endblock %}
+
 <br/>
 <body>
 
-<h2 class="ui center aligned header"> What type of work do you do?</h2>
-<h4 class="ui center aligned header">We'll show you communities with like-minded peers</h4>
-<br/><br/>
+<h2 class="ui center aligned header" id="main_header"> What type of work do you do?</h2>
+<h4 class="ui center aligned header" id="sec_header">We'll show you communities with like-minded peers</h4>
+<br/>
 <div class="ui  form" onsubmit="return false">
 
 {% csrf_token %}
@@ -14,7 +21,8 @@
 
 
 <!-- Industry -->
-<div class="field">
+<div class="field padd">
+        <div class="form_field">Industry</div>
     <select name="" multiple="" class="ui search fluid dropdown profession_industry" id="profession_industry" >
       <option value="">Industry</option>
         {% for tag in community_profession_industry %}
@@ -30,10 +38,10 @@
 </div>
 
 <!-- -->
-<br/>
 <!-- skill work -->
-<div class="field">
+<div class="field padd">
 
+        <div class="form_field">Skills/Roles</div>
 
     <select name="" multiple="" class="ui search fluid dropdown profession_skill" id="profession_skill">
       <option value="">Skills/Roles</option>
@@ -52,10 +60,9 @@
 </div>
 
 <!-- -->
-<br/>
 <!-- designation -->
-<div class="field">
-
+<div class="field padd">
+         <div class="form_field">Designation</div>
     <select name="" multiple="" class="ui search fluid dropdown profession_designation" id="profession_designation">
       <option value="">Designation</option>
         {% for tag in community_profession_designation %}
@@ -66,9 +73,10 @@
        {% endfor %}
     </select>
 </div>
-    <br/>
-<button class="ui button" type="submit" id="profession_submit">Continue</button>
-<!-- -->
+
+    <div style="text-align:center;">
+        <button class="ui button " type="submit" id="submit">Continue</button>
+    </div><!-- -->
 </div>
 </body>
 
@@ -91,7 +99,7 @@
 
 
 
-$("#profession_submit").click(function(e){
+$("#submit").click(function(e){
 
 profession_industry=$('#profession_industry').val()
 
