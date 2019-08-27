@@ -16,10 +16,12 @@ from django.core.mail import EmailMultiAlternatives
 from collabmates_api.serializers import *
 from django.template.loader import get_template
 import traceback
+from collabmates_api.raw_queries import  compute_rank
 
-#url = settings.URL
+url = settings.URL
+
 # uncomment to run it in localhost
-url='http://localhost:8000'
+# url='http://localhost:8000'
 
 api_url = url + '/api/'
 
@@ -999,3 +1001,219 @@ def questions_responses(request):
         'response_list':response_list
     }
     return JsonResponse(context)
+
+
+def get_or_create_tag(tag_name,tag_type):
+
+    '''function to check whether the tag is existing tag or a new tag and if its new create it as categorized'''
+
+    if len(tag_name) is 0:
+        print('empty list')
+        return 0
+
+    try:
+        tag_id=int(tag_name)
+        return tag_id
+    except:
+        category = Category.objects.filter(Q(name__icontains=tag_type))[0]
+        attribute = Attributes.objects.filter(Q(attribute_name__icontains=tag_type), Q(attribute_name__icontains='Uncategorized'))[0]
+        tag = Tags_lpig()
+        tag.name = tag_name
+        tag.category_id = category
+        tag.attribute_id = attribute
+        tag.save()
+        tag.tag_id = tag.id
+        tag.save()
+        return tag.id
+
+
+def insert_tags_for_user(user_id,tag_list,type):
+
+    '''function to insert tags for user'''
+
+    user_id=User.objects.get(id=user_id)
+    try:
+        '''updating the list based on type'''
+
+        user_lpig=User_LPIG.objects.get(member_id=user_id)
+        if type == "Legacy":
+           user_lpig.legacy=tag_list
+        if type == "Profession":
+            user_lpig.profession = tag_list
+        if type == "Interests":
+            user_lpig.interests= tag_list
+        if type == "Geography":
+            user_lpig.geography=tag_list
+        user_lpig.member_id=user_id
+        user_lpig.save()
+
+    except:
+
+        '''creating a new instance for a user'''
+        user_lpig = User_LPIG()
+        if type == "Legacy":
+            user_lpig.legacy = tag_list
+        if type == "Profession":
+            user_lpig.profession = tag_list
+        if type == "Interests":
+            user_lpig.interests = tag_list
+        if type == "Geography":
+            user_lpig.geography = tag_list
+        user_lpig.member_id = user_id
+        user_lpig.save()
+
+
+def get_user_tags_from_list(tag_list,type):
+
+    '''function to get user_tags from list from front end'''
+
+    type_list=[]
+    for tag in tag_list:
+        tags_id=get_or_create_tag(tag,type)
+        type_list.append(tags_id)
+
+    if type == "Legacy":
+        type_list.append(15)
+    if type == "Profession":
+        type_list.append(16)
+    if type == "Interests":
+        type_list.append(17)
+    if type == "Geography":
+        type_list.append(18)
+    return type_list
+
+
+
+
+# onboarding flow
+
+def onboarding(request):
+
+    '''function to show the legacy'''
+    if request.method == 'GET':
+        legacy_education=Tags_lpig.objects.filter(attribute_id=2)
+        legacy_work=Tags_lpig.objects.filter(attribute_id=1)
+        legacy_hometown=Tags_lpig.objects.filter(attribute_id=3)
+        geography=Tags_lpig.objects.filter(attribute_id=12)
+        context={
+            'legacy_education':legacy_education,
+            'legacy_work':legacy_work,
+            'legacy_hometown':legacy_hometown,
+            'geography':geography
+        }
+
+        return render(request,'onboarding.html',context)
+    else:
+        user_id=request.user.id
+        legacy_education =request.POST.getlist('legacy_education[]')
+        legacy_work = request.POST.getlist('legacy_work[]')
+        legacy_hometown = request.POST.getlist('legacy_hometown[]')
+        geography=request.POST.getlist('loc[]')
+
+        legacy_list=[]
+        geo_list=[]
+        for legacy in legacy_education:
+            legacy_list.append(legacy)
+
+        for legacy in legacy_work:
+            legacy_list.append(legacy)
+
+        for legacy in legacy_hometown:
+            legacy_list.append(legacy)
+
+        for city in geography:
+            geo_list.append(city)
+
+        type_list=get_user_tags_from_list(legacy_list,"Legacy")
+        insert_tags_for_user(user_id,type_list,"Legacy")
+
+        type_list=get_user_tags_from_list(geo_list,"Geography")
+        insert_tags_for_user(user_id, type_list, "Geography")
+
+        return JsonResponse({'success':True})
+
+
+def onboarding_profession(request):
+
+    '''onboarding for profession'''
+
+    if request.method == 'GET':
+        profession_industry = Tags_lpig.objects.filter(attribute_id=6)
+        profession_skill = Tags_lpig.objects.filter(attribute_id=5)
+        profession_designation = Tags_lpig.objects.filter(attribute_id=7)
+        context = {
+            'profession_industry': profession_industry,
+            'profession_skill': profession_skill,
+            'profession_designation': profession_designation,
+        }
+
+        return render(request, 'onboarding_profession.html', context)
+    else:
+        user_id = request.user.id
+        profession_industry = request.POST.getlist('profession_industry[]')
+        profession_skill = request.POST.getlist('profession_skill[]')
+        profession_designation = request.POST.getlist('profession_designation[]')
+
+        profession_list = []
+        for profession in profession_industry:
+            profession_list.append(profession)
+
+        for profession in profession_skill:
+            profession_list.append(profession)
+
+        for profession in profession_designation:
+            profession_list.append(profession)
+
+
+
+        type_list = get_user_tags_from_list(profession_list, "Profession")
+        insert_tags_for_user(user_id, type_list, "Profession")
+
+
+
+        return JsonResponse({'success': True})
+
+
+def onboarding_interest(request):
+
+    '''onboarding for profession'''
+
+    if request.method == 'GET':
+        interest_hobby = Tags_lpig.objects.filter(attribute_id=9)
+        interest_sports = Tags_lpig.objects.filter(attribute_id=10)
+        interest_fan = Tags_lpig.objects.filter(attribute_id=11)
+        interest_cause = Tags_lpig.objects.filter(attribute_id=8)
+
+        context = {
+            'interest_hobby': interest_hobby,
+            'interest_sports': interest_sports,
+            'interest_fan': interest_fan,
+            'interest_cause': interest_cause,
+        }
+
+        return render(request, 'interest_onboarding.html', context)
+    else:
+        user_id = request.user.id
+        interest_hobby = request.POST.getlist('interest_hobby[]')
+        interest_sports = request.POST.getlist('interest_sports[]')
+        interest_fan = request.POST.getlist('interest_fan[]')
+        interest_cause = request.POST.getlist('interest_cause[]')
+
+
+        interest_list = []
+        for interest in interest_hobby:
+            interest_list.append(interest)
+
+        for interest in interest_sports:
+            interest_list.append(interest)
+
+        for interest in interest_fan:
+            interest_list.append(interest)
+
+        for interest in interest_cause:
+            interest_list.append(interest)
+
+        type_list = get_user_tags_from_list(interest_list, "Interests")
+        insert_tags_for_user(user_id, type_list, "Interests")
+        compute_rank.delay(user_id=user_id)
+        return JsonResponse({'success': True})

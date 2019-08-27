@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+
+{% block content %}
+<br/>
+<body>
+
+<h2 class="ui center aligned header"> What type of work do you do?</h2>
+<h4 class="ui center aligned header">We'll show you communities with like-minded peers</h4>
+<br/><br/>
+<div class="ui  form" onsubmit="return false">
+
+{% csrf_token %}
+
+
+
+<!-- Industry -->
+<div class="field">
+    <select name="" multiple="" class="ui search fluid dropdown profession_industry" id="profession_industry" >
+      <option value="">Industry</option>
+      {% for industry in profession_industry %}
+        <option value="{{industry.id}}">{{industry.name}}</option>
+       {% endfor %}
+    </select>
+    <div class="ui pointing red basic label" id="error_profession_industry" style="display:none">
+      Please enter your Industry
+    </div>
+</div>
+
+<!-- -->
+<br/>
+<!-- skill work -->
+<div class="field">
+
+
+    <select name="" multiple="" class="ui search fluid dropdown profession_skill" id="profession_skill">
+      <option value="">Skills/Roles</option>
+      {% for skill in profession_skill %}
+        <option value="{{skill.id}}">{{skill.name}}</option>
+       {% endfor %}
+    </select>
+
+     <div class="ui pointing red basic label" id="error_profession_skill" style="display:none">
+      Please enter your skill
+    </div>
+
+</div>
+
+<!-- -->
+<br/>
+<!-- designation -->
+<div class="field">
+
+    <select name="" multiple="" class="ui search fluid dropdown profession_designation" id="profession_designation">
+      <option value="">Designation</option>
+      {% for designation in profession_designation %}
+        <option value="{{designation.id}}">{{designation.name}}</option>
+       {% endfor %}
+    </select>
+</div>
+    <br/>
+<button class="ui button" type="submit" id="profession_submit">Continue</button>
+<!-- -->
+</div>
+</body>
+
+
+<script>
+    $('.ui.dropdown.profession_industry').dropdown({
+  allowAdditions: true,
+
+});
+
+
+   $('.ui.dropdown.profession_skill').dropdown({
+  allowAdditions: true,
+});
+
+
+   $('.ui.dropdown.profession_designation').dropdown({
+  allowAdditions: true,
+});
+
+
+
+$("#profession_submit").click(function(e){
+
+profession_industry=$('#profession_industry').val()
+
+
+if(profession_industry == null){
+    $('#error_profession_industry').css("display","block")
+    return;
+}
+
+
+profession_skill=$('#profession_skill').val()
+if(profession_skill == null){
+    $('#error_profession_skill').css("display","block")
+    return;
+}
+
+profession_designation=$('#profession_designation').val()
+
+
+
+
+
+temp={
+
+'profession_industry':profession_industry,
+'profession_skill':profession_skill,
+'profession_designation':profession_designation,
+'csrfmiddlewaretoken': '{{ csrf_token }}',
+
+}
+console.log(temp)
+
+{% if request.user.is_authenticated %}
+
+    $.ajax({
+
+        url:"/onboarding_profession",
+        type:"POST",
+        data:temp,
+        dataType: "json",
+        success:function(data){
+            //console.log(data)
+            location.href="/onboarding_interest"
+
+        }
+
+
+
+    })
+{% else %}
+    $(".test").modal('show');
+{% endif %}
+})
+</script>
+{% endblock %}
+

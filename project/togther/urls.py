@@ -29,5 +29,8 @@ urlpatterns = [
     path('create_message', views.create_message, name='create_message'),
     path('pending_list/<int:community_id>', views.pending_list, name='pending_list'),
     path('questions_responses', views.questions_responses, name='questions_responses'),
+    path('onboarding', views.onboarding, name='onboarding'),
+    path('onboarding_profession', views.onboarding_profession, name='onboarding_profession'),
+    path('onboarding_interest', views.onboarding_interest, name='onboarding_interest'),
 
 ]
