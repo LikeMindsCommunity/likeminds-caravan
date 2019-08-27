@@ -22,9 +22,9 @@
 
 <!-- Industry -->
 <div class="field padd">
-        <div class="form_field">Industry</div>
+        <div class="form_field">Industry&nbsp;&nbsp;<sub style="color:red;font-size:20px">*</sub></div>
     <select name="" multiple="" class="ui search fluid dropdown profession_industry" id="profession_industry" >
-      <option value="">Industry</option>
+      <option value="">Enter all relevant industries</option>
         {% for tag in community_profession_industry %}
       <option value="{{tag.id}}" selected>{{tag.name}}</option>
         {% endfor %}
@@ -41,10 +41,10 @@
 <!-- skill work -->
 <div class="field padd">
 
-        <div class="form_field">Skills/Roles</div>
+        <div class="form_field">Skills/Roles&nbsp;&nbsp;<sub style="color:red;font-size:20px">*</sub></div>
 
     <select name="" multiple="" class="ui search fluid dropdown profession_skill" id="profession_skill">
-      <option value="">Skills/Roles</option>
+      <option value="">Enter all your relevant skils </option>
         {% for tag in community_profession_skill %}
       <option value="{{tag.id}}" selected>{{tag.name}}</option>
         {% endfor %}
@@ -64,7 +64,7 @@
 <div class="field padd">
          <div class="form_field">Designation</div>
     <select name="" multiple="" class="ui search fluid dropdown profession_designation" id="profession_designation">
-      <option value="">Designation</option>
+      <option value="">Enter your current designation</option>
         {% for tag in community_profession_designation %}
       <option value="{{tag.id}}" selected>{{tag.name}}</option>
         {% endfor %}
