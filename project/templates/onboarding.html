@@ -26,13 +26,17 @@
 
 {% csrf_token %}
 
-
-
+    
     <!-- Geography -->
 <div class="field padd">
     <div class="form_field">My Neighborhood/City</div>
     <select name="" multiple="" class="ui search fluid dropdown geography_city" id="geography_city">
       <option value="">My neighborhood/city</option>
+
+        {% for city in community_geography %}
+      <option value="{{city.id}}" selected>{{city.name}}</option>
+        {% endfor %}
+
       {% for city in geography %}
         <option value="{{city.id}}">{{city.name}}</option>
        {% endfor %}
@@ -48,6 +52,9 @@
     <div class="form_field"> Current/Past schools or colleges </div>
     <select name="" multiple="" class="ui search fluid dropdown legacy_education" id="legacy_education" >
       <option value="">Current/past schools or colleges</option>
+      {% for tag in community_legacy_education %}
+      <option value="{{tag.id}}" selected>{{tag.name}}</option>
+        {% endfor %}
       {% for legacy in legacy_education %}
         <option value="{{legacy.id}}">{{legacy.name}}</option>
        {% endfor %}
@@ -63,6 +70,9 @@
     <div class="form_field">Current/past companies </div>
     <select name="" multiple="" class="ui search fluid dropdown legacy_work" id="legacy_work">
       <option value="">Current/past companies</option>
+      {% for tag in community_legacy_work %}
+      <option value="{{tag.id}}" selected>{{tag.name}}</option>
+        {% endfor %}
       {% for legacy in legacy_work %}
         <option value="{{legacy.id}}">{{legacy.name}}</option>
        {% endfor %}
@@ -75,6 +85,9 @@
     <div class="form_field"> Hometown(s) </div>
     <select name="" multiple="" class="ui search fluid dropdown legacy_hometown" id="legacy_hometown">
       <option value="">Hometown(s)</option>
+              {% for tag in community_legacy_hometown %}
+      <option value="{{tag.id}}" selected>{{tag.name}}</option>
+        {% endfor %}
       {% for legacy in legacy_hometown %}
         <option value="{{legacy.id}}">{{legacy.name}}</option>
        {% endfor %}
@@ -156,7 +169,11 @@ temp={
         dataType: "json",
         success:function(data){
             //console.log(data)
+            {% if community_id != None %}
+            location.href="/onboarding_profession?community_id={{community_id}}"
+            {% else %}
             location.href="/onboarding_profession"
+            {% endif %}
 
         }
 
