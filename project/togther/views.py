@@ -114,9 +114,15 @@ def dashboard(request):
         my_community = get_user_communities(request)
         # getting communities by user hidden tag
         communities = get_communities_by_rank(request)
+
+        onboard = False
+        user_lpig = User_LPIG.objects.filter(member_id=request.user)
+        if user_lpig.exists():
+            onboard = True
+
         return render(request, 'dashboard.html',
                       {'usr': user, 'communities': communities, 'my_communities': my_community[:2],
-                       "my_communities_count": len(my_community)})
+                       "my_communities_count": len(my_community),'onboard':onboard})
     communities = Community.objects.filter(hide_community='0').order_by('-active_since')
     for community in communities:
         update_member_count(community.id)
@@ -131,12 +137,11 @@ def dashboard(request):
 
 
 def get_communities_by_rank(request):
-
+    ''' function to get communities based on rank '''
     communities_list = []
     communities = Community_Rank.objects.filter(member_id = request.user).order_by('-weight').values_list('community_id', flat=True).distinct()
     for community in communities:
-        comm = Community.objects.get(pk = community)
-        communities_list.append(comm)
+        communities_list.append(Community.objects.get(pk = community))
 
     return communities_list
 
