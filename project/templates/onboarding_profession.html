@@ -82,6 +82,11 @@
 
 
 <script>
+
+{% if not request.user.is_authenticated %}
+
+    $(".test").modal('show');
+{% endif %}
     $('.ui.dropdown.profession_industry').dropdown({
   allowAdditions: true,
 

@@ -2,6 +2,8 @@
 {% extends "base.html" %}
 
 {% block content %}
+
+
 <br/>
 <body>
 
@@ -14,11 +16,15 @@
     {% else %}
          <p class="ui center aligned header">We are currently developing the iOS app and will notify you via email as soon as we release it</p>
     {% endif %}
-<button class="ui fluid button "
+<button class="ui fluid  button "
         style=" z-index:2;width:60%; left:20%; margin:0 auto; background-color: #00897b; border-radius:20px;
-        color:white; bottom:1%; position:fixed;" onclick="location.href='https://collabmates.com/communities'">
+        color:white; bottom:1%; position:fixed;"  id="load_page">
    See communities now</button>
 
+<button class="ui fluid loading button "
+        style=" z-index:2;width:60%; left:20%; margin:0 auto; background-color: #00897b; border-radius:20px;
+        color:white; bottom:1%; position:fixed;display:none"  id="loading_button" >
+   See communities now</button>
 {% else %}
             <p class="ui center aligned header">We will notify you via email as soon as we release the app</p>
 {% endif %}
@@ -26,10 +32,24 @@
 
 </div>
 
+<div class="loader"></div>
 
 
 
 </body>
+
+
+
+<script>
+    $('#load_page').click(function(e){
+
+
+       $('#loading_button').css("display","block")
+
+       setTimeout(function(){ location.href='https://collabmates.com/communities' }, 5000);
+
+    })
+</script>
 {% endblock %}
 
 

@@ -59,6 +59,11 @@
 
 
 <script>
+
+{% if not request.user.is_authenticated %}
+
+    $(".test").modal('show');
+{% endif %}
     $('#submit').click(function(e){
 
         mobile_os=$('#mobile_os').val()
