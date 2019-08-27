@@ -24,7 +24,7 @@
 <div class="field padd">
         <div class="form_field">Industry&nbsp;&nbsp;<sub style="color:red;font-size:20px">*</sub></div>
     <select name="" multiple="" class="ui search fluid dropdown profession_industry" id="profession_industry" >
-      <option value="">Enter all relevant industries</option>
+      <option value="">Enter industries or select from dropdown</option>
         {% for tag in community_profession_industry %}
       <option value="{{tag.id}}" selected>{{tag.name}}</option>
         {% endfor %}
