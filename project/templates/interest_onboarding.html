@@ -24,7 +24,7 @@
 <div class="field padd">
      <div class="form_field">Pursuing these hobbies&nbsp;&nbsp;<sub style="color:red;font-size:20px">*</sub></div>
     <select name="" multiple="" class="ui search fluid dropdown interest_hobby" id="interest_hobby" >
-      <option value="">Enter all your hobbies or select from dropdown</option>
+      <option value="">Enter your hobbies or select from dropdown</option>
         {% for tag in community_interest_hobby %}
       <option value="{{tag.id}}" selected>{{tag.name}}</option>
         {% endfor %}
@@ -42,7 +42,7 @@
 <div class="field padd">
      <div class="form_field">Playing these sports</div>
     <select name="" multiple="" class="ui search fluid dropdown interest_sports" id="interest_sports" >
-      <option value="">Enter all the sports that you play</option>
+      <option value="">Enter the sports that you like to play</option>
         {% for tag in community_interest_sports %}
       <option value="{{tag.id}}" selected>{{tag.name}}</option>
         {% endfor %}
@@ -58,7 +58,7 @@
 
          <div class="form_field">Following these teams, sports, genres or topics</div>
     <select name="" multiple="" class="ui search fluid dropdown interest_fan" id="interest_fan">
-      <option value="">Enter all the things that you are passionate about</option>
+      <option value="">Enter things that you are passionate about</option>
         {% for tag in community_interest_fan %}
       <option value="{{tag.id}}" selected>{{tag.name}}</option>
         {% endfor %}

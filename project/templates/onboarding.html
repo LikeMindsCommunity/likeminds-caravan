@@ -21,7 +21,7 @@
 <div class="field padd">
     <div class="form_field">Current city&nbsp;&nbsp;<sub style="color:red;font-size:20px">*</sub></div>
     <select name="" multiple="" class="ui search fluid dropdown geography_city" id="geography_city">
-      <option value="">Enter your city or select from dropdown</option>
+      <option value="">Enter city or select from dropdown</option>
 
         {% for city in community_geography %}
       <option value="{{city.id}}" selected>{{city.name}}</option>
@@ -41,7 +41,7 @@
 <div class="field padd">
     <div class="form_field"> Current/Past schools or colleges&nbsp;&nbsp;<sub style="color:red;font-size:20px">*</sub> </div>
     <select name="" multiple="" class="ui search fluid dropdown legacy_education" id="legacy_education" >
-      <option value="">Enter name of institute(s) or select from dropdown</option>
+      <option value="">Enter all the institute(s)</option>
       {% for tag in community_legacy_education %}
       <option value="{{tag.id}}" selected>{{tag.name}}</option>
         {% endfor %}
@@ -59,7 +59,7 @@
 <div class="field padd">
     <div class="form_field">Current/past companies </div>
     <select name="" multiple="" class="ui search fluid dropdown legacy_work" id="legacy_work">
-      <option value="">Enter name of organization(s) or select from dropdown</option>
+      <option value="">Enter all the organization(s)</option>
       {% for tag in community_legacy_work %}
       <option value="{{tag.id}}" selected>{{tag.name}}</option>
         {% endfor %}
@@ -74,7 +74,7 @@
 <div class="field padd">
     <div class="form_field"> Hometown(s) </div>
     <select name="" multiple="" class="ui search fluid dropdown legacy_hometown" id="legacy_hometown">
-      <option value="">Enter your hometown or select from dropdown</option>
+      <option value="">Enter hometown or select from dropdown</option>
               {% for tag in community_legacy_hometown %}
       <option value="{{tag.id}}" selected>{{tag.name}}</option>
         {% endfor %}
