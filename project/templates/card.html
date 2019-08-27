@@ -7,6 +7,7 @@
   <div align="right">
 <button class="ui button" style="background-color:#00897b;color:white" id="refresh"><i class="fa fa-refresh" aria-hidden="true"></i></button>
 </div>
+
     <div class="card">
 
     <div class="content">
@@ -14,6 +15,7 @@
       <div class="header"><img class="ui left aligned avatar image" src="{{image_url}}">{{creator}}</div>
       <div class="meta"></div>
       <div class="description">
+
       <br>
         {{card}}
       </div>
@@ -53,6 +55,13 @@
               <div class="ui action input" style="margin: 1em 1em;width:90.3%;">
                 <input type="text" id="msg">
                 <button class="ui button" style="background-color:#00897b;color:white" id="send"><i class="fa fa-paper-plane" aria-hidden="true"></i></button>
+</div>
+
+<div style="text-align:center">
+    <br>
+
+<button class="ui fluid button " onclick="onbaording();"  style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;"  >Show relevant communities </button>
+
 </div>
 {% else %}
 <button class="ui fluid button " style=" z-index:2;width:60%; left:20%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; " id="view_answer" >View Answers  </button>
@@ -134,6 +143,13 @@ location.reload(true)
 })
 
 })
+
+
+ function onbaording(){
+                    path="/onboarding?community_id={{community_id}}";
+                    location.href=path
+
+                }
 
 </script>
 

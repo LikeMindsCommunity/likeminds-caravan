@@ -18,21 +18,21 @@ from django.template.loader import get_template
 import traceback
 from collabmates_api.raw_queries import  compute_rank
 
-url = settings.URL
+# url = settings.URL
 
 # uncomment to run it in localhost
-# url='http://localhost:8000'
+url='http://localhost:8000'
 
 api_url = url + '/api/'
 
 
-def pending_members_mail(request,user_id):
+def pending_members_mail(request):
     '''24 hour mail'''
     members = Members.objects.select_related('community_id','member_id')
     pending_members = members.filter(state=3)#.distinct('community_id')
     count=1
     for member in pending_members:
-        pending_members_in_community = pending_members.filter(community_id=member.community_id)
+        pending_members_in_community = pending_members.filter(community_id=member.community_id)#[:3]
         admins_of_community = members.filter(community_id=member.community_id).filter(Q(state=1)|Q(state=2))
         # print("==== ",member.community_id.id,)
 
@@ -44,29 +44,46 @@ def pending_members_mail(request,user_id):
                 to = admin.member_id.email
                 fail_silently = True
                 pending_count = pending_members_in_community.count()
+                # pending_count = 1
                 if pending_count == 1:
-                    subject = "Name has requested to join "+str(admin.community_id.name)
+                    template = get_template("mails/single_pending_member.html").render(
+                        {'promoter': admin.member_id.userinfo.name,
+                         'promoter_image': admin.member_id.userinfo.image_file.url,
+                         'pending_members': pending_members_in_community[0],
+                         'pending_member_count': pending_count,
+                         'community': admin.community_id,
+                         'url':url})
+                    subject = str(pending_members_in_community[0].member_id.userinfo.name)+" has requested to join "+str(admin.community_id.name)
                 elif pending_count > 1:
-                    subject = '<<Name has (if 1) >> or <<Y new members have (if >1)>> requested to join <<community name>>'
+                    subject = str(pending_count)+' new members have requested to join '+str(admin.community_id.name)
+                    template = get_template("mails/multiple_pending_members_mail.html").render(
+                        {'promoter': admin.member_id.userinfo.name,
+                         'promoter_image': admin.member_id.userinfo.image_file.url,
+                         'pending_members': pending_members_in_community[:4],
+                         'pending_member_count': pending_count,
+                         'remaining_pending_requests': pending_count-4,
+                         'community_name': admin.community_id.name,
+                         'community_id': admin.community_id.id,
+                         'url':url})
                 print(subject)
-                # template = get_template("mails/pending_members.html").render({'promoter': admin.member_id.userinfo.name,
-                #                            'promoter_image':admin.member_id.userinfo.image_file.url,
-                #                            'pending_members': pending_members_in_community[5],
-                #                            'pending_member_count':1,
-                #                            'community_name': admin.community_id.name})
-                # msg = EmailMultiAlternatives(subject,
-                #                              template,
-                #                              "hello@collabmates.com",
-                #                              [to],
-                #                              )
-                # msg.attach_alternative(template, "text/html")
-                # return msg.send(fail_silently)
+
+                msg = EmailMultiAlternatives(subject,
+                                             template,
+                                             "hello@collabmates.com",
+                                             ['mahesh61437mahe@gmail.com'],
+                                             )
+                msg.attach_alternative(template, "text/html")
+                #msg.send(fail_silently)
                 context = {'promoter': admin.member_id.userinfo.name,
-                           'promoter_image':admin.member_id.userinfo.image_file.url,
-                           'pending_members': pending_members_in_community[:5],
-                           'pending_member_count':1,
-                           'community_name': admin.community_id.name}
-                return render(request,'mails/pending_members.html',context)
+                         'promoter_image': admin.member_id.userinfo.image_file.url,
+                         'pending_members': pending_members_in_community[:5],
+                         'pending_member_count': pending_count,
+                         'remaining_pending_requests': pending_count-5,
+                         'community_name': admin.community_id.name,
+                         'community_id': admin.community_id.id,
+                         'url':url}
+                return render(request,'mails/multiple_pending_members_mail.html',context)
+
 
 def index(request):
     '''function to show promotion page'''
@@ -96,7 +113,7 @@ def dashboard(request):
         # get users communities
         my_community = get_user_communities(request)
         # getting communities by user hidden tag
-        communities = get_communities_by_user_tag(request)
+        communities = get_communities_by_rank(request)
         return render(request, 'dashboard.html',
                       {'usr': user, 'communities': communities, 'my_communities': my_community[:2],
                        "my_communities_count": len(my_community)})
@@ -113,28 +130,15 @@ def dashboard(request):
     return render(request, 'dashboard.html', {'communities': communities})
 
 
-def get_communities_by_user_tag(request):
-    user_id = request.user.id
-    # get user tag from function 'get_user_tag'
-    user_tag = get_user_tag(user_id)
-    if user_tag:
-        # if member has a hidden tag
-        user_tag = user_tag[0].tag_id
-    else:
-        # if member does not have a hidden tag
-        user_tag = 0
-    if user_tag != 0:
-        # if there is no category tag , then return communites based on user hidden tag
-        communities_by_tags = Community_tags.objects.filter(tags_id=user_tag).values('community_id').order_by(
-            "-community_id").distinct()
-        communities = []
-        for i in communities_by_tags:
-            update_member_count(i['community_id'])
-            c = Community.objects.get(id=i['community_id'])
-            communities.append(c)
-    else:
-        communities = Community.objects.filter(hide_community='0').order_by('-active_since')
-    return communities
+def get_communities_by_rank(request):
+
+    communities_list = []
+    communities = Community_Rank.objects.filter(member_id = request.user).order_by('-weight').values_list('community_id', flat=True).distinct()
+    for community in communities:
+        comm = Community.objects.get(pk = community)
+        communities_list.append(comm)
+
+    return communities_list
 
 
 def get_communities_by_tags(user_tag=0, category_tag=0):
@@ -841,7 +845,8 @@ def collabcard(request, card_id):
                'answers':collabcard_dict['answers'],
                'card_id':card_id,
                'user_image_url':user_image,
-               'share_link': collabcard_dict['collabcard']['share_link']
+               'share_link': collabcard_dict['collabcard']['share_link'],
+               'community_id': collabcard_dict['collabcard']['community']
                }
     return render(request, 'card.html', context)
 
@@ -1187,6 +1192,7 @@ def get_community_interest_tags(community_id):
 
 
     return community_interest_hobby,community_interest_sports,community_interest_fan,community_interest_cause
+
 
 # onboarding flow
 
