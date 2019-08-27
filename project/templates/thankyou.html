@@ -36,8 +36,12 @@
 
 
 </div>
+    {% if onboard %}
 <button class="ui fluid button " style=" z-index:2;width:60%; left:20%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;" onclick="open_community({{community.id}});"> Back To Community  </button>
+{% else %}'
+    <button class="ui fluid button " style=" z-index:2;width:60%; left:20%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;" onclick="onbaording();"> Show relevant communities  </button>
 
+    {% endif %}
     <div class="content">
           <h4>Similar Communities
 
@@ -74,6 +78,12 @@ function open_community(id){
                     location.href=path
 
 
+
+                }
+
+                function onbaording(){
+                    path="/onboarding?community_id={{community.id}}";
+                    location.href=path
 
                 }
 </script>

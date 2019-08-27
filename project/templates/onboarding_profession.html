@@ -17,6 +17,9 @@
 <div class="field">
     <select name="" multiple="" class="ui search fluid dropdown profession_industry" id="profession_industry" >
       <option value="">Industry</option>
+        {% for tag in community_profession_industry %}
+      <option value="{{tag.id}}" selected>{{tag.name}}</option>
+        {% endfor %}
       {% for industry in profession_industry %}
         <option value="{{industry.id}}">{{industry.name}}</option>
        {% endfor %}
@@ -34,6 +37,9 @@
 
     <select name="" multiple="" class="ui search fluid dropdown profession_skill" id="profession_skill">
       <option value="">Skills/Roles</option>
+        {% for tag in community_profession_skill %}
+      <option value="{{tag.id}}" selected>{{tag.name}}</option>
+        {% endfor %}
       {% for skill in profession_skill %}
         <option value="{{skill.id}}">{{skill.name}}</option>
        {% endfor %}
@@ -52,6 +58,9 @@
 
     <select name="" multiple="" class="ui search fluid dropdown profession_designation" id="profession_designation">
       <option value="">Designation</option>
+        {% for tag in community_profession_designation %}
+      <option value="{{tag.id}}" selected>{{tag.name}}</option>
+        {% endfor %}
       {% for designation in profession_designation %}
         <option value="{{designation.id}}">{{designation.name}}</option>
        {% endfor %}
@@ -125,7 +134,11 @@ console.log(temp)
         dataType: "json",
         success:function(data){
             //console.log(data)
+            {% if community_id != None %}
+            location.href="/onboarding_interest?community_id={{community_id}}"
+            {% else %}
             location.href="/onboarding_interest"
+            {% endif %}
 
         }
 

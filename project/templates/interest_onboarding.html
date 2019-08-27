@@ -17,6 +17,9 @@
 <div class="field">
     <select name="" multiple="" class="ui search fluid dropdown interest_hobby" id="interest_hobby" >
       <option value="">Pursuing these hobbies*</option>
+        {% for tag in community_interest_hobby %}
+      <option value="{{tag.id}}" selected>{{tag.name}}</option>
+        {% endfor %}
       {% for interest in interest_hobby %}
         <option value="{{interest.id}}">{{interest.name}}</option>
        {% endfor %}
@@ -32,6 +35,9 @@
 <div class="field">
     <select name="" multiple="" class="ui search fluid dropdown interest_sports" id="interest_sports" >
       <option value="">Playing these sports</option>
+        {% for tag in community_interest_sports %}
+      <option value="{{tag.id}}" selected>{{tag.name}}</option>
+        {% endfor %}
       {% for interest in interest_sports %}
         <option value="{{interest.id}}">{{interest.name}}</option>
        {% endfor %}
@@ -46,6 +52,9 @@
 
     <select name="" multiple="" class="ui search fluid dropdown interest_fan" id="interest_fan">
       <option value="">Following these teams, sports, genres or topics</option>
+        {% for tag in community_interest_fan %}
+      <option value="{{tag.id}}" selected>{{tag.name}}</option>
+        {% endfor %}
       {% for interest in interest_fan %}
         <option value="{{interest.id}}">{{interest.name}}</option>
        {% endfor %}
@@ -59,6 +68,9 @@
 
     <select name="" multiple="" class="ui search fluid dropdown interest_cause" id="interest_cause">
       <option value="">Working on these causes</option>
+        {% for tag in community_interest_cause %}
+      <option value="{{tag.id}}" selected>{{tag.name}}</option>
+        {% endfor %}
       {% for interest in interest_cause %}
         <option value="{{interest.id}}">{{interest.name}}</option>
        {% endfor %}
