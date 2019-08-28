@@ -147,6 +147,7 @@ def pending_members_mail():
                          'pending_members': pending_members_in_community[0],
                          'pending_member_count': pending_count,
                          'community': admin.community_id,
+                         'community_id': admin.community_id.id,
                          'url':url})
                     subject = str(pending_members_in_community[0].member_id.userinfo.name)+" has requested to join "+str(admin.community_id.name)
                 elif pending_count > 1:
@@ -158,13 +159,14 @@ def pending_members_mail():
                          'pending_member_count': pending_count,
                          'remaining_pending_requests': pending_count-4,
                          'community_name': admin.community_id.name,
+                         'community_id': admin.community_id.id,
                          'url':url})
                 print(subject)
 
                 msg = EmailMultiAlternatives(subject,
                                              template,
                                              "hello@collabmates.com",
-                                             ['mahesh61437mahe@gmail.com',admin.member_id.userinfo.email],
+                                             [admin.member_id.userinfo.email],
                                              )
                 msg.attach_alternative(template, "text/html")
                 msg.send(fail_silently)

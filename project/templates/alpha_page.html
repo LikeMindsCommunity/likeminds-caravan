@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% load staticfiles %}
+
+
+{% block content %}
+
+ {% block styles %}
+         <link rel="stylesheet" href="{% static 'css/main_css/onboarding.css' %}">
+ {% endblock %}
+
+<br/>
+<body>
+
+
+<h2 class="ui center aligned header" id="main_header">Thank you for joining our waiting list</h2>
+
+
+<br/>
+
+
+    <h4 class="ui center aligned header" id="sec_header" style="font-size:20px;padding-left:20px;padding-right:20px;line-height: 150%">We are still in our early phase of development and have released the platform for limited audience. We will notify you via email as soon as we open up the platform for you. Feel free to contact us for more details or any questions that you may have.</h4>
+
+   <div style="text-align:center;">
+    <button class="ui button " style="z-index:2; width:35%; left:34%; margin:0 auto; background-color: #00897b; border-radius:20px; bottom:10%; position:fixed;" type="submit" id="email"><p style="color:white;">Contact Us</p></button>
+    </div>
+
+
+
+</body>
+
+
+
+<script>
+
+    $('#email').click(function(e){
+
+        window.location.href="mailto:hello@collabmates.com"
+
+    })
+</script>
+{% endblock %}
+
+
+
+

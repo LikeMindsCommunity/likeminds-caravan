@@ -1,175 +1,261 @@
-{% load static %}<!DOCTYPE html>
+{% load staticfiles %}<!DOCTYPE html>
 <html>
-  <head>
+<head>
 
-      <html lang="zxx" class="no-js">
-          <head>
-            
-            <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-            
-            <link rel="shortcut icon" href="https://beta.collabmates.com/media/media/favicon.ico">
-            
-            <meta name="author" content="colorlib">
-            
-          
-            
-            <meta name="keywords" content="">
-            
-            <meta charset="UTF-8">
-            
-            <title>Collaborate with your niche community</title>
-            <meta name="description"
-                    content="CollabMates helps people network with like-minded peers in community groups. It enables community members to know each other, seek and provide help to each other, and grow together. The innovative design of the product ensures that the interactions happen only between relevant members without spamming the whole group."/>
-                <meta property="og:image" content='http://www.collabmates.com/cover.png'/>
-               <meta property="og:title" content="Collaborate with your niche community"/>
-                <meta property="og:description"
-                  content="CollabMates helps people network with like-minded peers in community groups. It enables community members to know each other, seek and provide help to each other, and grow together. The innovative design of the product ensures that the interactions happen only between relevant members without spamming the whole group."/>
+    <html lang="zxx" class="no-js">
+    <head>
 
-    <meta name="viewport" content="width=device-width, initial-scale=1">  
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.css"/>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.js"></script>
-    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-130288684-1"></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
-      gtag('config', 'UA-130288684-1');
-</script>
-  {% block styles %}
-      {% endblock %}
-  </head>
-  <body>
-        
-        <div class="ui small inverted menu" style=" height:60px; background-color:#075e54; margin:0 0 0 0 !important;max-width:100%;">
-            <div class="ui grid container" style = "margin-left:0!important; margin-top:0px;">
-                <div class="eight wide column" style="padding:10px; ">
-                  
-                  <a class="item" href="{% url 'dashboard' %}" style='padding:10px;'> 
-                      <div class="image" >
-                      
-                          <img src="/media/logo_2.svg" alt="Logo" style="margin-left:0px; height:20px; margin: auto auto; width:auto; max-width:240px; display: flex;justify-content: center;flex-direction: column;">
-                        
-                        </div>
-                  </a>
+        <link rel="shortcut icon" href="https://beta.collabmates.com/media/media/favicon.ico">
+
+        <meta name="author" content="colorlib">
+
+
+        <meta name="keywords" content="">
+
+        <meta charset="UTF-8">
+
+        <title>Collaborate with your niche community</title>
+        <meta name="description"
+              content="CollabMates helps people network with like-minded peers in community groups. It enables community members to know each other, seek and provide help to each other, and grow together. The innovative design of the product ensures that the interactions happen only between relevant members without spamming the whole group."/>
+        <meta property="og:image" content='http://www.collabmates.com/cover.png'/>
+        <meta property="og:title" content="Collaborate with your niche community"/>
+        <meta property="og:description"
+              content="CollabMates helps people network with like-minded peers in community groups. It enables community members to know each other, seek and provide help to each other, and grow together. The innovative design of the product ensures that the interactions happen only between relevant members without spamming the whole group."/>
+
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.css"/>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.js"></script>
+        <script async src="https://www.googletagmanager.com/gtag/js?id=UA-130288684-1"></script>
+        {% block styles %}
+                 <link rel="stylesheet" href="{% static 'css/main_css/onboarding.css' %}">
+
+        {% endblock %}
+
+
+
+    </head>
+<body>
+
+<div class="ui small inverted menu"
+     style=" height:60px; background-color:#075e54; margin:0 0 0 0 !important;max-width:100%;">
+    <div class="ui grid container" style="margin-left:0!important; margin-top:0px;">
+        <div class="eight wide column" style="padding:10px; ">
+
+            <a class="item" href="{% url 'dashboard' %}" style='padding:10px;'>
+                <div class="image">
+
+                    <img src="/media/logo_2.svg" alt="Logo"
+                         style="margin-left:0px; height:20px; margin: auto auto; width:auto; max-width:240px; display: flex;justify-content: center;flex-direction: column;">
+
                 </div>
-                <!-- <div class="ten wide column" style="text-align:center;">
-                  <div class="ui category search item" >
-                    <div class="ui white icon input" >
-                      <h2>CollabMates</h2>
-                    <input class="prompt" type="text" placeholder="Search...">
-                     <i class="search link icon"></i>
-                  </div>
-                <div class="results"></div>
-              </div>
-              </div> -->
-              <div class = "eight wide column" style="color:white;display:inline;">
-                   <div class="menu" >
-                  <a class="item"  style="float:left; " href= "#"><span id="lct" style = "overflow-y:hidden;" onclick = "loct();">  </span></a>
-                  <div class="ui modal loct">
-                      
-                          <div class="ui fluid card " style="border: 2px solid #1ebea5; margin:0 0 ; padding: 10px 10px;">
-                 <h2 class="ui teal center aligned header">
-                   <div class="field">
-                     <input type="text" name="location" id="searchTextField" placeholder="Location" required>
-                     <div class="ui basic green button" onclick="save();">Save Changes</div>
+            </a>
+        </div>
+        <!-- <div class="ten wide column" style="text-align:center;">
+          <div class="ui category search item" >
+            <div class="ui white icon input" >
+              <h2>CollabMates</h2>
+            <input class="prompt" type="text" placeholder="Search...">
+             <i class="search link icon"></i>
+          </div>
+        <div class="results"></div>
+      </div>
+      </div> -->
+        <div class="eight wide column" style="color:white;display:inline;">
+            <div class="menu">
+                <a class="item" style="float:left; " href="#"><span id="lct" style="overflow-y:hidden;"
+                                                                    onclick="loct();">  </span></a>
+                <div class="ui modal loct">
+
+                    <div class="ui fluid card " style="border: 2px solid #1ebea5; margin:0 0 ; padding: 10px 10px;">
+                        <h2 class="ui teal center aligned header">
+                            <div class="field">
+                                <input type="text" name="location" id="searchTextField" placeholder="Location" required>
+                                <div class="ui basic green button" onclick="save();">Save Changes</div>
                                 <div class="ui basic red button" onclick="hide();">Discard Changes</div>
-                   </div>
-                 </h2>
+                            </div>
+                        </h2>
                     </div>
+                </div>
+
+
+            </div>
+            <div class="right menu" style="float:right; ">
+                {% if user.is_authenticated %}
+                <div class="ui simple dropdown item" style="padding:0;">
+                    <img class="ui avatar image" src="{{usr.image_file.url}}">
+
+                    <div class="menu">
+                        <!--                        <a class="item" href= "#">My Profile</a>-->
+                        <!--                        <a class="item" href = "#" >My communities</a>-->
+                        <!--                        <a class="item" href = "#">Create communities</a>-->
+                        <a class="item" href="{% url 'logout_view' %}">Logout</a>
                     </div>
-               
+                </div>
 
-                  </div>
-              <div class="right menu" style="float:right; ">
-                  {% if user.is_authenticated %}
-                  <div class="ui simple dropdown item" style="padding:0;">
-                      <img class="ui avatar image" src="{{usr.image_file.url}}">
-                      
-                      <div class="menu">
-<!--                        <a class="item" href= "#">My Profile</a>-->
-<!--                        <a class="item" href = "#" >My communities</a>-->
-<!--                        <a class="item" href = "#">Create communities</a>-->
-                        <a class="item" href = "{% url 'logout_view' %}">Logout</a>
-                      </div>
+                {% else %}
+                <a class="item" id='test'>Signin</a>
+                {% endif %}
+                <div class="ui modal test">
+
+                    <div class="ui fluid card " style="border: 2px solid #1ebea5; margin:0 0 ; padding: 10px 10px;">
+                        <h2 class="ui teal center aligned header">
+                            <div class="content">
+                                Login to continue
+                            </div>
+                        </h2>
+                        <div class="content">
+                            <p class="center aligned">
+                                To join this community we need few basic information about you. This will help us to
+                                have relevant member in group.
+                            </p>
+                        </div>
+                        <div class="center aligned container">
+                            <div class="content">
+                                {% if cta == 'join' %}
+                                <a href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}&cta=join">
+                                    <button class="ui facebook button" style="width:130px;">
+                                        {% else %}
+                                        <a href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}">
+                                            <button class="ui facebook button" style="width:130px;">
+                                                {% endif %}
+                                                <i class="facebook icon"></i>
+                                                Facebook
+                                            </button>
+                                        </a>
+                                        <br>
+                                        <br>
+                                        OR
+                                        <br>
+                                        <br>
+                                        <div class="content">
+                                            {% if cta == 'join' %}
+                                            <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join">
+                                                <button class="ui linkedin button" style="width:130px;">
+                                                    {% else %}
+                                                    <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}">
+                                                        <button class="ui linkedin button" style="width:130px;">
+                                                            {% endif %}
+                                                            <i class="linkedin icon"></i>
+                                                            LinkedIn
+                                                        </button>
+                                                    </a>
+                                        </div>
+                            </div>
+                            <br>
+                        </div>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
-                  {% else %}
-                    <a class="item" id='test'>Signin</a>
-                  {% endif %}
-                  <div class="ui modal test">
+<!-- success message -->
 
-                          <div class="ui fluid card " style="border: 2px solid #1ebea5; margin:0 0 ; padding: 10px 10px;">
-                 <h2 class="ui teal center aligned header">
-                   <div class="content">
-                     Login to continue
-                   </div>
-                 </h2>
-                 <div class="content">
-                   <p class="center aligned">
-                    To join this community we need few basic information about you. This will help us to have relevant member in group.
-                  </p>
-                  </div>
-                  <div class="center aligned container">
-                  <div class="content">
-                      {% if cta == 'join' %}
-                      <a  href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}&cta=join">
-                  <button class="ui facebook button" style="width:130px;">
-                      {% else %}
-                      <a  href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}">
-                  <button class="ui facebook button" style="width:130px;">
-                      {% endif %}
-                      <i class="facebook icon"></i>
-                      Facebook
-                    </button>
-                    </a>
-                      <br>
-                      <br>
-                      OR
-                    <br>
-                    <br>
-                    <div class = "content">
-                        {% if cta == 'join' %}
-                      <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join">
-                  <button class="ui linkedin button" style="width:130px;">
-                      {% else %}
-                      <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}">
-                  <button class="ui linkedin button" style="width:130px;">
-                      {% endif %}
-                        <i class="linkedin icon"></i>
-                        LinkedIn
-                      </button>
-                      </a>
-                    </div>
-                  </div>
-                  <br>
-                  </div></div></div></div></div></div></div>
+<div class="ui success message" id="success" style="display:none">
+  <i class="close icon" id="close"></i>
+  <div class="header" >
+    Thanks for signing up
+  </div>
+
+    <p style="padding-top:5px;" id="help_text"></p>
+</div>
+
+<!-- model for user onboarding -->
+
+<div class="ui modal onboard" id="onboard_popup">
+
+  <div class="header">
+    Discover relevant communities on CollabMates
+  </div>
+
+  <div class="content">
+    Hi {{request.user.userinfo.name}}, we need to know you a little so that we can suggest communities relevant to you on the platform.
+
+  </div>
+  <div class="actions">
+    <div class="ui positive right labeled icon button" id="onboard" style="background-color:#00897b;">
+       I am in
+      <i class="checkmark icon"></i>
+    </div>
+  </div>
+</div>
+
+
+<!---->
 
 
 
-        <script>
+<!-- model for showing legacy if there is iit-->
+<div style="background-color:red;">
+<div class="ui modal iit" id="iit">
 
-    $(function(){
-      $("#test").click(function(){
-        $(".test").modal('show');
-      });
-      $(".test").modal({
-        closable: true
-      });
-    });
+  <div class="small header" id="main_header">
+   1 last step!! Get early access to CollabMates app
+  <br/>
+      <p id="sec_header" style="padding-top:10px;">Provide us details below to get notified</p>
 
-       function hide(){
-    $('.ui.modal').modal("hide");
-  }
-function save(){
-  ele = document.getElementById('lct');
-  ele = document.getElementById('lct');
-  ele.value = val;
-}
-        </script>
-      <div style="margin:0 auto; max-width:786px;">
-<style>
+  </div>
+
+  <div class="content">
+<div class="ui  form" onsubmit="return false">
+
+{% csrf_token %}
+
+
+<!-- mobile type -->
+<div class="field padd">
+         <div class="form_field">Mobile OS&nbsp;&nbsp;<sub style="color:red;font-size:20px">*</sub></div>
+       <select class="ui dropdown" id="mobile_os">
+        <option value="" disabled selected>Which phone OS do you have?</option>
+          <option value="Android">Android</option>
+          <option value="iOS">iOS</option>
+          <option value="Both">Both</option>
+        </select>
+    <div class="ui pointing red basic label" id="error_mobile" style="display:none">
+      Please select your mobile OS
+    </div>
+</div>
+
+<!-- -->
+<!-- Email -->
+<div class="field padd">
+    <div class="form_field">Email ID linked with Playstore/App store&nbsp;&nbsp;<sub style="color:red;font-size:20px">*</sub></div>
+    <div class="field">
+        <input type="email" name="email" value="{{request.user.email}}" id="email" placeholder="This is important to give you access of the app">
+    </div>
+</div>
+
+<!-- -->
+<!-- Mobile Number -->
+<div class="field padd">
+<div class="form_field">Mobile Number</div>
+    <div class="field">
+        <input type="text" name="mobile" placeholder="We will not spam you or give this to anyone" id="mobile_no"  minlength="10">
+    </div>
+
+</div>
+<!-- -->
+</div>
+
+  </div>
+  <div class="actions">
+    <button class="ui positive right labeled icon button" id="iit_button" disabled='disabled' style="background-color:#00897b;">
+       Notify Me
+      <i class="checkmark icon"></i>
+    </button>
+  </div>
+</div>
+
+</div>
+<!--end iit modal-->
+
+
+<div style="margin:0 auto; max-width:786px;">
+    <style>
 #back2Top {
     width: 40px;
     line-height: 40px;
@@ -195,44 +281,44 @@ function save(){
     background-color: #DDF;
     color: #000;
 }
-</style>
-<body>
 
-           <br/>
+    </style>
+    <body>
 
-        {{request.user.userinfo}}
+    <br/>
+
     {% for community in communities %}
 
-    <div class="ui link fluid cards" >
-            <div class="ui fluid card "onclick="" style="margin-right:0px;">
+    <div class="ui link fluid cards">
+        <div class="ui fluid card " onclick="" style="margin-right:0px;">
 
-                    <div class=" fluid image">
-                      <img src="{{community.image_url.url}}" style="max-height: 400px;">
-                    </div>
-                    <div class="content">
-                      <div class="header" style="padding-bottom: 5px;"><a href="{% url 'comunity' community.id %}" style="color:#1cb39b;">{{community.name}}</a></div>
+            <div class=" fluid image">
+                <img src="{{community.image_url.url}}" style="max-height: 400px;">
+            </div>
+            <div class="content">
+                <div class="header" style="padding-bottom: 5px;"><a href="{% url 'comunity' community.id %}"
+                                                                    style="color:#1cb39b;">{{community.name}}</a></div>
 
-                      <span class="left floated" style="width:50%;">
+                <span class="left floated" style="width:50%;">
                             <i class="map marker alternate icon"></i>
                             {{community.location}}
 
 
                           </span>
-                          <span class="right floated ">
+                <span class="right floated ">
                             <i class="user icon"></i>
-                            <a href ="#">
+                            <a href="#">
                             {{community.members_count}}
                             </a>
                           </span>
-                    </div>
-                    <div class="extra content">
-                            <div class="description">
-                                    {{community.purpose}}
-                                  </div>
+            </div>
+            <div class="extra content">
+                <div class="description">
+                    {{community.purpose}}
+                </div>
 
-                    </div>
-                  </div>
-
+            </div>
+        </div>
 
     </div>
 
@@ -240,191 +326,178 @@ function save(){
     <a id="back2Top" title="Back to top" href="#">&#10148;</a>
 
 
-<script>
+    <script>
 
-    function create(){
-      window.location.href = 'create_community';
-    }
-    $(window).scroll(function() {
-    var height = $(window).scrollTop();
-    if (height > 100) {
-        $('#back2Top').fadeIn();
-    } else {
-        $('#back2Top').fadeOut();
-    }
+//onboarding
+
+{% if request.user.is_authenticated %}
+
+{% if not onboard %}
+ $('.ui.modal.onboard').modal('show');
+
+
+
+$('#onboard_popup').modal({
+    backdrop: 'static',
+    keyboard: false  // to prevent closing with Esc button (if you want this too)
+})
+
+
+
+ $('#onboard').click(function(e){
+
+ location.href="/onboarding"
+
+ })
+
+{% endif %}
+
+{% endif %}
+
+
+// onboaring end
+
+
+
+//iit popup
+
+{% if request.user.is_authenticated %}
+
+{% if onboard  and is_iitd and request.user.userinfo.mobile_os == None %}
+ $('.ui.modal.iit').modal('show');
+ $(".dimmer").css("background-color","rgba(40,40,40,0.7)");
+
+ $('.ui.dropdown').dropdown();
+$('#iit').modal({
+    backdrop: 'static',
+    keyboard: false,  // to prevent closing with Esc button (if you want this too)
+
+})
+
+$('#close').click(function(e){
+
+$('#success').css("display","none")
+location.reload(true)
+
+})
+
+
+
+$('#mobile_os').change(function(){
+    //Some condition
+
+    $('#iit_button').prop('disabled', false);
+
 });
-$(document).ready(function() {
-    $("#back2Top").click(function(event) {
-        event.preventDefault();
-        $("html, body").animate({ scrollTop: 0 }, "slow");
-        return false;
-    });
-
-});
-
-    $(document).ready(function(){
 
 
 
-      // Read selected option
-      $('#selUser').change(function(){
-        var category = $('#selUser option:selected').text();
-        filter(category);
+
+function is_mobile_valid(mobile_no)
+{
+    if(!mobile_no)
+    {
+
+    return true;
+
+    }
+    var phoneno = /^\d{10}$/;
+            if(!(mobile_no.match(phoneno)))
+            {
+                    return false;
+            }
+
+    return true;
+}
+
+
+ $('#iit_button').click(function(e){
+
+        mobile_os=$('#mobile_os').val()
+        email=$('#email').val()
+        mobile_no=$('#mobile_no').val()
+
+        temp={
+        'mobile_os':mobile_os,
+        'email':email,
+        'mobile_no':mobile_no,
+        'csrfmiddlewaretoken': '{{ csrf_token }}',
+
+        }
+
+        if(!email){
+            alert("Enter Valid Email Address!!")
+            return;
+        }
+
+         if(!is_mobile_valid(mobile_no))
+         {
+
+               alert("Enter Valid Mobile no.")
+               return;
+
+         }
+         $.ajax({
+
+                    url:"/access_page",
+                    type:"POST",
+                    data:temp,
+                    dataType: "json",
+                    success:function(data){
+                        data=data['mobile_os']
+                        if(data == 'Android' || data == 'Both'){
+
+                        $('#help_text').html("You will shortly receive an email with link to the CollabMates App.Meanwhile, you can explore and join relevant communities on the platform via web.")
+                        $('#success').css("display","block")
+
+                        }else{
+                         $('#help_text').html("We are currently developing the iOS app and will notify you via email as soon as we release it")
+                         $('#success').css("display","block")
+                         console.log(data);
+
+                        }
+
+                    }
+
+                })
+
+ })
+
+{% endif %}
+
+{% endif %}
+
+
+// iitpopup end
+
+
+
+
+
+
+$(function(){
+      $("#test").click(function(){
+        $(".test").modal('show');
+      });
+      $(".test").modal({
+        closable: true
       });
     });
 
-
-
-    function createGroup(){
-      {% if user.is_authenticated %}
-      window.location = "/creategroup";
-  {% else %}
-  $('.ui.modal')
-  .modal('show')
-;
-  {% endif %}
-    }
-
-    var myIndex = 0;
-carousel();
-
-function carousel() {
-    var i;
-    var x = document.getElementsByClassName("mySlides");
-    for (i = 0; i < x.length; i++) {
-       x[i].style.display = "none";
-    }
-    myIndex++;
-    if (myIndex > x.length) {myIndex = 1}
-    x[myIndex-1].style.display = "block";
-    setTimeout(carousel, 3000); // Change image every 2 seconds
-}
-
-function change(j) {
-  var x = document.getElementsByClassName("mySlides");
-  for (i = 0; i < x.length; i++) {
-     x[i].style.display = "none";
-  }
-
-  x[j-1].style.display = "block";
-
-}
-
-
-
-
-        function open_community(id){
-          window.location = '/community/'+id;
-        }
-        function getLocation(){
-            navigator.geolocation.getCurrentPosition(function(location) {
-
-                lct = document.getElementsByClassName('lct');
-                console.log(location.coords.latitude);
-                console.log(location.coords.longitude);
-                url = 'https://maps.googleapis.com/maps/api/geocode/json?latlng='+location.coords.latitude+','+ location.coords.longitude+'&key=AIzaSyBWzqsPR2NYGai0sn5eZB9h9bTgttUifDQ';
-                var xhttp = new XMLHttpRequest();
-                xhttp.onreadystatechange = function() {
-                  if (this.readyState == 4 && this.status == 200) {
-                    var resp = this.responseText;
-                    resp = JSON.parse(resp);
-                    var add = resp["results"][0]["formatted_address"]
-                    var  value=add.split(",");
-
-                    count=value.length;
-                    country=value[count-1];
-                    state=value[count-2];
-                    city=value[count-3];
-                    console.log(city);
-                    ele = document.getElementById("lct");
-                    ele.innerHTML = '';
-                    ele.innerHTML = city+'<i class="map marker alternate icon"></i>';
-                  }
-                };
-                xhttp.open("GET", url , true);
-                xhttp.send();
-              }
-            );
-        };
-    $(document).ready(function () {
-        getLocation();
-    });
-
-    //location = document.getElementById('location');
-
-
-    function filter(val){
-
-        data = val;
-
-        var comm ;
-        $.ajax({
-            url: "",
-            type: "GET",
-            data: {"data": data,},
-            cache:false,
-            dataType: "json",
-            success: function(res){
-
-              comm = res['communities'];
-
-
-      cont = document.getElementById('comm_card');
-      cont.innerHTML = "";
-      if (comm.length == 0){
-        cont.innerHTML = "<h1>No Result Found</h1>"
-      }
-      else {
-        for (j in comm){
-        i = comm[j]
-  $("#comm_card").append('<div class="ui link fluid cards onclick = "window.location = /community/'+i.id+'> <div class="ui fluid card " > <div class="image" > \
-      <img src="https://beta.collabmates.com'+i.image_url+'"> \
-    </div> \
-    <div class="content" > \
-      <div class="header" style="padding-bottom: 5px;"><a href="../community/'+ i.id+ ' " style="color:#1cb39b;">'+i.name+'</a></div > <span class="left floated" style="width:50%;"> \
-            <i class="map marker alternate icon" > \
-            </i> ' + i.location + '</span> \
-          <span class="right floated " > \
-            <i class="user icon"></i > \
-            <a href = "/' + i.members_count + '/1 ">   </a> \
-          </span> \
-    </div> \
-    <div class="extra content"> \
-            <div class="description"> ' + i.purpose + ' </div> \
-    </div> \
-  </div> \
-</div>');
-    }}}
-    });
-        //url = 'localhost:8000/togther/dashboard/'+data;
-        //console.log(url)
-        //window.location(url);
-    };
-function initialize() {
-  var input = document.getElementById('searchTextField');
-  console.log(input);
-  x = new google.maps.places.Autocomplete(input);
-  console.log(x);
-}
-
-function loct(){
-      $('.ui.modal.loct')
-  .modal('show')
-;
-  }
-function hide(){
+       function hide(){
     $('.ui.modal').modal("hide");
   }
 function save(){
   ele = document.getElementById('lct');
-  val = document.getElementById('lct');
+  ele = document.getElementById('lct');
   ele.value = val;
 }
 
 
-</script>
-<script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAebp4g7KxzLCAtyjTtW67z1IJxC8Bbt6U&libraries=places&callback=initialize"></script>
+    </script>
+    <script type="text/javascript"
+            src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAebp4g7KxzLCAtyjTtW67z1IJxC8Bbt6U&libraries=places&callback=initialize"></script>
+    </body>
+</div>
 </body>
-    </div>
-  </body>
 </html>

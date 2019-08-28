@@ -26,13 +26,13 @@ url = settings.URL
 api_url = url + '/api/'
 
 
-def pending_members_mail(request,user_id):
+def pending_members_mail(request):
     '''24 hour mail'''
     members = Members.objects.select_related('community_id','member_id')
     pending_members = members.filter(state=3)#.distinct('community_id')
     count=1
     for member in pending_members:
-        pending_members_in_community = pending_members.filter(community_id=member.community_id)
+        pending_members_in_community = pending_members.filter(community_id=member.community_id)#[:3]
         admins_of_community = members.filter(community_id=member.community_id).filter(Q(state=1)|Q(state=2))
         # print("==== ",member.community_id.id,)
 
@@ -44,29 +44,46 @@ def pending_members_mail(request,user_id):
                 to = admin.member_id.email
                 fail_silently = True
                 pending_count = pending_members_in_community.count()
+                # pending_count = 1
                 if pending_count == 1:
-                    subject = "Name has requested to join "+str(admin.community_id.name)
+                    template = get_template("mails/single_pending_member.html").render(
+                        {'promoter': admin.member_id.userinfo.name,
+                         'promoter_image': admin.member_id.userinfo.image_file.url,
+                         'pending_members': pending_members_in_community[0],
+                         'pending_member_count': pending_count,
+                         'community': admin.community_id,
+                         'url':url})
+                    subject = str(pending_members_in_community[0].member_id.userinfo.name)+" has requested to join "+str(admin.community_id.name)
                 elif pending_count > 1:
-                    subject = '<<Name has (if 1) >> or <<Y new members have (if >1)>> requested to join <<community name>>'
+                    subject = str(pending_count)+' new members have requested to join '+str(admin.community_id.name)
+                    template = get_template("mails/multiple_pending_members_mail.html").render(
+                        {'promoter': admin.member_id.userinfo.name,
+                         'promoter_image': admin.member_id.userinfo.image_file.url,
+                         'pending_members': pending_members_in_community[:4],
+                         'pending_member_count': pending_count,
+                         'remaining_pending_requests': pending_count-4,
+                         'community_name': admin.community_id.name,
+                         'community_id': admin.community_id.id,
+                         'url':url})
                 print(subject)
-                # template = get_template("mails/pending_members.html").render({'promoter': admin.member_id.userinfo.name,
-                #                            'promoter_image':admin.member_id.userinfo.image_file.url,
-                #                            'pending_members': pending_members_in_community[5],
-                #                            'pending_member_count':1,
-                #                            'community_name': admin.community_id.name})
-                # msg = EmailMultiAlternatives(subject,
-                #                              template,
-                #                              "hello@collabmates.com",
-                #                              [to],
-                #                              )
-                # msg.attach_alternative(template, "text/html")
-                # return msg.send(fail_silently)
+
+                msg = EmailMultiAlternatives(subject,
+                                             template,
+                                             "hello@collabmates.com",
+                                             ['mahesh61437mahe@gmail.com'],
+                                             )
+                msg.attach_alternative(template, "text/html")
+                #msg.send(fail_silently)
                 context = {'promoter': admin.member_id.userinfo.name,
-                           'promoter_image':admin.member_id.userinfo.image_file.url,
-                           'pending_members': pending_members_in_community[:5],
-                           'pending_member_count':1,
-                           'community_name': admin.community_id.name}
-                return render(request,'mails/pending_members.html',context)
+                         'promoter_image': admin.member_id.userinfo.image_file.url,
+                         'pending_members': pending_members_in_community[:5],
+                         'pending_member_count': pending_count,
+                         'remaining_pending_requests': pending_count-5,
+                         'community_name': admin.community_id.name,
+                         'community_id': admin.community_id.id,
+                         'url':url}
+                return render(request,'mails/multiple_pending_members_mail.html',context)
+
 
 def index(request):
     '''function to show promotion page'''
@@ -96,10 +113,21 @@ def dashboard(request):
         # get users communities
         my_community = get_user_communities(request)
         # getting communities by user hidden tag
-        communities = get_communities_by_user_tag(request)
+        communities = get_communities_by_rank(request)
+
+        onboard = False
+        is_iitd=False
+        user_lpig = User_LPIG.objects.filter(member_id=request.user)
+        if user_lpig.exists():
+            onboard = True
+            legacy_list=json.loads(user_lpig[0].legacy)
+
+            if 6 in legacy_list:                            #checking for iit
+                is_iitd=True
+
         return render(request, 'dashboard.html',
                       {'usr': user, 'communities': communities, 'my_communities': my_community[:2],
-                       "my_communities_count": len(my_community)})
+                       "my_communities_count": len(my_community),'onboard':onboard,'is_iitd':is_iitd})
     communities = Community.objects.filter(hide_community='0').order_by('-active_since')
     for community in communities:
         update_member_count(community.id)
@@ -113,28 +141,14 @@ def dashboard(request):
     return render(request, 'dashboard.html', {'communities': communities})
 
 
-def get_communities_by_user_tag(request):
-    user_id = request.user.id
-    # get user tag from function 'get_user_tag'
-    user_tag = get_user_tag(user_id)
-    if user_tag:
-        # if member has a hidden tag
-        user_tag = user_tag[0].tag_id
-    else:
-        # if member does not have a hidden tag
-        user_tag = 0
-    if user_tag != 0:
-        # if there is no category tag , then return communites based on user hidden tag
-        communities_by_tags = Community_tags.objects.filter(tags_id=user_tag).values('community_id').order_by(
-            "-community_id").distinct()
-        communities = []
-        for i in communities_by_tags:
-            update_member_count(i['community_id'])
-            c = Community.objects.get(id=i['community_id'])
-            communities.append(c)
-    else:
-        communities = Community.objects.filter(hide_community='0').order_by('-active_since')
-    return communities
+def get_communities_by_rank(request):
+    ''' function to get communities based on rank '''
+    communities_list = []
+    communities = Community_Rank.objects.filter(member_id = request.user).order_by('-weight').values_list('community_id', flat=True).distinct()
+    for community in communities:
+        communities_list.append(Community.objects.get(pk = community))
+
+    return communities_list
 
 
 def get_communities_by_tags(user_tag=0, category_tag=0):
@@ -219,10 +233,14 @@ def community(request, community_id):
                             break
                 except:
                     return HttpResponse('The community is not tagged ')
+                onboard = False
+                user_lpig = User_LPIG.objects.filter(member_id = request.user)
+                if user_lpig.exists():
+                    onboard = True
 
                 return render(request, 'thankyou.html',
                               {'usr': user, 'similar_communities': data, 'community': community,
-                               'community_tag': community_tag})
+                               'community_tag': community_tag,'onboard':onboard})
             # -----------------------------------------------------------------------------------------------------------
     else:
         cta = ''
@@ -837,7 +855,8 @@ def collabcard(request, card_id):
                'answers':collabcard_dict['answers'],
                'card_id':card_id,
                'user_image_url':user_image,
-               'share_link': collabcard_dict['collabcard']['share_link']
+               'share_link': collabcard_dict['collabcard']['share_link'],
+               'community_id': collabcard_dict['collabcard']['community']
                }
     return render(request, 'card.html', context)
 
@@ -1083,6 +1102,106 @@ def get_user_tags_from_list(tag_list,type):
     return type_list
 
 
+def get_community_legacytags(community_id):
+
+    community_lpig = Community_LPIG.objects.filter(community_id=community_id)
+
+    community_legacy_education = []
+    community_legacy_work = []
+    community_legacy_hometown = []
+    community_geography = []
+
+    if community_lpig.exists():
+        community_lpig = community_lpig[0]
+        community_legacy = json.loads(community_lpig.legacy)
+        community_city = json.loads(community_lpig.geography)
+
+
+        for tag_id in community_legacy:
+            tag = Tags_lpig.objects.get(pk=tag_id)
+
+            if tag.category_id.id == 1 and tag.attribute_id.id == 1:
+                community_legacy_work.append(tag)
+
+            elif tag.category_id.id == 1 and tag.attribute_id.id == 2:
+                community_legacy_education.append(tag)
+
+
+            elif tag.category_id.id == 1 and tag.attribute_id.id == 3:
+                community_legacy_hometown.append(tag)
+
+        for tag_id in community_city:
+            tag = Tags_lpig.objects.get(pk=tag_id)
+            print(tag)
+            print(tag, tag.category_id.id, tag.attribute_id.id)
+
+            if tag.category_id.id == 4 and tag.attribute_id.id == 12:
+                community_geography.append(tag)
+
+
+    return community_legacy_work,community_legacy_education,community_legacy_hometown,community_geography
+
+
+def get_community_profession_tags(community_id):
+
+    community_lpig = Community_LPIG.objects.filter(community_id=community_id)
+
+    community_profession_industry = []
+    community_profession_skill = []
+    community_profession_designation = []
+
+    if community_lpig.exists():
+        community_lpig = community_lpig[0]
+        community_profession = json.loads(community_lpig.profession)
+
+
+        for tag_id in community_profession:
+            tag = Tags_lpig.objects.get(pk=tag_id)
+
+            if tag.category_id.id == 2 and tag.attribute_id.id == 5:
+                community_profession_skill.append(tag)
+
+            elif tag.category_id.id == 2 and tag.attribute_id.id == 6:
+                community_profession_industry.append(tag)
+
+            elif tag.category_id.id == 2 and tag.attribute_id.id == 7:
+                community_profession_designation.append(tag)
+
+
+    return community_profession_industry,community_profession_skill,community_profession_designation
+
+
+def get_community_interest_tags(community_id):
+
+    community_lpig = Community_LPIG.objects.filter(community_id=community_id)
+
+    community_interest_hobby = []
+    community_interest_sports = []
+    community_interest_fan = []
+    community_interest_cause = []
+
+    if community_lpig.exists():
+        community_lpig = community_lpig[0]
+        community_interests = json.loads(community_lpig.interests)
+
+        for tag_id in community_interests:
+            tag = Tags_lpig.objects.get(pk=tag_id)
+
+            if tag.category_id.id == 3 and tag.attribute_id.id == 9:
+                community_interest_hobby.append(tag)
+
+            elif tag.category_id.id == 3 and tag.attribute_id.id == 10:
+                community_interest_sports.append(tag)
+
+
+            elif tag.category_id.id == 3 and tag.attribute_id.id == 11:
+                community_interest_fan.append(tag)
+
+            elif tag.category_id.id == 3 and tag.attribute_id.id == 8:
+                community_interest_cause.append(tag)
+
+
+    return community_interest_hobby,community_interest_sports,community_interest_fan,community_interest_cause
 
 
 # onboarding flow
@@ -1091,6 +1210,11 @@ def onboarding(request):
 
     '''function to show the legacy'''
     if request.method == 'GET':
+
+        community_id = request.GET.get('community_id')
+
+        community_legacy_work, community_legacy_education, community_legacy_hometown, community_geography = get_community_legacytags(community_id)
+
         legacy_education=Tags_lpig.objects.filter(attribute_id=2)
         legacy_work=Tags_lpig.objects.filter(attribute_id=1)
         legacy_hometown=Tags_lpig.objects.filter(attribute_id=3)
@@ -1099,7 +1223,12 @@ def onboarding(request):
             'legacy_education':legacy_education,
             'legacy_work':legacy_work,
             'legacy_hometown':legacy_hometown,
-            'geography':geography
+            'geography':geography,
+            'community_legacy_work':community_legacy_work,
+            'community_legacy_education':community_legacy_education,
+            'community_legacy_hometown':community_legacy_hometown,
+            'community_geography':community_geography,
+            'community_id':community_id
         }
 
         return render(request,'onboarding.html',context)
@@ -1138,6 +1267,12 @@ def onboarding_profession(request):
     '''onboarding for profession'''
 
     if request.method == 'GET':
+
+        community_id = request.GET.get('community_id')
+
+        community_profession_industry,community_profession_skill,community_profession_designation = get_community_profession_tags(community_id)
+
+
         profession_industry = Tags_lpig.objects.filter(attribute_id=6)
         profession_skill = Tags_lpig.objects.filter(attribute_id=5)
         profession_designation = Tags_lpig.objects.filter(attribute_id=7)
@@ -1145,6 +1280,10 @@ def onboarding_profession(request):
             'profession_industry': profession_industry,
             'profession_skill': profession_skill,
             'profession_designation': profession_designation,
+            'community_profession_industry': community_profession_industry,
+            'community_profession_skill': community_profession_skill,
+            'community_profession_designation': community_profession_designation,
+            'community_id': community_id,
         }
 
         return render(request, 'onboarding_profession.html', context)
@@ -1179,6 +1318,11 @@ def onboarding_interest(request):
     '''onboarding for profession'''
 
     if request.method == 'GET':
+
+        community_id = request.GET.get('community_id')
+
+        community_interest_hobby, community_interest_sports, community_interest_fan, community_interest_cause = get_community_interest_tags(community_id)
+
         interest_hobby = Tags_lpig.objects.filter(attribute_id=9)
         interest_sports = Tags_lpig.objects.filter(attribute_id=10)
         interest_fan = Tags_lpig.objects.filter(attribute_id=11)
@@ -1189,9 +1333,14 @@ def onboarding_interest(request):
             'interest_sports': interest_sports,
             'interest_fan': interest_fan,
             'interest_cause': interest_cause,
+            'community_interest_hobby': community_interest_hobby,
+            'community_interest_sports': community_interest_sports,
+            'community_interest_fan': community_interest_fan,
+            'community_interest_cause': community_interest_cause
         }
 
         return render(request, 'interest_onboarding.html', context)
+
     else:
         user_id = request.user.id
         interest_hobby = request.POST.getlist('interest_hobby[]')
@@ -1216,4 +1365,56 @@ def onboarding_interest(request):
         type_list = get_user_tags_from_list(interest_list, "Interests")
         insert_tags_for_user(user_id, type_list, "Interests")
         compute_rank.delay(user_id=user_id)
-        return JsonResponse({'success': True})
+
+
+        #checking for iit tag
+        is_iitd=False
+        user_lpig = User_LPIG.objects.filter(member_id=request.user)
+        if user_lpig.exists():
+            legacy_list = json.loads(user_lpig[0].legacy)
+
+            if 6 in legacy_list:  # checking for iit
+                is_iitd = True
+        return JsonResponse({'is_iitd': is_iitd})
+
+
+def access_page(request):
+
+    '''function to create an early access page and save early respose'''
+    if request.method == "GET":
+         return render(request,'access_page.html',{})
+    else:
+        user_id=request.user.id
+        mobile_os=request.POST.get('mobile_os')
+        email=request.POST.get('email')
+        mobile_no=request.POST.get('mobile_no')
+        try:
+            user_info=Userinfo.objects.get(user_id=user_id)
+            user_info.mobile_os=mobile_os
+            user_info.secondary_email=email
+            if mobile_no:
+                user_info.contact_number= mobile_no
+            else:
+                user_info.contact_number = None
+            user_info.save()
+        except:
+            print("error in userinfo")
+    return JsonResponse({'success': True,'mobile_os':mobile_os})
+
+
+def alpha_page(request):
+
+    '''function to show the alpha  page based on prefereces to discover relevant communities'''
+
+    user_legacy = User_LPIG.objects.filter(member_id=request.user).values('legacy')
+    context = {}
+    if user_legacy:
+        legacy = user_legacy[0]['legacy']
+        if "6" in legacy:
+            context['college'] = "IIT DELHI"
+            context['mobile_os'] = request.user.userinfo.mobile_os
+        else:
+            context['college']=""
+    return render(request,'alpha_page.html',context)
+
+

@@ -1,12 +1,19 @@
 {% extends "base.html" %}
-
+{% load staticfiles %}
 {% block content %}
+
+
+<!-- css styling -->
+ {% block styles %}
+         <link rel="stylesheet" href="{% static 'css/main_css/onboarding.css' %}">
+ {% endblock %}
+
 <br/>
 <body>
 
-<h2 class="ui center aligned header"> What type of work do you do?</h2>
-<h4 class="ui center aligned header">We'll show you communities with like-minded peers</h4>
-<br/><br/>
+<h2 class="ui center aligned header" id="main_header"> What type of work do you do?</h2>
+<h4 class="ui center aligned header" id="sec_header">We'll show you communities with like-minded peers</h4>
+<br/>
 <div class="ui  form" onsubmit="return false">
 
 {% csrf_token %}
@@ -14,9 +21,13 @@
 
 
 <!-- Industry -->
-<div class="field">
+<div class="field padd">
+        <div class="form_field">Industry&nbsp;&nbsp;<sub style="color:red;font-size:20px">*</sub></div>
     <select name="" multiple="" class="ui search fluid dropdown profession_industry" id="profession_industry" >
-      <option value="">Industry</option>
+      <option value="">Enter industries or select from dropdown</option>
+        {% for tag in community_profession_industry %}
+      <option value="{{tag.id}}" selected>{{tag.name}}</option>
+        {% endfor %}
       {% for industry in profession_industry %}
         <option value="{{industry.id}}">{{industry.name}}</option>
        {% endfor %}
@@ -27,13 +38,16 @@
 </div>
 
 <!-- -->
-<br/>
 <!-- skill work -->
-<div class="field">
+<div class="field padd">
 
+        <div class="form_field">Skills/Roles&nbsp;&nbsp;<sub style="color:red;font-size:20px">*</sub></div>
 
     <select name="" multiple="" class="ui search fluid dropdown profession_skill" id="profession_skill">
-      <option value="">Skills/Roles</option>
+      <option value="">Enter all your relevant skils </option>
+        {% for tag in community_profession_skill %}
+      <option value="{{tag.id}}" selected>{{tag.name}}</option>
+        {% endfor %}
       {% for skill in profession_skill %}
         <option value="{{skill.id}}">{{skill.name}}</option>
        {% endfor %}
@@ -46,25 +60,33 @@
 </div>
 
 <!-- -->
-<br/>
 <!-- designation -->
-<div class="field">
-
+<div class="field padd">
+         <div class="form_field">Designation</div>
     <select name="" multiple="" class="ui search fluid dropdown profession_designation" id="profession_designation">
-      <option value="">Designation</option>
+      <option value="">Enter your current designation</option>
+        {% for tag in community_profession_designation %}
+      <option value="{{tag.id}}" selected>{{tag.name}}</option>
+        {% endfor %}
       {% for designation in profession_designation %}
         <option value="{{designation.id}}">{{designation.name}}</option>
        {% endfor %}
     </select>
 </div>
-    <br/>
-<button class="ui button" type="submit" id="profession_submit">Continue</button>
-<!-- -->
+
+    <div style="text-align:center;">
+        <button class="ui button " type="submit" id="submit">Continue</button>
+    </div><!-- -->
 </div>
 </body>
 
 
 <script>
+
+{% if not request.user.is_authenticated %}
+
+    $(".test").modal('show');
+{% endif %}
     $('.ui.dropdown.profession_industry').dropdown({
   allowAdditions: true,
 
@@ -82,7 +104,7 @@
 
 
 
-$("#profession_submit").click(function(e){
+$("#submit").click(function(e){
 
 profession_industry=$('#profession_industry').val()
 
@@ -125,7 +147,11 @@ console.log(temp)
         dataType: "json",
         success:function(data){
             //console.log(data)
+            {% if community_id != None %}
+            location.href="/onboarding_interest?community_id={{community_id}}"
+            {% else %}
             location.href="/onboarding_interest"
+            {% endif %}
 
         }
 

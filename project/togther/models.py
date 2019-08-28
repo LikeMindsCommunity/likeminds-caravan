@@ -75,7 +75,7 @@ class Userinfo (models.Model):
     longitude = models.FloatField(null=True)
     address = models.CharField(max_length = 1024, null= True)
     headline = models.CharField(max_length = 200, null= True)
-    contact_number = models.CharField(max_length = 200,null = True)
+    contact_number = models.BigIntegerField(null=True,default=0)
     gender = models.IntegerField(null = True)
     image_url = models.CharField(max_length = 500, null = True)
     image_file = models.ImageField(upload_to='media/profile_pics/',null =True)
@@ -86,6 +86,9 @@ class Userinfo (models.Model):
     fcm_token=models.CharField(max_length=1024,null=True)
     login_type=models.CharField(max_length=50,null=True)
     login_json=models.TextField(null=True)
+    secondary_email=models.CharField(max_length = 200,null=True)
+    mobile_os=models.CharField(max_length = 200,null=True)
+
     def __str__(self):
         return self.name
 
@@ -219,7 +222,7 @@ class User_LPIG(models.Model):
     geography = models.CharField(max_length=1024,null=True)
 
     def __str__(self):
-        return self.member_id.name
+        return str(self.member_id.id)
 
 class Community_LPIG(models.Model):
 
