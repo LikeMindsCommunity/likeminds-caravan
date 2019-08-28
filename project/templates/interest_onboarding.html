@@ -155,8 +155,12 @@ temp={
         data:temp,
         dataType: "json",
         success:function(data){
-            //console.log(data)
-            location.href="/access_page"
+            console.log(data)
+            if(data['is_iitd']){
+                location.href="/communities"
+            }else{
+                location.href="/access_page"
+            }
 
         }
 

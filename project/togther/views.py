@@ -116,13 +116,18 @@ def dashboard(request):
         communities = get_communities_by_rank(request)
 
         onboard = False
+        is_iitd=False
         user_lpig = User_LPIG.objects.filter(member_id=request.user)
         if user_lpig.exists():
             onboard = True
+            legacy_list=json.loads(user_lpig[0].legacy)
+
+            if 6 in legacy_list:                            #checking for iit
+                is_iitd=True
 
         return render(request, 'dashboard.html',
                       {'usr': user, 'communities': communities, 'my_communities': my_community[:2],
-                       "my_communities_count": len(my_community),'onboard':onboard})
+                       "my_communities_count": len(my_community),'onboard':onboard,'is_iitd':is_iitd})
     communities = Community.objects.filter(hide_community='0').order_by('-active_since')
     for community in communities:
         update_member_count(community.id)
@@ -1360,7 +1365,17 @@ def onboarding_interest(request):
         type_list = get_user_tags_from_list(interest_list, "Interests")
         insert_tags_for_user(user_id, type_list, "Interests")
         compute_rank.delay(user_id=user_id)
-        return JsonResponse({'success': True})
+
+
+        #checking for iit tag
+        is_iitd=False
+        user_lpig = User_LPIG.objects.filter(member_id=request.user)
+        if user_lpig.exists():
+            legacy_list = json.loads(user_lpig[0].legacy)
+
+            if 6 in legacy_list:  # checking for iit
+                is_iitd = True
+        return JsonResponse({'is_iitd': is_iitd})
 
 
 def access_page(request):
@@ -1384,7 +1399,7 @@ def access_page(request):
             user_info.save()
         except:
             print("error in userinfo")
-    return JsonResponse({'success': True})
+    return JsonResponse({'success': True,'mobile_os':mobile_os})
 
 
 def alpha_page(request):
