@@ -222,7 +222,7 @@ class User_LPIG(models.Model):
     geography = models.CharField(max_length=1024,null=True)
 
     def __str__(self):
-        return self.member_id.userinfo.name
+        return self.member_id.id
 
 class Community_LPIG(models.Model):
 
