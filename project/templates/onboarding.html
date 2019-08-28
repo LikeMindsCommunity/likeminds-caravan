@@ -1,26 +1,16 @@
 {% extends "base.html" %}
+{% load staticfiles %}
+
 
 {% block content %}
-<style>
-    .padd{
-    padding-left:10px;
-    padding-right:10px;
-    padding-bottom:18px;
-    padding-top:0px;
 
-    }
-
-    .form_field{
-
-    padding-bottom:6px;
-
-    }
-</style>
-
+ {% block styles %}
+         <link rel="stylesheet" href="{% static 'css/main_css/onboarding.css' %}">
+ {% endblock %}
 <body>
 
-<h2 class="ui center aligned header " style="Arial, Helvetica, sans-serif;padding-left:10px;padding-right:10px;"> What all do you associate yourself with?</h2>
-<h4 class="ui center aligned header " style="font-family:Roboto;padding-left:5px;padding-right:5px;font-size:14px;font-style: italic;color:#00897b;">We'll show communities with people of similar background</h4>
+<h2 class="ui center aligned header" id="main_header"> What all do you associate yourself with?</h2>
+<h4 class="ui center aligned header" id="sec_header">We'll show communities with people of similar background</h4>
 <br/>
 <div class="ui  form" onsubmit="return false">
 
@@ -29,9 +19,9 @@
     
     <!-- Geography -->
 <div class="field padd">
-    <div class="form_field">My Neighborhood/City</div>
+    <div class="form_field">Current city&nbsp;&nbsp;<sub style="color:red;font-size:20px">*</sub></div>
     <select name="" multiple="" class="ui search fluid dropdown geography_city" id="geography_city">
-      <option value="">My neighborhood/city</option>
+      <option value="">Enter city or select from dropdown</option>
 
         {% for city in community_geography %}
       <option value="{{city.id}}" selected>{{city.name}}</option>
@@ -49,9 +39,9 @@
 
 <!-- legacy education -->
 <div class="field padd">
-    <div class="form_field"> Current/Past schools or colleges </div>
+    <div class="form_field"> Current/Past schools or colleges&nbsp;&nbsp;<sub style="color:red;font-size:20px">*</sub> </div>
     <select name="" multiple="" class="ui search fluid dropdown legacy_education" id="legacy_education" >
-      <option value="">Current/past schools or colleges</option>
+      <option value="">Enter all the institute(s)</option>
       {% for tag in community_legacy_education %}
       <option value="{{tag.id}}" selected>{{tag.name}}</option>
         {% endfor %}
@@ -69,7 +59,7 @@
 <div class="field padd">
     <div class="form_field">Current/past companies </div>
     <select name="" multiple="" class="ui search fluid dropdown legacy_work" id="legacy_work">
-      <option value="">Current/past companies</option>
+      <option value="">Enter all the organization(s)</option>
       {% for tag in community_legacy_work %}
       <option value="{{tag.id}}" selected>{{tag.name}}</option>
         {% endfor %}
@@ -84,7 +74,7 @@
 <div class="field padd">
     <div class="form_field"> Hometown(s) </div>
     <select name="" multiple="" class="ui search fluid dropdown legacy_hometown" id="legacy_hometown">
-      <option value="">Hometown(s)</option>
+      <option value="">Enter hometown or select from dropdown</option>
               {% for tag in community_legacy_hometown %}
       <option value="{{tag.id}}" selected>{{tag.name}}</option>
         {% endfor %}
@@ -95,7 +85,7 @@
 </div>
 
     <div style="text-align:center;">
-        <button class="ui button" type="submit" id="legacy_submit" style="padding-left:60px;padding-right:60px;background-color: #00897b;border-radius:20px; color:white;">Continue</button>
+        <button class="ui button " type="submit" id="submit">Continue</button>
     </div>
 <br/>
 <!-- -->
@@ -104,6 +94,12 @@
 
 
 <script>
+
+
+{% if not request.user.is_authenticated %}
+
+    $(".test").modal('show');
+{% endif %}
     $('.ui.dropdown.legacy_education').dropdown({
   allowAdditions: true,
 
@@ -127,7 +123,7 @@
 
 });
 
-$("#legacy_submit").click(function(e){
+$("#submit").click(function(e){
 
 loc=$('#geography_city').val()
 

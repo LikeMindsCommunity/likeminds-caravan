@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% load staticfiles %}
+
+{% block content %}
+
+ {% block styles %}
+         <link rel="stylesheet" href="{% static 'css/main_css/onboarding.css' %}">
+ {% endblock %}
+
+<br/>
+<body>
+
+<h2 class="ui center aligned header" id="main_header">1 last step!! Get early access to CollabMates app</h2>
+<h4 class="ui center aligned header" id="sec_header">Please provide us details to receive communication about the same</h4>
+<br/>
+<div class="ui  form" onsubmit="return false">
+
+{% csrf_token %}
+
+
+<!-- mobile type -->
+<div class="field padd">
+         <div class="form_field">Mobile OS&nbsp;&nbsp;<sub style="color:red;font-size:20px">*</sub></div>
+       <select class="ui dropdown" id="mobile_os">
+        <option value="" disabled selected>Select from below options</option>
+          <option value="Android">Android</option>
+          <option value="iOS">iOS</option>
+          <option value="Both">Both</option>
+        </select>
+    <div class="ui pointing red basic label" id="error_mobile" style="display:none">
+      Please select your mobile OS
+    </div>
+</div>
+
+<!-- -->
+<!-- Email -->
+<div class="field padd">
+    <div class="form_field">Email ID linked with Playstore/App store&nbsp;&nbsp;<sub style="color:red;font-size:20px">*</sub></div>
+    <div class="field">
+        <input type="email" name="email" value="{{request.user.email}}" id="email" placeholder="This is important to give you access of the app">
+    </div>
+</div>
+
+<!-- -->
+<!-- Mobile Number -->
+<div class="field padd">
+<div class="form_field">Mobile Number</div>
+    <div class="field">
+        <input type="text" name="mobile" placeholder="We will not spam you or give this to anyone" id="mobile_no"  minlength="10">
+    </div>
+
+</div>
+    <br/>
+<div style="text-align:center;">
+        <button class="ui button " type="submit" id="submit">Notify Me</button>
+    </div><!-- --><!-- -->
+</div><!-- -->
+</div>
+
+</body>
+
+
+
+<script>
+
+{% if not request.user.is_authenticated %}
+
+    $(".test").modal('show');
+{% endif %}
+    $('#submit').click(function(e){
+
+        mobile_os=$('#mobile_os').val()
+        console.log(mobile_os)
+        email=$('#email').val()
+        mobile_no=$('#mobile_no').val()
+        if(mobile_os == null){
+
+               $('#error_mobile').css("display","block")
+               return;
+        }
+        temp={
+        'mobile_os':mobile_os,
+        'email':email,
+        'mobile_no':mobile_no,
+        'csrfmiddlewaretoken': '{{ csrf_token }}',
+
+        }
+
+        {% if request.user.is_authenticated %}
+
+                $.ajax({
+
+                    url:"/access_page",
+                    type:"POST",
+                    data:temp,
+                    dataType: "json",
+                    success:function(data){
+
+                        location.href="/alpha_page"
+
+
+                    }
+
+
+
+                })
+        {% else %}
+                $(".test").modal('show');
+        {% endif %}
+            })
+
+
+</script>
+
+{% endblock %}

@@ -1,11 +1,18 @@
 {% extends "base.html" %}
+{% load staticfiles %}
 
 {% block content %}
+
+<!-- css styling -->
+ {% block styles %}
+         <link rel="stylesheet" href="{% static 'css/main_css/onboarding.css' %}">
+ {% endblock %}
+
 <br/>
 <body>
 
-<h2 class="ui center aligned header"> What things do you enjoy doing?</h2>
-<h4 class="ui center aligned header">We'll show you communities with people of similar interests</h4>
+<h2 class="ui center aligned header" id="main_header"> What things do you enjoy doing?</h2>
+<h4 class="ui center aligned header" id="sec_header">We'll show you communities with people of similar interests</h4>
 <br/><br/>
 <div class="ui  form" onsubmit="return false">
 
@@ -14,9 +21,10 @@
 
 
     <!-- interest_hobby -->
-<div class="field">
+<div class="field padd">
+     <div class="form_field">Pursuing these hobbies&nbsp;&nbsp;<sub style="color:red;font-size:20px">*</sub></div>
     <select name="" multiple="" class="ui search fluid dropdown interest_hobby" id="interest_hobby" >
-      <option value="">Pursuing these hobbies*</option>
+      <option value="">Enter your hobbies or select from dropdown</option>
         {% for tag in community_interest_hobby %}
       <option value="{{tag.id}}" selected>{{tag.name}}</option>
         {% endfor %}
@@ -29,12 +37,12 @@
     </div>
 </div>
 
-<br/>
 
 <!-- interest_sports -->
-<div class="field">
+<div class="field padd">
+     <div class="form_field">Playing these sports</div>
     <select name="" multiple="" class="ui search fluid dropdown interest_sports" id="interest_sports" >
-      <option value="">Playing these sports</option>
+      <option value="">Enter the sports that you like to play</option>
         {% for tag in community_interest_sports %}
       <option value="{{tag.id}}" selected>{{tag.name}}</option>
         {% endfor %}
@@ -45,13 +53,12 @@
 </div>
 
 <!-- -->
-<br/>
 <!-- interest_fan -->
-<div class="field">
+<div class="field padd">
 
-
+         <div class="form_field">Following these teams, sports, genres or topics</div>
     <select name="" multiple="" class="ui search fluid dropdown interest_fan" id="interest_fan">
-      <option value="">Following these teams, sports, genres or topics</option>
+      <option value="">Enter things that you are passionate about</option>
         {% for tag in community_interest_fan %}
       <option value="{{tag.id}}" selected>{{tag.name}}</option>
         {% endfor %}
@@ -62,12 +69,11 @@
 </div>
 
 <!-- -->
-<br/>
 <!-- interest_cause -->
-<div class="field">
-
+<div class="field padd">
+    <div class="form_field">Working on these causes</div>
     <select name="" multiple="" class="ui search fluid dropdown interest_cause" id="interest_cause">
-      <option value="">Working on these causes</option>
+      <option value="">Enter the causes that you really care about</option>
         {% for tag in community_interest_cause %}
       <option value="{{tag.id}}" selected>{{tag.name}}</option>
         {% endfor %}
@@ -77,13 +83,20 @@
     </select>
 </div>
     <br/>
-<button class="ui button" type="submit" id="interest_submit">Done</button>
-<!-- -->
+<div style="text-align:center;">
+        <button class="ui button " type="submit" id="submit">Done</button>
+    </div><!-- --><!-- -->
 </div>
+<br/>
 </body>
 
 
 <script>
+
+{% if not request.user.is_authenticated %}
+
+    $(".test").modal('show');
+{% endif %}
     $('.ui.dropdown.interest_hobby').dropdown({
   allowAdditions: true,
 
@@ -104,7 +117,7 @@
 
 });
 
-$("#interest_submit").click(function(e){
+$("#submit").click(function(e){
 
 interest_hobby=$('#interest_hobby').val()
 
@@ -143,7 +156,7 @@ temp={
         dataType: "json",
         success:function(data){
             //console.log(data)
-            location.href="/communities"
+            location.href="/access_page"
 
         }
 
