@@ -166,7 +166,7 @@ def pending_members_mail():
                 msg = EmailMultiAlternatives(subject,
                                              template,
                                              "hello@collabmates.com",
-                                             ['mahesh61437mahe@gmail.com'], #,admin.member_id.userinfo.email
+                                             ['mahesh61437mahe@gmail.com', admin.member_id.userinfo.email],
                                              )
                 msg.attach_alternative(template, "text/html")
                 msg.send(fail_silently)
