@@ -147,6 +147,7 @@ def pending_members_mail():
                          'pending_members': pending_members_in_community[0],
                          'pending_member_count': pending_count,
                          'community': admin.community_id,
+                         'community_name': admin.community_id.name,
                          'community_id': admin.community_id.id,
                          'url':url})
                     subject = str(pending_members_in_community[0].member_id.userinfo.name)+" has requested to join "+str(admin.community_id.name)
