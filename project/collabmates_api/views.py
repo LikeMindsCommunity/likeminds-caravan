@@ -231,9 +231,11 @@ def get_community_card_details(each_community,user_id):
     new_dict['updated_at'] = time_text
     # getting the unseen cards
     # getting the total cards of a community
-    total_collabcards = Collabcard.objects.filter(community=community).values('id')
+    total_collabcards = Collabcard.objects.filter(community=community).values('id').order_by('-id')
+    print(total_collabcards)
     # getting seen collabcards by the user from that community
-    seen_collabcard = collabcard_seen.objects.filter(community=community, user=user_id).values('card_id')
+    seen_collabcard = collabcard_seen.objects.filter(community=community, user=user_id).values('card_id').order_by('-card_id')
+    print(seen_collabcard)
     # unseen cards count
     if (total_collabcards.count() - seen_collabcard.count()) <= 0:
         # if zero or less than zero , unseen card count = 0
@@ -241,7 +243,8 @@ def get_community_card_details(each_community,user_id):
     else:
         new_dict['collabcard_unseen'] = (total_collabcards.count() - seen_collabcard.count())
     # getting unseen card list by getting the difference between total cards and seen cards
-    unseen_list = total_collabcards.difference(seen_collabcard).values('id').order_by('id')
+    unseen_list = total_collabcards.difference(seen_collabcard).values('id').order_by('-id')
+    print(unseen_list)
     if total_collabcards.count() > 0:
         # if community has atleast one card
         if unseen_list.count() != 0:
