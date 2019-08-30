@@ -20,7 +20,8 @@ from collabmates_api.raw_queries import  compute_rank
 url = settings.URL
 
 # uncomment to run it in localhost
-# url='http://localhost:8000'
+#
+#url='http://localhost:8000'
 
 api_url = url + '/api/'
 
@@ -1059,15 +1060,19 @@ def get_or_create_tag(tag_name,tag_type):
         tag_id=int(tag_name)
         return tag_id
     except:
-        category = Category.objects.filter(Q(name__icontains=tag_type))[0]
-        attribute = Attributes.objects.filter(Q(attribute_name__icontains=tag_type), Q(attribute_name__icontains='Uncategorized'))[0]
-        tag = Tags_lpig()
-        tag.name = tag_name
-        tag.category_id = category
-        tag.attribute_id = attribute
-        tag.save()
-        tag.tag_id = tag.id
-        tag.save()
+        tag_name = tag_name.strip().capitalize()
+        try:
+            tag = Tags_lpig.objects.get(name=tag_name)
+        except:
+            category = Category.objects.filter(Q(name__icontains=tag_type))[0]
+            attribute = Attributes.objects.filter(Q(attribute_name__icontains=tag_type), Q(attribute_name__icontains='Uncategorized'))[0]
+            tag = Tags_lpig()
+            tag.name = tag_name
+            tag.category_id = category
+            tag.attribute_id = attribute
+            tag.save()
+            tag.tag_id = tag.id
+            tag.save()
         return tag.id
 
 
