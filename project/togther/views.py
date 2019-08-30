@@ -142,7 +142,7 @@ def user_onbaord(request):
         user_lpig = user_lpig[0]
         ''' if user comes back in the middle of on-baording flow,
         make sure he continues the on-boarding'''
-        if user_lpig.legacy and user_lpig.interests  and user_lpig.profession and user_lpig.geography:
+        if user_lpig.legacy and user_lpig.interests and user_lpig.profession and user_lpig.geography:
             return True, user_lpig.legacy
         else:
             return False, ''
@@ -1059,15 +1059,21 @@ def get_or_create_tag(tag_name,tag_type):
         tag_id=int(tag_name)
         return tag_id
     except:
-        category = Category.objects.filter(Q(name__icontains=tag_type))[0]
-        attribute = Attributes.objects.filter(Q(attribute_name__icontains=tag_type), Q(attribute_name__icontains='Uncategorized'))[0]
-        tag = Tags_lpig()
-        tag.name = tag_name
-        tag.category_id = category
-        tag.attribute_id = attribute
-        tag.save()
-        tag.tag_id = tag.id
-        tag.save()
+        tag_name = tag_name.strip().capitalize()
+        try:
+            print(tag_name)
+            tag = Tags_lpig.objects.get(name = tag_name)
+        except:
+
+            category = Category.objects.filter(Q(name__icontains=tag_type))[0]
+            attribute = Attributes.objects.filter(Q(attribute_name__icontains=tag_type), Q(attribute_name__icontains='Uncategorized'))[0]
+            tag = Tags_lpig()
+            tag.name = tag_name
+            tag.category_id = category
+            tag.attribute_id = attribute
+            tag.save()
+            tag.tag_id = tag.id
+            tag.save()
         return tag.id
 
 
