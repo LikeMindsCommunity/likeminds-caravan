@@ -770,7 +770,7 @@ def collabcard(request, card_id):
     # get tine stamp for card
     time_text = get_time_text(cards.date_epoch)
     card['created_at'] = time_text
-    return JsonResponse({"collabcard": card, 'answers':answers,"community_id":str(cards.community.id)})
+    return JsonResponse({"collabcard": card, 'answers':answers})
   
 
 def get_answer_data(answer):
