@@ -315,7 +315,7 @@
                         {% for admin in admins%}
                         {% for i in admin %}
                         <div class="item">
-                            <img class="ui tiny circular image" src="{{i.image_file.url}}">
+                            <img class="ui tiny circular image" src="{{i.image_file.url}}" style="border-radius:50%;width:80px;height:80px;">
                             <p></p>
                             <p style="font-size:65%;">{{i.name}}</p>
                             <div class="content">
@@ -350,7 +350,7 @@
                         {% for i in members%}
 
                         <div class="item">
-                            <img class="ui tiny circular centered image" src="{{i.image_file.url}}"/>
+                            <img class="ui tiny circular centered image" src="{{i.image_file.url}}" style="border-radius:50%;width:80px;height:80px;"/>
                             <p></p>
                             <!-- <a href="../../profile/{{i.user_id.id}}">-->
 
