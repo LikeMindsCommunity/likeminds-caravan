@@ -182,10 +182,10 @@ def update_pending_member_count_in_engage(community):
     pending__members_count=Members.objects.filter(community_id=community,state=3).count()
 
     all_members=Members.objects.filter(community_id=community)
-
+    current_time=time.time()
     for member in all_members:
         if member.state == 1 or member.state == 2:
-            Member_Engage.objects.filter(community_id=community,member_id=member.member_id).update(pending_members=pending__members_count)
+            Member_Engage.objects.filter(community_id=community,member_id=member.member_id).update(pending_members=pending__members_count,updated_at=current_time)
 
     print("Member Engage Pending Count Updated")
 
@@ -230,7 +230,7 @@ def your_communities(request,user_id):
 
     my_community=[]
     user=User.objects.get(id=member_id)
-    communities=Member_Engage.objects.filter(member_id=user)
+    communities=Member_Engage.objects.filter(member_id=user).order_by('-updated_at')
     communities=pagination(communities,page_number,paginate_by=10)
     for each_community in communities:
 
