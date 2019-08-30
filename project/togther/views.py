@@ -17,7 +17,6 @@ from collabmates_api.serializers import *
 from django.template.loader import get_template
 import traceback
 from collabmates_api.raw_queries import  compute_rank
-from utility.utils import get_time_text
 url = settings.URL
 
 # uncomment to run it in localhost
