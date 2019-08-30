@@ -1373,6 +1373,10 @@ def members_state(request):
 
     member_id=request.GET.get('member_id')
     community_id=request.GET.get('community_id')
+    collabcard_id = request.GET.get('collabcard_id')
+    if collabcard_id and not community_id:
+        card = Collabcard.objects.get(pk = collabcard_id)
+        community_id = card.community
     state=0
     query_set=Members.objects.filter(member_id=member_id,community_id=community_id)
     for data in query_set:
@@ -1611,10 +1615,6 @@ def edit_questions(questions,community_id):
         question_object.save()
 
     print('questions updated successfully')
-
-
-def send_mail_and_notification():
-    pass
 
 
 @csrf_exempt
