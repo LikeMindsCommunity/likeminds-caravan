@@ -48,12 +48,12 @@ def UserinfoSerializer(user):
         "linkedin_link": user.linkedin_link,
     }
 
-def CollabcardSerializer(card,community):
+def CollabcardSerializer(card,community=None):
     # function to serialize a community object
     collabcard={
         'id': card.id,
         'title': card.title,
-        'community': community.id,
+        'community': card.community_id,
         'share_url': url + '/collabcard/' + str(card.id),
         'answer_text': card.answer_text,
         'share_link': card.share_link,
