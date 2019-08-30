@@ -1376,7 +1376,7 @@ def members_state(request):
     collabcard_id = request.GET.get('collabcard_id')
     if collabcard_id and not community_id:
         card = Collabcard.objects.get(pk = collabcard_id)
-        community_id = card.community
+        community_id = card.community.id
     state=0
     query_set=Members.objects.filter(member_id=member_id,community_id=community_id)
     for data in query_set:
