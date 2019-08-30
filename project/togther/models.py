@@ -254,7 +254,7 @@ class Category(models.Model):
 
 class Attributes(models.Model):
 
-    '''function to store the attributes of category'''
+    '''Model to store the attributes of category'''
 
     attribute_name=models.CharField(max_length=512,null=True,unique=True)
     category_id=models.ForeignKey(Category,on_delete=models.CASCADE)
@@ -265,7 +265,7 @@ class Attributes(models.Model):
 
 class Tags_lpig(models.Model):
 
-    '''function to store the lpig tags in attributes'''
+    '''Model to store the lpig tags in attributes'''
 
     name = models.CharField(max_length=512, null=True,unique=True)
     attribute_id=models.ForeignKey(Attributes,on_delete=models.CASCADE)
@@ -274,4 +274,15 @@ class Tags_lpig(models.Model):
     def __str__(self):
         return self.name
 
+
+class Member_Engage(models.Model):
+
+    '''Model to store the communities of a particular user'''
+
+    member_id=models.ForeignKey(User, on_delete=models.CASCADE)
+    community_id=models.ForeignKey(Community, on_delete=models.CASCADE)
+    last_unseen_conversation=models.ForeignKey(Collabcard, on_delete=models.CASCADE)
+    last_unseen_count=models.IntegerField(default=0,null=True)
+    pending_members=models.IntegerField(default=0,null=True)
+    updated_at=models.BigIntegerField(default=0,null=True)
 

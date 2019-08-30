@@ -177,7 +177,7 @@
 
   </div>
   <div class="actions">
-    <div class="ui positive right labeled icon button" id="onboard">
+    <div class="ui positive right labeled icon button" id="onboard" style="background-color:#00897b;">
        I am in
       <i class="checkmark icon"></i>
     </div>
@@ -243,7 +243,7 @@
 
   </div>
   <div class="actions">
-    <button class="ui positive right labeled icon button" id="iit_button" disabled='disabled'>
+    <button class="ui positive right labeled icon button" id="iit_button" disabled='disabled' style="background-color:#00897b;">
        Notify Me
       <i class="checkmark icon"></i>
     </button>
@@ -364,12 +364,14 @@ $('#onboard_popup').modal({
 {% if request.user.is_authenticated %}
 
 {% if onboard  and is_iitd and request.user.userinfo.mobile_os == None %}
-
  $('.ui.modal.iit').modal('show');
+ $(".dimmer").css("background-color","rgba(40,40,40,0.7)");
+
  $('.ui.dropdown').dropdown();
 $('#iit').modal({
     backdrop: 'static',
-    keyboard: false  // to prevent closing with Esc button (if you want this too)
+    keyboard: false,  // to prevent closing with Esc button (if you want this too)
+
 })
 
 $('#close').click(function(e){
