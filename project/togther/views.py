@@ -142,8 +142,7 @@ def user_onbaord(request):
         user_lpig = user_lpig[0]
         ''' if user comes back in the middle of on-baording flow,
         make sure he continues the on-boarding'''
-        if not ((not user_lpig.legacy) and ( not user_lpig.interests ) and ( not user_lpig.profession)  and (not user_lpig.geography)):
-
+        if user_lpig.legacy and user_lpig.interests  and user_lpig.profession and user_lpig.geography:
             return True, user_lpig.legacy
         else:
             return False, ''
