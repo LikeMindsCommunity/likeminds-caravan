@@ -349,7 +349,6 @@ def join_community_responses(request):
     community = Community.objects.get(id = community_id)
 
     userinfo = Userinfo.objects.get(user_id=user.id)
-    print("=====================  ",userinfo)
     #inserting in members table if the member status is pending and inserting it to database with status=3
 
     #If the member is declined from the community and he applied again
@@ -1295,6 +1294,10 @@ def members_state(request):
 
     member_id=request.GET.get('member_id')
     community_id=request.GET.get('community_id')
+    collabcard_id = request.GET.get('collabcard_id')
+    if collabcard_id and not community_id:
+        card = Collabcard.objects.get(pk = collabcard_id)
+        community_id = card.community
     state=0
     query_set=Members.objects.filter(member_id=member_id,community_id=community_id)
     for data in query_set:
@@ -1514,10 +1517,6 @@ def edit_questions(questions,community_id):
         question_object.save()
 
     print('questions updated successfully')
-
-
-def send_mail_and_notification():
-    pass
 
 
 @csrf_exempt
