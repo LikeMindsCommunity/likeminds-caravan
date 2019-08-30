@@ -3,10 +3,10 @@
 
 import  psycopg2
 
-db_user="nateshr"
-db_password="connectNRpostgresql"
-db_host= 'collabmatesdatabase.cgx3gr7xnezq.ap-south-1.rds.amazonaws.com'
-db_database="togther"
+db_user="postgres"
+db_password="postgres"
+db_host= '13.235.187.102'
+db_database="production_dump"
 db_port="5432"
 
 
