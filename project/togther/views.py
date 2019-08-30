@@ -858,7 +858,7 @@ def collabcard(request, card_id):
     else:
         answer_text = collabcard_dict['collabcard']['answer_text']
 
-    community = Community.objects.get(pk=collabcard_dict['collabcard']['community'])
+    community = Community.objects.get(pk=collabcard_dict['collabcard']['community_id'])
 
     is_member = False
     if request.user.is_authenticated:
@@ -877,7 +877,7 @@ def collabcard(request, card_id):
                'card_id':card_id,
                'user_image_url':user_image,
                'share_link': collabcard_dict['collabcard']['share_link'],
-               'community_id': collabcard_dict['collabcard']['community'],
+               'community_id': collabcard_dict['collabcard']['community_id'],
                'community_name': community.name,
                'created_at':collabcard_dict['collabcard']['created_at'],
                'answers_count': len(collabcard_dict['answers']),
