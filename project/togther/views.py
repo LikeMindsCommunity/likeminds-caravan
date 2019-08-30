@@ -17,11 +17,11 @@ from collabmates_api.serializers import *
 from django.template.loader import get_template
 import traceback
 from collabmates_api.raw_queries import  compute_rank
-
 url = settings.URL
 
 # uncomment to run it in localhost
-# url='http://localhost:8000'
+#
+#url='http://localhost:8000'
 
 api_url = url + '/api/'
 
@@ -117,10 +117,10 @@ def dashboard(request):
 
         onboard = False
         is_iitd=False
-        user_lpig = User_LPIG.objects.filter(member_id=request.user)
-        if user_lpig.exists():
+        is_onboard,user_legacy_tags = user_onbaord(request)
+        if is_onboard:
             onboard = True
-            legacy_list=json.loads(user_lpig[0].legacy)
+            legacy_list=json.loads(user_legacy_tags)
 
             if 6 in legacy_list:                            #checking for iit
                 is_iitd=True
@@ -131,23 +131,33 @@ def dashboard(request):
     communities = Community.objects.filter(hide_community='0').order_by('-active_since')
     for community in communities:
         update_member_count(community.id)
-    # if request.method == 'GET':
-    #     response = request.GET.dict()
-    #     print(response)
-    #     if 'data' in response:
-    #         if response['data'] != '':
-    #             get_communities_by_tags(user_tag=0, category_tag=0)
+
 
     return render(request, 'dashboard.html', {'communities': communities})
 
+def user_onbaord(request):
+    ''' checking if user has gone through on-boarding flow or not'''
+    user_lpig = User_LPIG.objects.filter(member_id=request.user)
+    # if user does not have any tags , user has to do on-boarding
+    if user_lpig.exists():
+        user_lpig = user_lpig[0]
+        ''' if user comes back in the middle of on-baording flow,
+        make sure he continues the on-boarding'''
+        if user_lpig.legacy and user_lpig.interests  and user_lpig.profession and user_lpig.geography:
+            return True, user_lpig.legacy
+        else:
+            return False, ''
+    return False, ''
 
 def get_communities_by_rank(request):
     ''' function to get communities based on rank '''
     communities_list = []
     communities = Community_Rank.objects.filter(member_id = request.user).order_by('-weight').values_list('community_id', flat=True).distinct()
     for community in communities:
-        communities_list.append(Community.objects.get(pk = community))
-
+        comm = Community.objects.get(pk = community)
+        # check if community is hidden or not
+        if comm.hide_community == '0':
+            communities_list.append(comm)
     return communities_list
 
 
@@ -847,6 +857,17 @@ def collabcard(request, card_id):
         answer_text = 'Be the first to respond'
     else:
         answer_text = collabcard_dict['collabcard']['answer_text']
+
+    community = Community.objects.get(pk=collabcard_dict['collabcard']['community_id'])
+
+    is_member = False
+    if request.user.is_authenticated:
+        member = Members.objects.filter(community_id = community,member_id_id = request.user)
+        if member.exists():
+            if member[0].state == 1 or member[0].state == 2 or member[0].state == 4 or member[0].state == 7:
+                is_member = True
+
+
     context = {'card': collabcard_dict['collabcard']['title'],
                'creator': collabcard_dict['collabcard']['member']['name'],
                'image_url': collabcard_dict['collabcard']['member']['image_url'],
@@ -856,7 +877,12 @@ def collabcard(request, card_id):
                'card_id':card_id,
                'user_image_url':user_image,
                'share_link': collabcard_dict['collabcard']['share_link'],
-               'community_id': collabcard_dict['collabcard']['community']
+               'community_id': collabcard_dict['collabcard']['community_id'],
+               'community_name': community.name,
+               'created_at':collabcard_dict['collabcard']['created_at'],
+               'answers_count': len(collabcard_dict['answers']),
+               'is_member':is_member,
+
                }
     return render(request, 'card.html', context)
 
@@ -1034,15 +1060,19 @@ def get_or_create_tag(tag_name,tag_type):
         tag_id=int(tag_name)
         return tag_id
     except:
-        category = Category.objects.filter(Q(name__icontains=tag_type))[0]
-        attribute = Attributes.objects.filter(Q(attribute_name__icontains=tag_type), Q(attribute_name__icontains='Uncategorized'))[0]
-        tag = Tags_lpig()
-        tag.name = tag_name
-        tag.category_id = category
-        tag.attribute_id = attribute
-        tag.save()
-        tag.tag_id = tag.id
-        tag.save()
+        tag_name = tag_name.strip().capitalize()
+        try:
+            tag = Tags_lpig.objects.get(name=tag_name)
+        except:
+            category = Category.objects.filter(Q(name__icontains=tag_type))[0]
+            attribute = Attributes.objects.filter(Q(attribute_name__icontains=tag_type), Q(attribute_name__icontains='Uncategorized'))[0]
+            tag = Tags_lpig()
+            tag.name = tag_name
+            tag.category_id = category
+            tag.attribute_id = attribute
+            tag.save()
+            tag.tag_id = tag.id
+            tag.save()
         return tag.id
 
 

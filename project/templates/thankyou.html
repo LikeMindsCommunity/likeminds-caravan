@@ -46,7 +46,7 @@
 </div>
     <div style="text-align:center">
 {% if onboard %}
-<button class="ui fluid button " style=" z-index:2;width:60%; left:20%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;" onclick="open_community({{community.id}});"> Back To Community  </button>
+<button class="ui fluid button " style=" z-index:2;width:60%; left:20%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;" onclick="open_community({{community.id}});"> Back To Explore  </button>
 {% else %}
 <button class="ui fluid button " style=" z-index:2;width:60%; left:20%; margin:0 auto; background-color: #00897b; border-radius:900px; color:white; bottom:1%; position:fixed;" onclick="onbaording();"> Show relevant communities  </button>
 
@@ -66,7 +66,7 @@
           <div class="item" onclick="open_community({{i.id}});">
           <br><br>
           
-              <img class="ui avatar image" src="/media/{{i.image_url}}">
+              <img class="ui avatar image" src="/media/{{i.image_url.url}}">
               <div class="content" style="font-size:14px;">
               <div class="header" style="font-size:1.2rem;">{{i.name}}</div>
               {{i.members_count}} Members
