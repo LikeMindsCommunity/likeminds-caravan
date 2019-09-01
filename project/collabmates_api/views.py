@@ -231,7 +231,8 @@ def your_communities(request,user_id):
     my_community=[]
     user=User.objects.get(id=member_id)
     communities=Member_Engage.objects.filter(member_id=user).order_by('-updated_at')
-    communities=pagination(communities,page_number,paginate_by=10)
+    if page_number:
+        communities=pagination(communities,page_number,paginate_by=10)
     for each_community in communities:
 
         community=CommunitySerializer(each_community.community_id)
