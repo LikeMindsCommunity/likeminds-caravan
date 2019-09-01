@@ -350,6 +350,10 @@ def update_user_info(request):
                 image_url = "http://graph.facebook.com/" + social_user.extra_data[
                     'id'] + "/picture?width=400&height=400"
                 print(data)
+                usr = User.objects.get(pk = request.user.id)
+                if not usr.email:
+                    usr.email = data['email']
+                    usr.save()
                 try:
                     user = Userinfo.objects.get(user_id=request.user.id)
                 except:
@@ -385,6 +389,10 @@ def update_user_info(request):
                 profile_picture = data_main['profilePicture']['displayImage~']['elements'][2]['identifiers'][0][
                     'identifier']
                 email = email_data['elements'][0]['handle~']['emailAddress']
+                usr = User.objects.get(pk=request.user.id)
+                if not usr.email:
+                    usr.email = email
+                    usr.save()
                 # checking if there is any user having details with the email we got from linkedIn
                 usr1 = Userinfo.objects.all().filter(email=email)
                 if not usr1:
@@ -859,6 +867,11 @@ def collabcard(request, card_id):
         answer_text = collabcard_dict['collabcard']['answer_text']
 
     community = Community.objects.get(pk=collabcard_dict['collabcard']['community_id'])
+    
+    if collabcard_dict['collabcard']['og_tags']:
+        og_image = collabcard_dict['collabcard']['og_tags']['image']
+    else:
+        og_image = None
 
     is_member = False
     if request.user.is_authenticated:
@@ -877,6 +890,7 @@ def collabcard(request, card_id):
                'card_id':card_id,
                'user_image_url':user_image,
                'share_link': collabcard_dict['collabcard']['share_link'],
+               'share_link_image':og_image,
                'community_id': collabcard_dict['collabcard']['community_id'],
                'community_name': community.name,
                'created_at':collabcard_dict['collabcard']['created_at'],
@@ -998,7 +1012,10 @@ def pending_list(request,community_id):
     user_image_url=""
     is_promoter = 'false'
     if request.user.is_authenticated:
-        userinfo=Userinfo.objects.get(user_id=request.user.id)
+        try:
+            userinfo = Userinfo.objects.get(user_id=request.user.id)
+        except:
+            userinfo = update_user_info(request)
         user_image_url=userinfo.image_file.url
         link=api_url+'members_state?member_id='+str(request.user.id)+'&community_id='+str(community_id)
         state=rqst.get(link)

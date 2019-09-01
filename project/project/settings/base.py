@@ -156,7 +156,7 @@ SOCIAL_AUTH_LOGIN_URL = ""
 SOCIAL_AUTH_LOGIN_REDIRECT_URL = "dashboard"
 SOCIAL_AUTH_LOGIN_ERROR_URL = "error"
 
-SOCIAL_AUTH_LINKEDIN_OAUTH2_FIELD_SELECTORS = ['email-address', 'formatted-name', 'public-profile-url', 'picture-url']
+SOCIAL_AUTH_LINKEDIN_OAUTH2_FIELD_SELECTORS = ['emailAddress', 'formatted-name', 'public-profile-url', 'picture-url']
 
 SOCIAL_AUTH_LINKEDIN_OAUTH2_EXTRA_DATA = [
     ('id', 'id'),
