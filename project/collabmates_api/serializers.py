@@ -53,10 +53,11 @@ def CollabcardSerializer(card,community=None):
     collabcard={
         'id': card.id,
         'title': card.title,
-        'community': card.community_id,
+        'community_id': card.community_id,
         'share_url': url + '/collabcard/' + str(card.id),
         'answer_text': card.answer_text,
         'share_link': card.share_link,
+        'og_tags':'',
     }
     if card.og_tags:
         og_tags=json.loads(card.og_tags)
