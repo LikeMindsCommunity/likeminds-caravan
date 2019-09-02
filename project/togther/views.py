@@ -69,7 +69,7 @@ def pending_members_mail(request):
 
                 msg = EmailMultiAlternatives(subject,
                                              template,
-                                             "hello@collabmates.com",
+                                             "Collabmates<hello@collabmates.com>",
                                              ['mahesh61437mahe@gmail.com'],
                                              )
                 msg.attach_alternative(template, "text/html")
@@ -564,14 +564,14 @@ def check_requests(request):
                 email = req.user_info.email
                 print(email)
                 send_mail('Collabmates: Group Joining', 'Your request has been approved by the admin.',
-                          'hello@collabmates.com', [email], fail_silently=False)
+                          'Collabmates<hello@collabmates.com>', [email], fail_silently=False)
             else:
                 req.status = -1
                 req.save()
                 email = req.user_info.email
                 print(email)
                 send_mail('Collabmates: Group Joining', 'Your request has been Rejected by the admin.',
-                          'hello@collabmates.com', [email], fail_silently=False)
+                          'Collabmates<hello@collabmates.com>', [email], fail_silently=False)
             return JsonResponse({'status': 'OK'})
     admins_communities = Admins.objects.all().filter(admin_id=request.user)
     print(admins_communities)
@@ -783,7 +783,7 @@ def send_email(email):
     subject = email + " wants to be Notified"
     msg = EmailMultiAlternatives(subject,
                                  email,
-                                 "hello@collabmates.com",
+                                 "Collabmates<hello@collabmates.com>",
                                  ['nipungoyal.iitd@gmail.com'],
                                  )
     return msg.send(fail_silently)
