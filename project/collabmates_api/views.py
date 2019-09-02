@@ -227,7 +227,8 @@ def your_communities(request,user_id):
 
     member_id=request.GET.get('member_id')
     page_number = request.GET.get('page','')
-
+    if str(member_id) != str(user_id):
+        member_id = user_id
     my_community=[]
     user=User.objects.get(id=member_id)
     communities=Member_Engage.objects.filter(member_id=user).order_by('-updated_at')
