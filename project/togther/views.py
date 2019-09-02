@@ -21,7 +21,8 @@ from collabmates_api.raw_queries import  compute_rank
 url = settings.URL
 
 # uncomment to run it in localhost
-# url='http://localhost:8000'
+#
+#url='http://localhost:8000'
 
 api_url = url + '/api/'
 
@@ -873,6 +874,11 @@ def collabcard(request, card_id):
 
     community = Community.objects.get(pk=collabcard_dict['collabcard']['community_id'])
 
+    if collabcard_dict['collabcard']['og_tags']:
+        og_image = collabcard_dict['collabcard']['og_tags']['image']
+    else:
+        og_image = None
+
     is_member = False
     if request.user.is_authenticated:
         member = Members.objects.filter(community_id = community,member_id_id = request.user)
@@ -1016,7 +1022,9 @@ def pending_list(request,community_id):
             userinfo = Userinfo.objects.get(user_id=request.user.id)
         except:
             userinfo = update_user_info(request)
+
         # userinfo=Userinfo.objects.get(user_id=request.user.id)
+
         user_image_url=userinfo.image_file.url
         link=api_url+'members_state?member_id='+str(request.user.id)+'&community_id='+str(community_id)
         state=rqst.get(link)
