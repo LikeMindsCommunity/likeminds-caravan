@@ -21,7 +21,7 @@ url  = settings.URL
 # 	template = get_template("mails/collabcard_posted.html").render()
 # 	msg = EmailMultiAlternatives(subject,
 # 	                                 template,
-# 	                                 "hello@collabmates.com",
+# 	                                 "Collabmates<hello@collabmates.com>",
 # 	                                 [to],
 # 	                                 )
 # 	msg.attach_alternative(template, "text/html")
@@ -41,7 +41,7 @@ def send_email_to_nominated_admin(NominatedAdmin,email,ProposedAdmin,CommunityNa
         template = get_template("mails/accept_temp_admin_request.html").render({"NominatedAdmin":NominatedAdmin,"email":email,"ProposedAdmin":ProposedAdmin,"CommunityName":CommunityName,"community_id":community_id,'url':url})
     msg = EmailMultiAlternatives(subject,
                                  template,
-                                 "hello@collabmates.com",
+                                 "Collabmates<hello@collabmates.com>",
                                  [to],
                                  )
     msg.attach_alternative(template, "text/html")
@@ -56,7 +56,7 @@ def send_email_to_admin_of_community(CommmunityAdminName,CommunityName,email):
     template = get_template("mails/create_community_as_admin.html").render({"CommmunityAdminName":CommmunityAdminName,"CommunityName":CommunityName})
     msg = EmailMultiAlternatives(subject,
                                  template,
-                                 "hello@collabmates.com",
+                                 "Collabmates<hello@collabmates.com>",
                                  [to],
                                  )
     msg.attach_alternative(template, "text/html")
@@ -71,7 +71,7 @@ def send_email_to_temp_admin_of_community(CommmunityAdminName,CommunityName,emai
     template = get_template("mails/create_community_as_member.html").render({"CommmunityAdminName":CommmunityAdminName,"CommunityName":CommunityName})
     msg = EmailMultiAlternatives(subject,
                                  template,
-                                 "hello@collabmates.com",
+                                 "Collabmates<hello@collabmates.com>",
                                  [to],
                                  )
     msg.attach_alternative(template, "text/html")
@@ -96,7 +96,7 @@ def send_email_to_proposed_admin(NominatedAdmin, email, ProposedAdmin, Community
              "CommunityName": CommunityName, "community_id": community_id, 'url': url})
     msg = EmailMultiAlternatives(subject,
                                  template,
-                                 "hello@collabmates.com",
+                                 "Collabmates<hello@collabmates.com>",
                                  [to],
                                  )
     msg.attach_alternative(template, "text/html")
@@ -113,7 +113,7 @@ def send_email_for_new_collabcard_posted(context):
     template = get_template("mails/collabcard_posted.html").render(context)
     msg = EmailMultiAlternatives(subject,
                                  template,
-                                 "hello@collabmates.com",
+                                 "Collabmates<hello@collabmates.com>",
                                  [to],
                                  )
     msg.attach_alternative(template, "text/html")
@@ -166,7 +166,7 @@ def pending_members_mail():
 
                 msg = EmailMultiAlternatives(subject,
                                              template,
-                                             "hello@collabmates.com",
+                                             "Collabmates<hello@collabmates.com>",
                                              [admin.member_id.userinfo.email],
                                              )
                 msg.attach_alternative(template, "text/html")
