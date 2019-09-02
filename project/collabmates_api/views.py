@@ -182,10 +182,10 @@ def update_pending_member_count_in_engage(community):
     pending__members_count=Members.objects.filter(community_id=community,state=3).count()
 
     all_members=Members.objects.filter(community_id=community)
-
+    current_time=time.time()
     for member in all_members:
         if member.state == 1 or member.state == 2:
-            Member_Engage.objects.filter(community_id=community,member_id=member.member_id).update(pending_members=pending__members_count)
+            Member_Engage.objects.filter(community_id=community,member_id=member.member_id).update(pending_members=pending__members_count,updated_at=current_time)
 
     print("Member Engage Pending Count Updated")
 
@@ -230,8 +230,9 @@ def your_communities(request,user_id):
 
     my_community=[]
     user=User.objects.get(id=member_id)
-    communities=Member_Engage.objects.filter(member_id=user)
-    communities=pagination(communities,page_number,paginate_by=10)
+    communities=Member_Engage.objects.filter(member_id=user).order_by('-updated_at')
+    if page_number:
+        communities=pagination(communities,page_number,paginate_by=10)
     for each_community in communities:
 
         community=CommunitySerializer(each_community.community_id)
@@ -1376,7 +1377,7 @@ def members_state(request):
     collabcard_id = request.GET.get('collabcard_id')
     if collabcard_id and not community_id:
         card = Collabcard.objects.get(pk = collabcard_id)
-        community_id = card.community
+        community_id = card.community.id
     state=0
     query_set=Members.objects.filter(member_id=member_id,community_id=community_id)
     for data in query_set:
