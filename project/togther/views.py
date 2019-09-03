@@ -862,6 +862,7 @@ def collabcard(request, card_id):
         user_image=''
 
     answers = collabcard_dict['answers']
+    # getting answer text of the collabcard
     if len(answers) == 0:
         answer_text = 'Be the first to respond'
     else:
