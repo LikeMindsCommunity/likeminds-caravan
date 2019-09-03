@@ -368,33 +368,33 @@
             </div>
                 <br>
                 <div >
-                <div class="content ui fluid" style="background-color:#f0f5f5;">
-                    <h4 style="margin-left:12px;padding-top:10px;">Similar Communities
-                        <!--                                <a class="right floated" style=" color:#1cb39b; font-weight:100; " href="{% url 'similar_community' 273 %}"> See all</a>-->
-                    </h4>
+<!--                <div class="content ui fluid" style="background-color:#f0f5f5;">-->
+<!--                    <h4 style="margin-left:12px;padding-top:10px;">Similar Communities-->
+<!--                        &lt;!&ndash;                                <a class="right floated" style=" color:#1cb39b; font-weight:100; " href="{% url 'similar_community' 273 %}"> See all</a>&ndash;&gt;-->
+<!--                    </h4>-->
 
-                    <div class="ui container" style=" overflow-y:auto;white-space:nowrap;">
+<!--                    <div class="ui container" style=" overflow-y:auto;white-space:nowrap;">-->
 
-                        <div class="ui  horizontal  list" style="margin-left:10px;">
-                            {% for i in similar_communities %}
+<!--                        <div class="ui  horizontal  list" style="margin-left:10px;">-->
+<!--                            {% for i in similar_communities %}-->
 
-                            <div class="ui card item" onclick="open_community({{i.id}});"  >
-                                <br><br>
+<!--                            <div class="ui card item" onclick="open_community({{i.id}});"  >-->
+<!--                                <br><br>-->
 
-                                <img class="ui avatar image" src="/media/{{i.image_url}}" style="margin-left:5px;">
-                                <div class="content" style="font-size:12px;">
-                                    <div class="header" style="font-size:1rem;">{{i.name}}</div>
-                                    <p id="{{forloop.counter0}}"> {{i.purpose}}</p>
-                                </div>
-                                <br><br><br><br>
+<!--                                <img class="ui avatar image" src="/media/{{i.image_url}}" style="margin-left:5px;">-->
+<!--                                <div class="content" style="font-size:12px;">-->
+<!--                                    <div class="header" style="font-size:1rem;">{{i.name}}</div>-->
+<!--                                    <p id="{{forloop.counter0}}"> {{i.purpose}}</p>-->
+<!--                                </div>-->
+<!--                                <br><br><br><br>-->
 
-                            </div>
-                            {% endfor %}
-                        </div>
+<!--                            </div>-->
+<!--                            {% endfor %}-->
+<!--                        </div>-->
 
 
-                    </div>
-                </div>
+<!--                    </div>-->
+<!--                </div>-->
 <br/>
 
                 {% if Nom_mem_state == 6 %}
@@ -432,7 +432,7 @@
                 {% elif Nom_mem_state == 5 %}
                 <button class="ui fluid button "
                         style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;"
-                        onclick="join('{{community.id}}')"> Join Group(Declined)
+                        onclick="join('{{community.id}}')"> Join Community(Declined)
                 </button>
                 {% elif source == 'email' %}
                 ]
@@ -444,7 +444,7 @@
                 {% elif Nom_mem_state == 0 %}
                 <button class="ui fluid button "
                         style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;"
-                        onclick="join('{{community.id}}')"> Join Group
+                        onclick="join('{{community.id}}')"> Join Community
                 </button>
 
                 {% endif %}

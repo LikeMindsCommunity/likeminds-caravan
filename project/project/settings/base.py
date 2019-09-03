@@ -61,6 +61,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'social_django.middleware.SocialAuthExceptionMiddleware',
+    'utility.slash_middleware.AppendOrRemoveSlashMiddleware',
 ]
 
 ROOT_URLCONF = 'project.urls'

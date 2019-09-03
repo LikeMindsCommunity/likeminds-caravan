@@ -6,21 +6,42 @@
 
 
 {% block login_or %}
-{% endblock %}
+{% if not request.user.is_authenticated %}
+<br>
 
+OR
+<br><br>
+{% endif %}
+{% endblock %}
 
 {% block linkedin_login %}
+{% if not request.user.is_authenticated %}
+
+<div class="content">
+
+                                <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}">
+
+                                    <button class="ui linkedin button">
+                                        <i class="linkedin icon"></i>
+                                        LinkedIn
+                                    </button>
+                                </a>
+                            </div>
+
+{% endif %}
 {% endblock %}
+
+
 
 
 {% block fb_login %}
-
+{% if request.user.is_authenticated %}
     <div class="content">
         <br>
 
         <button class="ui fluid button "
                 style=" z-index:2;width:60%; left:20%;  margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;"
-                onclick="join('{{community_id}}')"> Join this community
+                onclick="join('{{community_id}}')"> Join this community{{request.user.is_authenticated }}
         </button>
         <br>
 
@@ -29,8 +50,22 @@
 <div style="height:10px">
 <br>
 </div>
+{% elif not request.user.is_authenticated%}
 
+<div class="content">
+
+                                <a href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}">
+
+                                    <button class="ui facebook button">
+                                        <i class="facebook icon"></i>
+                                        Facebook
+                                    </button>
+                                </a>
+
+                            </div>
+{% endif %}
 {% endblock %}
+
 
 {% block login_text %}
 <p class="center aligned" id="login_text">
@@ -65,10 +100,17 @@ overflow-y: scroll;
         <tbody>
         <tr style='width:20%'>
             <td colspan="0" style="align:center;padding-left:10px;padding-bottom:12px">
-                <a href="{% url 'dashboard' %}" style='color:white;'>
-                    <i class="arrow left icon"
+                {% if request.user.is_authenticated %}
+                <a href="{% url 'dashboard' %}">
+                    <i class="small arrow left icon"
                        style="color:white;font-size:18px;font-weight:10;padding-bottom:20px; padding-top:0px"></i>
                 </a>
+                {% else %}
+
+                    <i class="small arrow left icon" id="left_arrow"
+                       style="color:white;font-size:18px;font-weight:10;padding-bottom:20px; padding-top:0px"></i>
+
+                {% endif %}
             </td>
             <td>
                 <table style='width:100% ;height:20px; padding-left:10px'>
@@ -99,27 +141,20 @@ overflow-y: scroll;
         </tbody>
     </table>
 
-    <!--<div class="ui grid container" style="margin-left:0!important; margin-top:5px;height:60px;">-->
-
-
-    <!--             <i class="arrow left icon" style="color:white;font-size:18px;font-weight:10; padding-top:15px"></i>-->
-
-    <!--            <a  href="{% url 'dashboard' %}" style='color:white; padding-left:20px;'>-->
-    <!--                    <h4 style="font-size:20px;font-weight:10;">{{creator}}'s Collabcard</h4>-->
-    <!--                    <h6>asdfgh</h6>-->
-    <!--            </a>-->
-
 
     {% endblock %}
 
     {% block content %}
-    <div style="text-align:center;padding-top:5px;">
 
-        <button class="ui fluid button " onclick="onbaording();"
+    <div style="margin:0 auto; max-width:786px;background-color:#f0f5f5;">
+
+    <div style="text-align:center;padding-top:5px;">
+        <a href="{% url 'dashboard' %}" style='color:white;'>
+        <button class="ui fluid button"
                 style="z-index:2;width:60%; left:20%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; top:10%;">
             Show relevant communities
         </button>
-
+        </a>
     </div>
 
     <div class="ui raised padded text container segment" style="margin: 8px 8px !important;">
@@ -141,7 +176,29 @@ overflow-y: scroll;
                     {{card}}
                 </div>
                 <br>
-                <a href="{{share_link}}" style="font-size:12px;color:#00897b" class="item">{{share_link}}</a>
+                {% if share_link %}
+                <a href="{{share_link}}">
+                <table>
+                    <tbody>
+                    <tr>
+                        <td style="height:60px;width:60px; align:left;">
+                            {% if share_link_image %}
+                            <img class="ui left aligned " style="height:60px;width:60px;padding-top:5px;padding_bottom-0px;" src="{{share_link_image}}">
+
+                            {% else %}
+                                <i class="fa fa-paperclip fa-2x" aria-hidden="true" style="padding-left:15px; padding-top:5px; color:#00897b"></i>
+                            {% endif %}
+
+                        </td>
+                        <td>
+                        <a  style="line-height:1.5; display: block;font-size:12px;color:#00897b" class="item">{{share_link}}</a>
+                        </td>
+
+                    </tr>
+                    </tbody>
+                </table>
+                    </a>
+                {% endif %}
                 <br/>
                 <br/>
                 <br/>
@@ -163,12 +220,25 @@ overflow-y: scroll;
             <div class="card">
                 <div class="content">
 
-                    <div><img class="ui left aligned  image" style="height:40px;width:40px;"
-                              src="{{i.member.image_url}}">{{i.member.name}}
+                    <div>
+                        <table>
+                            <tbody>
+                            <tr>
+                                <td>
+                                    <img class="ui left aligned avatar image" src="{{i.member.image_url}}">
+
+                                </td>
+                                <td>
+                                    <p>&nbsp; {{i.member.name}}</p>
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+
                     </div>
                     <div class="meta"></div>
-                    <div class="description" style="font-size:14px;">
-                        <br>
+                    <div class="description " style="font-size:14px; height:auto; overflow-wrap: break-word;">
+
                         {{i.answer}}
                     </div>
                 </div>
@@ -180,10 +250,10 @@ overflow-y: scroll;
     </div>
     {% if request.user.is_authenticated %}
         <div id="answer"></div>
-        <div id="show">
+        <div id="show" style=" height:50px;">
                 {%if is_member %}
 
-                    <div class="ui action input" style="margin: 1em 1em;width:93%;position: fixed; bottom:0%;">
+                    <div class="ui action input" style="background-color:black;background:white;color: white;margin: 1em 1em;width:93%;position: fixed; bottom:0%;">
                         <input type="text" id="msg">
                         <button class="ui button" style="background-color:#00897b;color:white" id="send"><i
                                 class="fa fa-paper-plane" aria-hidden="true"></i></button>
@@ -202,7 +272,7 @@ overflow-y: scroll;
                     id="view_answer">View Answers
             </button>
 
-            <div class="ui action input" style="margin: 1em 1em;width:93%; position: fixed; bottom:0%;">
+            <div  style="margin: 1em 1em;width:93%; position: fixed; bottom:0%;background:white;color: white; height:100px;">
                 <input type="text" id="msg">
                 <button class="ui button" style="background-color:#00897b;color:white; " id="send"><i
                         class="fa fa-paper-plane" aria-hidden="true"></i></button>
@@ -213,6 +283,19 @@ overflow-y: scroll;
         </div>
 
         <script>
+
+        $('#left_arrow').click(function(){
+{% if user.is_authenticated %}
+                       window.open("/communities");
+                    {% else %}
+                    $('.test')
+                    .modal('show')
+                  ;
+                    {% endif %}
+
+})
+
+
 
        function join(community_id){
                     console.log(1);
@@ -237,7 +320,7 @@ $('#send').click(function(){
       create_new_message();
       {% else %}
       var element = document.getElementById("login_text");
-      element.innerHTML = "Your answer has been successfully saved. However to ensure privacy of the community, you need to be part of the {{community_name}} on CollabMates before your answer gets posted.";
+      element.innerHTML = "Your answer has been successfully saved. However to ensure privacy of the community, you need to be part of the <b>{{community_name}}</b> on CollabMates before your answer gets posted.";
        $('.test')
           .modal('show');
       {% endif %}
@@ -249,12 +332,14 @@ $('#view_answer').click(function(){
 
           var element = document.getElementById("login_text");
           {% if request.user.is_anonymous %}
-          element.innerHTML = "To view answers, you need to be part of the {{community_name}} on CollabMates";
-            {% elif not is_member%}
-           element.innerHTML = "To view answers, you need to be part of the {{community_name}} on CollabMates";
-            {% endif %}
-          $('.test')
+          element.innerHTML = "To view answers, you need to be part of the <b>{{community_name}}</b> on CollabMates";
+            $('.test')
           .modal('show');
+            {% elif not is_member and request.user.is_authenticated%}
+           element.innerHTML = "To view answers, you need to be part of the <b>{{community_name}}</b> on CollabMates";
+            $('.test')
+          .modal('show');
+            {% endif %}
 
 })
 
@@ -280,7 +365,7 @@ function create_new_message(){
 
                           <div ><img class="ui left aligned avatar image"  src="{{user_image_url}}">{{request.user}}</div>
                           <div class="meta"></div>
-                          <div class="description" style="font-size:14px;">
+                          <div class="description" style="font-size:14px;overflow-wrap: break-word;">
                           <br>
                             ${msg}
                           </div>
@@ -324,5 +409,7 @@ location.reload(true)
 
 
         </script>
+        </div>
+
 
         {% endblock %}

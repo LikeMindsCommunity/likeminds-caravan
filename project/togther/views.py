@@ -70,7 +70,7 @@ def pending_members_mail(request):
 
                 msg = EmailMultiAlternatives(subject,
                                              template,
-                                             "hello@collabmates.com",
+                                             "Collabmates<hello@collabmates.com>",
                                              ['mahesh61437mahe@gmail.com'],
                                              )
                 msg.attach_alternative(template, "text/html")
@@ -565,14 +565,14 @@ def check_requests(request):
                 email = req.user_info.email
                 print(email)
                 send_mail('Collabmates: Group Joining', 'Your request has been approved by the admin.',
-                          'hello@collabmates.com', [email], fail_silently=False)
+                          'Collabmates<hello@collabmates.com>', [email], fail_silently=False)
             else:
                 req.status = -1
                 req.save()
                 email = req.user_info.email
                 print(email)
                 send_mail('Collabmates: Group Joining', 'Your request has been Rejected by the admin.',
-                          'hello@collabmates.com', [email], fail_silently=False)
+                          'Collabmates<hello@collabmates.com>', [email], fail_silently=False)
             return JsonResponse({'status': 'OK'})
     admins_communities = Admins.objects.all().filter(admin_id=request.user)
     print(admins_communities)
@@ -784,7 +784,7 @@ def send_email(email):
     subject = email + " wants to be Notified"
     msg = EmailMultiAlternatives(subject,
                                  email,
-                                 "hello@collabmates.com",
+                                 "Collabmates<hello@collabmates.com>",
                                  ['nipungoyal.iitd@gmail.com'],
                                  )
     return msg.send(fail_silently)
@@ -867,17 +867,15 @@ def collabcard(request, card_id):
     else:
         answer_text = collabcard_dict['collabcard']['answer_text']\
 
-    if collabcard_dict['collabcard']['og_tags']:
-        og_image = collabcard_dict['collabcard']['og_tags']['image']
-    else:
+    try:
+        if 'og_tags' in collabcard_dict['collabcard']:
+            og_image = collabcard_dict['collabcard']['og_tags']['image']
+        else:
+            og_image = None
+    except:
         og_image = None
 
     community = Community.objects.get(pk=collabcard_dict['collabcard']['community_id'])
-
-    if collabcard_dict['collabcard']['og_tags']:
-        og_image = collabcard_dict['collabcard']['og_tags']['image']
-    else:
-        og_image = None
 
     is_member = False
     if request.user.is_authenticated:
@@ -1024,7 +1022,6 @@ def pending_list(request,community_id):
             userinfo = update_user_info(request)
 
         # userinfo=Userinfo.objects.get(user_id=request.user.id)
-
         user_image_url=userinfo.image_file.url
         link=api_url+'members_state?member_id='+str(request.user.id)+'&community_id='+str(community_id)
         state=rqst.get(link)
@@ -1090,7 +1087,6 @@ def get_or_create_tag(tag_name,tag_type):
         try:
             tag = Tags_lpig.objects.get(name = tag_name)
         except:
-
             category = Category.objects.filter(Q(name__icontains=tag_type))[0]
             attribute = Attributes.objects.filter(Q(attribute_name__icontains=tag_type), Q(attribute_name__icontains='Uncategorized'))[0]
             tag = Tags_lpig()
