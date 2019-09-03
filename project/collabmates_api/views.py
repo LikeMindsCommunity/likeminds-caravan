@@ -667,8 +667,8 @@ def create_card(request):
             Community.objects.filter(id=community_id).update(purpose_collabcard  = card.id)
 
         # sending notification to the user
-        #send_notification_for_new_collabcard_posted.delay(community_id,res['title'],user_id,user.name)
-        #send_email_for_collabcard(community,user,card)
+        send_notification_for_new_collabcard_posted.delay(community_id,res['title'],user_id,user.name)
+        send_email_for_collabcard(community,user,card)
         Community.objects.filter(id=community_id).update(updated_at=time.time())
 
         collabcard = CollabcardSerializer(card, community)
