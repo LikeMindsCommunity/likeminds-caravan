@@ -24,9 +24,9 @@ SECRET_KEY = 'rg9n#$ebfj4w_mv-%7aahi2!qnitgw%xt(4re%i&)vdlppnz^e'
 
 #SECURE_SSL_REDIRECT = True
 # Honor the 'X-Forwarded-Proto' header for request.is_secure()
-#SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 # Force HTTPS in the final URIs
-#SOCIAL_AUTH_REDIRECT_IS_HTTPS = True
+SOCIAL_AUTH_REDIRECT_IS_HTTPS = True
 
 ALLOWED_HOSTS = ['*']
 

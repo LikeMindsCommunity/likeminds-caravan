@@ -20,6 +20,15 @@ db_database="production_dump"
 db_port="5432"
 
 
+#development
+
+# db_user="postgres"
+# db_password="postgres"
+# db_host= '13.235.187.102'
+# db_database="production_dump"
+# db_port="5432"
+
+
 def get_connection():
     '''function to create a postgres connection'''
     try:

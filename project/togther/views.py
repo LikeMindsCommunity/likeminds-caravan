@@ -865,7 +865,7 @@ def collabcard(request, card_id):
     if len(answers) == 0:
         answer_text = 'Be the first to respond'
     else:
-        answer_text = collabcard_dict['collabcard']['answer_text']\
+        answer_text = collabcard_dict['collabcard']['answer_text']
 
     try:
         if 'og_tags' in collabcard_dict['collabcard']:

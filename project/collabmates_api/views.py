@@ -227,7 +227,8 @@ def your_communities(request,user_id):
 
     member_id=request.GET.get('member_id')
     page_number = request.GET.get('page','')
-
+    if str(member_id) != str(user_id):
+        member_id = user_id
     my_community=[]
     user=User.objects.get(id=member_id)
     communities=Member_Engage.objects.filter(member_id=user).order_by('-updated_at')
@@ -666,8 +667,8 @@ def create_card(request):
             Community.objects.filter(id=community_id).update(purpose_collabcard  = card.id)
 
         # sending notification to the user
-        #send_notification_for_new_collabcard_posted.delay(community_id,res['title'],user_id,user.name)
-        #send_email_for_collabcard(community,user,card)
+        send_notification_for_new_collabcard_posted.delay(community_id,res['title'],user_id,user.name)
+        send_email_for_collabcard(community,user,card)
         Community.objects.filter(id=community_id).update(updated_at=time.time())
 
         collabcard = CollabcardSerializer(card, community)
