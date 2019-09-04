@@ -1,75 +1,314 @@
 {% extends 'base.html' %}
 
-{% block content %}
+
+{% block menu %}
+{% endblock %}
 
 
-<div class="ui raised padded text container segment" style="margin: 8px 8px !important;">
-  <div align="right">
-<button class="ui button" style="background-color:#00897b;color:white" id="refresh"><i class="fa fa-refresh" aria-hidden="true"></i></button>
-</div>
+{% block login_or %}
+{% if not request.user.is_authenticated %}
+<br>
 
-    <div class="card">
-
-    <div class="content">
-    
-      <div class="header"><img class="ui left aligned avatar image" src="{{image_url}}">{{creator}}</div>
-      <div class="meta"></div>
-      <div class="description">
-
-      <br>
-        {{card}}
-      </div>
-        <br>
-        <a href="{{share_link}}" style="font-size:12px;color:#00897b" class="item">{{share_link}}</a>
-        <br/>
-        <br/>
-        <br/>
-        <div style="font-size:12px;color:#00897b">{{answer_text}}</div>
-    </div>
-  </div>
-  
-</div>
-{% if request.user.is_authenticated %}
-{% for i in answers %}
-              {% if i.member.id == request.user.id %}
-                  <div class="ui raised padded text container segment" style="margin: 1em 1em !important;background:rgba(0,137,123,0.5)">
-               {% else %}
-                      <div class="ui raised padded text container segment" style="margin: 1em 1em !important;" >
-              {% endif %}
-              <div class="card">
-                  <div class="content">
-
-                    <div ><img class="ui left aligned avatar image"  src="{{i.member.image_url}}">{{i.member.name}}</div>
-                    <div class="meta"></div>
-                    <div class="description" style="font-size:14px;">
-                    <br>
-                      {{i.answer}}
-                    </div>
-                  </div>
-                </div>
-              </div>
-              {% endfor %}
-<div id="answer"></div>
-<div id="show" >
-
-              <div class="ui action input" style="margin: 1em 1em;width:90.3%;">
-                <input type="text" id="msg">
-                <button class="ui button" style="background-color:#00897b;color:white" id="send"><i class="fa fa-paper-plane" aria-hidden="true"></i></button>
-</div>
-
-<div style="text-align:center">
-    <br>
-
-<button class="ui fluid button " onclick="onbaording();"  style="z-index:2;width:60%; left:20%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;"  >Show relevant communities </button>
-
-</div>
-{% else %}
-<button class="ui fluid button " style=" z-index:2;width:60%; left:20%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; " id="view_answer" >View Answers  </button>
+OR
+<br><br>
 {% endif %}
+{% endblock %}
 
+{% block linkedin_login %}
+{% if not request.user.is_authenticated %}
+
+<div class="content">
+
+                                <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}">
+
+                                    <button class="ui linkedin button">
+                                        <i class="linkedin icon"></i>
+                                        LinkedIn
+                                    </button>
+                                </a>
+                            </div>
+
+{% endif %}
+{% endblock %}
+
+
+
+
+{% block fb_login %}
+{% if request.user.is_authenticated %}
+    <div class="content">
+        <br>
+
+        <button class="ui fluid button "
+                style=" z-index:2;width:60%; left:20%;  margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;"
+                onclick="join('{{community_id}}')"> Join this community{{request.user.is_authenticated }}
+        </button>
+        <br>
+
+
+    </div>
+<div style="height:10px">
+<br>
 </div>
+{% elif not request.user.is_authenticated%}
 
-<script>
+<div class="content">
+
+                                <a href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}">
+
+                                    <button class="ui facebook button">
+                                        <i class="facebook icon"></i>
+                                        Facebook
+                                    </button>
+                                </a>
+
+                            </div>
+{% endif %}
+{% endblock %}
+
+
+{% block login_text %}
+<p class="center aligned" id="login_text">
+    To join this community we
+</p>
+{% endblock %}
+
+table {
+height: 500px;
+overflow-y: scroll;
+}
+
+{% block styles %}
+<style>
+
+    table {
+  height: 60px;
+
+}
+
+  tbody{
+       height:60px;display:block;
+     }
+
+
+</style>
+{% endblock %}
+
+{% block header %}
+<div class="ui small inverted menu" style=" height:60px; background-color:#075e54; margin:0 0 0 0 !important;">
+    <table class='shadowbox' style='width:100% ;height:30px;'>
+        <tbody>
+        <tr style='width:20%'>
+            <td colspan="0" style="align:center;padding-left:10px;padding-bottom:12px">
+                {% if request.user.is_authenticated %}
+                <a href="{% url 'dashboard' %}">
+                    <i class="small arrow left icon"
+                       style="color:white;font-size:18px;font-weight:10;padding-bottom:20px; padding-top:0px"></i>
+                </a>
+                {% else %}
+
+                    <i class="small arrow left icon" id="left_arrow"
+                       style="color:white;font-size:18px;font-weight:10;padding-bottom:20px; padding-top:0px"></i>
+
+                {% endif %}
+            </td>
+            <td>
+                <table style='width:100% ;height:20px; padding-left:10px'>
+                    <tbody>
+                    <tr>
+                        <td>
+                            <a href="{% url 'dashboard' %}" style='color:white;'>
+                                <h4 style="color:white; font-size:18px;font-weight:10;">{{creator}}'s Collabcard</h4>
+
+                            </a>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <a href="{% url 'dashboard' %}" style='color:white;'>
+                                <h5 style="color:white; font-size:13px;font-weight:10;">Posted in
+                                    {{community_name}}</h5>
+
+                            </a>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </td>
+        </tr>
+
+        </tr>
+        </tbody>
+    </table>
+
+
+    {% endblock %}
+
+    {% block content %}
+
+    <div style="margin:0 auto; max-width:786px;background-color:#f0f5f5;">
+
+    <div style="text-align:center;padding-top:5px;">
+        <a href="{% url 'dashboard' %}" style='color:white;'>
+        <button class="ui fluid button"
+                style="z-index:2;width:60%; left:20%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; top:10%;">
+            Show relevant communities
+        </button>
+        </a>
+    </div>
+
+    <div class="ui raised padded text container segment" style="margin: 8px 8px !important;">
+        <div align="right">
+            <button class="ui button" style="background-color:#00897b;color:white" id="refresh"><i class="fa fa-refresh"
+                                                                                                   aria-hidden="true"></i>
+            </button>
+        </div>
+
+        <div class="card">
+
+            <div class="content">
+
+                <div class="header"><img class="ui left aligned avatar image" src="{{image_url}}">{{creator}}</div>
+                <div class="meta"></div>
+                <div class="description">
+
+                    <br>
+                    {{card}}
+                </div>
+                <br>
+                {% if share_link %}
+                <a href="{{share_link}}">
+                <table>
+                    <tbody>
+                    <tr>
+                        <td style="height:60px;width:60px; align:left;">
+                            {% if share_link_image %}
+                            <img class="ui left aligned " style="height:60px;width:60px;padding-top:5px;padding_bottom-0px;" src="{{share_link_image}}">
+
+                            {% else %}
+                                <i class="fa fa-paperclip fa-2x" aria-hidden="true" style="padding-left:15px; padding-top:5px; color:#00897b"></i>
+                            {% endif %}
+
+                        </td>
+                        <td>
+                        <a  style="line-height:1.5; display: block;font-size:12px;color:#00897b" class="item">{{share_link}}</a>
+                        </td>
+
+                    </tr>
+                    </tbody>
+                </table>
+                    </a>
+                {% endif %}
+                <br/>
+                <br/>
+                <br/>
+                <div style="font-size:12px;color:#00897b">{{answer_text}}</div>
+            </div>
+        </div>
+
+    </div>
+    {% if request.user.is_authenticated %}
+    {%if is_member %}
+    {% for i in answers %}
+    {% if i.member.id == request.user.id %}
+
+    <div class="ui raised padded text container segment"
+         style="margin: 1em 1em !important;background:rgba(0,137,123,0.5);height:90%;">
+        {% else %}
+        <div class="ui raised padded text container segment" style="margin: 1em 1em !important;">
+            {% endif %}
+            <div class="card">
+                <div class="content">
+
+                    <div>
+                        <table>
+                            <tbody>
+                            <tr>
+                                <td>
+                                    <img class="ui left aligned avatar image" src="{{i.member.image_url}}">
+
+                                </td>
+                                <td>
+                                    <p>&nbsp; {{i.member.name}}</p>
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+
+                    </div>
+                    <div class="meta"></div>
+                    <div class="description " style="font-size:14px; height:auto; overflow-wrap: break-word;">
+
+                        {{i.answer}}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+        {% endif %}
+        {% endif %}
+    </div>
+    {% if request.user.is_authenticated %}
+        <div id="answer"></div>
+        <div id="show" style=" height:50px;">
+                {%if is_member %}
+
+                    <div class="ui action input" style="background-color:black;background:white;color: white;margin: 1em 1em;width:93%;position: fixed; bottom:0%;">
+                        <input type="text" id="msg">
+                        <button class="ui button" style="background-color:#00897b;color:white" id="send"><i
+                                class="fa fa-paper-plane" aria-hidden="true"></i></button>
+                    </div>
+                    {%else%}
+                    <button class="ui fluid button "
+                            style=" z-index:2;width:60%; left:20%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; "
+                            id="view_answer">View Answers
+                    </button>
+                {% endif %}
+
+            {% else %}
+
+            <button class="ui fluid button "
+                    style=" z-index:2;width:60%; left:20%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; "
+                    id="view_answer">View Answers
+            </button>
+
+            <div  style="margin: 1em 1em;width:93%; position: fixed; bottom:0%;background:white;color: white; height:100px;">
+                <input type="text" id="msg">
+                <button class="ui button" style="background-color:#00897b;color:white; " id="send"><i
+                        class="fa fa-paper-plane" aria-hidden="true"></i></button>
+            </div>
+
+            {% endif %}
+
+        </div>
+
+        <script>
+
+        $('#left_arrow').click(function(){
+{% if user.is_authenticated %}
+                       window.open("/communities");
+                    {% else %}
+                    $('.test')
+                    .modal('show')
+                  ;
+                    {% endif %}
+
+})
+
+
+
+       function join(community_id){
+                    console.log(1);
+                    {% if user.is_authenticated %}
+                       window.open("/"+"community/"+community_id+"?cta=join",'_self');
+                    {% else %}
+                    $('.test')
+                    .modal('show')
+                  ;
+                    {% endif %}
+                }
+
+
 $(document).ready(function(){
 setInterval(function(){
 console.log('hit')
@@ -80,17 +319,33 @@ $('#send').click(function(){
   {% if user.is_authenticated %}
       create_new_message();
       {% else %}
+      var element = document.getElementById("login_text");
+      element.innerHTML = "Your answer has been successfully saved. However to ensure privacy of the community, you need to be part of the <b>{{community_name}}</b> on CollabMates before your answer gets posted.";
        $('.test')
           .modal('show');
       {% endif %}
 })
 
+
+
 $('#view_answer').click(function(){
 
-          $('.test')
+          var element = document.getElementById("login_text");
+          {% if request.user.is_anonymous %}
+          element.innerHTML = "To view answers, you need to be part of the <b>{{community_name}}</b> on CollabMates";
+            $('.test')
           .modal('show');
+            {% elif not is_member and request.user.is_authenticated%}
+           element.innerHTML = "To view answers, you need to be part of the <b>{{community_name}}</b> on CollabMates";
+            $('.test')
+          .modal('show');
+            {% endif %}
 
 })
+
+
+
+
 function create_new_message(){
 
     //function to create new answer for collabcard
@@ -110,7 +365,7 @@ function create_new_message(){
 
                           <div ><img class="ui left aligned avatar image"  src="{{user_image_url}}">{{request.user}}</div>
                           <div class="meta"></div>
-                          <div class="description" style="font-size:14px;">
+                          <div class="description" style="font-size:14px;overflow-wrap: break-word;">
                           <br>
                             ${msg}
                           </div>
@@ -151,6 +406,10 @@ location.reload(true)
 
                 }
 
-</script>
 
-{% endblock %}
+
+        </script>
+        </div>
+
+
+        {% endblock %}

@@ -1,6 +1,7 @@
 import psycopg2
 from connection import get_connection
 import time
+
 def get_all_community():
 
     '''function to get all communities'''

@@ -2,6 +2,9 @@
 from bs4 import BeautifulSoup
 import requests
 from togther.models import *
+from togther.models import *
+from django.shortcuts import render, get_object_or_404
+from django.db.models import Q
 
 def decode_meta_from_url(url):
 

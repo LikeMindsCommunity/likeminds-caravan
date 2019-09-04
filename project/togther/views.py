@@ -17,6 +17,7 @@ from collabmates_api.serializers import *
 from django.template.loader import get_template
 import traceback
 from collabmates_api.raw_queries import  compute_rank
+
 url = settings.URL
 
 # uncomment to run it in localhost
@@ -143,7 +144,7 @@ def user_onbaord(request):
         user_lpig = user_lpig[0]
         ''' if user comes back in the middle of on-baording flow,
         make sure he continues the on-boarding'''
-        if user_lpig.legacy and user_lpig.interests  and user_lpig.profession and user_lpig.geography:
+        if user_lpig.legacy and user_lpig.interests and user_lpig.profession and user_lpig.geography:
             return True, user_lpig.legacy
         else:
             return False, ''
@@ -861,17 +862,21 @@ def collabcard(request, card_id):
         user_image=''
 
     answers = collabcard_dict['answers']
+    # getting answer text of the collabcard
     if len(answers) == 0:
         answer_text = 'Be the first to respond'
     else:
         answer_text = collabcard_dict['collabcard']['answer_text']
 
-    community = Community.objects.get(pk=collabcard_dict['collabcard']['community_id'])
-    
-    if collabcard_dict['collabcard']['og_tags']:
-        og_image = collabcard_dict['collabcard']['og_tags']['image']
-    else:
+    try:
+        if 'og_tags' in collabcard_dict['collabcard']:
+            og_image = collabcard_dict['collabcard']['og_tags']['image']
+        else:
+            og_image = None
+    except:
         og_image = None
+
+    community = Community.objects.get(pk=collabcard_dict['collabcard']['community_id'])
 
     is_member = False
     if request.user.is_authenticated:
@@ -1016,6 +1021,8 @@ def pending_list(request,community_id):
             userinfo = Userinfo.objects.get(user_id=request.user.id)
         except:
             userinfo = update_user_info(request)
+
+        # userinfo=Userinfo.objects.get(user_id=request.user.id)
         user_image_url=userinfo.image_file.url
         link=api_url+'members_state?member_id='+str(request.user.id)+'&community_id='+str(community_id)
         state=rqst.get(link)
@@ -1079,7 +1086,7 @@ def get_or_create_tag(tag_name,tag_type):
     except:
         tag_name = tag_name.strip().capitalize()
         try:
-            tag = Tags_lpig.objects.get(name=tag_name)
+            tag = Tags_lpig.objects.get(name = tag_name)
         except:
             category = Category.objects.filter(Q(name__icontains=tag_type))[0]
             attribute = Attributes.objects.filter(Q(attribute_name__icontains=tag_type), Q(attribute_name__icontains='Uncategorized'))[0]
@@ -1445,6 +1452,7 @@ def access_page(request):
                 user_info.contact_number = None
             user_info.save()
         except:
+
             print("error in userinfo")
     return JsonResponse({'success': True,'mobile_os':mobile_os})
 

@@ -61,6 +61,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'social_django.middleware.SocialAuthExceptionMiddleware',
+    'utility.slash_middleware.AppendOrRemoveSlashMiddleware',
 ]
 
 ROOT_URLCONF = 'project.urls'
@@ -143,6 +144,7 @@ AUTHENTICATION_BACKENDS = (
 
 SOCIAL_AUTH_FACEBOOK_KEY = '633859857057924'
 SOCIAL_AUTH_FACEBOOK_SECRET = 'f90d662fdb205e53f24a90009318a6d4'
+
 SOCIAL_AUTH_FACEBOOK_SCOPE = ['email']
 SOCIAL_AUTH_FACEBOOK_PROFILE_EXTRA_PARAMS = {'fields': 'id,name,email', }
 
@@ -150,7 +152,7 @@ SOCIAL_AUTH_LINKEDIN_OAUTH2_KEY = '8616kilc3dqagd'        #Client ID
 SOCIAL_AUTH_LINKEDIN_OAUTH2_SECRET = 'g2LdZt5KN9HRF1IB'  #Client Secret
 # SOCIAL_AUTH_LINKEDIN_OAUTH2_SCOPE = ['r_basicprofile','r_emailaddress','rw_company_admin','w_share']
 SOCIAL_AUTH_LINKEDIN_OAUTH2_SCOPE = ['r_basicprofile','r_emailaddress']
-# SOCIAL_AUTH_LINKEDIN_OAUTH2_WHITELISTED_DOMAINS=['*','gmail.com','linkedin.com']
+# SOCIAL_AUTH_LINKEDIN_OAUTH2_WHITELISTED_DOMAINS=['*']
 
 SOCIAL_AUTH_LOGIN_URL = ""
 SOCIAL_AUTH_LOGIN_REDIRECT_URL = "dashboard"
