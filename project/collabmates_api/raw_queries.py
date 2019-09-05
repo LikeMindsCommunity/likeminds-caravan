@@ -13,9 +13,10 @@ except:
     sys.path.append("..")
     from scripts.connection import get_connection
 
-def get_all_tags(sql):
 
-    '''function to get tags based on sql'''
+
+def get_all_data(sql):
+    '''function to get all data based on a sql query'''
     try:
         conn = get_connection()
         curr = conn.cursor()
@@ -24,10 +25,11 @@ def get_all_tags(sql):
         curr.close()
         conn.close()
         if res:
-            return res[0]
+            return res
 
     except (Exception, psycopg2.Error) as error:
         print("Error while connecting to PostgreSQL  ", error)
+
 def create_hashmap():
 
     '''function to crate a hashmap in order to store relevant id of tags'''
@@ -44,7 +46,6 @@ def create_hashmap():
 
     return correct_tags
 
-
 def get_list_of_tag_id(tags,hashmap):
 
     '''function to insert tag to tags list which is mapped in hashmap'''
@@ -60,34 +61,67 @@ def filter_tags(user_id=0,community_id=0):
     hashmap=create_hashmap()
 
     sql=""
-    if user_id:
-        sql="select id,member_id_id,geography,interests,legacy,profession from togther_user_lpig where member_id_id="+str(user_id)
-    elif community_id:
-        sql = "select id,community_id_id,geography,interests,legacy,profession from togther_community_lpig where community_id_id=" + str(community_id)
-    res=get_all_tags(sql)
+    if community_id:
+        sql="select tags_id_id from togther_community_legacy where community_id_id="+str(community_id)
+        tags=get_all_data(sql)
 
-    if res is None:
-        return {}
-    legacy=None
-    profession=None
-    interests=None
-    geo_list = []
-    if res[4]:
-        legacy=json.loads(res[4])
+        legacy=[]
+        for data in tags:
+            legacy.append(data[0])
         legacy=get_list_of_tag_id(legacy,hashmap)
 
-    if res[5]:
-        profession=json.loads(res[5])
+        sql = "select tags_id_id from togther_community_profession where community_id_id=" + str(community_id)
+        tags = get_all_data(sql)
+        profession = []
+        for data in tags:
+            profession.append(data[0])
         profession=get_list_of_tag_id(profession,hashmap)
 
-    if res[3]:
-        interests=json.loads(res[3])
-        interests=get_list_of_tag_id(interests,hashmap)
 
-    if res[2]:
+        sql = "select tags_id_id from togther_community_interest where community_id_id=" + str(community_id)
+        tags = get_all_data(sql)
+        interests = []
+        for data in tags:
+            interests.append(data[0])
+        interests = get_list_of_tag_id(interests, hashmap)
 
-        geo_list=json.loads(res[2])
-        geo_list=get_list_of_tag_id(geo_list,hashmap)
+        sql = "select tags_id_id from togther_community_geography where community_id_id=" + str(community_id)
+        tags = get_all_data(sql)
+        geo_list = []
+        for data in tags:
+            geo_list.append(data[0])
+        geo_list = get_list_of_tag_id(geo_list, hashmap)
+    else:
+        sql = "select tags_id_id from togther_user_legacy where user_id_id=" + str(user_id)
+        tags = get_all_data(sql)
+
+        legacy = []
+        for data in tags:
+            legacy.append(data[0])
+        legacy = get_list_of_tag_id(legacy, hashmap)
+
+        sql = "select tags_id_id from togther_user_profession where user_id_id=" + str(user_id)
+        tags = get_all_data(sql)
+        profession = []
+        for data in tags:
+            profession.append(data[0])
+        profession = get_list_of_tag_id(profession, hashmap)
+
+        sql = "select tags_id_id from togther_user_interest where user_id_id=" + str(user_id)
+        tags = get_all_data(sql)
+        interests = []
+        for data in tags:
+            interests.append(data[0])
+        interests = get_list_of_tag_id(interests, hashmap)
+
+        sql = "select tags_id_id from togther_user_geography where user_id_id=" + str(user_id)
+        tags = get_all_data(sql)
+        geo_list = []
+        for data in tags:
+            geo_list.append(data[0])
+        geo_list = get_list_of_tag_id(geo_list, hashmap)
+
+
 
     tags={}
 
@@ -96,26 +130,14 @@ def filter_tags(user_id=0,community_id=0):
 
     if community_id:
         tags['community_id']=community_id
+
     tags['legacy']=legacy
     tags['profession']=profession
     tags['interests']=interests
     tags['geography']=geo_list
     return tags
 
-def get_all_data(sql):
-    '''function to get all data based on a sql query'''
-    try:
-        conn = get_connection()
-        curr = conn.cursor()
-        curr.execute(sql)
-        res=curr.fetchall()
-        curr.close()
-        conn.close()
-        if res:
-            return res
 
-    except (Exception, psycopg2.Error) as error:
-        print("Error while connecting to PostgreSQL  ", error)
 
 def get_global_id():
 
@@ -280,21 +302,19 @@ def action_for_user_crete_or_community_create(user_id,community_id):
     user_tags = []
     community_tags = []
     if user_id is None and community_id is None:
-        sql = "select member_id_id from togther_user_lpig"
+        sql = "select distinct(user_id_id) from togther_user_legacy"
         all_user = get_all_data(sql)
         user_tags = []
         for user in all_user:
             filter_tag = filter_tags(user_id=user[0])
             user_tags.append(filter_tag)
-
         # getting all communities
-        sql = "select community_id_id from togther_community_lpig"
+        sql = "select distinct(community_id_id) from togther_community_lpig"
         all_communities = get_all_data(sql)
         community_tags = []
         for community in all_communities:
             filter_tag = filter_tags(community_id=community[0])
             community_tags.append(filter_tag)
-
     elif user_id is not None and community_id is None:
         all_user = [(user_id,)]
         user_tags = []
@@ -303,7 +323,7 @@ def action_for_user_crete_or_community_create(user_id,community_id):
             user_tags.append(filter_tag)
 
             # getting all communities
-            sql = "select community_id_id from togther_community_lpig"
+            sql = "select distinct(community_id_id) from togther_community_legacy"
             all_communities = get_all_data(sql)
             community_tags = []
             for community in all_communities:
@@ -311,7 +331,7 @@ def action_for_user_crete_or_community_create(user_id,community_id):
                 community_tags.append(filter_tag)
 
     elif user_id is None and community_id is not None:
-        sql = "select member_id_id from togther_user_lpig"
+        sql = "select distinct(user_id_id) from togther_user_legacy"
         all_user = get_all_data(sql)
         user_tags = []
         for user in all_user:

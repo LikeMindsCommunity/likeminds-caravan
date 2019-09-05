@@ -271,6 +271,8 @@ class Tags_lpig(models.Model):
     attribute_id=models.ForeignKey(Attributes,on_delete=models.CASCADE)
     category_id=models.ForeignKey(Category,on_delete=models.CASCADE)
     tag_id=models.IntegerField(null=True)
+    tag_characterstics=models.CharField(max_length=1024,null=True)
+    tag_image = models.ImageField(upload_to="media/tags_images", default = '')
     def __str__(self):
         return self.name
 
@@ -286,3 +288,57 @@ class Member_Engage(models.Model):
     pending_members=models.IntegerField(default=0,null=True)
     updated_at=models.BigIntegerField(default=0,null=True)
 
+
+# community lpig
+
+class Community_Legacy(models.Model):
+
+    '''Model to store the communities of legacy'''
+    community_id=models.ForeignKey(Community, on_delete=models.CASCADE)
+    tags_id=models.ForeignKey(Tags_lpig,on_delete=models.CASCADE)
+
+
+class Community_Profession(models.Model):
+    '''Model to store the communities of profession'''
+    community_id = models.ForeignKey(Community, on_delete=models.CASCADE)
+    tags_id = models.ForeignKey(Tags_lpig, on_delete=models.CASCADE)
+
+
+class Community_Interest(models.Model):
+    '''Model to store the communities of interest'''
+    community_id = models.ForeignKey(Community, on_delete=models.CASCADE)
+    tags_id = models.ForeignKey(Tags_lpig, on_delete=models.CASCADE)
+
+
+class Community_Geography(models.Model):
+    '''Model to store the communities of geography'''
+    community_id = models.ForeignKey(Community, on_delete=models.CASCADE)
+    tags_id = models.ForeignKey(Tags_lpig, on_delete=models.CASCADE)
+
+
+
+
+# user lpig
+
+class User_Legacy(models.Model):
+    '''Model to store the user of legacy'''
+    user_id = models.ForeignKey(User, on_delete=models.CASCADE)
+    tags_id = models.ForeignKey(Tags_lpig, on_delete=models.CASCADE)
+
+
+class User_Profession(models.Model):
+    '''Model to store the user of profession'''
+    user_id = models.ForeignKey(User, on_delete=models.CASCADE)
+    tags_id = models.ForeignKey(Tags_lpig, on_delete=models.CASCADE)
+
+
+class User_Interest(models.Model):
+    '''Model to store the user of interest'''
+    user_id = models.ForeignKey(User, on_delete=models.CASCADE)
+    tags_id = models.ForeignKey(Tags_lpig, on_delete=models.CASCADE)
+
+
+class User_Geography(models.Model):
+    '''Model to store the user of geography'''
+    user_id = models.ForeignKey(User, on_delete=models.CASCADE)
+    tags_id = models.ForeignKey(Tags_lpig, on_delete=models.CASCADE)
