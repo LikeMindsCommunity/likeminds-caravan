@@ -167,6 +167,8 @@ temp={
             //console.log(data)
             {% if community_id != None %}
             location.href="/onboarding_profession?community_id={{community_id}}"
+            {% elif user_id != None %}
+            location.href="/onboarding_profession?user_id={{user_id}}"
             {% else %}
             location.href="/onboarding_profession"
             {% endif %}
