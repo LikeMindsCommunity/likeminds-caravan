@@ -35,5 +35,7 @@ urlpatterns = [
     path('categorize_tag',categorize_tag,name = 'categorize_tag'),
     path('delete_hidden_tags', delete_hidden_tags, name='delete_hidden_tags'),
     path('map_tags', map_tags, name='map_tags'),
-
+    path('map_tags', map_tags, name='map_tags'),
+    path('update_tag',update_tag,name = 'update_tag'),
+    path('tag_update_form/<int:tag_id>', tag_update_form, name='tag_update_form'),
 ]

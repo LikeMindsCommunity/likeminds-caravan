@@ -72,7 +72,7 @@ def communities(request):
 def get_communities_by_tags(user_tag=0, category_tag=0,page_number=1,user_id=None):
     ''' fetching communities based on category tag and user hidden tag '''
 
-    is_user_tags = User_LPIG.objects.filter(member_id=user_id)
+    is_user_tags = Community_Rank.objects.filter(member_id=user_id)
 
     if is_user_tags:
         if user_id:
