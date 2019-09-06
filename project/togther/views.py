@@ -18,11 +18,11 @@ from django.template.loader import get_template
 import traceback
 from collabmates_api.raw_queries import  compute_rank
 
-# url = settings.URL
+url = settings.URL
 
 # uncomment to run it in localhost
 #
-url='http://localhost:8000'
+# url='http://localhost:8000'
 
 api_url = url + '/api/'
 
