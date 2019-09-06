@@ -325,7 +325,6 @@ def add_tags(request):
     return JsonResponse({'success':True})
 
 
-
 def all_user(request):
 
     '''dashboard to show all users'''
@@ -366,54 +365,39 @@ def all_user(request):
     return render(request, 'dashboard/all_user.html', {'all_user': users_list})
 
 def get_user_tags_count(user_id):
-    tags_count =0
-    hidden_tags = User_LPIG.objects.filter(member_id=user_id)
 
-    if hidden_tags.exists():
-        hidden_tags = hidden_tags[0]
-        if not hidden_tags.legacy == None:
-            hidden_legacy_tags = json.loads(hidden_tags.legacy)
-            for tag in hidden_legacy_tags:
-                global_tag = Tags_lpig.objects.get(name='legacy_any')
-                if tag == global_tag.id:
-                    continue
-                else:
-                    tags_count += 1
+    tags_count = 0
 
-        if not hidden_tags.profession == None:
-
-            hidden_profession_tags = json.loads(hidden_tags.profession)
-            for tag in hidden_profession_tags:
-                global_tag = Tags_lpig.objects.get(name='profession_any')
-                if tag == global_tag.id:
-                    continue
-
-                else:
-                    tags_count += 1
+    
+    hidden_legacy_tags = list(User_Legacy.objects.filter(user_id=user_id).values_list('tags_id', flat=True))
+    hidden_profession_tags = list(User_Profession.objects.filter(user_id=user_id).values_list('tags_id', flat=True))
+    hidden_interests_tags = list(User_Interest.objects.filter(user_id=user_id).values_list('tags_id', flat=True))
+    hidden_geography_tags = list(User_Geography.objects.filter(user_id=user_id).values_list('tags_id', flat=True))
 
 
-        if not hidden_tags.interests == None:
+    for tag in hidden_legacy_tags:
+        global_tag = Tags_lpig.objects.get(name='legacy_any')
+        if tag == global_tag.id:
+            continue
+        tags_count += 1
 
-            hidden_interests_tags = json.loads(hidden_tags.interests)
-            for tag in hidden_interests_tags:
-                global_tag = Tags_lpig.objects.get(name='interest_any')
-                if tag == global_tag.id:
-                    continue
+    for tag in hidden_profession_tags:
+        global_tag = Tags_lpig.objects.get(name='profession_any')
+        if tag == global_tag.id:
+            continue
+        tags_count += 1
 
-                else:
-                    tags_count += 1
+    for tag in hidden_interests_tags:
+        global_tag = Tags_lpig.objects.get(name='interest_any')
+        if tag == global_tag.id:
+            continue
+        tags_count += 1
 
-
-        if not hidden_tags.geography == None:
-
-            hidden_geography_tags = json.loads(hidden_tags.geography)
-            for tag in hidden_geography_tags:
-                global_tag = Tags_lpig.objects.get(name='Global')
-                if tag == global_tag.id:
-                    continue
-
-                else:
-                    tags_count += 1
+    for tag in hidden_geography_tags:
+        global_tag = Tags_lpig.objects.get(name='Global')
+        if tag == global_tag.id:
+            continue
+        tags_count += 1
 
     return tags_count
 
