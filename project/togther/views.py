@@ -868,9 +868,12 @@ def collabcard(request, card_id):
 
     community = Community.objects.get(pk=collabcard_dict['collabcard']['community_id'])
     
-    if collabcard_dict['collabcard']['og_tags']:
-        og_image = collabcard_dict['collabcard']['og_tags']['image']
-    else:
+    try:
+        if 'og_tags' in collabcard_dict['collabcard']:
+            og_image = collabcard_dict['collabcard']['og_tags']['image']
+        else:
+            og_image = None
+    except:
         og_image = None
 
     is_member = False
