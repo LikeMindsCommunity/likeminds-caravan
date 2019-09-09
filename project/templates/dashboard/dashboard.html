@@ -104,6 +104,23 @@ a.article-title:hover {
 .btn-orange {
  background-color: #f08c35;
 }
+.pagination a {
+  color: black;
+  float: left;
+  padding: 8px 16px;
+  text-decoration: none;
+  transition: background-color .3s;
+  border-radius: 5px;
+  border: 1px solid #ddd; /* Gray */
+
+}
+
+.pagination a.active {
+  background-color: #4CAF50;
+  color: white;
+}
+
+.pagination a:hover:not(.active) {background-color: #ddd;}
 
     </style>
 </head>
@@ -174,17 +191,35 @@ a.article-title:hover {
             {% endfor %}
         </div>
     </div>
-</main>
-<script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"
-        integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN"
-        crossorigin="anonymous"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"
-        integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
-        crossorigin="anonymous"></script>
-<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"
-        integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
-        crossorigin="anonymous"></script>
 
+
+{% endif %}
+</main>
+
+
+{% if community.has_other_pages %}
+<div style="padding-left:450px;">
+  <ul class="pagination">
+    {% if community.has_previous %}
+      <li><a href="?page={{ community.previous_page_number }}">&laquo;</a></li>
+    {% else %}
+      <li ><span>&laquo;</span></li>
+    {% endif %}
+    {% for i in community.paginator.page_range %}
+      {% if community.number == i %}
+        <li style="border: 1px solid #ddd;border-radius: 5px;padding: 8px 16px;background-color:#f0ad4e;border-color: #eea236;"><span>{{ i }}</span></li>
+      {% else %}
+        <li><a href="?page={{ i }}">{{ i }}</a></li>
+      {% endif %}
+    {% endfor %}
+    {% if community.has_next %}
+      <li><a href="?page={{ community.next_page_number }}">&raquo;</a></li>
+    {% else %}
+      <li><span>&raquo;</span></li>
+    {% endif %}
+  </ul>
+</div>
+<br/>
 </body>
 {% endif %}
 </html>
