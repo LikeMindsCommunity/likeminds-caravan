@@ -147,12 +147,12 @@ def college_city(legacy_college,geography_city):
                     temp['question']="Please introduce yourself telling a bit about your time at " + str(name['csn'])
                 else:
                     temp['name'] = college[0] + " Alumini  in " + city[0]
-                    temp['purpose'] = "For " + str(temp['name']) + "to socialise and help each other"
+                    temp['purpose'] = "For " + str(temp['name']) + " to socialise and help each other"
                     temp['question'] = "Please introduce yourself telling a bit about your time at " + str(college[0])
 
             else:
                 temp['name']=college[0] + " Alumini  in " + city[0]
-                temp['purpose']="For "+ str(temp['name']) + "to socialise and help each other"
+                temp['purpose']="For "+ str(temp['name']) + " to socialise and help each other"
                 temp['question']="Please introduce yourself telling a bit about your time at " + str(college[0])
 
             temp['about']="""This community aims to bring together alumni of %s living in %s so that we can socialise with other and stay connected with our alma mater as well. Here we collaborate with each other by sharing knowledge, providing referrals for jobs, accommodation, business, etc. and having meaningful conversations. We also use this space to plan offline meetups.
@@ -168,6 +168,7 @@ def college_city(legacy_college,geography_city):
             community_id=is_community_tags_exists(temp)
             if not community_id:
                 insert_pre_create_community(temp)
+
             else:
                 update_pre_created_community(community_id,temp)
 
@@ -270,22 +271,23 @@ def college_skill(legacy_college,industry_skill):
                 'interest': 17,
                 'geography': 18
             }
+            skill_expert= str(skill[0]) + " experts"
             if college[1] is not None and skill[1] is not None:
                 leg_char=json.loads(college[1])
                 prof_char=json.loads(skill[1])
-
-                if not prof_char['skill_experts']:
-                    prof_char['skill_experts']=str(skill[0])+" experts"
-
                 if 'csn' in leg_char and leg_char['csn'] and 'skill_experts' in prof_char and prof_char['skill_experts']:
                     temp['name']=leg_char['csn'] + " " +prof_char['skill_experts']
+                    skill_expert = prof_char['skill_experts']
                 elif 'csn' in leg_char and leg_char['csn']:
                     temp['name'] = leg_char['csn'] + " "+ str(skill[0])
                 else:
                     temp['name'] = str(college[0]) + " Alumini in " + str(skill[0])
+            elif college[1] is not None:
+                leg_char=json.loads(college[1])
+                if 'csn' in leg_char and leg_char['csn']:
+                    temp['name'] = leg_char['csn'] + " Alumini in "+ str(skill[0])
+
             else:
-                prof_char={}
-                prof_char['skill_experts']=str(skill[0])+" experts"
                 temp['name']=str(college[0])+" Alumini in "+str(skill[0])
             temp['purpose']="""For %s alumni with expertise in %s to exchange knowledge and referrals"""%(college[0],skill[0])
             temp['question']="""Please introduce yourself telling a bit about your background in %s"""%(skill[0])
@@ -294,7 +296,7 @@ def college_skill(legacy_college,industry_skill):
 
                             Anytime if you are looking for a lead or offering some help, simply start a new conversation with relevant details and your ask from the community members. Relevant members can respond by simply chatting with you and each other on your conversation card. Members who want to follow the conversation can press the Follow button to receive notifications about future responses on the card.
 
-                            Please try to maintain conversations for each query or discussion on the conversation card so that only relevant members get notifications and all the conversations get documented for future reference of members of this community."""%(prof_char['skill_experts'],college[0],skill[0])
+                            Please try to maintain conversations for each query or discussion on the conversation card so that only relevant members get notifications and all the conversations get documented for future reference of members of this community."""%(skill_expert,college[0],skill[0])
             temp['geography']='Global'
             if skill[2]:
                 temp['image_url'] = skill[2]
@@ -627,7 +629,6 @@ def cause_city(interest_cause,geography_city):
 def pre_create_communities(tag_id=0):
 
     '''function to pre create communities'''
-
     #legacy tags
     legacy_college = get_attribute_data(2)
     legacy_hometown = get_attribute_data(3)
@@ -655,7 +656,6 @@ def pre_create_communities(tag_id=0):
 
         if attribute_id is 2:                                            #college
             legacy_college=tags_data
-
             college_city(legacy_college, geography_city)
 
             college_industry(legacy_college, profession_industry)
