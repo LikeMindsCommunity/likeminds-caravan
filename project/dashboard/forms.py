@@ -129,7 +129,8 @@ class Interests_Hobby_Form(forms.Form):
 
 class Interests_Sports_Form(forms.Form):
     sport_players = forms.CharField(label='Sport Players', max_length=50, required=False,widget=forms.TextInput(attrs={'placeholder':'Sport Players','class':'form-control form-group'}))
-    sport_verb = forms.CharField(label='Sport Verb', max_length=50, required=False,widget=forms.TextInput(attrs={'placeholder':'Sport Verb','class':'form-control form-group'}))
+    sport_usecase = forms.CharField(label='Sport Use Case', max_length=50, required=False,widget=forms.TextInput(attrs={'placeholder':'Sport Use Case','class':'form-control form-group'}))
+    sport_event = forms.CharField(label='Sport Event', max_length=50, required=False,widget=forms.TextInput(attrs={'placeholder':'Sport event','class':'form-control form-group'}))
     image = forms.ImageField(label='Select Image', required=False,widget=forms.FileInput(attrs=({'class': 'file-upload btn btn-primary'})))
 
 
