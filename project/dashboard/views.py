@@ -1827,6 +1827,7 @@ def tag_update_form(request,tag_id):
             char = {}
             sport_players = None
             sport_usecase = None
+            sport_event = None
 
             if tag.tag_characterstics:
                 char = json.loads(tag.tag_characterstics)
