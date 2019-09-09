@@ -875,4 +875,4 @@ def insert_tags_for_communities(sql,parameter):
 if envir:
     if __name__=="__main__":
 
-        pre_create_communities(tag_id=21)
+        pre_create_communities()
