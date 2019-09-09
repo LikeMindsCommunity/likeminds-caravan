@@ -1,3 +1,5 @@
+from __future__ import absolute_import, unicode_literals
+from celery import shared_task
 import psycopg2
 import json
 import requests as rqst
@@ -625,7 +627,7 @@ def cause_city(interest_cause,geography_city):
 
     print("I(cause)G(city) communities created\n")
 
-
+@shared_task
 def pre_create_communities(tag_id=0):
 
     '''function to pre create communities'''
@@ -742,7 +744,6 @@ def pre_create_communities(tag_id=0):
         fan_city(interest_fan,geography_city)
 
         cause_city(interest_cause,geography_city)
-
 
 def insert_pre_create_community(community):
 
