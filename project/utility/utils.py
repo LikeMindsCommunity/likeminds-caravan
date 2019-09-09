@@ -41,6 +41,7 @@ def decode_meta_from_url(url):
     og_tags['url']=url
     return og_tags
 
+
 def get_nominated_admin_details(community_id,email):
     '''fetching nominated promoter details from temp admin table'''
     community = get_object_or_404(Community, pk = community_id)
@@ -63,7 +64,6 @@ def update_member_count(community_id):
     # updating count
     Community.objects.filter(id=community_id).update(members_count = count)
     return count
-
 
 
 def set_user_tag(user_id, community_id):
@@ -97,7 +97,8 @@ def get_user_tag(user_id):
 @shared_task
 def update_tag_image(tag_name, tag_id):
     locations = [tag_name, 'city', 'district', 'state', 'country']
-
+    if tag_name.is_digit():
+        return
     for loc in locations:
         if loc == tag_name:
             loc = tag_name
