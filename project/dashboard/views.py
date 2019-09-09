@@ -1643,6 +1643,7 @@ def tag_update_form(request,tag_id):
                                    'thing_event': thing_event,
                                    }
 
+
         else:
             form = Tag_Form(request.POST, request.FILES)
             if form.is_valid():
@@ -1656,7 +1657,7 @@ def tag_update_form(request,tag_id):
         base_url = reverse('update_tag')  # 1 /products/
         query_string = urlencode({'updated':True})  # 2 category=42
         url = '{}?{}'.format(base_url, query_string)
-
+        pre_create_communities(tag_id=tag_id)
         return redirect(url)
 
     else:
