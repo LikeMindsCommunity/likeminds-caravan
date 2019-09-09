@@ -18,6 +18,8 @@ import os
 import re
 from django.views.decorators.csrf import csrf_exempt
 from collabmates_api.raw_queries import compute_rank
+from utility.pre_creation import pre_create_communities
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.urls import reverse
 from urllib.parse import urlencode
 
@@ -33,6 +35,16 @@ def dashboard(request):
 
   community_list=Community.objects.all().order_by('-created_at','-active_since')
   dashboard_list=[]
+
+  page = request.GET.get('page', 1)
+  paginator = Paginator(community_list, 100)
+  try:
+      community_list = paginator.page(page)
+  except PageNotAnInteger:
+      community_list = paginator.page(1)
+  except EmptyPage:
+      community_list = paginator.page(paginator.num_pages)
+
   for i in community_list:
       community_dic={}
       if i.hide_community == '2':
@@ -49,8 +61,8 @@ def dashboard(request):
       community_dic['question_count']=Form_data.objects.filter(community_id=i).count()
       community_dic['hidden_tags_count']=get_tags_count(i)
       dashboard_list.append(community_dic)
+  return render(request,'dashboard/dashboard.html',{'communities':dashboard_list,'community':community_list})
 
-  return render(request,'dashboard/dashboard.html',{'communities':dashboard_list})
 
 
 def get_tags_count(community):
@@ -1223,7 +1235,8 @@ def categorize_tag(request):
 
         print(category,attribute,uncategorized)
 
-        update_uncategorize_tag(uncategorized, category, attribute)
+        tag_id=update_uncategorize_tag(uncategorized, category, attribute)
+        pre_create_communities.delay(tag_id=tag_id)
 
         return redirect('categorize_tag')
 
@@ -1281,6 +1294,7 @@ def update_uncategorize_tag(uncategorized, category, attribute):
     tag.attribute_id = attribute
     tag.category_id = category
     tag.save()
+    return tag.id
 
 
 def user_tags(request,user_id):
@@ -1692,6 +1706,7 @@ def tag_update_form(request,tag_id):
                                    'thing_event': thing_event,
                                    }
 
+
         else:
             form = Tag_Form(request.POST, request.FILES)
             if form.is_valid():
@@ -1705,7 +1720,7 @@ def tag_update_form(request,tag_id):
         base_url = reverse('update_tag')  # 1 /products/
         query_string = urlencode({'updated':True})  # 2 category=42
         url = '{}?{}'.format(base_url, query_string)
-
+        pre_create_communities.delay(tag_id=tag_id)
         return redirect(url)
 
     else:

@@ -22,7 +22,7 @@ class Community (models.Model):
     about = models.TextField()
     purpose = models.CharField(max_length= 300)
     location = models.CharField(max_length = 200)
-    image_url = models.ImageField(upload_to="media/", default = 'https://upload.wikimedia.org/wikipedia/en/0/09/Community_title.jpg')
+    image_url = models.ImageField(upload_to="media/community", default = 'media/community/default.jpeg')
     members_count = models.IntegerField(default = 0)
     active_since = models.DateField(auto_now_add = True)
     whatsapp_group_link = models.CharField(max_length = 400, null=True)
