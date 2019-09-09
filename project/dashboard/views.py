@@ -18,6 +18,8 @@ import os
 import re
 from django.views.decorators.csrf import csrf_exempt
 from collabmates_api.raw_queries import compute_rank
+from utility.pre_creation import pre_create_communities
+
 from django.urls import reverse
 from urllib.parse import urlencode
 
@@ -1221,7 +1223,8 @@ def categorize_tag(request):
 
         print(category,attribute,uncategorized)
 
-        update_uncategorize_tag(uncategorized, category, attribute)
+        tag_id=update_uncategorize_tag(uncategorized, category, attribute)
+        pre_create_communities(tag_id=tag_id)
 
         return redirect('categorize_tag')
 
@@ -1277,6 +1280,7 @@ def update_uncategorize_tag(uncategorized, category, attribute):
     tag.attribute_id = attribute
     tag.category_id = category
     tag.save()
+    return tag.id
 
 
 def user_tags(request,user_id):
