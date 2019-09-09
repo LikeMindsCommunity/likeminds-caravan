@@ -1,10 +1,16 @@
 # file containing common functions of both android and web
+from __future__ import absolute_import, unicode_literals
+from celery import shared_task
 from bs4 import BeautifulSoup
 import requests
 from togther.models import *
 from togther.models import *
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import get_object_or_404
 from django.db.models import Q
+import requests as rqst
+import json
+import os
+
 
 def decode_meta_from_url(url):
 
@@ -86,3 +92,39 @@ def get_user_tag(user_id):
     ''' function to get user hidden tag '''
     user_tag = userinfo_tags.objects.all().filter(user_id=user_id)
     return user_tag
+
+
+@shared_task
+def update_tag_image(tag_name, tag_id):
+    locations = [tag_name, 'city', 'district', 'state', 'country']
+
+    for loc in locations:
+        if loc == tag_name:
+            loc = tag_name
+
+        else:
+            loc = tag_name + " " + loc
+        request = 'https://en.wikipedia.org/w/api.php?action=query&format=json&formatversion=2&prop=pageimages|pageterms&piprop=thumbnail&pithumbsize=600&titles=' + str(
+            loc)
+        response = rqst.get(request)
+
+        if response.status_code == 200:
+            response = json.loads(response.content.decode('utf-8'))
+        if 'thumbnail' in response['query']['pages'][0]:
+            tag_obj = Tags_lpig.objects.get(pk = tag_id)
+            if not tag_obj.tag_image:
+
+                image_url = response['query']['pages'][0]['thumbnail']['source']
+                img_data = rqst.get(image_url).content
+                file_name = '/media/tags_images/' + tag_name + "__tag.jpeg"
+
+                path = os.path.join(os.path.split(os.path.dirname(__file__))[0], 'media', )
+                to_path = path + file_name
+
+                if not os.path.isfile(to_path):
+                    with open(to_path,mode = 'wb+') as file :
+                        file.write(img_data)
+            return
+
+    return
+

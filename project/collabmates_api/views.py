@@ -23,8 +23,8 @@ import os
 from .firebase import update_last_answer_id
 import re
 import googlemaps
-from utility.utils import decode_meta_from_url
-from .raw_queries import compute_rank
+from utility.utils import decode_meta_from_url, update_tag_image
+
 
 url  = settings.URL
 
@@ -175,6 +175,7 @@ def is_member_engage(community,member):
         is_present=True
     return is_present
 
+
 def update_pending_member_count_in_engage(community):
 
     '''function to update the member count in engage'''
@@ -188,6 +189,7 @@ def update_pending_member_count_in_engage(community):
             Member_Engage.objects.filter(community_id=community,member_id=member.member_id).update(pending_members=pending__members_count,updated_at=current_time)
 
     print("Member Engage Pending Count Updated")
+
 
 def update_last_unseen_in_engage(user='',community='',is_seen=False):
 
@@ -382,8 +384,6 @@ def join_community(request, community_id):
                 }
         reqd_info.append(ques)
     return JsonResponse({'questions': reqd_info})
-
-
 
 
 @csrf_exempt
@@ -1639,57 +1639,55 @@ def update_location(request):
         userinfo.save()
 
         update_user_city_tag( userinfo.user_id, all_location_tags)
+        return JsonResponse({'success': True})
 
-    return JsonResponse({'success':True})
+    return JsonResponse({'success':False})
 
 
 @shared_task
 def update_user_city_tag(user_id,location):
     ''' function to update city tag for user '''
-
+    user  = user_id
     global_tag = Tags_lpig.objects.get(name='Global')
+    user_tags_list = list(User_Geography.objects.filter(user_id=user).values_list("tags_id",flat=True))
 
     for attr,loc_tag in location.items():
 
         if attr == 'address':
             continue
-        try:
 
-            hidden_tags = User_LPIG.objects.get(member_id=user_id)
-            if not hidden_tags.geography == None:
+        tag_id = get_or_create_lpig_tags(tag=loc_tag, attr=attr, category='Geography')
 
-                hidden_geography_tags = json.loads(hidden_tags.geography)
+        if tag_id.id in user_tags_list:
 
-                tag_id = get_or_create_lpig_tags(tag = loc_tag,attr = attr,category = 'Geography')
+            continue
+        elif not tag_id.id in user_tags_list:
 
-                if not tag_id in hidden_geography_tags:
-                    hidden_geography_tags.append(tag_id)
-                    print(hidden_geography_tags)
-                    hidden_tags.geography = json.dumps(hidden_geography_tags)
-                    hidden_tags.save()
+            user_tag = User_Geography()
+            user_tag.tags_id = tag_id
+            user_tag.user_id = user
+            user_tag.save()
+        else:
+            pass
+        user_tags_list = list(User_Geography.objects.filter(user_id=user).values_list("tags_id",flat=True))
 
-                if not global_tag.id in hidden_geography_tags:
-                    hidden_geography_tags.append(global_tag.id)
-                    hidden_tags.geography = json.dumps(hidden_geography_tags)
-                    hidden_tags.save()
-
-        except:
-
-            tag_id = get_or_create_lpig_tags(tag=loc_tag, attr=attr, category='Geography')
-            user_lpig = User_LPIG()
-            user_lpig.member_id = user_id
-            user_lpig.geography = json.dumps([tag_id, global_tag.id])
-            user_lpig.save()
-
+        if global_tag.id not in user_tags_list:
+            user_tag = User_Geography()
+            user_tag.tags_id = global_tag
+            user_tag.user_id = user
+            user_tag.save()
     return
 
-
+@shared_task
 def get_or_create_lpig_tags(tag,category,attr):
     ''' function to create new tags '''
+    cat = category
+
     try:
         tag = Tags_lpig.objects.get(name=tag)
 
     except:
+
         attr = category+"_uncat"
         new_tag = tag
         category = Category.objects.filter(Q(name__icontains=category))[0]
@@ -1701,7 +1699,14 @@ def get_or_create_lpig_tags(tag,category,attr):
         tag.save()
         tag.tag_id = tag.id
         tag.save()
-    return tag.id
+
+    finally:
+        if cat == 'Geography':
+            update_tag_image.delay(tag_name=tag.name, tag_id=tag.id)
+        tag.tag_image = '/media/tags_images/' + tag.name + "__tag.jpeg"
+        tag.save()
+
+    return tag
 
 
 def get_user_location(request,user_id,type=None):
