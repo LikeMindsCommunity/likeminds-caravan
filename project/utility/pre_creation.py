@@ -286,8 +286,10 @@ def college_skill(legacy_college,industry_skill):
                     skill_expert = prof_char['skill_experts']
                 elif 'csn' in leg_char and leg_char['csn']:
                     temp['name'] = leg_char['csn'] + " "+ str(skill[0])
+                elif  'skill_experts' in prof_char and prof_char['skill_experts']:
+                    temp['name'] = str(college[0]) + " "+ prof_char['skill_experts']
                 else:
-                    temp['name'] = str(college[0]) + " Alumini in " + str(skill[0])
+                    temp['name']=str(college[0])+" Alumini in "+str(skill[0])
             elif college[1] is not None:
                 leg_char=json.loads(college[1])
                 if 'csn' in leg_char and leg_char['csn']:
@@ -873,4 +875,4 @@ def insert_tags_for_communities(sql,parameter):
 if envir:
     if __name__=="__main__":
 
-        pre_create_communities()
+        pre_create_communities(tag_id=21)
