@@ -1,176 +1,192 @@
-{% load static %}<!DOCTYPE html>
+<!DOCTYPE html>
+{% load static %}
 <html>
-  <head>
+<head>
 
-      <html lang="zxx" class="no-js">
-          <head>
-          	
-            <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <html lang="zxx" class="no-js">
+    <head>
 
-            <link rel="shortcut icon" href="https://collabmates.com/media/media/favicon.ico">
-            
-            <meta name="author" content="colorlib">
-          
-            
-            <meta name="keywords" content="">
-            
-            <meta charset="UTF-8">
-            
-            <title>Collaborate with your community</title>
-            <meta name="description"
-                    content="CollabMates helps people network with like-minded peers in community groups. It enables community members to know each other, seek and provide help to each other, and grow together. The innovative design of the product ensures that the interactions happen only between relevant members without spamming the whole group."/>
-                <meta property="og:image" content='http://www.collabmates.com/cover.png'/>
-               <meta property="og:title" content="CollabMates: Make your Whatsapp & Telegram groups viral"/>
-                <meta property="og:description"
-                  content="CollabMates helps people network with like-minded peers in community groups. It enables community members to know each other, seek and provide help to each other, and grow together. The innovative design of the product ensures that the interactions happen only between relevant members without spamming the whole group."/>
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.css"/>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.js"></script>
-    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-130288684-1"></script>
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
+        <link rel="shortcut icon" href="https://collabmates.com/media/media/favicon.ico">
 
-      gtag('config', 'UA-130288684-1');
-</script>
-  {% block styles %}
-      {% endblock %}
+        <meta name="author" content="colorlib">
 
-   {% block scripts %}
-      {% endblock %}
-  </head>
-  <body>
-        
-        <div class="ui small inverted menu" style=" height:60px; background-color:#075e54; margin:0 0 0 0 !important;">
-            <div class="ui grid container" style = "margin-left:0!important; margin-top:0px;">
-                <div class="eight wide column" style="padding:10px; ">
-                  
-                  <a class="item" href="{% url 'dashboard' %}" style='padding:10px;'> 
-                      <div class="image" >
-                      
-                          <img src="/media/logo_2.svg" alt="Logo" style="margin-left:0px; height:20px; margin: auto auto; width:auto; max-width:240px; display: flex;justify-content: center;flex-direction: column;">
-                        
-                        </div>
-                  </a>
+
+        <meta name="keywords" content="">
+
+        <meta charset="UTF-8">
+
+        <title>Collaborate with your community</title>
+        <meta name="description"
+              content="CollabMates helps people network with like-minded peers in community groups. It enables community members to know each other, seek and provide help to each other, and grow together. The innovative design of the product ensures that the interactions happen only between relevant members without spamming the whole group."/>
+        <meta property="og:image" content='http://www.collabmates.com/cover.png'/>
+        <meta property="og:title" content="CollabMates: Make your Whatsapp & Telegram groups viral"/>
+        <meta property="og:description"
+              content="CollabMates helps people network with like-minded peers in community groups. It enables community members to know each other, seek and provide help to each other, and grow together. The innovative design of the product ensures that the interactions happen only between relevant members without spamming the whole group."/>
+
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.css"/>
+        <link rel='stylesheet prefetch' href='https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/components/icon.min.css'>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.js"></script>
+        <script async src="https://www.googletagmanager.com/gtag/js?id=UA-130288684-1"></script>
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+        <script>
+
+
+
+            $(function(){
+
+                  $("#test").click(function(){
+                    $(".test").modal('show');
+                  });
+
+                  $(".test").modal({
+                    closable: true
+                  });
+            });
+
+               function hide(){
+                    $('.ui.modal').modal("hide");
+                }
+
+            function save(){
+              ele = document.getElementById('lct');
+              ele = document.getElementById('lct');
+              ele.value = val;
+            }
+
+
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              gtag('js', new Date());
+
+              gtag('config', 'UA-130288684-1');
+
+        </script>
+        {% block styles %}
+        {% endblock %}
+
+        {% block scripts %}
+        {% endblock %}
+    </head>
+<body>
+{% block header %}
+<div class="ui small inverted menu" style=" height:60px; background-color:#075e54; margin:0 0 0 0 !important;">
+
+    <div class="ui grid container" style="margin-left:0!important; margin-top:0px;">
+
+        <div class="eight wide column" style="padding:10px; ">
+
+            <a class="item" href="{% url 'dashboard' %}" style='padding:10px;'>
+
+                <div class="image">
+
+                    <img src="/media/logo_2.svg" alt="Logo"
+                         style="margin-left:0px; height:20px; margin: auto auto; width:auto; max-width:240px; display: flex;justify-content: center;flex-direction: column;">
+
                 </div>
-                <!-- <div class="ten wide column" style="text-align:center;">  
-                  <div class="ui category search item" >
-                    <div class="ui white icon input" >
-                      <h2>CollabMates</h2>
-                    <input class="prompt" type="text" placeholder="Search...">
-                     <i class="search link icon"></i>
-                  </div>
-                <div class="results"></div>
-              </div>
-              </div> -->
-              <div class = "eight wide column" style="color:white;display:inline;">
-                   <div class="menu" >
-                  <a class="item"  style="float:left; " href= "#"><span id="lct" style = "overflow-y:hidden;" onclick = "loct();">  </span></a>
-                  <div class="ui modal loct">
-                      
-                          <div class="ui fluid card " style="border: 2px solid #1ebea5; margin:0 0 ; padding: 10px 10px;">
-                 <h2 class="ui teal center aligned header">
-                   <div class="field">
-                     <input type="text" name="location" id="searchTextField" placeholder="Location" required>
-                     <div class="ui basic green button" onclick="save();">Save Changes</div>
-                                <div class="ui basic red button" onclick="hide();">Discard Changes</div>
-                   </div>
-                 </h2>
-                    </div>
-                    </div>
-               
 
-                  </div>
-              <div class="right menu" style="float:right; ">
-                  {% if user.is_authenticated %}
-                  <div class="ui simple dropdown item" style="padding:0;">
+            </a>
+        </div>
+        {% endblock %}
+
+
+        <div class="eight wide column" style="color:white;display:inline;">
+
+            {% block menu %}
+            <div class="right menu" style="float:right; ">
+                {% if user.is_authenticated %}
+                <div class="ui simple dropdown item" style="padding:0;">
 
                     {% block user_image %}
-                      <img class="ui avatar image" src="{{request.user.userinfo.image_file.url}}"/>
+                    <img class="ui avatar image" src="{{request.user.userinfo.image_file.url}}"/>
                     {% endblock %}
-                      <div class="menu">
+                    <div class="menu">
 
-                        <a class="item" href = "{% url 'logout_view' %}">Logout</a>
-                      </div>
+                        <a class="item" href="{% url 'logout_view' %}">Logout</a>
                     </div>
-                        
-                  {% else %}
-                    <a class="item" id='test'>Signin</a>
-                  {% endif %}
-                  <div class="ui modal test">
-                      
-                          <div class="ui fluid card " style="border: 2px solid #1ebea5; margin:0 0 ; padding: 10px 10px;">
-                 <h2 class="ui teal center aligned header">
-                   <div class="content">
-                     Login to continue
-                   </div>
-                 </h2>
-                 <div class="content">
-                   <p class="center aligned">
-                    To join this community we need few basic information about you. This will help us to have relevant member in group.
-                  </p>
-                  </div>
-                  <div class="center aligned container">
-                  <div class="content">
-                      <a  href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}">
-                  <button class="ui facebook button">
-                      <i class="facebook icon"></i>
-                      Facebook
-                    </button>
-                    </a>
-                  </div>
-                 <br>
-                    OR 
-                    <br>
-                    <br>
-                    <div class = "content">
-                        <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}">
-                    <button class="ui linkedin button" >
-                        <i class="linkedin icon"></i>
-                        LinkedIn
-                      </button>
-                      </a>
+                </div>
+
+                {% else %}
+                <a class="item" id='test'>Signin</a>
+                {% endif %}
+
+            </div>
+            {% endblock %}
+
+            <div class="ui modal test">
+
+                    <div class="ui fluid card " style="border: 2px solid #1ebea5; margin:0 0 ; padding: 10px 10px;">
+                        <h2 class="ui teal center aligned header">
+                            <div class="content">
+                                Login to continue
+                            </div>
+                        </h2>
+                        <div class="content">
+                            {% block login_text %}
+                            <p class="center aligned">
+                                To join this community we need few basic information about you. This will help us to
+                                have relevant member in group.
+                            </p>
+                            {% endblock %}
+                        </div>
+                        <div class="center aligned container">
+                            {% block fb_login %}
+                            <div class="content">
+
+                                <a href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}">
+
+                                    <button class="ui facebook button">
+                                        <i class="facebook icon"></i>
+                                        Facebook
+                                    </button>
+                                </a>
+
+                            </div>
+                            {% endblock %}
+                            {% block login_or %}
+                            <br>
+
+
+                            OR
+
+                            <br>
+                            <br>
+                            {% endblock %}
+                            {% block linkedin_login %}
+                            <div class="content">
+
+                                <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}">
+
+                                    <button class="ui linkedin button">
+                                        <i class="linkedin icon"></i>
+                                        LinkedIn
+                                    </button>
+                                </a>
+                            </div>
+                            {% endblock %}
+                        </div>
                     </div>
-                    </div>
-                    </div>
-                    </div>
-               
-              </div>
-              </div>
-              
-             </div>
-            
+            </div>
         </div>
-                  
 
-           
-        <script>
-          
-    $(function(){
-      $("#test").click(function(){
-        $(".test").modal('show');
-      });
-      $(".test").modal({
-        closable: true
-      });
-    });
-
-       function hide(){
-    $('.ui.modal').modal("hide");
-  }
-function save(){
-  ele = document.getElementById('lct');
-  ele = document.getElementById('lct');
-  ele.value = val;
-} 
-        </script>
-      <div style="margin:0 auto; max-width:786px;">
-      {% block content %}
-      {% endblock %}
     </div>
-  </body>
+
+</div>
+
+
+{% if not request.path_info|slice:"1:-4" == 'collabcard' %}
+<div style="margin:0 auto; max-width:786px;">
+{% endif %}
+
+    {% block content %}
+
+    {% endblock %}
+
+{% if not request.path_info|slice:"1:-4" == 'collabcard' %}
+</div>
+{% endif %}
+</body>
 </html>

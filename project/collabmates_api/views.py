@@ -72,7 +72,7 @@ def communities(request):
 def get_communities_by_tags(user_tag=0, category_tag=0,page_number=1,user_id=None):
     ''' fetching communities based on category tag and user hidden tag '''
 
-    is_user_tags = User_LPIG.objects.filter(member_id=user_id)
+    is_user_tags = Community_Rank.objects.filter(member_id=user_id)
 
     if is_user_tags:
         if user_id:
@@ -667,8 +667,8 @@ def create_card(request):
             Community.objects.filter(id=community_id).update(purpose_collabcard  = card.id)
 
         # sending notification to the user
-        #send_notification_for_new_collabcard_posted.delay(community_id,res['title'],user_id,user.name)
-        #send_email_for_collabcard(community,user,card)
+        send_notification_for_new_collabcard_posted.delay(community_id,res['title'],user_id,user.name)
+        send_email_for_collabcard(community,user,card)
         Community.objects.filter(id=community_id).update(updated_at=time.time())
 
         collabcard = CollabcardSerializer(card, community)
