@@ -127,7 +127,7 @@ def college_city(legacy_college,geography_city):
                     temp['purpose']="For "+ str(temp['name']) + " to socialise and help each other"
                     temp['question']="Introduce yourself telling a bit about your time at " + str(college[0])+" and what do you do now?"
                 elif 'csn' in name and name['csn']:
-                    temp['name']=name['csn'] + " Alumni " + city[0]
+                    temp['name']=name['csn'] + " Alumni in " + city[0]
                     temp['purpose']="For "+ str(temp['name']) + "to socialise and help each other"
                     temp['question']="Introduce yourself telling a bit about your time at " + str(name['csn'])+" and what do you do now?"
                 else:
@@ -158,7 +158,7 @@ def college_city(legacy_college,geography_city):
 
             else:
                 update_pre_created_community(community_id,temp)
-            return
+
 
 
     print("L(college)G(City) communities created\n")
@@ -277,6 +277,7 @@ def college_skill(legacy_college,industry_skill):
                     temp['name'] = leg_char['csn'] + " Alumni in "+ str(skill[0])
             elif skill[1] is not None:
                 prof_char=json.loads(skill[1])
+                print(prof_char)
                 temp['name'] = str(college[0]) + " " + str(prof_char['skill_experts'])
 
             else:
@@ -639,13 +640,10 @@ def pre_create_communities(tag_id=0):
     if tag_id:
         tags_data=get_tag_by_id(tag_id)
         attribute_id=tags_data[0][4]
-
         if attribute_id is 2:                                            #college
             legacy_college=tags_data
             college_city(legacy_college, geography_city)
-
             college_industry(legacy_college, profession_industry)
-
             college_skill(legacy_college, industry_skill)
 
 
@@ -813,7 +811,6 @@ def get_members_of_community(community_id):
         print("Error while connecting to PostgreSQL  ", error)
 
 
-
 def update_pre_created_community(community_id,community):
 
     '''function to update the community if its characterstics or image are changed'''
@@ -832,11 +829,11 @@ def update_pre_created_community(community_id,community):
     try:
         conn = get_connection()
         curr = conn.cursor()
-
+        updated_at=time.time()
         # inserting the communities
-        sql = "update togther_community set name=%s,about=%s,purpose=%s,location=%s,image_url=%s where id=%s"
+        sql = "update togther_community set name=%s,about=%s,purpose=%s,location=%s,image_url=%s,updated_at=%s where id=%s"
         parameter_list = [community['name'], community['about'], community['purpose'], community['geography'],
-                          community['image_url'],community_id
+                          community['image_url'],updated_at,community_id
                          ]
         curr.execute(sql, parameter_list)
         conn.commit()
