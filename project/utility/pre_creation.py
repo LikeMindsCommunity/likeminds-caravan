@@ -128,7 +128,7 @@ def college_city(legacy_college,geography_city):
                     temp['question']="Introduce yourself telling a bit about your time at " + str(college[0])+" and what do you do now?"
                 elif 'csn' in name and name['csn']:
                     temp['name']=name['csn'] + " Alumni in " + city[0]
-                    temp['purpose']="For "+ str(temp['name']) + "to socialise and help each other"
+                    temp['purpose']="For "+ str(temp['name']) + " to socialise and help each other"
                     temp['question']="Introduce yourself telling a bit about your time at " + str(name['csn'])+" and what do you do now?"
                 else:
                     temp['name'] = college[0] + " Alumni  in " + city[0]
@@ -745,10 +745,10 @@ def insert_pre_create_community(community):
     try:
         conn = get_connection()
         curr = conn.cursor()
-
+        hide_community='3'
         # inserting the communities
-        sql="insert into togther_community(name,about,purpose,location,created_at,updated_at,image_url,members_count,active_since) values(%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id;"
-        parameter_list=[community['name'],community['about'],community['purpose'],community['geography'],community['created_at'],community['updated_at'],community['image_url'],community['member_count'],community['active_since']]
+        sql="insert into togther_community(name,about,purpose,location,created_at,updated_at,image_url,members_count,active_since,hide_community) values(%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id;"
+        parameter_list=[community['name'],community['about'],community['purpose'],community['geography'],community['created_at'],community['updated_at'],community['image_url'],community['member_count'],community['active_since'],hide_community]
         curr.execute(sql, parameter_list)
         conn.commit()
         count = curr.rowcount
@@ -830,10 +830,11 @@ def update_pre_created_community(community_id,community):
         conn = get_connection()
         curr = conn.cursor()
         updated_at=time.time()
+        hide_community='3'
         # inserting the communities
-        sql = "update togther_community set name=%s,about=%s,purpose=%s,location=%s,image_url=%s,updated_at=%s where id=%s"
+        sql = "update togther_community set name=%s,about=%s,purpose=%s,location=%s,image_url=%s,updated_at=%s,hide_community=%s where id=%s"
         parameter_list = [community['name'], community['about'], community['purpose'], community['geography'],
-                          community['image_url'],updated_at,community_id
+                          community['image_url'],updated_at,hide_community,community_id
                          ]
         curr.execute(sql, parameter_list)
         conn.commit()
