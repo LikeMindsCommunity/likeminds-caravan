@@ -93,52 +93,53 @@ class Tester_mail_form(forms.Form):
 
 
 class Legacy_Education_Form(forms.Form):
-    demonym = forms.CharField(label='Demonym',max_length=50,required=False,widget=forms.TextInput(attrs={'placeholder':'Demonym','class':'form-control form-group'}))
-    short_name = forms.CharField(label='Short Name',max_length=50,required=False,widget=forms.TextInput(attrs={'placeholder':'Short Name','class':'form-control form-group'}))
+    demonym = forms.CharField(label='Demonym',max_length=500,required=False,widget=forms.TextInput(attrs={'placeholder':'Demonym','class':'form-control form-group'}))
+    short_name = forms.CharField(label='Short Name',max_length=500,required=False,widget=forms.TextInput(attrs={'placeholder':'Short Name','class':'form-control form-group'}))
     image = forms.ImageField(label='Select Image',required=False,widget=forms.FileInput(attrs=({'class': 'file-upload btn btn-primary'})))
 
 
 class Legacy_Hometown_Form(forms.Form):
-    home_demonym = forms.CharField(label='Demonym', max_length=50, required=False,widget=forms.TextInput(attrs={'placeholder':'Demonym','class':'form-control form-group'}))
+    home_demonym = forms.CharField(label='Demonym', max_length=500, required=False,widget=forms.TextInput(attrs={'placeholder':'Natives of','class':'form-control form-group'}))
     image = forms.ImageField(label='Select Image', required=False,widget=forms.FileInput(attrs=({'class': 'file-upload btn btn-primary'})))
 
 
 class Profession_Skill_Form(forms.Form):
-    skill_experts = forms.CharField(label='Skill Experts', max_length=50, required=False,widget=forms.TextInput(attrs={'placeholder':'Skill Experts','class':'form-control form-group'}))
+    skill_experts = forms.CharField(label='Skill Experts', max_length=500, required=False,widget=forms.TextInput(attrs={'placeholder':'Skill Experts','class':'form-control form-group'}))
     image = forms.ImageField(label='Select Image', required=False,widget=forms.FileInput(attrs=({'class': 'file-upload btn btn-primary'})))
 
 
-class Profession_Industry_Form(forms.Form):
-    demonym = forms.CharField(label='Demonym', max_length=50, required=False,widget=forms.TextInput(attrs={'placeholder':'Demonym','class':'form-control form-group'}))
-    short_name = forms.CharField(label='Short Name', max_length=50, required=False,widget=forms.TextInput(attrs={'placeholder':'Short Name','class':'form-control form-group'}))
-    image = forms.ImageField(label='Select Image', required=False,widget=forms.FileInput(attrs=({'class': 'file-upload btn btn-primary'})))
+# class Profession_Industry_Form(forms.Form):
+#     demonym = forms.CharField(label='Demonym', max_length=50, required=False,widget=forms.TextInput(attrs={'placeholder':'Demonym','class':'form-control form-group'}))
+#     short_name = forms.CharField(label='Short Name', max_length=50, required=False,widget=forms.TextInput(attrs={'placeholder':'Short Name','class':'form-control form-group'}))
+#     image = forms.ImageField(label='Select Image', required=False,widget=forms.FileInput(attrs=({'class': 'file-upload btn btn-primary'})))
 
 
 class Interests_Cause_Form(forms.Form):
-    thing_event = forms.CharField(label='Thing Event', max_length=50, required=False,widget=forms.TextInput(attrs={'placeholder':'Thing Event','class':'form-control form-group'}))
+    thing_event = forms.CharField(label='Thing Event', max_length=500, required=False,widget=forms.TextInput(attrs={'placeholder':'discussion or event','class':'form-control form-group'}))
     image = forms.ImageField(label='Select Image', required=False,widget=forms.FileInput(attrs=({'class': 'file-upload btn btn-primary'})))
 
 
 class Interests_Hobby_Form(forms.Form):
-    hobbyists = forms.CharField(label='Hobbyists', max_length=50, required=False,widget=forms.TextInput(attrs={'placeholder':'Hobbyists','class':'form-control form-group'}))
-    hobby_group_used_case = forms.CharField(label='Hobby Group Used Case', max_length=50, required=False,widget=forms.TextInput(attrs={'placeholder':'Hobby Group Used Case','class':'form-control form-group'}))
-    hobby_group_event = forms.CharField(label='Hobby Group Event', max_length=50, required=False,widget=forms.TextInput(attrs={'placeholder':'Hobby Group Event','class':'form-control form-group'}))
-    hobby_event = forms.CharField(label='Hobby Event', max_length=50, required=False,widget=forms.TextInput(attrs={'placeholder':'Hobby Event','class':'form-control form-group'}))
+    hobbyists = forms.CharField(label='Hobbyists', max_length=500, required=False,widget=forms.TextInput(attrs={'placeholder':'Hobby enthusiasts','class':'form-control form-group'}))
+    hobby_group_used_case = forms.CharField(label='Hobby Group Used Case', max_length=500, required=False,widget=forms.TextInput(attrs={'placeholder':'pursue the hobby together','class':'form-control form-group'}))
+    hobby_group_event = forms.CharField(label='Hobby Group Event', max_length=500, required=False,widget=forms.TextInput(attrs={'placeholder':'connect with you for something ','class':'form-control form-group'}))
+    hobby_event = forms.CharField(label='Hobby Event', max_length=500, required=False,widget=forms.TextInput(attrs={'placeholder':'query','class':'form-control form-group'}))
     image = forms.ImageField(label='Select Image', required=False,widget=forms.FileInput(attrs=({'class': 'file-upload btn btn-primary'})))
 
 
 class Interests_Sports_Form(forms.Form):
-    sport_players = forms.CharField(label='Sport Players', max_length=50, required=False,widget=forms.TextInput(attrs={'placeholder':'Sport Players','class':'form-control form-group'}))
-    sport_verb = forms.CharField(label='Sport Verb', max_length=50, required=False,widget=forms.TextInput(attrs={'placeholder':'Sport Verb','class':'form-control form-group'}))
+    sport_players = forms.CharField(label='Sport Players', max_length=500, required=False,widget=forms.TextInput(attrs={'placeholder':'Sport enthusiasts','class':'form-control form-group'}))
+    sport_usecase = forms.CharField(label='Sport usecase', max_length=500, required=False,widget=forms.TextInput(attrs={'placeholder':'play the sport','class':'form-control form-group'}))
+    sport_event = forms.CharField(label='Sport event', max_length=500, required=False,widget=forms.TextInput(attrs={'placeholder':'match','class':'form-control form-group'}))
     image = forms.ImageField(label='Select Image', required=False,widget=forms.FileInput(attrs=({'class': 'file-upload btn btn-primary'})))
 
 
 class Interests_Fan_Form(forms.Form):
-    thing = forms.CharField(label='Thing', max_length=50, required=False,widget=forms.TextInput(attrs={'placeholder':'Thing','class':'form-control form-group'}))
-    thing_fan_group_name = forms.CharField(label='Thing Fan Group Name', max_length=50, required=False,widget=forms.TextInput(attrs={'placeholder':'Thing Fan Group Name','class':'form-control form-group'}))
-    thing_fans = forms.CharField(label='Thing Fans', max_length=50, required=False,widget=forms.TextInput(attrs={'placeholder':'Thing Fans','class':'form-control form-group'}))
-    thing_group_use_case = forms.CharField(label='Thing Group Use Case', max_length=50, required=False,widget=forms.TextInput(attrs={'placeholder':'Thing Group Use Case','class':'form-control form-group'}))
-    thing_event = forms.CharField(label='Thing Event', max_length=50, required=False,widget=forms.TextInput(attrs={'placeholder':'Thing Event','class':'form-control form-group'}))
+    thing = forms.CharField(label='Thing', max_length=500, required=False,widget=forms.TextInput(attrs={'placeholder':'Thing fans','class':'form-control form-group'}))
+    thing_fan_group_name = forms.CharField(label='Thing Fan Group Name', max_length=500, required=False,widget=forms.TextInput(attrs={'placeholder':'thing','class':'form-control form-group'}))
+    thing_fans = forms.CharField(label='Thing Fans', max_length=500, required=False,widget=forms.TextInput(attrs={'placeholder':'Thing Fans','class':'form-control form-group'}))
+    thing_group_use_case = forms.CharField(label='Thing Group Use Case', max_length=500, required=False,widget=forms.TextInput(attrs={'placeholder':'Thing','class':'form-control form-group'}))
+    thing_event = forms.CharField(label='Thing Event', max_length=500, required=False,widget=forms.TextInput(attrs={'placeholder':'discussion or event','class':'form-control form-group'}))
     image = forms.ImageField(label='Select Image', required=False,widget=forms.FileInput(attrs=({'class': 'file-upload btn btn-primary'})))
 
 
