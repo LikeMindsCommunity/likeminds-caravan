@@ -23,6 +23,7 @@ import os
 from .firebase import update_last_answer_id
 import re
 import googlemaps
+import requests as rqst
 from utility.utils import decode_meta_from_url, update_tag_image
 
 
@@ -1638,7 +1639,7 @@ def update_location(request):
         userinfo.address = all_location_tags['address']
         userinfo.save()
 
-        update_user_city_tag( userinfo.user_id, all_location_tags)
+        update_user_city_tag.delay( userinfo.user_id.id, all_location_tags)
         return JsonResponse({'success': True})
 
     return JsonResponse({'success':False})
@@ -1647,7 +1648,7 @@ def update_location(request):
 @shared_task
 def update_user_city_tag(user_id,location):
     ''' function to update city tag for user '''
-    user  = user_id
+    user  = User.objects.get(pk=user_id)
     global_tag = Tags_lpig.objects.get(name='Global')
     user_tags_list = list(User_Geography.objects.filter(user_id=user).values_list("tags_id",flat=True))
 
@@ -1702,9 +1703,8 @@ def get_or_create_lpig_tags(tag,category,attr):
 
     finally:
         if cat == 'Geography':
-            update_tag_image.delay(tag_name=tag.name, tag_id=tag.id)
-        tag.tag_image = '/media/tags_images/' + tag.name + "__tag.jpeg"
-        tag.save()
+            tag_name,tag_id = tag.name,tag.id
+            update_tag_image.delay(tag_name=tag_name, tag_id=tag_id)
 
     return tag
 
