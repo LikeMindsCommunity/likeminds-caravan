@@ -364,11 +364,11 @@ def hobby_city(interest_hobby,geography_city):
             }
             if hobby[1] is not None:
                 interest_char = json.loads(hobby[1])
-
+                print(interest_char)
                 if not interest_char['hobbyists']:
                     interest_char['hobbyists']=hobby[0]+" enthusiast"
                 else:
-                    temp['name']=str(hobby[0])+" Enthusiasts of "+ str(city[0])
+                    temp['name']=interest_char['hobbyists']+" of "+ str(city[0])
 
                 if not interest_char['hobby_group_used_case']:
                     interest_char['hobby_group_used_case']="to pursue the hobby together"
@@ -380,11 +380,11 @@ def hobby_city(interest_hobby,geography_city):
                     interest_char['hobby_event']="query"
 
                 temp['purpose']="""For %s enthusiasts living in %s to find other %s in their neighbourhood and %s"""%(hobby[0],city[0],interest_char['hobbyists'],interest_char['hobby_group_used_case'])
-                temp['about']="""We beleive that every %s enthusiast should be able to find other %s whenever he or she wants  %s. This community aims to bring together all the %s enthusiasts living in %s to find other %s in their neighbourhood so that we can achieve this together.
+                temp['about']="""We believe that every %s enthusiast should be able to find other %s whenever he or she wants to %s. This community aims to bring together all the %s enthusiasts living in %s to find other %s in their neighbourhood so that we can achieve this together.
 
-                            Anytime if you are looking for people to %s, simply start a new conversation with relevant details and your ask from the community. Interested members can respond by simply chatting with you and each other on the conversation card. Members who want to follow the conversation can press the Follow button to receive notifications about future responses on the card.
+                            Anytime if you are looking for people to %s, simply start a new conversation with relevant details and your ask from the community. Interested members can respond by simply chatting with you and each other on your conversation card. Members who want to follow the conversation can press the Follow button to receive notifications about future responses on the card.
 
-                            Please try to maintain conversations for each %s on the conversation card for the [query or <<HobbyEvent>>] so that only relevant members get notifications."""%(hobby[0],interest_char['hobbyists'],interest_char['hobby_group_used_case'],hobby[0],city[0],interest_char['hobbyists'],interest_char['hobby_group_event'],interest_char['hobby_event'])
+                            Please try to maintain conversations for each %s on the conversation card for the %s so that only relevant members get notifications."""%(hobby[0],interest_char['hobbyists'],interest_char['hobby_group_used_case'],hobby[0],city[0],interest_char['hobbyists'],interest_char['hobby_group_event'],interest_char['hobby_event'],interest_char['hobby_event'])
 
             else:
                 temp['name'] = str(hobby[0])+" Enthusiasts of "+ str(city[0])
@@ -392,7 +392,7 @@ def hobby_city(interest_hobby,geography_city):
 
                 temp['about']="""We beleive that every %s enthusiast should be able to find other %s enthusiast whenever he or she wants to pursue the hobby together . This community aims to bring together all the %s enthusiasts living in %s to find other %s in their neighbourhood so that we can solve this problem together.
 
-                            Anytime if you are looking for people to connect with you for something , simply start a new conversation with relevant details and your ask from the community. Interested members can respond by simply chatting with you and each other on the conversation card. Members who want to follow the conversation can press the Follow button to receive notifications about future responses on the card.
+                            Anytime if you are looking for people to connect with you for something , simply start a new conversation with relevant details and your ask from the community. Interested members can respond by simply chatting with you and each other on your conversation card. Members who want to follow the conversation can press the Follow button to receive notifications about future responses on the card.
 
                             Please try to maintain conversations for each query  on the conversation card for the query  so that only relevant members get notifications."""%(hobby[0],hobby[0],hobby[0],city[0],hobby[0])
             temp['geography']=city[0]
@@ -441,7 +441,7 @@ def sport_city(interest_sport,geography_city):
                 temp['purpose']="""For %s enthusiasts living in %s to find other %s in their neighbourhood and %s """%(sport[0],city[0],interest_char[ 'sport_players'],interest_char['sport_usecase'])
                 temp['about']="""We believe that every %s enthusiast should be able to find other %s whenever he or she wants to %s. This community aims to bring together all the %s enthusiasts living in %s so that we can solve this problem together.
 
-                            Anytime if you are looking for people to join you for a %s, simply start a new conversation with the time, venue details, and the type of people you are looking for. Interested members can respond by simply chatting with you and each other on the conversation card. Members who want to follow the conversation can press the Follow button to receive notifications about future responses on the card.
+                            Anytime if you are looking for people to join you for a %s, simply start a new conversation with the time, venue details, and the type of people you are looking for. Interested members can respond by simply chatting with you and each other on your conversation card. Members who want to follow the conversation can press the Follow button to receive notifications about future responses on the card.
 
                             Please try to maintain conversations for each %s on the conversation card for that %s so that only relevant members get notifications."""%(sport[0],interest_char[ 'sport_players'],interest_char[ 'sport_usecase'],sport[0],city[0],interest_char[ 'sport_event'],interest_char[ 'sport_event'],interest_char[ 'sport_event'])
             else:
@@ -451,7 +451,7 @@ def sport_city(interest_sport,geography_city):
 
                 temp['about'] = """We believe that every %s enthusiast should be able to find other %s enthusiasts whenever he or she wants to play the sport. This community aims to bring together all the %s enthusiasts living in %s so that we can solve this problem together.
 
-                            Anytime if you are looking for people to join you for a game, simply start a new conversation with the time, venue details, and the type of people you are looking for. Interested members can respond by simply chatting with you and each other on the conversation card. Members who want to follow the conversation can press the Follow button to receive notifications about future responses on the card.
+                            Anytime if you are looking for people to join you for a game, simply start a new conversation with the time, venue details, and the type of people you are looking for. Interested members can respond by simply chatting with you and each other on your conversation card. Members who want to follow the conversation can press the Follow button to receive notifications about future responses on the card.
 
                             Please try to maintain conversations for each game on the conversation card for that game so that only relevant members get notifications.""" % (
                     sport[0], sport[0], sport[0], city[0],
@@ -501,7 +501,7 @@ def fan_city(interest_fan,geography_city):
                 temp['purpose']="""For %s living in %s to find other %s in their neighbourhood to  %s"""%(interest_char['thing_fans'],city[0],interest_char['thing_fans'],interest_char['thing_group_use_case'])
                 temp['about'] = """We believe that every %s fanatic should be able to find other %s  whenever he or she wants to %s. This community aims to bring together all the %s  living in %s so that we can achieve this.
 
-                            Anytime if you are looking for people to join you for a %s , simply start a new conversation with the time, venue details, and the type of people you are looking for. Interested members can respond by simply chatting with you and each other on the conversation card. Members who want to follow the conversation can press the Follow button to receive notifications about future responses on the card.
+                            Anytime if you are looking for people to join you for a %s , simply start a new conversation with the time, venue details, and the type of people you are looking for. Interested members can respond by simply chatting with you and each other on your conversation card. Members who want to follow the conversation can press the Follow button to receive notifications about future responses on the card.
 
                             Please try to maintain conversations for each %s  on the conversation card for the %s  so that only relevant members get notifications.""" % (
                     interest_char['thing'], interest_char['thing_fans'],interest_char['thing_group_use_case'],
@@ -518,7 +518,7 @@ def fan_city(interest_fan,geography_city):
                 interest_char['thing'], city[0],interest_char['thing'])
                 temp['about'] = """We believe that every %s fanatic should be able to find other %s fans whenever he or she wants to follow their passion together. This community aims to bring together all the %s fanatics living in %s so that we can achieve this.
 
-                            Anytime if you are looking for people to join you for a discussion or event , simply start a new conversation with the time, venue details, and the type of people you are looking for. Interested members can respond by simply chatting with you and each other on the conversation card. Members who want to follow the conversation can press the Follow button to receive notifications about future responses on the card.
+                            Anytime if you are looking for people to join you for a discussion or event , simply start a new conversation with the time, venue details, and the type of people you are looking for. Interested members can respond by simply chatting with you and each other your conversation card. Members who want to follow the conversation can press the Follow button to receive notifications about future responses on the card.
 
                             Please try to maintain conversations for each discussion or event  on the conversation card for the discussion or event  so that only relevant members get notifications.""" % (
                 interest_char['thing'], interest_char['thing'],
@@ -557,10 +557,10 @@ def cause_city(interest_cause,geography_city):
                 if 'thing_event' in interest_char and interest_char['thing_event']:
                     temp['name']="""%s Residents For %s"""%(city[0],cause[0])
                     temp['purpose']="""For responsible citizens of %s willing to work for %s to plan, meet and work together for the cause"""%(city[0],cause[0])
-                    temp['question']="""Introduce yourself telling a bit about your interest or experience of working for %s"""%(cause[0])
+                    temp['question']="""Introduce yourself telling a bit about your interest or experience in working for %s"""%(cause[0])
                     temp['about']="""Every cause is better served if people working towards it come together. Not just it gives us a sense of belongingness, but also makes it more fun thus increasing our motivation as well. This community aims to bring together all the residents of %s who are working or willing to work for %s so that we can fight for this cause together.
     
-                            Anytime if you are planning to do something for %s and are looking for people to join you, simply start a new conversation with the time, venue details, and the type of people you are looking for. Interested members can respond by simply chatting with you and each other on the conversation card. Members who want to follow the conversation can press the Follow button to receive notifications about future responses on the card.
+                            Anytime if you are planning to do something for %s and are looking for people to join you, simply start a new conversation with the time, venue details, and the type of people you are looking for. Interested members can respond by simply chatting with you and each other on your conversation card. Members who want to follow the conversation can press the Follow button to receive notifications about future responses on the card.
     
                             Please try to maintain conversations for each %s on the conversation card for the %s so that only relevant members get notifications."""%(city[0],cause[0],cause[0],interest_char['thing_event'],interest_char['thing_event'])
                     temp['geography']=city[0]
@@ -573,11 +573,11 @@ def cause_city(interest_cause,geography_city):
                         'purpose'] = """For responsible citizens of %s willing to work for %s to plan, meet and work together for the cause""" % (
                         city[0], cause[0])
                     temp[
-                        'question'] = """Introduce yourself telling a bit about your interest or experience of working for %s""" % (
+                        'question'] = """Introduce yourself telling a bit about your interest or experience in working for %s""" % (
                         cause[0])
                     temp['about'] = """Every cause is better served if people working towards it come together. Not just it gives us a sense of belongingness, but also makes it more fun thus increasing our motivation as well. This community aims to bring together all the residents of %s who are working or willing to work for %s so that we can fight for this cause together.
 
-                                   Anytime if you are planning to do something for %s and are looking for people to join you, simply start a new conversation with the time, venue details, and the type of people you are looking for. Interested members can respond by simply chatting with you and each other on the conversation card. Members who want to follow the conversation can press the Follow button to receive notifications about future responses on the card.
+                                   Anytime if you are planning to do something for %s and are looking for people to join you, simply start a new conversation with the time, venue details, and the type of people you are looking for. Interested members can respond by simply chatting with you and each other on your conversation card. Members who want to follow the conversation can press the Follow button to receive notifications about future responses on the card.
 
                                    Please try to maintain conversations for each %s on the conversation card for the %s so that only relevant members get notifications.""" % (
                         city[0], cause[0], cause[0], interest_char['thing_event'], interest_char['thing_event'])
@@ -594,7 +594,7 @@ def cause_city(interest_cause,geography_city):
                 cause[0])
                 temp['about'] = """Every cause is better served if people working towards it come together. Not just it gives us a sense of belongingness, but also makes it more fun thus increasing our motivation as well. This community aims to bring together all the residents of %s who are working or willing to work for %s so that we can fight for this cause together.
 
-                Anytime if you are planning to do something for %s and are looking for people to join you, simply start a new conversation with the time, venue details, and the type of people you are looking for. Interested members can respond by simply chatting with you and each other on the conversation card. Members who want to follow the conversation can press the Follow button to receive notifications about future responses on the card.
+                Anytime if you are planning to do something for %s and are looking for people to join you, simply start a new conversation with the time, venue details, and the type of people you are looking for. Interested members can respond by simply chatting with you and each other on your conversation card. Members who want to follow the conversation can press the Follow button to receive notifications about future responses on the card.
 
                 Please try to maintain conversations for each %s on the conversation card for the %s so that only relevant members get notifications.""" % (
                 city[0], cause[0], cause[0], interest_char['thing_event'], interest_char['thing_event'])
