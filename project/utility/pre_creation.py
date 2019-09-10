@@ -813,9 +813,32 @@ def insert_pre_create_community(community):
         print("Error while connecting  to PostgreSQL", error)
 
 
+def get_members_of_community(community_id):
+    '''function to get members of community if exist'''
+    try:
+        conn = get_connection()
+        curr = conn.cursor()
+        sql = "select member_id_id,state from togther_members where community_id_id=%s"
+        curr.execute(sql,[community_id])
+        res = curr.fetchall()
+        curr.close()
+        conn.close()
+        if res:
+            return res
+
+    except (Exception, psycopg2.Error) as error:
+        print("Error while connecting to PostgreSQL  ", error)
+
+
+
 def update_pre_created_community(community_id,community):
 
     '''function to update the community if its characterstics or image are changed'''
+
+    if not get_members_of_community(community_id):
+        print("Some Members are already present")
+        return
+
     if 'image_url' not in community:
         community['image_url'] = 'media/community/default.jpeg'
     print(community)
@@ -873,3 +896,4 @@ if envir:
     if __name__=="__main__":
 
         pre_create_communities()
+
