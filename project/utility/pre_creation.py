@@ -106,23 +106,6 @@ def get_tag_by_id(id):
         print("Error while connecting  to PostgreSQL", error)
 
 
-def is_community_exists(name):
-
-    try:
-        conn = get_connection()
-        curr = conn.cursor()
-        sql = "select id from  togther_community where name=%s"
-        parameter = [name]
-        curr.execute(sql, parameter)
-        res = curr.fetchone()
-        curr.close()
-        conn.close()
-        if res:
-            return res[0]
-        return False
-    except (Exception, psycopg2.Error) as error:
-        print("Error while connecting  to PostgreSQL", error)
-
 
 def college_city(legacy_college,geography_city):
 
@@ -294,7 +277,7 @@ def college_skill(legacy_college,industry_skill):
                     temp['name'] = leg_char['csn'] + " Alumni in "+ str(skill[0])
             elif skill[1] is not None:
                 prof_char=json.loads(skill[1])
-                temp['name'] = str(college[0]) + " Alumni in " + str(prof_char['skill_experts'])
+                temp['name'] = str(college[0]) + " " + str(prof_char['skill_experts'])
 
             else:
                 temp['name']=str(college[0])+" Alumni in "+str(skill[0])
@@ -835,7 +818,9 @@ def update_pre_created_community(community_id,community):
 
     '''function to update the community if its characterstics or image are changed'''
 
-    if not get_members_of_community(community_id):
+    has_members=get_members_of_community(community_id)
+
+    if has_members:
         print("Some Members are already present")
         return
 
