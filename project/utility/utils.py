@@ -97,7 +97,8 @@ def get_user_tag(user_id):
 @shared_task
 def update_tag_image(tag_name, tag_id):
     locations = [tag_name, 'city', 'district', 'state', 'country']
-    if tag_name.is_digit():
+    print('is digit ',tag_name.isdigit())
+    if tag_name.isdigit() :
         return
     for loc in locations:
         if loc == tag_name:
@@ -105,27 +106,37 @@ def update_tag_image(tag_name, tag_id):
 
         else:
             loc = tag_name + " " + loc
+        print(loc)
         request = 'https://en.wikipedia.org/w/api.php?action=query&format=json&formatversion=2&prop=pageimages|pageterms&piprop=thumbnail&pithumbsize=600&titles=' + str(
             loc)
         response = rqst.get(request)
-
+        print("status code",response.status_code)
         if response.status_code == 200:
             response = json.loads(response.content.decode('utf-8'))
         if 'thumbnail' in response['query']['pages'][0]:
+
             tag_obj = Tags_lpig.objects.get(pk = tag_id)
+            file_name = '/media/tags_images/' + tag_name + "__tag.jpeg"
             if not tag_obj.tag_image:
 
                 image_url = response['query']['pages'][0]['thumbnail']['source']
                 img_data = rqst.get(image_url).content
-                file_name = '/media/tags_images/' + tag_name + "__tag.jpeg"
+                # file_name = '/media/tags_images/' + tag_name + "__tag.jpeg"
 
                 path = os.path.join(os.path.split(os.path.dirname(__file__))[0], 'media', )
                 to_path = path + file_name
 
+                print(to_path)
+
                 if not os.path.isfile(to_path):
                     with open(to_path,mode = 'wb+') as file :
+                        print('creating file')
                         file.write(img_data)
-            return
+                else:
+                    print('file already exists')
 
+            tag_obj.tag_image = file_name
+            tag_obj.save()
+            return
     return
 

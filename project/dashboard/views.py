@@ -22,7 +22,7 @@ from utility.pre_creation import pre_create_communities
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.urls import reverse
 from urllib.parse import urlencode
-
+from utility.utils import update_tag_image
 url = settings.URL
 
 # uncomment to run it in localhost
@@ -33,7 +33,7 @@ api_url = url + '/api/'
 def dashboard(request):
   '''function to give list of community to edit'''
 
-  community_list=Community.objects.all().order_by('-created_at','-active_since')
+  community_list=Community.objects.all().order_by('-created_at', '-active_since')
   dashboard_list=[]
 
   page = request.GET.get('page', 1)
@@ -977,6 +977,7 @@ def get_or_create_tag_attributes_list(tags,tag_type):
 
 def create_uncategorized_tag(tag,tag_type):
     new_tag = tag
+    new_tag = new_tag.strip().capitalize()
     print(new_tag,tag_type)
     category = Category.objects.filter(Q(name__icontains=tag_type))[0]
     attribute = Attributes.objects.filter(Q(attribute_name__icontains=tag_type), Q(attribute_name__icontains='Uncategorized'))[0]
@@ -987,6 +988,9 @@ def create_uncategorized_tag(tag,tag_type):
     tag.save()
     tag.tag_id = tag.id
     tag.save()
+    if tag_type == 'Geography':
+        tag_name, tag_id = new_tag, tag.id
+        update_tag_image.delay(tag_name=tag_name, tag_id=tag_id)
     return tag
 
 
