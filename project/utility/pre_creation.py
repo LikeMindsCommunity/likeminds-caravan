@@ -128,7 +128,7 @@ def college_city(legacy_college,geography_city):
                     temp['question']="Introduce yourself telling a bit about your time at " + str(college[0])+" and what do you do now?"
                 elif 'csn' in name and name['csn']:
                     temp['name']=name['csn'] + " Alumni in " + city[0]
-                    temp['purpose']="For "+ str(temp['name']) + "to socialise and help each other"
+                    temp['purpose']="For "+ str(temp['name']) + " to socialise and help each other"
                     temp['question']="Introduce yourself telling a bit about your time at " + str(name['csn'])+" and what do you do now?"
                 else:
                     temp['name'] = college[0] + " Alumni  in " + city[0]
@@ -459,16 +459,16 @@ def sport_city(interest_sport,geography_city):
                 )
             temp['question'] = """Introduce yourself telling a bit about your skill level in %s""" % (
                 sport[0])
-            temp['city'] = city[0]
+            temp['geography'] = city[0]
             if sport[2]:
                 temp['image_url'] = sport[2]
-                temp['tags']['interest'] = sport[3]
-                temp['tags']['geography'] = city[3]
-                community_id = is_community_tags_exists(temp)
-                if not community_id:
-                    insert_pre_create_community(temp)
-                else:
-                    update_pre_created_community(community_id, temp)
+            temp['tags']['interest'] = sport[3]
+            temp['tags']['geography'] = city[3]
+            community_id = is_community_tags_exists(temp)
+            if not community_id:
+                insert_pre_create_community(temp)
+            else:
+                update_pre_created_community(community_id, temp)
 
     print("I(sports)G(city) communities created\n")
 
@@ -741,14 +741,13 @@ def insert_pre_create_community(community):
     community['active_since']=d
     print(community)
     print("\n\n")
-
     try:
         conn = get_connection()
         curr = conn.cursor()
-
+        hide_community='3'
         # inserting the communities
-        sql="insert into togther_community(name,about,purpose,location,created_at,updated_at,image_url,members_count,active_since) values(%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id;"
-        parameter_list=[community['name'],community['about'],community['purpose'],community['geography'],community['created_at'],community['updated_at'],community['image_url'],community['member_count'],community['active_since']]
+        sql="insert into togther_community(name,about,purpose,location,created_at,updated_at,image_url,members_count,active_since,hide_community) values(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id;"
+        parameter_list=[community['name'],community['about'],community['purpose'],community['geography'],community['created_at'],community['updated_at'],community['image_url'],community['member_count'],community['active_since'],hide_community]
         curr.execute(sql, parameter_list)
         conn.commit()
         count = curr.rowcount
@@ -791,6 +790,7 @@ def insert_pre_create_community(community):
         curr.close()
         conn.close()
     except (Exception, psycopg2.Error) as error:
+        print(error)
         print("Error while connecting  to PostgreSQL", error)
 
 
@@ -830,10 +830,11 @@ def update_pre_created_community(community_id,community):
         conn = get_connection()
         curr = conn.cursor()
         updated_at=time.time()
+        hide_community='3'
         # inserting the communities
-        sql = "update togther_community set name=%s,about=%s,purpose=%s,location=%s,image_url=%s,updated_at=%s where id=%s"
+        sql = "update togther_community set name=%s,about=%s,purpose=%s,location=%s,image_url=%s,updated_at=%s,hide_community=%s where id=%s"
         parameter_list = [community['name'], community['about'], community['purpose'], community['geography'],
-                          community['image_url'],updated_at,community_id
+                          community['image_url'],updated_at,hide_community,community_id
                          ]
         curr.execute(sql, parameter_list)
         conn.commit()
