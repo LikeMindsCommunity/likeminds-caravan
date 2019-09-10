@@ -38,4 +38,7 @@ urlpatterns = [
     path('map_tags', map_tags, name='map_tags'),
     path('update_tag',update_tag,name = 'update_tag'),
     path('tag_update_form/<int:tag_id>', tag_update_form, name='tag_update_form'),
+    path('delete_tags', delete_tags, name='delete_tags'),
+    path('delete_tags_post/<int:tag_id>', delete_tags_post, name='delete_tags_post'),
+
 ]

@@ -1,0 +1,103 @@
+
+<!DOCTYPE html>
+<html>
+<!-- Latest compiled and minified CSS -->
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+      integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+<!-- jQuery library -->
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+<!-- Latest compiled JavaScript -->
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/js/bootstrap.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.3.1.min.js"
+        integrity="sha384-tsQFqpEReu7ZLhBV2VZlAu7zcOV+rXbYlF2cqB8txI/8aZajjp4Bqd+V6D5IgvKT"
+        crossorigin="anonymous"></script>
+
+<script type='text/javascript'
+  src='http://code.jquery.com/jquery-1.8.3.js'></script>
+<script type='text/javascript'
+  src="http://cdn.jsdelivr.net/select2/3.4.1/select2.min.js"></script>
+<link rel="stylesheet" type="text/css"
+  href="http://cdn.jsdelivr.net/select2/3.4.1/select2.css">
+<script type='text/javascript'
+  src="http://globaltradeconcierge.com/javascripts/bootstrap.min.js"></script>
+<script type='text/javascript'>
+$(window).load(function(){
+   $('#map_tags').select2();
+});
+</script>
+
+<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"
+        integrity="sha256-VazP97ZCwtekAsvgPBSUwPFKdrwD3unUfSGVYrahUqU=" crossorigin="anonymous"></script>
+<link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+<style>
+    .center_div{
+    margin: 0 auto;
+    width:80% /* value of your choice which suits your alignment */
+}
+
+
+</style>
+
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/js/bootstrap.min.js"></script>
+  <script src="//cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.6.3/js/bootstrap-select.min.js"></script>
+    <link href="//netdna.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.6.3/css/bootstrap-select.min.css" />
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+<body>
+
+<h2 style="padding-top:20px;padding-left:50px;">Delete Tags</h2>
+
+
+<div style=" width:1000px;padding-top:20px;padding-left:50px;">
+    <form id="delete_form">
+
+
+        <div class="form-row">
+
+            <div class="form-group col-md-4">
+                <label for="del_tag">All Tags</label>
+
+                <select class="selectpicker" id="del_tag" data-show-subtext="true" data-live-search="true">
+          <option selected style="color:black;">Choose...</option>
+          {% autoescape off %}
+                    {% for tag in tags %}
+                    <option value="{{tag.id}}">{{tag.name}}</option>
+                    {% endfor %}
+          {% endautoescape %}
+      </select>
+            </div>
+
+        </div>
+        <br>
+
+
+        <button id="submit_del" type="submit" class="btn btn-danger">Delete</button>
+    </form>
+</div>
+
+
+
+{% autoescape off %}
+
+<script>
+
+
+
+
+
+    $(document).ready(function(){
+       $('#delete_form').on('submit',function()
+       {
+         del_tag=$('#del_tag').val();
+         window.location.href='./delete_tags_post/'+del_tag
+         })
+       })
+
+
+</script>
+{% endautoescape %}
+</body>
+</html>

@@ -1900,3 +1900,79 @@ def tag_update_form(request,tag_id):
                                                              'attr_id':tag.attribute_id.id,
                                                              'tag_image':tag_image
                                                              })
+
+
+def delete_tags(request):
+    ''' function to delete the any tag and
+    communities with that tag and all community related things '''
+
+    tags = Tags_lpig.objects.all()
+    return render(request, 'dashboard/delete_all_tags.html', {'tags': tags})
+
+def delete_tags_post(request,tag_id):
+
+    tag_deleted = True
+
+    # print(request.POST)
+    # tag = request.POST.get('del_tag')
+    # print("tag =========== ",tag)
+    tags = Tags_lpig.objects.filter(id=tag_id)
+    tag = tags[0]
+    print(">>>>>>>>>>",tag)
+    tag_community = None
+    user_tags = None
+    category_id = tag.category_id.id
+    print("cat id",category_id)
+
+    if category_id == 1:
+        tag_community = Community_Legacy.objects.filter(tags_id = tag)
+        user_tags = User_Legacy.objects.filter(tags_id = tag)
+    elif category_id == 2:
+        tag_community = Community_Profession.objects.filter(tags_id = tag)
+        user_tags = User_Profession.objects.filter(tags_id = tag)
+
+    elif category_id == 3:
+        tag_community = Community_Interest.objects.filter(tags_id = tag)
+        user_tags = User_Interest.objects.filter(tags_id = tag)
+
+    elif category_id == 4:
+        tag_community = Community_Geography.objects.filter(tags_id = tag)
+        user_tags = User_Geography.objects.filter(tags_id = tag)
+
+    print(tag_community.exists())
+    print(tag_community)
+
+    if tag_community.exists():
+        for community in tag_community:
+            tag_community_id = community.community_id.id
+            print("community id ====== ",tag_community_id)
+
+            community_members_count = Members.objects.filter(community_id=community.community_id).filter(Q(state=1)|Q(state=2)|Q(state=4)|Q(state=7)).count()
+            print("members count ==== ",community_members_count)
+            if community_members_count == 0:
+                print("community will be deleted")
+
+                community_purpose_card_id = community.community_id.purpose_collabcard
+                try:
+                    card = Collabcard.objects.filter(id=community_purpose_card_id)  #
+                    if card.exists():
+                        print(card)
+                        card.delete()
+                except:
+                    print("problem with card")
+
+                Community.objects.filter(id=tag_community_id).delete()
+
+            elif community_members_count > 0:
+                if not tag_deleted:
+                    continue
+                tag_deleted = False
+
+
+    if tag_deleted:
+        user_tags.delete()
+        tags.delete()
+
+    return render(request, 'dashboard/delete_all_tags.html', {'tags': tags,'tag_deleted': tag_deleted})
+
+
