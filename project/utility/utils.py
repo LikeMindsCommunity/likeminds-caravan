@@ -10,6 +10,8 @@ from django.db.models import Q
 import requests as rqst
 import json
 import os
+from django.http.response import JsonResponse
+
 
 
 def decode_meta_from_url(url):
@@ -139,4 +141,41 @@ def update_tag_image(tag_name, tag_id):
             tag_obj.save()
             return
     return
+
+
+def get_city_address(request=None,city=None):
+
+    request = "https://maps.googleapis.com/maps/api/geocode/json?address="+str(city)+"&key=AIzaSyDN10TwCPVMdLEE6vvTiglKHGlkTIYKduc"
+    response = rqst.get(request)
+    response = response.json()
+    country = ''
+    city = ''
+    district = ''
+    state = ''
+    postal_code = ''
+
+    for level in response['results'][0]['address_components']:
+
+        for typ in level['types']:
+
+            if typ == 'administrative_area_level_1':
+
+                state = level['long_name']
+
+            elif typ == 'country':
+                country = level['long_name']
+
+            elif typ == 'administrative_area_level_2':
+                district = level['long_name']
+
+            elif typ == 'locality':
+                city = level['long_name']
+
+            elif typ == 'postal_code':
+                postal_code = level['long_name']
+
+    #return JsonResponse({'response':response})
+
+    return {'city':city,'district':district,'state':state,'country':country,'postal_code':postal_code}
+
 
