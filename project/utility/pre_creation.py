@@ -257,11 +257,6 @@ def hometown_city(legacy_hometown,geography_city):
                             Please try to maintain conversations for each query or discussion on the conversation card so that only relevant members get notifications and all the conversations get documented for future reference of members of this community.""" % (
                     temp['name'], home['city'])
 
-            temp['purpose']="""For %s to socialise and help each other"""%(temp['name'])
-
-            temp['geography']=str(city[0])
-
-
             tag_name=get_tag_by_name(home_place)
 
             if home_place != hometown[3]:
@@ -273,6 +268,15 @@ def hometown_city(legacy_hometown,geography_city):
                         data=json.loads(tag_name[1])
                         if data['demonym']:
                             temp['name']=data['demonym'] + " of " + city[0]
+                            temp['question'] = """Introduce yourself telling a bit about your time in %s and what brought you to %s and what do you do now?""" % (
+                            home_place, city[0])
+                            temp['about'] = """This community aims to bring together %s so that we can socialise with other. Here we collaborate with each other by sharing knowledge, providing referrals (for jobs, accommodation, business, etc.), planning trips to %s, and having meaningful conversations. We also use this space to plan offline meetups.
+
+                            Anytime if you are looking for a lead or offering some help, simply start a new conversation with relevant details and your ask from the community members. Relevant members can respond by simply chatting with you and each other on your conversation card. Members who want to follow the conversation can press the Follow button to receive notifications about future responses on the card.
+
+                            Please try to maintain conversations for each query or discussion on the conversation card so that only relevant members get notifications and all the conversations get documented for future reference of members of this community.""" % (
+                                temp['name'], home_place)
+
                 else:
                     continue
             else:
@@ -280,6 +284,11 @@ def hometown_city(legacy_hometown,geography_city):
                 if hometown[2]:
                     temp['image_url'] = hometown[2]
             temp['tags']['geography'] = city[3]
+
+            temp['purpose']="""For %s to socialise and help each other"""%(temp['name'])
+
+            temp['geography']=str(city[0])
+
             community_id = is_community_tags_exists(temp)
             if not community_id:
                 insert_pre_create_community(temp)
