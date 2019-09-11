@@ -1564,40 +1564,48 @@ def save_user_lpig_tags(user_id,legacy_tags,profession_tags,interest_tags,greogr
 
             if str(tag[0].tags_id.id) != '18':
                 tag.delete()
-    update_user_geography_tags(user, type='Geography')
+    update_user_geography_tags(user_id=user_id, typ='Geography')
 
-def update_user_geography_tags(user, type=''):
+def update_user_geography_tags(user_id, typ=''):
 
+    user = User.objects.get(id=user_id)
     print("inside function")
     user_tags_list = []
-    if type == 'Geography':
+    if typ == 'Geography':
         user_tags_list = list(User_Geography.objects.filter(user_id=user).values_list("tags_id",flat=True))
-    elif type == 'Legacy':
+    elif typ == 'Legacy':
         user_tags_list = list(User_Legacy.objects.filter(user_id=user, tags_id__attribute_id=3).values_list("tags_id",flat=True))
 
     # save city,district state and country of a particular city tag
     for each_tag in user_tags_list:
         tag = Tags_lpig.objects.get(pk=each_tag)
         tag_name = tag.name
+        if tag.id == 15 or tag.id == 16 or tag.id == 17 or tag.id == 18:
+            continue
+        print('tag_name',tag_name)
         geography_list = get_city_address(city = tag_name)
         print('geography_list ====',geography_list,type(geography_list))
 
-        for tag in geography_list.values():
-            print("tag >>>>> ",tag)
 
-        for key,tag in geography_list:
-            #print("tag >>>>> ",tag)
-            tag = Tags_lpig.objects.filter(name=tag)
+        for tag_name in geography_list.values():
 
+            print(">>>>>>>>",tag_name)
+            if tag_name == '':
+                continue
+            tag = Tags_lpig.objects.filter(name=tag_name)
+            print("tag <<<<<<<  ",tag,tag.exists())
             if not tag.exists():
-                if type == 'Geography':
+                if typ == 'Geography':
                     tag = create_uncategorized_tag(tag=tag_name,tag_type='Geography')
                     print('created tag ====== ',tag)
-                elif type == 'Legacy':
+                elif typ == 'Legacy':
                     tag = create_uncategorized_tag(tag=tag_name,tag_type='Legacy')
-                    print('created tag ====== ',tag)
+                    #print('created tag ====== ',tag)
+            else:
+                tag = tag[0]
 
-            if type == 'Geography':
+
+            if typ == 'Geography':
                 user_geo_tag = User_Geography.objects.filter(tags_id=tag, user_id=user)
 
                 if not user_geo_tag.exists():
@@ -1606,7 +1614,7 @@ def update_user_geography_tags(user, type=''):
                     user_geo_tag.user_id = user
                     user_geo_tag.save()
                 print('user_geo_tag === ',user_geo_tag)
-            elif type == 'Legacy':
+            elif typ == 'Legacy':
                 user_legacy_tag = User_Legacy.objects.filter(tags_id=tag, user_id=user)
                 if not user_legacy_tag.exists():
                     user_tag = User_Legacy()
