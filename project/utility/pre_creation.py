@@ -106,7 +106,6 @@ def get_tag_by_id(id):
         print("Error while connecting  to PostgreSQL", error)
 
 
-
 def college_city(legacy_college,geography_city):
 
     '''function to make legacy(college) and geography(city) community '''
