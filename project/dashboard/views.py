@@ -37,7 +37,7 @@ def dashboard(request):
   dashboard_list=[]
 
   page = request.GET.get('page', 1)
-  paginator = Paginator(community_list, 400)
+  paginator = Paginator(community_list, 100)
   try:
       community_list = paginator.page(page)
   except PageNotAnInteger:

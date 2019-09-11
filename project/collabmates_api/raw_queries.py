@@ -59,7 +59,10 @@ def filter_tags(user_id=0,community_id=0):
     '''function to return the filtered tags based on LPIG'''
 
     hashmap=create_hashmap()
-
+    legacy=[]
+    profession=[]
+    interests=[]
+    geo_list=[]
     sql=""
     if community_id:
         sql="select tags_id_id from togther_community_legacy where community_id_id="+str(community_id)
@@ -91,7 +94,8 @@ def filter_tags(user_id=0,community_id=0):
         for data in tags:
             geo_list.append(data[0])
         geo_list = get_list_of_tag_id(geo_list, hashmap)
-    else:
+
+    if user_id:
         sql = "select tags_id_id from togther_user_legacy where user_id_id=" + str(user_id)
         tags = get_all_data(sql)
 
@@ -309,7 +313,7 @@ def action_for_user_crete_or_community_create(user_id,community_id):
             filter_tag = filter_tags(user_id=user[0])
             user_tags.append(filter_tag)
         # getting all communities
-        sql = "select distinct(community_id_id) from togther_community_lpig"
+        sql = "select distinct(community_id_id) from togther_community_legacy"
         all_communities = get_all_data(sql)
         community_tags = []
         for community in all_communities:
@@ -323,12 +327,12 @@ def action_for_user_crete_or_community_create(user_id,community_id):
             user_tags.append(filter_tag)
 
             # getting all communities
-            sql = "select distinct(community_id_id) from togther_community_legacy"
-            all_communities = get_all_data(sql)
-            community_tags = []
-            for community in all_communities:
-                filter_tag = filter_tags(community_id=community[0])
-                community_tags.append(filter_tag)
+        sql = "select distinct(community_id_id) from togther_community_legacy"
+        all_communities = get_all_data(sql)
+        community_tags = []
+        for community in all_communities:
+            filter_tag = filter_tags(community_id=community[0])
+            community_tags.append(filter_tag)
 
     elif user_id is None and community_id is not None:
         sql = "select distinct(user_id_id) from togther_user_legacy"
