@@ -1907,7 +1907,7 @@ def delete_tags(request):
     communities with that tag and all community related things '''
 
     tags = Tags_lpig.objects.all()
-    return render(request, 'dashboard/delete_all_tags.html', {'tags': tags})
+    return render(request, 'dashboard/delete_tags.html', {'tags': tags})
 
 def delete_tags_post(request,tag_id):
 
@@ -1973,6 +1973,6 @@ def delete_tags_post(request,tag_id):
         user_tags.delete()
         tags.delete()
 
-    return render(request, 'dashboard/delete_all_tags.html', {'tags': tags,'tag_deleted': tag_deleted})
+    return render(request, 'dashboard/delete_tags.html', {'tags': tags,'tag_deleted': tag_deleted})
 
 
