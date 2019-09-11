@@ -1912,8 +1912,11 @@ def delete_tags(request):
 
     tag_name = ''
     if tag_id != '':
-        tag = Tags_lpig.objects.get(pk = tag_id)
-        tag_name = tag.name
+        try:
+            tag = Tags_lpig.objects.get(pk = tag_id)
+            tag_name = tag.name
+        except:
+            pass
     print("tag anme ======= ",tag_name)
     tags = Tags_lpig.objects.all()
     return render(request, 'dashboard/delete_tags.html', {'tags': tags,'deleted':deleted,'alrt':alrt,'tag_name':tag_name})
