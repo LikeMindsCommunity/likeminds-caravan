@@ -1566,6 +1566,7 @@ def save_user_lpig_tags(user_id,legacy_tags,profession_tags,interest_tags,greogr
                 tag.delete()
     update_user_geography_tags(user_id=user_id, typ='Geography')
 
+
 def update_user_geography_tags(user_id, typ=''):
 
     user = User.objects.get(id=user_id)
@@ -1587,7 +1588,7 @@ def update_user_geography_tags(user_id, typ=''):
         print('geography_list ====',geography_list,type(geography_list))
 
 
-        for tag_name in geography_list.values():
+        for attr,tag_name in geography_list.items():
 
             print(">>>>>>>>",tag_name)
             if tag_name == '':
@@ -1596,10 +1597,10 @@ def update_user_geography_tags(user_id, typ=''):
             print("tag <<<<<<<  ",tag,tag.exists())
             if not tag.exists():
                 if typ == 'Geography':
-                    tag = create_uncategorized_tag(tag=tag_name,tag_type='Geography')
+                    tag = create_categorized_tag(tag=tag_name,category='Geography',attribute=attr)
                     print('created tag ====== ',tag)
                 elif typ == 'Legacy':
-                    tag = create_uncategorized_tag(tag=tag_name,tag_type='Legacy')
+                    tag = create_categorized_tag(tag=tag_name,category='Legacy',attribute=attr)
                     #print('created tag ====== ',tag)
             else:
                 tag = tag[0]
@@ -1621,6 +1622,34 @@ def update_user_geography_tags(user_id, typ=''):
                     user_tag.tags_id = tag
                     user_tag.user_id = user
                     user_tag.save()
+
+
+def create_categorized_tag(tag,category,attribute):
+    ''' function to create a un-categorized tag '''
+
+    new_tag = tag
+    new_tag = new_tag.strip().capitalize()
+    if new_tag!='':
+        category = Category.objects.filter(Q(name__icontains=category))[0]
+        if not (category == 'Geography' and attribute == 'district'):
+
+            attribute = Attributes.objects.filter(Q(attribute_name__icontains=attribute))[0]
+            tag = Tags_lpig.objects.filter(name = new_tag)
+            if not tag.exists():
+                tag = Tags_lpig()
+                tag.name = new_tag
+                tag.category_id = category
+                tag.attribute_id = attribute
+                tag.save()
+                tag.tag_id = tag.id
+                tag.save()
+            else:
+                tag = tag[0]
+            if category == 'Geography':
+                tag_name, tag_id = new_tag, tag.id
+                update_tag_image.delay(tag_name=tag_name, tag_id=tag_id)
+            return tag
+    return None
 
 
 def map_tags(request):

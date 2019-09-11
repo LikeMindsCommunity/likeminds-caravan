@@ -1679,6 +1679,7 @@ def update_user_city_tag(user_id,location):
             user_tag.save()
     return
 
+
 @shared_task
 def get_or_create_lpig_tags(tag,category,attr):
     ''' function to create new tags '''
@@ -1689,10 +1690,13 @@ def get_or_create_lpig_tags(tag,category,attr):
 
     except:
 
-        attr = category+"_uncat"
+        attribute = category+"_uncat"
         new_tag = tag
         category = Category.objects.filter(Q(name__icontains=category))[0]
-        attribute = Attributes.objects.filter(Q(attribute_name__icontains=attr))[0]
+        if category == 'Geography' and not attr == 'district':
+            attribute = Attributes.objects.filter(Q(attribute_name__icontains=attr))[0]
+        else:
+            attribute = Attributes.objects.filter(Q(attribute_name__icontains=attribute))[0]
         tag = Tags_lpig()
         tag.name = new_tag
         tag.category_id = category
@@ -1711,6 +1715,7 @@ def get_or_create_lpig_tags(tag,category,attr):
 
 def get_user_location(request,user_id,type=None):
     ''' function to fetch user location '''
+
     flag = True
     if not type:
         type = request.GET.get('type','')
