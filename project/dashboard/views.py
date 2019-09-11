@@ -22,7 +22,7 @@ from utility.pre_creation import pre_create_communities
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.urls import reverse
 from urllib.parse import urlencode
-from utility.utils import update_tag_image
+from utility.utils import update_tag_image, get_city_address
 url = settings.URL
 
 # uncomment to run it in localhost
@@ -62,7 +62,6 @@ def dashboard(request):
       community_dic['hidden_tags_count']=get_tags_count(i)
       dashboard_list.append(community_dic)
   return render(request,'dashboard/dashboard.html',{'communities':dashboard_list,'community':community_list})
-
 
 
 def get_tags_count(community):
@@ -194,6 +193,7 @@ def deleted_communities(request):
     }
     return render(request,'dashboard/delete_communities.html',context)
 
+
 def add_dashboard_admin(request,community_id):
 
     '''function to add admin'''
@@ -221,11 +221,13 @@ def add_dashboard_admin(request,community_id):
     context = {'admin_form': admin_form, 'community': community}
     return render(request, 'dashboard/add_admin.html', context)
 
+
 def update_member_count(community_id):
     community = Community.objects.get(id=community_id)
     count = Members.objects.filter(community_id=community).filter(Q(state=1)|Q(state=2)|Q(state=4))
     community = Community.objects.filter(id=community_id).update(members_count = len(count))
     return
+
 
 def add_dashboard_member(request,community_id):
     '''function to add members'''
@@ -273,6 +275,7 @@ def aprove_member(request,community_id,member_id):
     send_notification_for_join_requests.delay(community_id,True,member_id)
     return redirect(url)
 
+
 def decline_member(request,community_id,member_id):
     '''function to approve member'''
     community = Community.objects.get(id=community_id)
@@ -298,6 +301,7 @@ def show_tags(request,community_id):
         'community_id':community_id
     }
     return render(request,"dashboard/category.html",context)
+
 
 def add_tags(request):
 
@@ -375,6 +379,7 @@ def all_user(request):
         user_dic['communities_count']=communities_count
         users_list.append(user_dic)
     return render(request, 'dashboard/all_user.html', {'all_user': users_list})
+
 
 def get_user_tags_count(user_id):
 
@@ -667,7 +672,8 @@ def delete_questions(request,question_id):
 
 
 def analytics(request):
-    '''function to show the analytics'''
+    ''' function to show the analytics '''
+
     community_count=Community.objects.all().count()
     public_communities=Community.objects.filter(hide_community='0').count()
     private_communities=Community.objects.filter(hide_community='1').count()
@@ -854,6 +860,7 @@ def add_hidden_tags(request):
 
 
 def save_community_lpig_tags(community_id,legacy_tags,profession_tags,interest_tags,grography_tags):
+    ''' fucntion to save tags for a community '''
 
     community = Community.objects.get(id=community_id)
 
@@ -956,6 +963,8 @@ def save_community_lpig_tags(community_id,legacy_tags,profession_tags,interest_t
 
 def get_or_create_tag_attributes_list(tags,tag_type):
 
+    ''' function get list of tag id's accroding to given list of strings '''
+
     tags_list=[]
 
     if len(tags) == 1 and tags[0]=='':
@@ -963,6 +972,7 @@ def get_or_create_tag_attributes_list(tags,tag_type):
     for each_tag in tags:
 
         tag = Tags_lpig.objects.filter(name = each_tag)
+        print("tag ========= ",tag)
 
         if len(tag)>0:
             tag=tag[0]
@@ -976,22 +986,29 @@ def get_or_create_tag_attributes_list(tags,tag_type):
 
 
 def create_uncategorized_tag(tag,tag_type):
+    ''' function to create a un-categorized tag '''
+
     new_tag = tag
     new_tag = new_tag.strip().capitalize()
-    print(new_tag,tag_type)
-    category = Category.objects.filter(Q(name__icontains=tag_type))[0]
-    attribute = Attributes.objects.filter(Q(attribute_name__icontains=tag_type), Q(attribute_name__icontains='Uncategorized'))[0]
-    tag = Tags_lpig()
-    tag.name = new_tag
-    tag.category_id = category
-    tag.attribute_id = attribute
-    tag.save()
-    tag.tag_id = tag.id
-    tag.save()
-    if tag_type == 'Geography':
-        tag_name, tag_id = new_tag, tag.id
-        update_tag_image.delay(tag_name=tag_name, tag_id=tag_id)
-    return tag
+    if new_tag!='':
+        category = Category.objects.filter(Q(name__icontains=tag_type))[0]
+        attribute = Attributes.objects.filter(Q(attribute_name__icontains=tag_type), Q(attribute_name__icontains='Uncategorized'))[0]
+        tag = Tags_lpig.objects.filter(name = new_tag)
+        if not tag.exists():
+            tag = Tags_lpig()
+            tag.name = new_tag
+            tag.category_id = category
+            tag.attribute_id = attribute
+            tag.save()
+            tag.tag_id = tag.id
+            tag.save()
+        else:
+            tag = tag[0]
+        if tag_type == 'Geography':
+            tag_name, tag_id = new_tag, tag.id
+            update_tag_image.delay(tag_name=tag_name, tag_id=tag_id)
+        return tag
+    return None
 
 
 def delete_hidden_tags(request):
@@ -1184,6 +1201,8 @@ def get_user_communities(user_id):
   
 @csrf_exempt
 def create_tag(request):
+    ''' function to create a tag '''
+
     if request.method == 'POST':
         category = request.POST.get('category')
         attribute = request.POST.get('attribute')
@@ -1211,6 +1230,8 @@ def create_tag(request):
 
 
 def get_or_create_sub_tags(new_tag,category,attribute):
+
+    ''' function to create sub tags with known category and attribute  '''
 
     try:
         tag = Tags_lpig.objects.get(name=new_tag)
@@ -1382,6 +1403,7 @@ def user_tags(request,user_id):
 
 
 def add_user_tags(request):
+
     ''' adding or updating or deleting user hidden tags '''
 
     legacy_tags=request.GET.get('legacy_tags')
@@ -1435,7 +1457,7 @@ def save_user_lpig_tags(user_id,legacy_tags,profession_tags,interest_tags,greogr
             tags = User_Legacy.objects.filter(tags_id=tag, user_id=user)
             # if tag is not present
             if not tags.exists():
-                # create new row
+                # create new tag for user
                 user_tag = User_Legacy()
                 user_tag.tags_id = tag
                 user_tag.user_id = user
@@ -1450,6 +1472,8 @@ def save_user_lpig_tags(user_id,legacy_tags,profession_tags,interest_tags,greogr
 
             if str(tag[0].tags_id.id) != '15':
                 tag.delete()
+
+    # profession tags update --------------------------------->
 
     global_tag = Tags_lpig.objects.get(name='profession_any')
     user_tags_list = list(User_Profession.objects.filter(user_id=user).values_list("tags_id",flat=True))
@@ -1480,6 +1504,7 @@ def save_user_lpig_tags(user_id,legacy_tags,profession_tags,interest_tags,greogr
             if str(tag[0].tags_id.id) != '16':
                 tag.delete()
 
+    # interests tags update --------------------------------->
 
     global_tag = Tags_lpig.objects.get(name='interest_any')
     user_tags_list = list(User_Interest.objects.filter(user_id=user).values_list("tags_id",flat=True))
@@ -1509,6 +1534,7 @@ def save_user_lpig_tags(user_id,legacy_tags,profession_tags,interest_tags,greogr
             if str(tag[0].tags_id.id) != '17':
                 tag.delete()
 
+    # geography tags update --------------------------------->
 
     global_tag = Tags_lpig.objects.get(name='Global')
     user_tags_list = list(User_Geography.objects.filter(user_id=user).values_list("tags_id",flat=True))
@@ -1538,9 +1564,61 @@ def save_user_lpig_tags(user_id,legacy_tags,profession_tags,interest_tags,greogr
 
             if str(tag[0].tags_id.id) != '18':
                 tag.delete()
+    update_user_geography_tags(user, type='Geography')
+
+def update_user_geography_tags(user, type=''):
+
+    print("inside function")
+    user_tags_list = []
+    if type == 'Geography':
+        user_tags_list = list(User_Geography.objects.filter(user_id=user).values_list("tags_id",flat=True))
+    elif type == 'Legacy':
+        user_tags_list = list(User_Legacy.objects.filter(user_id=user, tags_id__attribute_id=3).values_list("tags_id",flat=True))
+
+    # save city,district state and country of a particular city tag
+    for each_tag in user_tags_list:
+        tag = Tags_lpig.objects.get(pk=each_tag)
+        tag_name = tag.name
+        geography_list = get_city_address(city = tag_name)
+        print('geography_list ====',geography_list,type(geography_list))
+
+        for tag in geography_list.values():
+            print("tag >>>>> ",tag)
+
+        for key,tag in geography_list:
+            #print("tag >>>>> ",tag)
+            tag = Tags_lpig.objects.filter(name=tag)
+
+            if not tag.exists():
+                if type == 'Geography':
+                    tag = create_uncategorized_tag(tag=tag_name,tag_type='Geography')
+                    print('created tag ====== ',tag)
+                elif type == 'Legacy':
+                    tag = create_uncategorized_tag(tag=tag_name,tag_type='Legacy')
+                    print('created tag ====== ',tag)
+
+            if type == 'Geography':
+                user_geo_tag = User_Geography.objects.filter(tags_id=tag, user_id=user)
+
+                if not user_geo_tag.exists():
+                    user_geo_tag = User_Geography()
+                    user_geo_tag.tags_id = tag
+                    user_geo_tag.user_id = user
+                    user_geo_tag.save()
+                print('user_geo_tag === ',user_geo_tag)
+            elif type == 'Legacy':
+                user_legacy_tag = User_Legacy.objects.filter(tags_id=tag, user_id=user)
+                if not user_legacy_tag.exists():
+                    user_tag = User_Legacy()
+                    user_tag.tags_id = tag
+                    user_tag.user_id = user
+                    user_tag.save()
 
 
 def map_tags(request):
+
+    ''' fucntion to map a tag to other tag and categorize it  '''
+
     uncategorized_tag = request.GET.get('uncategorized_tag')
     mapped_tag = request.GET.get('mapped_tag')
 
@@ -1557,6 +1635,8 @@ def map_tags(request):
 
 
 def update_tag(request):
+
+    ''' function to render all the required elements to fornt end to update a tag '''
 
     if request.method == 'GET':
 
@@ -1625,12 +1705,15 @@ def update_tag(request):
 
 def tag_update_form(request,tag_id):
 
+    ''' function to update tags with forms '''
+
     tag = Tags_lpig.objects.get(pk=tag_id)
     attr_id = tag.attribute_id.id
 
     if request.method=="POST":
         characteristics = None
         image = None
+        # save characteristics and image from form according to attribute given
         if attr_id == 2:
             form = Legacy_Education_Form(request.POST, request.FILES)
             if form.is_valid():
@@ -1709,7 +1792,13 @@ def tag_update_form(request,tag_id):
                                    'thing_group_use_case': thing_group_use_case,
                                    'thing_event': thing_event,
                                    }
+        elif (attr_id >= 12 and attr_id <= 15):
 
+            form = Geography_Form(request.POST, request.FILES)
+            if form.is_valid():
+                demonym = form.cleaned_data['demonym']
+                image = form.cleaned_data['image']
+                characteristics={'demonym':demonym}
 
         else:
             form = Tag_Form(request.POST, request.FILES)
@@ -1728,6 +1817,8 @@ def tag_update_form(request,tag_id):
         return redirect(url)
 
     else:
+
+        # render form according to attribute given
 
         if attr_id == 2:
             char={}
@@ -1886,6 +1977,19 @@ def tag_update_form(request,tag_id):
                                }
 
             form = Interests_Fan_Form(characteristics)
+        elif (attr_id >= 12 and attr_id <= 15) :
+
+            char = {}
+            if tag.tag_characterstics:
+                char = json.loads(tag.tag_characterstics)
+            demonym = None
+            if 'demonym' in char:
+                demonym = char['demonym']
+
+            characteristics = {'demonym': demonym}
+
+            form = Geography_Form(characteristics)
+
         else:
 
             form = Tag_Form()
@@ -1903,8 +2007,7 @@ def tag_update_form(request,tag_id):
 
 
 def delete_tags(request):
-    ''' function to delete the any tag and
-    communities with that tag and all community related things '''
+    ''' function to render all tags to delete page '''
 
     deleted = request.GET.get('deleted',False)
     alrt = request.GET.get('alrt',False)
@@ -1921,8 +2024,11 @@ def delete_tags(request):
     tags = Tags_lpig.objects.all()
     return render(request, 'dashboard/delete_tags.html', {'tags': tags,'deleted':deleted,'alrt':alrt,'tag_name':tag_name})
 
+
 def delete_tags_post(request,tag_id):
 
+    ''' function to delete the any tag and
+    communities with that tag and all community related things '''
     tag_deleted = True
 
     # print(request.POST)
