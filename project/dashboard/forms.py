@@ -142,6 +142,11 @@ class Interests_Fan_Form(forms.Form):
     thing_event = forms.CharField(label='Thing Event', max_length=500, required=False,widget=forms.TextInput(attrs={'placeholder':'discussion or event','class':'form-control form-group'}))
     image = forms.ImageField(label='Select Image', required=False,widget=forms.FileInput(attrs=({'class': 'file-upload btn btn-primary'})))
 
+class Geography_Form(forms.Form):
+    demonym = forms.CharField(label='Demonym',max_length=50,required=False,widget=forms.TextInput(attrs={'placeholder':'Demonym','class':'form-control form-group'}))
+    image = forms.ImageField(label='Select Image',required=False,widget=forms.FileInput(attrs=({'class': 'file-upload btn btn-primary'})))
+
+
 
 class Tag_Form(forms.Form):
 
