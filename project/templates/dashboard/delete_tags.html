@@ -42,8 +42,17 @@
 
 <script>
 
+         function alertFunction() {
+         {% if deleted == 'True' %}
+            alert('Tag is deleted, and other related things');
+         {% else %}
+            alert('Tag is not deleted, Some communites with this tag "{{ tag_name }}" have members');
+         {% endif %}
+         }
 
-
+         {% if alrt %}
+         window.onload = alertFunction;
+            {% endif %}
 
        $('#submit_del').click(function()
        {
@@ -51,7 +60,6 @@
          console.log(del_tag)
          window.location.href='./delete_tags_post/'+del_tag
        })
-
 
 </script>
 {% endautoescape %}

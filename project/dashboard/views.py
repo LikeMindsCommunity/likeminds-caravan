@@ -1906,8 +1906,17 @@ def delete_tags(request):
     ''' function to delete the any tag and
     communities with that tag and all community related things '''
 
+    deleted = request.GET.get('deleted',False)
+    alrt = request.GET.get('alrt',False)
+    tag_id = request.GET.get('tag_id','')
+
+    tag_name = ''
+    if tag_id != '':
+        tag = Tags_lpig.objects.get(pk = tag_id)
+        tag_name = tag.name
+    print("tag anme ======= ",tag_name)
     tags = Tags_lpig.objects.all()
-    return render(request, 'dashboard/delete_tags.html', {'tags': tags})
+    return render(request, 'dashboard/delete_tags.html', {'tags': tags,'deleted':deleted,'alrt':alrt,'tag_name':tag_name})
 
 def delete_tags_post(request,tag_id):
 
@@ -1973,6 +1982,11 @@ def delete_tags_post(request,tag_id):
         user_tags.delete()
         tags.delete()
 
-    return render(request, 'dashboard/delete_tags.html', {'tags': tags,'tag_deleted': tag_deleted})
+    base_url = reverse('delete_tags')  # 1 /products/
+    query_string = urlencode({'deleted': tag_deleted,'alrt':True,'tag_id':tag_id})  # 2 category=42
+    url = '{}?{}'.format(base_url, query_string)
+
+    return redirect(url)
+
 
 
