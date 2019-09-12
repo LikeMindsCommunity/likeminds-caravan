@@ -330,6 +330,8 @@ def community(request, community_id):
 
     if community.hide_community == '3' and member_id:
         serialized_object['share_url'] = serialized_object['share_url']+"?cta=ref&ref_id="+str(member_id)
+    elif community.hide_community == '0' or community.hide_community == '1' :
+        serialized_object['share_url'] = serialized_object['share_url'] + "?cta=join"
     # form a dictionary of community objects
     new_dict.update(serialized_object)
 

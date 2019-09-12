@@ -17,6 +17,8 @@ from collabmates_api.serializers import *
 from django.template.loader import get_template
 import traceback
 from collabmates_api.raw_queries import  compute_rank
+from django.urls import reverse
+from urllib.parse import urlencode
 
 url = settings.URL
 
@@ -224,7 +226,7 @@ def community(request, community_id):
     if 'member_id' in res:
         ref_id = res['member_id']#request.GET.get('ref_id')
     else:
-        ref_id = None
+        ref_id = ''
 
     print('ref id  ============ ',ref_id)
     if 'cta' in res:
@@ -252,8 +254,16 @@ def community(request, community_id):
                                # 'community_tag': community_tag,
                                'onboard':onboard})
 
-        elif cta == 'ref':
+        elif cta == 'interested':
             if request.user.is_authenticated:
+
+                if ref_id != '':
+                    base_url = reverse('refer_members')
+                    base_url = base_url + str(community_id)
+                    query_string = urlencode({'ref_id': ref_id})
+                    url = '{}?{}'.format(base_url, query_string)
+                    return redirect(url)
+
                 return  redirect('refer_members',community_id=community.id)
 
     else:
