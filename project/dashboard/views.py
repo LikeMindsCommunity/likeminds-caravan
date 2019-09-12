@@ -1774,14 +1774,14 @@ def tag_update_form(request,tag_id):
                 image = form.cleaned_data['image']
                 characteristics = {'skill_experts': skill_experts,'skill_name':skill_name}
 
-        # elif attr_id == 6:
-        #     form = Profession_Industry_Form(request.POST, request.FILES)
-        #     if form.is_valid():
-        #         demonym = form.cleaned_data['demonym']
-        #         short_name = form.cleaned_data['short_name']
-        #         image = form.cleaned_data['image']
-        #
-        #         characteristics = {'demonym': demonym, 'csn': short_name}
+        elif attr_id == 6:
+            form = Profession_Industry_Form(request.POST, request.FILES)
+            if form.is_valid():
+                # demonym = form.cleaned_data['demonym']
+                industry_name = form.cleaned_data['industry_name']
+                image = form.cleaned_data['image']
+
+                characteristics = {'industry_name': industry_name}
 
 
         elif attr_id == 8:
@@ -1799,11 +1799,13 @@ def tag_update_form(request,tag_id):
                 hobby_group_used_case = form.cleaned_data['hobby_group_used_case']
                 hobby_group_event = form.cleaned_data['hobby_group_event']
                 hobby_event = form.cleaned_data['hobby_event']
+                hobby_name = form.cleaned_data['hobby_name']
                 image = form.cleaned_data['image']
                 characteristics = {'hobbyists': hobbyists,
                                    'hobby_group_used_case': hobby_group_used_case,
                                    'hobby_group_event':hobby_group_event,
                                    'hobby_event':hobby_event,
+                                   'hobby_name': hobby_name,
                                    }
 
         elif attr_id == 10:
@@ -1862,6 +1864,8 @@ def tag_update_form(request,tag_id):
             char={}
             if tag.tag_characterstics:
                 char = json.loads(tag.tag_characterstics)
+                if not char:
+                    char = {}
             demonym = None
             short_name = None
             if 'demonym' in char:
@@ -1876,6 +1880,8 @@ def tag_update_form(request,tag_id):
             char = {}
             if tag.tag_characterstics:
                 char = json.loads(tag.tag_characterstics)
+                if not char:
+                    char = {}
             demonym = None
             short_name = None
             if 'home_demonym' in char:
@@ -1889,34 +1895,41 @@ def tag_update_form(request,tag_id):
             char = {}
             if tag.tag_characterstics:
                 char = json.loads(tag.tag_characterstics)
+                if not char:
+                    char = {}
             skill_experts = None
+            skill_name = None
             if 'skill_experts' in char:
                 skill_experts = char['skill_experts']
+            if 'skill_name' in char:
+                skill_name = char['skill_name']
 
-            characteristics = {'skill_experts': skill_experts}
+            characteristics = {'skill_experts': skill_experts,'skill_name':skill_name}
 
             form = Profession_Skill_Form(characteristics)
-        # elif attr_id == 6:
-        #
-        #     char = {}
-        #     if tag.tag_characterstics:
-        #         char = json.loads(tag.tag_characterstics)
-        #     demonym = None
-        #     short_name = None
-        #
-        #     if 'demonym' in char:
-        #         demonym = char['demonym']
-        #     if 'csn' in char:
-        #         short_name = char['csn']
-        #     characteristics = {'demonym': demonym, 'short_name': short_name}
-        #
-        #     form = Profession_Industry_Form(characteristics)
+        elif attr_id == 6:
+
+            char = {}
+            if tag.tag_characterstics:
+                print("inside")
+                char = json.loads(tag.tag_characterstics)
+                if not char:
+                    char = {}
+
+            industry_name = None
+            if 'industry_name' in char:
+                industry_name = char['industry_name']
+            characteristics = {'industry_name': industry_name}
+
+            form = Profession_Industry_Form(characteristics)
         elif attr_id == 8:
 
             char = {}
             thing_event = None
             if tag.tag_characterstics:
                 char = json.loads(tag.tag_characterstics)
+                if not char:
+                    char = {}
 
             if 'thing_event' in char:
                 thing_event = char['thing_event']
@@ -1931,9 +1944,12 @@ def tag_update_form(request,tag_id):
             hobby_group_used_case = None
             hobby_group_event = None
             hobby_event = None
+            hobby_name = None
 
             if tag.tag_characterstics:
                 char = json.loads(tag.tag_characterstics)
+                if not char:
+                    char = {}
 
             if 'hobbyists' in char:
                 hobbyists = char['hobbyists']
@@ -1947,10 +1963,14 @@ def tag_update_form(request,tag_id):
             if 'hobby_event' in char:
                 hobby_event = char['hobby_event']
 
+            # hobby_name
+            if 'hobby_name' in char:
+                hobby_name = char['hobby_name']
             characteristics = {'hobbyists': hobbyists,
                                'hobby_group_used_case': hobby_group_used_case,
                                'hobby_group_event': hobby_group_event,
-                               'hobby_event': hobby_event
+                               'hobby_event': hobby_event,
+                               'hobby_name':hobby_name,
                                }
 
             form = Interests_Hobby_Form(characteristics)
@@ -1964,6 +1984,8 @@ def tag_update_form(request,tag_id):
 
             if tag.tag_characterstics:
                 char = json.loads(tag.tag_characterstics)
+                if not char:
+                    char = {}
 
             if 'sport_players' in char:
                 sport_players = char['sport_players']
@@ -1990,6 +2012,8 @@ def tag_update_form(request,tag_id):
 
             if tag.tag_characterstics:
                 char = json.loads(tag.tag_characterstics)
+                if not char:
+                    char = {}
 
             if 'thing' in char:
                 thing = char['thing']
@@ -2020,6 +2044,8 @@ def tag_update_form(request,tag_id):
             char = {}
             if tag.tag_characterstics:
                 char = json.loads(tag.tag_characterstics)
+                if not char:
+                    char = {}
             demonym = None
             if 'demonym' in char:
                 demonym = char['demonym']

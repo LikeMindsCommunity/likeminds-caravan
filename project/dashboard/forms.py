@@ -110,8 +110,8 @@ class Profession_Skill_Form(forms.Form):
 
 
 class Profession_Industry_Form(forms.Form):
-    demonym = forms.CharField(label='Demonym', max_length=50, required=False,widget=forms.TextInput(attrs={'placeholder':'Demonym','class':'form-control form-group'}))
-    short_name = forms.CharField(label='Short Name', max_length=50, required=False,widget=forms.TextInput(attrs={'placeholder':'Short Name','class':'form-control form-group'}))
+    #demonym = forms.CharField(label='Demonym', max_length=50, required=False,widget=forms.TextInput(attrs={'placeholder':'Demonym','class':'form-control form-group'}))
+    industry_name = forms.CharField(label='Industry Name', max_length=50, required=False,widget=forms.TextInput(attrs={'placeholder':'Industry Name','class':'form-control form-group'}))
     image = forms.ImageField(label='Select Image', required=False,widget=forms.FileInput(attrs=({'class': 'file-upload btn btn-primary'})))
 
 
@@ -121,10 +121,12 @@ class Interests_Cause_Form(forms.Form):
 
 
 class Interests_Hobby_Form(forms.Form):
+    hobby_name = forms.CharField(label='Hobby Name', max_length=50, required=False,widget=forms.TextInput(attrs={'placeholder':'Hobby Name','class':'form-control form-group'}))
     hobbyists = forms.CharField(label='Hobbyists', max_length=50, required=False,widget=forms.TextInput(attrs={'placeholder':'Hobbyists','class':'form-control form-group'}))
     hobby_group_used_case = forms.CharField(label='Hobby Group Used Case', max_length=50, required=False,widget=forms.TextInput(attrs={'placeholder':'Hobby Group Used Case','class':'form-control form-group'}))
     hobby_group_event = forms.CharField(label='Hobby Group Event', max_length=50, required=False,widget=forms.TextInput(attrs={'placeholder':'Hobby Group Event','class':'form-control form-group'}))
     hobby_event = forms.CharField(label='Hobby Event', max_length=50, required=False,widget=forms.TextInput(attrs={'placeholder':'Hobby Event','class':'form-control form-group'}))
+
     image = forms.ImageField(label='Select Image', required=False,widget=forms.FileInput(attrs=({'class': 'file-upload btn btn-primary'})))
 
 
