@@ -153,7 +153,7 @@ def get_communities_by_rank(request):
     for community in communities:
         comm = Community.objects.get(pk = community)
         # check if community is hidden or not
-        if comm.hide_community == '0':
+        if comm.hide_community == '0' or comm.hide_community == '3':
             communities_list.append(comm)
     return communities_list
 
