@@ -324,9 +324,12 @@ def community(request, community_id):
     '''Community detail page'''
 
     community = Community.objects.get(id=community_id)
-
+    member_id = request.GET.get('member_id',None)
     serialized_object = CommunitySerializer(community)
     new_dict = {}
+
+    if community.hide_community == '3' and member_id:
+        serialized_object['share_url'] = serialized_object['share_url']+"?cta=ref&ref_id="+str(member_id)
     # form a dictionary of community objects
     new_dict.update(serialized_object)
 
@@ -1817,5 +1820,49 @@ def member_activity(request):
     if status:
         state=1
     return JsonResponse({'state':state})
+
+
+def referal(request,community_id):
+
+
+    community = get_object_or_404(Community, pk=community_id)
+
+    ref_id = request.GET.get('member_id',None)
+
+    # cta = request.GET.get('cta',None)
+
+    invited_member = request.user
+
+    interested_member = Members.objects.filter(community_id=community,
+                                                   member_id=invited_member)
+    if not interested_member.exists():
+        interested_member = Members(community_id=community,
+                                    member_id=invited_member,
+                                    state=8)
+        interested_member.save()
+
+    referred_member = User.objects.get(pk=ref_id) if (ref_id != '' and ref_id) else False
+    if referred_member:
+        refer = Referal.objects.filter(member=referred_member,
+                                        invited_member=invited_member,
+                                        community=community)
+        if not refer.exists():
+            refer = Referal(member=referred_member
+                            , invited_member=invited_member
+                            , community=community)
+            refer.save()
+
+        total_referals = Referal.objects.filter(member=referred_member,
+                                                    community=community)
+
+        if total_referals.count() == 2:
+            admin = Members(community_id=community,
+                            member_id=referred_member,
+                            state=1)
+            admin.save()
+
+            for interested_member in total_referals:
+                 Members.objects.filter(community_id=community,
+                                        member_id=interested_member.invited_member).update(state=3)
 
 

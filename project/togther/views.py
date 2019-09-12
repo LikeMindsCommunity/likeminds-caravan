@@ -210,6 +210,9 @@ def get_user_communities(request):
 
 
 def community(request, community_id):
+
+    community = get_object_or_404(Community, pk=community_id)
+
     # ----- accept admin APi part ---------------
     res = request.GET.dict()
     if 'source' in res:
@@ -217,6 +220,13 @@ def community(request, community_id):
         print(source)
     else:
         source = ''
+    # --------- referal part ----------------------
+    if 'member_id' in res:
+        ref_id = res['member_id']#request.GET.get('ref_id')
+    else:
+        ref_id = None
+
+    print('ref id  ============ ',ref_id)
     if 'cta' in res:
         cta = res['cta']
         print("cta == ", cta)
@@ -226,20 +236,7 @@ def community(request, community_id):
             if questions:
                 return render(request, 'response_form.html', {"data": data, 'usr': user, 'community': community})
             else:
-                community_tag = ''
-                try:
-                    community_tag = Community_tags.objects.filter(community_id=community_id).values('category')
 
-                    for category in community_tag:
-
-                        if category['category'] == 'IIT Delhi':
-                            community_tag = 'iitd'
-                            break
-                        elif category['category'] == 'NSIT College':
-                            community_tag = 'nsit'
-                            break
-                except:
-                    return HttpResponse('The community is not tagged ')
                 onboard = False
                 user_legacy = User_Legacy.objects.filter(member_id = request.user)
                 user_profession = User_Profession.objects.filter(member_id = request.user)
@@ -249,12 +246,14 @@ def community(request, community_id):
                 if user_legacy.exists() and user_profession.exists() and user_interests.exists() and user_geography.exists():
                     onboard = True
                 return render(request, 'thankyou.html',
-                              {'usr': user, 'similar_communities': data, 'community': community,
-                               'community_tag': community_tag,'onboard':onboard})
-            # -----------------------------------------------------------------------------------------------------------
+                              {'usr': user,
+                               'similar_communities': data,
+                               'community': community,
+                               # 'community_tag': community_tag,
+                               'onboard':onboard})
+
     else:
         cta = ''
-    community = get_object_or_404(Community, pk=community_id)
     if request.user.is_authenticated:
         try:
             user = Userinfo.objects.get(user_id=request.user.id)
@@ -315,7 +314,56 @@ def community(request, community_id):
                                               'members': members, 'source': source,
                                               'cta': cta, 'Nom_mem_state': member_state,
                                               'admin_length': len(admin_details),
-                                              'similar_community_length':len(communities)})
+                                              'similar_community_length':len(communities),
+                                              'ref_id':ref_id,})
+
+
+def refer_members(request,community_id):
+
+    community = get_object_or_404(Community, pk=community_id)
+
+    ref_id = request.GET.get('ref_id',None)
+
+    # cta = request.GET.get('cta',None)
+
+    if request.user.is_authenticated:
+        invited_member = request.user
+
+        interested_member = Members.objects.filter(community_id=community,
+                                                   member_id=invited_member)
+        if not interested_member.exists():
+            interested_member = Members(community_id=community,
+                                        member_id=invited_member,
+                                        state=8)
+            interested_member.save()
+
+        referred_member = User.objects.get(pk=ref_id) if (ref_id != '' and ref_id) else False
+        if referred_member:
+            refer = Referal.objects.filter(member=referred_member,
+                                           invited_member=invited_member,
+                                           community=community)
+            if not refer.exists():
+                refer = Referal(member=referred_member
+                                , invited_member=invited_member
+                                , community=community)
+                refer.save()
+
+            total_referals = Referal.objects.filter(member=referred_member,
+                                                    community=community)
+
+            if total_referals.count() == 2:
+                admin = Members(community_id=community,
+                                member_id=referred_member,
+                                state=1)
+                admin.save()
+
+                for interested_member in total_referals:
+                    Members.objects.filter(community_id=community,
+                                           member_id=interested_member.invited_member).update(state=3)
+        share_url = url + '/community/' + str(community_id)+"?cta=ref&ref_id="+str(request.user.id)
+        print('share_url >>>>>>> ',share_url)
+        # return redirect('comunity', community_id=community.id)
+        return  render(request,'referal.html',{'share_url':share_url})
 
 
 def get_members_of_community(community):

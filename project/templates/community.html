@@ -79,6 +79,22 @@
 
                 }
 
+
+
+
+                function referal(){
+
+                    {% if user.is_authenticated %}
+
+                     window.location.href ="../refer_members/"+{{community.id}}+"?ref_id="+{{ref_id}};
+                    {% else %}
+                    $('.test')
+                    .modal('show')
+                  ;
+                    {% endif %}
+
+                }
+
     $(function(){
       $("#test").click(function(){
         $(".test").modal('show');
@@ -197,7 +213,10 @@
                 </div>
                 <div class="center aligned container">
                     <div class="content">
-                        {% if cta != '' %}
+                        {% if cta == 'ref' %}
+                        <a href="{% url 'social:begin' 'facebook-oauth2' %}?next={{ request.path }}?cta={{cta}}&ref_id={{ref_id}}">
+                        <button class="ui facebook button" style="width:130px;">
+                        {% elif cta != '' %}
                         <a href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta={{cta}}">
                             <button class="ui facebook button" style="width:130px;">
                                 {% else %}
@@ -214,7 +233,10 @@
                                 <br>
                                 <br>
                                 <div class="content">
-                                    {% if cta != '' %}
+                                    {% if cta == 'ref' %}
+                                    <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta={{cta}}&ref_id={{ref_id}}">
+                                        <button class="ui linkedin button" style="width:130px;">
+                                    {% elif cta != '' %}
                                     <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta={{cta}}">
                                         <button class="ui linkedin button" style="width:130px;">
                                             {% else %}
@@ -401,16 +423,37 @@
 <!--                </div>-->
 <br/>
 
-                {% if Nom_mem_state == 6 %}
+                {% if community.hide_community == '3'  %}
+
+                <button class="ui fluid button "
+                        style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;"
+                        onclick="referal();">Join Community
+                </button>
+
+                {% elif cta == 'ref'  %}
+                <button class="ui fluid button "
+                        style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;"
+                        onclick="referal();">Join Community
+                </button>
+
+                {% elif Nom_mem_state == 8 %}
+                <button class="ui fluid button "
+                        style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;"
+                        onclick="referal();"> Join Community
+                </button>
+
+                {% elif Nom_mem_state == 6 %}
                 <button class="ui fluid button "
                         style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;"
                         onclick="accept_admin('{{cta}}','{{community.id}}','{{Nom_mem_state}}');"> Respond to invitation
                 </button>
+
                 {% elif Nom_mem_state == 7 %}
                 <button class="ui fluid button "
                         style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;"
                         onclick="accept_admin('{{cta}}','{{community.id}}','{{Nom_mem_state}}');"> Respond to invitation
                 </button>
+
                 {% elif Nom_mem_state == 3 %}
                 <button class="ui fluid button "
                         style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;"
@@ -428,18 +471,20 @@
                         style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;"
                         disabled>You are a promoter
                 </button>
+
                 {% elif Nom_mem_state == 4 %}
                 <button class="ui fluid button "
                         style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;"
                         disabled>Already a Member
                 </button>
+
                 {% elif Nom_mem_state == 5 %}
                 <button class="ui fluid button "
                         style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;"
                         onclick="join('{{community.id}}')"> Join Community(Declined)
                 </button>
+
                 {% elif source == 'email' %}
-                ]
                 <button class="ui fluid button "
                         style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;"
                         onclick="accept_admin();">Respond to invitation
