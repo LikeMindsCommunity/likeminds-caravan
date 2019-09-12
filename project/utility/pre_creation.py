@@ -5,6 +5,7 @@ import json
 import requests as rqst
 import time
 from datetime import date
+import re
 envir=False
 try:
     from .notification import get_connection
@@ -13,6 +14,8 @@ except:
     import sys
     sys.path.append("..")
     from scripts.connection import get_connection
+
+
 
 
 def get_city_address(city):
@@ -129,6 +132,10 @@ def get_tag_by_name(name):
         print("Error while connecting  to PostgreSQL", error)
 
 
+def capitalize_string(s):
+  return re.sub('(?<=^)[a-z]|(?<=\s)[a-z]', '{}', s).format(*map(str.upper, re.findall('(?<=^)[a-z]|(?<=\s)[a-z]', s)))
+
+
 def college_city(legacy_college,geography_city):
 
     '''function to make legacy(college) and geography(city) community '''
@@ -184,7 +191,6 @@ def college_city(legacy_college,geography_city):
 
 
     print("L(college)G(City) communities created\n")
-
 
 
 def hometown_city(legacy_hometown,geography_city):
@@ -431,7 +437,7 @@ def hobby_city(interest_hobby,geography_city):
                     interest_char['hobbyists']=hobby[0]+" enthusiast"
                 else:
                     name=str(interest_char['hobbyists'])
-                    temp['name']=name.capitalize()+" of "+ str(city[0])
+                    temp['name']=capitalize_string(name)+" of "+ str(city[0])
 
                 if not interest_char['hobby_group_used_case']:
                     interest_char['hobby_group_used_case']="to pursue the hobby together"
@@ -442,14 +448,19 @@ def hobby_city(interest_hobby,geography_city):
                 if not interest_char['hobby_event']:
                     interest_char['hobby_event']="query"
 
-                temp['purpose']="""For %s enthusiasts living in %s to find other %s in their neighbourhood and %s"""%(hobby[0],city[0],interest_char['hobbyists'],interest_char['hobby_group_used_case'])
+                hobby_name=hobby[0]
+                if 'hobby_name' in interest_char and interest_char['hobby_name']:
+                    hobby_name=hobby[0].lower()
+
+                temp['purpose']="""For %s enthusiasts living in %s to find other %s in their neighbourhood and %s"""%(hobby_name,city[0],interest_char['hobbyists'],interest_char['hobby_group_used_case'])
                 temp['about']="""We believe that every %s enthusiast should be able to find other %s whenever he or she wants to %s. This community aims to bring together all the %s enthusiasts living in %s to find other %s in their neighbourhood so that we can achieve this together.
 
                             Anytime if you are looking for people to %s, simply start a new conversation with relevant details and your ask from the community. Interested members can respond by simply chatting with you and each other on your conversation card. Members who want to follow the conversation can press the Follow button to receive notifications about future responses on the card.
 
-                            Please try to maintain conversations for each %s on the conversation card for the %s so that only relevant members get notifications."""%(hobby[0],interest_char['hobbyists'],interest_char['hobby_group_used_case'],hobby[0],city[0],interest_char['hobbyists'],interest_char['hobby_group_event'],interest_char['hobby_event'],interest_char['hobby_event'])
+                            Please try to maintain conversations for each %s on the conversation card for the %s so that only relevant members get notifications."""%(hobby_name,interest_char['hobbyists'],interest_char['hobby_group_used_case'],hobby_name,city[0],interest_char['hobbyists'],interest_char['hobby_group_event'],interest_char['hobby_event'],interest_char['hobby_event'])
 
             else:
+
                 temp['name'] = str(hobby[0])+" Enthusiasts of "+ str(city[0])
                 temp['purpose']="""For %s enthusiasts living in %s to find other %s enthusiasts in their neighbourhood to pursue the hobby together"""%(hobby[0],city[0],hobby[0])
 
@@ -493,7 +504,7 @@ def sport_city(interest_sport,geography_city):
 
                 else:
                     players=str(interest_char['sport_players'])
-                    temp['name'] = players.capitalize() + " of " + str(city[0])
+                    temp['name'] =capitalize_string(players) + " of " + str(city[0])
 
                 if not interest_char[ 'sport_usecase']:
                     interest_char['sport_usecase']="play the sport"
@@ -559,7 +570,7 @@ def fan_city(interest_fan,geography_city):
                     temp['name']=str(fan[0])+" Fans of "+str(city[0])
                 else:
                     thing_fan=interest_char['thing_fans']
-                    temp['name'] = """%s of %s""" % (thing_fan.capitalize(), city[0])
+                    temp['name'] = """%s of %s""" % (capitalize_string(thing_fan), city[0])
 
                 if not interest_char['thing_group_use_case']:
                     interest_char['thing_group_use_case']="plan hangouts and have conversations around "+interest_char['thing']
@@ -860,23 +871,6 @@ def insert_pre_create_community(community):
         print("Error while connecting  to PostgreSQL", error)
 
 
-def get_members_of_community(community_id):
-    '''function to get members of community if exist'''
-    try:
-        conn = get_connection()
-        curr = conn.cursor()
-        sql = "select member_id_id,state from togther_members where community_id_id=%s"
-        curr.execute(sql,[community_id])
-        res = curr.fetchall()
-        curr.close()
-        conn.close()
-        if res:
-            return res
-
-    except (Exception, psycopg2.Error) as error:
-        print("Error while connecting to PostgreSQL  ", error)
-
-
 def update_pre_created_community(community_id,community):
 
     '''function to update the community if its characterstics or image are changed'''
@@ -921,6 +915,23 @@ def update_pre_created_community(community_id,community):
         print("\n")
     except (Exception, psycopg2.Error) as error:
         print("Error while connecting  to PostgreSQL", error)
+
+
+def get_members_of_community(community_id):
+    '''function to get members of community if exist'''
+    try:
+        conn = get_connection()
+        curr = conn.cursor()
+        sql = "select member_id_id,state from togther_members where community_id_id=%s"
+        curr.execute(sql,[community_id])
+        res = curr.fetchall()
+        curr.close()
+        conn.close()
+        if res:
+            return res
+
+    except (Exception, psycopg2.Error) as error:
+        print("Error while connecting to PostgreSQL  ", error)
 
 
 def insert_tags_for_communities(sql,parameter):
