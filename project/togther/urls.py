@@ -34,5 +34,6 @@ urlpatterns = [
     path('onboarding_interest', views.onboarding_interest, name='onboarding_interest'),
     path('access_page', views.access_page, name='access_page'),
     path('alpha_page', views.alpha_page, name='alpha_page'),
+    path('refer_members/<int:community_id>', views.refer_members, name='refer_members'),
 
 ]
