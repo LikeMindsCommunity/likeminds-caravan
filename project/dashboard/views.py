@@ -33,7 +33,7 @@ api_url = url + '/api/'
 def dashboard(request):
   '''function to give list of community to edit'''
 
-  community_list=Community.objects.all().order_by('-created_at', '-active_since')
+  community_list=Community.objects.all().order_by('-updated_at', '-active_since')
   dashboard_list=[]
 
   page = request.GET.get('page', 1)

@@ -106,20 +106,25 @@ def get_tag_by_id(id):
         print("Error while connecting  to PostgreSQL", error)
 
 
-def is_community_exists(name):
+def get_tag_by_name(name):
+
+    '''function to get Tag by name'''
+
+    if not name:
+        return False
 
     try:
         conn = get_connection()
         curr = conn.cursor()
-        sql = "select id from  togther_community where name=%s"
+        sql = "select id,tag_characterstics,tag_image,id,attribute_id_id from togther_tags_lpig where name=%s"
         parameter = [name]
         curr.execute(sql, parameter)
-        res = curr.fetchone()
+        res=curr.fetchone()
+        conn.commit()
         curr.close()
         conn.close()
         if res:
-            return res[0]
-        return False
+            return res
     except (Exception, psycopg2.Error) as error:
         print("Error while connecting  to PostgreSQL", error)
 
@@ -142,24 +147,26 @@ def college_city(legacy_college,geography_city):
                 if 'demonym' in name and name['demonym']:
                     temp['name']=name['demonym'] + " in " + city[0]
                     temp['purpose']="For "+ str(temp['name']) + " to socialise and help each other"
-                    temp['question']="Please introduce yourself telling a bit about your time at " + str(college[0])
+                    temp['question']="Introduce yourself telling a bit about your time at " + str(college[0])+" and what do you do now?"
                 elif 'csn' in name and name['csn']:
-                    temp['name']=name['csn'] + " Alumini " + city[0]
-                    temp['purpose']="For "+ str(temp['name']) + "to socialise and help each other"
-                    temp['question']="Please introduce yourself telling a bit about your time at " + str(name['csn'])
+                    temp['name']=name['csn'] + " Alumni in " + city[0]
+                    temp['purpose']="For "+ str(temp['name']) + " to socialise and help each other"
+                    temp['question']="Introduce yourself telling a bit about your time at " + str(name['csn'])+" and what do you do now?"
                 else:
-                    temp['name'] = college[0] + " Alumini  in " + city[0]
+                    temp['name'] = college[0] + " Alumni  in " + city[0]
                     temp['purpose'] = "For " + str(temp['name']) + " to socialise and help each other"
-                    temp['question'] = "Please introduce yourself telling a bit about your time at " + str(college[0])
+                    temp['question'] = "Introduce yourself telling a bit about your time at " + str(college[0])+" and what do you do now?"
 
             else:
-                temp['name']=college[0] + " Alumini  in " + city[0]
+                temp['name']=college[0] + " Alumni  in " + city[0]
                 temp['purpose']="For "+ str(temp['name']) + " to socialise and help each other"
-                temp['question']="Please introduce yourself telling a bit about your time at " + str(college[0])
+                temp['question']="Introduce yourself telling a bit about your time at " + str(college[0])+" and what do you do now?"
 
             temp['about']="""This community aims to bring together alumni of %s living in %s so that we can socialise with other and stay connected with our alma mater as well. Here we collaborate with each other by sharing knowledge, providing referrals for jobs, accommodation, business, etc. and having meaningful conversations. We also use this space to plan offline meetups.
-            Anytime if you are looking for a lead or offering some help, simply start a new conversation with relevant details and your ask from the community members. Relevant members can respond by simply chatting with you and each other on your conversation card. 
-            Members who want to follow the conversation can press the Follow button to receive notifications about future responses on the card.Please try to maintain conversations for each query or discussion on the conversation card so that only relevant members get notifications and all the conversations get documented for future reference of members of this community."""%(college[0],city[0])
+            
+                            Anytime if you are looking for a lead or offering some help, simply start a new conversation with relevant details and your ask from the community members. Relevant members can respond by simply chatting with you and each other on your conversation card. 
+            
+                            Members who want to follow the conversation can press the Follow button to receive notifications about future responses on the card.Please try to maintain conversations for each query or discussion on the conversation card so that only relevant members get notifications and all the conversations get documented for future reference of members of this community."""%(college[0],city[0])
             temp['geography']=str(city[0])
 
             if college[2]:
@@ -174,14 +181,16 @@ def college_city(legacy_college,geography_city):
             else:
                 update_pre_created_community(community_id,temp)
 
+
+
     print("L(college)G(City) communities created\n")
+
 
 
 def hometown_city(legacy_hometown,geography_city):
 
     '''function to make legacy(hometown) and geography(city) community '''
 
-    c=0
     # legacy_hometown=[]
     # geography_city=[]
     for hometown in legacy_hometown:
@@ -191,8 +200,10 @@ def hometown_city(legacy_hometown,geography_city):
                 'interest': 17,
                 'profession': 16
             }
+
             home=get_city_address(hometown[0])
             current=get_city_address(city[0])
+            home_place=""
             if home['country'] and current['country'] and home['country'] != current['country']:
                 if hometown[1] is not None:
                     data=json.loads(hometown[1])
@@ -202,12 +213,13 @@ def hometown_city(legacy_hometown,geography_city):
                         temp['name']="Natives of "+str(home['country'])+" in "+str(city[0])
                 else:
                     temp['name']="Natives of "+str(home['country'])+" in "+str(city[0])
-                temp['question']="""Please introduce yourself telling a bit about your time in %s and what brought you to %s"""%(home['country'],city[0])
+                temp['question']="""Introduce yourself telling a bit about your time in %s and what brought you to %s and what do you do now?"""%(home['country'],city[0])
                 temp['about']="""This community aims to bring together %s so that we can socialise with other. Here we collaborate with each other by sharing knowledge, providing referrals (for jobs, accommodation, business, etc.), planning trips to %s, and having meaningful conversations. We also use this space to plan offline meetups.
 
-Anytime if you are looking for a lead or offering some help, simply start a new conversation with relevant details and your ask from the community members. Relevant members can respond by simply chatting with you and each other on your conversation card. Members who want to follow the conversation can press the Follow button to receive notifications about future responses on the card.
+                            Anytime if you are looking for a lead or offering some help, simply start a new conversation with relevant details and your ask from the community members. Relevant members can respond by simply chatting with you and each other on your conversation card. Members who want to follow the conversation can press the Follow button to receive notifications about future responses on the card.
 
-Please try to maintain conversations for each query or discussion on the conversation card so that only relevant members get notifications and all the conversations get documented for future reference of members of this community."""%(temp['name'],home['country'])
+                            Please try to maintain conversations for each query or discussion on the conversation card so that only relevant members get notifications and all the conversations get documented for future reference of members of this community."""%(temp['name'],home['country'])
+                home_place=home['country']
             elif home['state'] and current['state'] and home['state']!=current['state']:
                 if hometown[1] is not None:
                     data = json.loads(hometown[1])
@@ -217,13 +229,14 @@ Please try to maintain conversations for each query or discussion on the convers
                         temp['name'] = "Natives of " + str(home['state']) + " in " + str(city[0])
                 else:
                     temp['name'] = "Natives of " + str(home['state']) + " in " + str(city[0])
-                temp['question']="""Please introduce yourself telling a bit about your time in %s and what brought you to %s"""%(home['state'],city[0])
+                temp['question']="""Introduce yourself telling a bit about your time in %s and what brought you to %s and what do you do now?"""%(home['state'],city[0])
                 temp['about'] = """This community aims to bring together %s so that we can socialise with other. Here we collaborate with each other by sharing knowledge, providing referrals (for jobs, accommodation, business, etc.), planning trips to %s, and having meaningful conversations. We also use this space to plan offline meetups.
 
-                Anytime if you are looking for a lead or offering some help, simply start a new conversation with relevant details and your ask from the community members. Relevant members can respond by simply chatting with you and each other on your conversation card. Members who want to follow the conversation can press the Follow button to receive notifications about future responses on the card.
+                            Anytime if you are looking for a lead or offering some help, simply start a new conversation with relevant details and your ask from the community members. Relevant members can respond by simply chatting with you and each other on your conversation card. Members who want to follow the conversation can press the Follow button to receive notifications about future responses on the card.
 
-                Please try to maintain conversations for each query or discussion on the conversation card so that only relevant members get notifications and all the conversations get documented for future reference of members of this community.""" % (
+                            Please try to maintain conversations for each query or discussion on the conversation card so that only relevant members get notifications and all the conversations get documented for future reference of members of this community.""" % (
                 temp['name'], home['state'])
+                home_place=home['state']
             else:
 
                 if not home['city']:
@@ -236,27 +249,52 @@ Please try to maintain conversations for each query or discussion on the convers
                         temp['name'] = "Natives of " + str(home['city']) + " in " + str(city[0])
                 else:
                     temp['name']="Natives of " + str(home['city']) + " in " + str(city[0])
-                temp['question']="""Please introduce yourself telling a bit about your time in %s and what brought you to %s"""%(home['city'],city[0])
+                temp['question']="""Introduce yourself telling a bit about your time in %s and what brought you to %s and what do you do now?"""%(home['city'],city[0])
                 temp['about'] = """This community aims to bring together %s so that we can socialise with other. Here we collaborate with each other by sharing knowledge, providing referrals (for jobs, accommodation, business, etc.), planning trips to %s, and having meaningful conversations. We also use this space to plan offline meetups.
 
-                                          Anytime if you are looking for a lead or offering some help, simply start a new conversation with relevant details and your ask from the community members. Relevant members can respond by simply chatting with you and each other on your conversation card. Members who want to follow the conversation can press the Follow button to receive notifications about future responses on the card.
+                            Anytime if you are looking for a lead or offering some help, simply start a new conversation with relevant details and your ask from the community members. Relevant members can respond by simply chatting with you and each other on your conversation card. Members who want to follow the conversation can press the Follow button to receive notifications about future responses on the card.
 
-                                          Please try to maintain conversations for each query or discussion on the conversation card so that only relevant members get notifications and all the conversations get documented for future reference of members of this community.""" % (
+                            Please try to maintain conversations for each query or discussion on the conversation card so that only relevant members get notifications and all the conversations get documented for future reference of members of this community.""" % (
                     temp['name'], home['city'])
+
+            tag_name=get_tag_by_name(home_place)
+
+            if home_place != hometown[3]:
+                if tag_name:
+                    temp['tags']['legacy'] = tag_name[0]
+                    if tag_name[2]:
+                        temp['image_url']=tag_name[2]
+                    if tag_name[1] is not None:
+                        data=json.loads(tag_name[1])
+                        if data['demonym']:
+                            temp['name']=data['demonym'] + " of " + city[0]
+                            temp['question'] = """Introduce yourself telling a bit about your time in %s and what brought you to %s and what do you do now?""" % (
+                            home_place, city[0])
+                            temp['about'] = """This community aims to bring together %s so that we can socialise with other. Here we collaborate with each other by sharing knowledge, providing referrals (for jobs, accommodation, business, etc.), planning trips to %s, and having meaningful conversations. We also use this space to plan offline meetups.
+
+                            Anytime if you are looking for a lead or offering some help, simply start a new conversation with relevant details and your ask from the community members. Relevant members can respond by simply chatting with you and each other on your conversation card. Members who want to follow the conversation can press the Follow button to receive notifications about future responses on the card.
+
+                            Please try to maintain conversations for each query or discussion on the conversation card so that only relevant members get notifications and all the conversations get documented for future reference of members of this community.""" % (
+                                temp['name'], home_place)
+
+                else:
+                    continue
+            else:
+                temp['tags']['legacy'] = hometown[3]
+                if hometown[2]:
+                    temp['image_url'] = hometown[2]
+            temp['tags']['geography'] = city[3]
 
             temp['purpose']="""For %s to socialise and help each other"""%(temp['name'])
 
             temp['geography']=str(city[0])
-            c=c+1
-            if hometown[2]:
-                temp['image_url'] = hometown[2]
-            temp['tags']['legacy'] = hometown[3]
-            temp['tags']['geography'] = city[3]
+
             community_id = is_community_tags_exists(temp)
             if not community_id:
                 insert_pre_create_community(temp)
             else:
                 update_pre_created_community(community_id, temp)
+
 
     print("L(hometown)G(City) communities created\n")
 
@@ -283,16 +321,20 @@ def college_skill(legacy_college,industry_skill):
                 elif 'csn' in leg_char and leg_char['csn']:
                     temp['name'] = leg_char['csn'] + " "+ str(skill[0])
                 else:
-                    temp['name'] = str(college[0]) + " Alumini in " + str(skill[0])
+                    temp['name']=str(college[0])+" Alumni in "+str(skill[0])
             elif college[1] is not None:
                 leg_char=json.loads(college[1])
                 if 'csn' in leg_char and leg_char['csn']:
-                    temp['name'] = leg_char['csn'] + " Alumini in "+ str(skill[0])
+                    temp['name'] = leg_char['csn'] + " Alumni in "+ str(skill[0])
+            elif skill[1] is not None:
+                prof_char=json.loads(skill[1])
+                print(prof_char)
+                temp['name'] = str(college[0]) + " " + str(prof_char['skill_experts'])
 
             else:
-                temp['name']=str(college[0])+" Alumini in "+str(skill[0])
+                temp['name']=str(college[0])+" Alumni in "+str(skill[0])
             temp['purpose']="""For %s alumni with expertise in %s to exchange knowledge and referrals"""%(college[0],skill[0])
-            temp['question']="""Please introduce yourself telling a bit about your background in %s"""%(skill[0])
+            temp['question']="""Introduce yourself telling a bit about your background in %s"""%(skill[0])
 
             temp['about']="""This community is exclusively for %s from %s across the globe. Here we exchange information, knowledge, documents and important links related to %s and have conversations on the same. We also use this space to help each other by providing referrals (for jobs, business introductions etc.), collaborate on projects and plan offline meetups.
 
@@ -331,22 +373,21 @@ def college_industry(legacy_college,profession_industry):
             if college[1] is not None:
                 leg_char=json.loads(college[1])
                 if 'csn' in leg_char and leg_char['csn']:
-                    temp['name']=leg_char['csn']+" Alumini in "+str(industry[0])
+                    temp['name']=leg_char['csn']+" Alumni in "+str(industry[0])
                 else:
-                    temp['name'] = str(college[0]) + " Alumini in " + str(industry[0])
+                    temp['name'] = str(college[0]) + " Alumni in " + str(industry[0])
 
             else:
-                temp['name'] = str(college[0]) + " Alumini in " + str(industry[0])
+                temp['name'] = str(college[0]) + " Alumni in " + str(industry[0])
 
             temp['purpose']="""For %s alumni working in %s industry to  exchange knowledge and referrals"""%(college[0],industry[0])
-            temp['question']="""Please introduce yourself telling a bit about your background in %s"""%(industry[0])
+            temp['question']="""Introduce yourself telling a bit about your background in %s"""%(industry[0])
             temp['about']="""This community aims to bring together %s alumni working in the %s space so that we can collaborate with each other. Here we exchange information, knowledge, documents and important links related to %s and have conversations on the same. We also use this space to help each other by providing referrals (for jobs, business introductions etc.), collaborate on projects and plan offline meetups.
 
- Anytime if you are looking for a lead or offering some help, simply start a new conversation with relevant details and your ask from the community members. Relevant members can respond by simply chatting with you and each other on your conversation card. Members who want to follow the conversation can press the Follow button to receive notifications about future responses on the card.
+                            Anytime if you are looking for a lead or offering some help, simply start a new conversation with relevant details and your ask from the community members. Relevant members can respond by simply chatting with you and each other on your conversation card. Members who want to follow the conversation can press the Follow button to receive notifications about future responses on the card.
 
- Please try to maintain conversations for each query or discussion on the conversation card so that only relevant members get notifications and all the responses get documented for future reference of members of this community."""%(college[0],industry[0],industry[0])
+                            Please try to maintain conversations for each query or discussion on the conversation card so that only relevant members get notifications and all the responses get documented for future reference of members of this community."""%(college[0],industry[0],industry[0])
             temp['geography']='Global'
-            print(temp['name'])
             if industry[2]:
                 temp['image_url'] = industry[2]
             temp['tags']['legacy'] = college[3]
@@ -375,11 +416,11 @@ def hobby_city(interest_hobby,geography_city):
             }
             if hobby[1] is not None:
                 interest_char = json.loads(hobby[1])
-
                 if not interest_char['hobbyists']:
                     interest_char['hobbyists']=hobby[0]+" enthusiast"
                 else:
-                    temp['name']=str(hobby[0])+" Enthusiasts of "+ str(city[0])
+                    name=str(interest_char['hobbyists'])
+                    temp['name']=name.capitalize()+" of "+ str(city[0])
 
                 if not interest_char['hobby_group_used_case']:
                     interest_char['hobby_group_used_case']="to pursue the hobby together"
@@ -391,11 +432,11 @@ def hobby_city(interest_hobby,geography_city):
                     interest_char['hobby_event']="query"
 
                 temp['purpose']="""For %s enthusiasts living in %s to find other %s in their neighbourhood and %s"""%(hobby[0],city[0],interest_char['hobbyists'],interest_char['hobby_group_used_case'])
-                temp['about']="""We beleive that every %s enthusiast should be able to find other %s whenever he or she wants  %s. This community aims to bring together all the %s enthusiasts living in %s to find other %s in their neighbourhood so that we can achieve this together.
+                temp['about']="""We believe that every %s enthusiast should be able to find other %s whenever he or she wants to %s. This community aims to bring together all the %s enthusiasts living in %s to find other %s in their neighbourhood so that we can achieve this together.
 
-Anytime if you are looking for people to %s, simply start a new conversation with relevant details and your ask from the community. Interested members can respond by simply chatting with you and each other on the conversation card. Members who want to follow the conversation can press the Follow button to receive notifications about future responses on the card.
+                            Anytime if you are looking for people to %s, simply start a new conversation with relevant details and your ask from the community. Interested members can respond by simply chatting with you and each other on your conversation card. Members who want to follow the conversation can press the Follow button to receive notifications about future responses on the card.
 
-Please try to maintain conversations for each %s on the conversation card for the [query or <<HobbyEvent>>] so that only relevant members get notifications."""%(hobby[0],interest_char['hobbyists'],interest_char['hobby_group_used_case'],hobby[0],city[0],interest_char['hobbyists'],interest_char['hobby_group_event'],interest_char['hobby_event'])
+                            Please try to maintain conversations for each %s on the conversation card for the %s so that only relevant members get notifications."""%(hobby[0],interest_char['hobbyists'],interest_char['hobby_group_used_case'],hobby[0],city[0],interest_char['hobbyists'],interest_char['hobby_group_event'],interest_char['hobby_event'],interest_char['hobby_event'])
 
             else:
                 temp['name'] = str(hobby[0])+" Enthusiasts of "+ str(city[0])
@@ -403,11 +444,11 @@ Please try to maintain conversations for each %s on the conversation card for th
 
                 temp['about']="""We beleive that every %s enthusiast should be able to find other %s enthusiast whenever he or she wants to pursue the hobby together . This community aims to bring together all the %s enthusiasts living in %s to find other %s in their neighbourhood so that we can solve this problem together.
 
-Anytime if you are looking for people to connect with you for something , simply start a new conversation with relevant details and your ask from the community. Interested members can respond by simply chatting with you and each other on the conversation card. Members who want to follow the conversation can press the Follow button to receive notifications about future responses on the card.
+                            Anytime if you are looking for people to connect with you for something , simply start a new conversation with relevant details and your ask from the community. Interested members can respond by simply chatting with you and each other on your conversation card. Members who want to follow the conversation can press the Follow button to receive notifications about future responses on the card.
 
-Please try to maintain conversations for each query  on the conversation card for the query  so that only relevant members get notifications."""%(hobby[0],hobby[0],hobby[0],city[0],hobby[0])
+                            Please try to maintain conversations for each query  on the conversation card for the query  so that only relevant members get notifications."""%(hobby[0],hobby[0],hobby[0],city[0],hobby[0])
             temp['geography']=city[0]
-            temp['question']="""Please introduce yourself telling a bit about your interest or skill level in %s"""%(hobby[0])
+            temp['question']="""Introduce yourself telling a bit about your interest or skill level in %s"""%(hobby[0])
             if hobby[2]:
                 temp['image_url'] = hobby[2]
             temp['tags']['interest'] = hobby[3]
@@ -440,7 +481,8 @@ def sport_city(interest_sport,geography_city):
                     temp['name'] = str(sport[0]) + " Enthusiasts of " + str(city[0])
 
                 else:
-                    temp['name'] = str(interest_char['sport_players']) + " of " + str(city[0])
+                    players=str(interest_char['sport_players'])
+                    temp['name'] = players.capitalize() + " of " + str(city[0])
 
                 if not interest_char[ 'sport_usecase']:
                     interest_char['sport_usecase']="play the sport"
@@ -452,34 +494,33 @@ def sport_city(interest_sport,geography_city):
                 temp['purpose']="""For %s enthusiasts living in %s to find other %s in their neighbourhood and %s """%(sport[0],city[0],interest_char[ 'sport_players'],interest_char['sport_usecase'])
                 temp['about']="""We believe that every %s enthusiast should be able to find other %s whenever he or she wants to %s. This community aims to bring together all the %s enthusiasts living in %s so that we can solve this problem together.
 
-Anytime if you are looking for people to join you for a %s, simply start a new conversation with the time, venue details, and the type of people you are looking for. Interested members can respond by simply chatting with you and each other on the conversation card. Members who want to follow the conversation can press the Follow button to receive notifications about future responses on the card.
+                            Anytime if you are looking for people to join you for a %s, simply start a new conversation with the time, venue details, and the type of people you are looking for. Interested members can respond by simply chatting with you and each other on your conversation card. Members who want to follow the conversation can press the Follow button to receive notifications about future responses on the card.
 
-Please try to maintain conversations for each %s on the conversation card for that %s so that only relevant members get notifications."""%(sport[0],interest_char[ 'sport_players'],interest_char[ 'sport_usecase'],sport[0],city[0],interest_char[ 'sport_event'],interest_char[ 'sport_event'],interest_char[ 'sport_event'])
+                            Please try to maintain conversations for each %s on the conversation card for that %s so that only relevant members get notifications."""%(sport[0],interest_char[ 'sport_players'],interest_char[ 'sport_usecase'],sport[0],city[0],interest_char[ 'sport_event'],interest_char[ 'sport_event'],interest_char[ 'sport_event'])
             else:
                 temp['name'] = """%s Enthusiasts of %s""" % (sport[0], city[0])
-                temp[
-                    'purpose'] = """For %s enthusiasts living in %s to find other %s enthusiasts in their neighbourhood to play together""" % (
+                temp['purpose'] = """For %s enthusiasts living in %s to find other %s enthusiasts in their neighbourhood to play together""" % (
                     sport[0], city[0], sport[0])
 
                 temp['about'] = """We believe that every %s enthusiast should be able to find other %s enthusiasts whenever he or she wants to play the sport. This community aims to bring together all the %s enthusiasts living in %s so that we can solve this problem together.
 
-Anytime if you are looking for people to join you for a game, simply start a new conversation with the time, venue details, and the type of people you are looking for. Interested members can respond by simply chatting with you and each other on the conversation card. Members who want to follow the conversation can press the Follow button to receive notifications about future responses on the card.
+                            Anytime if you are looking for people to join you for a game, simply start a new conversation with the time, venue details, and the type of people you are looking for. Interested members can respond by simply chatting with you and each other on your conversation card. Members who want to follow the conversation can press the Follow button to receive notifications about future responses on the card.
 
-Please try to maintain conversations for each game on the conversation card for that game so that only relevant members get notifications.""" % (
+                            Please try to maintain conversations for each game on the conversation card for that game so that only relevant members get notifications.""" % (
                     sport[0], sport[0], sport[0], city[0],
                 )
-            temp['question'] = """Please introduce yourself telling a bit about your skill level in %s""" % (
+            temp['question'] = """Introduce yourself telling a bit about your skill level in %s""" % (
                 sport[0])
-            temp['city'] = city[0]
+            temp['geography'] = city[0]
             if sport[2]:
                 temp['image_url'] = sport[2]
-                temp['tags']['interest'] = sport[3]
-                temp['tags']['geography'] = city[3]
-                community_id = is_community_tags_exists(temp)
-                if not community_id:
-                    insert_pre_create_community(temp)
-                else:
-                    update_pre_created_community(community_id, temp)
+            temp['tags']['interest'] = sport[3]
+            temp['tags']['geography'] = city[3]
+            community_id = is_community_tags_exists(temp)
+            if not community_id:
+                insert_pre_create_community(temp)
+            else:
+                update_pre_created_community(community_id, temp)
 
     print("I(sports)G(city) communities created\n")
 
@@ -505,7 +546,8 @@ def fan_city(interest_fan,geography_city):
                     interest_char['thing_fans']=str(fan[0])+" fans"
                     temp['name']=str(fan[0])+" Fans of "+str(city[0])
                 else:
-                    temp['name'] = """%s of %s""" % (interest_char['thing_fans'], city[0])
+                    thing_fan=interest_char['thing_fans']
+                    temp['name'] = """%s of %s""" % (thing_fan.capitalize(), city[0])
 
                 if not interest_char['thing_group_use_case']:
                     interest_char['thing_group_use_case']="plan hangouts and have conversations around "+interest_char['thing']
@@ -513,9 +555,9 @@ def fan_city(interest_fan,geography_city):
                 temp['purpose']="""For %s living in %s to find other %s in their neighbourhood to  %s"""%(interest_char['thing_fans'],city[0],interest_char['thing_fans'],interest_char['thing_group_use_case'])
                 temp['about'] = """We believe that every %s fanatic should be able to find other %s  whenever he or she wants to %s. This community aims to bring together all the %s  living in %s so that we can achieve this.
 
-                Anytime if you are looking for people to join you for a %s , simply start a new conversation with the time, venue details, and the type of people you are looking for. Interested members can respond by simply chatting with you and each other on the conversation card. Members who want to follow the conversation can press the Follow button to receive notifications about future responses on the card.
+                            Anytime if you are looking for people to join you for a %s , simply start a new conversation with the time, venue details, and the type of people you are looking for. Interested members can respond by simply chatting with you and each other on your conversation card. Members who want to follow the conversation can press the Follow button to receive notifications about future responses on the card.
 
-                Please try to maintain conversations for each %s  on the conversation card for the %s  so that only relevant members get notifications.""" % (
+                            Please try to maintain conversations for each %s  on the conversation card for the %s  so that only relevant members get notifications.""" % (
                     interest_char['thing'], interest_char['thing_fans'],interest_char['thing_group_use_case'],
                     interest_char['thing_fans'], city[0],interest_char['thing_event'],interest_char['thing_event'],interest_char['thing_event']
                 )
@@ -528,15 +570,11 @@ def fan_city(interest_fan,geography_city):
 
                 temp['purpose'] = """For %s enthusiasts living in %s to find other %s enthusiasts in their neighbourhood and  follow their passion""" % (
                 interest_char['thing'], city[0],interest_char['thing'])
-
-                temp['question'] = """Please introduce yourself telling a bit about your passion for %s""" % (
-                interest_char['thing'])
-
                 temp['about'] = """We believe that every %s fanatic should be able to find other %s fans whenever he or she wants to follow their passion together. This community aims to bring together all the %s fanatics living in %s so that we can achieve this.
 
-Anytime if you are looking for people to join you for a discussion or event , simply start a new conversation with the time, venue details, and the type of people you are looking for. Interested members can respond by simply chatting with you and each other on the conversation card. Members who want to follow the conversation can press the Follow button to receive notifications about future responses on the card.
+                            Anytime if you are looking for people to join you for a discussion or event , simply start a new conversation with the time, venue details, and the type of people you are looking for. Interested members can respond by simply chatting with you and each other your conversation card. Members who want to follow the conversation can press the Follow button to receive notifications about future responses on the card.
 
-Please try to maintain conversations for each discussion or event  on the conversation card for the discussion or event  so that only relevant members get notifications.""" % (
+                            Please try to maintain conversations for each discussion or event  on the conversation card for the discussion or event  so that only relevant members get notifications.""" % (
                 interest_char['thing'], interest_char['thing'],
                 interest_char['thing'], city[0],
                 )
@@ -545,7 +583,7 @@ Please try to maintain conversations for each discussion or event  on the conver
             temp['tags']['interest'] = fan[3]
             temp['tags']['geography'] = city[3]
             temp['geography'] = city[0]
-            temp['question'] = """Please introduce yourself telling a bit about your passion for %s""" % (
+            temp['question'] = """Introduce yourself telling a bit about your passion for %s""" % (
                 fan[0])
             community_id = is_community_tags_exists(temp)
             if not community_id:
@@ -573,12 +611,12 @@ def cause_city(interest_cause,geography_city):
                 if 'thing_event' in interest_char and interest_char['thing_event']:
                     temp['name']="""%s Residents For %s"""%(city[0],cause[0])
                     temp['purpose']="""For responsible citizens of %s willing to work for %s to plan, meet and work together for the cause"""%(city[0],cause[0])
-                    temp['question']="""Please introduce yourself telling a bit about your interest or experience of working for %s"""%(cause[0])
+                    temp['question']="""Introduce yourself telling a bit about your interest or experience in working for %s"""%(cause[0])
                     temp['about']="""Every cause is better served if people working towards it come together. Not just it gives us a sense of belongingness, but also makes it more fun thus increasing our motivation as well. This community aims to bring together all the residents of %s who are working or willing to work for %s so that we can fight for this cause together.
     
-    Anytime if you are planning to do something for %s and are looking for people to join you, simply start a new conversation with the time, venue details, and the type of people you are looking for. Interested members can respond by simply chatting with you and each other on the conversation card. Members who want to follow the conversation can press the Follow button to receive notifications about future responses on the card.
+                            Anytime if you are planning to do something for %s and are looking for people to join you, simply start a new conversation with the time, venue details, and the type of people you are looking for. Interested members can respond by simply chatting with you and each other on your conversation card. Members who want to follow the conversation can press the Follow button to receive notifications about future responses on the card.
     
-    Please try to maintain conversations for each %s on the conversation card for the %s so that only relevant members get notifications."""%(city[0],cause[0],cause[0],interest_char['thing_event'],interest_char['thing_event'])
+                            Please try to maintain conversations for each %s on the conversation card for the %s so that only relevant members get notifications."""%(city[0],cause[0],cause[0],interest_char['thing_event'],interest_char['thing_event'])
                     temp['geography']=city[0]
                     cause_city.append(temp)
                 else:
@@ -589,11 +627,11 @@ def cause_city(interest_cause,geography_city):
                         'purpose'] = """For responsible citizens of %s willing to work for %s to plan, meet and work together for the cause""" % (
                         city[0], cause[0])
                     temp[
-                        'question'] = """Please introduce yourself telling a bit about your interest or experience of working for %s""" % (
+                        'question'] = """Introduce yourself telling a bit about your interest or experience in working for %s""" % (
                         cause[0])
                     temp['about'] = """Every cause is better served if people working towards it come together. Not just it gives us a sense of belongingness, but also makes it more fun thus increasing our motivation as well. This community aims to bring together all the residents of %s who are working or willing to work for %s so that we can fight for this cause together.
 
-                                   Anytime if you are planning to do something for %s and are looking for people to join you, simply start a new conversation with the time, venue details, and the type of people you are looking for. Interested members can respond by simply chatting with you and each other on the conversation card. Members who want to follow the conversation can press the Follow button to receive notifications about future responses on the card.
+                                   Anytime if you are planning to do something for %s and are looking for people to join you, simply start a new conversation with the time, venue details, and the type of people you are looking for. Interested members can respond by simply chatting with you and each other on your conversation card. Members who want to follow the conversation can press the Follow button to receive notifications about future responses on the card.
 
                                    Please try to maintain conversations for each %s on the conversation card for the %s so that only relevant members get notifications.""" % (
                         city[0], cause[0], cause[0], interest_char['thing_event'], interest_char['thing_event'])
@@ -606,11 +644,11 @@ def cause_city(interest_cause,geography_city):
                     'purpose'] = """For responsible citizens of %s willing to work for %s to plan, meet and work together for the cause""" % (
                 city[0], cause[0])
                 temp[
-                    'question'] = """Please introduce yourself telling a bit about your interest or experience of working for %s""" % (
+                    'question'] = """Introduce yourself telling a bit about your interest or experience of working for %s""" % (
                 cause[0])
                 temp['about'] = """Every cause is better served if people working towards it come together. Not just it gives us a sense of belongingness, but also makes it more fun thus increasing our motivation as well. This community aims to bring together all the residents of %s who are working or willing to work for %s so that we can fight for this cause together.
 
-                Anytime if you are planning to do something for %s and are looking for people to join you, simply start a new conversation with the time, venue details, and the type of people you are looking for. Interested members can respond by simply chatting with you and each other on the conversation card. Members who want to follow the conversation can press the Follow button to receive notifications about future responses on the card.
+                Anytime if you are planning to do something for %s and are looking for people to join you, simply start a new conversation with the time, venue details, and the type of people you are looking for. Interested members can respond by simply chatting with you and each other on your conversation card. Members who want to follow the conversation can press the Follow button to receive notifications about future responses on the card.
 
                 Please try to maintain conversations for each %s on the conversation card for the %s so that only relevant members get notifications.""" % (
                 city[0], cause[0], cause[0], interest_char['thing_event'], interest_char['thing_event'])
@@ -655,13 +693,10 @@ def pre_create_communities(tag_id=0):
     if tag_id:
         tags_data=get_tag_by_id(tag_id)
         attribute_id=tags_data[0][4]
-
         if attribute_id is 2:                                            #college
             legacy_college=tags_data
             college_city(legacy_college, geography_city)
-
             college_industry(legacy_college, profession_industry)
-
             college_skill(legacy_college, industry_skill)
 
 
@@ -759,14 +794,13 @@ def insert_pre_create_community(community):
     community['active_since']=d
     print(community)
     print("\n\n")
-
     try:
         conn = get_connection()
         curr = conn.cursor()
-
+        hide_community='3'
         # inserting the communities
-        sql="insert into togther_community(name,about,purpose,location,created_at,updated_at,image_url,members_count,active_since) values(%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id;"
-        parameter_list=[community['name'],community['about'],community['purpose'],community['geography'],community['created_at'],community['updated_at'],community['image_url'],community['member_count'],community['active_since']]
+        sql="insert into togther_community(name,about,purpose,location,created_at,updated_at,image_url,members_count,active_since,hide_community) values(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id;"
+        parameter_list=[community['name'],community['about'],community['purpose'],community['geography'],community['created_at'],community['updated_at'],community['image_url'],community['member_count'],community['active_since'],hide_community]
         curr.execute(sql, parameter_list)
         conn.commit()
         count = curr.rowcount
@@ -809,12 +843,37 @@ def insert_pre_create_community(community):
         curr.close()
         conn.close()
     except (Exception, psycopg2.Error) as error:
+        print(error)
         print("Error while connecting  to PostgreSQL", error)
+
+
+def get_members_of_community(community_id):
+    '''function to get members of community if exist'''
+    try:
+        conn = get_connection()
+        curr = conn.cursor()
+        sql = "select member_id_id,state from togther_members where community_id_id=%s"
+        curr.execute(sql,[community_id])
+        res = curr.fetchall()
+        curr.close()
+        conn.close()
+        if res:
+            return res
+
+    except (Exception, psycopg2.Error) as error:
+        print("Error while connecting to PostgreSQL  ", error)
 
 
 def update_pre_created_community(community_id,community):
 
     '''function to update the community if its characterstics or image are changed'''
+
+    has_members=get_members_of_community(community_id)
+
+    if has_members:
+        print("Some Members are already present")
+        return
+
     if 'image_url' not in community:
         community['image_url'] = 'media/community/default.jpeg'
     print(community)
@@ -823,11 +882,12 @@ def update_pre_created_community(community_id,community):
     try:
         conn = get_connection()
         curr = conn.cursor()
-
+        updated_at=time.time()
+        hide_community='3'
         # inserting the communities
-        sql = "update togther_community set name=%s,about=%s,purpose=%s,location=%s,image_url=%s where id=%s"
+        sql = "update togther_community set name=%s,about=%s,purpose=%s,location=%s,image_url=%s,updated_at=%s,hide_community=%s where id=%s"
         parameter_list = [community['name'], community['about'], community['purpose'], community['geography'],
-                          community['image_url'],community_id
+                          community['image_url'],updated_at,hide_community,community_id
                          ]
         curr.execute(sql, parameter_list)
         conn.commit()
@@ -872,3 +932,4 @@ if envir:
     if __name__=="__main__":
 
         pre_create_communities()
+
