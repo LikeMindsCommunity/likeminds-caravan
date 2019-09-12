@@ -33,7 +33,7 @@ api_url = url + '/api/'
 def dashboard(request):
   '''function to give list of community to edit'''
 
-  community_list=Community.objects.all().order_by('-created_at', '-active_since')
+  community_list=Community.objects.all().order_by('-updated_at', '-active_since')
   dashboard_list=[]
 
   page = request.GET.get('page', 1)
@@ -1850,8 +1850,8 @@ def tag_update_form(request,tag_id):
         tag.tag_characterstics = json.dumps(characteristics)
         tag.save()
 
-        base_url = reverse('update_tag')  # 1 /products/
-        query_string = urlencode({'updated':True})  # 2 category=42
+        base_url = reverse('update_tag')
+        query_string = urlencode({'updated':True})
         url = '{}?{}'.format(base_url, query_string)
         pre_create_communities.delay(tag_id=tag_id)
         return redirect(url)

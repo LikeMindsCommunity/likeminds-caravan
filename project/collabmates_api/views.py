@@ -138,8 +138,8 @@ def serialize_community(queryset):
                 comm=Community.objects.get(id=community)
         # check if the community is hidden or not
 
-        if comm.hide_community == '0':
-            # if not hidden , pass the community object to serializer
+        if comm.hide_community == '0' or comm.hide_community == '3':
+            # if not hidden , pass the community object to serializer or pre-created
             serialized_object = CommunitySerializer(comm)
             new_dict = {}
             # form a dictionary of community objects
