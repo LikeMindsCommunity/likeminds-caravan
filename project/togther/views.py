@@ -252,6 +252,10 @@ def community(request, community_id):
                                # 'community_tag': community_tag,
                                'onboard':onboard})
 
+        elif cta == 'ref':
+            if request.user.is_authenticated:
+                return  redirect('refer_members',community_id=community.id)
+
     else:
         cta = ''
     if request.user.is_authenticated:

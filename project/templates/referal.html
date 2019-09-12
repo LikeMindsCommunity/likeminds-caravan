@@ -5,6 +5,7 @@
 <body>
 {% block content %}
 
+{% autoescape off %}
 <script>
 $(document).ready(function(){
  $('#ref').click(function(){
@@ -26,7 +27,7 @@ $(document).ready(function(){
 });
 });
 </script>
-
+{% endautoescape %}
 
 
 <h1>
