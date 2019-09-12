@@ -1564,40 +1564,49 @@ def save_user_lpig_tags(user_id,legacy_tags,profession_tags,interest_tags,greogr
 
             if str(tag[0].tags_id.id) != '18':
                 tag.delete()
-    update_user_geography_tags(user, type='Geography')
+    update_user_geography_tags(user_id=user_id, typ='Geography')
 
-def update_user_geography_tags(user, type=''):
 
+def update_user_geography_tags(user_id, typ=''):
+
+    user = User.objects.get(id=user_id)
     print("inside function")
     user_tags_list = []
-    if type == 'Geography':
+    if typ == 'Geography':
         user_tags_list = list(User_Geography.objects.filter(user_id=user).values_list("tags_id",flat=True))
-    elif type == 'Legacy':
+    elif typ == 'Legacy':
         user_tags_list = list(User_Legacy.objects.filter(user_id=user, tags_id__attribute_id=3).values_list("tags_id",flat=True))
 
     # save city,district state and country of a particular city tag
     for each_tag in user_tags_list:
         tag = Tags_lpig.objects.get(pk=each_tag)
         tag_name = tag.name
+        if tag.id == 15 or tag.id == 16 or tag.id == 17 or tag.id == 18:
+            continue
+        print('tag_name',tag_name)
         geography_list = get_city_address(city = tag_name)
         print('geography_list ====',geography_list,type(geography_list))
 
-        for tag in geography_list.values():
-            print("tag >>>>> ",tag)
 
-        for key,tag in geography_list:
-            #print("tag >>>>> ",tag)
-            tag = Tags_lpig.objects.filter(name=tag)
+        for attr,tag_name in geography_list.items():
 
+            print(">>>>>>>>",tag_name)
+            if tag_name == '':
+                continue
+            tag = Tags_lpig.objects.filter(name=tag_name)
+            print("tag <<<<<<<  ",tag,tag.exists())
             if not tag.exists():
-                if type == 'Geography':
-                    tag = create_uncategorized_tag(tag=tag_name,tag_type='Geography')
+                if typ == 'Geography':
+                    tag = create_categorized_tag(tag=tag_name,category='Geography',attribute=attr)
                     print('created tag ====== ',tag)
-                elif type == 'Legacy':
-                    tag = create_uncategorized_tag(tag=tag_name,tag_type='Legacy')
-                    print('created tag ====== ',tag)
+                elif typ == 'Legacy':
+                    tag = create_categorized_tag(tag=tag_name,category='Legacy',attribute=attr)
+                    #print('created tag ====== ',tag)
+            else:
+                tag = tag[0]
 
-            if type == 'Geography':
+
+            if typ == 'Geography':
                 user_geo_tag = User_Geography.objects.filter(tags_id=tag, user_id=user)
 
                 if not user_geo_tag.exists():
@@ -1606,13 +1615,41 @@ def update_user_geography_tags(user, type=''):
                     user_geo_tag.user_id = user
                     user_geo_tag.save()
                 print('user_geo_tag === ',user_geo_tag)
-            elif type == 'Legacy':
+            elif typ == 'Legacy':
                 user_legacy_tag = User_Legacy.objects.filter(tags_id=tag, user_id=user)
                 if not user_legacy_tag.exists():
                     user_tag = User_Legacy()
                     user_tag.tags_id = tag
                     user_tag.user_id = user
                     user_tag.save()
+
+
+def create_categorized_tag(tag,category,attribute):
+    ''' function to create a un-categorized tag '''
+
+    new_tag = tag
+    new_tag = new_tag.strip().capitalize()
+    if new_tag!='':
+        category = Category.objects.filter(Q(name__icontains=category))[0]
+        if not (category == 'Geography' and attribute == 'district'):
+
+            attribute = Attributes.objects.filter(Q(attribute_name__icontains=attribute))[0]
+            tag = Tags_lpig.objects.filter(name = new_tag)
+            if not tag.exists():
+                tag = Tags_lpig()
+                tag.name = new_tag
+                tag.category_id = category
+                tag.attribute_id = attribute
+                tag.save()
+                tag.tag_id = tag.id
+                tag.save()
+            else:
+                tag = tag[0]
+            if category == 'Geography':
+                tag_name, tag_id = new_tag, tag.id
+                update_tag_image.delay(tag_name=tag_name, tag_id=tag_id)
+            return tag
+    return None
 
 
 def map_tags(request):
@@ -1732,18 +1769,19 @@ def tag_update_form(request,tag_id):
         elif attr_id == 5:
             form = Profession_Skill_Form(request.POST, request.FILES)
             if form.is_valid():
+                skill_name = form.cleaned_data['skill_name']
                 skill_experts = form.cleaned_data['skill_experts']
                 image = form.cleaned_data['image']
-                characteristics = {'skill_experts': skill_experts}
+                characteristics = {'skill_experts': skill_experts,'skill_name':skill_name}
 
-        # elif attr_id == 6:
-        #     form = Profession_Industry_Form(request.POST, request.FILES)
-        #     if form.is_valid():
-        #         demonym = form.cleaned_data['demonym']
-        #         short_name = form.cleaned_data['short_name']
-        #         image = form.cleaned_data['image']
-        #
-        #         characteristics = {'demonym': demonym, 'csn': short_name}
+        elif attr_id == 6:
+            form = Profession_Industry_Form(request.POST, request.FILES)
+            if form.is_valid():
+                # demonym = form.cleaned_data['demonym']
+                industry_name = form.cleaned_data['industry_name']
+                image = form.cleaned_data['image']
+
+                characteristics = {'industry_name': industry_name}
 
 
         elif attr_id == 8:
@@ -1761,11 +1799,13 @@ def tag_update_form(request,tag_id):
                 hobby_group_used_case = form.cleaned_data['hobby_group_used_case']
                 hobby_group_event = form.cleaned_data['hobby_group_event']
                 hobby_event = form.cleaned_data['hobby_event']
+                hobby_name = form.cleaned_data['hobby_name']
                 image = form.cleaned_data['image']
                 characteristics = {'hobbyists': hobbyists,
                                    'hobby_group_used_case': hobby_group_used_case,
                                    'hobby_group_event':hobby_group_event,
                                    'hobby_event':hobby_event,
+                                   'hobby_name': hobby_name,
                                    }
 
         elif attr_id == 10:
@@ -1781,13 +1821,13 @@ def tag_update_form(request,tag_id):
             form = Interests_Fan_Form(request.POST, request.FILES)
             if form.is_valid():
                 thing = form.cleaned_data['thing']
-                thing_fan_group_name = form.cleaned_data['thing_fan_group_name']
+                #thing_fan_group_name = form.cleaned_data['thing_fan_group_name']
                 thing_fans = form.cleaned_data['thing_fans']
                 thing_group_use_case = form.cleaned_data['thing_group_use_case']
                 thing_event = form.cleaned_data['thing_event']
                 image = form.cleaned_data['image']
                 characteristics = {'thing': thing,
-                                   'thing_fan_group_name': thing_fan_group_name,
+                                   #'thing_fan_group_name': thing_fan_group_name,
                                    'thing_fans': thing_fans,
                                    'thing_group_use_case': thing_group_use_case,
                                    'thing_event': thing_event,
@@ -1810,8 +1850,8 @@ def tag_update_form(request,tag_id):
         tag.tag_characterstics = json.dumps(characteristics)
         tag.save()
 
-        base_url = reverse('update_tag')  # 1 /products/
-        query_string = urlencode({'updated':True})  # 2 category=42
+        base_url = reverse('update_tag')
+        query_string = urlencode({'updated':True})
         url = '{}?{}'.format(base_url, query_string)
         pre_create_communities.delay(tag_id=tag_id)
         return redirect(url)
@@ -1824,6 +1864,8 @@ def tag_update_form(request,tag_id):
             char={}
             if tag.tag_characterstics:
                 char = json.loads(tag.tag_characterstics)
+                if not char:
+                    char = {}
             demonym = None
             short_name = None
             if 'demonym' in char:
@@ -1838,6 +1880,8 @@ def tag_update_form(request,tag_id):
             char = {}
             if tag.tag_characterstics:
                 char = json.loads(tag.tag_characterstics)
+                if not char:
+                    char = {}
             demonym = None
             short_name = None
             if 'home_demonym' in char:
@@ -1851,34 +1895,41 @@ def tag_update_form(request,tag_id):
             char = {}
             if tag.tag_characterstics:
                 char = json.loads(tag.tag_characterstics)
+                if not char:
+                    char = {}
             skill_experts = None
+            skill_name = None
             if 'skill_experts' in char:
                 skill_experts = char['skill_experts']
+            if 'skill_name' in char:
+                skill_name = char['skill_name']
 
-            characteristics = {'skill_experts': skill_experts}
+            characteristics = {'skill_experts': skill_experts,'skill_name':skill_name}
 
             form = Profession_Skill_Form(characteristics)
-        # elif attr_id == 6:
-        #
-        #     char = {}
-        #     if tag.tag_characterstics:
-        #         char = json.loads(tag.tag_characterstics)
-        #     demonym = None
-        #     short_name = None
-        #
-        #     if 'demonym' in char:
-        #         demonym = char['demonym']
-        #     if 'csn' in char:
-        #         short_name = char['csn']
-        #     characteristics = {'demonym': demonym, 'short_name': short_name}
-        #
-        #     form = Profession_Industry_Form(characteristics)
+        elif attr_id == 6:
+
+            char = {}
+            if tag.tag_characterstics:
+                print("inside")
+                char = json.loads(tag.tag_characterstics)
+                if not char:
+                    char = {}
+
+            industry_name = None
+            if 'industry_name' in char:
+                industry_name = char['industry_name']
+            characteristics = {'industry_name': industry_name}
+
+            form = Profession_Industry_Form(characteristics)
         elif attr_id == 8:
 
             char = {}
             thing_event = None
             if tag.tag_characterstics:
                 char = json.loads(tag.tag_characterstics)
+                if not char:
+                    char = {}
 
             if 'thing_event' in char:
                 thing_event = char['thing_event']
@@ -1893,9 +1944,12 @@ def tag_update_form(request,tag_id):
             hobby_group_used_case = None
             hobby_group_event = None
             hobby_event = None
+            hobby_name = None
 
             if tag.tag_characterstics:
                 char = json.loads(tag.tag_characterstics)
+                if not char:
+                    char = {}
 
             if 'hobbyists' in char:
                 hobbyists = char['hobbyists']
@@ -1909,10 +1963,14 @@ def tag_update_form(request,tag_id):
             if 'hobby_event' in char:
                 hobby_event = char['hobby_event']
 
+            # hobby_name
+            if 'hobby_name' in char:
+                hobby_name = char['hobby_name']
             characteristics = {'hobbyists': hobbyists,
                                'hobby_group_used_case': hobby_group_used_case,
                                'hobby_group_event': hobby_group_event,
-                               'hobby_event': hobby_event
+                               'hobby_event': hobby_event,
+                               'hobby_name':hobby_name,
                                }
 
             form = Interests_Hobby_Form(characteristics)
@@ -1926,6 +1984,8 @@ def tag_update_form(request,tag_id):
 
             if tag.tag_characterstics:
                 char = json.loads(tag.tag_characterstics)
+                if not char:
+                    char = {}
 
             if 'sport_players' in char:
                 sport_players = char['sport_players']
@@ -1952,6 +2012,8 @@ def tag_update_form(request,tag_id):
 
             if tag.tag_characterstics:
                 char = json.loads(tag.tag_characterstics)
+                if not char:
+                    char = {}
 
             if 'thing' in char:
                 thing = char['thing']
@@ -1982,6 +2044,8 @@ def tag_update_form(request,tag_id):
             char = {}
             if tag.tag_characterstics:
                 char = json.loads(tag.tag_characterstics)
+                if not char:
+                    char = {}
             demonym = None
             if 'demonym' in char:
                 demonym = char['demonym']

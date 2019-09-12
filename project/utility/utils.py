@@ -118,14 +118,14 @@ def update_tag_image(tag_name, tag_id):
         if 'thumbnail' in response['query']['pages'][0]:
 
             tag_obj = Tags_lpig.objects.get(pk = tag_id)
-            file_name = '/media/tags_images/' + tag_name + "__tag.jpeg"
+            file_name = 'media/tags_images/' + tag_name + "__tag.jpeg"
             if not tag_obj.tag_image:
 
                 image_url = response['query']['pages'][0]['thumbnail']['source']
                 img_data = rqst.get(image_url).content
                 # file_name = '/media/tags_images/' + tag_name + "__tag.jpeg"
 
-                path = os.path.join(os.path.split(os.path.dirname(__file__))[0], 'media', )
+                path = os.path.join(os.path.split(os.path.dirname(__file__))[0], 'media/', )
                 to_path = path + file_name
 
                 print(to_path)
