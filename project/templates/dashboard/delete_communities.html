@@ -1,6 +1,29 @@
 <html>
+<head>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+<script>
+$(document).ready(function(){
+ $('#click').click(function(){
+        if (navigator.share) {
+    navigator.share({
+      title: 'WebShare API Demo',
+      url: 'https://codepen.io/ayoisaiah/pen/YbNazJ'
+    }).then(() => {
+      console.log('Thanks for sharing!');
+    })
+    .catch(console.error);
+  } else {
+    // fallback
+  }
 
+  console.log('Working')
+});
+
+});
+</script>
+</head>
 <body>
+<button id="click">Link</button>
 <h1>Deleted Communities</h1>
 {% for community in community_list %}
 
