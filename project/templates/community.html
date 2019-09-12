@@ -214,7 +214,7 @@
                 <div class="center aligned container">
                     <div class="content">
                         {% if cta == 'ref' %}
-                        <a href="{% url 'social:begin' 'facebook-oauth2' %}?next={{ request.path }}?cta={{cta}}&ref_id={{ref_id}}">
+                        <a href="{% url 'social:begin' 'facebook-oauth2' %}?next={{ request.path }}?cta=interested&ref_id={{ref_id}}">
                         <button class="ui facebook button" style="width:130px;">
                         {% elif cta != '' %}
                         <a href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta={{cta}}">
@@ -234,7 +234,7 @@
                                 <br>
                                 <div class="content">
                                     {% if cta == 'ref' %}
-                                    <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta={{cta}}&ref_id={{ref_id}}">
+                                    <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=interested&ref_id={{ref_id}}">
                                         <button class="ui linkedin button" style="width:130px;">
                                     {% elif cta != '' %}
                                     <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta={{cta}}">

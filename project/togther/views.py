@@ -254,7 +254,7 @@ def community(request, community_id):
                                # 'community_tag': community_tag,
                                'onboard':onboard})
 
-        elif cta == 'ref':
+        elif cta == 'interested':
             if request.user.is_authenticated:
 
                 if ref_id != '':
