@@ -360,7 +360,7 @@ def refer_members(request,community_id):
                 for interested_member in total_referals:
                     Members.objects.filter(community_id=community,
                                            member_id=interested_member.invited_member).update(state=3)
-        share_url = url + '/community/' + str(community_id)+"?cta=ref&ref_id="+str(request.user.id)
+        share_url = url + '/community/' + str(community_id)+"?cta=ref&member_id="+str(request.user.id)
         print('share_url >>>>>>> ',share_url)
         # return redirect('comunity', community_id=community.id)
         return  render(request,'referal.html',{'share_url':share_url})
