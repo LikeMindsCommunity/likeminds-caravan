@@ -1631,24 +1631,26 @@ def create_categorized_tag(tag,category,attribute):
     new_tag = new_tag.strip().capitalize()
     if new_tag!='':
         category = Category.objects.filter(Q(name__icontains=category))[0]
-        if not (category == 'Geography' and attribute == 'district'):
+        if not attribute == 'district':
 
-            attribute = Attributes.objects.filter(Q(attribute_name__icontains=attribute))[0]
-            tag = Tags_lpig.objects.filter(name = new_tag)
-            if not tag.exists():
-                tag = Tags_lpig()
-                tag.name = new_tag
-                tag.category_id = category
-                tag.attribute_id = attribute
-                tag.save()
-                tag.tag_id = tag.id
-                tag.save()
-            else:
-                tag = tag[0]
-            if category == 'Geography':
-                tag_name, tag_id = new_tag, tag.id
-                update_tag_image.delay(tag_name=tag_name, tag_id=tag_id)
-            return tag
+            attribute = Attributes.objects.filter(Q(attribute_name__icontains=attribute))
+            if attribute.exists():
+                attribute = attribute[0]
+                tag = Tags_lpig.objects.filter(name = new_tag)
+                if not tag.exists():
+                    tag = Tags_lpig()
+                    tag.name = new_tag
+                    tag.category_id = category
+                    tag.attribute_id = attribute
+                    tag.save()
+                    tag.tag_id = tag.id
+                    tag.save()
+                else:
+                    tag = tag[0]
+                if category == 'Geography':
+                    tag_name, tag_id = new_tag, tag.id
+                    update_tag_image.delay(tag_name=tag_name, tag_id=tag_id)
+                return tag
     return None
 
 
