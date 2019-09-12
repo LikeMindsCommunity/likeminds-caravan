@@ -104,6 +104,7 @@ class Legacy_Hometown_Form(forms.Form):
 
 
 class Profession_Skill_Form(forms.Form):
+    skill_name = forms.CharField(label='Skill Name', max_length=50, required=False,widget=forms.TextInput(attrs={'placeholder':'Skill Name','class':'form-control form-group'}))
     skill_experts = forms.CharField(label='Skill Experts', max_length=50, required=False,widget=forms.TextInput(attrs={'placeholder':'Skill Experts','class':'form-control form-group'}))
     image = forms.ImageField(label='Select Image', required=False,widget=forms.FileInput(attrs=({'class': 'file-upload btn btn-primary'})))
 
@@ -136,7 +137,7 @@ class Interests_Sports_Form(forms.Form):
 
 class Interests_Fan_Form(forms.Form):
     thing = forms.CharField(label='Thing', max_length=50, required=False,widget=forms.TextInput(attrs={'placeholder':'Thing','class':'form-control form-group'}))
-    thing_fan_group_name = forms.CharField(label='Thing Fan Group Name', max_length=50, required=False,widget=forms.TextInput(attrs={'placeholder':'Thing Fan Group Name','class':'form-control form-group'}))
+    #thing_fan_group_name = forms.CharField(label='Thing Fan Group Name', max_length=50, required=False,widget=forms.TextInput(attrs={'placeholder':'Thing Fan Group Name','class':'form-control form-group'}))
     thing_fans = forms.CharField(label='Thing Fans', max_length=50, required=False,widget=forms.TextInput(attrs={'placeholder':'Thing Fans','class':'form-control form-group'}))
     thing_group_use_case = forms.CharField(label='Thing Group Use Case', max_length=50, required=False,widget=forms.TextInput(attrs={'placeholder':'Thing Group Use Case','class':'form-control form-group'}))
     thing_event = forms.CharField(label='Thing Event', max_length=50, required=False,widget=forms.TextInput(attrs={'placeholder':'Thing Event','class':'form-control form-group'}))

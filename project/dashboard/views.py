@@ -1769,9 +1769,10 @@ def tag_update_form(request,tag_id):
         elif attr_id == 5:
             form = Profession_Skill_Form(request.POST, request.FILES)
             if form.is_valid():
+                skill_name = form.cleaned_data['skill_name']
                 skill_experts = form.cleaned_data['skill_experts']
                 image = form.cleaned_data['image']
-                characteristics = {'skill_experts': skill_experts}
+                characteristics = {'skill_experts': skill_experts,'skill_name':skill_name}
 
         # elif attr_id == 6:
         #     form = Profession_Industry_Form(request.POST, request.FILES)
@@ -1818,13 +1819,13 @@ def tag_update_form(request,tag_id):
             form = Interests_Fan_Form(request.POST, request.FILES)
             if form.is_valid():
                 thing = form.cleaned_data['thing']
-                thing_fan_group_name = form.cleaned_data['thing_fan_group_name']
+                #thing_fan_group_name = form.cleaned_data['thing_fan_group_name']
                 thing_fans = form.cleaned_data['thing_fans']
                 thing_group_use_case = form.cleaned_data['thing_group_use_case']
                 thing_event = form.cleaned_data['thing_event']
                 image = form.cleaned_data['image']
                 characteristics = {'thing': thing,
-                                   'thing_fan_group_name': thing_fan_group_name,
+                                   #'thing_fan_group_name': thing_fan_group_name,
                                    'thing_fans': thing_fans,
                                    'thing_group_use_case': thing_group_use_case,
                                    'thing_event': thing_event,
