@@ -1,17 +1,45 @@
 <!DOCTYPE html>
 {% extends 'base.html' %}
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
+
 <body>
 {% block content %}
+
+<script>
+$(document).ready(function(){
+ $('#ref').click(function(){
+        var link='{{share_url}}'
+        if (navigator.share) {
+    navigator.share({
+      title: 'Referal Link',
+      url: link
+    }).then(() => {
+      console.log('Thanks for sharing!');
+    })
+    .catch(console.error);
+  } else {
+    // fallback
+  }
+
+  var link='{{share_url}}'
+  console.log(link)
+});
+});
+</script>
+
+
+
 <h1>
     Referal Page
+
 </h1>
+
+
+<button class="ui button" id="ref">Refer </button>
 {% endblock %}
 </body>
 </html>
+
+
 
 
