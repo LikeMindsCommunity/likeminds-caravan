@@ -1020,7 +1020,7 @@ def create_uncategorized_tag(tag,tag_type):
             tag = tag[0]
         if tag_type == 'Geography':
             tag_name, tag_id = new_tag, tag.id
-            update_tag_image.delay(tag_name=tag_name, tag_id=tag_id)
+            #update_tag_image.delay(tag_name=tag_name, tag_id=tag_id)
         return tag
     return None
 
@@ -1686,7 +1686,7 @@ def create_categorized_tag(tag,category,attribute):
                 # tag is of category type geography update or create tag image
                 if category.name == 'Geography':
                     tag_name, tag_id = new_tag, tag.id
-                    update_tag_image.delay(tag_name=tag_name, tag_id=tag_id)
+                    #update_tag_image.delay(tag_name=tag_name, tag_id=tag_id)
                 return tag
             return None
         return None
@@ -2205,5 +2205,46 @@ def delete_tags_post(request,tag_id):
 
     return redirect(url)
 
+
+def rename_tag(request,tag_id = None):
+
+    if not tag_id:
+        updated = request.GET.get('updated', False)
+        tag_id = request.GET.get('tag_id', '')
+        old_name = request.GET.get('old_name', '')
+
+        tag_name = ''
+        if tag_id :
+            try:
+                tag = Tags_lpig.objects.get(pk=tag_id)
+                tag_name = tag.name
+            except:
+                pass
+        print("tag name ======= ", tag_name)
+        # get all tags
+        tags = Tags_lpig.objects.all()
+        return render(request, 'dashboard/rename_tag.html',
+                      {'tags': tags, 'updated': updated, 'old_name': old_name, 'tag_name': tag_name})
+
+    elif tag_id:
+        print('>>>>>> ',tag_id)
+
+        rename_to = request.GET['rename_to']
+        print("new name ===== ",rename_to)
+        old_name = ''
+        if tag_id :
+            try:
+                tag = Tags_lpig.objects.get(pk=tag_id)
+                old_name = tag.name
+                tag.name = rename_to
+                tag.save()
+            except:
+                pass
+
+        base_url = '/admin_dashboard/rename_tag'
+        query_string = urlencode({'updated': True, 'old_name': old_name, 'tag_id': tag_id})
+        url = '{}?{}'.format(base_url, query_string)
+
+        return redirect(url)
 
 
