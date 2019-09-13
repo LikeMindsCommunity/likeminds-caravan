@@ -92,7 +92,6 @@ def is_community_tags_exists(temp):
 def get_tag_by_id(id):
 
     '''function to get tag by id'''
-
     try:
         conn = get_connection()
         curr = conn.cursor()
@@ -712,8 +711,6 @@ def pre_create_communities(tag_id=0):
     interest_sport = get_attribute_data(10)
     interest_fan = get_attribute_data(11)
     interest_cause = get_attribute_data(8)
-
-
     if tag_id:
         tags_data=get_tag_by_id(tag_id)
         attribute_id=tags_data[0][4]
@@ -814,7 +811,7 @@ def insert_pre_create_community(community):
     community['updated_at']=time.time()
     community['member_count']=0
     today=date.today()
-    d=today.strftime("%d-%m-%Y")
+    d=today.strftime("%Y-%m-%d")
     community['active_since']=d
     print(community)
     print("\n\n")

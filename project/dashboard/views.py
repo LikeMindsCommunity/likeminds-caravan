@@ -121,10 +121,13 @@ def update_form(request,community_id):
         member_id=0
         purpose=""
         rename = False
+        hide_community=3
         if community_form.is_valid():
             purpose=community_form.cleaned_data['purpose']
             for_string=purpose.split(' ', 1)[0]
             purpose = "Created this community " + for_string.lower() + purpose.split("For", 1)[1]
+            hide_community=community_form.cleaned_data['hide_community']
+
             # deleting the old file after new file is updated
             # get the new image file
             new_image_file = community_form.cleaned_data['image_url']
@@ -140,20 +143,24 @@ def update_form(request,community_id):
                 member_id=admin.member_id
                 break;
 
-        try:
-            collabcard=Collabcard.objects.get(id=community.purpose_collabcard)
-            collabcard.title=purpose
-            collabcard.save()
-        except:
-            collabcard=Collabcard()
-            collabcard.title = purpose
-            collabcard.user = member_id
-            collabcard.community_id = community_id
-            collabcard.date_epoch = time.time()
-            collabcard.save()
-            community.purpose_collabcard=collabcard.id
-            community.save()
-        community_form.save()
+        if hide_community != '3':
+            try:
+                collabcard=Collabcard.objects.get(id=community.purpose_collabcard)
+                collabcard.title=purpose
+                collabcard.save()
+            except:
+                collabcard=Collabcard()
+                collabcard.title = purpose
+                collabcard.user = member_id
+                collabcard.community_id = community_id
+                collabcard.date_epoch = time.time()
+                collabcard.save()
+                community.purpose_collabcard=collabcard.id
+                community.save()
+            community_form.save()
+        else:
+            community_form.save()
+
 
         # renaming the image
         if rename:

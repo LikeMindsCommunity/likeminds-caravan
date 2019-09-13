@@ -380,6 +380,8 @@ def refer_members(request,community_id):
         return  render(request,'referal.html',{'share_url':share_url})
 
 
+
+
 def get_members_of_community(community):
     ''' function to get admins and members of a community '''
 
