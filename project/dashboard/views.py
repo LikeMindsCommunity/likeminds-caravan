@@ -2231,12 +2231,13 @@ def rename_tag(request,tag_id = None):
 
         rename_to = request.GET['rename_to']
         print("new name ===== ",rename_to)
+        new_name = rename_to.strip().capitalize()
         old_name = ''
         if tag_id :
             try:
                 tag = Tags_lpig.objects.get(pk=tag_id)
                 old_name = tag.name
-                tag.name = rename_to
+                tag.name = new_name
                 tag.save()
             except:
                 pass
