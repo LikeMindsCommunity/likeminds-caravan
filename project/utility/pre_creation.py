@@ -334,7 +334,7 @@ def college_skill(legacy_college,industry_skill):
             elif skill[1] is not None:
                 prof_char=json.loads(skill[1])
                 print(prof_char)
-                temp['name'] = str(college[0]) + " " + str(prof_char['skill_experts'])
+                temp['name'] = str(college[0]) + " " + capitalize_string(str(prof_char['skill_experts']))
 
             else:
                 temp['name']=str(college[0])+" Alumni in "+capitalize_string(str(skill[0]))
@@ -434,9 +434,11 @@ def hobby_city(interest_hobby,geography_city):
                 interest_char = json.loads(hobby[1])
                 if not interest_char['hobbyists']:
                     interest_char['hobbyists']=hobby[0]+" enthusiast"
+                    name=hobby[0]+" enthusiast"
+                    temp['name']=capitalize_string(name)+" of "+ capitalize_string(str(city[0]))
                 else:
                     name=str(interest_char['hobbyists'])
-                    temp['name']=capitalize_string(name)+" of "+ str(city[0])
+                    temp['name']=capitalize_string(name)+" of "+ capitalize_string(str(city[0]))
 
                 if not interest_char['hobby_group_used_case']:
                     interest_char['hobby_group_used_case']="to pursue the hobby together"
@@ -499,11 +501,11 @@ def sport_city(interest_sport,geography_city):
 
                 if not interest_char[ 'sport_players']:
                     interest_char['sport_players']=sport[0]+" enthusiasts"
-                    temp['name'] = str(sport[0]) + " Enthusiasts of " + str(city[0])
+                    temp['name'] = capitalize_string(str(sport[0])) + " Enthusiasts of " + capitalize_string(str(city[0]))
 
                 else:
                     players=str(interest_char['sport_players'])
-                    temp['name'] =capitalize_string(players) + " of " + str(city[0])
+                    temp['name'] =capitalize_string(players) + " of " + capitalize_string(str(city[0]))
 
                 if not interest_char[ 'sport_usecase']:
                     interest_char['sport_usecase']="play the sport"
@@ -566,7 +568,7 @@ def fan_city(interest_fan,geography_city):
 
                 if not interest_char['thing_fans']:
                     interest_char['thing_fans']=str(fan[0])+" fans"
-                    temp['name']=str(fan[0])+" Fans of "+str(city[0])
+                    temp['name']=capitalize_string(str(fan[0]))+" Fans of "+capitalize_string(str(city[0]))
                 else:
                     thing_fan=interest_char['thing_fans']
                     temp['name'] = """%s of %s""" % (capitalize_string(thing_fan), city[0])
@@ -631,7 +633,7 @@ def cause_city(interest_cause,geography_city):
             if cause[1] is not None:
                 interest_char = json.loads(cause[1])
                 if 'thing_event' in interest_char and interest_char['thing_event']:
-                    temp['name']="""%s Residents For %s"""%(city[0],capitalize_string(cause[0]))
+                    temp['name']="""%s Residents For %s"""%(capitalize_string(city[0]),capitalize_string(cause[0]))
                     cause_name=cause[0].lower()
                     temp['purpose']="""For responsible citizens of %s willing to work for %s to plan, meet and work together for the cause"""%(city[0],cause_name)
                     temp['question']="""Introduce yourself telling a bit about your interest or experience in working for %s"""%(cause_name)
