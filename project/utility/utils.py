@@ -115,6 +115,7 @@ def update_tag_image(tag_name, tag_id):
         print("status code",response.status_code)
         if response.status_code == 200:
             response = json.loads(response.content.decode('utf-8'))
+            print('loc',response)
         if 'thumbnail' in response['query']['pages'][0]:
 
             tag_obj = Tags_lpig.objects.get(pk = tag_id)
@@ -137,8 +138,8 @@ def update_tag_image(tag_name, tag_id):
                 else:
                     print('file already exists')
 
-            tag_obj.tag_image = file_name
-            tag_obj.save()
+                tag_obj.tag_image = file_name
+                tag_obj.save()
             return
     return
 
