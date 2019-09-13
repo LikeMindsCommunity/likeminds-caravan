@@ -2238,12 +2238,10 @@ def rename_tag(request,tag_id = None):
                 old_name = tag.name
                 tag.name = rename_to
                 tag.save()
-                if tag.attribute_id.id >= 17 and tag.attribute_id.id <= 20:
+                if tag.attribute_id.id < 17 :
                     pre_create_communities.delay(tag_id=tag_id)
             except:
                 pass
-
-
 
         base_url = '/admin_dashboard/rename_tag'
         query_string = urlencode({'updated': True, 'old_name': old_name, 'tag_id': tag_id})
