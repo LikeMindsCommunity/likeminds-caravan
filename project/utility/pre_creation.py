@@ -321,23 +321,23 @@ def college_skill(legacy_college,industry_skill):
                 leg_char=json.loads(college[1])
                 prof_char=json.loads(skill[1])
                 if 'csn' in leg_char and leg_char['csn'] and 'skill_experts' in prof_char and prof_char['skill_experts']:
-                    temp['name']=leg_char['csn'] + " " +prof_char['skill_experts']
+                    temp['name']=leg_char['csn'] + " " +capitalize_string(prof_char['skill_experts'])
                     skill_expert = prof_char['skill_experts']
                 elif 'csn' in leg_char and leg_char['csn']:
-                    temp['name'] = leg_char['csn'] + " "+ str(skill[0])
+                    temp['name'] = leg_char['csn'] + " "+ capitalize_string(str(skill[0]))
                 else:
-                    temp['name']=str(college[0])+" Alumni in "+str(skill[0])
+                    temp['name']=str(college[0])+" Alumni in "+capitalize_string(str(skill[0]))
             elif college[1] is not None:
                 leg_char=json.loads(college[1])
                 if 'csn' in leg_char and leg_char['csn']:
-                    temp['name'] = leg_char['csn'] + " Alumni in "+ str(skill[0])
+                    temp['name'] = leg_char['csn'] + " Alumni in "+ capitalize_string(str(skill[0]))
             elif skill[1] is not None:
                 prof_char=json.loads(skill[1])
                 print(prof_char)
                 temp['name'] = str(college[0]) + " " + str(prof_char['skill_experts'])
 
             else:
-                temp['name']=str(college[0])+" Alumni in "+str(skill[0])
+                temp['name']=str(college[0])+" Alumni in "+capitalize_string(str(skill[0]))
 
             skill_name=skill[0]
             if skill[1] is not None:
@@ -384,12 +384,12 @@ def college_industry(legacy_college,profession_industry):
             if college[1] is not None:
                 leg_char=json.loads(college[1])
                 if 'csn' in leg_char and leg_char['csn']:
-                    temp['name']=leg_char['csn']+" Alumni in "+str(industry[0])
+                    temp['name']=leg_char['csn']+" Alumni in "+capitalize_string(str(industry[0]))
                 else:
-                    temp['name'] = str(college[0]) + " Alumni in " + str(industry[0])
+                    temp['name'] = str(college[0]) + " Alumni in " + capitalize_string(str(industry[0]))
 
             else:
-                temp['name'] = str(college[0]) + " Alumni in " + str(industry[0])
+                temp['name'] = str(college[0]) + " Alumni in " + capitalize_string(str(industry[0]))
             industry_name=industry[0]
             if industry[1] is not None:
                 prof_char=json.loads(industry[1])
@@ -631,7 +631,7 @@ def cause_city(interest_cause,geography_city):
             if cause[1] is not None:
                 interest_char = json.loads(cause[1])
                 if 'thing_event' in interest_char and interest_char['thing_event']:
-                    temp['name']="""%s Residents For %s"""%(city[0],cause[0])
+                    temp['name']="""%s Residents For %s"""%(city[0],capitalize_string(cause[0]))
                     cause_name=cause[0].lower()
                     temp['purpose']="""For responsible citizens of %s willing to work for %s to plan, meet and work together for the cause"""%(city[0],cause_name)
                     temp['question']="""Introduce yourself telling a bit about your interest or experience in working for %s"""%(cause_name)
