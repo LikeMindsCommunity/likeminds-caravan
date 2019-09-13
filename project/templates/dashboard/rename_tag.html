@@ -1,0 +1,81 @@
+<html>
+  <head>
+    <link href="//netdna.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.6.3/css/bootstrap-select.min.css" />
+  </head>
+
+  <div class="container">
+    <div class="row">
+        <br>
+        <br>
+        <br>
+        <br>
+      <h2>Rename Tags :</h2>
+
+      <hr />
+    </div>
+    <table>
+        <tbody>
+        <tr>
+            <td>
+                <div class="row-fluid">
+                  <label for="rename_tag">Select tag</label><br>
+                  <select class="selectpicker" id="rename_tag" data-show-subtext="true" data-live-search="true">
+                      <option selected style="color:black;">Choose...</option>
+                      {% autoescape off %}
+                          {% for tag in tags %}
+                          <option value="{{tag.id}}">{{tag.name}}</option>
+                          {% endfor %}
+                      {% endautoescape %}
+                  </select>
+
+                </div>
+            </td>
+            <td style="padding-left:30px;">
+                <label for="new_name">Rename to</label>
+                <input type="text" class="form-control" placeholder="New Name" style="width:250px;" id="new_name">
+            </td>
+
+            <td style="padding-left:30px; padding-top:23px;">
+<!--                <br>-->
+                        <button id="submit_del" type="submit" class="btn btn-danger">Rename</button>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+  </div>
+
+
+
+
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/js/bootstrap.min.js"></script>
+  <script src="//cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.6.3/js/bootstrap-select.min.js"></script>
+
+  {% autoescape off %}
+
+<script>
+
+         function alertFunction() {
+
+         console.log('{{updated}}')
+         {% if updated == 'True' %}
+            alert('{{old_name}} is sucessfully renamed to {{tag_name}}');
+         {% endif %}
+         }
+         window.onload = alertFunction;
+
+       $('#submit_del').click(function()
+       {
+         tag_id=$('#rename_tag').val();
+         new_name=$('#new_name').val();
+         console.log(tag_id)
+         console.log(new_name)
+         window.location.href='./rename_tag/'+tag_id+'?rename_to='+new_name
+       })
+
+</script>
+{% endautoescape %}
+
+
+</html>
