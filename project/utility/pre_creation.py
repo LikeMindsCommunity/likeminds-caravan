@@ -213,7 +213,7 @@ def hometown_city(legacy_hometown,geography_city):
                 if hometown[1] is not None:
                     data=json.loads(hometown[1])
                     if 'home_demonym' in data and data['home_demonym']:
-                        temp['name']=data['home_demonym'] + " of "+city[0]
+                        temp['name']=data['home_demonym'] + " in "+city[0]
                     else:
                         temp['name']="Natives of "+str(home['country'])+" in "+str(city[0])
                 else:
@@ -229,7 +229,7 @@ def hometown_city(legacy_hometown,geography_city):
                 if hometown[1] is not None:
                     data = json.loads(hometown[1])
                     if 'home_demonym' in data and data['home_demonym']:
-                        temp['name'] = data['home_demonym'] + " of " + city[0]
+                        temp['name'] = data['home_demonym'] + " in " + city[0]
                     else:
                         temp['name'] = "Natives of " + str(home['state']) + " in " + str(city[0])
                 else:
@@ -249,7 +249,7 @@ def hometown_city(legacy_hometown,geography_city):
                 if hometown[1] is not None:
                     data = json.loads(hometown[1])
                     if 'home_demonym' in data and data['home_demonym']:
-                        temp['name'] = data['home_demonym'] + " of " + city[0]
+                        temp['name'] = data['home_demonym'] + " in " + city[0]
                     else:
                         temp['name'] = "Natives of " + str(home['city']) + " in " + str(city[0])
                 else:
@@ -272,7 +272,7 @@ def hometown_city(legacy_hometown,geography_city):
                     if tag_name[1] is not None:
                         data=json.loads(tag_name[1])
                         if data['demonym']:
-                            temp['name']=data['demonym'] + " of " + city[0]
+                            temp['name']=data['demonym'] + " in " + city[0]
                             temp['question'] = """Introduce yourself telling a bit about your time in %s and what brought you to %s and what do you do now?""" % (
                             home_place, city[0])
                             temp['about'] = """This community aims to bring together %s so that we can socialise with other. Here we collaborate with each other by sharing knowledge, providing referrals (for jobs, accommodation, business, etc.), planning trips to %s, and having meaningful conversations. We also use this space to plan offline meetups.
@@ -398,7 +398,7 @@ def college_industry(legacy_college,profession_industry):
 
             temp['purpose']="""For %s alumni working in %s industry to  exchange knowledge and referrals"""%(college[0],industry_name)
             temp['question']="""Introduce yourself telling a bit about your background in %s"""%(industry_name)
-            temp['about']="""This community aims to bring together %s alumni working in the %s space so that we can collaborate with each other. Here we exchange information, knowledge, documents and important links related to %s and have conversations on the same. We also use this space to help each other by providing referrals (for jobs, business introductions etc.), collaborate on projects and plan offline meetups.
+            temp['about']="""This community aims to bring together %s alumni working in the %s industry so that we can collaborate with each other. Here we exchange information, knowledge, documents and important links related to %s and have conversations on the same. We also use this space to help each other by providing referrals (for jobs, business introductions etc.), collaborate on projects and plan offline meetups.
 
                             Anytime if you are looking for a lead or offering some help, simply start a new conversation with relevant details and your ask from the community members. Relevant members can respond by simply chatting with you and each other on your conversation card. Members who want to follow the conversation can press the Follow button to receive notifications about future responses on the card.
 
