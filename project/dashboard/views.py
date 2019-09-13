@@ -2238,6 +2238,8 @@ def rename_tag(request,tag_id = None):
                 old_name = tag.name
                 tag.name = rename_to
                 tag.save()
+                if tag.attribute_id.id < 17 :
+                    pre_create_communities.delay(tag_id=tag_id)
             except:
                 pass
 
