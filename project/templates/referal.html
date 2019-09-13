@@ -13,6 +13,7 @@ $(document).ready(function(){
         if (navigator.share) {
     navigator.share({
       title: 'Referal Link',
+      text:'This is a relevant community for you accept the request',
       url: link
     }).then(() => {
       console.log('Thanks for sharing!');
