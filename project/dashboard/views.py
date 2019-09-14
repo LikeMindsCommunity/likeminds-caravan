@@ -1266,10 +1266,12 @@ def get_or_create_sub_tags(new_tag,category,attribute):
 
         for attr, tag_name in geography_list.items():
 
+            print(">>>>>>>>", tag_name, attr)
             if tag_name == '':
                 continue
-            # create or categorize a tag with known category and attribute
-            new_tag = create_or_categorize_tag(tag=tag_name, category='Geography', attribute=attr)
+            # creating or catgorizing a tag with known category and attribute
+            tag = create_or_categorize_tag(tag=tag_name, category='Geography', attribute=attr)
+            print('created tag ====== ', tag)
 
     return tag
 
@@ -1615,8 +1617,6 @@ def update_user_geography_tags(user_id, typ=''):
     if typ == 'Geography':
         # getting all geography tags of the user
         user_tags_list = list(User_Geography.objects.filter(user_id=user).values_list("tags_id",flat=True))
-    # elif typ == 'Legacy':
-    #     user_tags_list = list(User_Legacy.objects.filter(user_id=user, tags_id__attribute_id=3).values_list("tags_id",flat=True))
 
     # save city,district state and country of a particular city tag
     for each_tag in user_tags_list:
@@ -1631,22 +1631,12 @@ def update_user_geography_tags(user_id, typ=''):
 
         for attr,tag_name in geography_list.items():
 
-            print(">>>>>>>>",tag_name)
+            print(">>>>>>>>",tag_name,attr)
             if tag_name == '':
                 continue
-            tag = Tags_lpig.objects.filter(name=tag_name)
-
-            if not tag.exists():
-                # if tag does not exist ,  create a tag with known category and attribute
-                if typ == 'Geography':
-                    tag = create_or_categorize_tag(tag=tag_name,category='Geography',attribute=attr)
-                    print('created tag ====== ',tag)
-                # elif typ == 'Legacy':
-                #     tag = create_categorized_tag(tag=tag_name,category='Legacy',attribute=attr)
-                    #print('created tag ====== ',tag)
-            else:
-                tag = tag[0]
-
+            # creating or catgorizing a tag with known category and attribute
+            tag = create_or_categorize_tag(tag=tag_name,category='Geography',attribute=attr)
+            print('created tag ====== ',tag)
 
             if typ == 'Geography':
                 user_geo_tag = User_Geography.objects.filter(tags_id=tag, user_id=user)
@@ -1657,13 +1647,7 @@ def update_user_geography_tags(user_id, typ=''):
                     user_geo_tag.user_id = user
                     user_geo_tag.save()
                     print('user_geo_tag === ',user_geo_tag)
-            # elif typ == 'Legacy':
-            #     user_legacy_tag = User_Legacy.objects.filter(tags_id=tag, user_id=user)
-            #     if not user_legacy_tag.exists():
-            #         user_tag = User_Legacy()
-            #         user_tag.tags_id = tag
-            #         user_tag.user_id = user
-            #         user_tag.save()
+
 
 
 def create_or_categorize_tag(tag,category,attribute):
@@ -1682,9 +1666,10 @@ def create_or_categorize_tag(tag,category,attribute):
             if attribute.exists():
                 attribute = attribute[0]
                 tag = Tags_lpig.objects.filter(name = new_tag)
-
+                print("here",tag,tag.exists())
                 # create a new tag if tag is not present already
                 if not tag.exists():
+                    print('creating tag')
                     tag = Tags_lpig()
                     tag.name = new_tag
                     tag.category_id = category
@@ -1694,10 +1679,11 @@ def create_or_categorize_tag(tag,category,attribute):
                     tag.save()
 
                 elif tag.exists():
-                    print('tag is present categorizing the tag')
+                    # print('tag is present categorizing the tag',tag)
                     tag = Tags_lpig.objects.get(pk = tag[0].id)
-
-                    if tag.attribute_id >=17 and tag.attribute_id<=20:
+                    print('tag is present categorizing the tag', tag)
+                    if tag.attribute_id.id >=17 and tag.attribute_id.id <=20:
+                        print("inside")
                         tag.category_id = category
                         tag.attribute_id = attribute
                         tag.save()
