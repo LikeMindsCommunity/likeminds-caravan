@@ -868,7 +868,7 @@ def add_hidden_tags(request):
                         interest_tags=interest_tags,
                         grography_tags=grography_tags)
 
-    # compute_rank.delay(community_id=community_id)
+    compute_rank.delay(community_id=community_id)
 
     return JsonResponse({'success':True})
 
@@ -1460,7 +1460,7 @@ def add_user_tags(request):
                         interest_tags=interest_tags,
                         greography_tags=grography_tags)
 
-    # compute_rank.delay(user_id = user_id)
+    compute_rank.delay(user_id = user_id)
     return JsonResponse({'success':True})
 
 
@@ -1718,7 +1718,7 @@ def map_tags(request):
     uncategorized_tag.tag_id = mapped_tag.id
     uncategorized_tag.save()
 
-    # compute_rank.delay()
+    compute_rank.delay()
     return JsonResponse({'success': True})
 
 
