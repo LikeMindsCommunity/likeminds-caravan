@@ -1615,36 +1615,55 @@ def update_user_geography_tags(user_id, typ=''):
     if typ == 'Geography':
         # getting all geography tags of the user
         user_tags_list = list(User_Geography.objects.filter(user_id=user).values_list("tags_id",flat=True))
+    # elif typ == 'Legacy':
+    #     user_tags_list = list(User_Legacy.objects.filter(user_id=user, tags_id__attribute_id=3).values_list("tags_id",flat=True))
 
-        # save city,district state and country of a particular city tag
-        for each_tag in user_tags_list:
-            tag = Tags_lpig.objects.get(pk=each_tag)
-            tag_name = tag.name
-            if tag.id == 15 or tag.id == 16 or tag.id == 17 or tag.id == 18:
+    # save city,district state and country of a particular city tag
+    for each_tag in user_tags_list:
+        tag = Tags_lpig.objects.get(pk=each_tag)
+        tag_name = tag.name
+        if tag.id == 15 or tag.id == 16 or tag.id == 17 or tag.id == 18:
+            continue
+
+        geography_list = get_city_address(city = tag_name)
+        print('geography_list ====',geography_list,type(geography_list))
+
+
+        for attr,tag_name in geography_list.items():
+
+            print(">>>>>>>>",tag_name)
+            if tag_name == '':
                 continue
+            tag = Tags_lpig.objects.filter(name=tag_name)
 
-            geography_list = get_city_address(city = tag_name)
-            print('geography_list ====',geography_list,type(geography_list))
-
-            for attr,tag_name in geography_list.items():
-
-                print(">>>>>>>>",tag_name)
-                if tag_name == '':
-                    continue
-
+            if not tag.exists():
                 # if tag does not exist ,  create a tag with known category and attribute
-                tag = create_or_categorize_tag(tag=tag_name,category='Geography',attribute=attr)
-                print('created tag ====== ',tag)
-
                 if typ == 'Geography':
-                    user_geo_tag = User_Geography.objects.filter(tags_id=tag, user_id=user)
+                    tag = create_or_categorize_tag(tag=tag_name,category='Geography',attribute=attr)
+                    print('created tag ====== ',tag)
+                # elif typ == 'Legacy':
+                #     tag = create_categorized_tag(tag=tag_name,category='Legacy',attribute=attr)
+                    #print('created tag ====== ',tag)
+            else:
+                tag = tag[0]
 
-                    if not user_geo_tag.exists() and tag :
-                        user_geo_tag = User_Geography()
-                        user_geo_tag.tags_id = tag
-                        user_geo_tag.user_id = user
-                        user_geo_tag.save()
-                        print('user_geo_tag === ',user_geo_tag)
+
+            if typ == 'Geography':
+                user_geo_tag = User_Geography.objects.filter(tags_id=tag, user_id=user)
+
+                if not user_geo_tag.exists() and tag :
+                    user_geo_tag = User_Geography()
+                    user_geo_tag.tags_id = tag
+                    user_geo_tag.user_id = user
+                    user_geo_tag.save()
+                    print('user_geo_tag === ',user_geo_tag)
+            # elif typ == 'Legacy':
+            #     user_legacy_tag = User_Legacy.objects.filter(tags_id=tag, user_id=user)
+            #     if not user_legacy_tag.exists():
+            #         user_tag = User_Legacy()
+            #         user_tag.tags_id = tag
+            #         user_tag.user_id = user
+            #         user_tag.save()
 
 
 def create_or_categorize_tag(tag,category,attribute):
@@ -1666,15 +1685,13 @@ def create_or_categorize_tag(tag,category,attribute):
 
                 # create a new tag if tag is not present already
                 if not tag.exists():
-
-                    if new_tag != '' :
-                        tag = Tags_lpig()
-                        tag.name = new_tag
-                        tag.category_id = category
-                        tag.attribute_id = attribute
-                        tag.save()
-                        tag.tag_id = tag.id
-                        tag.save()
+                    tag = Tags_lpig()
+                    tag.name = new_tag
+                    tag.category_id = category
+                    tag.attribute_id = attribute
+                    tag.save()
+                    tag.tag_id = tag.id
+                    tag.save()
 
                 elif tag.exists():
                     tag = tag[0]
@@ -1682,6 +1699,8 @@ def create_or_categorize_tag(tag,category,attribute):
                         tag.category_id = category
                         tag.attribute_id = attribute
                         tag.save()
+                else:
+                    tag = tag[0]
 
                 # tag is of category type geography update or create tag image
                 if category.name == 'Geography':
