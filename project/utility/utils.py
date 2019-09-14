@@ -98,12 +98,12 @@ def get_user_tag(user_id):
 
 @shared_task
 def update_tag_image(tag_name, tag_id):
-    locations = [tag_name, 'city', 'district', 'state', 'country']
+    locations = [tag_name,tag_name.title(),tag_name.lower(), 'city', 'district', 'state', 'country']
     print('is digit ',tag_name.isdigit())
     if tag_name.isdigit() :
         return
     for loc in locations:
-        if loc == tag_name:
+        if loc.lower() == tag_name.lower():
             loc = tag_name
 
         else:

@@ -1694,7 +1694,9 @@ def create_or_categorize_tag(tag,category,attribute):
                     tag.save()
 
                 elif tag.exists():
-                    tag = tag[0]
+                    print('tag is present categorizing the tag')
+                    tag = Tags_lpig.objects.get(pk = tag[0].id)
+
                     if tag.attribute_id >=17 and tag.attribute_id<=20:
                         tag.category_id = category
                         tag.attribute_id = attribute
