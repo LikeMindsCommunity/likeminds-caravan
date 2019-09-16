@@ -470,6 +470,7 @@ def hobby_city(interest_hobby,geography_city):
                             Anytime if you are looking for people to %s, simply start a new conversation with relevant details and your ask from the community. Interested members can respond by simply chatting with you and each other on your conversation card. Members who want to follow the conversation can press the Follow button to receive notifications about future responses on the card.
 
                             Please try to maintain conversations for each %s on the conversation card for the %s so that only relevant members get notifications."""%(hobby_name,interest_char['hobbyists'],interest_char['hobby_group_used_case'],hobby_name,city[0],interest_char['hobbyists'],interest_char['hobby_group_event'],interest_char['hobby_event'],interest_char['hobby_event'])
+                temp['question']="""Introduce yourself telling a bit about your interest or skill level in %s"""%(hobby_name)
 
             else:
 
@@ -481,9 +482,10 @@ def hobby_city(interest_hobby,geography_city):
                             Anytime if you are looking for people to connect with you for something , simply start a new conversation with relevant details and your ask from the community. Interested members can respond by simply chatting with you and each other on your conversation card. Members who want to follow the conversation can press the Follow button to receive notifications about future responses on the card.
 
                             Please try to maintain conversations for each query  on the conversation card for the query  so that only relevant members get notifications."""%(hobby[0],hobby[0],hobby[0],city[0],hobby[0])
+                temp['question']="""Introduce yourself telling a bit about your interest or skill level in %s"""%(hobby[0])
+
             temp['geography']=city[0]
 
-            temp['question']="""Introduce yourself telling a bit about your interest or skill level in %s"""%(hobby_name)
             if hobby[2]:
                 temp['image_url'] = hobby[2]
             temp['tags']['interest'] = hobby[3]
@@ -650,11 +652,11 @@ def cause_city(interest_cause,geography_city):
             if cause[1] is not None:
                 interest_char = json.loads(cause[1])
                 if 'thing_event' in interest_char and interest_char['thing_event']:
-                    temp['name']="""%s Residents For %s"""%(capitalize_string(city[0]),capitalize_string(cause[0]))
+                    temp['name']="""%s  for %s"""%(capitalize_string(city[0]),capitalize_string(cause[0]))
                     cause_name=cause[0].lower()
-                    temp['purpose']="""For responsible citizens of %s willing to work for %s to plan, meet and work together for the cause"""%(city[0],cause_name)
+                    temp['purpose']="""For responsible citizens of %s who are willing to work on %s to plan, meet and work together for the cause"""%(city[0],cause_name)
                     temp['question']="""Introduce yourself telling a bit about your interest or experience in working for %s"""%(cause_name)
-                    temp['about']="""Every cause is better served if people working towards it come together. Not just it gives us a sense of belongingness, but also makes it more fun thus increasing our motivation as well. This community aims to bring together all the residents of %s who are working or willing to work for %s so that we can fight for this cause together.
+                    temp['about']="""Every cause is better served if people working towards it come together. Not just it gives us a sense of belongingness, but also makes it more fun thus increasing our motivation as well. This community aims to bring together all the residents of %s who are working or willing to work on %s so that we can fight for this cause together.
     
                             Anytime if you are planning to do something for %s and are looking for people to join you, simply start a new conversation with the time, venue details, and the type of people you are looking for. Interested members can respond by simply chatting with you and each other on your conversation card. Members who want to follow the conversation can press the Follow button to receive notifications about future responses on the card.
     
@@ -664,7 +666,7 @@ def cause_city(interest_cause,geography_city):
                 else:
                     interest_char = {}
                     interest_char['thing_event'] = "discussions or event"
-                    temp['name'] = """%s Residents For %s""" % (city[0], cause[0])
+                    temp['name'] = """%s for %s""" % (city[0], cause[0])
                     cause_name=cause[0].lower()
                     temp['purpose'] = """For responsible citizens of %s willing to work for %s to plan, meet and work together for the cause""" % (
                         city[0], cause_name)
