@@ -344,7 +344,7 @@ def college_skill(legacy_college,industry_skill):
                 prof_char = json.loads(skill[1])
                 if 'skill_name' in prof_char and prof_char['skill_name']:
                     skill_name=prof_char['skill_name']
-            temp['purpose']="""For %s alumni with expertise in %s to exchange knowledge and referrals"""%(college[0],skill_name)
+            temp['purpose']="""For %s from %s to exchange knowledge and referrals"""%(skill_name,college[0])
             temp['question']="""Introduce yourself telling a bit about your background in %s"""%(skill_name)
 
             temp['about']="""This community is exclusively for %s who studied at %s living across the globe. Here we exchange information, knowledge, documents and important links related to %s and have conversations on the same. We also use this space to help each other by providing referrals (for jobs, business introductions etc.), collaborate on projects and plan offline meetups.
@@ -399,7 +399,7 @@ def college_industry(legacy_college,profession_industry):
                     temp['name'] = str(college[0]) + " Alumni in " + capitalize_string(name)
 
             else:
-                temp['name'] = str(college[0]) + " Alumni in " + capitalize_string(str(industry[0]))
+                temp['name'] = str(college[0]) + " Alumni in " + capitalize_string(name)
             industry_name=industry[0]
             if industry[1] is not None:
                 prof_char=json.loads(industry[1])
@@ -482,7 +482,8 @@ def hobby_city(interest_hobby,geography_city):
 
                             Please try to maintain conversations for each query  on the conversation card for the query  so that only relevant members get notifications."""%(hobby[0],hobby[0],hobby[0],city[0],hobby[0])
             temp['geography']=city[0]
-            temp['question']="""Introduce yourself telling a bit about your interest or skill level in %s"""%(hobby[0])
+
+            temp['question']="""Introduce yourself telling a bit about your interest or skill level in %s"""%(hobby_name)
             if hobby[2]:
                 temp['image_url'] = hobby[2]
             temp['tags']['interest'] = hobby[3]
