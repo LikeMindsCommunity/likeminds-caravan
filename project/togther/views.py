@@ -18,13 +18,13 @@ from django.template.loader import get_template
 import traceback
 from collabmates_api.raw_queries import  compute_rank
 from django.urls import reverse
-from urllib.parse import urlencode
+from urllib.parse import urlencode,quote
 
 url = settings.URL
 
 # uncomment to run it in localhost
 #
-# url='http://localhost:8000'
+#url='http://localhost:8000'
 
 api_url = url + '/api/'
 
@@ -240,10 +240,10 @@ def community(request, community_id):
             else:
 
                 onboard = False
-                user_legacy = User_Legacy.objects.filter(member_id = request.user)
-                user_profession = User_Profession.objects.filter(member_id = request.user)
-                user_interests = User_Interest.objects.filter(member_id = request.user)
-                user_geography = User_Geography.objects.filter(member_id = request.user)
+                user_legacy = User_Legacy.objects.filter(user_id = request.user)
+                user_profession = User_Profession.objects.filter(user_id = request.user)
+                user_interests = User_Interest.objects.filter(user_id = request.user)
+                user_geography = User_Geography.objects.filter(user_id = request.user)
 
                 if user_legacy.exists() and user_profession.exists() and user_interests.exists() and user_geography.exists():
                     onboard = True
@@ -375,9 +375,11 @@ def refer_members(request,community_id):
                     Members.objects.filter(community_id=community,
                                            member_id=interested_member.invited_member).update(state=3)
         share_url = url + '/community/' + str(community_id)+"?cta=ref&member_id="+str(request.user.id)
+        copy_url=share_url
         print('share_url >>>>>>> ',share_url)
         # return redirect('comunity', community_id=community.id)
-        return  render(request,'referal.html',{'share_url':share_url})
+        share_url=quote(share_url)
+        return  render(request,'referal.html',{'share_url':share_url,'community':community,'copy_url':copy_url})
 
 
 
