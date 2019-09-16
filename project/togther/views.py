@@ -1412,6 +1412,7 @@ def get_community_interest_tags(community_id):
     return community_interest_hobby,community_interest_sports,community_interest_fan,community_interest_cause
 
 
+@shared_task
 def insert_user_home_town_tags(user_id,tag):
     ''' function to update user home town tag and
      add home town related state and country tags '''
@@ -1444,6 +1445,8 @@ def insert_user_home_town_tags(user_id,tag):
         user_tag.tags_id = tag
         user_tag.user_id = user
         user_tag.save()
+        tag_name, tag_id = tag.name, tag.id
+        update_tag_image.delay(tag_name, tag_id)
     # adding other related geography tags for the user such as state and country
     geography_list = get_city_address(city=new_tag)
 
@@ -1532,7 +1535,7 @@ def onboarding(request):
         insert_tags_for_user(user_id, type_list, "Geography")
 
         for tag in legacy_hometown:
-            insert_user_home_town_tags(user_id = user_id, tag=tag)
+            insert_user_home_town_tags.delay(user_id = user_id, tag=tag)
 
         return JsonResponse({'success':True})
 
