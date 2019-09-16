@@ -18,14 +18,14 @@ from django.template.loader import get_template
 import traceback
 from collabmates_api.raw_queries import  compute_rank
 from django.urls import reverse
-from urllib.parse import urlencode
 from utility.utils import get_city_address, update_tag_image, update_user_geography_tags, create_or_categorize_tag
+from urllib.parse import urlencode,quote
 
 url = settings.URL
 
 # uncomment to run it in localhost
 #
-# url='http://localhost:8000'
+#url='http://localhost:8000'
 
 api_url = url + '/api/'
 
@@ -308,8 +308,12 @@ def refer_members(request,community_id):
                     Members.objects.filter(community_id=community,
                                            member_id=interested_member.invited_member).update(state=3)
         share_url = url + '/community/' + str(community_id)+"?cta=ref&member_id="+str(request.user.id)
+        copy_url=share_url
+        print('share_url >>>>>>> ',share_url)
+        # return redirect('comunity', community_id=community.id)
+        share_url=quote(share_url)
+        return  render(request,'referal.html',{'share_url':share_url,'community':community,'copy_url':copy_url})
 
-        return  render(request,'referal.html',{'share_url':share_url})
 
 
 def get_members_of_community(community):
