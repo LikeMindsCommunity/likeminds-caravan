@@ -625,7 +625,7 @@ def fan_city(interest_fan,geography_city):
             temp['geography'] = city[0]
             fan_ques=fan[0].lower()
             temp['question'] = """Introduce yourself telling a bit about your passion for %s""" % (
-               fan_ques)
+               interest_char['thing'])
             community_id = is_community_tags_exists(temp)
             if not community_id:
                 insert_pre_create_community(temp)
