@@ -213,7 +213,7 @@ def hometown_city(legacy_hometown,geography_city):
                 if hometown[1] is not None:
                     data=json.loads(hometown[1])
                     if 'home_demonym' in data and data['home_demonym']:
-                        temp['name']=data['home_demonym'] + " of "+city[0]
+                        temp['name']=data['home_demonym'] + " in "+city[0]
                     else:
                         temp['name']="Natives of "+str(home['country'])+" in "+str(city[0])
                 else:
@@ -229,7 +229,7 @@ def hometown_city(legacy_hometown,geography_city):
                 if hometown[1] is not None:
                     data = json.loads(hometown[1])
                     if 'home_demonym' in data and data['home_demonym']:
-                        temp['name'] = data['home_demonym'] + " of " + city[0]
+                        temp['name'] = data['home_demonym'] + " in " + city[0]
                     else:
                         temp['name'] = "Natives of " + str(home['state']) + " in " + str(city[0])
                 else:
@@ -249,7 +249,7 @@ def hometown_city(legacy_hometown,geography_city):
                 if hometown[1] is not None:
                     data = json.loads(hometown[1])
                     if 'home_demonym' in data and data['home_demonym']:
-                        temp['name'] = data['home_demonym'] + " of " + city[0]
+                        temp['name'] = data['home_demonym'] + " in " + city[0]
                     else:
                         temp['name'] = "Natives of " + str(home['city']) + " in " + str(city[0])
                 else:
@@ -272,7 +272,7 @@ def hometown_city(legacy_hometown,geography_city):
                     if tag_name[1] is not None:
                         data=json.loads(tag_name[1])
                         if data['demonym']:
-                            temp['name']=data['demonym'] + " of " + city[0]
+                            temp['name']=data['demonym'] + " in " + city[0]
                             temp['question'] = """Introduce yourself telling a bit about your time in %s and what brought you to %s and what do you do now?""" % (
                             home_place, city[0])
                             temp['about'] = """This community aims to bring together %s so that we can socialise with other. Here we collaborate with each other by sharing knowledge, providing referrals (for jobs, accommodation, business, etc.), planning trips to %s, and having meaningful conversations. We also use this space to plan offline meetups.
@@ -321,23 +321,23 @@ def college_skill(legacy_college,industry_skill):
                 leg_char=json.loads(college[1])
                 prof_char=json.loads(skill[1])
                 if 'csn' in leg_char and leg_char['csn'] and 'skill_experts' in prof_char and prof_char['skill_experts']:
-                    temp['name']=leg_char['csn'] + " " +prof_char['skill_experts']
+                    temp['name']=leg_char['csn'] + " " +capitalize_string(prof_char['skill_experts'])
                     skill_expert = prof_char['skill_experts']
                 elif 'csn' in leg_char and leg_char['csn']:
-                    temp['name'] = leg_char['csn'] + " "+ str(skill[0])
+                    temp['name'] = leg_char['csn'] + " "+ capitalize_string(str(skill[0]))
                 else:
-                    temp['name']=str(college[0])+" Alumni in "+str(skill[0])
+                    temp['name']=str(college[0])+" Alumni in "+capitalize_string(str(skill[0]))
             elif college[1] is not None:
                 leg_char=json.loads(college[1])
                 if 'csn' in leg_char and leg_char['csn']:
-                    temp['name'] = leg_char['csn'] + " Alumni in "+ str(skill[0])
+                    temp['name'] = leg_char['csn'] + " Alumni in "+ capitalize_string(str(skill[0]))
             elif skill[1] is not None:
                 prof_char=json.loads(skill[1])
                 print(prof_char)
-                temp['name'] = str(college[0]) + " " + str(prof_char['skill_experts'])
+                temp['name'] = str(college[0]) + " " + capitalize_string(str(prof_char['skill_experts']))
 
             else:
-                temp['name']=str(college[0])+" Alumni in "+str(skill[0])
+                temp['name']=str(college[0])+" Alumni in "+capitalize_string(str(skill[0]))
 
             skill_name=skill[0]
             if skill[1] is not None:
@@ -384,12 +384,12 @@ def college_industry(legacy_college,profession_industry):
             if college[1] is not None:
                 leg_char=json.loads(college[1])
                 if 'csn' in leg_char and leg_char['csn']:
-                    temp['name']=leg_char['csn']+" Alumni in "+str(industry[0])
+                    temp['name']=leg_char['csn']+" Alumni in "+capitalize_string(str(industry[0]))
                 else:
-                    temp['name'] = str(college[0]) + " Alumni in " + str(industry[0])
+                    temp['name'] = str(college[0]) + " Alumni in " + capitalize_string(str(industry[0]))
 
             else:
-                temp['name'] = str(college[0]) + " Alumni in " + str(industry[0])
+                temp['name'] = str(college[0]) + " Alumni in " + capitalize_string(str(industry[0]))
             industry_name=industry[0]
             if industry[1] is not None:
                 prof_char=json.loads(industry[1])
@@ -398,7 +398,7 @@ def college_industry(legacy_college,profession_industry):
 
             temp['purpose']="""For %s alumni working in %s industry to  exchange knowledge and referrals"""%(college[0],industry_name)
             temp['question']="""Introduce yourself telling a bit about your background in %s"""%(industry_name)
-            temp['about']="""This community aims to bring together %s alumni working in the %s space so that we can collaborate with each other. Here we exchange information, knowledge, documents and important links related to %s and have conversations on the same. We also use this space to help each other by providing referrals (for jobs, business introductions etc.), collaborate on projects and plan offline meetups.
+            temp['about']="""This community aims to bring together %s alumni working in the %s industry so that we can collaborate with each other. Here we exchange information, knowledge, documents and important links related to %s and have conversations on the same. We also use this space to help each other by providing referrals (for jobs, business introductions etc.), collaborate on projects and plan offline meetups.
 
                             Anytime if you are looking for a lead or offering some help, simply start a new conversation with relevant details and your ask from the community members. Relevant members can respond by simply chatting with you and each other on your conversation card. Members who want to follow the conversation can press the Follow button to receive notifications about future responses on the card.
 
@@ -434,9 +434,11 @@ def hobby_city(interest_hobby,geography_city):
                 interest_char = json.loads(hobby[1])
                 if not interest_char['hobbyists']:
                     interest_char['hobbyists']=hobby[0]+" enthusiast"
+                    name=hobby[0]+" enthusiast"
+                    temp['name']=capitalize_string(name)+" of "+ capitalize_string(str(city[0]))
                 else:
                     name=str(interest_char['hobbyists'])
-                    temp['name']=capitalize_string(name)+" of "+ str(city[0])
+                    temp['name']=capitalize_string(name)+" of "+ capitalize_string(str(city[0]))
 
                 if not interest_char['hobby_group_used_case']:
                     interest_char['hobby_group_used_case']="to pursue the hobby together"
@@ -499,11 +501,11 @@ def sport_city(interest_sport,geography_city):
 
                 if not interest_char[ 'sport_players']:
                     interest_char['sport_players']=sport[0]+" enthusiasts"
-                    temp['name'] = str(sport[0]) + " Enthusiasts of " + str(city[0])
+                    temp['name'] = capitalize_string(str(sport[0])) + " Enthusiasts of " + capitalize_string(str(city[0]))
 
                 else:
                     players=str(interest_char['sport_players'])
-                    temp['name'] =capitalize_string(players) + " of " + str(city[0])
+                    temp['name'] =capitalize_string(players) + " of " + capitalize_string(str(city[0]))
 
                 if not interest_char[ 'sport_usecase']:
                     interest_char['sport_usecase']="play the sport"
@@ -566,7 +568,7 @@ def fan_city(interest_fan,geography_city):
 
                 if not interest_char['thing_fans']:
                     interest_char['thing_fans']=str(fan[0])+" fans"
-                    temp['name']=str(fan[0])+" Fans of "+str(city[0])
+                    temp['name']=capitalize_string(str(fan[0]))+" Fans of "+capitalize_string(str(city[0]))
                 else:
                     thing_fan=interest_char['thing_fans']
                     temp['name'] = """%s of %s""" % (capitalize_string(thing_fan), city[0])
@@ -631,7 +633,7 @@ def cause_city(interest_cause,geography_city):
             if cause[1] is not None:
                 interest_char = json.loads(cause[1])
                 if 'thing_event' in interest_char and interest_char['thing_event']:
-                    temp['name']="""%s Residents For %s"""%(city[0],cause[0])
+                    temp['name']="""%s Residents For %s"""%(capitalize_string(city[0]),capitalize_string(cause[0]))
                     cause_name=cause[0].lower()
                     temp['purpose']="""For responsible citizens of %s willing to work for %s to plan, meet and work together for the cause"""%(city[0],cause_name)
                     temp['question']="""Introduce yourself telling a bit about your interest or experience in working for %s"""%(cause_name)
