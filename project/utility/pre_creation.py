@@ -443,8 +443,8 @@ def hobby_city(interest_hobby,geography_city):
             if hobby[1] is not None:
                 interest_char = json.loads(hobby[1])
                 if not interest_char['hobbyists']:
-                    interest_char['hobbyists']=hobby[0]+" enthusiast"
-                    name=hobby[0]+" enthusiast"
+                    interest_char['hobbyists']=hobby[0]+" enthusiasts"
+                    name=hobby[0]+" enthusiasts"
                     temp['name']=capitalize_string(name)+" of "+ capitalize_string(str(city[0]))
                     interest_char['hobbyists']=interest_char['hobbyists'].lower()
                 else:
