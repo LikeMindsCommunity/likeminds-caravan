@@ -22,7 +22,7 @@ from utility.pre_creation import pre_create_communities
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.urls import reverse
 from urllib.parse import urlencode
-from utility.utils import get_city_address, update_tag_image
+from utility.utils import get_city_address, update_tag_image, create_or_categorize_tag, update_user_geography_tags
 url = settings.URL
 
 # uncomment to run it in localhost
@@ -1246,12 +1246,12 @@ def create_tag(request):
 def get_or_create_sub_tags(new_tag,category,attribute):
 
     ''' function to create sub tags with known category and attribute  '''
-
+    category = Category.objects.get(id=category)
+    attribute = Attributes.objects.get(id=attribute)
     try:
-        tag = Tags_lpig.objects.get(name=new_tag)
+        tag = Tags_lpig.objects.get(name=new_tag,attribute_id = attribute)
     except:
-        category = Category.objects.get(id = category)
-        attribute = Attributes.objects.get(id = attribute)
+
         tag = Tags_lpig()
         tag.name = new_tag
         tag.category_id = category
@@ -1259,19 +1259,18 @@ def get_or_create_sub_tags(new_tag,category,attribute):
         tag.save()
         tag.tag_id =tag.id
         tag.save()
-    if category.name == 'Geography':
+    if category.name == 'Geography' or attribute.id == 3:
 
         geography_list = get_city_address(city=new_tag)
-        print('geography_list ====', geography_list, type(geography_list))
 
         for attr, tag_name in geography_list.items():
 
-            print(">>>>>>>>", tag_name, attr)
             if tag_name == '':
                 continue
             # creating or catgorizing a tag with known category and attribute
+            # geography tag is created, create its related tags
+            # for example, if gurgaon is created, create Haryana and India as well as state and country
             tag = create_or_categorize_tag(tag=tag_name, category='Geography', attribute=attr)
-            print('created tag ====== ', tag)
 
     return tag
 
@@ -1607,97 +1606,6 @@ def save_user_lpig_tags(user_id,legacy_tags,profession_tags,interest_tags,greogr
                 tag.delete()
     # update user geography tags with images and tag related things like state and country
     update_user_geography_tags(user_id=user_id, typ='Geography')
-
-
-def update_user_geography_tags(user_id, typ=''):
-
-    user = User.objects.get(id=user_id)
-
-    user_tags_list = []
-    if typ == 'Geography':
-        # getting all geography tags of the user
-        user_tags_list = list(User_Geography.objects.filter(user_id=user).values_list("tags_id",flat=True))
-
-    # save city,district state and country of a particular city tag
-    for each_tag in user_tags_list:
-        tag = Tags_lpig.objects.get(pk=each_tag)
-        tag_name = tag.name
-        if tag.id == 15 or tag.id == 16 or tag.id == 17 or tag.id == 18:
-            continue
-
-        geography_list = get_city_address(city = tag_name)
-        print('geography_list ====',geography_list,type(geography_list))
-
-
-        for attr,tag_name in geography_list.items():
-
-            print(">>>>>>>>",tag_name,attr)
-            if tag_name == '':
-                continue
-            # creating or catgorizing a tag with known category and attribute
-            tag = create_or_categorize_tag(tag=tag_name,category='Geography',attribute=attr)
-            print('created tag ====== ',tag)
-
-            if typ == 'Geography':
-                user_geo_tag = User_Geography.objects.filter(tags_id=tag, user_id=user)
-
-                if not user_geo_tag.exists() and tag :
-                    user_geo_tag = User_Geography()
-                    user_geo_tag.tags_id = tag
-                    user_geo_tag.user_id = user
-                    user_geo_tag.save()
-                    print('user_geo_tag === ',user_geo_tag)
-
-
-
-def create_or_categorize_tag(tag,category,attribute):
-    ''' function to create a un-categorized tag '''
-
-    new_tag = tag
-    new_tag = new_tag.strip().capitalize()
-
-    # if tag is not a empty string
-    if new_tag!='':
-        category = Category.objects.filter(Q(name__icontains=category))[0]
-        if not attribute == 'district':
-            # if attribute is not district (cause currently we dont have a attribute geo_district)
-
-            attribute = Attributes.objects.filter(Q(attribute_name__icontains=attribute))
-            if attribute.exists():
-                attribute = attribute[0]
-                tag = Tags_lpig.objects.filter(name = new_tag)
-                print("here",tag,tag.exists())
-                # create a new tag if tag is not present already
-                if not tag.exists():
-                    print('creating tag')
-                    tag = Tags_lpig()
-                    tag.name = new_tag
-                    tag.category_id = category
-                    tag.attribute_id = attribute
-                    tag.save()
-                    tag.tag_id = tag.id
-                    tag.save()
-
-                elif tag.exists():
-                    # print('tag is present categorizing the tag',tag)
-                    tag = Tags_lpig.objects.get(pk = tag[0].id)
-                    print('tag is present categorizing the tag', tag)
-                    if tag.attribute_id.id >=17 and tag.attribute_id.id <=20:
-                        print("inside")
-                        tag.category_id = category
-                        tag.attribute_id = attribute
-                        tag.save()
-                else:
-                    tag = tag[0]
-
-                # tag is of category type geography update or create tag image
-                if category.name == 'Geography':
-                    tag_name, tag_id = new_tag, tag.id
-                    update_tag_image.delay(tag_name=tag_name, tag_id=tag_id)
-                return tag
-            return None
-        return None
-    return None
 
 
 def map_tags(request):
