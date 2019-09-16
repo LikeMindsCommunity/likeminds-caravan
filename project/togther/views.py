@@ -18,6 +18,7 @@ from django.template.loader import get_template
 import traceback
 from collabmates_api.raw_queries import  compute_rank
 from django.urls import reverse
+from utility.utils import get_city_address, update_tag_image, update_user_geography_tags, create_or_categorize_tag
 from urllib.parse import urlencode,quote
 
 url = settings.URL
@@ -312,8 +313,6 @@ def refer_members(request,community_id):
         # return redirect('comunity', community_id=community.id)
         share_url=quote(share_url)
         return  render(request,'referal.html',{'share_url':share_url,'community':community,'copy_url':copy_url})
-
-
 
 
 
@@ -1075,7 +1074,8 @@ def questions_responses(request):
 
 def get_or_create_tag(tag_name,tag_type):
 
-    '''function to check whether the tag is existing tag or a new tag and if its new create it as categorized'''
+    '''function to check whether the tag is existing tag or a new tag and
+     if its new create it as un-categorized'''
 
     if len(tag_name) is 0:
         print('empty list')
@@ -1085,7 +1085,7 @@ def get_or_create_tag(tag_name,tag_type):
         tag_id=int(tag_name)
         return tag_id
     except:
-        tag_name = tag_name.strip().capitalize()
+        tag_name = tag_name.strip().title()
         try:
             tag = Tags_lpig.objects.get(name = tag_name)
         except:
@@ -1129,8 +1129,10 @@ def insert_tags_for_user(user_id,tag_list,typ):
                 pass
         for tag in user_tags_list:
             if tag not in tag_list:
-                User_Legacy.objects.filter(tags_id=tag, user_id=user).delete()
+                tag = User_Legacy.objects.filter(tags_id=tag, user_id=user)
 
+                if str(tag[0].tags_id.id) != '15':
+                    tag.delete()
 
     if typ == "Profession":
 
@@ -1151,7 +1153,10 @@ def insert_tags_for_user(user_id,tag_list,typ):
                 pass
         for tag in user_tags_list:
             if tag not in tag_list:
-                User_Profession.objects.filter(tags_id=tag, user_id=user).delete()
+                tag = User_Profession.objects.filter(tags_id=tag, user_id=user)
+
+                if str(tag[0].tags_id.id) != '16':
+                    tag.delete()
 
 
     if typ == "Interests":
@@ -1172,7 +1177,10 @@ def insert_tags_for_user(user_id,tag_list,typ):
                 pass
         for tag in user_tags_list:
             if tag not in tag_list:
-                User_Interest.objects.filter(tags_id=tag, user_id=user).delete()
+                tag = User_Interest.objects.filter(tags_id=tag, user_id=user)
+
+                if str(tag[0].tags_id.id) != '17':
+                    tag.delete()
 
 
     if typ == "Geography":
@@ -1194,7 +1202,10 @@ def insert_tags_for_user(user_id,tag_list,typ):
                 pass
         for tag in user_tags_list:
             if tag not in tag_list:
-                User_Geography.objects.filter(tags_id=tag, user_id=user).delete()
+                tag = User_Geography.objects.filter(tags_id=tag, user_id=user)
+
+                if str(tag[0].tags_id.id) != '18':
+                    tag.delete()
 
 
 def get_user_tags_from_list(tag_list,type):
@@ -1405,6 +1416,68 @@ def get_community_interest_tags(community_id):
     return community_interest_hobby,community_interest_sports,community_interest_fan,community_interest_cause
 
 
+def insert_user_home_town_tags(user_id,tag):
+    ''' function to update user home town tag and
+     add home town related state and country tags '''
+
+    new_tag = tag
+    new_tag = new_tag.strip().title()
+
+    category = Category.objects.filter(Q(name__icontains='legacy'))[0]
+    attribute = Attributes.objects.filter(Q(attribute_name__icontains='hometown'))[0]
+    user = User.objects.get(pk=user_id)
+    # if tag_id is present, get tag
+    if tag.isdigit():
+        tag = Tags_lpig.objects.get(pk = tag,attribute_id__id=3)
+        new_tag = tag.name
+        new_tag = new_tag.strip().title()
+    else:
+        # if tag is a string (which means its a new tag), create new tag
+        tag = Tags_lpig()
+        tag.name = new_tag
+        tag.category_id = category
+        tag.attribute_id = attribute
+        tag.save()
+        tag.tag_id = tag.id
+        tag.save()
+    user_tag = User_Legacy.objects.filter(tags_id=tag,user_id=user)
+
+    if not user_tag.exists():
+        # create user legacy tag as home town
+        user_tag = User_Legacy()
+        user_tag.tags_id = tag
+        user_tag.user_id = user
+        user_tag.save()
+    # adding other related geography tags for the user such as state and country
+    geography_list = get_city_address(city=new_tag)
+
+    for attr, tag_name in geography_list.items():
+
+        if tag_name == '':
+            continue
+        if attr == 'city':
+            continue
+        # creating or categorizing a tag with known category and attribute
+        # geography tag is created, create its related tags
+        # for example, if gurgaon is created, create Haryana and India as well as state and country
+        tag = create_or_categorize_tag(tag=tag_name, category='Geography', attribute=attr)
+
+        user_geo_tag = User_Geography.objects.filter(tags_id=tag, user_id=user)
+
+        if not user_geo_tag.exists() and tag:
+            user_geo_tag = User_Geography()
+            user_geo_tag.tags_id = tag
+            user_geo_tag.user_id = user
+            user_geo_tag.save()
+            print('user_geo_tag === ', user_geo_tag)
+
+        # finally update all user geography tags to
+        # get related things for all tags like state and country
+        # with images
+        update_user_geography_tags.delay(user_id=user_id, typ='Geography')
+
+    return
+
 # onboarding flow
 
 def onboarding(request):
@@ -1452,13 +1525,18 @@ def onboarding(request):
         legacy_hometown = request.POST.getlist('legacy_hometown[]')
         geography=request.POST.getlist('loc[]')
 
-        legacy_li = legacy_education + legacy_hometown + legacy_work
+        legacy_li = legacy_education + legacy_work
+
 
         type_list=get_user_tags_from_list(legacy_li,"Legacy")
         insert_tags_for_user(user_id,type_list,"Legacy")
 
+
         type_list=get_user_tags_from_list(geography,"Geography")
         insert_tags_for_user(user_id, type_list, "Geography")
+
+        for tag in legacy_hometown:
+            insert_user_home_town_tags(user_id = user_id, tag=tag)
 
         return JsonResponse({'success':True})
 
