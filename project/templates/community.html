@@ -1,4 +1,5 @@
-{% load static %}<!DOCTYPE html>
+<!DOCTYPE html>
+{% load static %}
 <html>
 <head>
 
@@ -80,13 +81,11 @@
                 }
 
 
-
-
-                function referal(){
+                function referal(ref_id){
 
                     {% if user.is_authenticated %}
 
-                     window.location.href ="../refer_members/"+{{community.id}}+"?ref_id="+{{ref_id}};
+                     window.location.href ="../refer_members/"+{{community.id}}+"?ref_id="+ref_id;
                     {% else %}
                     $('.test')
                     .modal('show')
@@ -423,26 +422,9 @@
 <!--                </div>-->
 <br/>
 
-                {% if community.hide_community == '3'  %}
 
-                <button class="ui fluid button "
-                        style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;"
-                        onclick="referal();">Join Community
-                </button>
 
-                {% elif cta == 'ref'  %}
-                <button class="ui fluid button "
-                        style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;"
-                        onclick="referal();">Join Community
-                </button>
-
-                {% elif Nom_mem_state == 8 %}
-                <button class="ui fluid button "
-                        style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;"
-                        onclick="referal();"> Join Community
-                </button>
-
-                {% elif Nom_mem_state == 6 %}
+                {% if Nom_mem_state == 6 %}
                 <button class="ui fluid button "
                         style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;"
                         onclick="accept_admin('{{cta}}','{{community.id}}','{{Nom_mem_state}}');"> Respond to invitation
