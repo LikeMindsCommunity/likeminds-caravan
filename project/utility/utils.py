@@ -98,16 +98,19 @@ def get_user_tag(user_id):
 
 @shared_task
 def update_tag_image(tag_name, tag_id):
-    locations = [tag_name, 'city', 'district', 'state', 'country']
-    print('is digit ',tag_name.isdigit())
-    if tag_name.isdigit() :
-        return
-    for loc in locations:
-        if loc == tag_name:
-            loc = tag_name
 
-        else:
-            loc = tag_name + " " + loc
+    print('is digit ', tag_name.isdigit())
+    if tag_name.isdigit():
+        return
+
+    locations = [tag_name, tag_name.title(), tag_name.lower(), tag_name +' city', tag_name +' district', tag_name +' state', tag_name +' country']
+
+    for loc in locations:
+        # if loc.lower() == tag_name.lower():
+        #     loc = tag_name
+        #
+        # else:
+        #     loc = tag_name + " " + loc
         print(loc)
         request = 'https://en.wikipedia.org/w/api.php?action=query&format=json&formatversion=2&prop=pageimages|pageterms&piprop=thumbnail&pithumbsize=600&titles=' + str(
             loc)
