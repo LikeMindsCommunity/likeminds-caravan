@@ -347,7 +347,7 @@ def college_skill(legacy_college,industry_skill):
             temp['purpose']="""For %s alumni with expertise in %s to exchange knowledge and referrals"""%(college[0],skill_name)
             temp['question']="""Introduce yourself telling a bit about your background in %s"""%(skill_name)
 
-            temp['about']="""This community is exclusively for %s from %s across the globe. Here we exchange information, knowledge, documents and important links related to %s and have conversations on the same. We also use this space to help each other by providing referrals (for jobs, business introductions etc.), collaborate on projects and plan offline meetups.
+            temp['about']="""This community is exclusively for %s who studied at %s living across the globe. Here we exchange information, knowledge, documents and important links related to %s and have conversations on the same. We also use this space to help each other by providing referrals (for jobs, business introductions etc.), collaborate on projects and plan offline meetups.
 
                             Anytime if you are looking for a lead or offering some help, simply start a new conversation with relevant details and your ask from the community members. Relevant members can respond by simply chatting with you and each other on your conversation card. Members who want to follow the conversation can press the Follow button to receive notifications about future responses on the card.
 
@@ -381,12 +381,22 @@ def college_industry(legacy_college,profession_industry):
                 'interest': 17,
                 'geography': 18
             }
+            print(industry[1])
+            if industry[1] is not None:
+                prof_char=json.loads(industry[1])
+                if prof_char['industry_name']:
+                    name=prof_char['industry_name']
+                else:
+                    name=industry[0]
+            else:
+                name=industry[0]
+
             if college[1] is not None:
                 leg_char=json.loads(college[1])
                 if 'csn' in leg_char and leg_char['csn']:
-                    temp['name']=leg_char['csn']+" Alumni in "+capitalize_string(str(industry[0]))
+                    temp['name']=leg_char['csn']+" Alumni in "+capitalize_string(name)
                 else:
-                    temp['name'] = str(college[0]) + " Alumni in " + capitalize_string(str(industry[0]))
+                    temp['name'] = str(college[0]) + " Alumni in " + capitalize_string(name)
 
             else:
                 temp['name'] = str(college[0]) + " Alumni in " + capitalize_string(str(industry[0]))
@@ -433,9 +443,10 @@ def hobby_city(interest_hobby,geography_city):
             if hobby[1] is not None:
                 interest_char = json.loads(hobby[1])
                 if not interest_char['hobbyists']:
-                    interest_char['hobbyists']=hobby[0]+" enthusiast"
-                    name=hobby[0]+" enthusiast"
+                    interest_char['hobbyists']=hobby[0]+" enthusiasts"
+                    name=hobby[0]+" enthusiasts"
                     temp['name']=capitalize_string(name)+" of "+ capitalize_string(str(city[0]))
+                    interest_char['hobbyists']=interest_char['hobbyists'].lower()
                 else:
                     name=str(interest_char['hobbyists'])
                     temp['name']=capitalize_string(name)+" of "+ capitalize_string(str(city[0]))
@@ -502,6 +513,7 @@ def sport_city(interest_sport,geography_city):
                 if not interest_char[ 'sport_players']:
                     interest_char['sport_players']=sport[0]+" enthusiasts"
                     temp['name'] = capitalize_string(str(sport[0])) + " Enthusiasts of " + capitalize_string(str(city[0]))
+                    interest_char['sport_players']=interest_char['sport_players'].lower()
 
                 else:
                     players=str(interest_char['sport_players'])
@@ -509,6 +521,8 @@ def sport_city(interest_sport,geography_city):
 
                 if not interest_char[ 'sport_usecase']:
                     interest_char['sport_usecase']="play the sport"
+                else:
+                    interest_char['sport_usecase']=interest_char['sport_usecase'].lower()
 
 
                 if not interest_char['sport_event']:
@@ -569,6 +583,7 @@ def fan_city(interest_fan,geography_city):
                 if not interest_char['thing_fans']:
                     interest_char['thing_fans']=str(fan[0])+" fans"
                     temp['name']=capitalize_string(str(fan[0]))+" Fans of "+capitalize_string(str(city[0]))
+                    interest_char['thing_fans']=interest_char['thing_fans'].lower()
                 else:
                     thing_fan=interest_char['thing_fans']
                     temp['name'] = """%s of %s""" % (capitalize_string(thing_fan), city[0])
@@ -607,8 +622,9 @@ def fan_city(interest_fan,geography_city):
             temp['tags']['interest'] = fan[3]
             temp['tags']['geography'] = city[3]
             temp['geography'] = city[0]
+            fan_ques=fan[0].lower()
             temp['question'] = """Introduce yourself telling a bit about your passion for %s""" % (
-                fan[0])
+               fan_ques)
             community_id = is_community_tags_exists(temp)
             if not community_id:
                 insert_pre_create_community(temp)
