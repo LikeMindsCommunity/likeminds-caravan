@@ -29,65 +29,6 @@ url = settings.URL
 api_url = url + '/api/'
 
 
-def pending_members_mail(request):
-    '''24 hour mail'''
-    members = Members.objects.select_related('community_id','member_id')
-    pending_members = members.filter(state=3)#.distinct('community_id')
-    count=1
-    for member in pending_members:
-        pending_members_in_community = pending_members.filter(community_id=member.community_id)#[:3]
-        admins_of_community = members.filter(community_id=member.community_id).filter(Q(state=1)|Q(state=2))
-        # print("==== ",member.community_id.id,)
-
-        if pending_members_in_community.exists() and admins_of_community.exists():
-
-            for admin in admins_of_community:
-                print("==== ", admin.member_id.id ,'>>>>' ,count)
-
-                to = admin.member_id.email
-                fail_silently = True
-                pending_count = pending_members_in_community.count()
-                # pending_count = 1
-                if pending_count == 1:
-                    template = get_template("mails/single_pending_member.html").render(
-                        {'promoter': admin.member_id.userinfo.name,
-                         'promoter_image': admin.member_id.userinfo.image_file.url,
-                         'pending_members': pending_members_in_community[0],
-                         'pending_member_count': pending_count,
-                         'community': admin.community_id,
-                         'url':url})
-                    subject = str(pending_members_in_community[0].member_id.userinfo.name)+" has requested to join "+str(admin.community_id.name)
-                elif pending_count > 1:
-                    subject = str(pending_count)+' new members have requested to join '+str(admin.community_id.name)
-                    template = get_template("mails/multiple_pending_members_mail.html").render(
-                        {'promoter': admin.member_id.userinfo.name,
-                         'promoter_image': admin.member_id.userinfo.image_file.url,
-                         'pending_members': pending_members_in_community[:4],
-                         'pending_member_count': pending_count,
-                         'remaining_pending_requests': pending_count-4,
-                         'community_name': admin.community_id.name,
-                         'community_id': admin.community_id.id,
-                         'url':url})
-                print(subject)
-
-                msg = EmailMultiAlternatives(subject,
-                                             template,
-                                             "Collabmates<hello@collabmates.com>",
-                                             ['mahesh61437mahe@gmail.com'],
-                                             )
-                msg.attach_alternative(template, "text/html")
-                #msg.send(fail_silently)
-                context = {'promoter': admin.member_id.userinfo.name,
-                         'promoter_image': admin.member_id.userinfo.image_file.url,
-                         'pending_members': pending_members_in_community[:5],
-                         'pending_member_count': pending_count,
-                         'remaining_pending_requests': pending_count-5,
-                         'community_name': admin.community_id.name,
-                         'community_id': admin.community_id.id,
-                         'url':url}
-                return render(request,'mails/multiple_pending_members_mail.html',context)
-
-
 def index(request):
     '''function to show promotion page'''
     return render(request, 'index.html')
@@ -131,6 +72,7 @@ def dashboard(request):
 
     return render(request, 'dashboard.html', {'communities': communities})
 
+
 def user_onbaord(request):
     ''' checking if user has gone through on-boarding flow or not'''
     user_legacy = User_Legacy.objects.filter(user_id=request.user)
@@ -147,6 +89,7 @@ def user_onbaord(request):
         iit_tag = user_legacy.filter(tags_id__id = 6)
         return True, iit_tag.exists()
     return False,False
+
 
 def get_communities_by_rank(request):
     ''' function to get communities based on rank '''
@@ -217,18 +160,12 @@ def community(request, community_id):
 
     # ----- accept admin APi part ---------------
     res = request.GET.dict()
-    if 'source' in res:
-        source = res['source']
-        print(source)
-    else:
-        source = ''
-    # --------- referal part ----------------------
-    if 'member_id' in res:
-        ref_id = res['member_id']#request.GET.get('ref_id')
-    else:
-        ref_id = ''
 
-    print('ref id  ============ ',ref_id)
+    source = request.GET.get('source', '')
+
+    # --------- referal part ----------------------
+    ref_id = request.GET.get('ref_id', '')
+
     if 'cta' in res:
         cta = res['cta']
         print("cta == ", cta)
@@ -238,6 +175,13 @@ def community(request, community_id):
             if questions:
                 return render(request, 'response_form.html', {"data": data, 'usr': user, 'community': community})
             else:
+                if community.hide_community == '3':
+                    if ref_id != '':
+                        base_url = reverse('refer_members', kwargs={'community_id': community_id})
+                        query_string = urlencode({'ref_id': ref_id})
+                        url = '{}?{}'.format(base_url, query_string)
+                        return redirect(url)
+                    return redirect('refer_members',community_id=community.id)
 
                 onboard = False
                 user_legacy = User_Legacy.objects.filter(user_id = request.user)
@@ -247,24 +191,12 @@ def community(request, community_id):
 
                 if user_legacy.exists() and user_profession.exists() and user_interests.exists() and user_geography.exists():
                     onboard = True
+
                 return render(request, 'thankyou.html',
                               {'usr': user,
                                'similar_communities': data,
                                'community': community,
-                               # 'community_tag': community_tag,
                                'onboard':onboard})
-
-        elif cta == 'interested':
-            if request.user.is_authenticated:
-
-                if ref_id != '':
-                    base_url = reverse('refer_members')
-                    base_url = base_url + str(community_id)
-                    query_string = urlencode({'ref_id': ref_id})
-                    url = '{}?{}'.format(base_url, query_string)
-                    return redirect(url)
-
-                return  redirect('refer_members',community_id=community.id)
 
     else:
         cta = ''
@@ -384,6 +316,7 @@ def refer_members(request,community_id):
 
 
 
+
 def get_members_of_community(community):
     ''' function to get admins and members of a community '''
 
@@ -400,6 +333,7 @@ def get_members_of_community(community):
             members.append(mem[0])
 
     return members, admin_details
+
 
 @login_required
 def update_user_info(request):
@@ -474,6 +408,7 @@ def update_user_info(request):
                     user.save()
 
                 return user
+
 
 @login_required
 def accept_admin(request, community_id):
@@ -989,6 +924,7 @@ def view_answers(request, card_id):
 
                }
     return render(request, 'answers.html', context)
+
 
 def create_message(request):
     '''function to create a message to show'''
