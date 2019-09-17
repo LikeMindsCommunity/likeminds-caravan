@@ -163,23 +163,28 @@ $("#attribute").on('change',function(){
     var value=$(this).val();
     document.getElementById('all_tags').innerHTML = '';
     var div = document.getElementById('all_tags');
-    if(value=="1")
-    {
-    {% for attr in legacy_work %}
-             var html=`
+
+    console.log(value)
+               $.ajax({
+
+            url:'/admin_dashboard/get_tags/'+value,
+            dataType:'json',
+
+            success:function(data){
+             obj = data['tags_list']
+
+            var tag_div_html = `
                 <div>
                     <table>
                         <tbody>
                         <tr>
                             <td style="width:250px">
-                            {% if not attr.tag_image %}
-                                <h5 style="color:black;"> {{attr.name}} </h5>
-                            {% else %}
-                               <h5 style="color:red;"> {{attr.name}} </h5>
-                            {% endif %}
+
+                                <h5 style="color:{0};"> {1} </h5>
+
                             </td>
                             <td style="padding-left:20px">
-                                <button type="button" onclick="open_modal('{{attr.id}}','{{attr.name}}');"   class="btn btn-outline-dark btn-sm">Update</button>
+                                <button type="button" onclick="open_modal('{2}','{1}');"   class="btn btn-outline-dark btn-sm">Update</button>
                             </td>
                         </tr>
                         </tbody>
@@ -187,392 +192,18 @@ $("#attribute").on('change',function(){
                 </div>
                 <br>
                 `
-       $('#all_tags').append(html)
+            for (let key in obj) {
+                  console.log(key, ':', obj[key].tag_id);
+                  newHtml = tag_div_html.replace('{0}', obj[key].color).replace('{1}', obj[key].tag_name).replace('{2}', obj[key].tag_id)
+                    $('#all_tags').append(newHtml)
+                }
 
 
-    {% endfor %}
+            }
+
+         })
 
 
-    }
-    else if(value=="2")
-    {
-    {% for attr in legacy_education %}
-             var html=`
-<div>
-                    <table>
-                        <tbody>
-                        <tr>
-                            <td style="width:250px">
-                            {% if not attr.tag_image %}
-                                <h5 style="color:black;"> {{attr.name}} </h5>
-                            {% else %}
-                               <h5 style="color:red;"> {{attr.name}} </h5>
-                            {% endif %}
-                            </td>
-                            <td style="padding-left:20px">
-                                <button type="button" onclick="open_modal('{{attr.id}}','{{attr.name}}');" class="btn btn-outline-dark btn-sm">Update</button>
-                            </td>
-                        </tr>
-                        </tbody>
-                    </table>
-                </div>
-                <br>                `
-       $('#all_tags').append(html)
-
-    {% endfor %}
-    }
-
-    else if(value=="3")
-    {
-    {% for attr in legacy_hometown %}
-             var html=`
-<div>
-                    <table>
-                        <tbody>
-                        <tr>
-                            <td style="width:250px">
-                                {% if not attr.tag_image %}
-                                <h5 style="color:black;"> {{attr.name}} </h5>
-                            {% else %}
-                               <h5 style="color:red;"> {{attr.name}} </h5>
-                            {% endif %}
-                            </td>
-                            <td style="padding-left:20px">
-                                <button type="button" onclick="open_modal('{{attr.id}}','{{attr.name}}');" class="btn btn-outline-dark btn-sm">Update</button>
-                            </td>
-                        </tr>
-                        </tbody>
-                    </table>
-                </div>
-                <br>                `
-       $('#all_tags').append(html)
-
-    {% endfor %}
-    }
-
-    else if(value=="4")
-    {
-    {% for attr in legacy_life_style %}
-             var html=`
-<div>
-                    <table>
-                        <tbody>
-                        <tr>
-                            <td style="width:250px">
-{% if not attr.tag_image %}
-                                <h5 style="color:black;"> {{attr.name}} </h5>
-                            {% else %}
-                               <h5 style="color:red;"> {{attr.name}} </h5>
-                            {% endif %}                            </td>
-                            <td style="padding-left:20px">
-                                <button type="button" onclick="open_modal('{{attr.id}}','{{attr.name}}');" class="btn btn-outline-dark btn-sm">Update</button>
-                            </td>
-                        </tr>
-                        </tbody>
-                    </table>
-                </div>
-                <br>                `
-       $('#all_tags').append(html)
-
-    {% endfor %}
-    }
-
-
-    else if(value=="5")
-    {
-    {% for attr in profession_skill %}
-             var html=`
-<div>
-                    <table>
-                        <tbody>
-                        <tr>
-                            <td style="width:250px">
-{% if not attr.tag_image %}
-                                <h5 style="color:black;"> {{attr.name}} </h5>
-                            {% else %}
-                               <h5 style="color:red;"> {{attr.name}} </h5>
-                            {% endif %}                            </td>
-                            <td style="padding-left:20px">
-                                <button type="button" onclick="open_modal('{{attr.id}}','{{attr.name}}');" class="btn btn-outline-dark btn-sm">Update</button>
-                            </td>
-                        </tr>
-                        </tbody>
-                    </table>
-                </div>
-                <br>                `
-       $('#all_tags').append(html)
-    {% endfor %}
-
-    }
-
-    else    if(value=="6")
-    {
-    {% for attr in profession_industry %}
-             var html=`
-<div>
-                    <table>
-                        <tbody>
-                        <tr>
-                            <td style="width:250px">
-{% if not attr.tag_image %}
-                                <h5 style="color:black;"> {{attr.name}} </h5>
-                            {% else %}
-                               <h5 style="color:red;"> {{attr.name}} </h5>
-                            {% endif %}                            </td>
-                            <td style="padding-left:20px">
-                                <button type="button" onclick="open_modal('{{attr.id}}','{{attr.name}}');" class="btn btn-outline-dark btn-sm">Update</button>
-                            </td>
-                        </tr>
-                        </tbody>
-                    </table>
-                </div>
-                <br>                `
-       $('#all_tags').append(html)
-
-    {% endfor %}
-
-    }
-    else if(value=="7")
-    {
-    {% for attr in profession_designation %}
-             var html=`
-<div>
-                    <table>
-                        <tbody>
-                        <tr>
-                            <td style="width:250px">
-{% if not attr.tag_image %}
-                                <h5 style="color:black;"> {{attr.name}} </h5>
-                            {% else %}
-                               <h5 style="color:red;"> {{attr.name}} </h5>
-                            {% endif %}                            </td>
-                            <td style="padding-left:20px">
-                                <button type="button" onclick="open_modal('{{attr.id}}','{{attr.name}}');" class="btn btn-outline-dark btn-sm">Update</button>
-                            </td>
-                        </tr>
-                        </tbody>
-                    </table>
-                </div>
-                <br>                `
-       $('#all_tags').append(html)
-
-    {% endfor %}
-    }
-
-    else if(value=="8")
-    {
-    {% for attr in interest_cause %}
-             var html=`
-<div>
-                    <table>
-                        <tbody>
-                        <tr>
-                            <td style="width:250px">
-{% if not attr.tag_image %}
-                                <h5 style="color:black;"> {{attr.name}} </h5>
-                            {% else %}
-                               <h5 style="color:red;"> {{attr.name}} </h5>
-                            {% endif %}                            </td>
-                            <td style="padding-left:20px">
-                                <button type="button" onclick="open_modal('{{attr.id}}','{{attr.name}}');" class="btn btn-outline-dark btn-sm">Update</button>
-                            </td>
-                        </tr>
-                        </tbody>
-                    </table>
-                </div>
-                <br>                `
-       $('#all_tags').append(html)
-
-    {% endfor %}
-    }
-
-    else if(value=="9")
-    {
-    {% for attr in interest_hobby %}
-             var html=`
-<div>
-                    <table>
-                        <tbody>
-                        <tr>
-                            <td style="width:250px">
-{% if not attr.tag_image %}
-                                <h5 style="color:black;"> {{attr.name}} </h5>
-                            {% else %}
-                               <h5 style="color:red;"> {{attr.name}} </h5>
-                            {% endif %}                            </td>
-                            <td style="padding-left:20px">
-                                <button type="button" onclick="open_modal('{{attr.id}}','{{attr.name}}');" class="btn btn-outline-dark btn-sm">Update</button>
-                            </td>
-                        </tr>
-                        </tbody>
-                    </table>
-                </div>
-                <br>                `
-       $('#all_tags').append(html)
-    {% endfor %}
-    }
-
-    else if(value=="10")
-    {
-    {% for attr in interest_sports %}
-             var html=`
-<div>
-                    <table>
-                        <tbody>
-                        <tr>
-                            <td style="width:250px">
-{% if not attr.tag_image %}
-                                <h5 style="color:black;"> {{attr.name}} </h5>
-                            {% else %}
-                               <h5 style="color:red;"> {{attr.name}} </h5>
-                            {% endif %}                            </td>
-                            <td style="padding-left:20px">
-                                <button type="button" onclick="open_modal('{{attr.id}}','{{attr.name}}');" class="btn btn-outline-dark btn-sm">Update</button>
-                            </td>
-                        </tr>
-                        </tbody>
-                    </table>
-                </div>
-                <br>                `
-       $('#all_tags').append(html)
-    {% endfor %}
-
-    }
-
-    else if(value=="11")
-    {
-    {% for attr in interest_fan %}
-             var html=`
-<div>
-                    <table>
-                        <tbody>
-                        <tr>
-                            <td style="width:250px">
-{% if not attr.tag_image %}
-                                <h5 style="color:black;"> {{attr.name}} </h5>
-                            {% else %}
-                               <h5 style="color:red;"> {{attr.name}} </h5>
-                            {% endif %}                            </td>
-                            <td style="padding-left:20px">
-                                <button type="button" onclick="open_modal('{{attr.id}}','{{attr.name}}');" class="btn btn-outline-dark btn-sm">Update</button>
-                            </td>
-                        </tr>
-                        </tbody>
-                    </table>
-                </div>
-                <br>                `
-       $('#all_tags').append(html)
-    {% endfor %}
-
-    }
-
-    else if(value=="12")
-    {
-    {% for attr in geography_city %}
-             var html=`
-<div>
-                    <table>
-                        <tbody>
-                        <tr>
-                            <td style="width:250px">
-{% if not attr.tag_image %}
-                                <h5 style="color:black;"> {{attr.name}} </h5>
-                            {% else %}
-                               <h5 style="color:red;"> {{attr.name}} </h5>
-                            {% endif %}                            </td>
-                            <td style="padding-left:20px">
-                                <button type="button" onclick="open_modal('{{attr.id}}','{{attr.name}}');" class="btn btn-outline-dark btn-sm">Update</button>
-                            </td>
-                        </tr>
-                        </tbody>
-                    </table>
-                </div>
-                <br>                `
-       $('#all_tags').append(html)
-    {% endfor %}
-
-    }
-    else if(value=="13")
-    {
-    {% for attr in geography_state %}
-             var html=`
-<div>
-                    <table>
-                        <tbody>
-                        <tr>
-                            <td style="width:250px">
-{% if not attr.tag_image %}
-                                <h5 style="color:black;"> {{attr.name}} </h5>
-                            {% else %}
-                               <h5 style="color:red;"> {{attr.name}} </h5>
-                            {% endif %}                            </td>
-                            <td style="padding-left:20px">
-                                <button type="button" onclick="open_modal('{{attr.id}}','{{attr.name}}');" class="btn btn-outline-dark btn-sm">Update</button>
-                            </td>
-                        </tr>
-                        </tbody>
-                    </table>
-                </div>
-                <br>                `
-       $('#all_tags').append(html)
-    {% endfor %}
-
-    }
-    else if(value=="14")
-    {
-    {% for attr in geography_country %}
-             var html=`
-<div>
-                    <table>
-                        <tbody>
-                        <tr>
-                            <td style="width:250px">
-                            {% if not attr.tag_image %}
-                                <h5 style="color:black;"> {{attr.name}} </h5>
-                            {% else %}
-                               <h5 style="color:red;"> {{attr.name}} </h5>
-                            {% endif %}                            </td>
-                            <td style="padding-left:20px">
-                                <button type="button" onclick="open_modal('{{attr.id}}','{{attr.name}}');" class="btn btn-outline-dark btn-sm">Update</button>
-                            </td>
-                        </tr>
-                        </tbody>
-                    </table>
-                </div>
-                <br>                `
-       $('#all_tags').append(html)
-    {% endfor %}
-
-    }
-    else if(value=="15")
-    {
-    {% for attr in geography_pincode %}
-             var html=`
-<div>
-                    <table>
-                        <tbody>
-                        <tr>
-                            <td style="width:250px">
-{% if not attr.tag_image %}
-                                <h5 style="color:black;"> {{attr.name}} </h5>
-                            {% else %}
-                               <h5 style="color:black;"> {{attr.name}} </h5>
-                            {% endif %}                            </td>
-                            <td style="padding-left:20px">
-                                <button type="button" onclick="open_modal('{{attr.id}}','{{attr.name}}');" class="btn btn-outline-dark btn-sm">Update</button>
-                            </td>
-                        </tr>
-                        </tbody>
-                    </table>
-                </div>
-                <br>                `
-       $('#all_tags').append(html)
-    {% endfor %}
-
-    }
-
-    else
-    document.getElementById('all_tags').innerHTML = '';
 });
 
 

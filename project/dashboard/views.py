@@ -1259,6 +1259,7 @@ def get_or_create_sub_tags(new_tag,category,attribute):
         tag.save()
         tag.tag_id =tag.id
         tag.save()
+
     if category.name == 'Geography' or attribute.id == 3:
 
         geography_list = get_city_address(city=new_tag)
@@ -1651,52 +1652,90 @@ def update_tag(request):
                                                           ,~Q(attribute_name__icontains = 'uncategorized')).order_by('id')
 
 
-        legacy_work=Tags_lpig.objects.filter(attribute_id=1).order_by('id')
-        legacy_education = Tags_lpig.objects.filter(attribute_id=2).order_by('id')
-        legacy_hometown=Tags_lpig.objects.filter(attribute_id=3).order_by('id')
-        legacy_life_style = Tags_lpig.objects.filter(attribute_id=4).order_by('id')
-
-        profession_skill = Tags_lpig.objects.filter(attribute_id=5).order_by('id')
-        profession_industry = Tags_lpig.objects.filter(attribute_id=6).order_by('id')
-        profession_designation = Tags_lpig.objects.filter(attribute_id=7).order_by('id')
-
-        interest_cause = Tags_lpig.objects.filter(attribute_id=8).order_by('id')
-        interest_hobby = Tags_lpig.objects.filter(attribute_id=9).order_by('id')
-        interest_sports = Tags_lpig.objects.filter(attribute_id=10).order_by('id')
-        interest_fan = Tags_lpig.objects.filter(attribute_id=11).order_by('id')
-
-        geography_city = Tags_lpig.objects.filter(attribute_id=12).order_by('id')
-        geography_state = Tags_lpig.objects.filter(attribute_id=13).order_by('id')
-        geography_country = Tags_lpig.objects.filter(attribute_id=14).order_by('id')
-        geography_pincode = Tags_lpig.objects.filter(attribute_id=15).order_by('id')
-
         return render(request, 'dashboard/update_tag.html', {'categories': categories,
                                                              'legacy_attributes': legacy_attributes,
                                                              'profession_attributes': profession_attributes,
                                                              'interests_attributes': interests_attributes,
                                                              'geography_attributes': geography_attributes,
 
-                                                             'interest_hobby': interest_hobby,
-                                                             'interest_sports': interest_sports,
-                                                             'interest_fan': interest_fan,
-                                                             'interest_cause': interest_cause,
-
-                                                             'profession_industry': profession_industry,
-                                                             'profession_skill': profession_skill,
-                                                             'profession_designation': profession_designation,
-
-                                                             'legacy_education': legacy_education,
-                                                             'legacy_work': legacy_work,
-                                                             'legacy_hometown': legacy_hometown,
-                                                             'legacy_life_style':legacy_life_style,
-
-                                                             'geography_state': geography_state,
-                                                             'geography_country': geography_country,
-                                                             'geography_pincode': geography_pincode,
-                                                             'geography_city': geography_city,
-
                                                              'updated':updated
                                                              })
+
+
+def get_tags_by_attributes(request,attr_id):
+
+    tags = Tags_lpig.objects.filter(attribute_id=attr_id).order_by('id')
+    print("\ntags count === ",tags.count(),"\n")
+    tags_list = []
+
+    for tag in tags:
+        color = 'green'
+        tag_dict = {'tag_id':tag.id,'tag_name':tag.name,'color':'green'}
+        print(tag,tag.tag_characterstics,tag.tag_image)
+
+        if tag.attribute_id.id == 1 or tag.attribute_id.id == 4 or tag.attribute_id.id == 7 :
+            print('\ninside special if\n')
+            if not tag.tag_image:
+                tag_dict['color'] = 'red'
+            tags_list.append(tag_dict)
+            continue
+
+        elif not tag.tag_characterstics and not tag.tag_image:
+            print("\n here 1\n")
+            tag_dict['color'] = 'black'
+            tags_list.append(tag_dict)
+            continue
+
+        elif tag.tag_characterstics == 'null' and not tag.tag_image:
+            print("\n here 2\n")
+            tag_dict['color'] = 'black'
+            tags_list.append(tag_dict)
+            continue
+
+        elif not tag.tag_characterstics and tag.tag_image :
+            print('\ninside here 1\n')
+            tag_dict['color'] = 'red'
+            tags_list.append(tag_dict)
+            continue
+
+        elif tag.tag_characterstics == 'null' and tag.tag_image:
+            print('\ninside here 2\n')
+            tag_dict['color'] = 'red'
+            tags_list.append(tag_dict)
+            continue
+
+        elif tag.tag_image and tag.tag_characterstics:
+            print('\ninside here 3\n')
+            tag_dict['color'] = 'red'
+            tags_list.append(tag_dict)
+            continue
+
+        elif tag.tag_image and not tag.tag_characterstics == 'null':
+            print('\ninside here 4\n')
+            tag_dict['color'] = 'red'
+            tags_list.append(tag_dict)
+            continue
+
+        tag_chars = json.loads(tag.tag_characterstics)
+
+        for key,value in tag_chars.items():
+            print(tag,key, value,value == '')
+            if value == '':
+                print('for ', key, " ", value, 'is empty')
+                color = 'red'
+                break
+            elif not value:
+                print('for ',key," ",value,'is empty')
+                color = 'red'
+                break
+
+        if color == 'red':
+            tag_dict['color'] = 'red'
+            tags_list.append(tag_dict)
+        else:
+            tags_list.append(tag_dict)
+
+    return JsonResponse({'tags_list':tags_list})
 
 
 def tag_update_form(request,tag_id):
