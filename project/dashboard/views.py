@@ -1888,7 +1888,7 @@ def tag_update_form(request,tag_id):
             if 'home_demonym' in char:
                 demonym = char['home_demonym']
 
-            characteristics = {'demonym': demonym}
+            characteristics = {'home_demonym': demonym}
 
             form = Legacy_Hometown_Form(characteristics)
         elif attr_id == 5:
