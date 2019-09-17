@@ -262,6 +262,9 @@ def hometown_city(legacy_hometown,geography_city):
                             Please try to maintain conversations for each query or discussion on the conversation card so that only relevant members get notifications and all the conversations get documented for future reference of members of this community.""" % (
                     temp['name'], home['city'])
 
+            if str(home['city']) == str(city[0]):
+                continue
+
             tag_name=get_tag_by_name(home_place)
 
             if home_place != hometown[3]:
