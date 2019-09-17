@@ -1003,7 +1003,7 @@ def create_uncategorized_tag(tag,tag_type):
     ''' function to create a un-categorized tag '''
 
     new_tag = tag
-    new_tag = new_tag.strip().capitalize()
+    new_tag = new_tag.strip().title()
     if new_tag != '':
         category = Category.objects.filter(Q(name__icontains=tag_type))[0]
         attribute = Attributes.objects.filter(Q(attribute_name__icontains=tag_type), Q(attribute_name__icontains='Uncategorized'))[0]
@@ -1221,7 +1221,7 @@ def create_tag(request):
         category = request.POST.get('category')
         attribute = request.POST.get('attribute')
         new_tag = request.POST.get('new_tag')
-        new_tag = new_tag.strip().capitalize()
+        new_tag = new_tag.strip().title()
 
         get_or_create_sub_tags(new_tag, category, attribute)
 
@@ -1263,9 +1263,11 @@ def get_or_create_sub_tags(new_tag,category,attribute):
     if category.name == 'Geography' or attribute.id == 3:
 
         geography_list = get_city_address(city=new_tag)
+        print(new_tag,"  >>>>>  ",geography_list)
+
 
         for attr, tag_name in geography_list.items():
-
+            print(attr,tag_name)
             if tag_name == '':
                 continue
             # creating or catgorizing a tag with known category and attribute
@@ -2194,6 +2196,7 @@ def rename_tag(request,tag_id = None):
                 tag.save()
                 if tag.attribute_id.id < 17 :
                     pre_create_communities.delay(tag_id=tag_id)
+                    pass
             except:
                 pass
 
