@@ -12,7 +12,7 @@ DB_HOST="13.235.187.102"
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': 'production_dump',
+        'NAME': 'prod',
         'USER': 'postgres',
         'PASSWORD': 'postgres',
         'HOST': '127.0.0.1',
