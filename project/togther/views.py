@@ -25,7 +25,7 @@ url = settings.URL
 
 # uncomment to run it in localhost
 #
-#url='http://localhost:8000'
+# url='http://localhost:8000'
 
 api_url = url + '/api/'
 
@@ -256,11 +256,13 @@ def community(request, community_id):
         user = Userinfo.objects.all().filter(user_id=request.user.id)
     else:
         user = []
+
     return render(request, 'community.html', {'usr': user, 'similar_communities': communities,
                                               'community': community, 'admins': admin_details,
                                               'members': members, 'source': source,
                                               'cta': cta, 'Nom_mem_state': member_state,
                                               'admin_length': len(admin_details),
+                                              'members_length': len(members),
                                               'similar_community_length':len(communities),
                                               'ref_id':ref_id,})
 
@@ -315,20 +317,26 @@ def refer_members(request,community_id):
         return  render(request,'referal.html',{'share_url':share_url,'community':community,'copy_url':copy_url})
 
 
-
 def get_members_of_community(community):
     ''' function to get admins and members of a community '''
 
-    all_members = Members.objects.filter(community_id=community.id).filter(
-        Q(state=1) | Q(state=2) | Q(state=4) | Q(state=7))
     members = []
     admin_details = []
+    all_members = []
+    if community.hide_community == '0' or community.hide_community == '1':
+        all_members = Members.objects.filter(community_id=community.id).filter(
+            Q(state=1) | Q(state=2) | Q(state=4) | Q(state=7))
+
+    elif community.hide_community == '3':
+        all_members = Members.objects.filter(community_id=community.id).filter(
+            Q(state=8))
+
     for member in all_members:
         mem = Userinfo.objects.all().filter(user_id=member.member_id.id)
         if member.state == 1 or member.state == 2:
             admin_details.append(mem)
             members.append(mem[0])
-        elif member.state == 4 or member.state == 7:
+        elif member.state == 4 or member.state == 7 or member.state == 8:
             members.append(mem[0])
 
     return members, admin_details
