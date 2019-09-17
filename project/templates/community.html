@@ -327,7 +327,7 @@
             {% endcomment %}
 
             <!-- rendering multiple admins -->
-
+            {% if admin_length > 0 %}
             <div class="content">
                 {% if admin_length == 1 %}
                 <h4>Promoter</h4>
@@ -355,6 +355,7 @@
                     </div>
                 </div>
             </div>
+            {% endif %}
 
             <!-- printing community about -->
             {% if community.about != '' %}
@@ -365,13 +366,16 @@
             </div>
             {% endif %}
 
+            {% if members_length > 0 %}
             <div class="content" id="members">
-                <h4>Members
+                {% if community.hide_community == '3' %}
+                <h4>Interested</h4>
                     <!-- <a class="right floated" style=" color:#1cb39b; font-weight:100; " href="{% url 'members_list' community.id %}"> See all</a>-->
-                </h4>
+                {% else  %}<h4>Members</h4>{% endif %}
 
                 <div class="ui container" style=" overflow-y:auto;white-space:nowrap;">
                     <div class="ui big horizontal  list">
+
                         {% for i in members%}
 
                         <div class="item">
@@ -391,6 +395,7 @@
                     </div>
                 </div>
             </div>
+            {% endif %}
                 <br>
                 <div >
 <!--                <div class="content ui fluid" style="background-color:#f0f5f5;">-->
