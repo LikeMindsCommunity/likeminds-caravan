@@ -54,7 +54,7 @@ def get_attribute_data(attribute_id):
     try:
         conn = get_connection()
         curr = conn.cursor()
-        sql = "select name,tag_characterstics,tag_image,id from togther_tags_lpig where attribute_id_id="+str(attribute_id)
+        sql = "select name,tag_characterstics,tag_image,id from togther_tags_lpig where attribute_id_id="+str(attribute_id)+" order by id desc"
         curr.execute(sql)
         res = curr.fetchall()
         curr.close()
@@ -127,6 +127,42 @@ def get_tag_by_name(name):
         conn.close()
         if res:
             return res
+    except (Exception, psycopg2.Error) as error:
+        print("Error while connecting  to PostgreSQL", error)
+
+def create_tag(name,attribute_id):
+
+    '''function to create a tag'''
+
+    try:
+        conn = get_connection()
+        curr = conn.cursor()
+        sql = "insert into togther_tags_lpig(name,attribute_id_id,category_id_id,tag_image) values(%s,%s,%s,%s) RETURNING id"
+        parameter = [name,attribute_id,5,'']
+        curr.execute(sql, parameter)
+        conn.commit()
+        id = curr.fetchone()[0]
+        update_correct_tag_id(id)
+        curr.close()
+        conn.close()
+        return id
+
+    except (Exception, psycopg2.Error) as error:
+        print("Error while connecting  to PostgreSQL", error)
+
+def update_correct_tag_id(tag_id):
+
+    '''function to update the tag'''
+    try:
+        conn = get_connection()
+        curr = conn.cursor()
+        sql="update togther_tags_lpig set tag_id=%s where id=%s"
+        parameter = [tag_id, tag_id]
+        curr.execute(sql, parameter)
+        conn.commit()
+        curr.close()
+        conn.close()
+
     except (Exception, psycopg2.Error) as error:
         print("Error while connecting  to PostgreSQL", error)
 
@@ -220,9 +256,7 @@ def hometown_city(legacy_hometown,geography_city):
                     temp['name']="Natives of "+str(home['country'])+" in "+str(city[0])
                 temp['question']="""Introduce yourself telling a bit about your time in %s and what brought you to %s and what do you do now?"""%(home['country'],city[0])
                 temp['about']="""This community aims to bring together %s so that we can socialise with other. Here we collaborate with each other by sharing knowledge, providing referrals (for jobs, accommodation, business, etc.), planning trips to %s, and having meaningful conversations. We also use this space to plan offline meetups.
-
                             Anytime if you are looking for a lead or offering some help, simply start a new conversation with relevant details and your ask from the community members. Relevant members can respond by simply chatting with you and each other on your conversation card. Members who want to follow the conversation can press the Follow button to receive notifications about future responses on the card.
-
                             Please try to maintain conversations for each query or discussion on the conversation card so that only relevant members get notifications and all the conversations get documented for future reference of members of this community."""%(temp['name'],home['country'])
                 home_place=home['country']
             elif home['state'] and current['state'] and home['state']!=current['state']:
@@ -236,9 +270,7 @@ def hometown_city(legacy_hometown,geography_city):
                     temp['name'] = "Natives of " + str(home['state']) + " in " + str(city[0])
                 temp['question']="""Introduce yourself telling a bit about your time in %s and what brought you to %s and what do you do now?"""%(home['state'],city[0])
                 temp['about'] = """This community aims to bring together %s so that we can socialise with other. Here we collaborate with each other by sharing knowledge, providing referrals (for jobs, accommodation, business, etc.), planning trips to %s, and having meaningful conversations. We also use this space to plan offline meetups.
-
                             Anytime if you are looking for a lead or offering some help, simply start a new conversation with relevant details and your ask from the community members. Relevant members can respond by simply chatting with you and each other on your conversation card. Members who want to follow the conversation can press the Follow button to receive notifications about future responses on the card.
-
                             Please try to maintain conversations for each query or discussion on the conversation card so that only relevant members get notifications and all the conversations get documented for future reference of members of this community.""" % (
                 temp['name'], home['state'])
                 home_place=home['state']
@@ -256,15 +288,14 @@ def hometown_city(legacy_hometown,geography_city):
                     temp['name']="Natives of " + str(home['city']) + " in " + str(city[0])
                 temp['question']="""Introduce yourself telling a bit about your time in %s and what brought you to %s and what do you do now?"""%(home['city'],city[0])
                 temp['about'] = """This community aims to bring together %s so that we can socialise with other. Here we collaborate with each other by sharing knowledge, providing referrals (for jobs, accommodation, business, etc.), planning trips to %s, and having meaningful conversations. We also use this space to plan offline meetups.
-
                             Anytime if you are looking for a lead or offering some help, simply start a new conversation with relevant details and your ask from the community members. Relevant members can respond by simply chatting with you and each other on your conversation card. Members who want to follow the conversation can press the Follow button to receive notifications about future responses on the card.
-
                             Please try to maintain conversations for each query or discussion on the conversation card so that only relevant members get notifications and all the conversations get documented for future reference of members of this community.""" % (
                     temp['name'], home['city'])
 
-            tag_name=get_tag_by_name(home_place)
 
-            if home_place != hometown[3]:
+            tag_name=get_tag_by_name(home_place)
+            if home_place != hometown[0] and home_place:
+
                 if tag_name:
                     temp['tags']['legacy'] = tag_name[0]
                     if tag_name[2]:
@@ -276,14 +307,10 @@ def hometown_city(legacy_hometown,geography_city):
                             temp['question'] = """Introduce yourself telling a bit about your time in %s and what brought you to %s and what do you do now?""" % (
                             home_place, city[0])
                             temp['about'] = """This community aims to bring together %s so that we can socialise with other. Here we collaborate with each other by sharing knowledge, providing referrals (for jobs, accommodation, business, etc.), planning trips to %s, and having meaningful conversations. We also use this space to plan offline meetups.
-
                             Anytime if you are looking for a lead or offering some help, simply start a new conversation with relevant details and your ask from the community members. Relevant members can respond by simply chatting with you and each other on your conversation card. Members who want to follow the conversation can press the Follow button to receive notifications about future responses on the card.
-
                             Please try to maintain conversations for each query or discussion on the conversation card so that only relevant members get notifications and all the conversations get documented for future reference of members of this community.""" % (
                                 temp['name'], home_place)
 
-                else:
-                    continue
             else:
                 temp['tags']['legacy'] = hometown[3]
                 if hometown[2]:
@@ -293,7 +320,6 @@ def hometown_city(legacy_hometown,geography_city):
             temp['purpose']="""For %s to socialise and help each other"""%(temp['name'])
 
             temp['geography']=str(city[0])
-
             community_id = is_community_tags_exists(temp)
             if not community_id:
                 insert_pre_create_community(temp)
@@ -590,7 +616,7 @@ def fan_city(interest_fan,geography_city):
                 else:
                     thing_fan=interest_char['thing_fans']
                     temp['name'] = """%s of %s""" % (capitalize_string(thing_fan), city[0])
-
+                    interest_char['thing_fans']=interest_char['thing_fans'].lower()
                 if not interest_char['thing_group_use_case']:
                     interest_char['thing_group_use_case']="plan hangouts and have conversations around "+interest_char['thing']
 
@@ -606,7 +632,6 @@ def fan_city(interest_fan,geography_city):
 
             else:
                 interest_char={}
-
                 interest_char['thing']=fan[0]
                 temp['name'] = """%s Fans of %s""" % (interest_char['thing'], city[0])
 
@@ -974,4 +999,5 @@ if envir:
     if __name__=="__main__":
 
         pre_create_communities()
+
 
