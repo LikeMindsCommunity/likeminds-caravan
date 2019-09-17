@@ -343,8 +343,8 @@ class User_Geography(models.Model):
     user_id = models.ForeignKey(User, on_delete=models.CASCADE)
     tags_id = models.ForeignKey(Tags_lpig, on_delete=models.CASCADE)
 
-class Referal(models.Model):
-    """ Model for reference module """
-    member = models.ForeignKey(User, on_delete=models.CASCADE,related_name='member')
-    invited_member = models.ForeignKey(User, on_delete=models.CASCADE,related_name='invited_member')
-    community = models.ForeignKey(Community, on_delete=models.CASCADE)
+# class Referal(models.Model):
+#     """ Model for reference module """
+#     member = models.ForeignKey(User, on_delete=models.CASCADE,related_name='member')
+#     invited_member = models.ForeignKey(User, on_delete=models.CASCADE,related_name='invited_member')
+#     community = models.ForeignKey(Community, on_delete=models.CASCADE)
