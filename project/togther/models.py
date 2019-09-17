@@ -267,7 +267,7 @@ class Tags_lpig(models.Model):
 
     '''Model to store the lpig tags in attributes'''
 
-    name = models.CharField(max_length=512, null=True)
+    name = models.CharField(max_length=512, null=True,unique=True)
     attribute_id=models.ForeignKey(Attributes,on_delete=models.CASCADE)
     category_id=models.ForeignKey(Category,on_delete=models.CASCADE)
     tag_id=models.IntegerField(null=True)
