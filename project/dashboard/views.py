@@ -1673,12 +1673,12 @@ def get_tags_by_attributes(request,attr_id):
     for tag in tags:
         color = 'green'
         tag_dict = {'tag_id':tag.id,'tag_name':tag.name,'color':'green'}
-        print(tag,tag.tag_characterstics,tag.tag_image)
+        print(tag,tag.tag_characterstics,' >> ',tag.tag_image,' >> ',not tag.tag_image)
 
         if tag.attribute_id.id == 1 or tag.attribute_id.id == 4 or tag.attribute_id.id == 7 :
             print('\ninside special if\n')
             if not tag.tag_image:
-                tag_dict['color'] = 'red'
+                tag_dict['color'] = 'black'
             tags_list.append(tag_dict)
             continue
 
@@ -1712,26 +1712,38 @@ def get_tags_by_attributes(request,attr_id):
             tags_list.append(tag_dict)
             continue
 
-        elif tag.tag_image and not tag.tag_characterstics == 'null':
+        elif tag.tag_image and tag.tag_characterstics == 'null':
             print('\ninside here 4\n')
             tag_dict['color'] = 'red'
             tags_list.append(tag_dict)
             continue
 
         tag_chars = json.loads(tag.tag_characterstics)
-
+        dict_length = len(tag_chars)
+        count = 0
         for key,value in tag_chars.items():
+
             print(tag,key, value,value == '')
             if value == '':
                 print('for ', key, " ", value, 'is empty')
                 color = 'red'
-                break
+                count+=1
+
             elif not value:
                 print('for ',key," ",value,'is empty')
                 color = 'red'
-                break
+                count += 1
 
-        if color == 'red':
+
+        if count == dict_length and not tag.tag_image:
+            tag_dict['color'] = 'black'
+            tags_list.append(tag_dict)
+
+        elif count != dict_length and not tag.tag_image:
+            tag_dict['color'] = 'red'
+            tags_list.append(tag_dict)
+
+        elif color == 'red':
             tag_dict['color'] = 'red'
             tags_list.append(tag_dict)
         else:
