@@ -1291,7 +1291,7 @@ def categorize_tag(request):
         print(category,attribute,uncategorized)
 
         tag_id=update_uncategorize_tag(uncategorized, category, attribute)
-        pre_create_communities.delay(tag_id=tag_id)
+        pre_create_communities(tag_id=tag_id)
 
         return redirect('categorize_tag')
 
@@ -1706,7 +1706,7 @@ def get_tags_by_attributes(request,attr_id):
             tags_list.append(tag_dict)
             continue
 
-        elif tag.tag_image and tag.tag_characterstics:
+        elif tag.tag_image and not tag.tag_characterstics:
             print('\ninside here 3\n')
             tag_dict['color'] = 'red'
             tags_list.append(tag_dict)
@@ -1854,7 +1854,7 @@ def tag_update_form(request,tag_id):
         base_url = reverse('update_tag')
         query_string = urlencode({'updated':True})
         url = '{}?{}'.format(base_url, query_string)
-        pre_create_communities.delay(tag_id=tag_id)
+        pre_create_communities(tag_id=tag_id)
         return redirect(url)
 
     else:
@@ -2195,8 +2195,8 @@ def rename_tag(request,tag_id = None):
                 tag.name = rename_to
                 tag.save()
                 if tag.attribute_id.id < 17 :
-                    pre_create_communities.delay(tag_id=tag_id)
-                    pass
+                    pre_create_communities(tag_id=tag_id)
+
             except:
                 pass
 
