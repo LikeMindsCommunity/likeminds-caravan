@@ -316,13 +316,20 @@
         <div class="fixed top" id="menu">
             <ul>
                 <li><a href="#purpose">PURPOSE</a></li>
-                <li><a href="#about">ABOUT</a></li>
                 {% if members_length > 0 %}
                     {% if community.hide_community == '3' %}
-                    <li><a href="#members">Waiting List</a></li>
+                    <li><a href="#about">ABOUT</a></li>
+                    <li><a href="#members">WAIT LIST</a></li>
                     {% else %}
+                    <li><a href="#about">ABOUT</a></li>
                     <li><a href="#members">MEMBERS</a></li>
                     {% endif %}
+                {% else %}
+                <div style="padding-left:100px;">
+                <li><a href="#about" >ABOUT</a></li>
+                </div>
+                <li><a href="#members"></a></li>
+
                 {% endif %}
                 <li><a href="#conversations">CONVERSATIONS</a></li>
             </ul>
