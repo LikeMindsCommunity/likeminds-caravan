@@ -38,5 +38,6 @@ urlpatterns = [
     path('decode_url', api_views.decode_url, name='decode_url'),
     path('all_members', api_views.all_members, name='all_members'),
     path('member_activity', api_views.member_activity, name='member_activity'),
+    path('invite_members', api_views.invite_members, name='invite_members'),
 
 ]

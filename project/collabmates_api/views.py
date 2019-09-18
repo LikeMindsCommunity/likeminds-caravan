@@ -24,7 +24,8 @@ from .firebase import update_last_answer_id
 import re
 import googlemaps
 import requests as rqst
-from utility.utils import decode_meta_from_url, update_tag_image
+from utility.utils import (decode_meta_from_url, update_tag_image,
+                           referal, get_referred_members_of_a_member, )
 
 
 url  = settings.URL
@@ -329,9 +330,10 @@ def community(request, community_id):
     new_dict = {}
 
     if community.hide_community == '3' and member_id:
-        serialized_object['share_url'] = serialized_object['share_url']+"?cta=ref&ref_id="+str(member_id)
-    elif community.hide_community == '0' or community.hide_community == '1' :
-        serialized_object['share_url'] = serialized_object['share_url'] + "?cta=join"
+        serialized_object['share_url'] = serialized_object['share_url']+"?ref_id="+str(member_id)
+    elif community.hide_community == '0' or community.hide_community == '1':
+        serialized_object['share_url'] = serialized_object['share_url'] + "?cta=share"
+
     # form a dictionary of community objects
     new_dict.update(serialized_object)
 
@@ -399,14 +401,19 @@ def join_community_responses(request):
     res = json.loads(request.body)
     user_id = request.GET.get('member_id')
     community_id = request.GET.get('community_id')
+
+    if 'ref_id' in res:
+        ref_id = res['ref_id']
+        referal(ref_id=ref_id, community_id=community_id, interested_member_id=user_id)
+
     user = User.objects.get(id = user_id)
     community = Community.objects.get(id = community_id)
 
     userinfo = Userinfo.objects.get(user_id=user.id)
 
-    #inserting in members table if the member status is pending and inserting it to database with status=3
+    # inserting in members table if the member status is pending and inserting it to database with status=3
 
-    #If the member is declined from the community and he applied again
+    # If the member is declined from the community and he applied again
     try:
         current_state=Members.objects.filter(member_id=user,community_id=community).values('state')
         if current_state[0]['state'] == 5:
@@ -414,11 +421,16 @@ def join_community_responses(request):
 
     except:
         # if not
-        member = Members()
-        member.member_id = user
-        member.community_id = community
-        member.state = 3  # pending members
-        member.save()
+        member = Members.objects.filter(member_id=user,community_id=community)
+        if not member.exists():
+            member = Members()
+            member.member_id = user
+            member.community_id = community
+            if community.hide_community == '0' or community.hide_community == '1':
+                member.state = 3  # pending members
+            elif community.hide_community == '3':
+                member.state = 8
+            member.save()
     if 'questions' in res:
         for i in res['questions']:
             response = Form_response()
@@ -427,11 +439,15 @@ def join_community_responses(request):
             response.user = user.id
             response.community = community.id
             response.save()
-    Community.objects.filter(id=community_id).update(updated_at=time.time())
 
-    update_pending_member_count_in_engage(community)
-    name=userinfo.name
-    send_notification_to_admins.delay(community_id,name)
+    if community.hide_community == '0' or community.hide_community == '1':
+
+        # updating updated time of community and pending member count for admins of commnity
+        Community.objects.filter(id=community_id).update(updated_at=time.time())
+        update_pending_member_count_in_engage(community)
+        # sending notification to admins of the community
+        name = userinfo.name
+        send_notification_to_admins.delay(community_id,name)
     return JsonResponse({'success':True})
 
 
@@ -1824,47 +1840,30 @@ def member_activity(request):
     return JsonResponse({'state':state})
 
 
-def referal(request,community_id):
+def invite_members(request):
+    ''' function to get members requested to join in a community '''
 
+    member_id = request.GET.get('member_id',None)
+    community_id = request.GET.get('community_id',None)
 
-    community = get_object_or_404(Community, pk=community_id)
+    pend_requests = get_referred_members_of_a_member(community_id, member_id)
 
-    ref_id = request.GET.get('member_id',None)
+    pending_requests = []
+    for i in pend_requests:
 
-    # cta = request.GET.get('cta',None)
-
-    invited_member = request.user
-
-    interested_member = Members.objects.filter(community_id=community,
-                                                   member_id=invited_member)
-    if not interested_member.exists():
-        interested_member = Members(community_id=community,
-                                    member_id=invited_member,
-                                    state=8)
-        interested_member.save()
-
-    referred_member = User.objects.get(pk=ref_id) if (ref_id != '' and ref_id) else False
-    if referred_member:
-        refer = Referal.objects.filter(member=referred_member,
-                                        invited_member=invited_member,
-                                        community=community)
-        if not refer.exists():
-            refer = Referal(member=referred_member
-                            , invited_member=invited_member
-                            , community=community)
-            refer.save()
-
-        total_referals = Referal.objects.filter(member=referred_member,
-                                                    community=community)
-
-        if total_referals.count() == 2:
-            admin = Members(community_id=community,
-                            member_id=referred_member,
-                            state=1)
-            admin.save()
-
-            for interested_member in total_referals:
-                 Members.objects.filter(community_id=community,
-                                        member_id=interested_member.invited_member).update(state=3)
-
-
+        user_id = i
+        resp = Form_response.objects.filter(community = community_id).filter(user = user_id)
+        user = Userinfo.objects.get(user_id = user_id)
+        # serilaizing userinfo object
+        usr = UserinfoSerializer(user)
+        user_response = []
+        for j in resp:
+            # getting the answers of the users who requested to join
+            # for the questions that have been asked while requestiong to join in a community
+            response_object = {}
+            response_object['key'] = j.data
+            response_object['value'] = j.response
+            user_response.append(response_object)
+        usr['response'] = user_response
+        pending_requests.append(usr)
+    return JsonResponse({'pending_members': pending_requests})
