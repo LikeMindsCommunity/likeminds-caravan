@@ -313,7 +313,7 @@ def referal(ref_id, community_id, interested_member_id):
                 admin = Members(community_id=community, member_id=referred_member, state=9)
                 admin.save()
 
-            send_notification_to_eligible_member(eligible_member_id=referred_member.id, community_name = community.name, community_id=community_id)
+            send_notification_to_eligible_member.delay(eligible_member_id=referred_member.id, community_name = community.name, community_id=community_id)
 
             # for interested_member in total_referals:
             #     Members.objects.filter(community_id=community,
