@@ -237,6 +237,27 @@ def send_notification_to_proposer(proposer_id,community_name,community_id,propos
         print('No FCM token to send message')
 
 
+@shared_task
+def send_notification_to_eligible_member(eligible_member_id,community_name,community_id):
+
+    '''function to send notification if the proposed admin accepts invitation'''
+
+    fcm_token=get_token_for_fcm(eligible_member_id)
+
+    if fcm_token:
+        token_list=[]
+        token_list.append(fcm_token)
+
+        message={}
+        message['payload']={
+            'title':str(community_name),
+            'sub_title':"You are now eligible to become a promoter of this community",
+            'route':'route://community?community_id=' + str(community_id)
+        }
+        send_notification_to_multiple_devices(token_list, message)
+    else:
+        print('No FCM token to send message')
+
 
 
 
