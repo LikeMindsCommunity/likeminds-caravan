@@ -10,6 +10,8 @@ from django.db.models import Q
 import requests as rqst
 import json
 import os
+from collabmates_api.notification import send_notification_to_eligible_member
+
 from django.http.response import JsonResponse
 
 
@@ -301,7 +303,7 @@ def referal(ref_id, community_id, interested_member_id):
         total_referals = Referal.objects.filter(member=referred_member,
                                                 community=community)
 
-        if total_referals.count() == eligilibility_count:
+        if total_referals.count() >= eligilibility_count:
             admin = Members.objects.filter(community_id=community, member_id=referred_member)
 
             if admin.exists():
@@ -310,6 +312,8 @@ def referal(ref_id, community_id, interested_member_id):
             elif not admin.exists():
                 admin = Members(community_id=community, member_id=referred_member, state=9)
                 admin.save()
+
+            send_notification_to_eligible_member(eligible_member_id=referred_member.id, community_name = community.name, community_id=community_id)
 
             # for interested_member in total_referals:
             #     Members.objects.filter(community_id=community,
