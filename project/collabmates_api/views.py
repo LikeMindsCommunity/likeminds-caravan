@@ -1291,26 +1291,13 @@ def check_member(email,community_id,member_id,res):
 
 def pending_members(request,community_id):
     ''' function to get members requested to join in a community '''
-    member_id = request.GET.get('member_id',None)
-
-    pend_requests =[]
-    if member_id:
-        pend_requests = get_referred_members_of_a_member(community_id, member_id)
-
-    elif not member_id:
-        community = Community.objects.get(id = community_id)
-        pend_requests=Members.objects.filter(community_id=community).filter(state = 3)
-
+    community = Community.objects.get(id = community_id)
+    pend_requests=Members.objects.filter(community_id=community).filter(state = 3)
     pending_requests = []
     for i in pend_requests:
-
-        try:
-            user_id = i.member_id.id
-        except:
-            user_id = i
-
-        resp = Form_response.objects.filter(community = community_id).filter(user = user_id)
-        user = Userinfo.objects.get(user_id = user_id)
+        print(i.member_id.id,"  ==  ",type(i))
+        resp = Form_response.objects.filter(community = community_id).filter(user = i.member_id.id)
+        user = Userinfo.objects.get(user_id = i.member_id.id)
         # serilaizing userinfo object
         usr = UserinfoSerializer(user)
         user_response = []
@@ -1853,3 +1840,30 @@ def member_activity(request):
     return JsonResponse({'state':state})
 
 
+def invite_members(request):
+    ''' function to get members requested to join in a community '''
+
+    member_id = request.GET.get('member_id',None)
+    community_id = request.GET.get('community_id',None)
+
+    pend_requests = get_referred_members_of_a_member(community_id, member_id)
+
+    pending_requests = []
+    for i in pend_requests:
+
+        user_id = i
+        resp = Form_response.objects.filter(community = community_id).filter(user = user_id)
+        user = Userinfo.objects.get(user_id = user_id)
+        # serilaizing userinfo object
+        usr = UserinfoSerializer(user)
+        user_response = []
+        for j in resp:
+            # getting the answers of the users who requested to join
+            # for the questions that have been asked while requestiong to join in a community
+            response_object = {}
+            response_object['key'] = j.data
+            response_object['value'] = j.response
+            user_response.append(response_object)
+        usr['response'] = user_response
+        pending_requests.append(usr)
+    return JsonResponse({'pending_members': pending_requests})
