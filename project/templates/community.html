@@ -52,7 +52,11 @@
                 function join(community_id){
                     console.log(1);
                     {% if user.is_authenticated %}
-                       window.open("/"+"community/"+community_id+"?cta=join",'_self');
+                        {% if ref_id != '' %}
+                           window.open("/"+"community/"+community_id+"?cta=join?ref_id={{ref_id}}",'_self');
+                        {% else %}
+                           window.open("/"+"community/"+community_id+"?cta=join",'_self');
+                        {% endif %}
                     {% else %}
                     $('.test')
                     .modal('show')
@@ -212,9 +216,13 @@
                 </div>
                 <div class="center aligned container">
                     <div class="content">
-                        {% if cta == 'ref' %}
-                        <a href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=interested&ref_id={{ref_id}}">
+
+                        {% if ref_id != '' %}
+                        <a href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join_{{ref_id}}">
                         <button class="ui facebook button" style="width:130px;">
+                        {% elif cta == 'share' %}
+                        <a href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join">
+                            <button class="ui facebook button" style="width:130px;">
                         {% elif cta != '' %}
                         <a href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta={{cta}}">
                             <button class="ui facebook button" style="width:130px;">
@@ -232,8 +240,12 @@
                                 <br>
                                 <br>
                                 <div class="content">
-                                    {% if cta == 'ref' %}
-                                    <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=interested&ref_id={{ref_id}}">
+
+                                    {% if ref_id != '' %}
+                                    <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join&ref_id={{ref_id}}">
+                                        <button class="ui linkedin button" style="width:130px;">
+                                    {% elif cta == 'share' %}
+                                    <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join">
                                         <button class="ui linkedin button" style="width:130px;">
                                     {% elif cta != '' %}
                                     <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta={{cta}}">
@@ -439,6 +451,12 @@
                 <button class="ui fluid button "
                         style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;"
                         onclick="accept_admin('{{cta}}','{{community.id}}','{{Nom_mem_state}}');"> Respond to invitation
+                </button>
+
+                {% elif Nom_mem_state == 8 %}
+                <button class="ui fluid button "
+                        style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;"
+                        onclick="join('{{community.id}}')"> Join Community
                 </button>
 
                 {% elif Nom_mem_state == 3 %}
