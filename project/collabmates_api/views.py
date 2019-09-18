@@ -669,7 +669,7 @@ def create_card(request):
         card.save()
         # if the community does not have a purpose card then a purpose will be created
         # the first card created for a community is the purpose card
-        if not community.purpose_collabcard:
+        if not community.purpose_collabcard and hide_community == '3':
             Community.objects.filter(id=community_id).update(purpose_collabcard  = card.id)
 
         # sending notification to the user
@@ -696,11 +696,13 @@ def create_card(request):
         if is_member_engage(community,user.user_id):
             update_last_unseen_in_engage(user=user.user_id,community=community)
 
-
-
+        # if a community is a pilot community make the member as promoter
+        if community.hide_community == '3':
+            Members.objects.filter(community_id=community,member_id=user.user_id).update(state=1)
+            return JsonResponse({'success': True, 'collabcard': collabcard})
 
         return JsonResponse({'success':True,'collabcard':collabcard})
-    return JsonResponse()
+    return JsonResponse({'success':False})
 
 
 def send_email_for_collabcard(community,user,card):
@@ -1298,9 +1300,12 @@ def pending_members(request,community_id):
 
 
 @csrf_exempt
-def request_response(request):
+def request_response(request,req_dict=None):
     ''' function to approve or decline a members who requested to join '''
-    res = json.loads(request.body)
+    if not req_dict:
+        res = json.loads(request.body)
+    else:
+        res=req_dict
     if 'member_id' in res:
         member_id = res['member_id']
     if 'community_id' in res:
@@ -1319,7 +1324,12 @@ def request_response(request):
         Community.objects.filter(id = community_id).update(members_count=members_count)
 
         # inserting data in member engage
-        purpose_card = Collabcard.objects.get(id=community.purpose_collabcard)
+        try:
+            purpose_card = Collabcard.objects.get(id=community.purpose_collabcard)
+        except:
+            card=Collabcard.objects.filter(community_id=community).order_by('id')
+            if card:
+                purpose_card=card[0].id
         unseen_count=Collabcard.objects.filter(community=community).count()
         engage = Member_Engage()
         engage.member_id = user
@@ -1491,7 +1501,12 @@ def accept_invitation(request):
             state=member_state[0]['state']
             if state == 6:
                 if is_member_engage(community,nom_admin[0].user_id) ==  False:
-                    purpose_card = Collabcard.objects.get(id=community.purpose_collabcard)
+                    try:
+                        purpose_card = Collabcard.objects.get(id=community.purpose_collabcard)
+                    except:
+                        card = Collabcard.objects.filter(community_id=community).order_by('id')
+                        if card:
+                            purpose_card = card[0].id
                     unseen_count = Collabcard.objects.filter(community=community).count()
                     engage = Member_Engage()
                     engage.member_id = nom_admin[0].user_id
@@ -1821,7 +1836,15 @@ def member_activity(request):
 
     if status:
         state=1
-    return JsonResponse({'state':state})
+    if state == 1:
+        return JsonResponse({'state':state})
+
+    introduction_text=community.introduction_text
+
+    if not introduction_text:
+        return JsonResponse({'state': state})
+
+    return JsonResponse({'state':state,'introduction_text':introduction_text})
 
 
 def referal(request,community_id):
@@ -1866,5 +1889,40 @@ def referal(request,community_id):
             for interested_member in total_referals:
                  Members.objects.filter(community_id=community,
                                         member_id=interested_member.invited_member).update(state=3)
+
+
+def accept_promotership(request):
+
+    '''function to accept the promotership'''
+    res=json.loads(request.body)
+    community_id=res['community_id']
+    member_id=res['member_id']
+    value=res['value']
+    all_members=Members.objects.filter(community_id=community_id)
+
+    if value:
+        refered_id=res['member_ids']
+        for member in all_members:
+            if str(member.member_id.id) == str(member_id):
+                break
+            if member.member_id.id in refered_id:
+                req_dict={
+                    'accepted':True,
+                    'member_id':member.member_id.id,
+                    'community_id':community_id
+                }
+                request_response(request,req_dict)
+            else:
+                Members.objects.filter(community_id=community_id,member_id=member.member_id.id).update(state=3)
+
+    else:
+        Members.objects.filter(community_id=community_id,member_id=member_id).update(state=8)
+
+    return JsonResponse({'success':True})
+
+
+
+
+
 
 

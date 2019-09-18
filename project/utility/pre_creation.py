@@ -293,6 +293,8 @@ def hometown_city(legacy_hometown,geography_city):
                     temp['name'], home['city'])
 
 
+            if str(home['city']) == str(city[0]):
+                continue
             tag_name=get_tag_by_name(home_place)
             if home_place != hometown[0] and home_place:
 
@@ -866,8 +868,9 @@ def insert_pre_create_community(community):
         curr = conn.cursor()
         hide_community='3'
         # inserting the communities
-        sql="insert into togther_community(name,about,purpose,location,created_at,updated_at,image_url,members_count,active_since,hide_community) values(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id;"
-        parameter_list=[community['name'],community['about'],community['purpose'],community['geography'],community['created_at'],community['updated_at'],community['image_url'],community['member_count'],community['active_since'],hide_community]
+        sql="insert into togther_community(name,about,purpose,location,created_at,updated_at,image_url,members_count,active_since,hide_community,introduction_text) values(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id;"
+        parameter_list=[community['name'],community['about'],community['purpose'],community['geography'],community['created_at'],community['updated_at'],community['image_url'],community['member_count'],
+                        community['active_since'],hide_community,community['question']]
         curr.execute(sql, parameter_list)
         conn.commit()
         count = curr.rowcount
@@ -935,9 +938,9 @@ def update_pre_created_community(community_id,community):
         updated_at=time.time()
         hide_community='3'
         # inserting the communities
-        sql = "update togther_community set name=%s,about=%s,purpose=%s,location=%s,image_url=%s,updated_at=%s,hide_community=%s where id=%s"
+        sql = "update togther_community set name=%s,about=%s,purpose=%s,location=%s,image_url=%s,updated_at=%s,hide_community=%s,introduction_text=%s where id=%s"
         parameter_list = [community['name'], community['about'], community['purpose'], community['geography'],
-                          community['image_url'],updated_at,hide_community,community_id
+                          community['image_url'],updated_at,hide_community,community['question'],community_id
                          ]
         curr.execute(sql, parameter_list)
         conn.commit()

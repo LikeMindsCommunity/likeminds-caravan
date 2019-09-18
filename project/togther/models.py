@@ -30,6 +30,7 @@ class Community (models.Model):
     updated_at=models.BigIntegerField(default=-9223372036854775808)
     purpose_collabcard=models.IntegerField(null=True)
     hide_community=models.CharField(default=0,max_length=1)
+    introduction_text=models.CharField(max_length= 2048,null=True)
 
     def __str__(self):
         return self.name
