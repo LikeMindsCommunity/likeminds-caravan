@@ -30,7 +30,9 @@
                     <label>{{i.data}}</label><textarea name ="{{i.data}}" ></textarea>
                     {% endif %}
                 </div>
+
                 {% endfor %}
+                <input type="hidden" name="ref_id" value="{{ref_id}}"/>
                 <br>
                 <button class="ui fluid button" type="submit" style="background-color: #1ebea5; color:white;">Submit</button>
                 

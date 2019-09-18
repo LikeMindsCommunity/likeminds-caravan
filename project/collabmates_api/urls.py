@@ -39,5 +39,6 @@ urlpatterns = [
     path('all_members', api_views.all_members, name='all_members'),
     path('member_activity', api_views.member_activity, name='member_activity'),
     path('accept_promotership', api_views.accept_promotership, name='accept_promotership'),
+    path('invite_members', api_views.invite_members, name='invite_members'),
 
 ]

@@ -178,7 +178,7 @@ def get_city_address(request=None,city=None):
             elif typ == 'postal_code':
                 postal_code = level['long_name']
 
-    #return JsonResponse({'response':response})
+    # return JsonResponse({'response':response})
 
     return {'city':city,'district':district,'state':state,'country':country,'postal_code':postal_code}
 
@@ -268,5 +268,67 @@ def update_user_geography_tags(user_id, typ=''):
                 user_geo_tag.user_id = user
                 user_geo_tag.save()
                 print('user_geo_tag === ',user_geo_tag)
+
+
+def referal(ref_id, community_id, interested_member_id):
+
+    eligilibility_count = 5
+
+    community = get_object_or_404(Community, pk=community_id)
+
+    # invited member and intrested member are same person
+    invited_member = User.objects.get(pk=interested_member_id)
+
+    interested_member = Members.objects.filter(community_id=community,
+                                               member_id=invited_member)
+    if not interested_member.exists():
+        interested_member = Members(community_id=community,
+                                    member_id=invited_member,
+                                    state=8)
+        interested_member.save()
+
+    referred_member = User.objects.get(pk=ref_id) if (ref_id != '' and ref_id) else False
+    if referred_member:
+        refer = Referal.objects.filter(member=referred_member,
+                                       invited_member=invited_member,
+                                       community=community)
+        if not refer.exists():
+            refer = Referal(member=referred_member
+                            , invited_member=invited_member
+                            , community=community)
+            refer.save()
+
+        total_referals = Referal.objects.filter(member=referred_member,
+                                                community=community)
+
+        if total_referals.count() == eligilibility_count:
+            admin = Members.objects.filter(community_id=community, member_id=referred_member)
+
+            if admin.exists():
+                Members.objects.filter(community_id=community, member_id=referred_member).update(state=9)
+
+            elif not admin.exists():
+                admin = Members(community_id=community, member_id=referred_member, state=9)
+                admin.save()
+
+            # for interested_member in total_referals:
+            #     Members.objects.filter(community_id=community,
+            #                            member_id=interested_member.invited_member).update(state=3)
+    return
+
+
+def get_referred_members_of_a_member(community_id,member_id):
+
+    community = get_object_or_404(Community, pk=community_id)
+    referred_member = User.objects.get(pk=member_id)
+
+    member_list=[]
+    total_referals = Referal.objects.filter(member=referred_member, community=community)
+
+    if total_referals.exists():
+        for interested_member in total_referals:
+            member_list.append(interested_member.invited_member.id)
+
+    return member_list
 
 

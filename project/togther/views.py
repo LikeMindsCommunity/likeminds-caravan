@@ -18,14 +18,16 @@ from django.template.loader import get_template
 import traceback
 from collabmates_api.raw_queries import  compute_rank
 from django.urls import reverse
-from utility.utils import get_city_address, update_tag_image, update_user_geography_tags, create_or_categorize_tag
+from utility.utils import (get_city_address, update_tag_image,
+                           update_user_geography_tags, create_or_categorize_tag,
+                           referal, )
 from urllib.parse import urlencode,quote
 
 url = settings.URL
 
 # uncomment to run it in localhost
 #
-#url='http://localhost:8000'
+# url='http://localhost:8000'
 
 api_url = url + '/api/'
 
@@ -167,14 +169,18 @@ def community(request, community_id):
     # --------- referal part ----------------------
     ref_id = request.GET.get('ref_id', '')
 
+    cta = ''
     if 'cta' in res:
         cta = res['cta']
-        print("cta == ", cta)
+        cta_split = cta.split("_")
+        cta  = cta_split[0]
+        if len(cta_split) == 2:
+            ref_id = cta_split[1]
         # -------------------- auto join functionality ---------------------------------
         if cta == 'join' and request.user.is_authenticated:
             questions, user, data, community = join_community(request, community_id)
             if questions:
-                return render(request, 'response_form.html', {"data": data, 'usr': user, 'community': community})
+                return render(request, 'response_form.html', {"data": data, 'usr': user, 'community': community,'ref_id':ref_id})
             else:
                 if community.hide_community == '3':
                     if ref_id != '':
@@ -198,6 +204,8 @@ def community(request, community_id):
                                'similar_communities': data,
                                'community': community,
                                'onboard':onboard})
+        elif cta == 'share':
+            cta = 'join'
 
     else:
         cta = ''
@@ -256,79 +264,56 @@ def community(request, community_id):
         user = Userinfo.objects.all().filter(user_id=request.user.id)
     else:
         user = []
+
     return render(request, 'community.html', {'usr': user, 'similar_communities': communities,
                                               'community': community, 'admins': admin_details,
                                               'members': members, 'source': source,
                                               'cta': cta, 'Nom_mem_state': member_state,
                                               'admin_length': len(admin_details),
+                                              'members_length': len(members),
                                               'similar_community_length':len(communities),
                                               'ref_id':ref_id,})
 
 
 def refer_members(request,community_id):
 
-    community = get_object_or_404(Community, pk=community_id)
-
     ref_id = request.GET.get('ref_id',None)
 
-    # cta = request.GET.get('cta',None)
 
     if request.user.is_authenticated:
-        invited_member = request.user
 
-        interested_member = Members.objects.filter(community_id=community,
-                                                   member_id=invited_member)
-        if not interested_member.exists():
-            interested_member = Members(community_id=community,
-                                        member_id=invited_member,
-                                        state=8)
-            interested_member.save()
+        interested_member_id = request.user.id
 
-        referred_member = User.objects.get(pk=ref_id) if (ref_id != '' and ref_id) else False
-        if referred_member:
-            refer = Referal.objects.filter(member=referred_member,
-                                           invited_member=invited_member,
-                                           community=community)
-            if not refer.exists():
-                refer = Referal(member=referred_member
-                                , invited_member=invited_member
-                                , community=community)
-                refer.save()
+        referal(ref_id=ref_id, community_id=community_id, interested_member_id =interested_member_id)
 
-            total_referals = Referal.objects.filter(member=referred_member,
-                                                    community=community)
-
-            if total_referals.count() == 2:
-                admin = Members(community_id=community,
-                                member_id=referred_member,
-                                state=1)
-                admin.save()
-
-                for interested_member in total_referals:
-                    Members.objects.filter(community_id=community,
-                                           member_id=interested_member.invited_member).update(state=3)
-        share_url = url + '/community/' + str(community_id)+"?cta=ref&member_id="+str(request.user.id)
+        share_url = url + '/community/' + str(community_id)+"?ref_id="+str(request.user.id)
+        # decoded url for mobile web sharing
         copy_url=share_url
-        print('share_url >>>>>>> ',share_url)
-        # return redirect('comunity', community_id=community.id)
+        # encoded url for web sharing
         share_url=quote(share_url)
         return  render(request,'referal.html',{'share_url':share_url,'community':community,'copy_url':copy_url})
-
 
 
 def get_members_of_community(community):
     ''' function to get admins and members of a community '''
 
-    all_members = Members.objects.filter(community_id=community.id).filter(
-        Q(state=1) | Q(state=2) | Q(state=4) | Q(state=7))
     members = []
     admin_details = []
+    all_members = []
+    if community.hide_community == '0' or community.hide_community == '1':
+        all_members = Members.objects.filter(community_id=community.id).filter(
+            Q(state=1) | Q(state=2) | Q(state=4) | Q(state=7))
+
+    elif community.hide_community == '3':
+        all_members = Members.objects.filter(community_id=community.id).filter(
+            Q(state=8))
+
     for member in all_members:
         mem = Userinfo.objects.all().filter(user_id=member.member_id.id)
         if member.state == 1 or member.state == 2:
             admin_details.append(mem)
             members.append(mem[0])
-        elif member.state == 4 or member.state == 7:
+        elif member.state == 4 or member.state == 7 or member.state == 8:
             members.append(mem[0])
 
     return members, admin_details

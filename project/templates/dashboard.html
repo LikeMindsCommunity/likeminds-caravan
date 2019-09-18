@@ -294,6 +294,9 @@
 
             <div class=" fluid image">
                 <img src="{{community.image_url.url}}" style="max-height: 400px;">
+                {% if community.hide_community == '3' %}
+                <a class="ui teal ribbon label">Pilot</a>
+                {% endif %}
             </div>
             <div class="content">
                 <div class="header" style="padding-bottom: 5px;"><a href="{% url 'comunity' community.id %}"
