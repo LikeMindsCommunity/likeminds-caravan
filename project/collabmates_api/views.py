@@ -715,6 +715,9 @@ def create_card(request):
         # if a community is a pilot community make the member as promoter
         if community.hide_community == '3':
             Members.objects.filter(community_id=community,member_id=user.user_id).update(state=1)
+            # changing community state to 0 (zero) to make it a active community
+            community.hide_community ='0'
+            community.save()
             return JsonResponse({'success': True, 'collabcard': collabcard})
 
         return JsonResponse({'success':True,'collabcard':collabcard})
