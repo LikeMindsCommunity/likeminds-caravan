@@ -31,6 +31,7 @@ def CommunitySerializer(community):
     new_dict['share_url'] = url + '/community/' + str(new_dict['id'])
     new_dict['date'] = community.active_since
     new_dict['members_count'] = get_member_count(community)
+    new_dict['state']=community.hide_community
     return new_dict
 
 def UserinfoSerializer(user):
