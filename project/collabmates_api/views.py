@@ -1919,7 +1919,7 @@ def accept_promotership(request):
         for member in all_members:
             if str(member.member_id.id) == str(member_id):
                 continue
-            if member.member_id.id in refered_id:
+            if str(member.member_id.id) in refered_id:
                 req_dict={
                     'accepted':True,
                     'member_id':member.member_id.id,
