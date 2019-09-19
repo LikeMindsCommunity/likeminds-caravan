@@ -108,11 +108,7 @@ def update_tag_image(tag_name, tag_id):
     locations = [tag_name, tag_name.title(), tag_name.lower(), tag_name +' city', tag_name +' district', tag_name +' state', tag_name +' country']
 
     for loc in locations:
-        # if loc.lower() == tag_name.lower():
-        #     loc = tag_name
-        #
-        # else:
-        #     loc = tag_name + " " + loc
+
         print(loc)
         request = 'https://en.wikipedia.org/w/api.php?action=query&format=json&formatversion=2&prop=pageimages|pageterms&piprop=thumbnail&pithumbsize=600&titles=' + str(
             loc)
@@ -182,6 +178,7 @@ def get_city_address(request=None,city=None):
 
     # return JsonResponse({'response':response})
 
+    # return JsonResponse({'city':city,'district':district,'state':state,'country':country,'postal_code':postal_code})
     return {'city':city,'district':district,'state':state,'country':country,'postal_code':postal_code}
 
 
