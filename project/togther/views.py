@@ -1448,8 +1448,7 @@ def onboarding(request):
         legacy_hometown = request.POST.getlist('legacy_hometown[]')
         geography=request.POST.getlist('loc[]')
 
-        legacy_li = legacy_education + legacy_work
-
+        legacy_li = legacy_education + legacy_work + legacy_hometown
 
         type_list=get_user_tags_from_list(legacy_li,"Legacy")
         insert_tags_for_user(user_id,type_list,"Legacy")
@@ -1458,8 +1457,8 @@ def onboarding(request):
         type_list=get_user_tags_from_list(geography,"Geography")
         insert_tags_for_user(user_id, type_list, "Geography")
 
-        for tag in legacy_hometown:
-            insert_user_home_town_tags(user_id = user_id, tag=tag)
+        # for tag in legacy_hometown:
+        #     insert_user_home_town_tags(user_id = user_id, tag=tag)
 
         return JsonResponse({'success':True})
 

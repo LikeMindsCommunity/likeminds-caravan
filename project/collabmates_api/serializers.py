@@ -68,4 +68,6 @@ def CollabcardSerializer(card,community=None):
 
 def get_member_count(community):
     return Members.objects.filter(community_id=community).filter(
-        Q(state=1) | Q(state=2) | Q(state=4) | Q(state=7)).count()
+        Q(state=1) | Q(state=2) | Q(state=4) | Q(state=7) | Q(state = 8)).count()
+
+
