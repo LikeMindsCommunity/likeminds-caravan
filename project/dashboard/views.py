@@ -22,7 +22,9 @@ from utility.pre_creation import pre_create_communities
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.urls import reverse
 from urllib.parse import urlencode
-from utility.utils import get_city_address, update_tag_image, create_or_categorize_tag, update_user_geography_tags
+from utility.utils import (get_city_address, update_tag_image,
+                           create_or_categorize_tag, update_user_geography_tags,
+                           insert_user_home_town_tags, )
 url = settings.URL
 
 # uncomment to run it in localhost
@@ -912,7 +914,6 @@ def save_community_lpig_tags(community_id,legacy_tags,profession_tags,interest_t
         profession_tags.append(global_profession_tag.id)
 
     comm_tags_list = list(Community_Profession.objects.filter(community_id=community).values_list("tags_id", flat=True))
-
     for each_tag in profession_tags:
         tag = Tags_lpig.objects.get(pk = each_tag)
 
@@ -927,7 +928,9 @@ def save_community_lpig_tags(community_id,legacy_tags,profession_tags,interest_t
             pass
     for tag in comm_tags_list:
         if tag not in profession_tags:
-            Community_Legacy.objects.filter(tags_id = tag,community_id=community).delete()
+            tag = Tags_lpig.objects.get(pk=tag)
+            Community_Profession.objects.filter(tags_id = tag,community_id=community).delete()
+
 
     if len(interest_tags)==0:
         global_interest_tag = Tags_lpig.objects.get(name='interest_any')
@@ -1352,6 +1355,7 @@ def update_uncategorize_tag(uncategorized, category, attribute):
     return tag.tag_id
 
 
+
 def user_tags(request,user_id):
     ''' gives all the user tags  '''
     user = User.objects.get(pk = user_id)
@@ -1486,6 +1490,10 @@ def save_user_lpig_tags(user_id,legacy_tags,profession_tags,interest_tags,greogr
 
 
             tag = Tags_lpig.objects.get(pk=each_tag)
+
+            if tag and (tag.attribute_id.id >=12 and tag.attribute_id.id <=15):
+                tag = insert_user_home_town_tags(user_id, tag=str(tag.id))
+
             tags = User_Legacy.objects.filter(tags_id=tag, user_id=user)
             # if tag is not present
             if not tags.exists():
@@ -1494,6 +1502,7 @@ def save_user_lpig_tags(user_id,legacy_tags,profession_tags,interest_tags,greogr
                 user_tag.tags_id = tag
                 user_tag.user_id = user
                 user_tag.save()
+
         else:
             pass
     # deleting unwanted tags

@@ -33,6 +33,8 @@ urlpatterns = [
     path('accounts/login/', views.home, name='login'),
     path('api/', include('collabmates_api.urls'),name= 'api'),
     path('admin_dashboard/',include('dashboard.urls'),name='admin_dashboard'),
+    path('utils/', include('utility.urls'), name='utils'),
+
 ]
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
