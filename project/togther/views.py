@@ -178,9 +178,13 @@ def community(request, community_id):
             ref_id = cta_split[1]
         # -------------------- auto join functionality ---------------------------------
         if cta == 'join' and request.user.is_authenticated:
+            member = Members.objects.filter(member_id=request.user, community_id = community)
+            member_state = member[0].state if member.exists() else 0
+
             questions, user, data, community = join_community(request, community_id)
             if questions:
-                return render(request, 'response_form.html', {"data": data, 'usr': user, 'community': community,'ref_id':ref_id})
+                if member_state == 0:
+                    return render(request, 'response_form.html', {"data": data, 'usr': user, 'community': community,'ref_id':ref_id})
             else:
                 if community.hide_community == '3':
                     if ref_id != '':
@@ -662,11 +666,14 @@ def join_community(request, community_id):
     if request.method == "POST":
 
         question_data = request.POST.dict()
+        print(question_data)
         response_list = []
 
         for key, value in question_data.items():
             question_dict = {}
             if key == 'csrfmiddlewaretoken':
+                continue
+            elif key == 'ref_id':
                 continue
             question_dict['key'] = key
             question_dict['value'] = value
