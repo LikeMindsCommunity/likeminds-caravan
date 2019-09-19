@@ -669,6 +669,7 @@ def create_card(request):
     # useer = User.objects.get(id = user_id)
     user = Userinfo.objects.get(user_id = user_id)
     community = Community.objects.get(id = community_id)
+
     if request.method == 'POST':
         res = json.loads(request.body)
         # creating card
@@ -713,7 +714,7 @@ def create_card(request):
             update_last_unseen_in_engage(user=user.user_id,community=community)
         else:
             engage = Member_Engage()
-            engage.member_id = user
+            engage.member_id = user.user_id
             engage.community_id = community
             engage.last_unseen_conversation = card
             engage.updated_at = time.time()
