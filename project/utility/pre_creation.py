@@ -54,7 +54,7 @@ def get_attribute_data(attribute_id):
     try:
         conn = get_connection()
         curr = conn.cursor()
-        sql = "select name,tag_characterstics,tag_image,id from togther_tags_lpig where attribute_id_id="+str(attribute_id)+" order by id desc"
+        sql = "select name,tag_characterstics,tag_image,tag_id from togther_tags_lpig where attribute_id_id="+str(attribute_id)+" order by id desc"
         curr.execute(sql)
         res = curr.fetchall()
         curr.close()
@@ -118,7 +118,7 @@ def get_tag_by_name(name):
     try:
         conn = get_connection()
         curr = conn.cursor()
-        sql = "select id,tag_characterstics,tag_image,id,attribute_id_id from togther_tags_lpig where name=%s"
+        sql = "select tag_id,tag_characterstics,tag_image,tag_id,attribute_id_id from togther_tags_lpig where name=%s"
         parameter = [name]
         curr.execute(sql, parameter)
         res=curr.fetchone()
@@ -861,7 +861,7 @@ def insert_pre_create_community(community):
     today=date.today()
     d=today.strftime("%Y-%m-%d")
     community['active_since']=d
-    print(community)
+    print(community['name'])
     print("\n\n")
     try:
         conn = get_connection()
@@ -929,7 +929,7 @@ def update_pre_created_community(community_id,community):
 
     if 'image_url' not in community:
         community['image_url'] = 'media/community/default.jpeg'
-    print(community)
+    print(community['name'])
     print("\n\n")
 
     try:
