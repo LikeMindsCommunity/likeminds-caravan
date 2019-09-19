@@ -1892,7 +1892,8 @@ def invite_members(request):
         usr['response'] = user_response
         pending_requests.append(usr)
     return JsonResponse({'pending_members': pending_requests})
-  
+
+@csrf_exempt
 def accept_promotership(request):
 
     '''function to accept the promotership'''
