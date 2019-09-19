@@ -1352,12 +1352,8 @@ def update_uncategorize_tag(uncategorized, category, attribute):
     tag.attribute_id = attribute
     tag.category_id = category
     tag.save()
-    if attribute.id == 3:
-        user_list_with_newly_categorized_tag = User_Legacy.objects.filter(tags_id=tag)
-        for tag in user_list_with_newly_categorized_tag:
-            user_id,tag_id = tag.user_id.id,str(tag.tags_id.id)
-            insert_user_home_town_tags(user_id=user_id, tag=tag_id)
-    return tag.id
+    return tag.tag_id
+
 
 
 def user_tags(request,user_id):
@@ -1879,7 +1875,8 @@ def tag_update_form(request,tag_id):
         base_url = reverse('update_tag')
         query_string = urlencode({'updated':True})
         url = '{}?{}'.format(base_url, query_string)
-        pre_create_communities.delay(tag_id=tag_id)
+        correct_tag=tag.tag_id
+        pre_create_communities.delay(tag_id=correct_tag)
         return redirect(url)
 
     else:
@@ -2220,7 +2217,8 @@ def rename_tag(request,tag_id = None):
                 tag.name = rename_to
                 tag.save()
                 if tag.attribute_id.id < 17 :
-                    pre_create_communities.delay(tag_id=tag_id)
+                    correct_tag_id=tag.tag_id
+                    pre_create_communities.delay(tag_id=correct_tag_id)
 
             except:
                 pass
