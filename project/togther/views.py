@@ -183,7 +183,7 @@ def community(request, community_id):
 
             questions, user, data, community = join_community(request, community_id)
             if questions:
-                if member_state == 0:
+                if member_state == 0 or member_state == 5:
                     return render(request, 'response_form.html', {"data": data, 'usr': user, 'community': community,'ref_id':ref_id})
             else:
                 if community.hide_community == '3':
