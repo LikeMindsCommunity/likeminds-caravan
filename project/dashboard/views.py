@@ -987,9 +987,9 @@ def get_or_create_tag_attributes_list(tags,tag_type):
     if len(tags) == 1 and tags[0]=='':
         return tags_list
     for each_tag in tags:
-
+        # attribute = Attributes.objects.filter(Q(attribute_name__icontains=tag_type))[0]
+        # tag = Tags_lpig.objects.filter(name = each_tag,attribute_id=attribute)
         tag = Tags_lpig.objects.filter(name = each_tag)
-        print("tag ========= ",tag)
 
         if len(tag)>0:
             tag=tag[0]
@@ -1494,7 +1494,7 @@ def save_user_lpig_tags(user_id,legacy_tags,profession_tags,interest_tags,greogr
             tag = Tags_lpig.objects.get(pk=each_tag)
 
             if tag and ((tag.attribute_id.id >=12 and tag.attribute_id.id <=15) or tag.attribute_id.id == 3):
-
+                print("inside user home town updte tags >>>>>>>>>>> ")
                 tag = insert_user_home_town_tags(user_id=user_id, tag=str(tag.id))
                 tag_id = tag.id
                 update_hometown_tags_for_all_users.delay(tag_id)

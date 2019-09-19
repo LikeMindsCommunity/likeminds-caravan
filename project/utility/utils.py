@@ -342,15 +342,21 @@ def insert_user_home_town_tags(user_id,tag):
 
     category = Category.objects.filter(Q(name__icontains='legacy'))[0]
     attribute = Attributes.objects.filter(Q(attribute_name__icontains='hometown'))[0]
+    print('attribute  ',attribute,attribute.id)
     # if tag_id is present, get tag
     if tag.isdigit():
-        tags = Tags_lpig.objects.filter(pk = tag,attribute_id__id=3)
-
+        tag = Tags_lpig.objects.get(pk=tag)
+        tags = Tags_lpig.objects.filter(name = tag.name,attribute_id = attribute)
+        print("\ntag id === ",tag)
+        print(tags)
+        # print("tag === >?>> ",tags[0],tags[0].attribute_id.id,type(tags[0].attribute_id.id))
         if tags.exists():
+            print("already existing tag\n")
             tag = tags[0]
             new_tag = tags[0].name
             new_tag = new_tag.strip().title()
         else:
+            print("creating new tag here")
             tag = Tags_lpig.objects.get(pk=tag)
             new_tag = tag.name.strip().title()
             tag = Tags_lpig()
@@ -413,12 +419,12 @@ def create_user_hometown_tag_and_related_tags(user_id,tag_id,new_tag):
             user_geo_tag.save()
             print('user_geo_tag === ', user_geo_tag)
 
-        # if not user_legacy_home_town_tag.exists() and tag:
-        #     user_home_town_tag = User_Legacy()
-        #     user_home_town_tag.tags_id = tag
-        #     user_home_town_tag.user_id = user
-        #     user_home_town_tag.save()
-        #     print('user_leg_tag === ', user_home_town_tag)
+        if not user_legacy_home_town_tag.exists() and tag:
+            user_home_town_tag = User_Legacy()
+            user_home_town_tag.tags_id = tag
+            user_home_town_tag.user_id = user
+            user_home_town_tag.save()
+            print('user_leg_tag === ', user_home_town_tag)
 
         # finally update all user geography tags to
         # get related things for all tags like state and country
