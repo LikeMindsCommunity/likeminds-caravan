@@ -231,6 +231,7 @@ def create_or_categorize_tag(tag,category,attribute):
         return None
     return None
 
+
 @shared_task
 def update_user_geography_tags(user_id, typ=''):
 
@@ -336,6 +337,9 @@ def insert_user_home_town_tags(user_id,tag):
     ''' function to update user home town tag and
      add home town related state and country tags '''
 
+    new_tag = tag
+    new_tag = new_tag.strip().title()
+
     category = Category.objects.filter(Q(name__icontains='legacy'))[0]
     attribute = Attributes.objects.filter(Q(attribute_name__icontains='hometown'))[0]
     # if tag_id is present, get tag
@@ -343,6 +347,7 @@ def insert_user_home_town_tags(user_id,tag):
         tags = Tags_lpig.objects.filter(pk = tag,attribute_id__id=3)
 
         if tags.exists():
+            tag = tags[0]
             new_tag = tags[0].name
             new_tag = new_tag.strip().title()
         else:
@@ -355,9 +360,8 @@ def insert_user_home_town_tags(user_id,tag):
             tag.save()
             tag.tag_id = tag.id
             tag.save()
+
     else:
-        new_tag = tag
-        new_tag = new_tag.strip().title()
         # if tag is a string (which means its a new tag), create new tag
         tag = Tags_lpig()
         tag.name = new_tag
@@ -368,6 +372,7 @@ def insert_user_home_town_tags(user_id,tag):
         tag.save()
     create_user_hometown_tag_and_related_tags.delay(user_id=user_id, tag_id=tag.id, new_tag=new_tag)
     return tag
+
 
 @shared_task
 def create_user_hometown_tag_and_related_tags(user_id,tag_id,new_tag):
@@ -408,16 +413,24 @@ def create_user_hometown_tag_and_related_tags(user_id,tag_id,new_tag):
             user_geo_tag.save()
             print('user_geo_tag === ', user_geo_tag)
 
-        if not user_legacy_home_town_tag.exists() and tag:
-            user_home_town_tag = User_Legacy()
-            user_home_town_tag.tags_id = tag
-            user_home_town_tag.user_id = user
-            user_home_town_tag.save()
-            print('user_leg_tag === ', user_home_town_tag)
+        # if not user_legacy_home_town_tag.exists() and tag:
+        #     user_home_town_tag = User_Legacy()
+        #     user_home_town_tag.tags_id = tag
+        #     user_home_town_tag.user_id = user
+        #     user_home_town_tag.save()
+        #     print('user_leg_tag === ', user_home_town_tag)
 
         # finally update all user geography tags to
         # get related things for all tags like state and country
         # with images
         update_user_geography_tags.delay(user_id=user_id, typ='Geography')
-
     return
+
+
+@shared_task
+def update_hometown_tags_for_all_users(tag_id):
+    user_list_with_newly_categorized_tag = User_Legacy.objects.filter(tags_id=tag_id)
+    for tag in user_list_with_newly_categorized_tag:
+        user_id, tag_id = tag.user_id.id, str(tag.tags_id.id)
+        insert_user_home_town_tags(user_id=user_id, tag=tag_id)
+
