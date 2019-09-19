@@ -685,7 +685,7 @@ def create_card(request):
         card.save()
         # if the community does not have a purpose card then a purpose will be created
         # the first card created for a community is the purpose card
-        if not community.purpose_collabcard and hide_community == '3':
+        if not community.purpose_collabcard and community.hide_community == '3':
             Community.objects.filter(id=community_id).update(purpose_collabcard  = card.id)
 
         # sending notification to the user
