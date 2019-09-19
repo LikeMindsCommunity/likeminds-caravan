@@ -271,7 +271,7 @@ def update_user_geography_tags(user_id, typ=''):
 
 def referal(ref_id, community_id, interested_member_id):
 
-    eligilibility_count = 5
+    eligilibility_count = 3
 
     community = get_object_or_404(Community, pk=community_id)
 

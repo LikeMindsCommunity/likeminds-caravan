@@ -1490,7 +1490,14 @@ def save_user_lpig_tags(user_id,legacy_tags,profession_tags,interest_tags,greogr
         if each_tag in user_tags_list:
             # if tag is already present in user tags
             # dont have to do anything
-            continue
+            tag = Tags_lpig.objects.get(pk=each_tag)
+
+            if tag and ((tag.attribute_id.id >= 12 and tag.attribute_id.id <= 15) or tag.attribute_id.id == 3):
+                print("inside user home town updte tags -------------> ")
+                tag = insert_user_home_town_tags(user_id=user_id, tag=str(tag.id))
+                tag_id = tag.id
+                update_hometown_tags_for_all_users.delay(tag_id)
+
         elif not each_tag in user_tags_list:
 
             tag = Tags_lpig.objects.get(pk=each_tag)
