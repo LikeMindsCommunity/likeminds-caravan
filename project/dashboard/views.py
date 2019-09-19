@@ -24,7 +24,7 @@ from django.urls import reverse
 from urllib.parse import urlencode
 from utility.utils import (get_city_address, update_tag_image,
                            create_or_categorize_tag, update_user_geography_tags,
-                           insert_user_home_town_tags, )
+                           insert_user_home_town_tags, update_hometown_tags_for_all_users,)
 url = settings.URL
 
 # uncomment to run it in localhost
@@ -1352,6 +1352,11 @@ def update_uncategorize_tag(uncategorized, category, attribute):
     tag.attribute_id = attribute
     tag.category_id = category
     tag.save()
+
+    if attribute.id == 3:
+        tag_id = tag.id
+        update_hometown_tags_for_all_users.delay(tag_id)
+
     return tag.tag_id
 
 
@@ -1488,11 +1493,13 @@ def save_user_lpig_tags(user_id,legacy_tags,profession_tags,interest_tags,greogr
             continue
         elif not each_tag in user_tags_list:
 
-
             tag = Tags_lpig.objects.get(pk=each_tag)
 
-            if tag and (tag.attribute_id.id >=12 and tag.attribute_id.id <=15):
-                tag = insert_user_home_town_tags(user_id, tag=str(tag.id))
+            if tag and ((tag.attribute_id.id >=12 and tag.attribute_id.id <=15) or tag.attribute_id.id == 3):
+
+                tag = insert_user_home_town_tags(user_id=user_id, tag=str(tag.id))
+                tag_id = tag.id
+                update_hometown_tags_for_all_users.delay(tag_id)
 
             tags = User_Legacy.objects.filter(tags_id=tag, user_id=user)
             # if tag is not present
