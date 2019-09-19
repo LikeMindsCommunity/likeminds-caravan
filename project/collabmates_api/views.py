@@ -711,6 +711,13 @@ def create_card(request):
 
         if is_member_engage(community,user.user_id):
             update_last_unseen_in_engage(user=user.user_id,community=community)
+        else:
+            engage = Member_Engage()
+            engage.member_id = user
+            engage.community_id = community
+            engage.last_unseen_conversation = card
+            engage.updated_at = time.time()
+            engage.save()
 
         # if a community is a pilot community make the member as promoter
         if community.hide_community == '3':
