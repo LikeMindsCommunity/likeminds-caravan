@@ -58,7 +58,17 @@ Go to Home</a>
                 <select id="uncategorized" class="form-control">
                     <option selected style="color:black;">Choose...</option>
                     {% for cat in uncategortized_tags %}
+                    {% if cat.attribute_id.id == 17 %}
+                    <option value="{{cat.id}}">{{cat.name}}  (legacy)</option>
+                    {% elif cat.attribute_id.id == 18 %}
+                    <option value="{{cat.id}}">{{cat.name}}  (profession)</option>
+                    {% elif cat.attribute_id.id == 19 %}
+                    <option value="{{cat.id}}">{{cat.name}}  (interests)</option>
+                    {% elif cat.attribute_id.id == 20 %}
+                    <option value="{{cat.id}}">{{cat.name}}  (geography)</option>
+                    {% else %}
                     <option value="{{cat.id}}">{{cat.name}}</option>
+                    {% endif %}
                     {% endfor %}
                 </select>
          </div>
