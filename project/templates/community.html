@@ -53,7 +53,7 @@
                     console.log(1);
                     {% if user.is_authenticated %}
                         {% if ref_id != '' %}
-                           window.open("/"+"community/"+community_id+"?cta=join?ref_id={{ref_id}}",'_self');
+                           window.open("/"+"community/"+community_id+"?cta=join&ref_id={{ref_id}}",'_self');
                         {% else %}
                            window.open("/"+"community/"+community_id+"?cta=join",'_self');
                         {% endif %}

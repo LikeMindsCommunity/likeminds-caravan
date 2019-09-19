@@ -108,11 +108,7 @@ def update_tag_image(tag_name, tag_id):
     locations = [tag_name, tag_name.title(), tag_name.lower(), tag_name +' city', tag_name +' district', tag_name +' state', tag_name +' country']
 
     for loc in locations:
-        # if loc.lower() == tag_name.lower():
-        #     loc = tag_name
-        #
-        # else:
-        #     loc = tag_name + " " + loc
+
         print(loc)
         request = 'https://en.wikipedia.org/w/api.php?action=query&format=json&formatversion=2&prop=pageimages|pageterms&piprop=thumbnail&pithumbsize=600&titles=' + str(
             loc)
@@ -182,6 +178,7 @@ def get_city_address(request=None,city=None):
 
     # return JsonResponse({'response':response})
 
+    # return JsonResponse({'city':city,'district':district,'state':state,'country':country,'postal_code':postal_code})
     return {'city':city,'district':district,'state':state,'country':country,'postal_code':postal_code}
 
 
@@ -234,6 +231,7 @@ def create_or_categorize_tag(tag,category,attribute):
         return None
     return None
 
+
 @shared_task
 def update_user_geography_tags(user_id, typ=''):
 
@@ -258,7 +256,6 @@ def update_user_geography_tags(user_id, typ=''):
                 continue
             # creating or catgorizing a tag with known category and attribute
             tag = create_or_categorize_tag(tag=tag_name,category='Geography',attribute=attr)
-            print('created tag ====== ',tag)
 
             user_geo_tag = User_Geography.objects.filter(tags_id=tag, user_id=user)
 
@@ -274,7 +271,7 @@ def update_user_geography_tags(user_id, typ=''):
 
 def referal(ref_id, community_id, interested_member_id):
 
-    eligilibility_count = 5
+    eligilibility_count = 3
 
     community = get_object_or_404(Community, pk=community_id)
 
@@ -335,4 +332,111 @@ def get_referred_members_of_a_member(community_id,member_id):
 
     return member_list
 
+
+def insert_user_home_town_tags(user_id,tag):
+    ''' function to update user home town tag and
+     add home town related state and country tags '''
+
+    new_tag = tag
+    new_tag = new_tag.strip().title()
+
+    category = Category.objects.filter(Q(name__icontains='legacy'))[0]
+    attribute = Attributes.objects.filter(Q(attribute_name__icontains='hometown'))[0]
+    print('attribute  ',attribute,attribute.id)
+    # if tag_id is present, get tag
+    if tag.isdigit():
+        tag = Tags_lpig.objects.get(pk=tag)
+        tags = Tags_lpig.objects.filter(name = tag.name,attribute_id = attribute)
+        print("\ntag id === ",tag)
+        print(tags)
+        # print("tag === >?>> ",tags[0],tags[0].attribute_id.id,type(tags[0].attribute_id.id))
+        if tags.exists():
+            print("already existing tag\n")
+            tag = tags[0]
+            new_tag = tags[0].name
+            new_tag = new_tag.strip().title()
+        else:
+            print("creating new tag here")
+            tag = Tags_lpig.objects.get(pk=tag)
+            new_tag = tag.name.strip().title()
+            tag = Tags_lpig()
+            tag.name = new_tag
+            tag.category_id = category
+            tag.attribute_id = attribute
+            tag.save()
+            tag.tag_id = tag.id
+            tag.save()
+
+    else:
+        # if tag is a string (which means its a new tag), create new tag
+        tag = Tags_lpig()
+        tag.name = new_tag
+        tag.category_id = category
+        tag.attribute_id = attribute
+        tag.save()
+        tag.tag_id = tag.id
+        tag.save()
+    create_user_hometown_tag_and_related_tags.delay(user_id=user_id, tag_id=tag.id, new_tag=new_tag)
+    return tag
+
+
+@shared_task
+def create_user_hometown_tag_and_related_tags(user_id,tag_id,new_tag):
+    tag = Tags_lpig.objects.get(pk=tag_id)
+    user = User.objects.get(pk=user_id)
+    user_tag = User_Legacy.objects.filter(tags_id=tag,user_id=user)
+
+    if not user_tag.exists():
+        # create user legacy tag as home town
+        user_tag = User_Legacy()
+        user_tag.tags_id = tag
+        user_tag.user_id = user
+        user_tag.save()
+        tag_name, tag_id = tag.name, tag.id
+        update_tag_image.delay(tag_name, tag_id)
+    # adding other related geography tags for the user such as state and country
+    geography_list = get_city_address(city=new_tag)
+
+    for attr, tag_name in geography_list.items():
+
+        if tag_name == '':
+            continue
+        if attr == 'city':
+            continue
+        # creating or categorizing a tag with known category and attribute
+        # geography tag is created, create its related tags
+        # for example, if gurgaon is created, create Haryana and India as well as state and country
+        tag = create_or_categorize_tag(tag=tag_name, category='Geography', attribute=attr)
+
+        user_geo_tag = User_Geography.objects.filter(tags_id=tag, user_id=user)
+        user_legacy_home_town_tag = User_Legacy.objects.filter(tags_id=tag, user_id=user)
+
+        # saving tag related state and country in user geography and user home town
+        if not user_geo_tag.exists() and tag:
+            user_geo_tag = User_Geography()
+            user_geo_tag.tags_id = tag
+            user_geo_tag.user_id = user
+            user_geo_tag.save()
+            print('user_geo_tag === ', user_geo_tag)
+
+        if not user_legacy_home_town_tag.exists() and tag:
+            user_home_town_tag = User_Legacy()
+            user_home_town_tag.tags_id = tag
+            user_home_town_tag.user_id = user
+            user_home_town_tag.save()
+            print('user_leg_tag === ', user_home_town_tag)
+
+        # finally update all user geography tags to
+        # get related things for all tags like state and country
+        # with images
+        update_user_geography_tags.delay(user_id=user_id, typ='Geography')
+    return
+
+
+@shared_task
+def update_hometown_tags_for_all_users(tag_id):
+    user_list_with_newly_categorized_tag = User_Legacy.objects.filter(tags_id=tag_id)
+    for tag in user_list_with_newly_categorized_tag:
+        user_id, tag_id = tag.user_id.id, str(tag.tags_id.id)
+        insert_user_home_town_tags(user_id=user_id, tag=tag_id)
 
