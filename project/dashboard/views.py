@@ -1352,11 +1352,13 @@ def update_uncategorize_tag(uncategorized, category, attribute):
     tag.attribute_id = attribute
     tag.category_id = category
     tag.save()
+
     if attribute.id == 3:
         tag_id = tag.id
         update_hometown_tags_for_all_users.delay(tag_id)
 
     return tag.tag_id
+
 
 
 def user_tags(request,user_id):
@@ -1880,7 +1882,8 @@ def tag_update_form(request,tag_id):
         base_url = reverse('update_tag')
         query_string = urlencode({'updated':True})
         url = '{}?{}'.format(base_url, query_string)
-        pre_create_communities.delay(tag_id=tag_id)
+        correct_tag=tag.tag_id
+        pre_create_communities.delay(tag_id=correct_tag)
         return redirect(url)
 
     else:
@@ -2221,7 +2224,8 @@ def rename_tag(request,tag_id = None):
                 tag.name = rename_to
                 tag.save()
                 if tag.attribute_id.id < 17 :
-                    pre_create_communities.delay(tag_id=tag_id)
+                    correct_tag_id=tag.tag_id
+                    pre_create_communities.delay(tag_id=correct_tag_id)
 
             except:
                 pass
