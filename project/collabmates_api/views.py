@@ -686,8 +686,10 @@ def create_card(request):
         card.save()
         # if the community does not have a purpose card then a purpose will be created
         # the first card created for a community is the purpose card
-        if not community.purpose_collabcard and hide_community == '3':
-            Community.objects.filter(id=community_id).update(purpose_collabcard  = card.id)
+        print(community.purpose_collabcard)
+        if not community.purpose_collabcard and community.hide_community == '3':
+            community.purpose_collabcard=card.id
+            community.save()
 
         # sending notification to the user
         send_notification_for_new_collabcard_posted.delay(community_id,res['title'],user_id,user.name)
@@ -1915,7 +1917,7 @@ def accept_promotership(request):
         refered_id=res['member_ids']
         for member in all_members:
             if str(member.member_id.id) == str(member_id):
-                break
+                continue
             if member.member_id.id in refered_id:
                 req_dict={
                     'accepted':True,
