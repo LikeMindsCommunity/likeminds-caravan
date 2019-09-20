@@ -376,6 +376,8 @@ def college_skill(legacy_college,industry_skill):
                 prof_char = json.loads(skill[1])
                 if 'skill_name' in prof_char and prof_char['skill_name']:
                     skill_name=prof_char['skill_name']
+                if 'skill_experts' in prof_char and prof_char['skill_experts']:
+                    skill_expert=prof_char['skill_experts']
             temp['purpose']="""For %s from %s to exchange knowledge and referrals"""%(skill_expert,college[0])
             temp['question']="""Introduce yourself telling a bit about your background in %s"""%(skill_name)
 
