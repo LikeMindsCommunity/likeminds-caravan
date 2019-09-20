@@ -1429,7 +1429,9 @@ def check_for_member_eligibiity(community_id,member_id):
                 if member[0].state == 4:
                     count+=1
         if count >= eligibility_count:
-            Members.objects.filter(member_id=member_id, community_id=community).update(state=9)
+            member = Members.objects.filter(member_id=member_id, community_id=community)
+            if member[0].state != 1:
+                Members.objects.filter(member_id=member_id, community_id=community).update(state=9)
             community_id=community.id
             community_name = community.name
             ref_id=member_id
@@ -1460,8 +1462,10 @@ def check_for_member_eligibiity(community_id,member_id):
                     if member[0].state == 4:
                         count += 1
             if count >= eligibility_count:
-                Members.objects.filter(member_id=member_id, community_id=community).update(state=9)
-
+                member = Members.objects.filter(member_id=member_id, community_id=community)
+                if member[0].state != 1:
+                    Members.objects.filter(member_id=member_id, community_id=community).update(state=9)
+                    
                 community_id = community.id
                 community_name = community.name
                 ref_id = member_id
