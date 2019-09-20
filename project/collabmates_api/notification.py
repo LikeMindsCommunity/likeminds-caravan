@@ -10,7 +10,7 @@ from django.conf import  settings
 # database details
 db_user=settings.DATABASES['default']['USER']
 db_password=settings.DATABASES['default']['PASSWORD']
-db_host=settings.DB_HOST
+db_host= '127.0.0.1'
 db_port=settings.DATABASES['default']['PORT']
 db_database=settings.DATABASES['default']['NAME']
 
@@ -271,10 +271,9 @@ def send_notification_to_referred_member(referred_member_id,joined_member_name,c
         token_list=[]
         token_list.append(fcm_token)
         if referal_count == 1:
-            sub_title =  str(joined_member_name) + " has shown interest to join. You have referred"+ str(referal_count) +"member to the community"
+            sub_title =  str(joined_member_name) + " has shown interest to join. You have referred "+ str(referal_count) +" member to the community"
         elif referal_count > 1:
-            sub_title =  str(joined_member_name) + " has shown interest to join. You have referred"+ str(referal_count) +"members to the community"
-
+            sub_title =  str(joined_member_name) + " has shown interest to join. You have referred "+ str(referal_count) +" members to the community"
 
         message={}
         message['payload']={
