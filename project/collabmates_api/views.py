@@ -523,7 +523,7 @@ def admins(request, community_id):
         usr = UserinfoSerializer(user[0])
         users.append(usr)
 
-    referred_members_count=eligibility_count
+    referred_members_count=0
     if member_id:
         ref_members=get_referred_members_of_a_member(community_id,member_id)
         if len(ref_members):
