@@ -517,7 +517,7 @@ def admins(request, community_id):
         usr = UserinfoSerializer(user[0])
         users.append(usr)
 
-    referred_members_count=5
+    referred_members_count=eligibility_count
     if member_id:
         ref_members=get_referred_members_of_a_member(community_id,member_id)
         if len(ref_members):
@@ -1388,6 +1388,8 @@ def request_response(request,req_dict=None):
         # and also send notification
         send_notification_for_join_requests.delay(community_id, False, member_id)
         Form_response.objects.filter(user=member_id,community=community_id).delete()
+
+
     return JsonResponse({'success': True})
 
 
