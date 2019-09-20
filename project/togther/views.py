@@ -299,7 +299,7 @@ def refer_members(request,community_id):
         community = Community.objects.get(pk = community_id)
 
         share_text = 'Hi, I have added '+ str(community.name) +' community on CollabMates. It will be good if you can join this community'
-        print("share text ======= ",share_text)
+        
         return  render(request,'referal.html',{'share_url':share_url,'community':community,'copy_url':copy_url,'share_text':share_text})
 
 
