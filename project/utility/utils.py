@@ -321,11 +321,7 @@ def referal(ref_id, community_id, interested_member_id):
             interested_member = Members(community_id=community,
                                         member_id=invited_member,
                                         state=8)
-        else:
-            interested_member = Members(community_id=community,
-                                        member_id=invited_member,
-                                        state=3)
-        interested_member.save()
+            interested_member.save()
 
     referred_member = User.objects.get(pk=ref_id) if (ref_id != '' and ref_id) else False
     if referred_member:

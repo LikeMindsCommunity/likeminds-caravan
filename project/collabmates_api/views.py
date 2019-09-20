@@ -11,7 +11,12 @@ from collabmates_api.serializers import *
 from django.views.decorators.csrf import csrf_exempt
 from datetime import datetime 
 import time
-from .notification import send_follow_notification,send_notification_to_admins,send_notification_for_join_requests,send_notification_for_new_collabcard_posted,send_notification_to_proposed_admin,send_notification_to_proposer
+from .notification import (send_follow_notification,send_notification_to_admins,
+                           send_notification_for_join_requests,
+                           send_notification_for_new_collabcard_posted,
+                           send_notification_to_proposed_admin,
+                           send_notification_to_proposer,
+                           send_notification_to_eligible_member)
 from django.db.models import Q
 import dateutil.relativedelta
 from .tasks import send_email_to_nominated_admin,send_email_for_new_collabcard_posted
@@ -1401,6 +1406,14 @@ def check_for_member_eligibiity(community_id,member_id):
                     count+=1
         if count >= eligibility_count:
             Members.objects.filter(member_id=member_id, community_id=community).update(state=9)
+            community_id=community.id
+            community_name = community.name
+            ref_id=member_id
+            send_notification_to_eligible_member.delay(eligible_member_id=ref_id,
+                                                       community_name=community_name,
+                                                       community_id=community_id,
+
+                                                       )
 
     invited_member = User.objects.get(pk=member_id)
 
@@ -1424,6 +1437,13 @@ def check_for_member_eligibiity(community_id,member_id):
                         count += 1
             if count >= eligibility_count:
                 Members.objects.filter(member_id=member_id, community_id=community).update(state=9)
+
+                community_id = community.id
+                community_name = community.name
+                ref_id = member_id
+                send_notification_to_eligible_member.delay(eligible_member_id=ref_id,
+                                                           community_name=community_name,
+                                                           community_id=community_id)
 
     return
 
