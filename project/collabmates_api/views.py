@@ -1879,12 +1879,14 @@ def member_activity(request):
     if state == 1:
         return JsonResponse({'state':state})
 
-    introduction_text=community.introduction_text
+    if state == 0 and community.hide_community == '3':
 
-    if not introduction_text:
-        return JsonResponse({'state': state})
-
-    return JsonResponse({'state':state,'introduction_text':introduction_text})
+       form_response=Form_response.objects.filter(user=member,community=community).order_by('id')
+       if form_response.exists():
+        introduction_question=form_response[0].data
+        introduction_answer=form_response[0].response
+        return JsonResponse({'state':state,'introduction_question':introduction_question,'introduction_answer':introduction_answer})
+    return JsonResponse({'state': state})
 
 
 def invite_members(request):
@@ -1924,7 +1926,14 @@ def accept_promotership(request):
     value=res['value']
     all_members=Members.objects.filter(community_id=community_id)
 
+
+
     if value:
+
+        if 'member_ids' not in res or not res['member_ids']:
+            Members.objects.filter(community_id=community_id,member_id=member_id).update(state=1)
+            return JsonResponse({'success': True})
+
         refered_id=res['member_ids']
         for member in all_members:
             if str(member.member_id.id) == str(member_id):
@@ -1944,11 +1953,7 @@ def accept_promotership(request):
                 except:
                     print("Error for member engage update")
 
-
-    else:
-        Members.objects.filter(community_id=community_id,member_id=member_id).update(state=8)
-
-    return JsonResponse({'success':True})  
+    return JsonResponse({'success':True})
 
 
 
