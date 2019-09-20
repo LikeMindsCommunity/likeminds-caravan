@@ -322,14 +322,14 @@ def get_community_card_details(each_community,user_id):
 
 
 def community(request, community_id):
-    '''Community detail page'''
+    ''' Community detail page '''
 
     community = Community.objects.get(id=community_id)
     member_id = request.GET.get('member_id',None)
     serialized_object = CommunitySerializer(community)
     new_dict = {}
 
-    if community.hide_community == '3' and member_id:
+    if member_id:
         serialized_object['share_url'] = serialized_object['share_url']+"?ref_id="+str(member_id)
     elif community.hide_community == '0' or community.hide_community == '1':
         serialized_object['share_url'] = serialized_object['share_url'] + "?cta=share"
@@ -338,10 +338,10 @@ def community(request, community_id):
     new_dict.update(serialized_object)
 
     if community:
-
         new_dict['share_text_admin']= """Hi, I have added %s community on CollabMates. It will be good if you can join this community.\n"""%(new_dict['name'])
         new_dict['share_text_member']="""I recently joined %s community on CollabMates. It will be good if you also join this community.\n"""%(new_dict['name'])
         new_dict['share_text_anonymous']="""I recently discovered %s community on CollabMates. You can join this community using this link.\n"""%(new_dict['name'])
+
     return JsonResponse({'community': new_dict})
 
 
@@ -402,14 +402,13 @@ def join_community_responses(request):
     user_id = request.GET.get('member_id')
     community_id = request.GET.get('community_id')
 
+    community = Community.objects.get(id=community_id)
+    user = User.objects.get(id=user_id)
+
     if 'ref_id' in res:
         ref_id = res['ref_id']
-        referal(ref_id=ref_id, community_id=community_id, interested_member_id=user_id)
-
-    user = User.objects.get(id = user_id)
-    community = Community.objects.get(id = community_id)
-
-    userinfo = Userinfo.objects.get(user_id=user.id)
+        if community.hide_community == '3':
+            referal(ref_id=ref_id, community_id=community_id, interested_member_id=user_id)
 
     # inserting in members table if the member status is pending and inserting it to database with status=3
 
@@ -446,7 +445,7 @@ def join_community_responses(request):
         Community.objects.filter(id=community_id).update(updated_at=time.time())
         update_pending_member_count_in_engage(community)
         # sending notification to admins of the community
-        name = userinfo.name
+        name = user.userinfo.name
         send_notification_to_admins.delay(community_id,name)
     return JsonResponse({'success':True})
 
@@ -737,7 +736,6 @@ def send_email_for_collabcard(community,user,card):
             form_link='https://docs.google.com/forms/d/e/1FAIpQLSes87js8cTiGg0x-Vw9DYrnY1BCZTolba0B1WBvcVSYZSGAwg/viewform'
         elif tag.tags_id == 42:
             form_link='https://docs.google.com/forms/d/e/1FAIpQLSfqN2z1wg6CCJ4ZKH1lxQQgJ8iUWEbtTT0R9NT64zg5f13_ig/viewform'
-
 
     for member in members:
         context = {
@@ -1893,6 +1891,7 @@ def invite_members(request):
         pending_requests.append(usr)
     return JsonResponse({'pending_members': pending_requests})
 
+
 @csrf_exempt
 def accept_promotership(request):
 
@@ -1922,6 +1921,5 @@ def accept_promotership(request):
         Members.objects.filter(community_id=community_id,member_id=member_id).update(state=8)
 
     return JsonResponse({'success':True})  
-
 
 

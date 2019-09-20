@@ -349,3 +349,18 @@ class Referal(models.Model):
     member = models.ForeignKey(User, on_delete=models.CASCADE,related_name='member')
     invited_member = models.ForeignKey(User, on_delete=models.CASCADE,related_name='invited_member')
     community = models.ForeignKey(Community, on_delete=models.CASCADE)
+
+
+class Location_Info(models.Model):
+    """ saving location details of a geography tag """
+
+    # tag = models.ForeignKey(Tags_lpig, on_delete=models.PROTECT)
+    tag_name = models.CharField(max_length=512,null=True,unique=True)
+    city = models.CharField(max_length=512,null=True,default='')
+    district = models.CharField(max_length=512,null=True,default='')
+    state = models.CharField(max_length=512,null=True,default='')
+    country = models.CharField(max_length=512,null=True,default='')
+    pincode = models.CharField(max_length=512,null=True,default='')
+
+    def __str__(self):
+        return self.tag_name

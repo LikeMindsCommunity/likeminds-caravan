@@ -10,7 +10,8 @@ from django.db.models import Q
 import requests as rqst
 import json
 import os
-from collabmates_api.notification import send_notification_to_eligible_member
+from collabmates_api.notification import (send_notification_to_eligible_member,
+                                          send_notification_to_referred_member, )
 
 from django.http.response import JsonResponse
 
@@ -147,39 +148,71 @@ def update_tag_image(tag_name, tag_id):
 
 def get_city_address(request=None,city=None):
 
-    request = "https://maps.googleapis.com/maps/api/geocode/json?address="+str(city)+"&key=AIzaSyDN10TwCPVMdLEE6vvTiglKHGlkTIYKduc"
-    response = rqst.get(request)
-    response = response.json()
+    tag_name = city.lower()
+
     country = ''
     city = ''
     district = ''
     state = ''
-    postal_code = ''
+    pincode = ''
 
-    for level in response['results'][0]['address_components']:
+    updated = False
 
-        for typ in level['types']:
+    if tag_name:
 
-            if typ == 'administrative_area_level_1':
+        location_info = Location_Info.objects.filter(tag_name = tag_name)
+        if location_info.exists():
 
-                state = level['long_name']
+            location_info = location_info[0]
+            city = location_info.city if location_info.city else ''
+            district = location_info.district if location_info.district else ''
+            state = location_info.state if location_info.state else ''
+            country = location_info.country if location_info.country else ''
+            pincode = location_info.pincode if location_info.city else ''
 
-            elif typ == 'country':
-                country = level['long_name']
+        else:
+            request = "https://maps.googleapis.com/maps/api/geocode/json?address="+str(tag_name)+"&key=AIzaSyDN10TwCPVMdLEE6vvTiglKHGlkTIYKduc"
+            response = rqst.get(request)
+            response = response.json()
 
-            elif typ == 'administrative_area_level_2':
-                district = level['long_name']
+            updated = True
 
-            elif typ == 'locality':
-                city = level['long_name']
+            for level in response['results'][0]['address_components']:
 
-            elif typ == 'postal_code':
-                postal_code = level['long_name']
+                for typ in level['types']:
+
+                    if typ == 'administrative_area_level_1':
+
+                        state = level['long_name']
+                    elif typ == 'country':
+                        country = level['long_name']
+
+                    elif typ == 'administrative_area_level_2':
+                        district = level['long_name']
+
+                    elif typ == 'locality':
+                        city = level['long_name']
+
+                    elif typ == 'postal_code':
+                        pincode = level['long_name']
+
+        if updated:
+
+            location_info = Location_Info()
+
+            location_info.tag_name = tag_name
+            location_info.city = city
+            location_info.district = district
+            location_info.state = state
+            location_info.country = country
+            location_info.pincode = pincode
+
+            location_info.save()
 
     # return JsonResponse({'response':response})
 
-    # return JsonResponse({'city':city,'district':district,'state':state,'country':country,'postal_code':postal_code})
-    return {'city':city,'district':district,'state':state,'country':country,'postal_code':postal_code}
+    # return JsonResponse({'city':city,'district':district,'state':state,'country':country,'postal_code':pincode})
+    return {'city':city,'district':district,'state':state,'country':country,'postal_code':pincode}
 
 
 def create_or_categorize_tag(tag,category,attribute):
@@ -297,6 +330,13 @@ def referal(ref_id, community_id, interested_member_id):
                             , community=community)
             refer.save()
 
+        joined_member_name, community_name = invited_member.userinfo.name, community.name
+
+        notify_referred_member.delay(referred_member_id=ref_id,
+                               joined_member_name=joined_member_name,
+                               community_name=community.name,
+                               community_id=community_id)
+
         total_referals = Referal.objects.filter(member=referred_member,
                                                 community=community)
 
@@ -310,12 +350,33 @@ def referal(ref_id, community_id, interested_member_id):
                 admin = Members(community_id=community, member_id=referred_member, state=9)
                 admin.save()
 
-            send_notification_to_eligible_member.delay(eligible_member_id=referred_member.id, community_name = community.name, community_id=community_id)
+            community_name = community.name
+
+            send_notification_to_eligible_member.delay(eligible_member_id= ref_id,
+                                                       community_name = community_name,
+                                                       community_id=community_id,
+
+                                                       )
 
             # for interested_member in total_referals:
             #     Members.objects.filter(community_id=community,
             #                            member_id=interested_member.invited_member).update(state=3)
     return
+
+
+@shared_task
+def notify_referred_member(referred_member_id,joined_member_name,community_name,community_id):
+
+    referal_count = get_referred_members_of_a_member(community_id=community_id,member_id=referred_member_id)
+
+    referal_count = len(referal_count)
+    print("inside notify >>> ",referal_count)
+    send_notification_to_referred_member(referred_member_id=referred_member_id,
+                                               joined_member_name=joined_member_name,
+                                               community_name=community_name,
+                                               community_id=community_id,
+                                               referal_count=referal_count,
+                                               )
 
 
 def get_referred_members_of_a_member(community_id,member_id):

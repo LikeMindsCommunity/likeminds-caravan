@@ -29,3 +29,5 @@ admin.site.register(User_Legacy)
 admin.site.register(User_Profession)
 admin.site.register(User_Interest)
 admin.site.register(User_Geography)
+admin.site.register(Location_Info)
+

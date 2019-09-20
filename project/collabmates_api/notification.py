@@ -240,7 +240,8 @@ def send_notification_to_proposer(proposer_id,community_name,community_id,propos
 @shared_task
 def send_notification_to_eligible_member(eligible_member_id,community_name,community_id):
 
-    '''function to send notification if the proposed admin accepts invitation'''
+    '''function to send notification to eligible promoter
+     after he becomes eligible to become admin to a community'''
 
     fcm_token=get_token_for_fcm(eligible_member_id)
 
@@ -259,7 +260,31 @@ def send_notification_to_eligible_member(eligible_member_id,community_name,commu
         print('No FCM token to send message')
 
 
+@shared_task
+def send_notification_to_referred_member(referred_member_id,joined_member_name,community_name,community_id,referal_count):
 
+    '''function to send notification to referred member(who is referring)'''
+
+    fcm_token=get_token_for_fcm(referred_member_id)
+
+    if fcm_token:
+        token_list=[]
+        token_list.append(fcm_token)
+        if referal_count == 1:
+            sub_title =  str(joined_member_name) + " has shown interest to join. You have referred"+ str(referal_count) +"member to the community"
+        elif referal_count > 1:
+            sub_title =  str(joined_member_name) + " has shown interest to join. You have referred"+ str(referal_count) +"members to the community"
+
+
+        message={}
+        message['payload']={
+            'title':str(community_name),
+            'sub_title':sub_title,
+            'route':'route://community?community_id=' + str(community_id)
+        }
+        send_notification_to_multiple_devices(token_list, message)
+    else:
+        print('No FCM token to send message')
 
 
 
