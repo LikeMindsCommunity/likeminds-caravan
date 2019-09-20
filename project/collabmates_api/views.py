@@ -1883,7 +1883,7 @@ def member_activity(request):
 
     if state == 0 and community.hide_community == '3':
 
-       form_response=Form_response.objects.filter(user=member,community=community).order_by('id')
+       form_response=Form_response.objects.filter(user=member.id,community=community.id).order_by('id')
        if form_response.exists():
         introduction_question=form_response[0].data
         introduction_answer=form_response[0].response
