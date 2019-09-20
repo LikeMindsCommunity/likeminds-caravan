@@ -10,7 +10,7 @@ from django.conf import  settings
 # database details
 db_user=settings.DATABASES['default']['USER']
 db_password=settings.DATABASES['default']['PASSWORD']
-db_host= '127.0.0.1'
+db_host=settings.DB_HOST
 db_port=settings.DATABASES['default']['PORT']
 db_database=settings.DATABASES['default']['NAME']
 
