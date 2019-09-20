@@ -1958,22 +1958,20 @@ def invite_members(request):
     pending_requests = []
     for i in pend_requests:
         user_id = i
-        member = Members.objects.filter(member_id=member_id, community_id=community_id)
-        if member[0].state == 8:
-            resp = Form_response.objects.filter(community = community_id).filter(user = user_id)
-            user = Userinfo.objects.get(user_id = user_id)
-            # serilaizing userinfo object
-            usr = UserinfoSerializer(user)
-            user_response = []
-            for j in resp:
-                # getting the answers of the users who requested to join
-                # for the questions that have been asked while requestiong to join in a community
-                response_object = {}
-                response_object['key'] = j.data
-                response_object['value'] = j.response
-                user_response.append(response_object)
-            usr['response'] = user_response
-            pending_requests.append(usr)
+        resp = Form_response.objects.filter(community = community_id).filter(user = user_id)
+        user = Userinfo.objects.get(user_id = user_id)
+        # serilaizing userinfo object
+        usr = UserinfoSerializer(user)
+        user_response = []
+        for j in resp:
+            # getting the answers of the users who requested to join
+            # for the questions that have been asked while requestiong to join in a community
+            response_object = {}
+            response_object['key'] = j.data
+            response_object['value'] = j.response
+            user_response.append(response_object)
+        usr['response'] = user_response
+        pending_requests.append(usr)
     return JsonResponse({'pending_members': pending_requests})
 
 
