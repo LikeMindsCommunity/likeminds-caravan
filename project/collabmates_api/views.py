@@ -414,8 +414,8 @@ def join_community_responses(request):
 
     if 'ref_id' in res:
         ref_id = res['ref_id']
-        # if community.hide_community == '3':
-        referal(ref_id=ref_id, community_id=community_id, interested_member_id=user_id)
+        if community.hide_community == '3':
+            referal(ref_id=ref_id, community_id=community_id, interested_member_id=user_id)
 
     # inserting in members table if the member status is pending and inserting it to database with status=3
 
