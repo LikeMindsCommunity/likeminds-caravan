@@ -8,41 +8,17 @@ from datetime import date
 import re
 envir=False
 try:
-    from .notification import get_connection
+    from collabmates_api.notification import get_connection
+    from utility.utils import get_city_address
+    print("try statement")
 except:
     envir=True
     import sys
     sys.path.append("..")
+    from project.wsgi import *
     from scripts.connection import get_connection
-
-def get_city_address(city):
-
-    request = "https://maps.googleapis.com/maps/api/geocode/json?address="+str(city)+"&key=AIzaSyDN10TwCPVMdLEE6vvTiglKHGlkTIYKduc"
-    response = rqst.get(request)
-    response = response.json()
-    country = ''
-    city = ''
-    state = ''
-    postal_code = ''
-
-    for level in response['results'][0]['address_components']:
-
-        for typ in level['types']:
-
-            if typ == 'administrative_area_level_1':
-
-                state = level['long_name']
-
-            elif typ == 'country':
-                country = level['long_name']
-
-            elif typ == 'administrative_area_level_2':
-                city = level['long_name']
-
-            elif typ == 'postal_code':
-                postal_code = level['long_name']
-
-    return {'city':city,'state':state,'country':country,'postal_code':postal_code}
+    from utility.utils import get_city_address
+    print("except statement")
 
 
 def get_attribute_data(attribute_id):
