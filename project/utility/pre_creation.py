@@ -366,7 +366,6 @@ def college_skill(legacy_college,industry_skill):
                     temp['name'] = leg_char['csn'] + " Alumni in "+ capitalize_string(str(skill[0]))
             elif skill[1] is not None:
                 prof_char=json.loads(skill[1])
-                print(prof_char)
                 temp['name'] = str(college[0]) + " " + capitalize_string(str(prof_char['skill_experts']))
 
             else:
@@ -377,7 +376,7 @@ def college_skill(legacy_college,industry_skill):
                 prof_char = json.loads(skill[1])
                 if 'skill_name' in prof_char and prof_char['skill_name']:
                     skill_name=prof_char['skill_name']
-            temp['purpose']="""For %s from %s to exchange knowledge and referrals"""%(skill_name,college[0])
+            temp['purpose']="""For %s from %s to exchange knowledge and referrals"""%(skill_expert,college[0])
             temp['question']="""Introduce yourself telling a bit about your background in %s"""%(skill_name)
 
             temp['about']="""This community is exclusively for %s who studied at %s living across the globe. Here we exchange information, knowledge, documents and important links related to %s and have conversations on the same. We also use this space to help each other by providing referrals (for jobs, business introductions etc.), collaborate on projects and plan offline meetups.
