@@ -295,7 +295,11 @@ def refer_members(request,community_id):
         copy_url=share_url
         # encoded url for web sharing
         share_url=quote(share_url)
-        return  render(request,'referal.html',{'share_url':share_url,'community':community,'copy_url':copy_url})
+
+        community = Community.objects.get(pk = community_id)
+
+        share_text = 'Hi, I have added '+ str(community.name) +' community on CollabMates. It will be good if you can join this community'
+        return  render(request,'referal.html',{'share_url':share_url,'community':community,'copy_url':copy_url,'share_text':share_text})
 
 
 def get_members_of_community(community):
