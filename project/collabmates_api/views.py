@@ -25,13 +25,17 @@ import re
 import googlemaps
 import requests as rqst
 from utility.utils import (decode_meta_from_url, update_tag_image,
-                           referal, get_referred_members_of_a_member, )
+                           referal, get_referred_members_of_a_member,
+                           eligibility_count, )
 
 
 url  = settings.URL
 
+
+# /api/communities?category_id=&member_id=
 def communities(request):
-    '''function to get all the communities'''
+
+    ''' function to get all the communities '''
 
     if request.method == 'GET':
         request = request.GET.dict()
@@ -226,6 +230,7 @@ def update_last_unseen_in_engage(user='',community='',is_seen=False):
         Member_Engage.objects.filter(community_id=community).filter(~Q(member_id=user)).update(last_unseen_count=collabcard_unseen,updated_at=current_time)
 
 
+# /api/your_communities/member_id?member_id=
 def your_communities(request,user_id):
     '''This function is used to see your communities based on user id'''
 
@@ -380,6 +385,7 @@ def similar_community(request, community_id):
     return JsonResponse({'communities': community})
 
 
+# /api/community/264/questions
 def join_community(request, community_id):
 
     '''function to get questions of community'''
@@ -394,6 +400,7 @@ def join_community(request, community_id):
     return JsonResponse({'questions': reqd_info})
 
 
+# /api/join_community?member_id=&community_id=
 @csrf_exempt
 def join_community_responses(request):
 
@@ -407,8 +414,8 @@ def join_community_responses(request):
 
     if 'ref_id' in res:
         ref_id = res['ref_id']
-        if community.hide_community == '3':
-            referal(ref_id=ref_id, community_id=community_id, interested_member_id=user_id)
+        # if community.hide_community == '3':
+        referal(ref_id=ref_id, community_id=community_id, interested_member_id=user_id)
 
     # inserting in members table if the member status is pending and inserting it to database with status=3
 
@@ -517,6 +524,7 @@ def admins(request, community_id):
     return JsonResponse ({'members': users})
 
 
+# /api/create_community?member_id=21&is_admin=true
 @csrf_exempt
 def create_community(request):
     ''' function create a community '''
@@ -658,6 +666,7 @@ def create_community(request):
     return HttpResponse("Create Community Api")
 
 
+# /api/create_collabcard?community_id=300&member_id=21
 @csrf_exempt
 def create_card(request):
     ''' function to create a card '''
@@ -1357,6 +1366,8 @@ def request_response(request,req_dict=None):
         engage.save()
         update_pending_member_count_in_engage(community)
 
+
+
         # send notification
         send_notification_for_join_requests.delay(community_id,True,member_id)
     else:
@@ -1367,6 +1378,26 @@ def request_response(request,req_dict=None):
         Form_response.objects.filter(user=member_id,community=community_id).delete()
     return JsonResponse({'success': True})
 
+
+def check_for_member_eligibiity(community_id,member_id):
+    # function to check if accepted member is a eligible admin or not
+
+    # community = Community.objects.get(pk = community_id)
+
+    update = True
+
+    referals = get_referred_members_of_a_member(community_id=community_id, member_id=member_id)
+    referal_count = len(referals)
+    if referal_count >= eligibility_count:
+        for mem_id in referals:
+            member = Members.objects.filter(member_id=mem_id,community_id=community_id)
+            if member.exists():
+                if member[0].state != 4:
+                    update = False
+        if update:
+            Members.objects.filter(member_id=member_id, community_id=community).update(state=9)
+
+    return
 
 def pending_request_count(request,community_id):
     ''' fucntion to get peding members count of a community '''
