@@ -1911,7 +1911,7 @@ def member_activity(request):
     if state == 1:
         return JsonResponse({'state':state})
 
-    if state == 0 and community.hide_community == '3':
+    if state == 0:
 
        form_response=Form_response.objects.filter(user=member.id,community=community.id).order_by('id')
        if form_response.exists():
