@@ -1441,7 +1441,7 @@ def check_for_member_eligibiity(community_id,member_id):
                 member = Members.objects.filter(member_id=member_id, community_id=community)
                 if member[0].state != 1:
                     Members.objects.filter(member_id=member_id, community_id=community).update(state=9)
-                    
+
                 community_id = community.id
                 community_name = community.name
                 ref_id = member_id
@@ -1958,20 +1958,22 @@ def invite_members(request):
     pending_requests = []
     for i in pend_requests:
         user_id = i
-        resp = Form_response.objects.filter(community = community_id).filter(user = user_id)
-        user = Userinfo.objects.get(user_id = user_id)
-        # serilaizing userinfo object
-        usr = UserinfoSerializer(user)
-        user_response = []
-        for j in resp:
-            # getting the answers of the users who requested to join
-            # for the questions that have been asked while requestiong to join in a community
-            response_object = {}
-            response_object['key'] = j.data
-            response_object['value'] = j.response
-            user_response.append(response_object)
-        usr['response'] = user_response
-        pending_requests.append(usr)
+        member = Members.objects.filter(member_id=member_id, community_id=community_id)
+        if member[0].state == 8:
+            resp = Form_response.objects.filter(community = community_id).filter(user = user_id)
+            user = Userinfo.objects.get(user_id = user_id)
+            # serilaizing userinfo object
+            usr = UserinfoSerializer(user)
+            user_response = []
+            for j in resp:
+                # getting the answers of the users who requested to join
+                # for the questions that have been asked while requestiong to join in a community
+                response_object = {}
+                response_object['key'] = j.data
+                response_object['value'] = j.response
+                user_response.append(response_object)
+            usr['response'] = user_response
+            pending_requests.append(usr)
     return JsonResponse({'pending_members': pending_requests})
 
 
