@@ -508,6 +508,7 @@ def members(request, community_id):
 
 def admins(request, community_id):
     ''' function to get admins of a community '''
+    member_id=request.GET.get('member_id',None)
     admins = Members.objects.filter(community_id = community_id).filter(Q(state=1)|Q(state=2))
     users = []
     for admin in admins:
@@ -515,7 +516,17 @@ def admins(request, community_id):
         # get user serialized
         usr = UserinfoSerializer(user[0])
         users.append(usr)
-    return JsonResponse ({'members': users})
+
+    referred_members_count=5
+    if member_id:
+        ref_members=get_referred_members_of_a_member(community_id,member_id)
+        if len(ref_members):
+            referred_members_count=len(ref_members)
+            return JsonResponse({'members': users,'referred_members_count':referred_members_count})
+        else:
+            return JsonResponse({'members': users,'referred_members_count':referred_members_count})
+    else:
+        return JsonResponse ({'members': users})
 
 
 @csrf_exempt
@@ -1928,6 +1939,12 @@ def accept_promotership(request):
                 request_response(request,req_dict)
             else:
                 Members.objects.filter(community_id=community_id,member_id=member.member_id.id).update(state=3)
+                try:
+                    community=Community.objects.get(id=community_id)
+                    update_pending_member_count_in_engage(community)
+                except:
+                    print("Error for member engage update")
+
 
     else:
         Members.objects.filter(community_id=community_id,member_id=member_id).update(state=8)
