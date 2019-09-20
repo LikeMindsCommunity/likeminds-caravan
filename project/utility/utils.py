@@ -148,7 +148,9 @@ def update_tag_image(tag_name, tag_id):
 
 def get_city_address(request=None,city=None):
 
-    tag_name = city.lower()
+    tag_name = None
+    if city:
+        tag_name = city.lower()
 
     country = ''
     city = ''
