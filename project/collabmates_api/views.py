@@ -11,7 +11,12 @@ from collabmates_api.serializers import *
 from django.views.decorators.csrf import csrf_exempt
 from datetime import datetime 
 import time
-from .notification import send_follow_notification,send_notification_to_admins,send_notification_for_join_requests,send_notification_for_new_collabcard_posted,send_notification_to_proposed_admin,send_notification_to_proposer
+from .notification import (send_follow_notification,send_notification_to_admins,
+                           send_notification_for_join_requests,
+                           send_notification_for_new_collabcard_posted,
+                           send_notification_to_proposed_admin,
+                           send_notification_to_proposer,
+                           send_notification_to_eligible_member)
 from django.db.models import Q
 import dateutil.relativedelta
 from .tasks import send_email_to_nominated_admin,send_email_for_new_collabcard_posted
@@ -414,8 +419,8 @@ def join_community_responses(request):
 
     if 'ref_id' in res:
         ref_id = res['ref_id']
-        if community.hide_community == '3':
-            referal(ref_id=ref_id, community_id=community_id, interested_member_id=user_id)
+        # if community.hide_community == '3':
+        referal(ref_id=ref_id, community_id=community_id, interested_member_id=user_id)
 
     # inserting in members table if the member status is pending and inserting it to database with status=3
 
@@ -1367,7 +1372,7 @@ def request_response(request,req_dict=None):
         #updating the approve state
         Members.objects.filter(member_id=member_id,community_id=community).update(state=4)  # aprove state = 4
         community = Community.objects.get(id = community_id)
-        set_user_tag(user.id, community_id)
+        # set_user_tag(user.id, community_id)
         members_count = community.members_count+1
         Community.objects.filter(id = community_id).update(members_count=members_count)
 
@@ -1388,12 +1393,12 @@ def request_response(request,req_dict=None):
         engage.save()
         update_pending_member_count_in_engage(community)
 
-
+        check_for_member_eligibiity(community_id, member_id)
 
         # send notification
         send_notification_for_join_requests.delay(community_id,True,member_id)
     else:
-        # if rejected , chaange user state to 5
+        # if rejected , change user state to 5
         Members.objects.filter(member_id=member_id,community_id=community).update(state=5)  # decline state = 5
         # and also send notification
         send_notification_for_join_requests.delay(community_id, False, member_id)
@@ -1406,20 +1411,63 @@ def request_response(request,req_dict=None):
 def check_for_member_eligibiity(community_id,member_id):
     # function to check if accepted member is a eligible admin or not
 
-    # community = Community.objects.get(pk = community_id)
+    community = Community.objects.get(pk = community_id)
 
     update = True
-
+    print(">>>>>>>>>>> ",member_id)
     referals = get_referred_members_of_a_member(community_id=community_id, member_id=member_id)
     referal_count = len(referals)
+    print(referals)
+
+    print("referal count === ",referal_count)
     if referal_count >= eligibility_count:
+        count = 0
         for mem_id in referals:
             member = Members.objects.filter(member_id=mem_id,community_id=community_id)
             if member.exists():
-                if member[0].state != 4:
-                    update = False
-        if update:
+
+                if member[0].state == 4:
+                    count+=1
+        if count >= eligibility_count:
             Members.objects.filter(member_id=member_id, community_id=community).update(state=9)
+            community_id=community.id
+            community_name = community.name
+            ref_id=member_id
+            send_notification_to_eligible_member.delay(eligible_member_id=ref_id,
+                                                       community_name=community_name,
+                                                       community_id=community_id,
+
+                                                       )
+
+    invited_member = User.objects.get(pk=member_id)
+
+    total_referals = Referal.objects.filter(invited_member=invited_member, community=community)
+
+    if total_referals.exists():
+
+        member_id = total_referals[0].member.id
+        print(">>>>>>>>>>> ", member_id)
+        referals = get_referred_members_of_a_member(community_id=community_id, member_id=member_id)
+        referal_count = len(referals)
+        print(referals)
+        print("referal count === ", referal_count)
+
+        if referal_count >= eligibility_count:
+            count = 0
+            for mem_id in referals:
+                member = Members.objects.filter(member_id=mem_id,community_id=community_id)
+                if member.exists():
+                    if member[0].state == 4:
+                        count += 1
+            if count >= eligibility_count:
+                Members.objects.filter(member_id=member_id, community_id=community).update(state=9)
+
+                community_id = community.id
+                community_name = community.name
+                ref_id = member_id
+                send_notification_to_eligible_member.delay(eligible_member_id=ref_id,
+                                                           community_name=community_name,
+                                                           community_id=community_id)
 
     return
 

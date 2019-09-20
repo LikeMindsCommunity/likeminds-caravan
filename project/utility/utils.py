@@ -317,10 +317,11 @@ def referal(ref_id, community_id, interested_member_id):
     interested_member = Members.objects.filter(community_id=community,
                                                member_id=invited_member)
     if not interested_member.exists():
-        interested_member = Members(community_id=community,
-                                    member_id=invited_member,
-                                    state=8)
-        interested_member.save()
+        if community.hide_community == '3':
+            interested_member = Members(community_id=community,
+                                        member_id=invited_member,
+                                        state=8)
+            interested_member.save()
 
     referred_member = User.objects.get(pk=ref_id) if (ref_id != '' and ref_id) else False
     if referred_member:
@@ -340,26 +341,28 @@ def referal(ref_id, community_id, interested_member_id):
                                community_name=community.name,
                                community_id=community_id)
 
-        total_referals = Referal.objects.filter(member=referred_member,
-                                                community=community)
+        if community.hide_community == '3':
 
-        if total_referals.count() >= eligibility_count:
-            admin = Members.objects.filter(community_id=community, member_id=referred_member)
+            total_referals = Referal.objects.filter(member=referred_member,
+                                                    community=community)
 
-            if admin.exists():
-                Members.objects.filter(community_id=community, member_id=referred_member).update(state=9)
+            if total_referals.count() >= eligibility_count:
+                admin = Members.objects.filter(community_id=community, member_id=referred_member)
 
-            elif not admin.exists():
-                admin = Members(community_id=community, member_id=referred_member, state=9)
-                admin.save()
+                if admin.exists():
+                    Members.objects.filter(community_id=community, member_id=referred_member).update(state=9)
 
-            community_name = community.name
+                elif not admin.exists():
+                    admin = Members(community_id=community, member_id=referred_member, state=9)
+                    admin.save()
 
-            send_notification_to_eligible_member.delay(eligible_member_id= ref_id,
-                                                       community_name = community_name,
-                                                       community_id=community_id,
+                community_name = community.name
 
-                                                       )
+                send_notification_to_eligible_member.delay(eligible_member_id= ref_id,
+                                                           community_name = community_name,
+                                                           community_id=community_id,
+
+                                                           )
 
             # for interested_member in total_referals:
             #     Members.objects.filter(community_id=community,
