@@ -490,7 +490,7 @@ def members(request, community_id):
     ''' function to get all the mebers of a community including admins and nominated members '''
     community = get_object_or_404(Community, pk = community_id)
     # get members of the community
-    member = Members.objects.filter(community_id = community).filter(Q(state=1)|Q(state=2)|Q(state=4)|Q(state=7)|Q(state=8))
+    member = Members.objects.filter(community_id = community).filter(Q(state=1)|Q(state=2)|Q(state=4)|Q(state=7)|Q(state=8)|Q(state=9))
     members = []
     for mem in member:
         user = Userinfo.objects.filter(user_id = mem.member_id)
