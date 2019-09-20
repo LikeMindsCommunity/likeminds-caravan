@@ -15,7 +15,7 @@ from collabmates_api.notification import (send_notification_to_eligible_member,
 
 from django.http.response import JsonResponse
 
-
+eligibility_count = 5
 
 def decode_meta_from_url(url):
 
@@ -304,7 +304,6 @@ def update_user_geography_tags(user_id, typ=''):
 
 def referal(ref_id, community_id, interested_member_id):
 
-    eligilibility_count = 3
 
     community = get_object_or_404(Community, pk=community_id)
 
@@ -340,7 +339,7 @@ def referal(ref_id, community_id, interested_member_id):
         total_referals = Referal.objects.filter(member=referred_member,
                                                 community=community)
 
-        if total_referals.count() >= eligilibility_count:
+        if total_referals.count() >= eligibility_count:
             admin = Members.objects.filter(community_id=community, member_id=referred_member)
 
             if admin.exists():
