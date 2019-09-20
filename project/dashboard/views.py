@@ -1022,8 +1022,9 @@ def create_uncategorized_tag(tag,tag_type):
         else:
             tag = tag[0]
         if tag_type == 'Geography':
-            tag_name, tag_id = new_tag, tag.id
-            update_tag_image.delay(tag_name=tag_name, tag_id=tag_id)
+            if tag and not tag.tag_image:
+                tag_name, tag_id = new_tag, tag.id
+                update_tag_image.delay(tag_name=tag_name, tag_id=tag_id)
         return tag
     return None
 
