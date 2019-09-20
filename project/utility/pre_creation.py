@@ -215,8 +215,8 @@ def hometown_city(legacy_hometown,geography_city):
                 'profession': 16
             }
 
-            home=get_city_address(hometown[0])
-            current=get_city_address(city[0])
+            home=get_city_address(city=hometown[0])
+            current=get_city_address(city=city[0])
             home_place=""
             if home['country'] and current['country'] and home['country'] != current['country']:
                 if hometown[1] is not None:

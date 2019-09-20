@@ -15,7 +15,7 @@ from collabmates_api.notification import (send_notification_to_eligible_member,
 
 from django.http.response import JsonResponse
 
-eligibility_count = 5
+eligibility_count = 3
 
 def decode_meta_from_url(url):
 
