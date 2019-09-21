@@ -3,21 +3,21 @@
 
 import  psycopg2
 
-# production
-# db_user="nateshr"
-# db_password="connectNRpostgresql"
-# db_host= 'collabmatesdatabase.cgx3gr7xnezq.ap-south-1.rds.amazonaws.com'
-# db_database="togther"
-# db_port="5432"
+#production
+db_user="nateshr"
+db_password="connectNRpostgresql"
+db_host= 'collabmatesdatabase.cgx3gr7xnezq.ap-south-1.rds.amazonaws.com'
+db_database="togther"
+db_port="5432"
 
 
 #development
-
-db_user="postgres"
-db_password="postgres"
-db_host= '13.235.187.102'
-db_database="development"
-db_port="5432"
+#
+# db_user="postgres"
+# db_password="postgres"
+# db_host= '13.235.187.102'
+# db_database="development"
+# db_port="5432"
 
 
 #development
