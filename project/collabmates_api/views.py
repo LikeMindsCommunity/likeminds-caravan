@@ -1432,14 +1432,13 @@ def check_for_member_eligibiity(community_id,member_id):
             member = Members.objects.filter(member_id=member_id, community_id=community)
             if member[0].state != 1:
                 Members.objects.filter(member_id=member_id, community_id=community).update(state=9)
-            community_id=community.id
-            community_name = community.name
-            ref_id=member_id
-            send_notification_to_eligible_member.delay(eligible_member_id=ref_id,
-                                                       community_name=community_name,
-                                                       community_id=community_id,
-
-                                                       )
+                community_id=community.id
+                community_name = community.name
+                ref_id=member_id
+                send_notification_to_eligible_member.delay(eligible_member_id=ref_id,
+                                                           community_name=community_name,
+                                                           community_id=community_id,
+                                                           )
 
     invited_member = User.objects.get(pk=member_id)
 
@@ -1466,12 +1465,12 @@ def check_for_member_eligibiity(community_id,member_id):
                 if member[0].state != 1:
                     Members.objects.filter(member_id=member_id, community_id=community).update(state=9)
 
-                community_id = community.id
-                community_name = community.name
-                ref_id = member_id
-                send_notification_to_eligible_member.delay(eligible_member_id=ref_id,
-                                                           community_name=community_name,
-                                                           community_id=community_id)
+                    community_id = community.id
+                    community_name = community.name
+                    ref_id = member_id
+                    send_notification_to_eligible_member.delay(eligible_member_id=ref_id,
+                                                               community_name=community_name,
+                                                               community_id=community_id)
 
     return
 
