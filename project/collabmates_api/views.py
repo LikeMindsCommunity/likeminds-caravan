@@ -148,7 +148,7 @@ def serialize_community(queryset):
                 comm=Community.objects.get(id=community)
         # check if the community is hidden or not
 
-        if comm.hide_community == '0' or comm.hide_community == '3':
+        if comm.hide_community == '0' or comm.hide_community == '3' or comm.hide_community =='4':
             # if not hidden , pass the community object to serializer or pre-created
             serialized_object = CommunitySerializer(comm)
             new_dict = {}
@@ -341,7 +341,7 @@ def community(request, community_id):
 
     if member_id:
         serialized_object['share_url'] = serialized_object['share_url']+"?ref_id="+str(member_id)
-    elif community.hide_community == '0' or community.hide_community == '1':
+    elif community.hide_community == '0' or community.hide_community == '1' or community.hide_community =='4':
         serialized_object['share_url'] = serialized_object['share_url'] + "?cta=share"
 
     # form a dictionary of community objects
@@ -351,7 +351,7 @@ def community(request, community_id):
         new_dict['share_text_admin']= """Hi, I have added %s community on CollabMates. It will be good if you can join this community.\n"""%(new_dict['name'])
         new_dict['share_text_member']="""I recently joined %s community on CollabMates. It will be good if you also join this community.\n"""%(new_dict['name'])
         new_dict['share_text_anonymous']="""I recently discovered %s community on CollabMates. You can join this community using this link.\n"""%(new_dict['name'])
-
+    new_dict['min_referrer_member'] = eligibility_count
     return JsonResponse({'community': new_dict})
 
 
@@ -378,7 +378,7 @@ def similar_community(request, community_id):
             comm_object = Community.objects.get(id=comm['community_id'])
         # check if the community is hidden or not
 
-        if comm_object.hide_community == '0' and comm_object.id != community_id:
+        if comm_object.hide_community == '0' or comm_object.hide_community =='4' and comm_object.id != community_id:
             # if not hidden , pass the community object to serializer
             serialized_object = CommunitySerializer(comm_object)
             new_dict = {}
@@ -437,7 +437,7 @@ def join_community_responses(request):
             member = Members()
             member.member_id = user
             member.community_id = community
-            if community.hide_community == '0' or community.hide_community == '1':
+            if community.hide_community == '0' or community.hide_community == '1' or community.hide_community =='4':
                 member.state = 3  # pending members
             elif community.hide_community == '3':
                 member.state = 8
@@ -451,7 +451,7 @@ def join_community_responses(request):
             response.community = community.id
             response.save()
 
-    if community.hide_community == '0' or community.hide_community == '1':
+    if community.hide_community == '0' or community.hide_community == '1' or community.hide_community =='4':
 
         # updating updated time of community and pending member count for admins of commnity
         Community.objects.filter(id=community_id).update(updated_at=time.time())
@@ -751,7 +751,7 @@ def create_card(request):
         if community.hide_community == '3':
             Members.objects.filter(community_id=community,member_id=user.user_id).update(state=1)
             # changing community state to 0 (zero) to make it a active community
-            community.hide_community ='0'
+            community.hide_community ='4'
             community.save()
             return JsonResponse({'success': True, 'collabcard': collabcard})
 

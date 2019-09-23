@@ -686,7 +686,7 @@ def analytics(request):
     ''' function to show the analytics '''
 
     community_count=Community.objects.all().count()
-    public_communities=Community.objects.filter(hide_community='0').count()
+    public_communities=Community.objects.filter(Q(hide_community='0')|Q(hide_community ='4')).count()
     private_communities=Community.objects.filter(hide_community='1').count()
     pre_created_communities=Community.objects.filter(hide_community='3').count()
 
