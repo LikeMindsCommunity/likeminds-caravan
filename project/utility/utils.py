@@ -261,6 +261,7 @@ def create_or_categorize_tag(tag,category,attribute):
                 if category.name == 'Geography':
                     if tag and not tag.tag_image:
                         tag_name, tag_id = new_tag, tag.id
+                        print("utils update tag image at create or categorize tags")
                         update_tag_image.delay(tag_name=tag_name, tag_id=tag_id)
 
                 return tag
@@ -461,6 +462,7 @@ def create_user_hometown_tag_and_related_tags(user_id,tag_id,new_tag):
         user_tag.save()
         if tag and not tag.tag_image:
             tag_name, tag_id = new_tag, tag.id
+            print("utils update tag image at create user hometown tags")
             update_tag_image.delay(tag_name=tag_name, tag_id=tag_id)
     # adding other related geography tags for the user such as state and country
     geography_list = get_city_address(city=new_tag)
