@@ -1851,6 +1851,7 @@ def get_or_create_lpig_tags(tag,category,attr):
     finally:
         if cat == 'Geography':
             tag_name,tag_id = tag.name,tag.id
+            print("collabmates api update tag image at create or get lpig tags")
             update_tag_image.delay(tag_name=tag_name, tag_id=tag_id)
 
     return tag
