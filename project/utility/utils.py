@@ -151,6 +151,10 @@ def get_city_address(request=None,city=None):
     tag_name = None
     if city:
         tag_name = city.lower()
+        
+    if str(city).isdigit():
+        tag = Tags_lpig.objects.get(pk=city)
+        tag_name = tag.name.lower()
 
     country = ''
     city = ''
