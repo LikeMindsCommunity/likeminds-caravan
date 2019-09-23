@@ -34,14 +34,44 @@
         <script src="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.js"></script>
         <script async src="https://www.googletagmanager.com/gtag/js?id=UA-130288684-1"></script>
         <link rel="stylesheet" href="{% static 'css/community.css' %}">
+    </head>
 
-        <script>
+
+    <div class="ui modal" id="email_login">
+        <i class="close icon"></i>
+        <div class="header">
+            Please provide your email id in order to continue
+        </div>
+        <div class="image content">
+
+            <div class="description">
+                <div class="ui  form">
+                  <div class="field">
+                    <label>E-mail</label>
+                    <input type="email" placeholder="Enter your email id" id="email_input">
+                  </div>
+                </div>
+            </div>
+        </div>
+        <div class="actions">
+            <div class="ui positive right labeled icon button" style="background-color:#00897b;" id="email_submit">
+                Submit
+
+            </div>
+        </div>
+    </div>
+
+
+<script>
 
 
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
       gtag('config', 'UA-130288684-1');
+
+
+
 
                function open_community(id){
                     console.log(id);
@@ -179,12 +209,23 @@
 
 
 
+  //email_login popup start
+
+      $('#email_login').modal('show');
+
+      $('#email_submit').click(function(){
+
+      email=$('#email_input').val()
+      console.log(email)
+
+      })
+
+
+//email_login popup end
 
 
         </script>
 
-
-    </head>
 
     <div style="margin:0 auto; max-width:786px;">
 
@@ -199,6 +240,8 @@
         </div>
 
         {% block content %}
+
+
 
         <div class="ui modal test">
 
@@ -539,5 +582,8 @@
             </div>
         </div>
     </div>
+
+
+
     </html>
     {% endblock %}
