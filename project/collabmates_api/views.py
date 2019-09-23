@@ -527,17 +527,20 @@ def admins(request, community_id):
         # get user serialized
         usr = UserinfoSerializer(user[0])
         users.append(usr)
-
+    community = Community.objects.get(pk = community_id)
     referred_members_count=0
-    if member_id:
+    if member_id and community.hide_community == '3':
         ref_members=get_referred_members_of_a_member(community_id,member_id)
         if len(ref_members):
             referred_members_count=len(ref_members)
             return JsonResponse({'members': users,'referred_members_count':referred_members_count})
         else:
             return JsonResponse({'members': users,'referred_members_count':referred_members_count})
+    elif member_id:
+        referred_members_count = check_for_member_eligibiity(community_id, member_id)
+        return JsonResponse({'members': users,'referred_members_count':referred_members_count})
     else:
-        return JsonResponse ({'members': users})
+        return JsonResponse({'members': users})
 
 
 # /api/create_community?member_id=21&is_admin=true
@@ -1393,7 +1396,7 @@ def request_response(request,req_dict=None):
         engage.save()
         update_pending_member_count_in_engage(community)
 
-        check_for_member_eligibiity(community_id, member_id)
+        count = check_for_member_eligibiity(community_id, member_id)
 
         # send notification
         send_notification_for_join_requests.delay(community_id,True,member_id)
@@ -1421,14 +1424,14 @@ def check_for_member_eligibiity(community_id,member_id):
 
     print("referal count === ",referal_count)
     if referal_count >= eligibility_count:
-        count = 0
+        return_count = 0
         for mem_id in referals:
             member = Members.objects.filter(member_id=mem_id,community_id=community_id)
             if member.exists():
 
                 if member[0].state == 4:
-                    count+=1
-        if count >= eligibility_count:
+                    return_count+=1
+        if return_count >= eligibility_count:
             member = Members.objects.filter(member_id=member_id, community_id=community)
             if member[0].state != 1:
                 Members.objects.filter(member_id=member_id, community_id=community).update(state=9)
@@ -1472,7 +1475,7 @@ def check_for_member_eligibiity(community_id,member_id):
                                                                community_name=community_name,
                                                                community_id=community_id)
 
-    return
+    return return_count
 
 def pending_request_count(request,community_id):
     ''' fucntion to get peding members count of a community '''
