@@ -68,7 +68,7 @@ def dashboard(request):
         return render(request, 'dashboard.html',
                       {'usr': user, 'communities': communities, 'my_communities': my_community[:2],
                        "my_communities_count": len(my_community),'onboard':onboard,'is_iitd':is_iitd})
-    communities = Community.objects.filter(hide_community='0').order_by('-active_since')
+    communities = Community.objects.filter(Q(hide_community='0')|Q(hide_community = '4')).order_by('-active_since')
     for community in communities:
         update_member_count(community.id)
 
@@ -101,7 +101,7 @@ def get_communities_by_rank(request):
     for community in communities:
         comm = Community.objects.get(pk = community)
         # check if community is hidden or not
-        if comm.hide_community == '0' or comm.hide_community == '3':
+        if comm.hide_community == '0' or comm.hide_community == '3'  or comm.hide_community =='4':
             communities_list.append(comm)
     return communities_list
 
@@ -254,7 +254,7 @@ def community(request, community_id):
     # ------------------------------------------------------------------
     members, admin_details = get_members_of_community(community)
     # if user is not authenticated, give some communities as similar communities
-    communities=Community.objects.filter(hide_community='0')[:10]
+    communities=Community.objects.filter(Q(hide_community='0')|Q(hide_community = '4'))[:10]
 
     if request.user.is_authenticated:
         # calling similar communities api
@@ -309,7 +309,7 @@ def get_members_of_community(community):
     members = []
     admin_details = []
     all_members = []
-    if community.hide_community == '0' or community.hide_community == '1':
+    if community.hide_community == '0' or community.hide_community == '1'  or community.hide_community =='4':
         all_members = Members.objects.filter(community_id=community.id).filter(
             Q(state=1) | Q(state=2) | Q(state=4) | Q(state=7))
 
