@@ -1,4 +1,5 @@
-{% load static %}<!DOCTYPE html>
+<!DOCTYPE html>
+{% load static %}
 <html>
 <head>
 
@@ -33,14 +34,44 @@
         <script src="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.js"></script>
         <script async src="https://www.googletagmanager.com/gtag/js?id=UA-130288684-1"></script>
         <link rel="stylesheet" href="{% static 'css/community.css' %}">
+    </head>
 
-        <script>
+
+    <div class="ui modal" id="email_login">
+        <i class="close icon"></i>
+        <div class="header">
+            Please provide your email id in order to continue
+        </div>
+        <div class="image content">
+
+            <div class="description">
+                <div class="ui  form">
+                  <div class="field">
+                    <label>E-mail</label>
+                    <input type="email" placeholder="Enter your email id" id="email_input">
+                  </div>
+                </div>
+            </div>
+        </div>
+        <div class="actions">
+            <div class="ui positive right labeled icon button" style="background-color:#00897b;" id="email_submit">
+                Submit
+
+            </div>
+        </div>
+    </div>
+
+
+<script>
 
 
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
       gtag('config', 'UA-130288684-1');
+
+
+
 
                function open_community(id){
                     console.log(id);
@@ -51,7 +82,11 @@
                 function join(community_id){
                     console.log(1);
                     {% if user.is_authenticated %}
-                       window.open("/"+"community/"+community_id+"?cta=join",'_self');
+                        {% if ref_id != '' %}
+                           window.open("/"+"community/"+community_id+"?cta=join&ref_id={{ref_id}}",'_self');
+                        {% else %}
+                           window.open("/"+"community/"+community_id+"?cta=join",'_self');
+                        {% endif %}
                     {% else %}
                     $('.test')
                     .modal('show')
@@ -71,6 +106,20 @@
                      $('.accept')
                     .modal('show')
                   ;
+                    {% else %}
+                    $('.test')
+                    .modal('show')
+                  ;
+                    {% endif %}
+
+                }
+
+
+                function referal(ref_id){
+
+                    {% if user.is_authenticated %}
+
+                     window.location.href ="../refer_members/"+{{community.id}}+"?ref_id="+ref_id;
                     {% else %}
                     $('.test')
                     .modal('show')
@@ -158,14 +207,28 @@
 
 });
 
+{% if user_email %}
+
+  //email_login popup start
+
+      $('#email_login').modal('show');
+
+      $('#email_submit').click(function(){
+
+      email=$('#email_input').val()
+      console.log(email)
+
+      })
+
+  //email_login popup end
+
+{% endif %}
 
 
 
 
         </script>
 
-
-    </head>
 
     <div style="margin:0 auto; max-width:786px;">
 
@@ -180,6 +243,8 @@
         </div>
 
         {% block content %}
+
+
 
         <div class="ui modal test">
 
@@ -197,7 +262,14 @@
                 </div>
                 <div class="center aligned container">
                     <div class="content">
-                        {% if cta != '' %}
+
+                        {% if ref_id != '' %}
+                        <a href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join_{{ref_id}}">
+                        <button class="ui facebook button" style="width:130px;">
+                        {% elif cta == 'share' %}
+                        <a href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join">
+                            <button class="ui facebook button" style="width:130px;">
+                        {% elif cta != '' %}
                         <a href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta={{cta}}">
                             <button class="ui facebook button" style="width:130px;">
                                 {% else %}
@@ -214,7 +286,14 @@
                                 <br>
                                 <br>
                                 <div class="content">
-                                    {% if cta != '' %}
+
+                                    {% if ref_id != '' %}
+                                    <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join&ref_id={{ref_id}}">
+                                        <button class="ui linkedin button" style="width:130px;">
+                                    {% elif cta == 'share' %}
+                                    <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join">
+                                        <button class="ui linkedin button" style="width:130px;">
+                                    {% elif cta != '' %}
                                     <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta={{cta}}">
                                         <button class="ui linkedin button" style="width:130px;">
                                             {% else %}
@@ -225,7 +304,11 @@
                                                     LinkedIn
                                                 </button>
                                             </a>
+                                        </button>
+                                    </a>
                                 </div>
+                            </button>
+                        </a>
                     </div>
                     <br>
 
@@ -279,8 +362,21 @@
         <div class="fixed top" id="menu">
             <ul>
                 <li><a href="#purpose">PURPOSE</a></li>
-                <li><a href="#about">ABOUT</a></li>
-                <li><a href="#members">MEMBERS</a></li>
+                {% if members_length > 0 %}
+                    {% if community.hide_community == '3' %}
+                    <li><a href="#about">ABOUT</a></li>
+                    <li><a href="#members">WAIT LIST</a></li>
+                    {% else %}
+                    <li><a href="#about">ABOUT</a></li>
+                    <li><a href="#members">MEMBERS</a></li>
+                    {% endif %}
+                {% else %}
+                <div style="padding-left:100px;">
+                <li><a href="#about" >ABOUT</a></li>
+                </div>
+                <li><a href="#members"></a></li>
+
+                {% endif %}
                 <li><a href="#conversations">CONVERSATIONS</a></li>
             </ul>
         </div>
@@ -302,7 +398,7 @@
             {% endcomment %}
 
             <!-- rendering multiple admins -->
-
+            {% if admin_length > 0 %}
             <div class="content">
                 {% if admin_length == 1 %}
                 <h4>Promoter</h4>
@@ -330,6 +426,7 @@
                     </div>
                 </div>
             </div>
+            {% endif %}
 
             <!-- printing community about -->
             {% if community.about != '' %}
@@ -340,13 +437,16 @@
             </div>
             {% endif %}
 
+            {% if members_length > 0 %}
             <div class="content" id="members">
-                <h4>Members
+                {% if community.hide_community == '3' %}
+                <h4>Interested</h4>
                     <!-- <a class="right floated" style=" color:#1cb39b; font-weight:100; " href="{% url 'members_list' community.id %}"> See all</a>-->
-                </h4>
+                {% else  %}<h4>Members</h4>{% endif %}
 
                 <div class="ui container" style=" overflow-y:auto;white-space:nowrap;">
                     <div class="ui big horizontal  list">
+
                         {% for i in members%}
 
                         <div class="item">
@@ -366,47 +466,58 @@
                     </div>
                 </div>
             </div>
+            {% endif %}
                 <br>
                 <div >
-                <div class="content ui fluid" style="background-color:#f0f5f5;">
-                    <h4 style="margin-left:12px;padding-top:10px;">Similar Communities
-                        <!--                                <a class="right floated" style=" color:#1cb39b; font-weight:100; " href="{% url 'similar_community' 273 %}"> See all</a>-->
-                    </h4>
+<!--                <div class="content ui fluid" style="background-color:#f0f5f5;">-->
+<!--                    <h4 style="margin-left:12px;padding-top:10px;">Similar Communities-->
+<!--                        &lt;!&ndash;                                <a class="right floated" style=" color:#1cb39b; font-weight:100; " href="{% url 'similar_community' 273 %}"> See all</a>&ndash;&gt;-->
+<!--                    </h4>-->
 
-                    <div class="ui container" style=" overflow-y:auto;white-space:nowrap;">
+<!--                    <div class="ui container" style=" overflow-y:auto;white-space:nowrap;">-->
 
-                        <div class="ui  horizontal  list" style="margin-left:10px;">
-                            {% for i in similar_communities %}
+<!--                        <div class="ui  horizontal  list" style="margin-left:10px;">-->
+<!--                            {% for i in similar_communities %}-->
 
-                            <div class="ui card item" onclick="open_community({{i.id}});"  >
-                                <br><br>
+<!--                            <div class="ui card item" onclick="open_community({{i.id}});"  >-->
+<!--                                <br><br>-->
 
-                                <img class="ui avatar image" src="/media/{{i.image_url}}" style="margin-left:5px;">
-                                <div class="content" style="font-size:12px;">
-                                    <div class="header" style="font-size:1rem;">{{i.name}}</div>
-                                    <p id="{{forloop.counter0}}"> {{i.purpose}}</p>
-                                </div>
-                                <br><br><br><br>
+<!--                                <img class="ui avatar image" src="/media/{{i.image_url}}" style="margin-left:5px;">-->
+<!--                                <div class="content" style="font-size:12px;">-->
+<!--                                    <div class="header" style="font-size:1rem;">{{i.name}}</div>-->
+<!--                                    <p id="{{forloop.counter0}}"> {{i.purpose}}</p>-->
+<!--                                </div>-->
+<!--                                <br><br><br><br>-->
 
-                            </div>
-                            {% endfor %}
-                        </div>
+<!--                            </div>-->
+<!--                            {% endfor %}-->
+<!--                        </div>-->
 
 
-                    </div>
-                </div>
+<!--                    </div>-->
+<!--                </div>-->
 <br/>
+
+
 
                 {% if Nom_mem_state == 6 %}
                 <button class="ui fluid button "
                         style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;"
                         onclick="accept_admin('{{cta}}','{{community.id}}','{{Nom_mem_state}}');"> Respond to invitation
                 </button>
+
                 {% elif Nom_mem_state == 7 %}
                 <button class="ui fluid button "
                         style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;"
                         onclick="accept_admin('{{cta}}','{{community.id}}','{{Nom_mem_state}}');"> Respond to invitation
                 </button>
+
+                {% elif Nom_mem_state == 8 %}
+                <button class="ui fluid button "
+                        style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;"
+                        onclick="referal('{{ref_id}}')"> Invite members
+                </button>
+
                 {% elif Nom_mem_state == 3 %}
                 <button class="ui fluid button "
                         style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;"
@@ -424,18 +535,20 @@
                         style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;"
                         disabled>You are a promoter
                 </button>
+
                 {% elif Nom_mem_state == 4 %}
                 <button class="ui fluid button "
                         style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;"
                         disabled>Already a Member
                 </button>
+
                 {% elif Nom_mem_state == 5 %}
                 <button class="ui fluid button "
                         style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;"
-                        onclick="join('{{community.id}}')"> Join Group(Declined)
+                        onclick="join('{{community.id}}')"> Join Community(Declined)
                 </button>
+
                 {% elif source == 'email' %}
-                ]
                 <button class="ui fluid button "
                         style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;"
                         onclick="accept_admin();">Respond to invitation
@@ -444,7 +557,7 @@
                 {% elif Nom_mem_state == 0 %}
                 <button class="ui fluid button "
                         style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;"
-                        onclick="join('{{community.id}}')"> Join Group
+                        onclick="join('{{community.id}}')"> Join Community
                 </button>
 
                 {% endif %}
@@ -472,5 +585,8 @@
             </div>
         </div>
     </div>
+
+
+
     </html>
     {% endblock %}

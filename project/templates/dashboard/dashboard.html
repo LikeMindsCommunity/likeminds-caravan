@@ -104,22 +104,47 @@ a.article-title:hover {
 .btn-orange {
  background-color: #f08c35;
 }
+.pagination a {
+  color: black;
+  float: left;
+  padding: 8px 16px;
+  text-decoration: none;
+  transition: background-color .3s;
+  border-radius: 5px;
+  border: 1px solid #ddd; /* Gray */
+
+}
+
+.pagination a.active {
+  background-color: #4CAF50;
+  color: white;
+}
+
+.pagination a:hover:not(.active) {background-color: #ddd;}
 
     </style>
 </head>
-
-<a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 " href="{% url 'all_user' %}">Users</a>
-<a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 " href="{% url 'analytics' %}">Analytics</a>
-<a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 " href="{% url 'send_tester_mail' %}">Mail</a>
-<a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 " href="{% url 'deleted_communities' %}">Deleted Communitites</a>
 
 <body>
 
 <br/><br/>
 
 <main role="main" class="container">
+    <a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 " href="{% url 'all_user' %}">Users</a>
+<a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 " href="{% url 'analytics' %}">Analytics</a>
+<a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 " href="{% url 'send_tester_mail' %}">Mail</a>
+<a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 " href="{% url 'deleted_communities' %}">Deleted Communitites</a>
+<a class="btn btn-primary btn-sm mt-1 mb-1 mr-4" href="{% url 'create_tag' %}" role="button">Create Tag</a>
+<a class="btn btn-primary btn-sm mt-1 mb-1 mr-4" href="{% url 'categorize_tag' %}" role="button">Categorize Tag</a>
+<a class="btn btn-primary btn-sm mt-1 mb-1 mr-4" href="{% url 'update_tag' %}" role="button">Update Tag</a>
+<a class="btn btn-primary btn-sm mt-1 mb-1 mr-4" href="{% url 'rename_tag' %}" role="button">Rename Tag</a>
+<a class="btn btn-danger btn-sm mt-1 mb-1 mr-4" href="{% url 'delete_tags' %}" role="button">Delete Tag</a>
+    <br><br>
     <div class="row">
+
+
         <div class="col-md-8">
+
             {% for community in communities %}
             <article class="media content-section">
                 <img class="rounded-circle article-img" src="{{ community.image_url.url }}">
@@ -170,17 +195,36 @@ a.article-title:hover {
             {% endfor %}
         </div>
     </div>
-</main>
-<script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"
-        integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN"
-        crossorigin="anonymous"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"
-        integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
-        crossorigin="anonymous"></script>
-<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"
-        integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
-        crossorigin="anonymous"></script>
 
-</body>
+
 {% endif %}
+</main>
+
+<div style="padding-left:450px;">
+<ul class="pagination">
+
+
+{% if community.number|add:'-4' > 1 %}
+    <li><a href="?page={{ community.number|add:'-5' }}">&hellip;</a></li>
+{% endif %}
+
+{% for i in community.paginator.page_range %}
+    {% if community.number == i %}
+        <li style="border: 1px solid #ddd;border-radius: 5px;padding: 8px 16px;background-color:#f0ad4e;border-color: #eea236;"><span>{{ i }} </span></li>
+    {% elif i > community.number|add:'-5' and i < community.number|add:'5' %}
+        <li><a href="?page={{ i }}">{{ i }}</a></li>
+    {% endif %}
+{% endfor %}
+
+{% if community.paginator.num_pages > community.number|add:'4' %}
+    <li><a href="?page={{ community.number|add:'5' }}">&hellip;</a></li>
+{% endif %}
+
+
+
+</ul>
+</div>
+
+<br/>
+</body>
 </html>

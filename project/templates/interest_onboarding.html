@@ -10,7 +10,12 @@
 
 <br/>
 <body>
-
+<div class="ui negative message" style="display:none;" id="error_interest">
+  <i class="close icon" id="close"></i>
+  <div class="header">
+    Please select atleast one interest  to continue
+  </div>
+  </div>
 <h2 class="ui center aligned header" id="main_header"> What things do you enjoy doing?</h2>
 <h4 class="ui center aligned header" id="sec_header">We'll show you communities with people of similar interests</h4>
 <br/><br/>
@@ -22,7 +27,7 @@
 
     <!-- interest_hobby -->
 <div class="field padd">
-     <div class="form_field">Pursuing these hobbies&nbsp;&nbsp;<sub style="color:red;font-size:20px">*</sub></div>
+     <div class="form_field">Pursuing these hobbies&nbsp;&nbsp;</div>
     <select name="" multiple="" class="ui search fluid dropdown interest_hobby" id="interest_hobby" >
       <option value="">Enter your hobbies or select from dropdown</option>
         {% for tag in community_interest_hobby %}
@@ -32,9 +37,7 @@
         <option value="{{interest.id}}">{{interest.name}}</option>
        {% endfor %}
     </select>
-    <div class="ui pointing red basic label" id="error_interest_hobby" style="display:none">
-      Please enter your hobby
-    </div>
+
 </div>
 
 
@@ -88,6 +91,9 @@
     </div><!-- --><!-- -->
 </div>
 <br/>
+
+
+
 </body>
 
 
@@ -99,21 +105,25 @@
 {% endif %}
     $('.ui.dropdown.interest_hobby').dropdown({
   allowAdditions: true,
+  fullTextSearch: true
 
 });
 
 
    $('.ui.dropdown.interest_sports').dropdown({
   allowAdditions: true,
+  fullTextSearch: true
 });
 
 
    $('.ui.dropdown.interest_fan').dropdown({
   allowAdditions: true,
+  fullTextSearch: true
 });
 
     $('.ui.dropdown.interest_cause').dropdown({
   allowAdditions: true,
+  fullTextSearch: true
 
 });
 
@@ -122,10 +132,7 @@ $("#submit").click(function(e){
 interest_hobby=$('#interest_hobby').val()
 
 
-if(interest_hobby == null){
-    $('#error_interest_hobby').css("display","block")
-    return;
-}
+
 
 
 interest_sports=$('#interest_sports').val()
@@ -134,6 +141,17 @@ interest_sports=$('#interest_sports').val()
 interest_fan=$('#interest_fan').val()
 
 interest_cause=$('#interest_cause').val()
+
+$('#close').click(function(){
+
+$('#error_interest').css("display","none")
+
+})
+
+if(interest_hobby == null && interest_sports == null && interest_fan == null && interest_fan == null){
+$('#error_interest').css("display","block")
+    return;
+}
 
 
 

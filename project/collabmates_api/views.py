@@ -11,7 +11,12 @@ from collabmates_api.serializers import *
 from django.views.decorators.csrf import csrf_exempt
 from datetime import datetime 
 import time
-from .notification import send_follow_notification,send_notification_to_admins,send_notification_for_join_requests,send_notification_for_new_collabcard_posted,send_notification_to_proposed_admin,send_notification_to_proposer
+from .notification import (send_follow_notification,send_notification_to_admins,
+                           send_notification_for_join_requests,
+                           send_notification_for_new_collabcard_posted,
+                           send_notification_to_proposed_admin,
+                           send_notification_to_proposer,
+                           send_notification_to_eligible_member)
 from django.db.models import Q
 import dateutil.relativedelta
 from .tasks import send_email_to_nominated_admin,send_email_for_new_collabcard_posted
@@ -23,13 +28,19 @@ import os
 from .firebase import update_last_answer_id
 import re
 import googlemaps
-from utility.utils import decode_meta_from_url
-from .raw_queries import compute_rank
+import requests as rqst
+from utility.utils import (decode_meta_from_url, update_tag_image,
+                           referal, get_referred_members_of_a_member,
+                           eligibility_count, )
+
 
 url  = settings.URL
 
+
+# /api/communities?category_id=&member_id=
 def communities(request):
-    '''function to get all the communities'''
+
+    ''' function to get all the communities '''
 
     if request.method == 'GET':
         request = request.GET.dict()
@@ -72,7 +83,7 @@ def communities(request):
 def get_communities_by_tags(user_tag=0, category_tag=0,page_number=1,user_id=None):
     ''' fetching communities based on category tag and user hidden tag '''
 
-    is_user_tags = User_LPIG.objects.filter(member_id=user_id)
+    is_user_tags = Community_Rank.objects.filter(member_id=user_id)
 
     if is_user_tags:
         if user_id:
@@ -137,8 +148,8 @@ def serialize_community(queryset):
                 comm=Community.objects.get(id=community)
         # check if the community is hidden or not
 
-        if comm.hide_community == '0':
-            # if not hidden , pass the community object to serializer
+        if comm.hide_community == '0' or comm.hide_community == '3' or comm.hide_community =='4':
+            # if not hidden , pass the community object to serializer or pre-created
             serialized_object = CommunitySerializer(comm)
             new_dict = {}
             # form a dictionary of community objects
@@ -175,6 +186,7 @@ def is_member_engage(community,member):
         is_present=True
     return is_present
 
+
 def update_pending_member_count_in_engage(community):
 
     '''function to update the member count in engage'''
@@ -188,6 +200,7 @@ def update_pending_member_count_in_engage(community):
             Member_Engage.objects.filter(community_id=community,member_id=member.member_id).update(pending_members=pending__members_count,updated_at=current_time)
 
     print("Member Engage Pending Count Updated")
+
 
 def update_last_unseen_in_engage(user='',community='',is_seen=False):
 
@@ -222,6 +235,7 @@ def update_last_unseen_in_engage(user='',community='',is_seen=False):
         Member_Engage.objects.filter(community_id=community).filter(~Q(member_id=user)).update(last_unseen_count=collabcard_unseen,updated_at=current_time)
 
 
+# /api/your_communities/member_id?member_id=
 def your_communities(request,user_id):
     '''This function is used to see your communities based on user id'''
 
@@ -318,20 +332,26 @@ def get_community_card_details(each_community,user_id):
 
 
 def community(request, community_id):
-    '''Community detail page'''
+    ''' Community detail page '''
 
     community = Community.objects.get(id=community_id)
-
+    member_id = request.GET.get('member_id',None)
     serialized_object = CommunitySerializer(community)
     new_dict = {}
+
+    if member_id:
+        serialized_object['share_url'] = serialized_object['share_url']+"?ref_id="+str(member_id)
+    elif community.hide_community == '0' or community.hide_community == '1' or community.hide_community =='4':
+        serialized_object['share_url'] = serialized_object['share_url'] + "?cta=share"
+
     # form a dictionary of community objects
     new_dict.update(serialized_object)
 
     if community:
-
         new_dict['share_text_admin']= """Hi, I have added %s community on CollabMates. It will be good if you can join this community.\n"""%(new_dict['name'])
         new_dict['share_text_member']="""I recently joined %s community on CollabMates. It will be good if you also join this community.\n"""%(new_dict['name'])
         new_dict['share_text_anonymous']="""I recently discovered %s community on CollabMates. You can join this community using this link.\n"""%(new_dict['name'])
+    new_dict['min_referrer_member'] = eligibility_count
     return JsonResponse({'community': new_dict})
 
 
@@ -358,7 +378,7 @@ def similar_community(request, community_id):
             comm_object = Community.objects.get(id=comm['community_id'])
         # check if the community is hidden or not
 
-        if comm_object.hide_community == '0' and comm_object.id != community_id:
+        if comm_object.hide_community == '0' or comm_object.hide_community =='4' and comm_object.id != community_id:
             # if not hidden , pass the community object to serializer
             serialized_object = CommunitySerializer(comm_object)
             new_dict = {}
@@ -370,6 +390,7 @@ def similar_community(request, community_id):
     return JsonResponse({'communities': community})
 
 
+# /api/community/264/questions
 def join_community(request, community_id):
 
     '''function to get questions of community'''
@@ -384,8 +405,7 @@ def join_community(request, community_id):
     return JsonResponse({'questions': reqd_info})
 
 
-
-
+# /api/join_community?member_id=&community_id=
 @csrf_exempt
 def join_community_responses(request):
 
@@ -393,14 +413,21 @@ def join_community_responses(request):
     res = json.loads(request.body)
     user_id = request.GET.get('member_id')
     community_id = request.GET.get('community_id')
-    user = User.objects.get(id = user_id)
-    community = Community.objects.get(id = community_id)
 
-    userinfo = Userinfo.objects.get(user_id=user.id)
+    community = Community.objects.get(id=community_id)
+    user = User.objects.get(id=user_id)
 
-    #inserting in members table if the member status is pending and inserting it to database with status=3
+    if 'ref_id' in res:
+        ref_id = res['ref_id']
+        # if community.hide_community == '3':
+        invited_member = Members.objects.filter(community_id=community,
+                                                      member_id=ref_id)
+        if invited_member.exists():
+            referal(ref_id=ref_id, community_id=community_id, interested_member_id=user_id)
 
-    #If the member is declined from the community and he applied again
+    # inserting in members table if the member status is pending and inserting it to database with status=3
+
+    # If the member is declined from the community and he applied again
     try:
         current_state=Members.objects.filter(member_id=user,community_id=community).values('state')
         if current_state[0]['state'] == 5:
@@ -408,11 +435,16 @@ def join_community_responses(request):
 
     except:
         # if not
-        member = Members()
-        member.member_id = user
-        member.community_id = community
-        member.state = 3  # pending members
-        member.save()
+        member = Members.objects.filter(member_id=user,community_id=community)
+        if not member.exists():
+            member = Members()
+            member.member_id = user
+            member.community_id = community
+            if community.hide_community == '0' or community.hide_community == '1' or community.hide_community =='4':
+                member.state = 3  # pending members
+            elif community.hide_community == '3':
+                member.state = 8
+            member.save()
     if 'questions' in res:
         for i in res['questions']:
             response = Form_response()
@@ -421,11 +453,15 @@ def join_community_responses(request):
             response.user = user.id
             response.community = community.id
             response.save()
-    Community.objects.filter(id=community_id).update(updated_at=time.time())
 
-    update_pending_member_count_in_engage(community)
-    name=userinfo.name
-    send_notification_to_admins.delay(community_id,name)
+    if community.hide_community == '0' or community.hide_community == '1' or community.hide_community =='4':
+
+        # updating updated time of community and pending member count for admins of commnity
+        Community.objects.filter(id=community_id).update(updated_at=time.time())
+        update_pending_member_count_in_engage(community)
+        # sending notification to admins of the community
+        name = user.userinfo.name
+        send_notification_to_admins.delay(community_id,name)
     return JsonResponse({'success':True})
 
 
@@ -469,7 +505,7 @@ def members(request, community_id):
     ''' function to get all the mebers of a community including admins and nominated members '''
     community = get_object_or_404(Community, pk = community_id)
     # get members of the community
-    member = Members.objects.filter(community_id = community).filter(Q(state=1)|Q(state=2)|Q(state=4)|Q(state=7))
+    member = Members.objects.filter(community_id = community).filter(Q(state=1)|Q(state=2)|Q(state=4)|Q(state=7)|Q(state=8)|Q(state=9))
     members = []
     for mem in member:
         user = Userinfo.objects.filter(user_id = mem.member_id)
@@ -486,6 +522,7 @@ def members(request, community_id):
 
 def admins(request, community_id):
     ''' function to get admins of a community '''
+    member_id=request.GET.get('member_id',None)
     admins = Members.objects.filter(community_id = community_id).filter(Q(state=1)|Q(state=2))
     users = []
     for admin in admins:
@@ -493,9 +530,24 @@ def admins(request, community_id):
         # get user serialized
         usr = UserinfoSerializer(user[0])
         users.append(usr)
-    return JsonResponse ({'members': users})
+    community = Community.objects.get(pk = community_id)
+    referred_members_count=0
+    if member_id and community.hide_community == '3':
+        ref_members=get_referred_members_of_a_member(community_id,member_id)
+        if len(ref_members):
+            referred_members_count=len(ref_members)
+            return JsonResponse({'members': users,'referred_members_count':referred_members_count})
+        else:
+            return JsonResponse({'members': users,'referred_members_count':referred_members_count})
+    elif member_id:
+        referred_members_count = check_for_member_eligibiity(community_id, member_id)
+        print("\n",referred_members_count,"\n")
+        return JsonResponse({'members': users,'referred_members_count':referred_members_count})
+    else:
+        return JsonResponse({'members': users})
 
 
+# /api/create_community?member_id=21&is_admin=true
 @csrf_exempt
 def create_community(request):
     ''' function create a community '''
@@ -637,6 +689,7 @@ def create_community(request):
     return HttpResponse("Create Community Api")
 
 
+# /api/create_collabcard?community_id=300&member_id=21
 @csrf_exempt
 def create_card(request):
     ''' function to create a card '''
@@ -647,6 +700,7 @@ def create_card(request):
     # useer = User.objects.get(id = user_id)
     user = Userinfo.objects.get(user_id = user_id)
     community = Community.objects.get(id = community_id)
+
     if request.method == 'POST':
         res = json.loads(request.body)
         # creating card
@@ -663,8 +717,11 @@ def create_card(request):
         card.save()
         # if the community does not have a purpose card then a purpose will be created
         # the first card created for a community is the purpose card
-        if not community.purpose_collabcard:
-            Community.objects.filter(id=community_id).update(purpose_collabcard  = card.id)
+        print(community.purpose_collabcard)
+        if not community.purpose_collabcard and community.hide_community == '3':
+            community.purpose_collabcard=card.id
+            community.save()
+
 
         # sending notification to the user
         send_notification_for_new_collabcard_posted.delay(community_id,res['title'],user_id,user.name)
@@ -689,12 +746,24 @@ def create_card(request):
 
         if is_member_engage(community,user.user_id):
             update_last_unseen_in_engage(user=user.user_id,community=community)
+        else:
+            engage = Member_Engage()
+            engage.member_id = user.user_id
+            engage.community_id = community
+            engage.last_unseen_conversation = card
+            engage.updated_at = time.time()
+            engage.save()
 
-
-
+        # if a community is a pilot community make the member as promoter
+        if community.hide_community == '3':
+            Members.objects.filter(community_id=community,member_id=user.user_id).update(state=1)
+            # changing community state to 0 (zero) to make it a active community
+            community.hide_community ='4'
+            community.save()
+            return JsonResponse({'success': True, 'collabcard': collabcard})
 
         return JsonResponse({'success':True,'collabcard':collabcard})
-    return JsonResponse()
+    return JsonResponse({'success':False})
 
 
 def send_email_for_collabcard(community,user,card):
@@ -710,7 +779,6 @@ def send_email_for_collabcard(community,user,card):
             form_link='https://docs.google.com/forms/d/e/1FAIpQLSes87js8cTiGg0x-Vw9DYrnY1BCZTolba0B1WBvcVSYZSGAwg/viewform'
         elif tag.tags_id == 42:
             form_link='https://docs.google.com/forms/d/e/1FAIpQLSfqN2z1wg6CCJ4ZKH1lxQQgJ8iUWEbtTT0R9NT64zg5f13_ig/viewform'
-
 
     for member in members:
         context = {
@@ -1292,9 +1360,12 @@ def pending_members(request,community_id):
 
 
 @csrf_exempt
-def request_response(request):
+def request_response(request,req_dict=None):
     ''' function to approve or decline a members who requested to join '''
-    res = json.loads(request.body)
+    if not req_dict:
+        res = json.loads(request.body)
+    else:
+        res=req_dict
     if 'member_id' in res:
         member_id = res['member_id']
     if 'community_id' in res:
@@ -1308,12 +1379,17 @@ def request_response(request):
         #updating the approve state
         Members.objects.filter(member_id=member_id,community_id=community).update(state=4)  # aprove state = 4
         community = Community.objects.get(id = community_id)
-        set_user_tag(user.id, community_id)
+        # set_user_tag(user.id, community_id)
         members_count = community.members_count+1
         Community.objects.filter(id = community_id).update(members_count=members_count)
 
         # inserting data in member engage
-        purpose_card = Collabcard.objects.get(id=community.purpose_collabcard)
+        try:
+            purpose_card = Collabcard.objects.get(id=community.purpose_collabcard)
+        except:
+            card=Collabcard.objects.filter(community_id=community).order_by('id')
+            if card:
+                purpose_card=card[0].id
         unseen_count=Collabcard.objects.filter(community=community).count()
         engage = Member_Engage()
         engage.member_id = user
@@ -1324,16 +1400,86 @@ def request_response(request):
         engage.save()
         update_pending_member_count_in_engage(community)
 
+        count = check_for_member_eligibiity(community_id, member_id)
+
         # send notification
         send_notification_for_join_requests.delay(community_id,True,member_id)
     else:
-        # if rejected , chaange user state to 5
+        # if rejected , change user state to 5
         Members.objects.filter(member_id=member_id,community_id=community).update(state=5)  # decline state = 5
         # and also send notification
         send_notification_for_join_requests.delay(community_id, False, member_id)
         Form_response.objects.filter(user=member_id,community=community_id).delete()
+
+
     return JsonResponse({'success': True})
 
+
+def check_for_member_eligibiity(community_id,member_id):
+    # function to check if accepted member is a eligible admin or not
+
+    community = Community.objects.get(pk = community_id)
+
+    update = True
+    print(">>>>>>>>>>> ",member_id)
+    referals = get_referred_members_of_a_member(community_id=community_id, member_id=member_id)
+    referal_count = len(referals)
+    print(referals)
+    return_count = 0
+    print("referal count === ",referal_count)
+    if referal_count >= eligibility_count:
+        # return_count = 0
+        for mem_id in referals:
+            member = Members.objects.filter(member_id=mem_id,community_id=community_id)
+            if member.exists():
+
+                if member[0].state == 4:
+                    return_count+=1
+        if return_count >= eligibility_count:
+            member = Members.objects.filter(member_id=member_id, community_id=community)
+            if member[0].state != 1:
+                Members.objects.filter(member_id=member_id, community_id=community).update(state=9)
+                community_id=community.id
+                community_name = community.name
+                ref_id=member_id
+                send_notification_to_eligible_member.delay(eligible_member_id=ref_id,
+                                                           community_name=community_name,
+                                                           community_id=community_id,
+                                                           )
+
+    invited_member = User.objects.get(pk=member_id)
+
+    total_referals = Referal.objects.filter(invited_member=invited_member, community=community)
+
+    if total_referals.exists():
+
+        member_id = total_referals[0].member.id
+        print(">>>>>>>>>>> ", member_id)
+        referals = get_referred_members_of_a_member(community_id=community_id, member_id=member_id)
+        referal_count = len(referals)
+        print(referals)
+        print("referal count === ", referal_count)
+
+        if referal_count >= eligibility_count:
+            count = 0
+            for mem_id in referals:
+                member = Members.objects.filter(member_id=mem_id,community_id=community_id)
+                if member.exists():
+                    if member[0].state == 4:
+                        count += 1
+            if count >= eligibility_count:
+                member = Members.objects.filter(member_id=member_id, community_id=community)
+                if member[0].state != 1:
+                    Members.objects.filter(member_id=member_id, community_id=community).update(state=9)
+
+                    community_id = community.id
+                    community_name = community.name
+                    ref_id = member_id
+                    send_notification_to_eligible_member.delay(eligible_member_id=ref_id,
+                                                               community_name=community_name,
+                                                               community_id=community_id)
+
+    return return_count
 
 def pending_request_count(request,community_id):
     ''' fucntion to get peding members count of a community '''
@@ -1485,7 +1631,12 @@ def accept_invitation(request):
             state=member_state[0]['state']
             if state == 6:
                 if is_member_engage(community,nom_admin[0].user_id) ==  False:
-                    purpose_card = Collabcard.objects.get(id=community.purpose_collabcard)
+                    try:
+                        purpose_card = Collabcard.objects.get(id=community.purpose_collabcard)
+                    except:
+                        card = Collabcard.objects.filter(community_id=community).order_by('id')
+                        if card:
+                            purpose_card = card[0].id
                     unseen_count = Collabcard.objects.filter(community=community).count()
                     engage = Member_Engage()
                     engage.member_id = nom_admin[0].user_id
@@ -1638,62 +1789,64 @@ def update_location(request):
         userinfo.address = all_location_tags['address']
         userinfo.save()
 
-        update_user_city_tag( userinfo.user_id, all_location_tags)
+        update_user_city_tag.delay( userinfo.user_id.id, all_location_tags)
+        return JsonResponse({'success': True})
 
-    return JsonResponse({'success':True})
+    return JsonResponse({'success':False})
 
 
 @shared_task
 def update_user_city_tag(user_id,location):
     ''' function to update city tag for user '''
-
+    user  = User.objects.get(pk=user_id)
     global_tag = Tags_lpig.objects.get(name='Global')
+    user_tags_list = list(User_Geography.objects.filter(user_id=user).values_list("tags_id",flat=True))
 
     for attr,loc_tag in location.items():
 
         if attr == 'address':
             continue
-        try:
 
-            hidden_tags = User_LPIG.objects.get(member_id=user_id)
-            if not hidden_tags.geography == None:
+        tag_id = get_or_create_lpig_tags(tag=loc_tag, attr=attr, category='Geography')
 
-                hidden_geography_tags = json.loads(hidden_tags.geography)
+        if tag_id.id in user_tags_list:
 
-                tag_id = get_or_create_lpig_tags(tag = loc_tag,attr = attr,category = 'Geography')
+            continue
+        elif not tag_id.id in user_tags_list:
 
-                if not tag_id in hidden_geography_tags:
-                    hidden_geography_tags.append(tag_id)
-                    print(hidden_geography_tags)
-                    hidden_tags.geography = json.dumps(hidden_geography_tags)
-                    hidden_tags.save()
+            user_tag = User_Geography()
+            user_tag.tags_id = tag_id
+            user_tag.user_id = user
+            user_tag.save()
+        else:
+            pass
+        user_tags_list = list(User_Geography.objects.filter(user_id=user).values_list("tags_id",flat=True))
 
-                if not global_tag.id in hidden_geography_tags:
-                    hidden_geography_tags.append(global_tag.id)
-                    hidden_tags.geography = json.dumps(hidden_geography_tags)
-                    hidden_tags.save()
-
-        except:
-
-            tag_id = get_or_create_lpig_tags(tag=loc_tag, attr=attr, category='Geography')
-            user_lpig = User_LPIG()
-            user_lpig.member_id = user_id
-            user_lpig.geography = json.dumps([tag_id, global_tag.id])
-            user_lpig.save()
-
+        if global_tag.id not in user_tags_list:
+            user_tag = User_Geography()
+            user_tag.tags_id = global_tag
+            user_tag.user_id = user
+            user_tag.save()
     return
 
 
+@shared_task
 def get_or_create_lpig_tags(tag,category,attr):
     ''' function to create new tags '''
+    cat = category
+
     try:
         tag = Tags_lpig.objects.get(name=tag)
 
     except:
-        attr = category+"_uncat"
+
+        attribute = category+"_uncat"
         new_tag = tag
         category = Category.objects.filter(Q(name__icontains=category))[0]
-        attribute = Attributes.objects.filter(Q(attribute_name__icontains=attr))[0]
+        if category == 'Geography' and not attr == 'district':
+            attribute = Attributes.objects.filter(Q(attribute_name__icontains=attr))[0]
+        else:
+            attribute = Attributes.objects.filter(Q(attribute_name__icontains=attribute))[0]
         tag = Tags_lpig()
         tag.name = new_tag
         tag.category_id = category
@@ -1701,11 +1854,19 @@ def get_or_create_lpig_tags(tag,category,attr):
         tag.save()
         tag.tag_id = tag.id
         tag.save()
-    return tag.id
+
+    finally:
+        if cat == 'Geography':
+            tag_name,tag_id = tag.name,tag.id
+            print("collabmates api update tag image at create or get lpig tags")
+            update_tag_image.delay(tag_name=tag_name, tag_id=tag_id)
+
+    return tag
 
 
 def get_user_location(request,user_id,type=None):
     ''' function to fetch user location '''
+
     flag = True
     if not type:
         type = request.GET.get('type','')
@@ -1806,6 +1967,84 @@ def member_activity(request):
 
     if status:
         state=1
-    return JsonResponse({'state':state})
+    if state == 1:
+        return JsonResponse({'state':state})
+
+    if state == 0:
+
+       form_response=Form_response.objects.filter(user=member.id,community=community.id).order_by('id')
+       if form_response.exists():
+        introduction_question=form_response[0].data
+        introduction_answer=form_response[0].response
+        return JsonResponse({'state':state,'introduction_question':introduction_question,'introduction_answer':introduction_answer})
+    return JsonResponse({'state': state})
+
+
+def invite_members(request):
+    ''' function to get members requested to join in a community '''
+
+    member_id = request.GET.get('member_id',None)
+    community_id = request.GET.get('community_id',None)
+
+    pend_requests = get_referred_members_of_a_member(community_id, member_id)
+
+    pending_requests = []
+    for i in pend_requests:
+        user_id = i
+        resp = Form_response.objects.filter(community = community_id).filter(user = user_id)
+        user = Userinfo.objects.get(user_id = user_id)
+        # serilaizing userinfo object
+        usr = UserinfoSerializer(user)
+        user_response = []
+        for j in resp:
+            # getting the answers of the users who requested to join
+            # for the questions that have been asked while requestiong to join in a community
+            response_object = {}
+            response_object['key'] = j.data
+            response_object['value'] = j.response
+            user_response.append(response_object)
+        usr['response'] = user_response
+        pending_requests.append(usr)
+    return JsonResponse({'pending_members': pending_requests})
+
+
+@csrf_exempt
+def accept_promotership(request):
+
+    '''function to accept the promotership'''
+    res=json.loads(request.body)
+    community_id=res['community_id']
+    member_id=res['member_id']
+    value=res['value']
+    all_members=Members.objects.filter(community_id=community_id)
+
+
+
+    if value:
+
+        if 'member_ids' not in res or not res['member_ids']:
+            Members.objects.filter(community_id=community_id,member_id=member_id).update(state=1)
+            return JsonResponse({'success': True})
+
+        refered_id=res['member_ids']
+        for member in all_members:
+            if str(member.member_id.id) == str(member_id):
+                continue
+            if str(member.member_id.id) in refered_id:
+                req_dict={
+                    'accepted':True,
+                    'member_id':member.member_id.id,
+                    'community_id':community_id
+                }
+                request_response(request,req_dict)
+            else:
+                Members.objects.filter(community_id=community_id,member_id=member.member_id.id).update(state=3)
+                try:
+                    community=Community.objects.get(id=community_id)
+                    update_pending_member_count_in_engage(community)
+                except:
+                    print("Error for member engage update")
+
+    return JsonResponse({'success':True})
 
 

@@ -89,17 +89,20 @@
 {% endif %}
     $('.ui.dropdown.profession_industry').dropdown({
   allowAdditions: true,
+  fullTextSearch: true
 
 });
 
 
    $('.ui.dropdown.profession_skill').dropdown({
   allowAdditions: true,
+  fullTextSearch: true
 });
 
 
    $('.ui.dropdown.profession_designation').dropdown({
   allowAdditions: true,
+  fullTextSearch: true
 });
 
 
@@ -149,6 +152,8 @@ console.log(temp)
             //console.log(data)
             {% if community_id != None %}
             location.href="/onboarding_interest?community_id={{community_id}}"
+            {% elif user_id != None %}
+            location.href="/onboarding_interest?user_id={{user_id}}"
             {% else %}
             location.href="/onboarding_interest"
             {% endif %}

@@ -1,0 +1,74 @@
+<html>
+  <head>
+    <link href="//netdna.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.6.3/css/bootstrap-select.min.css" />
+      <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+
+  </head>
+
+  <div class="container">
+    <div class="row">
+        <br>
+        <div style="padding-right:20px; align:right;" >
+        <a class="btn btn-warning  mt-1 mb-1 mr-4 pull-right "  href="{% url 'admin_dashboard' %}"><i class="fa fa-home" aria-hidden="true"></i>&nbsp;Go to Home</a>
+
+</div>
+        <br>
+        <br>
+        <br>
+      <h2>Delete Tags :</h2>
+
+      <hr />
+    </div>
+
+    <div class="row-fluid">
+      <select class="selectpicker" id="del_tag" data-show-subtext="true" data-live-search="true">
+          <option selected style="color:black;">Choose...</option>
+          {% autoescape off %}
+                    {% for tag in tags %}
+                    <option value="{{tag.id}}">{{tag.name}}</option>
+                    {% endfor %}
+          {% endautoescape %}
+      </select>
+      <span class="help-inline"> &nbsp;
+
+
+        <button id="submit_del" type="submit" class="btn btn-danger">Delete</button></span>
+    </div>
+  </div>
+
+
+
+
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/js/bootstrap.min.js"></script>
+  <script src="//cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.6.3/js/bootstrap-select.min.js"></script>
+
+  {% autoescape off %}
+
+<script>
+
+         function alertFunction() {
+         {% if deleted == 'True' %}
+            alert('Tag is deleted sucessfully');
+         {% else %}
+            alert('Tag is not deleted, Some communites with this tag "{{ tag_name }}" have members');
+         {% endif %}
+         }
+
+         {% if alrt %}
+         window.onload = alertFunction;
+            {% endif %}
+
+       $('#submit_del').click(function()
+       {
+         del_tag=$('#del_tag').val();
+         console.log(del_tag)
+         window.location.href='./delete_tags_post/'+del_tag
+       })
+
+</script>
+{% endautoescape %}
+
+
+</html>

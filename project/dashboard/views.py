@@ -18,7 +18,13 @@ import os
 import re
 from django.views.decorators.csrf import csrf_exempt
 from collabmates_api.raw_queries import compute_rank
-
+from utility.pre_creation import pre_create_communities
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from django.urls import reverse
+from urllib.parse import urlencode
+from utility.utils import (get_city_address, update_tag_image,
+                           create_or_categorize_tag, update_user_geography_tags,
+                           insert_user_home_town_tags, update_hometown_tags_for_all_users,)
 url = settings.URL
 
 # uncomment to run it in localhost
@@ -29,8 +35,18 @@ api_url = url + '/api/'
 def dashboard(request):
   '''function to give list of community to edit'''
 
-  community_list=Community.objects.all().order_by('-created_at','-active_since')
+  community_list=Community.objects.all().order_by('-updated_at', '-active_since')
   dashboard_list=[]
+
+  page = request.GET.get('page', 1)
+  paginator = Paginator(community_list, 100)
+  try:
+      community_list = paginator.page(page)
+  except PageNotAnInteger:
+      community_list = paginator.page(1)
+  except EmptyPage:
+      community_list = paginator.page(paginator.num_pages)
+
   for i in community_list:
       community_dic={}
       if i.hide_community == '2':
@@ -47,61 +63,44 @@ def dashboard(request):
       community_dic['question_count']=Form_data.objects.filter(community_id=i).count()
       community_dic['hidden_tags_count']=get_tags_count(i)
       dashboard_list.append(community_dic)
-
-  return render(request,'dashboard/dashboard.html',{'communities':dashboard_list})
+  return render(request,'dashboard/dashboard.html',{'communities':dashboard_list,'community':community_list})
 
 
 def get_tags_count(community):
 
     '''function to get count of tags from dashboard'''
 
-    hidden_tags = Community_LPIG.objects.filter(community_id=community)
-
     tags_count = 0
 
-    if hidden_tags.exists():
-        hidden_tags = hidden_tags[0]
-        if not hidden_tags.legacy == None:
-            hidden_legacy_tags = json.loads(hidden_tags.legacy)
-            for tag in hidden_legacy_tags:
-                global_tag = Tags_lpig.objects.get(name='legacy_any')
-                if tag == global_tag.id:
-                    continue
-                else:
-                    tags_count += 1
+    hidden_legacy_tags = list(Community_Legacy.objects.filter(community_id=community).values_list('tags_id', flat=True))
+    hidden_profession_tags = list(Community_Profession.objects.filter(community_id=community).values_list('tags_id', flat=True))
+    hidden_interests_tags = list(Community_Interest.objects.filter(community_id=community).values_list('tags_id', flat=True))
+    hidden_geography_tags = list(Community_Geography.objects.filter(community_id=community).values_list('tags_id', flat=True))
 
-        if not hidden_tags.profession == None:
 
-            hidden_profession_tags = json.loads(hidden_tags.profession)
-            for tag in hidden_profession_tags:
-                global_tag = Tags_lpig.objects.get(name='profession_any')
-                if tag == global_tag.id:
-                    continue
+    for tag in hidden_legacy_tags:
+        global_tag = Tags_lpig.objects.get(name='legacy_any')
+        if tag == global_tag.id:
+            continue
+        tags_count += 1
 
-                else:
-                    tags_count += 1
+    for tag in hidden_profession_tags:
+        global_tag = Tags_lpig.objects.get(name='profession_any')
+        if tag == global_tag.id:
+            continue
+        tags_count += 1
 
-        if not hidden_tags.interests == None:
+    for tag in hidden_interests_tags:
+        global_tag = Tags_lpig.objects.get(name='interest_any')
+        if tag == global_tag.id:
+            continue
+        tags_count += 1
 
-            hidden_interests_tags = json.loads(hidden_tags.interests)
-            for tag in hidden_interests_tags:
-                global_tag = Tags_lpig.objects.get(name='interest_any')
-                if tag == global_tag.id:
-                    continue
-
-                else:
-                    tags_count += 1
-
-        if not hidden_tags.geography == None:
-
-            hidden_geography_tags = json.loads(hidden_tags.geography)
-            for tag in hidden_geography_tags:
-                global_tag = Tags_lpig.objects.get(name='Global')
-                if tag == global_tag.id:
-                    continue
-
-                else:
-                    tags_count += 1
+    for tag in hidden_geography_tags:
+        global_tag = Tags_lpig.objects.get(name='Global')
+        if tag == global_tag.id:
+            continue
+        tags_count += 1
 
     return tags_count
 
@@ -111,6 +110,8 @@ def update_form(request,community_id):
     if request.method == 'POST':
 
         community=Community.objects.get(id=community_id)
+        community.updated_at=time.time()
+        community.save()
         old_image_file = community.image_url
         # get the version of the image
         version = re.findall(r'\w*__image__(\d+)', old_image_file.name)
@@ -124,10 +125,13 @@ def update_form(request,community_id):
         member_id=0
         purpose=""
         rename = False
+        hide_community=3
         if community_form.is_valid():
             purpose=community_form.cleaned_data['purpose']
             for_string=purpose.split(' ', 1)[0]
             purpose = "Created this community " + for_string.lower() + purpose.split("For", 1)[1]
+            hide_community=community_form.cleaned_data['hide_community']
+
             # deleting the old file after new file is updated
             # get the new image file
             new_image_file = community_form.cleaned_data['image_url']
@@ -143,20 +147,24 @@ def update_form(request,community_id):
                 member_id=admin.member_id
                 break;
 
-        try:
-            collabcard=Collabcard.objects.get(id=community.purpose_collabcard)
-            collabcard.title=purpose
-            collabcard.save()
-        except:
-            collabcard=Collabcard()
-            collabcard.title = purpose
-            collabcard.user = member_id
-            collabcard.community_id = community_id
-            collabcard.date_epoch = time.time()
-            collabcard.save()
-            community.purpose_collabcard=collabcard.id
-            community.save()
-        community_form.save()
+        if hide_community != '3':
+            try:
+                collabcard=Collabcard.objects.get(id=community.purpose_collabcard)
+                collabcard.title=purpose
+                collabcard.save()
+            except:
+                collabcard=Collabcard()
+                collabcard.title = purpose
+                collabcard.user = member_id
+                collabcard.community_id = community_id
+                collabcard.date_epoch = time.time()
+                collabcard.save()
+                community.purpose_collabcard=collabcard.id
+                community.save()
+            community_form.save()
+        else:
+            community_form.save()
+
 
         # renaming the image
         if rename:
@@ -196,6 +204,7 @@ def deleted_communities(request):
     }
     return render(request,'dashboard/delete_communities.html',context)
 
+
 def add_dashboard_admin(request,community_id):
 
     '''function to add admin'''
@@ -223,11 +232,13 @@ def add_dashboard_admin(request,community_id):
     context = {'admin_form': admin_form, 'community': community}
     return render(request, 'dashboard/add_admin.html', context)
 
+
 def update_member_count(community_id):
     community = Community.objects.get(id=community_id)
     count = Members.objects.filter(community_id=community).filter(Q(state=1)|Q(state=2)|Q(state=4))
     community = Community.objects.filter(id=community_id).update(members_count = len(count))
     return
+
 
 def add_dashboard_member(request,community_id):
     '''function to add members'''
@@ -275,6 +286,7 @@ def aprove_member(request,community_id,member_id):
     send_notification_for_join_requests.delay(community_id,True,member_id)
     return redirect(url)
 
+
 def decline_member(request,community_id,member_id):
     '''function to approve member'''
     community = Community.objects.get(id=community_id)
@@ -300,6 +312,7 @@ def show_tags(request,community_id):
         'community_id':community_id
     }
     return render(request,"dashboard/category.html",context)
+
 
 def add_tags(request):
 
@@ -337,7 +350,6 @@ def add_tags(request):
             cat.tags_id=tags_id[0]['id']
             cat.save()
     return JsonResponse({'success':True})
-
 
 
 def all_user(request):
@@ -379,55 +391,40 @@ def all_user(request):
         users_list.append(user_dic)
     return render(request, 'dashboard/all_user.html', {'all_user': users_list})
 
+
 def get_user_tags_count(user_id):
-    tags_count =0
-    hidden_tags = User_LPIG.objects.filter(member_id=user_id)
 
-    if hidden_tags.exists():
-        hidden_tags = hidden_tags[0]
-        if not hidden_tags.legacy == None:
-            hidden_legacy_tags = json.loads(hidden_tags.legacy)
-            for tag in hidden_legacy_tags:
-                global_tag = Tags_lpig.objects.get(name='legacy_any')
-                if tag == global_tag.id:
-                    continue
-                else:
-                    tags_count += 1
+    tags_count = 0
 
-        if not hidden_tags.profession == None:
-
-            hidden_profession_tags = json.loads(hidden_tags.profession)
-            for tag in hidden_profession_tags:
-                global_tag = Tags_lpig.objects.get(name='profession_any')
-                if tag == global_tag.id:
-                    continue
-
-                else:
-                    tags_count += 1
+    hidden_legacy_tags = list(User_Legacy.objects.filter(user_id=user_id).values_list('tags_id', flat=True))
+    hidden_profession_tags = list(User_Profession.objects.filter(user_id=user_id).values_list('tags_id', flat=True))
+    hidden_interests_tags = list(User_Interest.objects.filter(user_id=user_id).values_list('tags_id', flat=True))
+    hidden_geography_tags = list(User_Geography.objects.filter(user_id=user_id).values_list('tags_id', flat=True))
 
 
-        if not hidden_tags.interests == None:
+    for tag in hidden_legacy_tags:
+        global_tag = Tags_lpig.objects.get(name='legacy_any')
+        if tag == global_tag.id:
+            continue
+        tags_count += 1
 
-            hidden_interests_tags = json.loads(hidden_tags.interests)
-            for tag in hidden_interests_tags:
-                global_tag = Tags_lpig.objects.get(name='interest_any')
-                if tag == global_tag.id:
-                    continue
+    for tag in hidden_profession_tags:
+        global_tag = Tags_lpig.objects.get(name='profession_any')
+        if tag == global_tag.id:
+            continue
+        tags_count += 1
 
-                else:
-                    tags_count += 1
+    for tag in hidden_interests_tags:
+        global_tag = Tags_lpig.objects.get(name='interest_any')
+        if tag == global_tag.id:
+            continue
+        tags_count += 1
 
-
-        if not hidden_tags.geography == None:
-
-            hidden_geography_tags = json.loads(hidden_tags.geography)
-            for tag in hidden_geography_tags:
-                global_tag = Tags_lpig.objects.get(name='Global')
-                if tag == global_tag.id:
-                    continue
-
-                else:
-                    tags_count += 1
+    for tag in hidden_geography_tags:
+        global_tag = Tags_lpig.objects.get(name='Global')
+        if tag == global_tag.id:
+            continue
+        tags_count += 1
 
     return tags_count
 
@@ -621,7 +618,6 @@ def all_members(request,community_id):
     return render(request,'dashboard/all_members.html',{'member_list':members_list,'unregitered_users_list':unregitered_users_list})
 
 
-
 def delete_members(request,community_id,member_id):
 
     '''function to delete the members'''
@@ -675,7 +671,6 @@ def add_questions(request,community_id):
     return render(request,'dashboard/add_questions.html',context)
 
 
-
 def delete_questions(request,question_id):
     '''function to delelte the questions'''
     form_data=Form_data.objects.filter(id=question_id)
@@ -688,10 +683,13 @@ def delete_questions(request,question_id):
 
 
 def analytics(request):
-    '''function to show the analytics'''
+    ''' function to show the analytics '''
+
     community_count=Community.objects.all().count()
-    public_communities=Community.objects.filter(hide_community='0').count()
+    public_communities=Community.objects.filter(Q(hide_community='0')|Q(hide_community ='4')).count()
     private_communities=Community.objects.filter(hide_community='1').count()
+    pre_created_communities=Community.objects.filter(hide_community='3').count()
+
     user_count=Userinfo.objects.all().count()
     promoter_member_count=Members.objects.filter(~Q(state=0)).values('member_id').distinct().count()
     working_communitites=Community.objects.filter(Q(hide_community= 2))
@@ -703,6 +701,8 @@ def analytics(request):
     total_member_count = Members.objects.filter(state=4).values('member_id').count()
     conversations_count=Collabcard.objects.all().count()
     responses_count=card_answers.objects.all().count()
+
+
     context={
         'community_count':community_count,
         'public_communities':public_communities,
@@ -715,6 +715,7 @@ def analytics(request):
         'responses_count':responses_count,
         'total_promoter_count': total_promoter_count,
         'total_member_count': total_member_count,
+        'pre_created_communities':pre_created_communities
     }
     return render(request,'dashboard/analytics.html',context)
 
@@ -755,7 +756,6 @@ def is_tag_present(tag,hide_status):
         return new_tag.id
 
 
-
 def hidden_tags(request,community_id):
 
     '''function to show hidden tags'''
@@ -768,63 +768,61 @@ def hidden_tags(request,community_id):
     geography_tags = list(Tags_lpig.objects.filter(category_id__id = '4').values_list('name', flat=True))
 
 
-    hidden_tags = Community_LPIG.objects.filter(community_id=community_id)
+    # hidden_tags = Community_LPIG.objects.filter(community_id=community_id)
+
+    hidden_legacy_tags = list(Community_Legacy.objects.filter(community_id=community).values_list('tags_id', flat=True))
+    hidden_profession_tags = list(Community_Profession.objects.filter(community_id=community).values_list('tags_id', flat=True))
+    hidden_interests_tags = list(Community_Interest.objects.filter(community_id=community).values_list('tags_id', flat=True))
+    hidden_geography_tags = list(Community_Geography.objects.filter(community_id=community).values_list('tags_id', flat=True))
+
+
     hidden_legacy_tag = ''
     hidden_profession_tag = ''
     hidden_interests_tag = ''
     hidden_geography_tag = ''
-    if hidden_tags.exists():
-        hidden_tags = hidden_tags[0]
-        if not hidden_tags.legacy == None:
-            hidden_legacy_tags = json.loads(hidden_tags.legacy)
-            for tag in hidden_legacy_tags:
-                global_tag = Tags_lpig.objects.get(name='legacy_any')
-                if tag == global_tag.id:
-                    continue
-                try:
-                    tag_object = Tags_lpig.objects.get(pk=tag)
-                    hidden_legacy_tag=hidden_legacy_tag+tag_object.name+","
-                except:
-                    pass
 
-        if not hidden_tags.profession == None:
 
-            hidden_profession_tags = json.loads(hidden_tags.profession)
-            for tag in hidden_profession_tags:
-                global_tag = Tags_lpig.objects.get(name='profession_any')
-                if tag == global_tag.id:
-                    continue
-                try:
-                    tag_object = Tags_lpig.objects.get(pk=tag)
-                    hidden_profession_tag=hidden_profession_tag+tag_object.name+","
-                except:
-                    pass
+    for tag in hidden_legacy_tags:
+        global_tag = Tags_lpig.objects.get(name='legacy_any')
+        if tag == global_tag.id:
+            continue
+        try:
+            tag_object = Tags_lpig.objects.get(pk=tag)
+            hidden_legacy_tag=hidden_legacy_tag+tag_object.name+","
+        except:
+            pass
 
-        if not hidden_tags.interests == None:
+    for tag in hidden_profession_tags:
+        global_tag = Tags_lpig.objects.get(name='profession_any')
+        if tag == global_tag.id:
+            continue
+        try:
+            tag_object = Tags_lpig.objects.get(pk=tag)
+            hidden_profession_tag=hidden_profession_tag+tag_object.name+","
+        except:
+            pass
 
-            hidden_interests_tags = json.loads(hidden_tags.interests)
-            for tag in hidden_interests_tags:
-                global_tag = Tags_lpig.objects.get(name='interest_any')
-                if tag == global_tag.id:
-                    continue
-                try:
-                    tag_object = Tags_lpig.objects.get(pk=tag)
-                    hidden_interests_tag=hidden_interests_tag+tag_object.name+","
-                except:
-                    pass
 
-        if not hidden_tags.geography == None:
+    for tag in hidden_interests_tags:
+        global_tag = Tags_lpig.objects.get(name='interest_any')
+        if tag == global_tag.id:
+            continue
+        try:
+            tag_object = Tags_lpig.objects.get(pk=tag)
+            hidden_interests_tag=hidden_interests_tag+tag_object.name+","
+        except:
+            pass
 
-            hidden_geography_tags = json.loads(hidden_tags.geography)
-            for tag in hidden_geography_tags:
-                global_tag = Tags_lpig.objects.get(name='Global')
-                if tag == global_tag.id:
-                    continue
-                try:
-                    tag_object = Tags_lpig.objects.get(pk=tag)
-                    hidden_geography_tag = hidden_geography_tag+tag_object.name+","
-                except:
-                    pass
+
+    for tag in hidden_geography_tags:
+        global_tag = Tags_lpig.objects.get(name='Global')
+        if tag == global_tag.id:
+            continue
+        try:
+            tag_object = Tags_lpig.objects.get(pk=tag)
+            hidden_geography_tag = hidden_geography_tag+tag_object.name+","
+        except:
+            pass
 
     context={
         'legacy_tags':legacy_tags,
@@ -878,6 +876,7 @@ def add_hidden_tags(request):
 
 
 def save_community_lpig_tags(community_id,legacy_tags,profession_tags,interest_tags,grography_tags):
+    ''' fucntion to save tags for a community '''
 
     community = Community.objects.get(id=community_id)
 
@@ -890,41 +889,106 @@ def save_community_lpig_tags(community_id,legacy_tags,profession_tags,interest_t
     if len(legacy_tags)==0:
         global_legacy_tag = Tags_lpig.objects.get(name='legacy_any')
         legacy_tags.append(global_legacy_tag.id)
-        community_tag.legacy = json.dumps(legacy_tags)
-    else:
-        community_tag.legacy = json.dumps(legacy_tags)
+
+    comm_tags_list = list(Community_Legacy.objects.filter(community_id=community).values_list("tags_id",flat=True))
+
+    for each_tag in legacy_tags:
+        tag = Tags_lpig.objects.get(pk = each_tag)
+        if each_tag in comm_tags_list:
+
+            continue
+        elif not each_tag in comm_tags_list:
+            community_tag = Community_Legacy()
+            community_tag.tags_id = tag
+            community_tag.community_id = community
+            community_tag.save()
+
+        else:
+            pass
+    for tag in comm_tags_list:
+        if tag not in legacy_tags:
+            Community_Legacy.objects.filter(tags_id = tag,community_id=community).delete()
 
     if len(profession_tags)==0:
         global_profession_tag = Tags_lpig.objects.get(name='profession_any')
         profession_tags.append(global_profession_tag.id)
-        community_tag.profession = json.dumps(profession_tags)
-    else:
-        community_tag.profession = json.dumps(profession_tags)
+
+    comm_tags_list = list(Community_Profession.objects.filter(community_id=community).values_list("tags_id", flat=True))
+    for each_tag in profession_tags:
+        tag = Tags_lpig.objects.get(pk = each_tag)
+
+        if each_tag in comm_tags_list:
+            continue
+        elif not each_tag in comm_tags_list:
+            community_tag = Community_Profession()
+            community_tag.tags_id = tag
+            community_tag.community_id = community
+            community_tag.save()
+        else:
+            pass
+    for tag in comm_tags_list:
+        if tag not in profession_tags:
+            tag = Tags_lpig.objects.get(pk=tag)
+            Community_Profession.objects.filter(tags_id = tag,community_id=community).delete()
+
 
     if len(interest_tags)==0:
         global_interest_tag = Tags_lpig.objects.get(name='interest_any')
         interest_tags.append(global_interest_tag.id)
-        community_tag.interests = json.dumps(interest_tags)
-    else:
-        community_tag.interests = json.dumps(interest_tags)
+
+    comm_tags_list = list(Community_Interest.objects.filter(community_id=community).values_list("tags_id", flat=True))
+
+    for each_tag in interest_tags:
+        tag = Tags_lpig.objects.get(pk = each_tag)
+
+        if each_tag in comm_tags_list:
+            continue
+        elif not each_tag in comm_tags_list:
+            community_tag = Community_Interest()
+            community_tag.tags_id = tag
+            community_tag.community_id = community
+            community_tag.save()
+        else:
+            pass
+    for tag in comm_tags_list:
+        if tag not in interest_tags:
+            Community_Interest.objects.filter(tags_id = tag,community_id=community).delete()
 
     if len(grography_tags)==0:
         global_tag = Tags_lpig.objects.get(name='Global')
         grography_tags.append(global_tag.id)
-        community_tag.geography = json.dumps(grography_tags)
-    else:
-        community_tag.geography = json.dumps(grography_tags)
-    community_tag.save()
+
+    comm_tags_list = list(Community_Geography.objects.filter(community_id=community).values_list("tags_id", flat=True))
+
+    for each_tag in grography_tags:
+        tag = Tags_lpig.objects.get(pk = each_tag)
+
+        if each_tag in comm_tags_list:
+            continue
+        elif not each_tag in comm_tags_list:
+            community_tag = Community_Geography()
+            community_tag.tags_id = tag
+            community_tag.community_id = community
+            community_tag.save()
+        else:
+            pass
+
+    for tag in comm_tags_list:
+        if tag not in grography_tags:
+            Community_Geography.objects.filter(tags_id = tag,community_id=community).delete()
 
 
 def get_or_create_tag_attributes_list(tags,tag_type):
+
+    ''' function get list of tag id's accroding to given list of strings '''
 
     tags_list=[]
 
     if len(tags) == 1 and tags[0]=='':
         return tags_list
     for each_tag in tags:
-
+        # attribute = Attributes.objects.filter(Q(attribute_name__icontains=tag_type))[0]
+        # tag = Tags_lpig.objects.filter(name = each_tag,attribute_id=attribute)
         tag = Tags_lpig.objects.filter(name = each_tag)
 
         if len(tag)>0:
@@ -937,19 +1001,33 @@ def get_or_create_tag_attributes_list(tags,tag_type):
             tags_list.append(tag.id)
     return tags_list
 
+
 def create_uncategorized_tag(tag,tag_type):
+    ''' function to create a un-categorized tag '''
+
     new_tag = tag
-    print(new_tag,tag_type)
-    category = Category.objects.filter(Q(name__icontains=tag_type))[0]
-    attribute = Attributes.objects.filter(Q(attribute_name__icontains=tag_type), Q(attribute_name__icontains='Uncategorized'))[0]
-    tag = Tags_lpig()
-    tag.name = new_tag
-    tag.category_id = category
-    tag.attribute_id = attribute
-    tag.save()
-    tag.tag_id = tag.id
-    tag.save()
-    return tag
+    new_tag = new_tag.strip().title()
+    if new_tag != '':
+        category = Category.objects.filter(Q(name__icontains=tag_type))[0]
+        attribute = Attributes.objects.filter(Q(attribute_name__icontains=tag_type), Q(attribute_name__icontains='Uncategorized'))[0]
+        tag = Tags_lpig.objects.filter(name = new_tag)
+        if not tag.exists():
+            tag = Tags_lpig()
+            tag.name = new_tag
+            tag.category_id = category
+            tag.attribute_id = attribute
+            tag.save()
+            tag.tag_id = tag.id
+            tag.save()
+        else:
+            tag = tag[0]
+        if tag_type == 'Geography':
+            if tag and not tag.tag_image:
+                tag_name, tag_id = new_tag, tag.id
+                print(" dashboard update tag image at create or get uncategorized tag")
+                update_tag_image.delay(tag_name=tag_name, tag_id=tag_id)
+        return tag
+    return None
 
 
 def delete_hidden_tags(request):
@@ -960,7 +1038,6 @@ def delete_hidden_tags(request):
     Tags_lpig.objects.filter(pk=tag).delete()
 
     return JsonResponse({'success': True})
-
 
 
 def add_location_tags(location,community_id):
@@ -983,6 +1060,7 @@ def add_location_tags(location,community_id):
                 community_tags_object.save()
 
     print('location Inserted Successfully')
+
 
 def alpha_sign_up_mail(request,user_id):
 
@@ -1092,6 +1170,7 @@ def send_tester_mail(request):
         context={'Tester_mail_form':tester_form}
         return render(request,'dashboard/send_tester_mail.html',context)
 
+
 def user_communities(request,user_id):
     """ function to get user communities """
 
@@ -1123,6 +1202,7 @@ def user_communities(request,user_id):
 
     return render(request,'dashboard/user_communities.html',{"my_communities":communities,'count':count})
 
+
 def get_user_communities(user_id):
     ''' function to get users communities '''
 
@@ -1140,11 +1220,13 @@ def get_user_communities(user_id):
   
 @csrf_exempt
 def create_tag(request):
+    ''' function to create a tag '''
+
     if request.method == 'POST':
         category = request.POST.get('category')
         attribute = request.POST.get('attribute')
         new_tag = request.POST.get('new_tag')
-        new_tag = new_tag.strip().capitalize()
+        new_tag = new_tag.strip().title()
 
         get_or_create_sub_tags(new_tag, category, attribute)
 
@@ -1165,13 +1247,16 @@ def create_tag(request):
                                                      'interests_attributes': interests_attributes,
                                                      'global_attributes': global_attributes, })
 
+
 def get_or_create_sub_tags(new_tag,category,attribute):
 
+    ''' function to create sub tags with known category and attribute  '''
+    category = Category.objects.get(id=category)
+    attribute = Attributes.objects.get(id=attribute)
     try:
-        tag = Tags_lpig.objects.get(name=new_tag)
+        tag = Tags_lpig.objects.get(name=new_tag,attribute_id = attribute)
     except:
-        category = Category.objects.get(id = category)
-        attribute = Attributes.objects.get(id = attribute)
+
         tag = Tags_lpig()
         tag.name = new_tag
         tag.category_id = category
@@ -1179,11 +1264,29 @@ def get_or_create_sub_tags(new_tag,category,attribute):
         tag.save()
         tag.tag_id =tag.id
         tag.save()
+
+    if category.name == 'Geography' or attribute.id == 3:
+
+        geography_list = get_city_address(city=new_tag)
+        print(new_tag,"  >>>>>  ",geography_list)
+
+
+        for attr, tag_name in geography_list.items():
+            print(attr,tag_name)
+            if tag_name == '':
+                continue
+            # creating or catgorizing a tag with known category and attribute
+            # geography tag is created, create its related tags
+            # for example, if gurgaon is created, create Haryana and India as well as state and country
+            tag = create_or_categorize_tag(tag=tag_name, category='Geography', attribute=attr)
+
     return tag
 
 
 @csrf_exempt
 def categorize_tag(request):
+
+    ''' this function categorizez the tag according to given category and attribute '''
 
     if request.method == 'POST':
         category = request.POST.get('category')
@@ -1192,7 +1295,8 @@ def categorize_tag(request):
 
         print(category,attribute,uncategorized)
 
-        update_uncategorize_tag(uncategorized, category, attribute)
+        tag_id=update_uncategorize_tag(uncategorized, category, attribute)
+        pre_create_communities.delay(tag_id=tag_id)
 
         return redirect('categorize_tag')
 
@@ -1241,6 +1345,8 @@ def categorize_tag(request):
 
 def update_uncategorize_tag(uncategorized, category, attribute):
 
+    ''' tag is updated here according to category and attribute '''
+
     category = Category.objects.get(id=category)
     attribute = Attributes.objects.get(id=attribute)
 
@@ -1248,6 +1354,13 @@ def update_uncategorize_tag(uncategorized, category, attribute):
     tag.attribute_id = attribute
     tag.category_id = category
     tag.save()
+
+    if attribute.id == 3:
+        tag_id = tag.id
+        update_hometown_tags_for_all_users.delay(tag_id)
+
+    return tag.tag_id
+
 
 
 def user_tags(request,user_id):
@@ -1260,63 +1373,59 @@ def user_tags(request,user_id):
     geography_tags = list(Tags_lpig.objects.filter(category_id__id = '4').values_list('name', flat=True))
 
 
-    hidden_tags = User_LPIG.objects.filter(member_id=user_id)
+    hidden_legacy_tags = list(User_Legacy.objects.filter(user_id=user).values_list('tags_id', flat=True))
+    hidden_profession_tags = list(User_Profession.objects.filter(user_id=user).values_list('tags_id', flat=True))
+    hidden_interests_tags = list(User_Interest.objects.filter(user_id=user).values_list('tags_id', flat=True))
+    hidden_geography_tags = list(User_Geography.objects.filter(user_id=user).values_list('tags_id', flat=True))
+
+
     hidden_legacy_tag = ''
     hidden_profession_tag = ''
     hidden_interests_tag = ''
     hidden_geography_tag = ''
-    if hidden_tags.exists():
-        hidden_tags = hidden_tags[0]
-        if not hidden_tags.legacy == None:
-            hidden_legacy_tags = json.loads(hidden_tags.legacy)
-            for tag in hidden_legacy_tags:
-                global_tag = Tags_lpig.objects.get(name='legacy_any')
-                if tag == global_tag.id:
-                    continue
-                try:
-                    tag_object = Tags_lpig.objects.get(pk=tag)
-                    hidden_legacy_tag=hidden_legacy_tag+tag_object.name+","
-                except:
-                    pass
 
-        if not hidden_tags.profession == None:
 
-            hidden_profession_tags = json.loads(hidden_tags.profession)
-            for tag in hidden_profession_tags:
-                global_tag = Tags_lpig.objects.get(name='profession_any')
-                if tag == global_tag.id:
-                    continue
-                try:
-                    tag_object = Tags_lpig.objects.get(pk=tag)
-                    hidden_profession_tag=hidden_profession_tag+tag_object.name+","
-                except:
-                    pass
+    for tag in hidden_legacy_tags:
+        global_tag = Tags_lpig.objects.get(name='legacy_any')
+        if tag == global_tag.id:
+            continue
+        try:
+            tag_object = Tags_lpig.objects.get(pk=tag)
+            hidden_legacy_tag=hidden_legacy_tag+tag_object.name+","
+        except:
+            pass
 
-        if not hidden_tags.interests == None:
+    for tag in hidden_profession_tags:
+        global_tag = Tags_lpig.objects.get(name='profession_any')
+        if tag == global_tag.id:
+            continue
+        try:
+            tag_object = Tags_lpig.objects.get(pk=tag)
+            hidden_profession_tag=hidden_profession_tag+tag_object.name+","
+        except:
+            pass
 
-            hidden_interests_tags = json.loads(hidden_tags.interests)
-            for tag in hidden_interests_tags:
-                global_tag = Tags_lpig.objects.get(name='interest_any')
-                if tag == global_tag.id:
-                    continue
-                try:
-                    tag_object = Tags_lpig.objects.get(pk=tag)
-                    hidden_interests_tag=hidden_interests_tag+tag_object.name+","
-                except:
-                    pass
 
-        if not hidden_tags.geography == None:
+    for tag in hidden_interests_tags:
+        global_tag = Tags_lpig.objects.get(name='interest_any')
+        if tag == global_tag.id:
+            continue
+        try:
+            tag_object = Tags_lpig.objects.get(pk=tag)
+            hidden_interests_tag=hidden_interests_tag+tag_object.name+","
+        except:
+            pass
 
-            hidden_geography_tags = json.loads(hidden_tags.geography)
-            for tag in hidden_geography_tags:
-                global_tag = Tags_lpig.objects.get(name='Global')
-                if tag == global_tag.id:
-                    continue
-                try:
-                    tag_object = Tags_lpig.objects.get(pk=tag)
-                    hidden_geography_tag = hidden_geography_tag+tag_object.name+","
-                except:
-                    pass
+
+    for tag in hidden_geography_tags:
+        global_tag = Tags_lpig.objects.get(name='Global')
+        if tag == global_tag.id:
+            continue
+        try:
+            tag_object = Tags_lpig.objects.get(pk=tag)
+            hidden_geography_tag = hidden_geography_tag+tag_object.name+","
+        except:
+            pass
 
     context={
         'legacy_tags':legacy_tags,
@@ -1333,8 +1442,11 @@ def user_tags(request,user_id):
 
     return render(request, 'dashboard/user_tags.html', context)
 
+
 def add_user_tags(request):
+
     ''' adding or updating or deleting user hidden tags '''
+
     legacy_tags=request.GET.get('legacy_tags')
     user_id=request.GET.get('user_id')
 
@@ -1359,49 +1471,183 @@ def add_user_tags(request):
                         legacy_tags= legacy_tags ,
                         profession_tags = profession_tags,
                         interest_tags=interest_tags,
-                        grography_tags=grography_tags)
+                        greography_tags=grography_tags)
 
     compute_rank.delay(user_id = user_id)
     return JsonResponse({'success':True})
 
 
-def save_user_lpig_tags(user_id,legacy_tags,profession_tags,interest_tags,grography_tags):
-    print("=========== ",user_id)
+def save_user_lpig_tags(user_id,legacy_tags,profession_tags,interest_tags,greography_tags):
+
+    ''' function to update or create and delete users L,P,I,G tags '''
+
     user = User.objects.get(id=user_id)
+    global_tag = Tags_lpig.objects.get(name='legacy_any')
 
-    try:
-        user_tag = User_LPIG.objects.get(member_id=user)
-    except:
-        user_tag = User_LPIG()
-        user_tag.member_id = user
+    user_tags_list = list(User_Legacy.objects.filter(user_id=user).values_list("tags_id",flat=True))
+    # adding global tag to list manually
+    legacy_tags.append(str(global_tag.id))
 
-    global_legacy_tag = Tags_lpig.objects.get(name='legacy_any')
-    legacy_tags.append(global_legacy_tag.id)
-    user_tag.legacy = json.dumps(legacy_tags)
+    for each_tag in legacy_tags:
+        if each_tag in user_tags_list:
+            # if tag is already present in user tags
+            # dont have to do anything
+            tag = Tags_lpig.objects.get(pk=each_tag)
 
+            if tag and ((tag.attribute_id.id >= 12 and tag.attribute_id.id <= 15) or tag.attribute_id.id == 3):
+                print("inside user home town updte tags -------------> ")
+                tag = insert_user_home_town_tags(user_id=user_id, tag=str(tag.id))
+                tag_id = tag.id
+                update_hometown_tags_for_all_users.delay(tag_id)
 
-    global_profession_tag = Tags_lpig.objects.get(name='profession_any')
-    profession_tags.append(global_profession_tag.id)
-    user_tag.profession = json.dumps(profession_tags)
+        elif not each_tag in user_tags_list:
 
+            tag = Tags_lpig.objects.get(pk=each_tag)
 
-    global_interest_tag = Tags_lpig.objects.get(name='interest_any')
-    interest_tags.append(global_interest_tag.id)
-    user_tag.interests = json.dumps(interest_tags)
+            if tag and ((tag.attribute_id.id >=12 and tag.attribute_id.id <=15) or tag.attribute_id.id == 3):
+                print("inside user home town updte tags >>>>>>>>>>> ")
+                tag = insert_user_home_town_tags(user_id=user_id, tag=str(tag.id))
+                tag_id = tag.id
+                update_hometown_tags_for_all_users.delay(tag_id)
 
+            tags = User_Legacy.objects.filter(tags_id=tag, user_id=user)
+            # if tag is not present
+            if not tags.exists():
+                # create new tag for user
+                user_tag = User_Legacy()
+                user_tag.tags_id = tag
+                user_tag.user_id = user
+                user_tag.save()
+
+        else:
+            pass
+    # deleting unwanted tags
+    for tag in user_tags_list:
+        if tag not in legacy_tags:
+
+            tag = User_Legacy.objects.filter(tags_id=tag, user_id=user)
+
+            if str(tag[0].tags_id.id) != '15':
+                tag.delete()
+
+    # profession tags update --------------------------------->
+
+    global_tag = Tags_lpig.objects.get(name='profession_any')
+    user_tags_list = list(User_Profession.objects.filter(user_id=user).values_list("tags_id",flat=True))
+
+    profession_tags.append(str(global_tag.id))
+
+    for each_tag in profession_tags:
+        if each_tag in user_tags_list:
+            # if tag is already present in user tags
+            # dont have to do anything
+            continue
+        elif not each_tag in user_tags_list:
+            tag = Tags_lpig.objects.get(pk=each_tag)
+            tags = User_Profession.objects.filter(tags_id=tag, user_id=user)
+
+            if not tags.exists():
+                # if user does not have that tag
+                user_tag = User_Profession()
+                user_tag.tags_id = tag
+                user_tag.user_id = user
+                user_tag.save()
+
+        else:
+            pass
+    # delete unwanted tags
+
+    for tag in user_tags_list:
+        if tag not in profession_tags:
+
+            tag = User_Profession.objects.filter(tags_id=tag, user_id=user)
+
+            if str(tag[0].tags_id.id) != '16':
+                tag.delete()
+
+    # interests tags update --------------------------------->
+
+    global_tag = Tags_lpig.objects.get(name='interest_any')
+    user_tags_list = list(User_Interest.objects.filter(user_id=user).values_list("tags_id",flat=True))
+    interest_tags.append(str(global_tag.id))
+
+    for each_tag in interest_tags:
+        if each_tag in user_tags_list:
+            # if tag is already present in user tags
+            # dont have to do anything
+            continue
+        elif not each_tag in user_tags_list:
+            tag = Tags_lpig.objects.get(pk=each_tag)
+            tags = User_Interest.objects.filter(tags_id=tag, user_id=user)
+
+            if not tags.exists():
+                # if user does not have that tag
+                user_tag = User_Interest()
+                user_tag.tags_id = tag
+                user_tag.user_id = user
+                user_tag.save()
+        else:
+            pass
+    # delete unwanted tags
+
+    for tag in user_tags_list:
+        if tag not in interest_tags:
+
+            tag = User_Interest.objects.filter(tags_id=tag, user_id=user)
+
+            if str(tag[0].tags_id.id) != '17':
+                tag.delete()
+
+    # geography tags update --------------------------------->
 
     global_tag = Tags_lpig.objects.get(name='Global')
-    grography_tags.append(global_tag.id)
-    user_tag.geography = json.dumps(grography_tags)
-    user_tag.save()
+    user_tags_list = list(User_Geography.objects.filter(user_id=user).values_list("tags_id",flat=True))
+
+    greography_tags.append(str(global_tag.id))
+    for each_tag in greography_tags:
+        if each_tag in user_tags_list:
+            # if tag is already present in user tags
+            # dont have to do anything
+            continue
+
+        elif not each_tag in user_tags_list:
+            # if user does not have that tag
+            tag = Tags_lpig.objects.get(pk=each_tag)
+            tags = User_Geography.objects.filter(tags_id=tag, user_id=user)
+
+            if not tags.exists():
+                # create a tag for user
+                user_tag = User_Geography()
+                user_tag.tags_id = tag
+                user_tag.user_id = user
+                user_tag.save()
+
+        else:
+            pass
+    # delete unwanted tags
+    for tag in user_tags_list:
+        if tag not in greography_tags:
+
+            tag = User_Geography.objects.filter(tags_id=tag, user_id=user)
+
+            if str(tag[0].tags_id.id) != '18':
+                tag.delete()
+    # update user geography tags with images and tag related things like state and country
+    update_user_geography_tags(user_id=user_id, typ='Geography')
 
 
 def map_tags(request):
+
+    ''' fucntion to map a tag to other tag and categorize it  '''
+
     uncategorized_tag = request.GET.get('uncategorized_tag')
     mapped_tag = request.GET.get('mapped_tag')
 
     uncategorized_tag = Tags_lpig.objects.get(pk = uncategorized_tag)
     mapped_tag = Tags_lpig.objects.get(pk=mapped_tag)
+
+    # mapping the uncategorized tag to the mapped tag and
+    # categorizing it accroding to the mapped tag
 
     uncategorized_tag.category_id = mapped_tag.category_id
     uncategorized_tag.attribute_id = mapped_tag.attribute_id
@@ -1410,4 +1656,593 @@ def map_tags(request):
 
     compute_rank.delay()
     return JsonResponse({'success': True})
+
+
+def update_tag(request):
+
+    ''' function to render all the required elements to fornt end to update a tag '''
+
+    if request.method == 'GET':
+
+        updated = request.GET.get('updated',False)
+        print(updated)
+
+        categories = Category.objects.filter(~Q(name__icontains='ncategorized'),~Q(name = 'Global'))
+
+        legacy_attributes = Attributes.objects.filter(Q(attribute_name__icontains='Legacy')
+                                                      , ~Q(attribute_name__icontains='uncategorized')).order_by('id')
+        profession_attributes = Attributes.objects.filter(Q(attribute_name__icontains='Profession')
+                                                          , ~Q(attribute_name__icontains='uncategorized')).order_by('id')
+        interests_attributes = Attributes.objects.filter(Q(attribute_name__icontains='Interests')
+                                                         , ~Q(attribute_name__icontains='uncategorized')).order_by('id')
+        geography_attributes  = Attributes.objects.filter(Q(attribute_name__icontains = 'Geography')
+                                                          ,~Q(attribute_name__icontains = 'uncategorized')).order_by('id')
+
+
+        return render(request, 'dashboard/update_tag.html', {'categories': categories,
+                                                             'legacy_attributes': legacy_attributes,
+                                                             'profession_attributes': profession_attributes,
+                                                             'interests_attributes': interests_attributes,
+                                                             'geography_attributes': geography_attributes,
+
+                                                             'updated':updated
+                                                             })
+
+
+def get_tags_by_attributes(request,attr_id):
+
+    tags = Tags_lpig.objects.filter(attribute_id=attr_id).order_by('id')
+    print("\ntags count === ",tags.count(),"\n")
+    tags_list = []
+
+    for tag in tags:
+        color = 'green'
+        tag_dict = {'tag_id':tag.id,'tag_name':tag.name,'color':'green'}
+        print(tag,tag.tag_characterstics,' >> ',tag.tag_image,' >> ',not tag.tag_image)
+
+        if tag.attribute_id.id == 1 or tag.attribute_id.id == 4 or tag.attribute_id.id == 7 :
+            print('\ninside special if\n')
+            if not tag.tag_image:
+                tag_dict['color'] = 'black'
+            tags_list.append(tag_dict)
+            continue
+
+        elif not tag.tag_characterstics and not tag.tag_image:
+            print("\n here 1\n")
+            tag_dict['color'] = 'black'
+            tags_list.append(tag_dict)
+            continue
+
+        elif tag.tag_characterstics == 'null' and not tag.tag_image:
+            print("\n here 2\n")
+            tag_dict['color'] = 'black'
+            tags_list.append(tag_dict)
+            continue
+
+        elif not tag.tag_characterstics and tag.tag_image :
+            print('\ninside here 1\n')
+            tag_dict['color'] = 'red'
+            tags_list.append(tag_dict)
+            continue
+
+        elif tag.tag_characterstics == 'null' and tag.tag_image:
+            print('\ninside here 2\n')
+            tag_dict['color'] = 'red'
+            tags_list.append(tag_dict)
+            continue
+
+        elif tag.tag_image and not tag.tag_characterstics:
+            print('\ninside here 3\n')
+            tag_dict['color'] = 'red'
+            tags_list.append(tag_dict)
+            continue
+
+        elif tag.tag_image and tag.tag_characterstics == 'null':
+            print('\ninside here 4\n')
+            tag_dict['color'] = 'red'
+            tags_list.append(tag_dict)
+            continue
+
+        tag_chars = json.loads(tag.tag_characterstics)
+        dict_length = len(tag_chars)
+        count = 0
+        for key,value in tag_chars.items():
+
+            print(tag,key, value,value == '')
+            if value == '':
+                print('for ', key, " ", value, 'is empty')
+                color = 'red'
+                count+=1
+
+            elif not value:
+                print('for ',key," ",value,'is empty')
+                color = 'red'
+                count += 1
+
+
+        if count == dict_length and not tag.tag_image:
+            tag_dict['color'] = 'black'
+            tags_list.append(tag_dict)
+
+        elif count != dict_length and not tag.tag_image:
+            tag_dict['color'] = 'red'
+            tags_list.append(tag_dict)
+
+        elif color == 'red':
+            tag_dict['color'] = 'red'
+            tags_list.append(tag_dict)
+        else:
+            tags_list.append(tag_dict)
+
+    return JsonResponse({'tags_list':tags_list})
+
+
+def tag_update_form(request,tag_id):
+
+    ''' function to update tags with forms '''
+
+    tag = Tags_lpig.objects.get(pk=tag_id)
+    attr_id = tag.attribute_id.id
+
+    if request.method=="POST":
+        characteristics = None
+        image = None
+
+        # save characteristics and image from form according to attribute given
+        if attr_id == 2:
+            form = Legacy_Education_Form(request.POST, request.FILES)
+            if form.is_valid():
+                demonym = form.cleaned_data['demonym']
+                short_name = form.cleaned_data['short_name']
+                image = form.cleaned_data['image']
+                characteristics={'demonym':demonym,'csn':short_name}
+
+        elif attr_id == 3:
+            form = Legacy_Hometown_Form(request.POST, request.FILES)
+            if form.is_valid():
+                demonym = form.cleaned_data['home_demonym']
+                image = form.cleaned_data['image']
+                characteristics = {'home_demonym': demonym}
+
+        elif attr_id == 5:
+            form = Profession_Skill_Form(request.POST, request.FILES)
+            if form.is_valid():
+                skill_name = form.cleaned_data['skill_name']
+                skill_experts = form.cleaned_data['skill_experts']
+                image = form.cleaned_data['image']
+                characteristics = {'skill_experts': skill_experts,'skill_name':skill_name}
+
+        elif attr_id == 6:
+            form = Profession_Industry_Form(request.POST, request.FILES)
+            if form.is_valid():
+                # demonym = form.cleaned_data['demonym']
+                industry_name = form.cleaned_data['industry_name']
+                image = form.cleaned_data['image']
+
+                characteristics = {'industry_name': industry_name}
+
+
+        elif attr_id == 8:
+            form = Interests_Cause_Form(request.POST, request.FILES)
+            if form.is_valid():
+                thing_event = form.cleaned_data['thing_event']
+                image = form.cleaned_data['image']
+                characteristics = {'thing_event': thing_event}
+
+
+        elif attr_id == 9:
+            form = Interests_Hobby_Form(request.POST, request.FILES)
+            if form.is_valid():
+                hobbyists = form.cleaned_data['hobbyists']
+                hobby_group_used_case = form.cleaned_data['hobby_group_used_case']
+                hobby_group_event = form.cleaned_data['hobby_group_event']
+                hobby_event = form.cleaned_data['hobby_event']
+                hobby_name = form.cleaned_data['hobby_name']
+                image = form.cleaned_data['image']
+                characteristics = {'hobbyists': hobbyists,
+                                   'hobby_group_used_case': hobby_group_used_case,
+                                   'hobby_group_event':hobby_group_event,
+                                   'hobby_event':hobby_event,
+                                   'hobby_name': hobby_name,
+                                   }
+
+        elif attr_id == 10:
+            form = Interests_Sports_Form(request.POST, request.FILES)
+            if form.is_valid():
+                sport_players = form.cleaned_data['sport_players']
+                sport_usecase = form.cleaned_data['sport_usecase']
+                sport_event = form.cleaned_data['sport_event']
+                image = form.cleaned_data['image']
+                characteristics = {'sport_players': sport_players, 'sport_usecase': sport_usecase,'sport_event':sport_event}
+
+        elif attr_id == 11:
+            form = Interests_Fan_Form(request.POST, request.FILES)
+            if form.is_valid():
+                thing = form.cleaned_data['thing']
+                #thing_fan_group_name = form.cleaned_data['thing_fan_group_name']
+                thing_fans = form.cleaned_data['thing_fans']
+                thing_group_use_case = form.cleaned_data['thing_group_use_case']
+                thing_event = form.cleaned_data['thing_event']
+                image = form.cleaned_data['image']
+                characteristics = {'thing': thing,
+                                   #'thing_fan_group_name': thing_fan_group_name,
+                                   'thing_fans': thing_fans,
+                                   'thing_group_use_case': thing_group_use_case,
+                                   'thing_event': thing_event,
+                                   }
+        elif (attr_id >= 12 and attr_id <= 15):
+
+            form = Geography_Form(request.POST, request.FILES)
+            if form.is_valid():
+                demonym = form.cleaned_data['demonym']
+                image = form.cleaned_data['image']
+                characteristics={'demonym':demonym}
+
+        else:
+            form = Tag_Form(request.POST, request.FILES)
+            if form.is_valid():
+                image = form.cleaned_data['image']
+
+        if image:
+            tag.tag_image = image
+        tag.tag_characterstics = json.dumps(characteristics)
+        tag.save()
+
+        base_url = reverse('update_tag')
+        query_string = urlencode({'updated':True})
+        url = '{}?{}'.format(base_url, query_string)
+        correct_tag=tag.tag_id
+        pre_create_communities.delay(tag_id=correct_tag)
+        return redirect(url)
+
+    else:
+
+        # render form according to attribute given
+
+        if attr_id == 2:
+            char={}
+            if tag.tag_characterstics:
+                char = json.loads(tag.tag_characterstics)
+                if not char:
+                    char = {}
+            demonym = None
+            short_name = None
+            if 'demonym' in char:
+                demonym = char['demonym']
+            if 'csn' in char:
+                short_name = char['csn']
+            characteristics = {'demonym': demonym, 'short_name': short_name}
+
+            form = Legacy_Education_Form(characteristics)
+        elif attr_id == 3:
+
+            char = {}
+            if tag.tag_characterstics:
+                char = json.loads(tag.tag_characterstics)
+                if not char:
+                    char = {}
+            demonym = None
+            short_name = None
+            if 'home_demonym' in char:
+                demonym = char['home_demonym']
+
+            characteristics = {'home_demonym': demonym}
+
+            form = Legacy_Hometown_Form(characteristics)
+        elif attr_id == 5:
+
+            char = {}
+            if tag.tag_characterstics:
+                char = json.loads(tag.tag_characterstics)
+                if not char:
+                    char = {}
+            skill_experts = None
+            skill_name = None
+            if 'skill_experts' in char:
+                skill_experts = char['skill_experts']
+            if 'skill_name' in char:
+                skill_name = char['skill_name']
+
+            characteristics = {'skill_experts': skill_experts,'skill_name':skill_name}
+
+            form = Profession_Skill_Form(characteristics)
+        elif attr_id == 6:
+
+            char = {}
+            if tag.tag_characterstics:
+                print("inside")
+                char = json.loads(tag.tag_characterstics)
+                if not char:
+                    char = {}
+
+            industry_name = None
+            if 'industry_name' in char:
+                industry_name = char['industry_name']
+            characteristics = {'industry_name': industry_name}
+
+            form = Profession_Industry_Form(characteristics)
+        elif attr_id == 8:
+
+            char = {}
+            thing_event = None
+            if tag.tag_characterstics:
+                char = json.loads(tag.tag_characterstics)
+                if not char:
+                    char = {}
+
+            if 'thing_event' in char:
+                thing_event = char['thing_event']
+
+            characteristics = {'thing_event': thing_event}
+
+            form = Interests_Cause_Form(characteristics)
+        elif attr_id == 9:
+
+            char = {}
+            hobbyists = None
+            hobby_group_used_case = None
+            hobby_group_event = None
+            hobby_event = None
+            hobby_name = None
+
+            if tag.tag_characterstics:
+                char = json.loads(tag.tag_characterstics)
+                if not char:
+                    char = {}
+
+            if 'hobbyists' in char:
+                hobbyists = char['hobbyists']
+
+            if 'hobby_group_used_case' in char:
+                hobby_group_used_case = char['hobby_group_used_case']
+
+            if 'hobby_group_event' in char:
+                hobby_group_event = char['hobby_group_event']
+
+            if 'hobby_event' in char:
+                hobby_event = char['hobby_event']
+
+            # hobby_name
+            if 'hobby_name' in char:
+                hobby_name = char['hobby_name']
+            characteristics = {'hobbyists': hobbyists,
+                               'hobby_group_used_case': hobby_group_used_case,
+                               'hobby_group_event': hobby_group_event,
+                               'hobby_event': hobby_event,
+                               'hobby_name':hobby_name,
+                               }
+
+            form = Interests_Hobby_Form(characteristics)
+
+        elif attr_id == 10:
+
+            char = {}
+            sport_players = None
+            sport_usecase = None
+            sport_event = None
+
+            if tag.tag_characterstics:
+                char = json.loads(tag.tag_characterstics)
+                if not char:
+                    char = {}
+
+            if 'sport_players' in char:
+                sport_players = char['sport_players']
+
+            if 'sport_usecase' in char:
+                sport_usecase = char['sport_usecase']
+
+            if 'sport_event' in char:
+                sport_event = char['sport_event']
+
+
+            characteristics = {'sport_players': sport_players, 'sport_usecase': sport_usecase,'sport_event':sport_event}
+
+            form = Interests_Sports_Form(characteristics)
+
+        elif attr_id == 11:
+
+            char = {}
+            thing = None
+            thing_fan_group_name = None
+            thing_fans = None
+            thing_group_use_case = None
+            thing_event = None
+
+            if tag.tag_characterstics:
+                char = json.loads(tag.tag_characterstics)
+                if not char:
+                    char = {}
+
+            if 'thing' in char:
+                thing = char['thing']
+
+            if 'thing_fan_group_name' in char:
+                thing_fan_group_name = char['thing_fan_group_name']
+
+            if 'thing_fans' in char:
+                thing_fans = char['thing_fans']
+
+            if 'thing_group_use_case' in char:
+                thing_group_use_case = char['thing_group_use_case']
+
+            if 'thing_event' in char:
+                thing_event = char['thing_event']
+
+
+            characteristics = {'thing': thing,
+                               'thing_fan_group_name': thing_fan_group_name,
+                               'thing_fans': thing_fans,
+                               'thing_group_use_case': thing_group_use_case,
+                               'thing_event': thing_event
+                               }
+
+            form = Interests_Fan_Form(characteristics)
+
+        elif (attr_id >= 12 and attr_id <= 15) :
+
+            char = {}
+            if tag.tag_characterstics:
+                char = json.loads(tag.tag_characterstics)
+                if not char:
+                    char = {}
+            demonym = None
+            if 'demonym' in char:
+                demonym = char['demonym']
+
+            characteristics = {'demonym': demonym}
+
+            form = Geography_Form(characteristics)
+
+        else:
+
+            form = Tag_Form()
+
+        tag_image = None
+        if tag.tag_image:
+            tag_image =tag.tag_image.url
+
+        return render(request, 'dashboard/update_tag_form.html', {'form':form,
+                                                             'tag_name':tag.name,
+                                                             'tag_id':tag.id,
+                                                             'attr_id':tag.attribute_id.id,
+                                                             'tag_image':tag_image
+                                                             })
+
+
+def delete_tags(request):
+    ''' function to render all tags to delete page '''
+
+    deleted = request.GET.get('deleted',False)
+    alrt = request.GET.get('alrt',False)
+    tag_id = request.GET.get('tag_id','')
+
+    tag_name = ''
+    if tag_id != '':
+        try:
+            tag = Tags_lpig.objects.get(pk = tag_id)
+            tag_name = tag.name
+        except:
+            pass
+    print("tag anme ======= ",tag_name)
+    # get all tags
+    tags = Tags_lpig.objects.all()
+    return render(request, 'dashboard/delete_tags.html', {'tags': tags,'deleted':deleted,'alrt':alrt,'tag_name':tag_name})
+
+
+def delete_tags_post(request,tag_id):
+
+    ''' function to delete the any tag and
+    communities with that tag and all community related things '''
+    tag_deleted = True
+
+    tags = Tags_lpig.objects.filter(id=tag_id)
+    tag = tags[0]
+    print(">>>>>>>>>>",tag)
+    tag_community = None
+    user_tags = None
+    category_id = tag.category_id.id
+    print("cat id",category_id)
+
+    # get the communities and users with the tag which is to be deleted
+    if category_id == 1:
+        tag_community = Community_Legacy.objects.filter(tags_id = tag)
+        user_tags = User_Legacy.objects.filter(tags_id = tag)
+    elif category_id == 2:
+        tag_community = Community_Profession.objects.filter(tags_id = tag)
+        user_tags = User_Profession.objects.filter(tags_id = tag)
+
+    elif category_id == 3:
+        tag_community = Community_Interest.objects.filter(tags_id = tag)
+        user_tags = User_Interest.objects.filter(tags_id = tag)
+
+    elif category_id == 4:
+        tag_community = Community_Geography.objects.filter(tags_id = tag)
+        user_tags = User_Geography.objects.filter(tags_id = tag)
+
+    # if any community has this tag
+    if tag_community.exists():
+        for community in tag_community:
+            tag_community_id = community.community_id.id
+
+            community_members_count = Members.objects.filter(community_id=community.community_id).filter(Q(state=1)|Q(state=2)|Q(state=4)|Q(state=7)).count()
+            # if community has no members in it
+            if community_members_count == 0:
+                print("community will be deleted")
+
+                community_purpose_card_id = community.community_id.purpose_collabcard
+                try:
+                    # delete cards of that community (purpose card)
+                    card = Collabcard.objects.filter(id=community_purpose_card_id)  #
+                    if card.exists():
+                        card.delete()
+                except:
+                    print("problem with card")
+                # delete the community
+                Community.objects.filter(id=tag_community_id).delete()
+
+            # if community has members , dont delete community and
+            # any thing related to that community
+            elif community_members_count > 0:
+                if not tag_deleted:
+                    continue
+                tag_deleted = False
+
+    # if tag_deketed falg is true , then delete tag and users tags
+    if tag_deleted:
+        user_tags.delete()
+        tags.delete()
+
+    base_url = reverse('delete_tags')
+    query_string = urlencode({'deleted': tag_deleted,'alrt':True,'tag_id':tag_id})
+    url = '{}?{}'.format(base_url, query_string)
+
+    return redirect(url)
+
+
+def rename_tag(request,tag_id = None):
+
+    if not tag_id:
+        updated = request.GET.get('updated', False)
+        tag_id = request.GET.get('tag_id', '')
+        old_name = request.GET.get('old_name', '')
+
+        tag_name = ''
+        if tag_id :
+            try:
+                tag = Tags_lpig.objects.get(pk=tag_id)
+                tag_name = tag.name
+            except:
+                pass
+        print("tag name ======= ", tag_name)
+        # get all tags
+        tags = Tags_lpig.objects.all()
+        return render(request, 'dashboard/rename_tag.html',
+                      {'tags': tags, 'updated': updated, 'old_name': old_name, 'tag_name': tag_name})
+
+    elif tag_id:
+        print('>>>>>> ',tag_id)
+
+        rename_to = request.GET['rename_to']
+        print("new name ===== ",rename_to)
+        old_name = ''
+        if tag_id :
+            try:
+                tag = Tags_lpig.objects.get(pk=tag_id)
+                old_name = tag.name
+                tag.name = rename_to
+                tag.save()
+                if tag.attribute_id.id < 17 :
+                    correct_tag_id=tag.tag_id
+                    pre_create_communities.delay(tag_id=correct_tag_id)
+
+            except:
+                pass
+
+        base_url = '/admin_dashboard/rename_tag'
+        query_string = urlencode({'updated': True, 'old_name': old_name, 'tag_id': tag_id})
+        url = '{}?{}'.format(base_url, query_string)
+
+        return redirect(url)
+
 

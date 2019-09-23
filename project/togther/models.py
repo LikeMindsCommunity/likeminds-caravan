@@ -22,7 +22,7 @@ class Community (models.Model):
     about = models.TextField()
     purpose = models.CharField(max_length= 300)
     location = models.CharField(max_length = 200)
-    image_url = models.ImageField(upload_to="media/", default = 'https://upload.wikimedia.org/wikipedia/en/0/09/Community_title.jpg')
+    image_url = models.ImageField(upload_to="media/community", default = 'media/community/default.jpeg')
     members_count = models.IntegerField(default = 0)
     active_since = models.DateField(auto_now_add = True)
     whatsapp_group_link = models.CharField(max_length = 400, null=True)
@@ -30,6 +30,7 @@ class Community (models.Model):
     updated_at=models.BigIntegerField(default=-9223372036854775808)
     purpose_collabcard=models.IntegerField(null=True)
     hide_community=models.CharField(default=0,max_length=1)
+    introduction_text=models.CharField(max_length= 2048,null=True)
 
     def __str__(self):
         return self.name
@@ -267,10 +268,12 @@ class Tags_lpig(models.Model):
 
     '''Model to store the lpig tags in attributes'''
 
-    name = models.CharField(max_length=512, null=True,unique=True)
+    name = models.CharField(max_length=512, null=True)
     attribute_id=models.ForeignKey(Attributes,on_delete=models.CASCADE)
     category_id=models.ForeignKey(Category,on_delete=models.CASCADE)
     tag_id=models.IntegerField(null=True)
+    tag_characterstics=models.CharField(max_length=1024,null=True)
+    tag_image = models.ImageField(upload_to="media/tags_images", default = '')
     def __str__(self):
         return self.name
 
@@ -286,3 +289,78 @@ class Member_Engage(models.Model):
     pending_members=models.IntegerField(default=0,null=True)
     updated_at=models.BigIntegerField(default=0,null=True)
 
+
+# community lpig
+
+class Community_Legacy(models.Model):
+
+    '''Model to store the communities of legacy'''
+    community_id=models.ForeignKey(Community, on_delete=models.CASCADE)
+    tags_id=models.ForeignKey(Tags_lpig,on_delete=models.CASCADE)
+
+
+class Community_Profession(models.Model):
+    '''Model to store the communities of profession'''
+    community_id = models.ForeignKey(Community, on_delete=models.CASCADE)
+    tags_id = models.ForeignKey(Tags_lpig, on_delete=models.CASCADE)
+
+
+class Community_Interest(models.Model):
+    '''Model to store the communities of interest'''
+    community_id = models.ForeignKey(Community, on_delete=models.CASCADE)
+    tags_id = models.ForeignKey(Tags_lpig, on_delete=models.CASCADE)
+
+
+class Community_Geography(models.Model):
+    '''Model to store the communities of geography'''
+    community_id = models.ForeignKey(Community, on_delete=models.CASCADE)
+    tags_id = models.ForeignKey(Tags_lpig, on_delete=models.CASCADE)
+
+
+
+
+# user lpig
+
+class User_Legacy(models.Model):
+    '''Model to store the user of legacy'''
+    user_id = models.ForeignKey(User, on_delete=models.CASCADE)
+    tags_id = models.ForeignKey(Tags_lpig, on_delete=models.CASCADE)
+
+
+class User_Profession(models.Model):
+    '''Model to store the user of profession'''
+    user_id = models.ForeignKey(User, on_delete=models.CASCADE)
+    tags_id = models.ForeignKey(Tags_lpig, on_delete=models.CASCADE)
+
+
+class User_Interest(models.Model):
+    '''Model to store the user of interest'''
+    user_id = models.ForeignKey(User, on_delete=models.CASCADE)
+    tags_id = models.ForeignKey(Tags_lpig, on_delete=models.CASCADE)
+
+
+class User_Geography(models.Model):
+    '''Model to store the user of geography'''
+    user_id = models.ForeignKey(User, on_delete=models.CASCADE)
+    tags_id = models.ForeignKey(Tags_lpig, on_delete=models.CASCADE)
+
+class Referal(models.Model):
+    """ Model for reference module """
+    member = models.ForeignKey(User, on_delete=models.CASCADE,related_name='member')
+    invited_member = models.ForeignKey(User, on_delete=models.CASCADE,related_name='invited_member')
+    community = models.ForeignKey(Community, on_delete=models.CASCADE)
+
+
+class Location_Info(models.Model):
+    """ saving location details of a geography tag """
+
+    # tag = models.ForeignKey(Tags_lpig, on_delete=models.PROTECT)
+    tag_name = models.CharField(max_length=512,null=True,unique=True)
+    city = models.CharField(max_length=512,null=True,default='')
+    district = models.CharField(max_length=512,null=True,default='')
+    state = models.CharField(max_length=512,null=True,default='')
+    country = models.CharField(max_length=512,null=True,default='')
+    pincode = models.CharField(max_length=512,null=True,default='')
+
+    def __str__(self):
+        return self.tag_name

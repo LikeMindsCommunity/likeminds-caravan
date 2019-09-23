@@ -31,6 +31,7 @@ def CommunitySerializer(community):
     new_dict['share_url'] = url + '/community/' + str(new_dict['id'])
     new_dict['date'] = community.active_since
     new_dict['members_count'] = get_member_count(community)
+    new_dict['state']=int(community.hide_community)
     return new_dict
 
 def UserinfoSerializer(user):
@@ -57,7 +58,6 @@ def CollabcardSerializer(card,community=None):
         'share_url': url + '/collabcard/' + str(card.id),
         'answer_text': card.answer_text,
         'share_link': card.share_link,
-        
     }
     if card.og_tags:
         og_tags=json.loads(card.og_tags)
@@ -68,4 +68,6 @@ def CollabcardSerializer(card,community=None):
 
 def get_member_count(community):
     return Members.objects.filter(community_id=community).filter(
-        Q(state=1) | Q(state=2) | Q(state=4) | Q(state=7)).count()
+        Q(state=1) | Q(state=2) | Q(state=4) | Q(state=7) | Q(state = 8)).count()
+
+
