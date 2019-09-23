@@ -424,16 +424,17 @@ def insert_user_home_town_tags(user_id,tag):
             new_tag = tags[0].name
             new_tag = new_tag.strip().title()
         else:
-            print("creating new tag here")
-            tag = Tags_lpig.objects.get(pk=tag)
-            new_tag = tag.name.strip().title()
-            tag = Tags_lpig()
-            tag.name = new_tag
-            tag.category_id = category
-            tag.attribute_id = attribute
-            tag.save()
-            tag.tag_id = tag.id
-            tag.save()
+            #tag = Tags_lpig.objects.get(pk=tag)
+            if tag.attribute_id.id == 12:
+                print("creating new tag here")
+                new_tag = tag.name.strip().title()
+                tag = Tags_lpig()
+                tag.name = new_tag
+                tag.category_id = category
+                tag.attribute_id = attribute
+                tag.save()
+                tag.tag_id = tag.id
+                tag.save()
 
     else:
         # if tag is a string (which means its a new tag), create new tag
