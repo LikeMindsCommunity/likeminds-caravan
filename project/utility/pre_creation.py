@@ -692,7 +692,7 @@ Please try to maintain conversations for each %s on the conversation card for th
             else:
                 interest_char = {}
                 interest_char['thing_event']="discussions or event"
-                temp['name'] = """%s Residents For %s""" % (city[0], cause[0])
+                temp['name'] = """%s For %s""" % (city[0], cause[0])
                 cause_name = cause[0].lower()
                 temp['purpose'] = """For responsible citizens of %s willing to work for %s to plan, meet and work together for the cause""" % (
                 city[0], cause_name)
