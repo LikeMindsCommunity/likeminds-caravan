@@ -540,9 +540,22 @@ def admins(request, community_id):
         else:
             return JsonResponse({'members': users,'referred_members_count':referred_members_count})
     elif member_id:
-        referred_members_count = check_for_member_eligibiity(community_id, member_id)
-        print("\n",referred_members_count,"\n")
-        return JsonResponse({'members': users,'referred_members_count':referred_members_count})
+
+        print(">>>>>>>>>>> ", member_id)
+        referals = get_referred_members_of_a_member(community_id=community_id, member_id=member_id)
+        referal_count = len(referals)
+        print(referals)
+        count = 0
+        print("referal count === ", referal_count)
+        
+        for mem_id in referals:
+            member = Members.objects.filter(member_id=mem_id, community_id=community_id)
+            if member.exists():
+
+                if member[0].state == 4:
+                    count += 1
+
+        return JsonResponse({'members': users,'referred_members_count':count})
     else:
         return JsonResponse({'members': users})
 
@@ -1435,6 +1448,7 @@ def check_for_member_eligibiity(community_id,member_id):
 
                 if member[0].state == 4:
                     return_count+=1
+
         if return_count >= eligibility_count:
             member = Members.objects.filter(member_id=member_id, community_id=community)
             if member[0].state != 1:
