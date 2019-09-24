@@ -11,11 +11,13 @@ import requests as rqst
 import json
 import os
 from collabmates_api.notification import (send_notification_to_eligible_member,
-                                          send_notification_to_referred_member, )
+                                          send_notification_to_referred_member,
+                                          send_notification_to_referred_member_in_active_community,
+                                          )
 
 from django.http.response import JsonResponse
 
-eligibility_count = 3
+eligibility_count = 5
 
 def decode_meta_from_url(url):
 
@@ -330,6 +332,7 @@ def referal(ref_id, community_id, interested_member_id):
 
     referred_member = User.objects.get(pk=ref_id) if (ref_id != '' and ref_id) else False
     if referred_member:
+
         refer = Referal.objects.filter(member=referred_member,
                                        invited_member=invited_member,
                                        community=community)
@@ -341,15 +344,16 @@ def referal(ref_id, community_id, interested_member_id):
 
         joined_member_name, community_name = invited_member.userinfo.name, community.name
 
-        notify_referred_member.delay(referred_member_id=ref_id,
-                               joined_member_name=joined_member_name,
-                               community_name=community.name,
-                               community_id=community_id)
-
         if community.hide_community == '3':
 
             total_referals = Referal.objects.filter(member=referred_member,
                                                     community=community)
+            if total_referals.count() < eligibility_count:
+
+                notify_referred_member.delay(referred_member_id=ref_id,
+                                                joined_member_name=joined_member_name,
+                                                community_name=community.name,
+                                                community_id=community_id)
 
             if total_referals.count() >= eligibility_count:
                 admin = Members.objects.filter(community_id=community, member_id=referred_member)
@@ -378,16 +382,46 @@ def referal(ref_id, community_id, interested_member_id):
 @shared_task
 def notify_referred_member(referred_member_id,joined_member_name,community_name,community_id):
 
+    community = get_object_or_404(Community, pk=community_id)
+
     referal_count = get_referred_members_of_a_member(community_id=community_id,member_id=referred_member_id)
 
     referal_count = len(referal_count)
-    print("inside notify >>> ",referal_count)
-    send_notification_to_referred_member(referred_member_id=referred_member_id,
-                                               joined_member_name=joined_member_name,
-                                               community_name=community_name,
-                                               community_id=community_id,
-                                               referal_count=referal_count,
-                                               )
+
+    if community.hide_community == '3':
+        print('send_notification_to_referred_member')
+        send_notification_to_referred_member(referred_member_id=referred_member_id,
+                                             joined_member_name=joined_member_name,
+                                             community_name=community_name,
+                                             community_id=community_id,
+                                             referal_count=referal_count,
+                                             )
+
+    elif community.hide_community == '0' or community.hide_community == '4':
+        print('send_notification_to_referred_member_in_active community')
+
+        print(">>>>>>>>>>> ", referred_member_id)
+        referals = get_referred_members_of_a_member(community_id=community_id, member_id=referred_member_id)
+        referal_count = len(referals)
+        print(referals)
+        count = 0
+        print("referal count === ", referal_count)
+
+        for mem_id in referals:
+            member = Members.objects.filter(member_id=mem_id, community_id=community_id)
+            if member.exists():
+
+                if member[0].state == 4:
+                    count += 1
+        print('count ==== ',count)
+        if count < eligibility_count:
+            print('semnding notification')
+            send_notification_to_referred_member_in_active_community(referred_member_id=referred_member_id,
+                                                                     joined_member_name=joined_member_name,
+                                                                     community_name=community_name,
+                                                                     community_id=community_id,
+                                                                     referal_count=referal_count,
+                                                                     )
 
 
 def get_referred_members_of_a_member(community_id,member_id):

@@ -16,7 +16,9 @@ from .notification import (send_follow_notification,send_notification_to_admins,
                            send_notification_for_new_collabcard_posted,
                            send_notification_to_proposed_admin,
                            send_notification_to_proposer,
-                           send_notification_to_eligible_member)
+                           send_notification_to_eligible_member,
+                           send_notification_to_all_admins,
+                           send_notification_to_referred_member_in_active_community)
 from django.db.models import Q
 import dateutil.relativedelta
 from .tasks import send_email_to_nominated_admin,send_email_for_new_collabcard_posted
@@ -31,7 +33,7 @@ import googlemaps
 import requests as rqst
 from utility.utils import (decode_meta_from_url, update_tag_image,
                            referal, get_referred_members_of_a_member,
-                           eligibility_count, )
+                           eligibility_count, notify_referred_member, )
 
 
 url  = settings.URL
@@ -419,11 +421,11 @@ def join_community_responses(request):
 
     if 'ref_id' in res:
         ref_id = res['ref_id']
-        # if community.hide_community == '3':
-        invited_member = Members.objects.filter(community_id=community,
-                                                      member_id=ref_id)
-        if invited_member.exists():
-            referal(ref_id=ref_id, community_id=community_id, interested_member_id=user_id)
+        if community.hide_community == '3' or community.hide_community == '4':
+            invited_member = Members.objects.filter(community_id=community,
+                                                          member_id=ref_id)
+            if invited_member.exists():
+                referal(ref_id=ref_id, community_id=community_id, interested_member_id=user_id)
 
     # inserting in members table if the member status is pending and inserting it to database with status=3
 
@@ -540,9 +542,22 @@ def admins(request, community_id):
         else:
             return JsonResponse({'members': users,'referred_members_count':referred_members_count})
     elif member_id:
-        referred_members_count = check_for_member_eligibiity(community_id, member_id)
-        print("\n",referred_members_count,"\n")
-        return JsonResponse({'members': users,'referred_members_count':referred_members_count})
+
+        print(">>>>>>>>>>> ", member_id)
+        referals = get_referred_members_of_a_member(community_id=community_id, member_id=member_id)
+        referal_count = len(referals)
+        print(referals)
+        count = 0
+        print("referal count === ", referal_count)
+
+        for mem_id in referals:
+            member = Members.objects.filter(member_id=mem_id, community_id=community_id)
+            if member.exists():
+
+                if member[0].state == 4:
+                    count += 1
+
+        return JsonResponse({'members': users,'referred_members_count':count})
     else:
         return JsonResponse({'members': users})
 
@@ -1389,21 +1404,28 @@ def request_response(request,req_dict=None):
         except:
             card=Collabcard.objects.filter(community_id=community).order_by('id')
             if card:
-                purpose_card=card[0].id
+                purpose_card=card[0]
         unseen_count=Collabcard.objects.filter(community=community).count()
-        engage = Member_Engage()
-        engage.member_id = user
-        engage.community_id = community
-        engage.last_unseen_conversation = purpose_card
-        engage.last_unseen_count=unseen_count
-        engage.updated_at = time.time()
-        engage.save()
-        update_pending_member_count_in_engage(community)
+        if not is_member_engage(community, user.id):
+            engage = Member_Engage()
+            engage.member_id = user
+            engage.community_id = community
+            engage.last_unseen_conversation = purpose_card
+            engage.last_unseen_count=unseen_count
+            engage.updated_at = time.time()
+            engage.save()
+            update_pending_member_count_in_engage(community)
 
         count = check_for_member_eligibiity(community_id, member_id)
 
         # send notification
         send_notification_for_join_requests.delay(community_id,True,member_id)
+
+        if not req_dict:
+            notify_referred_member_after_join(joined_member_id=member_id,
+                                              joined_member_name=user.userinfo.name,
+                                              community_name=community.name, community_id=community_id)
+
     else:
         # if rejected , change user state to 5
         Members.objects.filter(member_id=member_id,community_id=community).update(state=5)  # decline state = 5
@@ -1413,6 +1435,24 @@ def request_response(request,req_dict=None):
 
 
     return JsonResponse({'success': True})
+
+
+def notify_referred_member_after_join(joined_member_id,joined_member_name,community_name,community_id):
+
+    community = get_object_or_404(Community, pk=community_id)
+    refer = Referal.objects.filter(invited_member=joined_member_id,
+                                   community=community)
+    if refer.exists():
+
+        referred_member_id = refer[0].member.id
+
+
+        notify_referred_member.delay(referred_member_id=referred_member_id,
+                                 joined_member_name=joined_member_name,
+                                 community_name=community_name,
+                                 community_id=community_id)
+
+
 
 
 def check_for_member_eligibiity(community_id,member_id):
@@ -1435,6 +1475,7 @@ def check_for_member_eligibiity(community_id,member_id):
 
                 if member[0].state == 4:
                     return_count+=1
+
         if return_count >= eligibility_count:
             member = Members.objects.filter(member_id=member_id, community_id=community)
             if member[0].state != 1:
@@ -1442,6 +1483,7 @@ def check_for_member_eligibiity(community_id,member_id):
                 community_id=community.id
                 community_name = community.name
                 ref_id=member_id
+
                 send_notification_to_eligible_member.delay(eligible_member_id=ref_id,
                                                            community_name=community_name,
                                                            community_id=community_id,
@@ -1638,6 +1680,7 @@ def accept_invitation(request):
                         if card:
                             purpose_card = card[0].id
                     unseen_count = Collabcard.objects.filter(community=community).count()
+
                     engage = Member_Engage()
                     engage.member_id = nom_admin[0].user_id
                     engage.community_id = community
@@ -2024,6 +2067,9 @@ def accept_promotership(request):
 
         if 'member_ids' not in res or not res['member_ids']:
             Members.objects.filter(community_id=community_id,member_id=member_id).update(state=1)
+            user = User.objects.get(pk=member_id)
+            name  = user.userinfo.name
+            send_notification_to_all_admins.delay(community_id, name, member_id)
             return JsonResponse({'success': True})
 
         refered_id=res['member_ids']
