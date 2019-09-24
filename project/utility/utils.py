@@ -344,32 +344,16 @@ def referal(ref_id, community_id, interested_member_id):
 
         joined_member_name, community_name = invited_member.userinfo.name, community.name
 
-        # notify_referred_member.delay(referred_member_id=ref_id,
-        #                        joined_member_name=joined_member_name,
-        #                        community_name=community.name,
-        #                        community_id=community_id)
-
-        # if community.hide_community == '0' or community.hide_community == '4':
-        #
-        #     total_referals = Referal.objects.filter(member=referred_member,
-        #                                             community=community)
-        #     if total_referals.count() < eligibility_count:
-        #         notify_referred_member.delay(referred_member_id=ref_id,
-        #                                      joined_member_name=joined_member_name,
-        #                                      community_name=community.name,
-        #                                      community_id=community_id)
-
-
-        total_referals = Referal.objects.filter(member=referred_member,
-                                                community=community)
-        if total_referals.count() < eligibility_count:
-
-            notify_referred_member.delay(referred_member_id=ref_id,
-                                            joined_member_name=joined_member_name,
-                                            community_name=community.name,
-                                            community_id=community_id)
-
         if community.hide_community == '3':
+            
+            total_referals = Referal.objects.filter(member=referred_member,
+                                                    community=community)
+            if total_referals.count() < eligibility_count:
+
+                notify_referred_member.delay(referred_member_id=ref_id,
+                                                joined_member_name=joined_member_name,
+                                                community_name=community.name,
+                                                community_id=community_id)
 
             if total_referals.count() >= eligibility_count:
                 admin = Members.objects.filter(community_id=community, member_id=referred_member)
