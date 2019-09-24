@@ -1404,7 +1404,7 @@ def request_response(request,req_dict=None):
         except:
             card=Collabcard.objects.filter(community_id=community).order_by('id')
             if card:
-                purpose_card=card[0].id
+                purpose_card=card[0]
         unseen_count=Collabcard.objects.filter(community=community).count()
         if not is_member_engage(community, user.id):
             engage = Member_Engage()
@@ -2067,7 +2067,7 @@ def accept_promotership(request):
             Members.objects.filter(community_id=community_id,member_id=member_id).update(state=1)
             user = User.objects.get(pk=member_id)
             name  = user.userinfo.name
-            send_notification_to_all_admins.delay(community_id, name)
+            send_notification_to_all_admins.delay(community_id, name, member_id)
             return JsonResponse({'success': True})
 
         refered_id=res['member_ids']
