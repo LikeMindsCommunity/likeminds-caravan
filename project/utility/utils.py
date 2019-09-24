@@ -413,8 +413,9 @@ def notify_referred_member(referred_member_id,joined_member_name,community_name,
 
                 if member[0].state == 4:
                     count += 1
-
+        print('count ==== ',count)
         if count < eligibility_count:
+            print('semnding notification')
             send_notification_to_referred_member_in_active_community(referred_member_id=referred_member_id,
                                                                      joined_member_name=joined_member_name,
                                                                      community_name=community_name,
