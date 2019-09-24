@@ -399,13 +399,29 @@ def notify_referred_member(referred_member_id,joined_member_name,community_name,
 
     elif community.hide_community == '0' or community.hide_community == '4':
         print('send_notification_to_referred_member_in_active_community')
-        if referal_count < eligibility_count:
+
+        print(">>>>>>>>>>> ", referred_member_id)
+        referals = get_referred_members_of_a_member(community_id=community_id, member_id=referred_member_id)
+        referal_count = len(referals)
+        print(referals)
+        count = 0
+        print("referal count === ", referal_count)
+
+        for mem_id in referals:
+            member = Members.objects.filter(member_id=mem_id, community_id=community_id)
+            if member.exists():
+
+                if member[0].state == 4:
+                    count += 1
+
+        if count < eligibility_count:
             send_notification_to_referred_member_in_active_community(referred_member_id=referred_member_id,
-                                                                 joined_member_name=joined_member_name,
-                                                                 community_name=community_name,
-                                                                 community_id=community_id,
-                                                                 referal_count=referal_count,
-                                                                 )
+                                                                     joined_member_name=joined_member_name,
+                                                                     community_name=community_name,
+                                                                     community_id=community_id,
+                                                                     referal_count=referal_count,
+                                                                     )
+
 
 def get_referred_members_of_a_member(community_id,member_id):
 

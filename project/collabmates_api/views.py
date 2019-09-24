@@ -421,11 +421,11 @@ def join_community_responses(request):
 
     if 'ref_id' in res:
         ref_id = res['ref_id']
-        # if community.hide_community == '3':
-        invited_member = Members.objects.filter(community_id=community,
-                                                      member_id=ref_id)
-        if invited_member.exists():
-            referal(ref_id=ref_id, community_id=community_id, interested_member_id=user_id)
+        if community.hide_community == '3' or community.hide_community == '4':
+            invited_member = Members.objects.filter(community_id=community,
+                                                          member_id=ref_id)
+            if invited_member.exists():
+                referal(ref_id=ref_id, community_id=community_id, interested_member_id=user_id)
 
     # inserting in members table if the member status is pending and inserting it to database with status=3
 
@@ -1420,6 +1420,7 @@ def request_response(request,req_dict=None):
 
         # send notification
         send_notification_for_join_requests.delay(community_id,True,member_id)
+
         notify_referred_member_after_join(joined_member_id=member_id, joined_member_name=user.userinfo.name,
                                           community_name=community.name, community_id=community_id)
 
@@ -1440,7 +1441,10 @@ def notify_referred_member_after_join(joined_member_id,joined_member_name,commun
     refer = Referal.objects.filter(invited_member=joined_member_id,
                                    community=community)
     if refer.exists():
+
         referred_member_id = refer[0].member.id
+
+
         notify_referred_member.delay(referred_member_id=referred_member_id,
                                  joined_member_name=joined_member_name,
                                  community_name=community_name,
@@ -1477,6 +1481,7 @@ def check_for_member_eligibiity(community_id,member_id):
                 community_id=community.id
                 community_name = community.name
                 ref_id=member_id
+
                 send_notification_to_eligible_member.delay(eligible_member_id=ref_id,
                                                            community_name=community_name,
                                                            community_id=community_id,
