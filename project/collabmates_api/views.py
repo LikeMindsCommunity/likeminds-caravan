@@ -1405,14 +1405,15 @@ def request_response(request,req_dict=None):
             if card:
                 purpose_card=card[0].id
         unseen_count=Collabcard.objects.filter(community=community).count()
-        engage = Member_Engage()
-        engage.member_id = user
-        engage.community_id = community
-        engage.last_unseen_conversation = purpose_card
-        engage.last_unseen_count=unseen_count
-        engage.updated_at = time.time()
-        engage.save()
-        update_pending_member_count_in_engage(community)
+        if not is_member_engage(community, user.id):
+            engage = Member_Engage()
+            engage.member_id = user
+            engage.community_id = community
+            engage.last_unseen_conversation = purpose_card
+            engage.last_unseen_count=unseen_count
+            engage.updated_at = time.time()
+            engage.save()
+            update_pending_member_count_in_engage(community)
 
         count = check_for_member_eligibiity(community_id, member_id)
 
@@ -1653,6 +1654,7 @@ def accept_invitation(request):
                         if card:
                             purpose_card = card[0].id
                     unseen_count = Collabcard.objects.filter(community=community).count()
+
                     engage = Member_Engage()
                     engage.member_id = nom_admin[0].user_id
                     engage.community_id = community
