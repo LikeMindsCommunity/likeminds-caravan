@@ -286,4 +286,58 @@ def send_notification_to_referred_member(referred_member_id,joined_member_name,c
         print('No FCM token to send message')
 
 
+@shared_task
+def send_notification_to_referred_member_in_active_community(referred_member_id,joined_member_name,community_name,community_id,referal_count):
+
+    '''function to send notification to referred member(who is referring)'''
+
+    fcm_token=get_token_for_fcm(referred_member_id)
+
+    if fcm_token:
+        token_list=[]
+        token_list.append(fcm_token)
+        if referal_count == 1:
+            sub_title =  str(joined_member_name) + " has joined "+ community_name + " community. You have referred "+ str(referal_count) +" member to the community"
+        elif referal_count > 1:
+            sub_title =  str(joined_member_name) + " has joined "+ community_name + " community. You have referred "+ str(referal_count) +" members to the community"
+
+        message={}
+        message['payload']={
+            'title':str(community_name),
+            'sub_title':sub_title,
+            'route':'route://community?community_id=' + str(community_id)
+        }
+        send_notification_to_multiple_devices(token_list, message)
+    else:
+        print('No FCM token to send message')
+
+
+@shared_task
+def send_notification_to_all_admins(community_id,name):
+    '''function to send notification to community admins'''
+    try:
+        connection=get_connection()
+        curr=connection.cursor()
+        sql="select member_id_id from togther_members where community_id_id= " + str(community_id) + " and (state=1 or state=2)"
+        curr.execute(sql)
+        admins=curr.fetchall()
+        token_list=[]
+        for admin in admins:
+             fcm_token=get_token_for_fcm(admin[0])
+             token_list.append((fcm_token))
+
+        community_name=get_community_name(community_id)
+        message={}
+        message['payload']={
+            'title':community_name,
+            'sub_title':str(name)+' is also a promoter now',
+            'route':'route://community?community_id=' + str(community_id)
+        }
+        send_notification_to_multiple_devices(token_list,message)
+        curr.close()
+        connection.close()
+    except (Exception, psycopg2.Error) as error:
+
+        print ("Error while connecting to PostgreSQL", error)
+
 
