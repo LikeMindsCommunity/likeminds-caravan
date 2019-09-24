@@ -345,7 +345,7 @@ def referal(ref_id, community_id, interested_member_id):
         joined_member_name, community_name = invited_member.userinfo.name, community.name
 
         if community.hide_community == '3':
-            
+
             total_referals = Referal.objects.filter(member=referred_member,
                                                     community=community)
             if total_referals.count() < eligibility_count:
@@ -399,7 +399,8 @@ def notify_referred_member(referred_member_id,joined_member_name,community_name,
 
     elif community.hide_community == '0' or community.hide_community == '4':
         print('send_notification_to_referred_member_in_active_community')
-        send_notification_to_referred_member_in_active_community(referred_member_id=referred_member_id,
+        if referal_count < eligibility_count:
+            send_notification_to_referred_member_in_active_community(referred_member_id=referred_member_id,
                                                                  joined_member_name=joined_member_name,
                                                                  community_name=community_name,
                                                                  community_id=community_id,

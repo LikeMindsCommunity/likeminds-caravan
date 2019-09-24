@@ -244,7 +244,7 @@ def send_notification_to_eligible_member(eligible_member_id,community_name,commu
      after he becomes eligible to become admin to a community'''
 
     fcm_token=get_token_for_fcm(eligible_member_id)
-
+    print('send_notification_to_eligible_member')
     if fcm_token:
         token_list=[]
         token_list.append(fcm_token)
@@ -264,7 +264,7 @@ def send_notification_to_eligible_member(eligible_member_id,community_name,commu
 def send_notification_to_referred_member(referred_member_id,joined_member_name,community_name,community_id,referal_count):
 
     '''function to send notification to referred member(who is referring)'''
-
+    print('send_notification_to_referred_member')
     fcm_token=get_token_for_fcm(referred_member_id)
 
     if fcm_token:
