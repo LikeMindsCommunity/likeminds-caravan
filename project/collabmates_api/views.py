@@ -1421,8 +1421,10 @@ def request_response(request,req_dict=None):
         # send notification
         send_notification_for_join_requests.delay(community_id,True,member_id)
 
-        notify_referred_member_after_join(joined_member_id=member_id, joined_member_name=user.userinfo.name,
-                                          community_name=community.name, community_id=community_id)
+        if not req_dict:
+            notify_referred_member_after_join(joined_member_id=member_id,
+                                              joined_member_name=user.userinfo.name,
+                                              community_name=community.name, community_id=community_id)
 
     else:
         # if rejected , change user state to 5
