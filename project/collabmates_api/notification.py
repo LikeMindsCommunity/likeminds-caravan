@@ -244,7 +244,6 @@ def send_notification_to_eligible_member(eligible_member_id,community_name,commu
      after he becomes eligible to become admin to a community'''
 
     fcm_token=get_token_for_fcm(eligible_member_id)
-    print('send_notification_to_eligible_member')
     if fcm_token:
         token_list=[]
         token_list.append(fcm_token)
@@ -264,7 +263,6 @@ def send_notification_to_eligible_member(eligible_member_id,community_name,commu
 def send_notification_to_referred_member(referred_member_id,joined_member_name,community_name,community_id,referal_count):
 
     '''function to send notification to referred member(who is referring)'''
-    print('send_notification_to_referred_member')
     fcm_token=get_token_for_fcm(referred_member_id)
 
     if fcm_token:
@@ -290,16 +288,15 @@ def send_notification_to_referred_member(referred_member_id,joined_member_name,c
 def send_notification_to_referred_member_in_active_community(referred_member_id,joined_member_name,community_name,community_id,referal_count):
 
     '''function to send notification to referred member(who is referring)'''
-    print('send_notification_to_referred_member_in_active_community')
     fcm_token=get_token_for_fcm(referred_member_id)
 
     if fcm_token:
         token_list=[]
         token_list.append(fcm_token)
         if referal_count == 1:
-            sub_title =  str(joined_member_name) + " has joined "+ community_name + " community. You have referred "+ str(referal_count) +" member to the community"
+            sub_title =  str(joined_member_name) + " has joined this community. You have referred "+ str(referal_count) +" member to the community"
         elif referal_count > 1:
-            sub_title =  str(joined_member_name) + " has joined "+ community_name + " community. You have referred "+ str(referal_count) +" members to the community"
+            sub_title =  str(joined_member_name) + " has joined this community. You have referred "+ str(referal_count) +" members to the community"
 
         message={}
         message['payload']={
@@ -313,7 +310,7 @@ def send_notification_to_referred_member_in_active_community(referred_member_id,
 
 
 @shared_task
-def send_notification_to_all_admins(community_id,name):
+def send_notification_to_all_admins(community_id,name,current_promoter_id):
     '''function to send notification to community admins'''
     try:
         connection=get_connection()
@@ -323,8 +320,9 @@ def send_notification_to_all_admins(community_id,name):
         admins=curr.fetchall()
         token_list=[]
         for admin in admins:
-             fcm_token=get_token_for_fcm(admin[0])
-             token_list.append((fcm_token))
+            if str(current_promoter_id) != str(admin[0]):
+                fcm_token=get_token_for_fcm(admin[0])
+                token_list.append((fcm_token))
 
         community_name=get_community_name(community_id)
         message={}
