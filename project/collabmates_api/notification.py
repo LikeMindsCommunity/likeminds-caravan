@@ -290,7 +290,7 @@ def send_notification_to_referred_member(referred_member_id,joined_member_name,c
 def send_notification_to_referred_member_in_active_community(referred_member_id,joined_member_name,community_name,community_id,referal_count):
 
     '''function to send notification to referred member(who is referring)'''
-
+    print('send_notification_to_referred_member_in_active_community')
     fcm_token=get_token_for_fcm(referred_member_id)
 
     if fcm_token:
