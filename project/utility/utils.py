@@ -17,7 +17,7 @@ from collabmates_api.notification import (send_notification_to_eligible_member,
 
 from django.http.response import JsonResponse
 
-eligibility_count = 3
+eligibility_count = 5
 
 def decode_meta_from_url(url):
 
@@ -398,7 +398,7 @@ def notify_referred_member(referred_member_id,joined_member_name,community_name,
                                              )
 
     elif community.hide_community == '0' or community.hide_community == '4':
-        print('send_notification_to_referred_member_in_active_community')
+        print('send_notification_to_referred_member_in_active community')
 
         print(">>>>>>>>>>> ", referred_member_id)
         referals = get_referred_members_of_a_member(community_id=community_id, member_id=referred_member_id)
