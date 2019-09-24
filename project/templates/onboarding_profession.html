@@ -61,18 +61,18 @@
 
 <!-- -->
 <!-- designation -->
-<div class="field padd">
-         <div class="form_field">Designation</div>
-    <select name="" multiple="" class="ui search fluid dropdown profession_designation" id="profession_designation">
-      <option value="">Enter your current designation</option>
-        {% for tag in community_profession_designation %}
-      <option value="{{tag.id}}" selected>{{tag.name}}</option>
-        {% endfor %}
-      {% for designation in profession_designation %}
-        <option value="{{designation.id}}">{{designation.name}}</option>
-       {% endfor %}
-    </select>
-</div>
+<!--<div class="field padd">-->
+<!--         <div class="form_field">Designation</div>-->
+<!--    <select name="" multiple="" class="ui search fluid dropdown profession_designation" id="profession_designation">-->
+<!--      <option value="">Enter your current designation</option>-->
+<!--        {% for tag in community_profession_designation %}-->
+<!--      <option value="{{tag.id}}" selected>{{tag.name}}</option>-->
+<!--        {% endfor %}-->
+<!--      {% for designation in profession_designation %}-->
+<!--        <option value="{{designation.id}}">{{designation.name}}</option>-->
+<!--       {% endfor %}-->
+<!--    </select>-->
+<!--</div>-->
 
     <div style="text-align:center;">
         <button class="ui button " type="submit" id="submit">Continue</button>
@@ -124,8 +124,8 @@ if(profession_skill == null){
     return;
 }
 
-profession_designation=$('#profession_designation').val()
-
+//profession_designation=$('#profession_designation').val()
+profession_designation=""
 
 
 
