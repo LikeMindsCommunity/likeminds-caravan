@@ -16,7 +16,8 @@ from .notification import (send_follow_notification,send_notification_to_admins,
                            send_notification_for_new_collabcard_posted,
                            send_notification_to_proposed_admin,
                            send_notification_to_proposer,
-                           send_notification_to_eligible_member)
+                           send_notification_to_eligible_member,
+                           send_notification_to_all_admins)
 from django.db.models import Q
 import dateutil.relativedelta
 from .tasks import send_email_to_nominated_admin,send_email_for_new_collabcard_posted
@@ -547,7 +548,7 @@ def admins(request, community_id):
         print(referals)
         count = 0
         print("referal count === ", referal_count)
-        
+
         for mem_id in referals:
             member = Members.objects.filter(member_id=mem_id, community_id=community_id)
             if member.exists():
@@ -2038,6 +2039,9 @@ def accept_promotership(request):
 
         if 'member_ids' not in res or not res['member_ids']:
             Members.objects.filter(community_id=community_id,member_id=member_id).update(state=1)
+            user = User.objects.get(pk=member_id)
+            name  = user.userinfo.name
+            send_notification_to_all_admins.delay(community_id, name)
             return JsonResponse({'success': True})
 
         refered_id=res['member_ids']
