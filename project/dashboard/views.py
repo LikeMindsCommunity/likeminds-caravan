@@ -2165,7 +2165,7 @@ def delete_tags_post(request,tag_id):
         for community in tag_community:
             tag_community_id = community.community_id.id
 
-            community_members_count = Members.objects.filter(community_id=community.community_id).filter(Q(state=1)|Q(state=2)|Q(state=4)|Q(state=7)).count()
+            community_members_count = Members.objects.filter(community_id=community.community_id).filter(Q(state=1)|Q(state=2)|Q(state=4)|Q(state=7)|Q(state=8)|Q(state=9)).count()
             # if community has no members in it
             if community_members_count == 0:
                 print("community will be deleted")
@@ -2175,6 +2175,7 @@ def delete_tags_post(request,tag_id):
                     # delete cards of that community (purpose card)
                     card = Collabcard.objects.filter(id=community_purpose_card_id)  #
                     if card.exists():
+                        print("deleting card")
                         card.delete()
                 except:
                     print("problem with card")
@@ -2184,17 +2185,18 @@ def delete_tags_post(request,tag_id):
             # if community has members , dont delete community and
             # any thing related to that community
             elif community_members_count > 0:
+                print("community will not be deleted")
                 if not tag_deleted:
                     continue
                 tag_deleted = False
 
-    # if tag_deketed falg is true , then delete tag and users tags
-    if tag_deleted:
-        user_tags.delete()
-        tags.delete()
+    # if tag_deketed flag is true , then delete tag and users tags
+    tag_community.delete()
+    user_tags.delete()
+    tags.delete()
 
     base_url = reverse('delete_tags')
-    query_string = urlencode({'deleted': tag_deleted,'alrt':True,'tag_id':tag_id})
+    query_string = urlencode({'deleted': True,'alrt':True,'tag_id':tag_id})
     url = '{}?{}'.format(base_url, query_string)
 
     return redirect(url)
