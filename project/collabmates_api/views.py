@@ -17,7 +17,8 @@ from .notification import (send_follow_notification,send_notification_to_admins,
                            send_notification_to_proposed_admin,
                            send_notification_to_proposer,
                            send_notification_to_eligible_member,
-                           send_notification_to_all_admins)
+                           send_notification_to_all_admins,
+                           send_notification_to_referred_member_in_active_community)
 from django.db.models import Q
 import dateutil.relativedelta
 from .tasks import send_email_to_nominated_admin,send_email_for_new_collabcard_posted
@@ -32,7 +33,7 @@ import googlemaps
 import requests as rqst
 from utility.utils import (decode_meta_from_url, update_tag_image,
                            referal, get_referred_members_of_a_member,
-                           eligibility_count, )
+                           eligibility_count, notify_referred_member, )
 
 
 url  = settings.URL
@@ -1419,6 +1420,9 @@ def request_response(request,req_dict=None):
 
         # send notification
         send_notification_for_join_requests.delay(community_id,True,member_id)
+        notify_referred_member_after_join(joined_member_id=member_id, joined_member_name=user.userinfo.name,
+                                          community_name=community.name, community_id=community_id)
+
     else:
         # if rejected , change user state to 5
         Members.objects.filter(member_id=member_id,community_id=community).update(state=5)  # decline state = 5
@@ -1428,6 +1432,21 @@ def request_response(request,req_dict=None):
 
 
     return JsonResponse({'success': True})
+
+
+def notify_referred_member_after_join(joined_member_id,joined_member_name,community_name,community_id):
+
+    community = get_object_or_404(Community, pk=community_id)
+    refer = Referal.objects.filter(invited_member=joined_member_id,
+                                   community=community)
+    if refer.exists():
+        referred_member_id = refer[0].member.id
+        notify_referred_member.delay(referred_member_id=referred_member_id,
+                                 joined_member_name=joined_member_name,
+                                 community_name=community_name,
+                                 community_id=community_id)
+
+
 
 
 def check_for_member_eligibiity(community_id,member_id):
