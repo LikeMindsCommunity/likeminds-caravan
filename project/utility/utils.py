@@ -405,6 +405,7 @@ def notify_referred_member(referred_member_id,joined_member_name,community_name,
     referal_count = len(referal_count)
 
     if community.hide_community == '3':
+        print('send_notification_to_referred_member')
         send_notification_to_referred_member(referred_member_id=referred_member_id,
                                              joined_member_name=joined_member_name,
                                              community_name=community_name,
@@ -413,13 +414,13 @@ def notify_referred_member(referred_member_id,joined_member_name,community_name,
                                              )
 
     elif community.hide_community == '0' or community.hide_community == '4':
+        print('send_notification_to_referred_member_in_active_community')
         send_notification_to_referred_member_in_active_community(referred_member_id=referred_member_id,
                                                                  joined_member_name=joined_member_name,
                                                                  community_name=community_name,
                                                                  community_id=community_id,
                                                                  referal_count=referal_count,
                                                                  )
-
 
 def get_referred_members_of_a_member(community_id,member_id):
 
