@@ -38,12 +38,18 @@ def index(request):
 
 
 def home(request):
-    users = User.objects.all()
+    # users = User.objects.all()
     if request.user.is_authenticated:
         return redirect('dashboard')
     else:
-        return render(request, 'home.html', {'users': users})
+        return render(request, 'home.html', {})
 
+def signup(request):
+    # users = User.objects.all()
+    if request.user.is_authenticated:
+        return redirect('dashboard')
+    else:
+        return render(request, 'signup.html',{})
 
 def dashboard(request):
     ''' function to show all communities and filter based on categories '''
