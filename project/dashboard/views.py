@@ -2254,6 +2254,8 @@ def rename_tag(request,tag_id = None):
 
 def search(request,tag_ids):
 
+    ''' function to fetch communities with searched tag '''
+
     print("\n inside search    =====   ",type(tag_ids),tag_ids)
     tag = Tags_lpig.objects.get(pk = tag_ids)
 
