@@ -6,6 +6,8 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
 		<link rel="shortcut icon" href="https://collabmates.com/media/media/ic_launcher_round.png">
+                    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/1.11.8/semantic.min.css"/>
+
 
 		<meta name="author" content="colorlib">
 
@@ -37,31 +39,67 @@
 			<link rel="stylesheet" href="{% static 'css/hexagons.min.css' %}">
 			<link rel="stylesheet" href="{% static 'css/main.css' %}">
 
+
+
 		<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+
+		<style>
+
+
+			@media screen and (max-width: 531px) {
+				#facebook_login { padding-top:90px; }
+				#banner { padding-top:0px; }
+				#button_spacing { height:15px; }
+
+
+
+}
+		</style>
 
 		</head>
 		<body>
 
 			<!-- start banner Area -->
-			<section class="banner-area" id="home" >
-				<div class="container">
-					<div class="row justify-content-end fullscreen align-items-center">
-						<div class="container">
+			<section class="banner-area" id="home"  >
+				<div class="container " >
+					<div class="row justify-content-end fullscreen ">
+						<div class="container" style="padding-top:100px; ">
 							<div class="col-lg-12 col-md-12 banner" id= "banner">
 									<h1  class="text-white">
 									CollabMates <br>
 
 									</h1>
 
-									<p style = " text-shadow: 1px 1px 1px black;"class="mx-auto text-white  mt-20 mb-20">
+								 	<p style = " text-shadow: 1px 1px 1px black;"class="mx-auto text-white  mt-20 mb-20">
 
 Your virtual Neighbourhood
 </p><br><br>
-									<div id = "btn1" style="color: white;">
-										<input type="text" id = "email" name="email" placeholder="Enter Your Email ID" style="font-size:medium; border:1px solid transparent; margin : 10px 0 20px; border-radius: 10px; padding :5px 15px ; width: 258px;">
+									<div class="content" id="facebook_login">
+                                          <a href="{% url 'social:begin' 'facebook' %}">
+                                              <button class="ui facebook button" style="width:200px;">
+                                                  <i class="facebook icon"></i>
+                                                  Login with Facebook
+                                              </button>
+                                        </a>
+                                    </div>
+                                <table>
+									<tbody>
+									<tr>
+										<td id="button_spacing" style="height:15px;">
 
-									</div>
-									<a href="#" id = "btn2" class="text-uppercase header-btn" onclick="add_field()">Get Notified when It's released</span></a>
+										</td>
+									</tr>
+									</tbody>
+								</table>
+
+									<div class = "content" id="linkedin_login">
+                                            <a href="{% url 'social:begin' 'linkedin-oauth2' %}">
+                                        <button class="ui linkedin button" style="width:200px;" >
+                                            <i class="linkedin icon"></i>
+                                            Login with LinkedIn
+                                          </button>
+                                          </a>
+                                    </div>
 									<div id="btn3" style="margin: 20px 0; color: white;text-shadow: #222 0px 0px 10px;"></div>
 							</div>
 						</div>
@@ -109,11 +147,11 @@ Your virtual Neighbourhood
 					</div>
 				</div>
 			</section>
-					<div class ="bottom">
-						<div class="container">
-							<div class="div2">
+					<div class ="bottom" >
+						<div class="container" >
+							<div class="div2" style="text-align:center;padding-left:10px;">
 
-									<a href="#home" id = 'bottom-button' class="text-uppercase header-btn">Get Notified</a>
+									<a href="#home" id = 'bottom-button' class="text-uppercase header-btn">Get Inside</a>
 
 							</div>
 						</div>

@@ -38,12 +38,18 @@ def index(request):
 
 
 def home(request):
-    users = User.objects.all()
+    # users = User.objects.all()
     if request.user.is_authenticated:
         return redirect('dashboard')
     else:
-        return render(request, 'home.html', {'users': users})
+        return render(request, 'home.html', {})
 
+def signup(request):
+    # users = User.objects.all()
+    if request.user.is_authenticated:
+        return redirect('dashboard')
+    else:
+        return render(request, 'signup.html',{})
 
 def dashboard(request):
     ''' function to show all communities and filter based on categories '''
@@ -1455,11 +1461,11 @@ def onboarding(request):
     else:
         user_id=request.user.id
         legacy_education =request.POST.getlist('legacy_education[]')
-        legacy_work = request.POST.getlist('legacy_work[]')
+        #legacy_work = request.POST.getlist('legacy_work[]')
         legacy_hometown = request.POST.getlist('legacy_hometown[]')
         geography=request.POST.getlist('loc[]')
 
-        legacy_li = legacy_education + legacy_work + legacy_hometown
+        legacy_li = legacy_education + legacy_hometown   # + legacy_work
 
         type_list=get_user_tags_from_list(legacy_li,"Legacy")
         insert_tags_for_user(user_id,type_list,"Legacy")
