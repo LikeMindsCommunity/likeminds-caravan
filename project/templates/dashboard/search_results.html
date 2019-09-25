@@ -18,6 +18,7 @@
 <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.13.1/js/bootstrap-select.min.js"></script>
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
 
 
 
@@ -151,6 +152,10 @@ a.article-title:hover {
 </head>
 
 <body>
+<div style="padding-right:40px; align:right;" >
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    <a class="btn btn-warning  mt-1 mb-1 mr-4 "  href="{% url 'admin_dashboard' %}"><i class="fa fa-home" aria-hidden="true"></i>&nbsp;Go to Home</a>
+
+</div>
 
 <div class="row-fluid" style="text-align:right;padding-right:30px;">
 <!--      <select class="selectpicker" id="del_tag" data-show-subtext="true" data-live-search="true">-->
@@ -210,7 +215,7 @@ a.article-title:hover {
     </div>
 
 
-
+{% if communities_length > 0 %}
 <br/><br/>
 
 <main role="main" class="container">
@@ -282,7 +287,7 @@ a.article-title:hover {
     </div>
 
 
-{% endif %}
+
 </main>
 
 <div style="padding-left:450px;">
@@ -309,18 +314,29 @@ a.article-title:hover {
 
 </ul>
 </div>
+{% elif communities_length == 0 %}
+<br>
+<br>
+<br>
+<div style="text-align:center;">
+    <h1>
+    No Results Found
+    </h1>
+</div>
 
+{% endif %}
+{% endif %}
 <br/>
 
 <script>
+
 
      $('#search_submit').click(function()
        {
          search_tags=$('#search').val();
          console.log(search_tags)
-         window.location.href='./search/'+search_tags
+         window.location.href='../search/'+search_tags
        })
-
 </script>
 
 </body>
