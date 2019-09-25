@@ -38,7 +38,7 @@
 
 
     <div class="ui modal" id="email_login">
-        <i class="close icon"></i>
+<!--        <i class="close icon"></i>-->
         <div class="header">
             Please provide your email id in order to continue
         </div>
@@ -207,16 +207,35 @@
 
 });
 
+
+
 {% if user_email %}
 
   //email_login popup start
 
       $('#email_login').modal('show');
 
+        $('#email_login').modal({
+      backdrop:'static',
+      keyboard: false,
+
+      });
       $('#email_submit').click(function(){
 
       email=$('#email_input').val()
       console.log(email)
+
+
+      $.ajax({
+
+            url:'/update_user_info/'+email,
+
+            success:function(data){
+               console.log(data)
+
+            }
+
+         })
 
       })
 

@@ -47,16 +47,19 @@ def home(request):
 
 def dashboard(request):
     ''' function to show all communities and filter based on categories '''
+
     if request.user.is_authenticated:
+        request_user_email = False
 
         try:
             # check if user has user info
             user = Userinfo.objects.get(user_id=request.user.id)
+            if not request.user.email:
+                request_user_email = True
         except:
             # if there is no user info for the user who is currently logged in
             # create userinfo for current user
-            user = update_user_info(request)
-
+            user, request_user_email = update_user_info(request)
         # get users communities
         my_community = get_user_communities(request)
         # getting communities by user hidden tag
@@ -67,13 +70,14 @@ def dashboard(request):
 
         return render(request, 'dashboard.html',
                       {'usr': user, 'communities': communities, 'my_communities': my_community[:2],
-                       "my_communities_count": len(my_community),'onboard':onboard,'is_iitd':is_iitd})
+                       "my_communities_count": len(my_community),'onboard':onboard,'is_iitd':is_iitd,
+                       'request_user_email':request_user_email})
     communities = Community.objects.filter(Q(hide_community='0')|Q(hide_community = '4')).order_by('-active_since')
     for community in communities:
         update_member_count(community.id)
 
 
-    return render(request, 'dashboard.html', {'communities': communities})
+    return render(request, 'dashboard.html', {'communities': communities,})
 
 
 def user_onbaord(request):
@@ -207,17 +211,23 @@ def community(request, community_id):
                               {'usr': user,
                                'similar_communities': data,
                                'community': community,
-                               'onboard':onboard})
+                               'onboard':onboard,
+                               })
         elif cta == 'share':
             cta = 'join'
 
     else:
         cta = ''
+
+    request_user_email = False
+
     if request.user.is_authenticated:
         try:
             user = Userinfo.objects.get(user_id=request.user.id)
+            if not request.user.email:
+                request_user_email = True
         except:
-            user = update_user_info(request)
+            user,request_user_email = update_user_info(request)
 
         member = Members.objects.filter(member_id=request.user, community_id=community)
         try:
@@ -269,6 +279,7 @@ def community(request, community_id):
     else:
         user = []
 
+    # user_email = True
     return render(request, 'community.html', {'usr': user, 'similar_communities': communities,
                                               'community': community, 'admins': admin_details,
                                               'members': members, 'source': source,
@@ -276,7 +287,8 @@ def community(request, community_id):
                                               'admin_length': len(admin_details),
                                               'members_length': len(members),
                                               'similar_community_length':len(communities),
-                                              'ref_id':ref_id,})
+                                              'ref_id':ref_id,
+                                              'user_email':request_user_email})
 
 
 def refer_members(request,community_id):
@@ -329,9 +341,12 @@ def get_members_of_community(community):
 
 
 @login_required
-def update_user_info(request):
+def update_user_info(request,user_email=None):
+
+    request_user_email = False
     user = Userinfo.objects.all().filter(user_id=request.user)
-    if not user:
+    if not user or not request.user.email:
+        print(">>>>>>>>>>>>>   ", user_email)
         social_user = request.user.social_auth.filter(user_id=request.user.id).first()
         if social_user:
             if social_user.provider == 'facebook':
@@ -344,11 +359,20 @@ def update_user_info(request):
                     'id'] + "/picture?width=400&height=400"
                 print(data)
                 usr = User.objects.get(pk = request.user.id)
-                if not usr.email:
-                    usr.email = data['email']
-                    usr.save()
+
                 try:
                     user = Userinfo.objects.get(user_id=request.user.id)
+                    if not usr.email:
+
+                        if user_email:
+                            data['email'] = user_email
+                            usr.email = user_email
+                            usr.save()
+                        if not user.email:
+                            user.email = user_email
+                            user.save()
+                        else:
+                            request_user_email = True
                 except:
                     user = Userinfo()
                     if 'name' in data:
@@ -364,7 +388,11 @@ def update_user_info(request):
                     user.save()
                     print("created userinfo")
 
-                return user
+                if user_email:
+                    return JsonResponse({"success":True})
+
+                return user,request_user_email
+
             if social_user.provider == 'linkedin-oauth2':
                 # accessing Linked In API to get user basic information
                 url = 'https://api.linkedin.com/v2/me?projection=(id,firstName,emailAddress,lastName,vanityName,headline,interests,location,picture-url,name,profilePicture(displayImage~:playableStreams))&oauth2_access_token=' + \
@@ -384,8 +412,12 @@ def update_user_info(request):
                 email = email_data['elements'][0]['handle~']['emailAddress']
                 usr = User.objects.get(pk=request.user.id)
                 if not usr.email:
-                    usr.email = email
-                    usr.save()
+                    if user_email:
+                        email = user_email
+                        usr.email = user_email
+                        usr.save()
+                    else:
+                        request_user_email = True
                 # checking if there is any user having details with the email we got from linkedIn
                 usr1 = Userinfo.objects.all().filter(email=email)
                 if not usr1:
@@ -400,7 +432,10 @@ def update_user_info(request):
                     user.user_id = request.user
                     user.save()
 
-                return user
+                if user_email:
+                    return JsonResponse({"success":True})
+
+                return user,request_user_email
 
 
 @login_required
@@ -851,10 +886,19 @@ def collabcard(request, card_id):
     collabcard_url = api_url + 'collabcard/' + str(card_id)
     collabcard = rqst.get(collabcard_url)
     collabcard_dict = json.loads(collabcard.content)
-    try:
-        user=Userinfo.objects.get(user_id=request.user.id)
+
+    request_user_email = False
+
+    if request.user.is_authenticated:
+        try:
+            user = Userinfo.objects.get(user_id=request.user.id)
+
+            if not request.user.email:
+                request_user_email = True
+        except:
+            user, request_user_email = update_user_info(request)
         user_image=user.image_file.url
-    except:
+    else:
         user_image=''
 
     answers = collabcard_dict['answers']
@@ -897,6 +941,7 @@ def collabcard(request, card_id):
                'created_at':collabcard_dict['collabcard']['created_at'],
                'answers_count': len(collabcard_dict['answers']),
                'is_member':is_member,
+               'request_user_email':request_user_email,
 
                }
     return render(request, 'card.html', context)
@@ -1013,12 +1058,12 @@ def pending_list(request,community_id):
     res = rqst.get(link)
     user_image_url=""
     is_promoter = 'false'
+    request_user_email = False
     if request.user.is_authenticated:
         try:
             userinfo = Userinfo.objects.get(user_id=request.user.id)
         except:
-            userinfo = update_user_info(request)
-
+            user, request_user_email = update_user_info(request)
         # userinfo=Userinfo.objects.get(user_id=request.user.id)
         user_image_url=userinfo.image_file.url
         link=api_url+'members_state?member_id='+str(request.user.id)+'&community_id='+str(community_id)
@@ -1044,7 +1089,8 @@ def pending_list(request,community_id):
         'user_image_url':url+user_image_url,
         'is_promoter':is_promoter,
         'list_length':len(pending_list),
-        'error':error
+        'error':error,
+        'request_user_email':request_user_email
     }
     return render(request,'pending_list.html',context)
 

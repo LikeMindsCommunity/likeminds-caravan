@@ -35,5 +35,6 @@ urlpatterns = [
     path('access_page', views.access_page, name='access_page'),
     path('alpha_page', views.alpha_page, name='alpha_page'),
     path('refer_members/<int:community_id>', views.refer_members, name='refer_members'),
+    path('update_user_info/<str:user_email>', views.update_user_info, name='update_user_info'),
 
 ]
