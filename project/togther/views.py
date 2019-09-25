@@ -73,6 +73,7 @@ def dashboard(request):
                        "my_communities_count": len(my_community),'onboard':onboard,'is_iitd':is_iitd,
                        'request_user_email':request_user_email})
     communities = Community.objects.filter(Q(hide_community='0')|Q(hide_community = '4')).order_by('-active_since')
+
     for community in communities:
         update_member_count(community.id)
 
@@ -92,9 +93,8 @@ def user_onbaord(request):
 
         ''' if user comes back in the middle of on-baording flow,
         make sure he continues the on-boarding'''
-
-        iit_tag = user_legacy.filter(tags_id__id = 6)
-        return True, iit_tag.exists()
+        #iit_tag = user_legacy.filter(tags_id__id = 6)
+        return True, True
     return False,False
 
 
@@ -1558,9 +1558,9 @@ def onboarding_profession(request):
         user_id = request.user.id
         profession_industry = request.POST.getlist('profession_industry[]')
         profession_skill = request.POST.getlist('profession_skill[]')
-        profession_designation = request.POST.getlist('profession_designation[]')
+        #profession_designation = request.POST.getlist('profession_designation[]')
 
-        profession_list = profession_industry + profession_skill + profession_designation
+        profession_list = profession_industry + profession_skill
 
         type_list = get_user_tags_from_list(profession_list, "Profession")
         insert_tags_for_user(user_id, type_list, "Profession")
@@ -1627,7 +1627,7 @@ def onboarding_interest(request):
         if user_lpig.exists():
                 # checking for iit
                 is_iitd = True
-        return JsonResponse({'is_iitd': is_iitd})
+        return JsonResponse({'is_iitd': True})
 
 
 def access_page(request):
