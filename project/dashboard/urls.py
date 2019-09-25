@@ -43,5 +43,6 @@ urlpatterns = [
     path('rename_tag', rename_tag, name='rename_tag'),
     path('rename_tag/<int:tag_id>', rename_tag, name='rename_tag_post'),
     path('get_tags/<int:attr_id>', get_tags_by_attributes, name='get_tags'),
+    path('search/<str:tag_ids>', search, name='search'),
 
 ]
