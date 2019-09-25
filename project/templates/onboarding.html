@@ -56,18 +56,18 @@
 
 <!-- -->
 <!-- legacy work -->
-<div class="field padd">
-    <div class="form_field">Current/past companies </div>
-    <select name="" multiple="" class="ui search fluid dropdown legacy_work" id="legacy_work">
-      <option value="">Enter all the organization(s)</option>
-      {% for tag in community_legacy_work %}
-      <option value="{{tag.id}}" selected>{{tag.name}}</option>
-        {% endfor %}
-      {% for legacy in legacy_work %}
-        <option value="{{legacy.id}}">{{legacy.name}}</option>
-       {% endfor %}
-    </select>
-</div>
+<!--<div class="field padd">-->
+<!--    <div class="form_field">Current/past companies </div>-->
+<!--    <select name="" multiple="" class="ui search fluid dropdown legacy_work" id="legacy_work">-->
+<!--      <option value="">Enter all the organization(s)</option>-->
+<!--      {# for tag in community_legacy_work #}-->
+<!--      <option value="{{tag.id}}" selected>{{tag.name}}</option>-->
+<!--        {# endfor #}-->
+<!--      {# for legacy in legacy_work #}-->
+<!--        <option value="{{legacy.id}}">{{legacy.name}}</option>-->
+<!--       {# endfor #}-->
+<!--    </select>-->
+<!--</div>-->
 
 <!-- -->
 <!-- legacy hometown -->
@@ -108,11 +108,11 @@
 });
 
 
-   $('.ui.dropdown.legacy_work').dropdown({
-  allowAdditions: true,
-  fullTextSearch: true
+   //$('.ui.dropdown.legacy_work').dropdown({
+  //allowAdditions: true,
+  //fullTextSearch: true
 
-});
+//});
 
 
    $('.ui.dropdown.legacy_hometown').dropdown({
@@ -144,7 +144,7 @@ if(legacy_education == null){
     return;
 }
 
-legacy_work=$('#legacy_work').val()
+//legacy_work=$('#legacy_work').val()
 
 legacy_hometown=$('#legacy_hometown').val()
 
@@ -153,7 +153,7 @@ legacy_hometown=$('#legacy_hometown').val()
 temp={
 
 'legacy_education':legacy_education,
-'legacy_work':legacy_work,
+//'legacy_work':legacy_work,
 'legacy_hometown':legacy_hometown,
 'csrfmiddlewaretoken': '{{ csrf_token }}',
 'loc':loc

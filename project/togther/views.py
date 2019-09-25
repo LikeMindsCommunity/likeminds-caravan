@@ -1455,11 +1455,11 @@ def onboarding(request):
     else:
         user_id=request.user.id
         legacy_education =request.POST.getlist('legacy_education[]')
-        legacy_work = request.POST.getlist('legacy_work[]')
+        #legacy_work = request.POST.getlist('legacy_work[]')
         legacy_hometown = request.POST.getlist('legacy_hometown[]')
         geography=request.POST.getlist('loc[]')
 
-        legacy_li = legacy_education + legacy_work + legacy_hometown
+        legacy_li = legacy_education + legacy_hometown   # + legacy_work
 
         type_list=get_user_tags_from_list(legacy_li,"Legacy")
         insert_tags_for_user(user_id,type_list,"Legacy")
