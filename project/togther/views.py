@@ -11,7 +11,7 @@ from django.db.models import Q
 from django.http.response import JsonResponse
 from django.core.mail import send_mail
 from django.http import HttpResponseRedirect
-from .tasks import *
+from .tasks import send_mail_after_rank_computation, send_email_to_proposed_admin
 from django.core.mail import EmailMultiAlternatives
 from collabmates_api.serializers import *
 from django.template.loader import get_template
@@ -1460,10 +1460,10 @@ def onboarding(request):
             geography = []
 
 
-        education_tags = Tags_lpig.objects.filter(attribute_id=2)
-        work_tags = Tags_lpig.objects.filter(attribute_id=1)
-        hometown_tags = Tags_lpig.objects.filter(attribute_id=3)
-        geography_tags = Tags_lpig.objects.filter(attribute_id=12)
+        education_tags = Tags_lpig.objects.filter(attribute_id=2).order_by('name')
+        work_tags = Tags_lpig.objects.filter(attribute_id=1).order_by('name')
+        hometown_tags = Tags_lpig.objects.filter(attribute_id=3).order_by('name')
+        geography_tags = Tags_lpig.objects.filter(attribute_id=12).order_by('name')
         context={
             'legacy_education':education_tags,
             'legacy_work':work_tags,
@@ -1518,9 +1518,9 @@ def onboarding_profession(request):
             profession_skill = []
             profession_designation = []
 
-        industry_tags = Tags_lpig.objects.filter(attribute_id=6)
-        skill_tags = Tags_lpig.objects.filter(attribute_id=5)
-        designation_tags = Tags_lpig.objects.filter(attribute_id=7)
+        industry_tags = Tags_lpig.objects.filter(attribute_id=6).order_by('name')
+        skill_tags = Tags_lpig.objects.filter(attribute_id=5).order_by('name')
+        designation_tags = Tags_lpig.objects.filter(attribute_id=7).order_by('name')
         context = {
             'profession_industry': industry_tags,
             'profession_skill': skill_tags,
@@ -1568,10 +1568,10 @@ def onboarding_interest(request):
             interest_fan = []
             interest_cause = []
 
-        hobby_tags = Tags_lpig.objects.filter(attribute_id=9)
-        sports_tags = Tags_lpig.objects.filter(attribute_id=10)
-        fan_tags = Tags_lpig.objects.filter(attribute_id=11)
-        cause_tags = Tags_lpig.objects.filter(attribute_id=8)
+        hobby_tags = Tags_lpig.objects.filter(attribute_id=9).order_by('name')
+        sports_tags = Tags_lpig.objects.filter(attribute_id=10).order_by('name')
+        fan_tags = Tags_lpig.objects.filter(attribute_id=11).order_by('name')
+        cause_tags = Tags_lpig.objects.filter(attribute_id=8).order_by('name')
 
         context = {
             'interest_hobby': hobby_tags,
@@ -1597,8 +1597,7 @@ def onboarding_interest(request):
 
         type_list = get_user_tags_from_list(interest_list, "Interests")
         insert_tags_for_user(user_id, type_list, "Interests")
-        compute_rank.delay(user_id=user_id)
-
+        # compute_rank.delay(user_id=user_id)
 
         #checking for iit tag
         is_iitd=False
@@ -1628,6 +1627,11 @@ def access_page(request):
             else:
                 user_info.contact_number = None
             user_info.save()
+
+            communities = Community_Rank.objects.filter(member_id=user_id)
+            if not communities.exists():
+                send_mail_after_rank_computation.delay(user_id=user_id)
+
         except:
 
             print("error in userinfo")

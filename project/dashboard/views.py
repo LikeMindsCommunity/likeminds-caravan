@@ -64,7 +64,7 @@ def dashboard(request):
         community_dic['hidden_tags_count']=get_tags_count(i)
         dashboard_list.append(community_dic)
 
-    tags = Tags_lpig.objects.all()
+    tags = Tags_lpig.objects.all().order_by('name')
     return render(request,'dashboard/dashboard.html',{'communities':dashboard_list,
                                                     'community':community_list,
                                                     'tags': tags,})
@@ -2194,7 +2194,7 @@ def delete_tags_post(request,tag_id):
                     continue
                 tag_deleted = False
 
-    # if tag_deketed flag is true , then delete tag and users tags
+
     tag_community.delete()
     user_tags.delete()
     tags.delete()
@@ -2257,7 +2257,7 @@ def search(request,tag_ids):
     ''' function to fetch communities with searched tag '''
 
     print("\n inside search    =====   ",type(tag_ids),tag_ids)
-    tag = Tags_lpig.objects.get(pk = tag_ids)
+    tag = Tags_lpig.objects.get(pk = tag_ids).order_by('name')
 
     community_list = []
 
