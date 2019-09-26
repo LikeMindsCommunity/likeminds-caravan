@@ -303,8 +303,28 @@ def refer_members(request,community_id):
 
         community = Community.objects.get(pk = community_id)
 
+        member = Members.objects.filter(community_id=community,member_id=request.user)
+        admins = Members.objects.filter(community_id=community).filter(Q(state=1) | Q(state=2)).order_by('id')
+
         share_text = 'Hi, I have added '+ str(community.name) +' community on CollabMates. It will be good if you can join this community'
-        
+
+
+        # if admins.exists() and request.user.id == admins[0].member_id.id:
+        #     share_text = """Hi, I have initiated %s community on CollabMates. It will be good if you can join this community.\n""" % (community.name)
+        #
+        # elif member.exists() and member[0].state == 1 or member[0].state == 2 or member[0].state == 4 or member[0].state == 7 :
+        #     share_text = """I recently joined %s community on CollabMates. It will be good if you also join this community.\n""" % (community.name)
+        #
+        # elif member.exists() and member[0].state == 8 or member[0].state == 9 :
+        #     share_text = """I recently discovered %s community on CollabMates. You can join this community using this link.\n""" % (community.name)
+
+        # elif member.exists() and member[0].state == 0 :
+        #     share_text = 'Hi, I have added '+ str(community.name) +' community on CollabMates. It will be good if you can join this community'
+        #
+        # elif not member.exists():
+        #     share_text = 'Hi, I have added '+ str(community.name) +' community on CollabMates. It will be good if you can join this community'
+
+
         return  render(request,'referal.html',{'share_url':share_url,'community':community,'copy_url':copy_url,'share_text':share_text})
 
 
@@ -1577,7 +1597,7 @@ def onboarding_interest(request):
 
         type_list = get_user_tags_from_list(interest_list, "Interests")
         insert_tags_for_user(user_id, type_list, "Interests")
-        compute_rank.delay(user_id=user_id)
+        compute_rank(user_id=user_id)
 
 
         #checking for iit tag
