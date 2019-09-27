@@ -360,6 +360,7 @@ def all_user(request):
 
     '''dashboard to show all users'''
     userinfo=Userinfo.objects.all().order_by('-user_id')
+
     users_list = []
     for i in userinfo:
         user_dic = {}
@@ -598,6 +599,10 @@ def all_members(request,community_id):
             member['state']='Nominated Promoter(already a member)'
         elif i.state == 5:
             member['state']='Declined by Promoter'
+
+        userinfo = Userinfo.objects.filter(user_id=i.member_id)
+        if not userinfo.exists():
+            user = update_user_info(request=request, member_id=i.member_id)
 
         image_url=Userinfo.objects.filter(user_id=i.member_id).values('image_file')
         image_url=image_url[0]['image_file']
@@ -1477,7 +1482,7 @@ def add_user_tags(request):
                         interest_tags=interest_tags,
                         greography_tags=grography_tags)
 
-    compute_rank.delay(user_id = user_id)
+    #compute_rank.delay(user_id = user_id)
     return JsonResponse({'success':True})
 
 
@@ -1498,11 +1503,11 @@ def save_user_lpig_tags(user_id,legacy_tags,profession_tags,interest_tags,greogr
             # dont have to do anything
             tag = Tags_lpig.objects.get(pk=each_tag)
 
-            if tag and ((tag.attribute_id.id >= 12 and tag.attribute_id.id <= 15) or tag.attribute_id.id == 3):
-                print("inside user home town updte tags -------------> ")
-                tag = insert_user_home_town_tags(user_id=user_id, tag=str(tag.id))
-                tag_id = tag.id
-                update_hometown_tags_for_all_users.delay(tag_id)
+            # if tag and ((tag.attribute_id.id >= 12 and tag.attribute_id.id <= 15) or tag.attribute_id.id == 3):
+            #     print("inside user home town updte tags -------------> ")
+            #     tag = insert_user_home_town_tags(user_id=user_id, tag=str(tag.id))
+            #     tag_id = tag.id
+            #     update_hometown_tags_for_all_users.delay(tag_id)
 
         elif not each_tag in user_tags_list:
 
@@ -2257,7 +2262,7 @@ def search(request,tag_ids):
     ''' function to fetch communities with searched tag '''
 
     print("\n inside search    =====   ",type(tag_ids),tag_ids)
-    tag = Tags_lpig.objects.get(pk = tag_ids).order_by('name')
+    tag = Tags_lpig.objects.get(pk = tag_ids)
 
     community_list = []
 
