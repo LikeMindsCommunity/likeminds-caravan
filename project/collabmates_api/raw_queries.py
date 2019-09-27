@@ -57,13 +57,13 @@ def get_list_of_tag_id(tags,hashmap):
 
 def filter_tags(user_id=0,community_id=0):
     '''function to return the filtered tags based on LPIG'''
-
     hashmap=create_hashmap()
     legacy=[]
     profession=[]
-    interests=[]
+    interest=[]
     geo_list=[]
     sql=""
+
     if community_id:
         sql="select tags_id_id from togther_community_legacy where community_id_id="+str(community_id)
         tags=get_all_data(sql)
@@ -83,10 +83,10 @@ def filter_tags(user_id=0,community_id=0):
 
         sql = "select tags_id_id from togther_community_interest where community_id_id=" + str(community_id)
         tags = get_all_data(sql)
-        interests = []
+        interest = []
         for data in tags:
-            interests.append(data[0])
-        interests = get_list_of_tag_id(interests, hashmap)
+            interest.append(data[0])
+        interest = get_list_of_tag_id(interest, hashmap)
 
         sql = "select tags_id_id from togther_community_geography where community_id_id=" + str(community_id)
         tags = get_all_data(sql)
@@ -113,10 +113,10 @@ def filter_tags(user_id=0,community_id=0):
 
         sql = "select tags_id_id from togther_user_interest where user_id_id=" + str(user_id)
         tags = get_all_data(sql)
-        interests = []
+        interest = []
         for data in tags:
-            interests.append(data[0])
-        interests = get_list_of_tag_id(interests, hashmap)
+            interest.append(data[0])
+        interest = get_list_of_tag_id(interest, hashmap)
 
         sql = "select tags_id_id from togther_user_geography where user_id_id=" + str(user_id)
         tags = get_all_data(sql)
@@ -137,31 +137,12 @@ def filter_tags(user_id=0,community_id=0):
 
     tags['legacy']=legacy
     tags['profession']=profession
-    tags['interests']=interests
+    tags['interest']=interest
     tags['geography']=geo_list
+
     return tags
 
 
-
-def get_global_id():
-
-    '''function that will give the global id to the user'''
-    try:
-        conn = get_connection()
-        curr = conn.cursor()
-        sql="select * from togther_tags_lpig where category_id_id=5"
-        curr.execute(sql)
-        res = curr.fetchall()
-        curr.close()
-        conn.close()
-        global_tags={}
-        if res:
-            for tag in res:
-                global_tags[tag[1]]=tag[0]
-            return global_tags
-
-    except (Exception, psycopg2.Error) as error:
-        print("Error while connecting to PostgreSQL  ", error)
 
 def get_relevant_score(user,community):
 
@@ -169,17 +150,14 @@ def get_relevant_score(user,community):
 
     legacy_user_list = user['legacy']
     geo_user_list = user['geography']
-    interest_user_list = user['interests']
+    interest_user_list = user['interest']
     profession_user_list = user['profession']
 
     #community attributes
     legacy_community_list=community['legacy']
     geo_community_list=community['geography']
-    interest_community_list=community['interests']
+    interest_community_list=community['interest']
     profession_community_list=community['profession']
-
-
-
 
     count_legacy=0
     count_geography=0
@@ -199,7 +177,7 @@ def get_relevant_score(user,community):
             count_legacy+=1
 
     if count_legacy != len(legacy_community_list):
-         count_legacy=0
+         return (user['user_id'], community['community_id'], 0)
 
     for geography in geo_user_list:
         if geography in geo_community_list:
@@ -300,39 +278,82 @@ def delele_tag_by_id(id):
         print("Error while connecting  to PostgreSQL", error)
 
 
+
+
 def action_for_user_crete_or_community_create(user_id,community_id):
 
     '''function to handle the create user or create community'''
+
     user_tags = []
     community_tags = []
-    if user_id is None and community_id is None:
-        sql = "select distinct(user_id_id) from togther_user_legacy"
-        all_user = get_all_data(sql)
-        user_tags = []
-        for user in all_user:
-            filter_tag = filter_tags(user_id=user[0])
-            user_tags.append(filter_tag)
-        # getting all communities
-        sql = "select distinct(community_id_id) from togther_community_legacy"
-        all_communities = get_all_data(sql)
-        community_tags = []
-        for community in all_communities:
-            filter_tag = filter_tags(community_id=community[0])
-            community_tags.append(filter_tag)
-    elif user_id is not None and community_id is None:
+    # if user_id is None and community_id is None:
+    #     sql = "select distinct(user_id_id) from togther_user_legacy"
+    #     all_user = get_all_data(sql)
+    #     user_tags = []
+    #     for user in all_user:
+    #         filter_tag = filter_tags(user_id=user[0])
+    #         user_tags.append(filter_tag)
+    #     # getting all communities
+    #     sql = "select distinct(community_id_id) from togther_community_legacy"
+    #     all_communities = get_all_data(sql)
+    #     community_tags = []
+    #     for community in all_communities:
+    #         filter_tag = filter_tags(community_id=community[0])
+    #         community_tags.append(filter_tag)
+
+
+    if user_id is not None and community_id is None:
         all_user = [(user_id,)]
         user_tags = []
         for user in all_user:
             filter_tag = filter_tags(user_id=user[0])
             user_tags.append(filter_tag)
+        flag=False
 
-            # getting all communities
-        sql = "select distinct(community_id_id) from togther_community_legacy"
-        all_communities = get_all_data(sql)
+        if user_tags and not flag:
+            sql = """SELECT community_id_id
+                            FROM togther_community_legacy
+                            INNER JOIN togther_user_legacy
+                            ON togther_community_legacy.tags_id_id = togther_user_legacy.tags_id_id
+                            and togther_user_legacy.user_id_id=%s and community_id_id
+                            in
+                            (SELECT community_id_id
+                            FROM togther_community_profession
+                            INNER JOIN togther_user_profession
+                            ON togther_community_profession.tags_id_id = togther_user_profession.tags_id_id
+                            and togther_user_profession.user_id_id=%s and community_id_id
+                            in
+                            (SELECT community_id_id
+                            FROM togther_community_interest
+                            INNER JOIN togther_user_interest
+                            ON togther_user_interest.tags_id_id = togther_community_interest.tags_id_id
+                            and togther_user_interest.user_id_id=%s and community_id_id
+                            in 
+                            (SELECT community_id_id
+                            FROM togther_community_geography
+                            INNER JOIN togther_user_geography
+                            ON togther_community_geography.tags_id_id = togther_user_geography.tags_id_id
+                            and togther_user_geography.user_id_id=%s)))
+                    """ % (user_id, user_id, user_id, user_id)
+            all_communities = []
+            flag = True
+            data = get_all_data(sql)
+            for i in data:
+                all_communities.append(i[0])
+
+        else:
+            sql = "select distinct(community_id_id) from togther_community_legacy"
+            all_communities = get_all_data(sql)
+
         community_tags = []
+
         for community in all_communities:
-            filter_tag = filter_tags(community_id=community[0])
+            if not flag:
+                filter_tag = filter_tags(community_id=community[0])
+            else:
+                filter_tag = filter_tags(community_id=community)
             community_tags.append(filter_tag)
+        #print(community_tags)
 
     elif user_id is None and community_id is not None:
         sql = "select distinct(user_id_id) from togther_user_legacy"
@@ -348,13 +369,14 @@ def action_for_user_crete_or_community_create(user_id,community_id):
             filter_tag = filter_tags(community_id=community[0])
             community_tags.append(filter_tag)
 
+
     return (user_tags,community_tags)
 
 @shared_task
 def compute_rank(user_id=None,community_id=None):
 
     '''function to compute the rank of community '''
-
+    start_time=time.time()
     action=action_for_user_crete_or_community_create(user_id,community_id)
     user_tags=action[0]
     community_tags=action[1]
@@ -368,14 +390,26 @@ def compute_rank(user_id=None,community_id=None):
                 ranking_tags(score)
 
 
+    end_time=time.time()
+
+    print("Compute rank execution time:",(end_time-start_time))
+
+
+
+
+
 if envir:
     if __name__ == "__main__":
         print("python file")
         start_time=time.time()
-        compute_rank()
+        compute_rank(user_id=104)
+
         end_time=time.time()
 
         print("Execution Time--")
         print(end_time-start_time)
+
+
+
 
 
