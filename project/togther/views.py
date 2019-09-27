@@ -1654,9 +1654,7 @@ def access_page(request):
                 user_info.contact_number = None
             user_info.save()
 
-            communities = Community_Rank.objects.filter(member_id=user_id)
-            if not communities.exists():
-                send_mail_after_rank_computation.delay(user_id=user_id)
+            send_mail_after_rank_computation.delay(user_id=user_id)
 
         except:
 
