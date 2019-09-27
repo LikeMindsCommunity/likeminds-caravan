@@ -1623,7 +1623,7 @@ def onboarding_interest(request):
 
         type_list = get_user_tags_from_list(interest_list, "Interests")
         insert_tags_for_user(user_id, type_list, "Interests")
-        compute_rank.delay(user_id=user_id)
+        compute_rank(user_id=user_id)
 
         #checking for iit tag
         is_iitd=False
