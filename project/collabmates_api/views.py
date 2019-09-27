@@ -350,7 +350,7 @@ def community(request, community_id):
     new_dict.update(serialized_object)
 
     if community:
-        new_dict['share_text_admin']= """Hi, I have added %s community on CollabMates. It will be good if you can join this community.\n"""%(new_dict['name'])
+        new_dict['share_text_admin']= """Hi, I am trying to gather %s community on CollabMates. It will be good if you can join it.\n"""%(new_dict['name'])
         new_dict['share_text_member']="""I recently joined %s community on CollabMates. It will be good if you also join this community.\n"""%(new_dict['name'])
         new_dict['share_text_anonymous']="""I recently discovered %s community on CollabMates. You can join this community using this link.\n"""%(new_dict['name'])
     new_dict['min_referrer_member'] = eligibility_count
