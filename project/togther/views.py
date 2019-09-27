@@ -257,7 +257,7 @@ def community(request, community_id):
     else:
         member_state = 0
     # ------------------------------------------------------------------
-    members, admin_details = get_members_of_community(community)
+    members, admin_details = get_members_of_community(request=request,community=community)
     # if user is not authenticated, give some communities as similar communities
     communities=Community.objects.filter(Q(hide_community='0')|Q(hide_community = '4'))[:10]
 
@@ -328,22 +328,28 @@ def refer_members(request,community_id):
         return  render(request,'referal.html',{'share_url':share_url,'community':community,'copy_url':copy_url,'share_text':share_text})
 
 
-def get_members_of_community(community):
+def get_members_of_community(request,community):
     ''' function to get admins and members of a community '''
 
     members = []
     admin_details = []
     all_members = []
     if community.hide_community == '0' or community.hide_community == '1'  or community.hide_community =='4':
-        all_members = Members.objects.filter(community_id=community.id).filter(
-            Q(state=1) | Q(state=2) | Q(state=4) | Q(state=7))
+        all_members = Members.objects.filter(community_id=community.id).filter(Q(state=1) | Q(state=2) | Q(state=4) | Q(state=7))
 
     elif community.hide_community == '3':
-        all_members = Members.objects.filter(community_id=community.id).filter(
-            Q(state=8))
+        all_members = Members.objects.filter(community_id=community.id).filter(Q(state=8))
 
     for member in all_members:
-        mem = Userinfo.objects.all().filter(user_id=member.member_id.id)
+        mem = Userinfo.objects.filter(user_id=member.member_id.id)
+        if not mem.exists():
+            user = update_user_info(request=request,member_id=member.member_id.id)
+            print('user ---- ',user)
+            # if user.status_code == 200:
+            #     user = json.loads(user.content.decode('utf-8'))
+            #     print('user ===== ', user)
+            mem = Userinfo.objects.filter(user_id=user.user_id.id)
+
         if member.state == 1 or member.state == 2:
             admin_details.append(mem)
             members.append(mem[0])
@@ -354,11 +360,24 @@ def get_members_of_community(community):
 
 
 @login_required
-def update_user_info(request):
-    user = Userinfo.objects.all().filter(user_id=request.user)
+def update_user_info(request,member_id=None):
+    if member_id:
+        user_id = member_id
+    elif request:
+        user_id = request.user.id
+
+    user = Userinfo.objects.all().filter(user_id=user_id)
     if not user:
-        social_user = request.user.social_auth.filter(user_id=request.user.id).first()
+        if member_id:
+            member = User.objects.get(pk=user_id)
+            social_user = member.social_auth.filter(user_id=user_id).first()
+
+
+        elif request:
+            social_user = request.user.social_auth.filter(user_id=user_id).first()
+
         if social_user:
+
             if social_user.provider == 'facebook':
                 url = "https://graph.facebook.com/v2.9/" + social_user.extra_data[
                     'id'] + "?fields=name,email,gender,location,picture,link&access_token=" + social_user.extra_data[
@@ -368,12 +387,12 @@ def update_user_info(request):
                 image_url = "http://graph.facebook.com/" + social_user.extra_data[
                     'id'] + "/picture?width=400&height=400"
                 print(data)
-                usr = User.objects.get(pk = request.user.id)
+                usr = User.objects.get(pk = user_id)
                 if not usr.email:
                     usr.email = data['email']
                     usr.save()
                 try:
-                    user = Userinfo.objects.get(user_id=request.user.id)
+                    user = Userinfo.objects.get(user_id=user_id)
                 except:
                     user = Userinfo()
                     if 'name' in data:
@@ -385,7 +404,11 @@ def update_user_info(request):
                     user.image_url = image_url
                     user.login_type = 'facebook'
                     user.login_json = data
-                    user.user_id = request.user
+                    if member_id:
+                        user.user_id = member
+
+                    elif request:
+                        user.user_id = request.user
                     user.save()
                     print("created userinfo")
 
@@ -407,7 +430,7 @@ def update_user_info(request):
                 profile_picture = data_main['profilePicture']['displayImage~']['elements'][2]['identifiers'][0][
                     'identifier']
                 email = email_data['elements'][0]['handle~']['emailAddress']
-                usr = User.objects.get(pk=request.user.id)
+                usr = User.objects.get(pk=user_id)
                 if not usr.email:
                     usr.email = email
                     usr.save()
@@ -422,7 +445,10 @@ def update_user_info(request):
                     # info.linkedin_link = data['publicProfileUrl']
                     user.login_type = 'linkedIn'
                     user.login_json = [data_main, email_data]
-                    user.user_id = request.user
+                    if member_id:
+                        user.user_id = member
+                    elif request:
+                        user.user_id = request.user
                     user.save()
 
                 return user
