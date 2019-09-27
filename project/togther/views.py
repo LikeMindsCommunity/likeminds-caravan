@@ -11,7 +11,7 @@ from django.db.models import Q
 from django.http.response import JsonResponse
 from django.core.mail import send_mail
 from django.http import HttpResponseRedirect
-from .tasks import *
+from .tasks import send_mail_after_rank_computation, send_email_to_proposed_admin
 from django.core.mail import EmailMultiAlternatives
 from collabmates_api.serializers import *
 from django.template.loader import get_template
@@ -303,8 +303,28 @@ def refer_members(request,community_id):
 
         community = Community.objects.get(pk = community_id)
 
+        member = Members.objects.filter(community_id=community,member_id=request.user)
+        admins = Members.objects.filter(community_id=community).filter(Q(state=1) | Q(state=2)).order_by('id')
+
         share_text = 'Hi, I have added '+ str(community.name) +' community on CollabMates. It will be good if you can join this community'
-        
+
+
+        # if admins.exists() and request.user.id == admins[0].member_id.id:
+        #     share_text = """Hi, I have initiated %s community on CollabMates. It will be good if you can join this community.\n""" % (community.name)
+        #
+        # elif member.exists() and member[0].state == 1 or member[0].state == 2 or member[0].state == 4 or member[0].state == 7 :
+        #     share_text = """I recently joined %s community on CollabMates. It will be good if you also join this community.\n""" % (community.name)
+        #
+        # elif member.exists() and member[0].state == 8 or member[0].state == 9 :
+        #     share_text = """I recently discovered %s community on CollabMates. You can join this community using this link.\n""" % (community.name)
+
+        # elif member.exists() and member[0].state == 0 :
+        #     share_text = 'Hi, I have added '+ str(community.name) +' community on CollabMates. It will be good if you can join this community'
+        #
+        # elif not member.exists():
+        #     share_text = 'Hi, I have added '+ str(community.name) +' community on CollabMates. It will be good if you can join this community'
+
+
         return  render(request,'referal.html',{'share_url':share_url,'community':community,'copy_url':copy_url,'share_text':share_text})
 
 
@@ -1440,10 +1460,10 @@ def onboarding(request):
             geography = []
 
 
-        education_tags = Tags_lpig.objects.filter(attribute_id=2)
-        work_tags = Tags_lpig.objects.filter(attribute_id=1)
-        hometown_tags = Tags_lpig.objects.filter(attribute_id=3)
-        geography_tags = Tags_lpig.objects.filter(attribute_id=12)
+        education_tags = Tags_lpig.objects.filter(attribute_id=2).order_by('name')
+        work_tags = Tags_lpig.objects.filter(attribute_id=1).order_by('name')
+        hometown_tags = Tags_lpig.objects.filter(attribute_id=3).order_by('name')
+        geography_tags = Tags_lpig.objects.filter(attribute_id=12).order_by('name')
         context={
             'legacy_education':education_tags,
             'legacy_work':work_tags,
@@ -1498,9 +1518,9 @@ def onboarding_profession(request):
             profession_skill = []
             profession_designation = []
 
-        industry_tags = Tags_lpig.objects.filter(attribute_id=6)
-        skill_tags = Tags_lpig.objects.filter(attribute_id=5)
-        designation_tags = Tags_lpig.objects.filter(attribute_id=7)
+        industry_tags = Tags_lpig.objects.filter(attribute_id=6).order_by('name')
+        skill_tags = Tags_lpig.objects.filter(attribute_id=5).order_by('name')
+        designation_tags = Tags_lpig.objects.filter(attribute_id=7).order_by('name')
         context = {
             'profession_industry': industry_tags,
             'profession_skill': skill_tags,
@@ -1548,10 +1568,10 @@ def onboarding_interest(request):
             interest_fan = []
             interest_cause = []
 
-        hobby_tags = Tags_lpig.objects.filter(attribute_id=9)
-        sports_tags = Tags_lpig.objects.filter(attribute_id=10)
-        fan_tags = Tags_lpig.objects.filter(attribute_id=11)
-        cause_tags = Tags_lpig.objects.filter(attribute_id=8)
+        hobby_tags = Tags_lpig.objects.filter(attribute_id=9).order_by('name')
+        sports_tags = Tags_lpig.objects.filter(attribute_id=10).order_by('name')
+        fan_tags = Tags_lpig.objects.filter(attribute_id=11).order_by('name')
+        cause_tags = Tags_lpig.objects.filter(attribute_id=8).order_by('name')
 
         context = {
             'interest_hobby': hobby_tags,
@@ -1578,7 +1598,6 @@ def onboarding_interest(request):
         type_list = get_user_tags_from_list(interest_list, "Interests")
         insert_tags_for_user(user_id, type_list, "Interests")
         compute_rank.delay(user_id=user_id)
-
 
         #checking for iit tag
         is_iitd=False
@@ -1608,6 +1627,11 @@ def access_page(request):
             else:
                 user_info.contact_number = None
             user_info.save()
+
+            communities = Community_Rank.objects.filter(member_id=user_id)
+            if not communities.exists():
+                send_mail_after_rank_computation.delay(user_id=user_id)
+
         except:
 
             print("error in userinfo")
