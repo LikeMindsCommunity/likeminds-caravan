@@ -450,11 +450,11 @@ function is_mobile_valid(mobile_no)
                         data=data['mobile_os']
                         if(data == 'Android' || data == 'Both'){
 
-                        $('#help_text').html("Thanks for signing up. Your profile is getting ready. You will shortly receive an email with a link to download the CollabMates App with recommended niche communities for you.")
+                        $('#help_text').html("Thanks for signing up. You will shortly receive an email with a link to download the CollabMates App. Meanwhile, you can explore the communities recommended below and join the ones that you find relevant. Try refreshing the page if the communities don't appear here.")
                         $('#success').css("display","block")
 
                         }else{
-                         $('#help_text').html("Thanks for signing up. Your profile is getting ready. You will shortly receive an email with a list of recommended niche communities that you can explore and join the ones who find useful. We are in the process of building our iOS app and will notify you when it is released.")
+                         $('#help_text').html("Thanks for signing up. We are in the process of building our iOS app and will notify you when it is released. Meanwhile, you can explore the communities recommended below and join the ones that you find relevant. Try refreshing the page if the communities don't appear here.")
                          $('#success').css("display","block")
                          console.log(data);
 
