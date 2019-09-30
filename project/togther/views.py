@@ -1637,6 +1637,7 @@ def onboarding_interest(request):
 def access_page(request):
 
     '''function to create an early access page and save early respose'''
+
     if request.method == "GET":
          return render(request,'access_page.html',{})
     else:
@@ -1656,10 +1657,16 @@ def access_page(request):
 
             send_mail_after_rank_computation.delay(user_id=user_id)
 
+            if 'HTTP_X_PLATFORM_CODE' in request.META:
+                platform_type=request.META['HTTP_X_PLATFORM_CODE']
+            else:
+                platform_type=""
+
+
         except:
 
             print("error in userinfo")
-    return JsonResponse({'success': True,'mobile_os':mobile_os})
+    return JsonResponse({'success': True,'mobile_os':mobile_os,'platform_type':str(platform_type)})
 
 
 def alpha_page(request):

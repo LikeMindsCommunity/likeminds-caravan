@@ -2096,3 +2096,18 @@ def accept_promotership(request):
     return JsonResponse({'success':True})
 
 
+
+def get_profile(request):
+
+    '''api to send user object'''
+
+    member_id=request.GET.get('member_id')
+
+    try:
+        user=Userinfo.objects.get(user_id=member_id)
+        usr = UserinfoSerializer(user)
+        return JsonResponse({'user': usr})
+    except:
+        print("userinfo object does not exist")
+
+    return JsonResponse({'user': []})
