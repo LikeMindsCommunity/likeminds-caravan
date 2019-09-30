@@ -178,21 +178,24 @@ def pending_members_mail():
 def send_welcome_mail(user_id):
 
     user = User.objects.get(pk = user_id)
-
+    count = 0
     communities = Members.objects.filter(member_id = user).distinct('community_id')
-    print(communities)
+    for community in communities:
+        if community.state == 1 or community.state == 2 or community.state == 4 or community.state == 7:
+            count +=1
     fail_silently=True
     if user.email:
         to = user.email
         subject = "Thanks for downloading CollabMates App! Here's what to expect"
-        if communities.count() == 0:
+        if count == 0:
 
             template = get_template("mails/welcome_mail_zero.html").render({"name":user.userinfo.name})
         else:
-            if communities.count() == 1:
+            if count == 1:
                 text = 'the '+communities[0].community_id.name+' community'
-            if communities.count() > 1:
+            if count > 1:
                 text = 'your existing communities'
+
             template = get_template("mails/welcome_mail_non_zero.html").render({"name":user.userinfo.name,'url':url,'text':text})
         msg = EmailMultiAlternatives(subject,
                                      template,

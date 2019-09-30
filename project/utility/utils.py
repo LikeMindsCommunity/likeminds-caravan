@@ -107,6 +107,8 @@ def update_tag_image(tag_name, tag_id):
     print('is digit ', tag_name.isdigit())
     if tag_name.isdigit():
         return
+    elif tag_name.lower() == 'gurugram':
+        return
 
     locations = [tag_name, tag_name.title(), tag_name.lower(), tag_name +' city', tag_name +' district', tag_name +' state', tag_name +' country']
 
@@ -251,6 +253,13 @@ def create_or_categorize_tag(tag,category,attribute):
                     tag.tag_id = tag.id
                     tag.save()
 
+                    # tag is of category type geography update or create tag image
+                    if category.name == 'Geography':
+                        if tag and not tag.tag_image:
+                            tag_name, tag_id = new_tag, tag.id
+                            print("utils update tag image at create or categorize tags")
+                            update_tag_image.delay(tag_name=tag_name, tag_id=tag_id)
+
                 elif tag.exists():
                     # print('tag is present categorizing the tag',tag)
                     tag = Tags_lpig.objects.get(pk = tag[0].id)
@@ -263,12 +272,12 @@ def create_or_categorize_tag(tag,category,attribute):
                 else:
                     tag = tag[0]
 
-                # tag is of category type geography update or create tag image
-                if category.name == 'Geography':
-                    if tag and not tag.tag_image:
-                        tag_name, tag_id = new_tag, tag.id
-                        print("utils update tag image at create or categorize tags")
-                        update_tag_image.delay(tag_name=tag_name, tag_id=tag_id)
+                    # tag is of category type geography update or create tag image
+                    if category.name == 'Geography':
+                        if tag and not tag.tag_image:
+                            tag_name, tag_id = new_tag, tag.id
+                            print("utils update tag image at create or categorize tags")
+                            update_tag_image.delay(tag_name=tag_name, tag_id=tag_id)
 
                 return tag
             return None
@@ -473,6 +482,8 @@ def insert_user_home_town_tags(user_id,tag):
                 tag.save()
                 tag.tag_id = tag.id
                 tag.save()
+                tag_id = tag.id
+                update_tag_image.delay(tag_name=new_tag, tag_id=tag_id)
 
     else:
         # if tag is a string (which means its a new tag), create new tag
