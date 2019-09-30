@@ -19,9 +19,10 @@ from .notification import (send_follow_notification,send_notification_to_admins,
                            send_notification_to_eligible_member,
                            send_notification_to_all_admins,
                            send_notification_to_referred_member_in_active_community)
+
 from django.db.models import Q
 import dateutil.relativedelta
-from .tasks import send_email_to_nominated_admin,send_email_for_new_collabcard_posted
+from .tasks import send_email_to_nominated_admin, send_email_for_new_collabcard_posted, send_welcome_mail
 from django.conf import settings
 from togther.tasks import send_email_to_proposed_admin
 from django.core.paginator import Paginator
@@ -1598,13 +1599,14 @@ def push(request):
     '''This function is used to insert fcm token to the database in order to generate notifications from database'''
     member_id=request.GET.get('member_id','')
     token=request.GET.get('token','')
-
+    print('member_id === ',member_id)
     is_member=Userinfo.objects.filter(user_id=member_id)
     print(is_member)
     success=False
     if is_member:
         success=True
         fcm_token=Userinfo.objects.filter(user_id=member_id).update(fcm_token=token)
+        send_welcome_mail.delay(member_id)
 
     return JsonResponse({'success':success})
 

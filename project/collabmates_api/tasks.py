@@ -173,3 +173,35 @@ def pending_members_mail():
                 msg.send(fail_silently)
     return
 
+
+@shared_task
+def send_welcome_mail(user_id):
+
+    user = User.objects.get(pk = user_id)
+
+    communities = Members.objects.filter(member_id = user).distinct('community_id')
+    print(communities)
+    fail_silently=True
+    if user.email:
+        to = user.email
+        subject = "Thanks for downloading CollabMates App! Here's what to expect"
+        if communities.count() == 0:
+
+            template = get_template("mails/welcome_mail_zero.html").render({"name":user.userinfo.name})
+        else:
+            if communities.count() == 1:
+                text = 'the '+communities[0].community_id.name+' community'
+            if communities.count() > 1:
+                text = 'your existing communities'
+            template = get_template("mails/welcome_mail_non_zero.html").render({"name":user.userinfo.name,'url':url,'text':text})
+        msg = EmailMultiAlternatives(subject,
+                                     template,
+                                     "Collabmates<hello@collabmates.com>",
+                                     [to],
+                                     )
+        msg.attach_alternative(template, "text/html")
+        return msg.send(fail_silently)
+    else:
+        return
+
+
