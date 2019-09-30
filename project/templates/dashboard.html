@@ -462,15 +462,14 @@ function is_mobile_valid(mobile_no)
                         }
 
 
-                        if(platform_type && platform_type == 'an')
-                        {
+
                            url=location.href
                            url=url.substring(0,url.length-1)
                            member_id={{request.user.id}}
                            url=url+"?member_id="+ member_id;
 
                            window.location.href=url
-                        }
+                       
 
                     }
 
