@@ -1711,7 +1711,7 @@ def access_page(request):
 
     '''function to create an early access page and save early respose'''
 
-    
+    print('>>>>>>>>>>>    ',request.META)
     if request.method == "GET":
          return render(request,'access_page.html',{})
     else:
