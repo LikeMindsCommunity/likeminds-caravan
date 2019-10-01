@@ -111,8 +111,8 @@ def new_member_request(member_id,commuinity_id,ref_id=None):
     msg = EmailMultiAlternatives(subject,
                                  template,
                                  "Collabmates<hello@collabmates.com>",
-                                 # ['mahesh61437mahe@gmail.com'],
-                                 ['nipungoyal.iitd@gmail.com','hrshshukl@gmail.com'],
+                                 ['mahesh61437mahe@gmail.com','rastogi.fresh88@gmail.com'],
+                                 # ['nipungoyal.iitd@gmail.com','hrshshukl@gmail.com'],
                                  )
 
     msg.attach_alternative(template, "text/html")
