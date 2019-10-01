@@ -80,14 +80,14 @@ def new_member_request(member_id,commuinity_id,ref_id=None):
     if not ref_id:
         if commuinity.hide_community == '3':
 
-            text = str(member_name)+ ' has shown interest in '+str(commuinity_name) + ' community without referal ID'
+            text = str(member_name)+ ' has shown interest in '+str(commuinity_name) + ' community and is not referred by anyone'
         elif commuinity.hide_community == '0' or commuinity.hide_community == '1' or commuinity.hide_community == '4':
             if commuinity.hide_community == '1':
-                text = str(member_name)+ ' has request to join '+str(commuinity_name) + ' community (Hidden) without referal ID'
+                text = str(member_name)+ ' has request to join '+str(commuinity_name) + ' community (Hidden) and is not referred by anyone'
             else:
-                text = str(member_name)+ ' has request to join '+str(commuinity_name) + ' community without referal ID'
+                text = str(member_name)+ ' has request to join '+str(commuinity_name) + ' community and is not referred by anyone'
         else:
-            text = str(member_name) + ' has request to join ' + str(commuinity_name) + ' community without referal ID'
+            text = str(member_name) + ' has request to join ' + str(commuinity_name) + ' community and is not referred by anyone'
 
     else:
         if commuinity.hide_community == '3':
@@ -108,11 +108,19 @@ def new_member_request(member_id,commuinity_id,ref_id=None):
     template = get_template("mails/new_member_request.html").render({"member_name": member_name,'ref_name':ref_name,
                                                                   'subject': subject, 'commuinity_name': commuinity_name,
                                                                   'text':text})
+    
+    if url == "https://beta.collabmates.com":
+        to_list = ['mahesh61437mahe@gmail.com','rastogi.fresh88@gmail.com']
+    elif url == "https://www.collabmates.com":
+        to_list = ['nipungoyal.iitd@gmail.com','hrshshukl@gmail.com']
+    else:
+        to_list = ['mahesh61437mahe@gmail.com','rastogi.fresh88@gmail.com']
     msg = EmailMultiAlternatives(subject,
                                  template,
                                  "Collabmates<hello@collabmates.com>",
-                                 ['mahesh61437mahe@gmail.com','rastogi.fresh88@gmail.com'],
+                                 # ['mahesh61437mahe@gmail.com','rastogi.fresh88@gmail.com'],
                                  # ['nipungoyal.iitd@gmail.com','hrshshukl@gmail.com'],
+                                 to_list,
                                  )
 
     msg.attach_alternative(template, "text/html")
