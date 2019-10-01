@@ -74,12 +74,28 @@ def dashboard(request):
         # check if user has completed onbarding and is from IIT Delhi
         onboard,is_iitd = user_onbaord(request)
 
+        if 'HTTP_USER_AGENT' in request.META:
+            ua_string = request.META['HTTP_USER_AGENT']
+            #ua_string="Mozilla/5.0 (Linux; Android 9; Redmi Note 5 Pro) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.92 Mobile Safari/537.36"
+            user_agent = parse(ua_string)
+            if user_agent.os.family == "Android":
+                base_url = reverse('dashboard')
+                query_string = urlencode({'member_id': request.user.id})
+                url = '{}?{}'.format(base_url, query_string)
+                return redirect(url)
+            else:
+                platform_type = ""
+        else:
+            platform_type = ""
+
         return render(request, 'dashboard.html',
                       {'usr': user, 'communities': communities, 'my_communities': my_community[:2],
                        "my_communities_count": len(my_community),'onboard':onboard,'is_iitd':True})
     communities = Community.objects.filter(Q(hide_community='0')|Q(hide_community = '4')).order_by('-updated_at')
     for community in communities:
         update_member_count(community.id)
+
+
 
 
     return render(request, 'dashboard.html', {'communities': communities})
