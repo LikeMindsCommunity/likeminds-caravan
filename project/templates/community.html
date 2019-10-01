@@ -33,6 +33,8 @@
         <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.js"></script>
         <script async src="https://www.googletagmanager.com/gtag/js?id=UA-130288684-1"></script>
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+
         <link rel="stylesheet" href="{% static 'css/community.css' %}">
     </head>
 
@@ -65,19 +67,12 @@
 <script>
 
 
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-      gtag('config', 'UA-130288684-1');
+function open_community(id){
 
-
-
-
-               function open_community(id){
-                    console.log(id);
-                    window.location.href ="../community/"+id;
-                    console.log(window.location.href)
-                }
+           console.log(id);
+            window.location.href ="../community/"+id;
+            console.log(window.location.href)
+          }
 
                 function join(community_id){
                     console.log(1);
@@ -227,6 +222,8 @@
 
 
 
+
+
         </script>
 
 
@@ -250,6 +247,9 @@
 
             <div class="ui fluid card " style="border: 2px solid #1ebea5; margin:0 0 ; padding: 10px 10px;">
                 <h2 class="ui teal center aligned header">
+                        <img src="https://beta.collabmates.com/media/media/ic_launcher_round.png" style="float:left;width:35px;"/>
+
+
                     <div class="content">
                         Login to continue
                     </div>
@@ -274,10 +274,10 @@
                             <button class="ui facebook button" style="width:130px;">
                                 {% else %}
                                 <a href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}">
-                                    <button class="ui facebook button" style="width:130px;">
+                                    <button class="ui facebook button" style="width:200px;">
                                         {% endif %}
-                                        <i class="facebook icon"></i>
-                                        Facebook
+                                        <i class="fa fa-facebook" ></i>&nbsp;&nbsp;&nbsp;&nbsp;
+                                        Login with Facebook
                                     </button>
                                 </a>
                                 <br>
@@ -298,10 +298,10 @@
                                         <button class="ui linkedin button" style="width:130px;">
                                             {% else %}
                                             <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}">
-                                                <button class="ui linkedin button" style="width:130px;">
+                                                <button class="ui linkedin button" style="width:200px;">
                                                     {% endif %}
-                                                    <i class="linkedin icon"></i>
-                                                    LinkedIn
+                                                    <i class="fa fa-linkedin"></i>&nbsp;&nbsp;&nbsp;&nbsp;
+                                                    Login with LinkedIn
                                                 </button>
                                             </a>
                                         </button>
@@ -377,7 +377,7 @@
                 <li><a href="#members"></a></li>
 
                 {% endif %}
-                <li><a href="#conversations">CONVERSATIONS</a></li>
+                <li><a  id="conv">CONVERSATIONS</a></li>
             </ul>
         </div>
 
@@ -586,7 +586,52 @@
         </div>
     </div>
 
+<script>
+    $('#conv').click(function(){
 
+          $('.ui.modal.download')
+              .modal('show')
+            ;
+
+    })
+</script>
 
     </html>
+
+
+    <!-- download model -->
+
+
+        <div class="ui modal download">
+      <i class="close icon"></i>
+      <div class="header">
+        Profile Picture
+      </div>
+      <div class="image content">
+        <div class="ui medium image">
+          <img src="/images/avatar/large/chris.jpg">
+        </div>
+        <div class="description">
+          <div class="ui header">We've auto-chosen a profile image for you.</div>
+          <p>We've grabbed the following image from the <a href="https://www.gravatar.com" target="_blank">gravatar</a> image associated with your registered e-mail address.</p>
+          <p>Is it okay to use this photo?</p>
+        </div>
+      </div>
+      <div class="actions">
+        <div class="ui black deny button">
+          Nope
+        </div>
+        <div class="ui positive right labeled icon button">
+          Yep, that's me
+          <i class="checkmark icon"></i>
+        </div>
+      </div>
+    </div>
+
+
+
+    <!-- -->
+
+
+
     {% endblock %}
