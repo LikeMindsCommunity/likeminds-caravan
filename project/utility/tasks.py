@@ -80,7 +80,7 @@ def new_member_request(member_id,commuinity_id,ref_id=None):
     if not ref_id:
         if commuinity.hide_community == '3':
 
-            text = str(member_name)+ ' has shown interest in  '+str(commuinity_name) + ' community without referal ID'
+            text = str(member_name)+ ' has shown interest in '+str(commuinity_name) + ' community without referal ID'
         elif commuinity.hide_community == '0' or commuinity.hide_community == '1' or commuinity.hide_community == '4':
             if commuinity.hide_community == '1':
                 text = str(member_name)+ ' has request to join '+str(commuinity_name) + ' community (Hidden) without referal ID'
@@ -92,8 +92,8 @@ def new_member_request(member_id,commuinity_id,ref_id=None):
     else:
         if commuinity.hide_community == '3':
 
-            text = str(member_name) + ' has shown interest in  ' + str(
-                commuinity_name) + 'community and is referred by ' + str(ref_name)
+            text = str(member_name) + ' has shown interest in ' + str(
+                commuinity_name) + ' community and is referred by ' + str(ref_name)
         elif commuinity.hide_community == '0' or commuinity.hide_community == '1' or commuinity.hide_community == '4':
             if commuinity.hide_community == '1':
                 text = str(member_name) + ' has request to join ' + str(
@@ -111,8 +111,8 @@ def new_member_request(member_id,commuinity_id,ref_id=None):
     msg = EmailMultiAlternatives(subject,
                                  template,
                                  "Collabmates<hello@collabmates.com>",
-                                 ['mahesh61437mahe@gmail.com'],
-                                 # ['nipungoyal.iitd@gmail.com','hrshshukl@gmail.com'],
+                                 # ['mahesh61437mahe@gmail.com'],
+                                 ['nipungoyal.iitd@gmail.com','hrshshukl@gmail.com'],
                                  )
 
     msg.attach_alternative(template, "text/html")
