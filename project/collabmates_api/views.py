@@ -422,6 +422,8 @@ def join_community_responses(request):
     community = Community.objects.get(id=community_id)
     user = User.objects.get(id=user_id)
 
+    print('request meta ====== ',request.META)
+
     if 'ref_id' in res:
         ref_id = res['ref_id']
     else:
