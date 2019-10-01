@@ -42,6 +42,8 @@
 
 
 		<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+
 
 		<style>
 
@@ -76,10 +78,10 @@ Your virtual Neighbourhood
 </p><br><br>
 									<div class="content" id="facebook_login">
                                           <a href="{% url 'social:begin' 'facebook' %}">
-                                              <button class="ui facebook button" style="width:200px;">
-                                                  <i class="facebook icon"></i>
-                                                  Login with Facebook
-                                              </button>
+                                             <button class="ui facebook button" style="width:200px;">
+												<i class="fa fa-facebook" style="color:white"></i>&nbsp;&nbsp;&nbsp;&nbsp;
+												Login with Facebook
+											</button>
                                         </a>
                                     </div>
                                 <table>
@@ -94,10 +96,10 @@ Your virtual Neighbourhood
 
 									<div class = "content" id="linkedin_login">
                                             <a href="{% url 'social:begin' 'linkedin-oauth2' %}">
-                                        <button class="ui linkedin button" style="width:200px;" >
-                                            <i class="linkedin icon"></i>
-                                            Login with LinkedIn
-                                          </button>
+                                         <button class="ui linkedin button" style="width:200px;">
+                                                    <i class="fa fa-linkedin" style="color:white"></i>&nbsp;&nbsp;&nbsp;&nbsp;
+                                                    Login with LinkedIn
+                                    		</button>
                                           </a>
                                     </div>
 									<div id="btn3" style="margin: 20px 0; color: white;text-shadow: #222 0px 0px 10px;"></div>

@@ -124,6 +124,8 @@
 
                     <div class="ui fluid card " style="border: 2px solid #1ebea5; margin:0 0 ; padding: 10px 10px;">
                         <h2 class="ui teal center aligned header">
+                            <img src="https://beta.collabmates.com/media/media/ic_launcher_round.png" style="float:left;width:35px;"/>
+
                             <div class="content">
                                 Login to continue
                             </div>
@@ -142,9 +144,10 @@
 
                                 <a href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}">
 
-                                    <button class="ui facebook button">
-                                        <i class="facebook icon"></i>
-                                        Facebook
+                                   <button class="ui facebook button" style="width:200px;">
+
+                                        <i class="fa fa-facebook" ></i>&nbsp;&nbsp;&nbsp;&nbsp;
+                                        Login with Facebook
                                     </button>
                                 </a>
 
@@ -164,9 +167,9 @@
 
                                 <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}">
 
-                                    <button class="ui linkedin button">
-                                        <i class="linkedin icon"></i>
-                                        LinkedIn
+                                    <button class="ui linkedin button" style="width:200px;">
+                                                    <i class="fa fa-linkedin"></i>&nbsp;&nbsp;&nbsp;&nbsp;
+                                                    Login with LinkedIn
                                     </button>
                                 </a>
                             </div>
