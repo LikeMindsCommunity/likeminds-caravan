@@ -48,6 +48,14 @@ def home(request):
 def signup(request):
     # users = User.objects.all()
     if request.user.is_authenticated:
+        try:
+            # check if user has user info
+            user = Userinfo.objects.get(user_id=request.user.id)
+        except:
+            # if there is no user info for the user who is currently logged in
+            # create userinfo for current user
+            user = update_user_info(request)
+
         return redirect('dashboard')
     else:
         return render(request, 'signup.html',{})
@@ -164,6 +172,12 @@ def get_user_communities(request):
 
 
 def community(request, community_id):
+
+    if request.user.is_authenticated:
+        try:
+            user = Userinfo.objects.get(user_id=request.user.id)
+        except:
+            user = update_user_info(request)
 
     community = get_object_or_404(Community, pk=community_id)
 
@@ -290,8 +304,12 @@ def refer_members(request,community_id):
 
     ref_id = request.GET.get('ref_id',None)
 
-
     if request.user.is_authenticated:
+
+        try:
+            user = Userinfo.objects.get(user_id=request.user.id)
+        except:
+            user = update_user_info(request)
 
         interested_member_id = request.user.id
 
@@ -458,6 +476,13 @@ def update_user_info(request,member_id=None):
 
 @login_required
 def accept_admin(request, community_id):
+
+    if request.user.is_authenticated:
+        try:
+            user = Userinfo.objects.get(user_id=request.user.id)
+        except:
+            user = update_user_info(request)
+
     ''' function to accept promoter invitation or decilne the invitation from web '''
     # getting value attribute which says whether the user accepted or declined it
     accepted = request.GET.get('value', 'true')
@@ -704,6 +729,13 @@ def logout_view(request):
 
 @login_required
 def join_community(request, community_id,ref_id):
+
+    if request.user.is_authenticated:
+        try:
+            user = Userinfo.objects.get(user_id=request.user.id)
+        except:
+            user = update_user_info(request)
+
     '''function to join community'''
     if request.user.is_authenticated:
         user = Userinfo.objects.all().filter(user_id=request.user)
@@ -899,6 +931,13 @@ def terms(request):
 
 
 def collabcard(request, card_id):
+
+    if request.user.is_authenticated:
+        try:
+            user = Userinfo.objects.get(user_id=request.user.id)
+        except:
+            user = update_user_info(request)
+
     '''function to get data of collabcard'''
 
     collabcard_url = api_url + 'collabcard/' + str(card_id)
@@ -1060,6 +1099,13 @@ def update_member_count(community_id):
 def pending_list(request,community_id):
 
     '''function to show pending list in html'''
+
+
+    if request.user.is_authenticated:
+        try:
+            user = Userinfo.objects.get(user_id=request.user.id)
+        except:
+            user = update_user_info(request)
 
     link=api_url+'pending_members/'+str(community_id)
 
@@ -1471,6 +1517,13 @@ def get_community_interest_tags(community_id):
 def onboarding(request):
 
     '''function to show the legacy'''
+
+    if request.user.is_authenticated:
+        try:
+            user = Userinfo.objects.get(user_id=request.user.id)
+        except:
+            user = update_user_info(request)
+
     if request.method == 'GET':
 
         community_id = request.GET.get('community_id',None)
@@ -1534,6 +1587,12 @@ def onboarding_profession(request):
 
     '''onboarding for profession'''
 
+    if request.user.is_authenticated:
+        try:
+            user = Userinfo.objects.get(user_id=request.user.id)
+        except:
+            user = update_user_info(request)
+
     if request.method == 'GET':
 
         community_id = request.GET.get('community_id',None)
@@ -1584,6 +1643,12 @@ def onboarding_profession(request):
 def onboarding_interest(request):
 
     '''onboarding for profession'''
+
+    if request.user.is_authenticated:
+        try:
+            user = Userinfo.objects.get(user_id=request.user.id)
+        except:
+            user = update_user_info(request)
 
     if request.method == 'GET':
 
@@ -1645,6 +1710,8 @@ def onboarding_interest(request):
 def access_page(request):
 
     '''function to create an early access page and save early respose'''
+
+    
     if request.method == "GET":
          return render(request,'access_page.html',{})
     else:
