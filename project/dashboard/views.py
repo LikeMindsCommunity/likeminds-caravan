@@ -1359,7 +1359,7 @@ def update_uncategorize_tag(uncategorized, category, attribute):
     category = Category.objects.get(id=category)
     attribute = Attributes.objects.get(id=attribute)
 
-    tag = Tags_lpig.objects.get(id  = uncategorized)
+    tag = Tags_lpig.objects.get(id=uncategorized)
     tag.attribute_id = attribute
     tag.category_id = category
     tag.save()
@@ -1482,7 +1482,7 @@ def add_user_tags(request):
                         interest_tags=interest_tags,
                         greography_tags=grography_tags)
 
-    #compute_rank.delay(user_id = user_id)
+    compute_rank.delay(user_id = user_id)
     return JsonResponse({'success':True})
 
 

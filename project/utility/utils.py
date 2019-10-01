@@ -14,6 +14,7 @@ from collabmates_api.notification import (send_notification_to_eligible_member,
                                           send_notification_to_referred_member,
                                           send_notification_to_referred_member_in_active_community,
                                           )
+from .tasks import *
 
 from django.http.response import JsonResponse
 
@@ -470,6 +471,9 @@ def insert_user_home_town_tags(user_id,tag):
             tag = tags[0]
             new_tag = tags[0].name
             new_tag = new_tag.strip().title()
+            if tag and not tag.tag_image:
+                tag_id = tag.id
+                update_tag_image.delay(tag_name=new_tag, tag_id=tag_id)
         else:
             #tag = Tags_lpig.objects.get(pk=tag)
             if tag.attribute_id.id == 12:
@@ -482,8 +486,9 @@ def insert_user_home_town_tags(user_id,tag):
                 tag.save()
                 tag.tag_id = tag.id
                 tag.save()
-                tag_id = tag.id
-                update_tag_image.delay(tag_name=new_tag, tag_id=tag_id)
+                if tag and not tag.tag_image:
+                    tag_id = tag.id
+                    update_tag_image.delay(tag_name=new_tag, tag_id=tag_id)
 
     else:
         # if tag is a string (which means its a new tag), create new tag
@@ -494,6 +499,7 @@ def insert_user_home_town_tags(user_id,tag):
         tag.save()
         tag.tag_id = tag.id
         tag.save()
+
     create_user_hometown_tag_and_related_tags.delay(user_id=user_id, tag_id=tag.id, new_tag=new_tag)
     return tag
 

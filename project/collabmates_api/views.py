@@ -35,6 +35,8 @@ import requests as rqst
 from utility.utils import (decode_meta_from_url, update_tag_image,
                            referal, get_referred_members_of_a_member,
                            eligibility_count, notify_referred_member, )
+from utility.tasks import (mail_triger,new_member_request)
+
 
 
 url  = settings.URL
@@ -422,12 +424,21 @@ def join_community_responses(request):
 
     if 'ref_id' in res:
         ref_id = res['ref_id']
+    else:
+        ref_id = request.GET.get('ref_id',None)
+
+    if ref_id :
+        # ref_id = res['ref_id']
+        # sending mail to nipun and harsh
+        new_member_request.delay(member_id=user_id, commuinity_id=community_id, ref_id=ref_id)
         if community.hide_community == '3' or community.hide_community == '4':
             invited_member = Members.objects.filter(community_id=community,
                                                           member_id=ref_id)
             if invited_member.exists():
                 referal(ref_id=ref_id, community_id=community_id, interested_member_id=user_id)
-
+    if not ref_id:
+        # sending mail to nipun and harsh
+        new_member_request.delay(member_id=user_id, commuinity_id=community_id, ref_id=None)
     # inserting in members table if the member status is pending and inserting it to database with status=3
 
     # If the member is declined from the community and he applied again
@@ -1109,6 +1120,7 @@ def login(request):
                 userinfo.login_type='facebook'
                 userinfo.login_json=json_to_save
                 userinfo.save()
+                mail_triger(str(usr.id))
         else:
             # if user is logging in with linkedIn
             user_name=res['firstName']['localized']['en_US'] + " " + res['lastName']['localized']['en_US']
@@ -1129,6 +1141,7 @@ def login(request):
                 userinfo.login_type='linkedIn'
                 userinfo.login_json=json_to_save
                 userinfo.save()
+                mail_triger(str(usr.id))
 
         userinfo=Userinfo.objects.filter(email=email)
         # get serialized user object

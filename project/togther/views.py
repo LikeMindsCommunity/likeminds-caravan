@@ -22,6 +22,7 @@ from utility.utils import (get_city_address, update_tag_image,
                            update_user_geography_tags, create_or_categorize_tag,
                            referal, insert_user_home_town_tags, )
 from urllib.parse import urlencode,quote
+from utility.tasks import new_member_request
 
 url = settings.URL
 
@@ -186,11 +187,12 @@ def community(request, community_id):
             member = Members.objects.filter(member_id=request.user, community_id = community)
             member_state = member[0].state if member.exists() else 0
 
-            questions, user, data, community = join_community(request, community_id)
+            questions, user, data, community = join_community(request, community_id,ref_id)
             if questions:
                 if member_state == 0 or member_state == 5:
                     return render(request, 'response_form.html', {"data": data, 'usr': user, 'community': community,'ref_id':ref_id})
             else:
+
                 if community.hide_community == '3':
                     if ref_id != '':
                         base_url = reverse('refer_members', kwargs={'community_id': community_id})
@@ -701,7 +703,7 @@ def logout_view(request):
 
 
 @login_required
-def join_community(request, community_id):
+def join_community(request, community_id,ref_id):
     '''function to join community'''
     if request.user.is_authenticated:
         user = Userinfo.objects.all().filter(user_id=request.user)
@@ -738,7 +740,7 @@ def join_community(request, community_id):
         json_dict = {}
         json_dict['questions'] = response_list
 
-        params = {'member_id': member_id, 'community_id': community_id}
+        params = {'member_id': member_id, 'community_id': community_id,'ref_id':ref_id}
         rqst.post(join_url, params=params, json=json_dict)
         # return false to show thank you page the user has now answered the questions
         return False, user, similar_communities, community
@@ -1471,7 +1473,7 @@ def onboarding(request):
     '''function to show the legacy'''
     if request.method == 'GET':
 
-        community_id = request.GET.get('community_id')
+        community_id = request.GET.get('community_id',None)
         user_id = request.GET.get('user_id', None)
         if community_id:
             legacy_work, legacy_education, legacy_hometown, geography = get_community_legacy_tags(
@@ -1479,6 +1481,8 @@ def onboarding(request):
         elif user_id:
             legacy_work, legacy_education, legacy_hometown, geography = get_user_legacy_tags(
                 user_id)
+        elif not user_id:
+            legacy_work, legacy_education, legacy_hometown, geography = get_user_legacy_tags(request.user.id)
         else:
             legacy_work = []
             legacy_education = []
@@ -1539,6 +1543,8 @@ def onboarding_profession(request):
             profession_industry,profession_skill,profession_designation = get_community_profession_tags(community_id)
         elif user_id:
             profession_industry,profession_skill,profession_designation = get_user_profession_tags(user_id)
+        elif not user_id:
+            profession_industry,profession_skill,profession_designation = get_user_profession_tags(request.user.id)
         else:
             profession_industry = []
             profession_skill = []
@@ -1581,13 +1587,15 @@ def onboarding_interest(request):
 
     if request.method == 'GET':
 
-        community_id = request.GET.get('community_id')
+        community_id = request.GET.get('community_id',None)
         user_id = request.GET.get('user_id', None)
         if community_id:
 
             interest_hobby, interest_sports, interest_fan, interest_cause = get_community_interest_tags(community_id)
         elif user_id:
             interest_hobby, interest_sports, interest_fan, interest_cause = get_user_interest_tags(user_id)
+        elif not user_id:
+            interest_hobby, interest_sports, interest_fan, interest_cause = get_user_interest_tags(request.user.id)
         else:
             interest_hobby = []
             interest_sports = []
