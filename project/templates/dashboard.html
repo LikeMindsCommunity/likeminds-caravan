@@ -460,16 +460,16 @@ function is_mobile_valid(mobile_no)
                          console.log(data);
 
                         }
+                           if(platform_type == "Android")
+                           {
+                               url=location.href
+                               url=url.substring(0,url.length-1)
+                               member_id={{request.user.id}}
+                               url=url+"?member_id="+ member_id;
 
+                               window.location.href=url
+                           }
 
-
-                           url=location.href
-                           url=url.substring(0,url.length-1)
-                           member_id={{request.user.id}}
-                           url=url+"?member_id="+ member_id;
-
-                           window.location.href=url
-                       
 
                     }
 

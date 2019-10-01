@@ -22,6 +22,9 @@ from utility.utils import (get_city_address, update_tag_image,
                            update_user_geography_tags, create_or_categorize_tag,
                            referal, insert_user_home_town_tags, )
 from urllib.parse import urlencode,quote
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from user_agents import parse
+
 
 url = settings.URL
 
@@ -1656,9 +1659,13 @@ def access_page(request):
             user_info.save()
 
             send_mail_after_rank_computation.delay(user_id=user_id)
-
-            if 'HTTP_X_PLATFORM_CODE' in request.META:
-                platform_type=request.META['HTTP_X_PLATFORM_CODE']
+            if 'HTTP_USER_AGENT' in request.META:
+                ua_string=request.META['HTTP_USER_AGENT']
+                user_agent = parse(ua_string)
+                if user_agent.os.family == "Android":
+                    platform_type="Android"
+                else:
+                    platform_type = ""
             else:
                 platform_type=""
 
@@ -1666,7 +1673,10 @@ def access_page(request):
         except:
 
             print("error in userinfo")
-    return JsonResponse({'success': True,'mobile_os':mobile_os,'platform_type':str(platform_type)})
+
+
+
+    return JsonResponse({'success': True,'mobile_os':mobile_os,'platform_type':platform_type})
 
 
 def alpha_page(request):
