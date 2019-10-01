@@ -447,6 +447,7 @@ function is_mobile_valid(mobile_no)
                     data:temp,
                     dataType: "json",
                     success:function(data){
+                        platform_type=data['platform_type']
                         data=data['mobile_os']
                         if(data == 'Android' || data == 'Both'){
 
@@ -459,6 +460,16 @@ function is_mobile_valid(mobile_no)
                          console.log(data);
 
                         }
+                           if(platform_type == "Android")
+                           {
+                               url=location.href
+                               url=url.substring(0,url.length-1)
+                               member_id={{request.user.id}}
+                               url=url+"?member_id="+ member_id;
+
+                               window.location.href=url
+                           }
+
 
                     }
 
