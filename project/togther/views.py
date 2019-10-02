@@ -64,6 +64,8 @@ def signup(request):
 
 def dashboard(request):
     ''' function to show all communities and filter based on categories '''
+
+    print('reqesut META  >>>>>>>>> ',request.META)
     if request.user.is_authenticated:
 
         try:
@@ -1545,14 +1547,14 @@ def onboarding(request):
     if request.method == 'GET':
 
         community_id = request.GET.get('community_id',None)
-        user_id = request.GET.get('user_id', None)
+        member_id = request.GET.get('member_id', None)
         if community_id:
             legacy_work, legacy_education, legacy_hometown, geography = get_community_legacy_tags(
                 community_id)
-        elif user_id:
+        elif member_id:
             legacy_work, legacy_education, legacy_hometown, geography = get_user_legacy_tags(
-                user_id)
-        elif not user_id:
+                member_id)
+        elif not member_id:
             legacy_work, legacy_education, legacy_hometown, geography = get_user_legacy_tags(request.user.id)
         else:
             legacy_work = []
@@ -1575,11 +1577,13 @@ def onboarding(request):
             'community_legacy_hometown':legacy_hometown,
             'community_geography':geography,
             'community_id':community_id,
-            'user_id': user_id,
+            'member_id': member_id,
         }
 
         return render(request,'onboarding.html',context)
     else:
+        user_id = request.POST.get('member_id', None)
+        print("post user id  ===== ",user_id)
         user_id=request.user.id
         legacy_education =request.POST.getlist('legacy_education[]')
         #legacy_work = request.POST.getlist('legacy_work[]')
@@ -1614,13 +1618,13 @@ def onboarding_profession(request):
     if request.method == 'GET':
 
         community_id = request.GET.get('community_id',None)
-        user_id = request.GET.get('user_id', None)
+        member_id = request.GET.get('member_id', None)
         if community_id:
 
             profession_industry,profession_skill,profession_designation = get_community_profession_tags(community_id)
-        elif user_id:
-            profession_industry,profession_skill,profession_designation = get_user_profession_tags(user_id)
-        elif not user_id:
+        elif member_id:
+            profession_industry,profession_skill,profession_designation = get_user_profession_tags(member_id)
+        elif not member_id:
             profession_industry,profession_skill,profession_designation = get_user_profession_tags(request.user.id)
         else:
             profession_industry = []
@@ -1638,12 +1642,16 @@ def onboarding_profession(request):
             'community_profession_skill': profession_skill,
             'community_profession_designation': profession_designation,
             'community_id': community_id,
-            'user_id' : user_id,
+            'user_id' : member_id,
         }
 
         return render(request, 'onboarding_profession.html', context)
     else:
         user_id = request.user.id
+        print("post profession user id  ===== ",user_id)
+        user_id = request.POST.get('member_id', None)
+        print("post profession user id  ===== ",user_id)
+
         profession_industry = request.POST.getlist('profession_industry[]')
         profession_skill = request.POST.getlist('profession_skill[]')
         #profession_designation = request.POST.getlist('profession_designation[]')
@@ -1757,9 +1765,11 @@ def access_page(request):
                 user_info.contact_number = None
             user_info.save()
 
-            send_mail_after_rank_computation.delay(user_id=user_id)
             if is_request_android(request):
                 platform_type="Android"
+            else:
+                # send_mail_after_rank_computation.delay(user_id=user_id)
+                send_mail_after_rank_computation.delay(user_id=user_id)
 
         except:
 
