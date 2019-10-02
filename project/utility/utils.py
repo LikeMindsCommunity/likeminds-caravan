@@ -566,3 +566,19 @@ def update_hometown_tags_for_all_users(tag_id):
         user_id, tag_id = tag.user_id.id, str(tag.tags_id.id)
         insert_user_home_town_tags(user_id=user_id, tag=tag_id)
 
+
+
+def user_onbaord(member_id):
+    ''' checking if user has gone through on-boarding flow or not'''
+    user_legacy = User_Legacy.objects.filter(user_id=member_id)
+    user_prof = User_Profession.objects.filter(user_id=member_id)
+    user_int = User_Interest.objects.filter(user_id=member_id)
+    user_gro = User_Geography.objects.filter(user_id=member_id)
+
+    # if user does not have any tags , user has to do on-boarding
+    if user_legacy.exists() and user_prof.exists() and user_int.exists() and user_gro.exists():
+        return True
+    else:
+        return False
+
+

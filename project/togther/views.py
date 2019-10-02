@@ -1715,14 +1715,23 @@ def onboarding_interest(request):
         type_list = get_user_tags_from_list(interest_list, "Interests")
         insert_tags_for_user(user_id, type_list, "Interests")
         compute_rank(user_id=user_id)
+        # if is_request_android(request):
+        #     return JsonResponse({'user_agent': True})
+        return JsonResponse({'user_agent': False})
 
-        #checking for iit tag
-        is_iitd=False
-        user_lpig = User_Legacy.objects.filter(user_id=request.user,tags_id=6)
-        if user_lpig.exists():
-                # checking for iit
-                is_iitd = True
-        return JsonResponse({'is_iitd': True})
+
+def is_request_android(request):
+
+    '''function to check whether the user agent is android or not'''
+
+    if 'HTTP_USER_AGENT' in request.META:
+        ua_string = request.META['HTTP_USER_AGENT']
+        user_agent = parse(ua_string)
+        if user_agent.os.family == "Android" and not user_agent.is_pc:
+            return True
+        else:
+            return False
+    return False
 
 
 def access_page(request):
@@ -1737,6 +1746,7 @@ def access_page(request):
         mobile_os=request.POST.get('mobile_os')
         email=request.POST.get('email')
         mobile_no=request.POST.get('mobile_no')
+        platform_type=""
         try:
             user_info=Userinfo.objects.get(user_id=user_id)
             user_info.mobile_os=mobile_os
@@ -1748,16 +1758,8 @@ def access_page(request):
             user_info.save()
 
             send_mail_after_rank_computation.delay(user_id=user_id)
-            if 'HTTP_USER_AGENT' in request.META:
-                ua_string=request.META['HTTP_USER_AGENT']
-                user_agent = parse(ua_string)
-                if user_agent.os.family == "Android":
-                    platform_type="Android"
-                else:
-                    platform_type = ""
-            else:
-                platform_type=""
-
+            if is_request_android(request):
+                platform_type="Android"
 
         except:
 

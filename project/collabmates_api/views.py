@@ -34,7 +34,8 @@ import googlemaps
 import requests as rqst
 from utility.utils import (decode_meta_from_url, update_tag_image,
                            referal, get_referred_members_of_a_member,
-                           eligibility_count, notify_referred_member, )
+                           eligibility_count, notify_referred_member,
+                           user_onbaord,)
 from utility.tasks import (mail_triger,new_member_request)
 
 
@@ -1148,9 +1149,14 @@ def login(request):
         userinfo=Userinfo.objects.filter(email=email)
         # get serialized user object
         usr = UserinfoSerializer(userinfo[0])
-        return JsonResponse ({'user': usr})
+        has_tags=user_onbaord(usr['id'])
+        return JsonResponse ({'user': usr,'has_tags':has_tags})
 
     return HttpResponse('Login Api')
+
+
+
+
 
 
 @csrf_exempt
