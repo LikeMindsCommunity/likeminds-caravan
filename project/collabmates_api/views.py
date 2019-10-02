@@ -48,6 +48,8 @@ def communities(request):
 
     ''' function to get all the communities '''
 
+    print("request META android >>>>> ",request.META)
+
     if request.method == 'GET':
         request = request.GET.dict()
         if 'member_id' in request:
