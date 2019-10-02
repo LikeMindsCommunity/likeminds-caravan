@@ -86,16 +86,14 @@ def dashboard(request):
             ua_string = request.META['HTTP_USER_AGENT']
             #ua_string="Mozilla/5.0 (Linux; Android 9; Redmi Note 5 Pro) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.92 Mobile Safari/537.36"
             user_agent = parse(ua_string)
-            mobile_os=request.user.userinfo.mobile_os
-            if user_agent.os.family == "Android" and mobile_os:
+            if user_agent.os.family == "Android":
+                user.mobile_os="Android"
+                user.save()
                 base_url = reverse('dashboard')
                 query_string = urlencode({'member_id': request.user.id})
                 url = '{}?{}'.format(base_url, query_string)
                 return redirect(url)
-            else:
-                platform_type = ""
-        else:
-            platform_type = ""
+
 
         return render(request, 'dashboard.html',
                       {'usr': user, 'communities': communities, 'my_communities': my_community[:2],
