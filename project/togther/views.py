@@ -23,6 +23,8 @@ from utility.utils import (get_city_address, update_tag_image,
                            referal, insert_user_home_town_tags, )
 from urllib.parse import urlencode,quote
 from utility.tasks import new_member_request
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from user_agents import parse
 
 url = settings.URL
 
@@ -80,12 +82,27 @@ def dashboard(request):
         # check if user has completed onbarding and is from IIT Delhi
         onboard,is_iitd = user_onbaord(request)
 
+        if 'HTTP_USER_AGENT' in request.META:
+            ua_string = request.META['HTTP_USER_AGENT']
+            #ua_string="Mozilla/5.0 (Linux; Android 9; Redmi Note 5 Pro) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.92 Mobile Safari/537.36"
+            user_agent = parse(ua_string)
+            if user_agent.os.family == "Android":
+                user.mobile_os="Android"
+                user.save()
+                base_url = reverse('dashboard')
+                query_string = urlencode({'member_id': request.user.id})
+                url = '{}?{}'.format(base_url, query_string)
+                return redirect(url)
+
+
         return render(request, 'dashboard.html',
                       {'usr': user, 'communities': communities, 'my_communities': my_community[:2],
                        "my_communities_count": len(my_community),'onboard':onboard,'is_iitd':True})
     communities = Community.objects.filter(Q(hide_community='0')|Q(hide_community = '4')).order_by('-updated_at')
     for community in communities:
         update_member_count(community.id)
+
+
 
 
     return render(request, 'dashboard.html', {'communities': communities})
@@ -724,7 +741,7 @@ def edit_profile(request, user_id):
 @login_required
 def logout_view(request):
     logout(request)
-    return redirect('dashboard')
+    return redirect('signup')
 
 
 @login_required
@@ -1730,11 +1747,24 @@ def access_page(request):
             user_info.save()
 
             send_mail_after_rank_computation.delay(user_id=user_id)
+            if 'HTTP_USER_AGENT' in request.META:
+                ua_string=request.META['HTTP_USER_AGENT']
+                user_agent = parse(ua_string)
+                if user_agent.os.family == "Android":
+                    platform_type="Android"
+                else:
+                    platform_type = ""
+            else:
+                platform_type=""
+
 
         except:
 
             print("error in userinfo")
-    return JsonResponse({'success': True,'mobile_os':mobile_os})
+
+
+
+    return JsonResponse({'success': True,'mobile_os':mobile_os,'platform_type':platform_type})
 
 
 def alpha_page(request):
