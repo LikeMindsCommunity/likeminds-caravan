@@ -206,13 +206,9 @@ temp={
         dataType: "json",
         success:function(data){
             console.log(data)
-            if(data['user_agent']){
-            var user_id={{request.user.id}}
-            console.log(user_id)
-                location.href="/communities"+"?member_id="+user_id
-            }else{
-                location.href="/communities"
-            }
+
+            location.href="/communities"
+
 
         }
 
