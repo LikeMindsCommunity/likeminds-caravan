@@ -138,7 +138,7 @@ temp={
 'csrfmiddlewaretoken': '{{ csrf_token }}',
 
 }
-console.log(temp)
+$('#submit').addClass("loading");
 
 {% if request.user.is_authenticated %}
 
