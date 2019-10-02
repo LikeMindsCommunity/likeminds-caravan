@@ -1,6 +1,32 @@
 {% extends "base.html" %}
 {% load staticfiles %}
 
+{% block menu %}
+{% if android%}
+
+{% else %}
+            <div class="right menu" style="float:right; ">
+                {% if user.is_authenticated %}
+                <div class="ui simple dropdown item" style="padding:0;">
+
+                    {% block user_image %}
+                    <img class="ui avatar image" src="{{request.user.userinfo.image_file.url}}"/>
+                    {% endblock %}
+                    <div class="menu">
+
+                        <a class="item" href="{% url 'logout_view' %}">Logout</a>
+                    </div>
+                </div>
+
+                {% else %}
+                <a class="item" id='test'>Signin</a>
+                {% endif %}
+
+            </div>
+{% endif %}
+{% endblock %}
+
+
 {% block content %}
 
 <!-- css styling -->
@@ -101,7 +127,10 @@
 
 {% if not request.user.is_authenticated %}
 
+    {% if android %}
+    {% else %}
     $(".test").modal('show');
+    {% endif %}
 {% endif %}
     $('.ui.dropdown.interest_hobby').dropdown({
   allowAdditions: true,
@@ -162,6 +191,9 @@ temp={
 'interest_fan':interest_fan,
 'csrfmiddlewaretoken': '{{ csrf_token }}',
 'interest_cause':interest_cause
+{% if member_id != None %}
+'member_id' : '{{member_id}}',
+{% endif %}
 }
 
 {% if request.user.is_authenticated %}
@@ -188,7 +220,10 @@ temp={
 
     })
 {% else %}
+    {% if android %}
+    {% else %}
     $(".test").modal('show');
+    {% endif %}
 {% endif %}
 })
 </script>

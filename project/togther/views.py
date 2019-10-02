@@ -1562,6 +1562,11 @@ def onboarding(request):
             legacy_hometown = []
             geography = []
 
+        android = False
+
+        if is_request_android(request) and member_id:
+            android = True
+
 
         education_tags = Tags_lpig.objects.filter(attribute_id=2).order_by('name')
         work_tags = Tags_lpig.objects.filter(attribute_id=1).order_by('name')
@@ -1578,15 +1583,18 @@ def onboarding(request):
             'community_geography':geography,
             'community_id':community_id,
             'member_id': member_id,
+            'android':android,
         }
 
         return render(request,'onboarding.html',context)
     else:
+
         user_id = request.POST.get('member_id', None)
-        print("post user id  ===== ",user_id)
-        user_id=request.user.id
+        if not user_id:
+            user_id=request.user.id
+
         legacy_education =request.POST.getlist('legacy_education[]')
-        #legacy_work = request.POST.getlist('legacy_work[]')
+        # legacy_work = request.POST.getlist('legacy_work[]')
         legacy_hometown = request.POST.getlist('legacy_hometown[]')
         geography=request.POST.getlist('loc[]')
 
@@ -1631,6 +1639,10 @@ def onboarding_profession(request):
             profession_skill = []
             profession_designation = []
 
+        android = False
+        if is_request_android(request) and member_id:
+            android = True
+
         industry_tags = Tags_lpig.objects.filter(attribute_id=6).order_by('name')
         skill_tags = Tags_lpig.objects.filter(attribute_id=5).order_by('name')
         designation_tags = Tags_lpig.objects.filter(attribute_id=7).order_by('name')
@@ -1643,14 +1655,19 @@ def onboarding_profession(request):
             'community_profession_designation': profession_designation,
             'community_id': community_id,
             'user_id' : member_id,
+            'android': android,
         }
 
         return render(request, 'onboarding_profession.html', context)
     else:
-        user_id = request.user.id
-        print("post profession user id  ===== ",user_id)
+        # user_id = request.user.id
+        # print("post profession user id  ===== ",user_id)
+        # user_id = request.POST.get('member_id', None)
+        # print("post profession user id  ===== ",user_id)
+
         user_id = request.POST.get('member_id', None)
-        print("post profession user id  ===== ",user_id)
+        if not user_id:
+            user_id = request.user.id
 
         profession_industry = request.POST.getlist('profession_industry[]')
         profession_skill = request.POST.getlist('profession_skill[]')
@@ -1660,8 +1677,6 @@ def onboarding_profession(request):
 
         type_list = get_user_tags_from_list(profession_list, "Profession")
         insert_tags_for_user(user_id, type_list, "Profession")
-
-
 
         return JsonResponse({'success': True})
 
@@ -1679,19 +1694,24 @@ def onboarding_interest(request):
     if request.method == 'GET':
 
         community_id = request.GET.get('community_id',None)
-        user_id = request.GET.get('user_id', None)
+        member_id = request.GET.get('member_id', None)
         if community_id:
 
             interest_hobby, interest_sports, interest_fan, interest_cause = get_community_interest_tags(community_id)
-        elif user_id:
-            interest_hobby, interest_sports, interest_fan, interest_cause = get_user_interest_tags(user_id)
-        elif not user_id:
+        elif member_id:
+            interest_hobby, interest_sports, interest_fan, interest_cause = get_user_interest_tags(member_id)
+        elif not member_id:
             interest_hobby, interest_sports, interest_fan, interest_cause = get_user_interest_tags(request.user.id)
         else:
             interest_hobby = []
             interest_sports = []
             interest_fan = []
             interest_cause = []
+
+        android = False
+
+        if is_request_android(request) and member_id:
+            android = True
 
         hobby_tags = Tags_lpig.objects.filter(attribute_id=9).order_by('name')
         sports_tags = Tags_lpig.objects.filter(attribute_id=10).order_by('name')
@@ -1707,12 +1727,18 @@ def onboarding_interest(request):
             'community_interest_sports': interest_sports,
             'community_interest_fan': interest_fan,
             'community_interest_cause': interest_cause,
+            'android': android,
         }
 
         return render(request, 'interest_onboarding.html', context)
 
     else:
-        user_id = request.user.id
+        # user_id = request.user.id
+
+        user_id = request.POST.get('member_id', None)
+        if not user_id:
+            user_id = request.user.id
+
         interest_hobby = request.POST.getlist('interest_hobby[]')
         interest_sports = request.POST.getlist('interest_sports[]')
         interest_fan = request.POST.getlist('interest_fan[]')
@@ -1767,9 +1793,9 @@ def access_page(request):
 
             if is_request_android(request):
                 platform_type="Android"
-            else:
-                # send_mail_after_rank_computation.delay(user_id=user_id)
-                send_mail_after_rank_computation.delay(user_id=user_id)
+
+            # send_mail_after_rank_computation.delay(user_id=user_id)
+            send_mail_after_rank_computation.delay(user_id=user_id)
 
         except:
 

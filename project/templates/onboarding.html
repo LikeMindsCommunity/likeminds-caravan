@@ -2,6 +2,32 @@
 {% load staticfiles %}
 
 
+{% block menu %}
+{% if android%}
+
+{% else %}
+            <div class="right menu" style="float:right; ">
+                {% if user.is_authenticated %}
+                <div class="ui simple dropdown item" style="padding:0;">
+
+                    {% block user_image %}
+                    <img class="ui avatar image" src="{{request.user.userinfo.image_file.url}}"/>
+                    {% endblock %}
+                    <div class="menu">
+
+                        <a class="item" href="{% url 'logout_view' %}">Logout</a>
+                    </div>
+                </div>
+
+                {% else %}
+                <a class="item" id='test'>Signin</a>
+                {% endif %}
+
+            </div>
+{% endif %}
+{% endblock %}
+
+
 {% block content %}
 
  {% block styles %}
@@ -98,7 +124,10 @@
 
 {% if not request.user.is_authenticated %}
 
+    {% if android %}
+    {% else %}
     $(".test").modal('show');
+    {% endif %}
 {% endif %}
     $('.ui.dropdown.legacy_education').dropdown({
   allowAdditions: true,
@@ -149,14 +178,16 @@ if(legacy_education == null){
 legacy_hometown=$('#legacy_hometown').val()
 
 
-
 temp={
 
 'legacy_education':legacy_education,
 //'legacy_work':legacy_work,
 'legacy_hometown':legacy_hometown,
 'csrfmiddlewaretoken': '{{ csrf_token }}',
-'loc':loc
+'loc':loc,
+{% if member_id != None %}
+'member_id' : '{{member_id}}',
+{% endif %}
 }
 $('#submit').addClass("loading");
 {% if request.user.is_authenticated %}
@@ -171,8 +202,8 @@ $('#submit').addClass("loading");
             //console.log(data)
             {% if community_id != None %}
             location.href="/onboarding_profession?community_id={{community_id}}"
-            {% elif user_id != None %}
-            location.href="/onboarding_profession?user_id={{user_id}}"
+            {% elif member_id != None %}
+            location.href="/onboarding_profession?member_id={{member_id}}"
             {% else %}
             location.href="/onboarding_profession"
             {% endif %}
@@ -183,7 +214,10 @@ $('#submit').addClass("loading");
 
     })
 {% else %}
+    {% if android %}
+    {% else %}
     $(".test").modal('show');
+    {% endif %}
 {% endif %}
 })
 </script>
