@@ -1780,7 +1780,6 @@ def access_page(request):
         mobile_os=request.POST.get('mobile_os')
         email=request.POST.get('email')
         mobile_no=request.POST.get('mobile_no')
-        platform_type=""
         try:
             user_info=Userinfo.objects.get(user_id=user_id)
             user_info.mobile_os=mobile_os
@@ -1791,8 +1790,6 @@ def access_page(request):
                 user_info.contact_number = None
             user_info.save()
 
-            if is_request_android(request):
-                platform_type="Android"
 
             # send_mail_after_rank_computation.delay(user_id=user_id)
             send_mail_after_rank_computation.delay(user_id=user_id)
@@ -1803,7 +1800,7 @@ def access_page(request):
 
 
 
-    return JsonResponse({'success': True,'mobile_os':mobile_os,'platform_type':platform_type})
+    return JsonResponse({'success': True,'mobile_os':mobile_os})
 
 
 def alpha_page(request):
