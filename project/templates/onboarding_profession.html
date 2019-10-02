@@ -108,13 +108,6 @@
 
 <script>
 
-{% if not request.user.is_authenticated %}
-
-    {% if android %}
-    {% else %}
-    $(".test").modal('show');
-    {% endif %}
-{% endif %}
     $('.ui.dropdown.profession_industry').dropdown({
   allowAdditions: true,
   fullTextSearch: true
@@ -169,6 +162,8 @@ temp={
 {% endif %}
 
 }
+
+console.log(temp)
 $('#submit').addClass("loading");
 
 {% if request.user.is_authenticated %}
@@ -183,8 +178,6 @@ $('#submit').addClass("loading");
             //console.log(data)
             {% if community_id != None %}
             location.href="/onboarding_interest?community_id={{community_id}}"
-            {% elif member_id != None %}
-            location.href="/onboarding_interest?member_id={{member_id}}"
             {% else %}
             location.href="/onboarding_interest"
             {% endif %}
@@ -196,6 +189,26 @@ $('#submit').addClass("loading");
     })
 {% else %}
     {% if android %}
+
+     $.ajax({
+
+        url:"/onboarding_profession",
+        type:"POST",
+        data:temp,
+        dataType: "json",
+        success:function(data){
+            //console.log(data)
+            {% if community_id != None %}
+            location.href="/onboarding_interest?community_id={{community_id}}"
+            {% else %}
+            location.href="/onboarding_interest"
+            {% endif %}
+
+        }
+
+
+
+    })
     {% else %}
     $(".test").modal('show');
     {% endif %}

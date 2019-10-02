@@ -1548,13 +1548,20 @@ def onboarding(request):
 
         community_id = request.GET.get('community_id',None)
         member_id = request.GET.get('member_id', None)
+        autheticate = request.GET.get('authenticate', False)
+        print(autheticate)
+        if autheticate == "true" or autheticate == "True":
+            autheticate=True
+        else:
+            autheticate=False
+
         if community_id:
             legacy_work, legacy_education, legacy_hometown, geography = get_community_legacy_tags(
                 community_id)
-        elif member_id:
+        elif member_id and autheticate:
             legacy_work, legacy_education, legacy_hometown, geography = get_user_legacy_tags(
                 member_id)
-        elif not member_id:
+        elif not member_id :
             legacy_work, legacy_education, legacy_hometown, geography = get_user_legacy_tags(request.user.id)
         else:
             legacy_work = []
@@ -1564,8 +1571,9 @@ def onboarding(request):
 
         android = False
 
-        if is_request_android(request) and member_id:
+        if is_request_android(request) and member_id and autheticate:
             android = True
+        print(android)
 
 
         education_tags = Tags_lpig.objects.filter(attribute_id=2).order_by('name')
@@ -1627,10 +1635,17 @@ def onboarding_profession(request):
 
         community_id = request.GET.get('community_id',None)
         member_id = request.GET.get('member_id', None)
+        autheticate = request.GET.get('authenticate', False)
+        if autheticate == "true" or autheticate == "True":
+            autheticate=True
+        else:
+            autheticate=False
+
+
         if community_id:
 
             profession_industry,profession_skill,profession_designation = get_community_profession_tags(community_id)
-        elif member_id:
+        elif member_id and autheticate:
             profession_industry,profession_skill,profession_designation = get_user_profession_tags(member_id)
         elif not member_id:
             profession_industry,profession_skill,profession_designation = get_user_profession_tags(request.user.id)
@@ -1640,7 +1655,7 @@ def onboarding_profession(request):
             profession_designation = []
 
         android = False
-        if is_request_android(request) and member_id:
+        if is_request_android(request) and member_id and autheticate:
             android = True
 
         industry_tags = Tags_lpig.objects.filter(attribute_id=6).order_by('name')
@@ -1656,14 +1671,11 @@ def onboarding_profession(request):
             'community_id': community_id,
             'user_id' : member_id,
             'android': android,
+            'member_id':member_id
         }
 
         return render(request, 'onboarding_profession.html', context)
     else:
-        # user_id = request.user.id
-        # print("post profession user id  ===== ",user_id)
-        # user_id = request.POST.get('member_id', None)
-        # print("post profession user id  ===== ",user_id)
 
         user_id = request.POST.get('member_id', None)
         if not user_id:
@@ -1695,10 +1707,17 @@ def onboarding_interest(request):
 
         community_id = request.GET.get('community_id',None)
         member_id = request.GET.get('member_id', None)
+        autheticate = request.GET.get('authenticate', False)
+        if autheticate == "true" or autheticate == "True":
+            autheticate=True
+        else:
+            autheticate=False
+
+
         if community_id:
 
             interest_hobby, interest_sports, interest_fan, interest_cause = get_community_interest_tags(community_id)
-        elif member_id:
+        elif member_id and autheticate:
             interest_hobby, interest_sports, interest_fan, interest_cause = get_user_interest_tags(member_id)
         elif not member_id:
             interest_hobby, interest_sports, interest_fan, interest_cause = get_user_interest_tags(request.user.id)
@@ -1710,7 +1729,7 @@ def onboarding_interest(request):
 
         android = False
 
-        if is_request_android(request) and member_id:
+        if is_request_android(request) and member_id and autheticate:
             android = True
 
         hobby_tags = Tags_lpig.objects.filter(attribute_id=9).order_by('name')
@@ -1728,6 +1747,7 @@ def onboarding_interest(request):
             'community_interest_fan': interest_fan,
             'community_interest_cause': interest_cause,
             'android': android,
+            'member_id':member_id
         }
 
         return render(request, 'interest_onboarding.html', context)

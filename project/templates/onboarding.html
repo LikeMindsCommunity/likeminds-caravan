@@ -3,7 +3,7 @@
 
 
 {% block menu %}
-{% if android%}
+{% if android %}
 
 {% else %}
             <div class="right menu" style="float:right; ">
@@ -122,13 +122,7 @@
 <script>
 
 
-{% if not request.user.is_authenticated %}
 
-    {% if android %}
-    {% else %}
-    $(".test").modal('show');
-    {% endif %}
-{% endif %}
     $('.ui.dropdown.legacy_education').dropdown({
   allowAdditions: true,
   fullTextSearch: true
@@ -202,8 +196,6 @@ $('#submit').addClass("loading");
             //console.log(data)
             {% if community_id != None %}
             location.href="/onboarding_profession?community_id={{community_id}}"
-            {% elif member_id != None %}
-            location.href="/onboarding_profession?member_id={{member_id}}"
             {% else %}
             location.href="/onboarding_profession"
             {% endif %}
@@ -215,6 +207,28 @@ $('#submit').addClass("loading");
     })
 {% else %}
     {% if android %}
+
+         $.ajax({
+
+        url:"/onboarding",
+        type:"POST",
+        data:temp,
+        dataType: "json",
+        success:function(data){
+            //console.log(data)
+            {% if community_id != None %}
+            location.href="/onboarding_profession?community_id={{community_id}}"
+            {% else %}
+            location.href="/onboarding_profession"
+            {% endif %}
+
+        }
+
+
+
+    })
+
+
     {% else %}
     $(".test").modal('show');
     {% endif %}

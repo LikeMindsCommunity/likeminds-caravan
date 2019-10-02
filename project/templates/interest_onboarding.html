@@ -125,13 +125,7 @@
 
 <script>
 
-{% if not request.user.is_authenticated %}
 
-    {% if android %}
-    {% else %}
-    $(".test").modal('show');
-    {% endif %}
-{% endif %}
     $('.ui.dropdown.interest_hobby').dropdown({
   allowAdditions: true,
   fullTextSearch: true
@@ -190,7 +184,7 @@ temp={
 'interest_sports':interest_sports,
 'interest_fan':interest_fan,
 'csrfmiddlewaretoken': '{{ csrf_token }}',
-'interest_cause':interest_cause
+'interest_cause':interest_cause,
 {% if member_id != None %}
 'member_id' : '{{member_id}}',
 {% endif %}
@@ -217,6 +211,23 @@ temp={
     })
 {% else %}
     {% if android %}
+        $.ajax({
+
+            url:"/onboarding_interest",
+            type:"POST",
+            data:temp,
+            dataType: "json",
+            success:function(data){
+                console.log(data)
+
+                location.href="/communities"
+
+
+            }
+
+
+
+        })
     {% else %}
     $(".test").modal('show');
     {% endif %}
