@@ -1738,8 +1738,7 @@ def onboarding_interest(request):
                 user_info.secondary_email=user_info.email
                 user_info.save()
 
-                # sending notificaton after rank compuatation
-                notification_after_compute_rank.delay(user_id = member_id)
+
             except:
                 print("Error in getting user info object")
 
@@ -1758,7 +1757,8 @@ def onboarding_interest(request):
             'community_interest_fan': interest_fan,
             'community_interest_cause': interest_cause,
             'android': android,
-            'member_id':member_id
+            'member_id':member_id,
+            'autheticate':autheticate
         }
 
         return render(request, 'interest_onboarding.html', context)
@@ -1769,6 +1769,12 @@ def onboarding_interest(request):
         user_id = request.POST.get('member_id', None)
         if not user_id:
             user_id = request.user.id
+        member_id = request.POST.get('member_id', None)
+        autheticate = request.POST.get('authenticate', False)
+        if autheticate == "true" or autheticate == "True":
+            autheticate = True
+        else:
+            autheticate = False
 
         interest_hobby = request.POST.getlist('interest_hobby[]')
         interest_sports = request.POST.getlist('interest_sports[]')
@@ -1780,8 +1786,11 @@ def onboarding_interest(request):
         type_list = get_user_tags_from_list(interest_list, "Interests")
         insert_tags_for_user(user_id, type_list, "Interests")
         compute_rank(user_id=user_id)
-        # if is_request_android(request):
-        #     return JsonResponse({'user_agent': True})
+        if is_request_android(request) and member_id and autheticate:
+            # sending notificaton after rank compuatation
+            notification_after_compute_rank.delay(user_id=member_id)
+
+
         return JsonResponse({'user_agent': False})
 
 

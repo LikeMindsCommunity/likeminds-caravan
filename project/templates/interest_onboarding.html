@@ -187,7 +187,10 @@ temp={
 'interest_cause':interest_cause,
 {% if member_id != None %}
 'member_id' : '{{member_id}}',
+'autheticate':'{{autheticate}}'
 {% endif %}
+
+
 }
 
 {% if request.user.is_authenticated %}

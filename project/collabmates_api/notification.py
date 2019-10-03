@@ -344,6 +344,7 @@ def send_notification_to_all_admins(community_id,name,current_promoter_id):
 def notification_after_compute_rank(user_id):
 
     '''function to send notification to referred member(who is referring)'''
+    time.sleep(30)
     fcm_token=get_token_for_fcm(user_id)
 
     if fcm_token:
