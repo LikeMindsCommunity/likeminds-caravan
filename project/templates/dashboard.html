@@ -312,12 +312,14 @@
 
 
                           </span>
+                {% if community.members_count != 0 %}
                 <span class="right floated ">
                             <i class="user icon"></i>
                             <a href="#">
                             {{community.members_count}}
                             </a>
                           </span>
+                {% endif %}
             </div>
             <div class="extra content">
                 <div class="description">
