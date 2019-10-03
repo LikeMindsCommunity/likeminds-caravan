@@ -48,7 +48,7 @@ def communities(request):
 
     ''' function to get all the communities '''
 
-    print("request META android >>>>> ",request.META)
+    print("request METa ")
 
     if request.method == 'GET':
         request = request.GET.dict()
@@ -1124,6 +1124,7 @@ def login(request):
                     userinfo.city = res['location']['name']
                 userinfo.login_type='facebook'
                 userinfo.login_json=json_to_save
+                userinfo.created_at = time.time()
                 userinfo.save()
                 mail_triger(str(usr.id))
         else:
@@ -1145,6 +1146,7 @@ def login(request):
                 userinfo.image_url=profile_picture
                 userinfo.login_type='linkedIn'
                 userinfo.login_json=json_to_save
+                userinfo.created_at = time.time()
                 userinfo.save()
                 mail_triger(str(usr.id))
 
@@ -1623,13 +1625,16 @@ def push(request):
     member_id=request.GET.get('member_id','')
     token=request.GET.get('token','')
     print('member_id === ',member_id)
-    is_member=Userinfo.objects.filter(user_id=member_id)
-    print(is_member)
+    if member_id:
+        is_member=Userinfo.objects.filter(user_id=member_id)
+    else:
+        is_member=None
     success=False
     if is_member:
         success=True
+        if not is_member[0].fcm_token:
+            send_welcome_mail.delay(member_id)
         fcm_token=Userinfo.objects.filter(user_id=member_id).update(fcm_token=token)
-        send_welcome_mail.delay(member_id)
 
     return JsonResponse({'success':success})
 
