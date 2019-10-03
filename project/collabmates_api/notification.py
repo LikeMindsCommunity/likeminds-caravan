@@ -354,7 +354,7 @@ def notification_after_compute_rank(user_id):
         # user = User.objects.get(pk = user_id)
         # user_name = user.userinfo.name
 
-        sub_title = " Discover and join relevant communities based on your profile"
+        sub_title = "Discover and join relevant communities based on your profile"
 
         message={}
         message['payload']={
