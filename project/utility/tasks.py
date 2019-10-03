@@ -75,7 +75,7 @@ def new_member_request(member_id,commuinity_id,ref_id=None):
 
     member_name = member.userinfo.name
     fail_silently = True
-
+    community_link=url+"/community/"+str(commuinity_id)
     subject = "New Member Request in Community "+ str(commuinity_name)
     if not ref_id:
         if commuinity.hide_community == '3':
@@ -107,7 +107,7 @@ def new_member_request(member_id,commuinity_id,ref_id=None):
 
     template = get_template("mails/new_member_request.html").render({"member_name": member_name,'ref_name':ref_name,
                                                                   'subject': subject, 'commuinity_name': commuinity_name,
-                                                                  'text':text})
+                                                                  'text':text,'community_link':community_link})
     
     if url == "https://beta.collabmates.com":
         to_list = ['mahesh61437mahe@gmail.com','rastogi.fresh88@gmail.com']
