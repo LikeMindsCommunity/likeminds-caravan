@@ -17,6 +17,7 @@ from collabmates_api.serializers import *
 from django.template.loader import get_template
 import traceback
 from collabmates_api.raw_queries import  compute_rank
+from collabmates_api.notification import notification_after_compute_rank
 from django.urls import reverse
 from utility.utils import (get_city_address, update_tag_image,
                            update_user_geography_tags, create_or_categorize_tag,
@@ -1736,6 +1737,9 @@ def onboarding_interest(request):
                 user_info.mobile_os="Android"
                 user_info.secondary_email=user_info.email
                 user_info.save()
+
+                # sending notificaton after rank compuatation
+                notification_after_compute_rank.delay(member_id = member_id)
             except:
                 print("Error in getting user info object")
 
