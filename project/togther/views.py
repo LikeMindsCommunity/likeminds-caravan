@@ -30,7 +30,7 @@ url = settings.URL
 
 # uncomment to run it in localhost
 #
-# url='http://localhost:8000'
+#url='http://localhost:8000'
 
 api_url = url + '/api/'
 
@@ -1731,6 +1731,13 @@ def onboarding_interest(request):
 
         if is_request_android(request) and member_id and autheticate:
             android = True
+            try:
+                user_info=Userinfo.objects.get(user_id=member_id)
+                user_info.mobile_os="Android"
+                user_info.secondary_email=user_info.email
+                user_info.save()
+            except:
+                print("Error in getting user info object")
 
         hobby_tags = Tags_lpig.objects.filter(attribute_id=9).order_by('name')
         sports_tags = Tags_lpig.objects.filter(attribute_id=10).order_by('name')
