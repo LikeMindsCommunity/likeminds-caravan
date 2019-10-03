@@ -4,6 +4,7 @@ import psycopg2
 from pyfcm import FCMNotification
 from django.conf import  settings
 import time
+from togther.models import Community_Rank
 
 # file to store configuration of the system
 
