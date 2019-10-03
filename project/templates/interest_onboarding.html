@@ -124,6 +124,9 @@
 
 <script>
 
+{% if not request.user.is_authenticated and not android %}
+    $(".test").modal('show');
+{% endif %}
 
     $('.ui.dropdown.interest_hobby').dropdown({
   allowAdditions: true,
