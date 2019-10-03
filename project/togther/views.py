@@ -1771,7 +1771,6 @@ def onboarding_interest(request):
             user_id = request.user.id
         member_id = request.POST.get('member_id', None)
         autheticate = request.POST.get('autheticate', False)
-        print("authenticate === ",autheticate)
         if autheticate == "true" or autheticate == "True":
             autheticate = True
         else:
@@ -1788,6 +1787,10 @@ def onboarding_interest(request):
         type_list = get_user_tags_from_list(interest_list, "Interests")
         insert_tags_for_user(user_id, type_list, "Interests")
         compute_rank(user_id=user_id)
+        print("authenticate === ",autheticate)
+        print(member_id)
+        print(is_request_android(request))
+
         if is_request_android(request) and member_id and autheticate:
             # sending notificaton after rank compuatation
             notification_after_compute_rank.delay(user_id=member_id)
