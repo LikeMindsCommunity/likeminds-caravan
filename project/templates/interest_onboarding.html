@@ -80,7 +80,6 @@
        {% endfor %}
     </select>
 </div>
-
 <!-- -->
 <!-- interest_fan -->
 <div class="field padd">
@@ -187,12 +186,15 @@ temp={
 'interest_cause':interest_cause,
 {% if member_id != None %}
 'member_id' : '{{member_id}}',
+{% endif %}
+
+{% if autheticate %}
 'autheticate':'{{autheticate}}'
 {% endif %}
 
-
 }
 
+console.log(temp)
 {% if request.user.is_authenticated %}
 
     $.ajax({

@@ -66,7 +66,7 @@ def signup(request):
 def dashboard(request):
     ''' function to show all communities and filter based on categories '''
 
-    print('reqesut META  >>>>>>>>> ',request.META)
+    # print('reqesut META  >>>>>>>>> ',request.META)
     if request.user.is_authenticated:
 
         try:
@@ -1770,11 +1770,13 @@ def onboarding_interest(request):
         if not user_id:
             user_id = request.user.id
         member_id = request.POST.get('member_id', None)
-        autheticate = request.POST.get('authenticate', False)
+        autheticate = request.POST.get('autheticate', False)
+        print("authenticate === ",autheticate)
         if autheticate == "true" or autheticate == "True":
             autheticate = True
         else:
             autheticate = False
+        print("authenticate === ",autheticate)
 
         interest_hobby = request.POST.getlist('interest_hobby[]')
         interest_sports = request.POST.getlist('interest_sports[]')
@@ -1812,7 +1814,7 @@ def access_page(request):
 
     '''function to create an early access page and save early respose'''
 
-    print('>>>>>>>>>>>    ',request.META)
+    # print('>>>>>>>>>>>    ',request.META)
     if request.method == "GET":
          return render(request,'access_page.html',{})
     else:
