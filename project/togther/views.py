@@ -1739,7 +1739,7 @@ def onboarding_interest(request):
                 user_info.save()
 
                 # sending notificaton after rank compuatation
-                notification_after_compute_rank.delay(member_id = member_id)
+                notification_after_compute_rank.delay(user_id = member_id)
             except:
                 print("Error in getting user info object")
 
