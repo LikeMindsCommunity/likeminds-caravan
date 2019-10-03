@@ -19,9 +19,10 @@ from .notification import (send_follow_notification,send_notification_to_admins,
                            send_notification_to_eligible_member,
                            send_notification_to_all_admins,
                            send_notification_to_referred_member_in_active_community)
+
 from django.db.models import Q
 import dateutil.relativedelta
-from .tasks import send_email_to_nominated_admin,send_email_for_new_collabcard_posted
+from .tasks import send_email_to_nominated_admin, send_email_for_new_collabcard_posted, send_welcome_mail
 from django.conf import settings
 from togther.tasks import send_email_to_proposed_admin
 from django.core.paginator import Paginator
@@ -33,7 +34,10 @@ import googlemaps
 import requests as rqst
 from utility.utils import (decode_meta_from_url, update_tag_image,
                            referal, get_referred_members_of_a_member,
-                           eligibility_count, notify_referred_member, )
+                           eligibility_count, notify_referred_member,
+                           user_onbaord,)
+from utility.tasks import (mail_triger,new_member_request)
+
 
 
 url  = settings.URL
@@ -43,6 +47,8 @@ url  = settings.URL
 def communities(request):
 
     ''' function to get all the communities '''
+
+    print("request METa ")
 
     if request.method == 'GET':
         request = request.GET.dict()
@@ -419,14 +425,25 @@ def join_community_responses(request):
     community = Community.objects.get(id=community_id)
     user = User.objects.get(id=user_id)
 
+    print('request meta ====== ',request.META)
+
     if 'ref_id' in res:
         ref_id = res['ref_id']
+    else:
+        ref_id = request.GET.get('ref_id',None)
+
+    if ref_id :
+        # ref_id = res['ref_id']
+        # sending mail to nipun and harsh
+        new_member_request.delay(member_id=user_id, commuinity_id=community_id, ref_id=ref_id)
         if community.hide_community == '3' or community.hide_community == '4':
             invited_member = Members.objects.filter(community_id=community,
                                                           member_id=ref_id)
             if invited_member.exists():
                 referal(ref_id=ref_id, community_id=community_id, interested_member_id=user_id)
-
+    if not ref_id:
+        # sending mail to nipun and harsh
+        new_member_request.delay(member_id=user_id, commuinity_id=community_id, ref_id=None)
     # inserting in members table if the member status is pending and inserting it to database with status=3
 
     # If the member is declined from the community and he applied again
@@ -1107,7 +1124,9 @@ def login(request):
                     userinfo.city = res['location']['name']
                 userinfo.login_type='facebook'
                 userinfo.login_json=json_to_save
+                userinfo.created_at = time.time()
                 userinfo.save()
+                mail_triger(str(usr.id))
         else:
             # if user is logging in with linkedIn
             user_name=res['firstName']['localized']['en_US'] + " " + res['lastName']['localized']['en_US']
@@ -1127,14 +1146,21 @@ def login(request):
                 userinfo.image_url=profile_picture
                 userinfo.login_type='linkedIn'
                 userinfo.login_json=json_to_save
+                userinfo.created_at = time.time()
                 userinfo.save()
+                mail_triger(str(usr.id))
 
         userinfo=Userinfo.objects.filter(email=email)
         # get serialized user object
         usr = UserinfoSerializer(userinfo[0])
-        return JsonResponse ({'user': usr})
+        has_tags=user_onbaord(usr['id'])
+        return JsonResponse ({'user': usr,'has_tags':has_tags})
 
     return HttpResponse('Login Api')
+
+
+
+
 
 
 @csrf_exempt
@@ -1598,12 +1624,16 @@ def push(request):
     '''This function is used to insert fcm token to the database in order to generate notifications from database'''
     member_id=request.GET.get('member_id','')
     token=request.GET.get('token','')
-
-    is_member=Userinfo.objects.filter(user_id=member_id)
-    print(is_member)
+    print('member_id === ',member_id)
+    if member_id:
+        is_member=Userinfo.objects.filter(user_id=member_id)
+    else:
+        is_member=None
     success=False
     if is_member:
         success=True
+        if not is_member[0].fcm_token:
+            send_welcome_mail.delay(member_id)
         fcm_token=Userinfo.objects.filter(user_id=member_id).update(fcm_token=token)
 
     return JsonResponse({'success':success})
@@ -2094,3 +2124,18 @@ def accept_promotership(request):
     return JsonResponse({'success':True})
 
 
+
+def get_profile(request):
+
+    '''api to send user object'''
+
+    member_id=request.GET.get('member_id')
+
+    try:
+        user=Userinfo.objects.get(user_id=member_id)
+        usr = UserinfoSerializer(user)
+        return JsonResponse({'user': usr})
+    except:
+        print("userinfo object does not exist")
+
+    return JsonResponse({'user': []})

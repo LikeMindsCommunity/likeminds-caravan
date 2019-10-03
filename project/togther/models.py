@@ -39,6 +39,8 @@ class Members (models.Model):
     member_id = models.ForeignKey(User, on_delete=models.CASCADE)
     community_id = models.ForeignKey(Community, on_delete = models.CASCADE)
     state=models.IntegerField(null=True)
+    created_at=models.BigIntegerField(default=-9223372036854775808)
+
     def __str__(self):
         return self.community_id.name
 
@@ -89,6 +91,8 @@ class Userinfo (models.Model):
     login_json=models.TextField(null=True)
     secondary_email=models.CharField(max_length = 200,null=True)
     mobile_os=models.CharField(max_length = 200,null=True)
+    created_at=models.BigIntegerField(default=-9223372036854775808)
+
 
     def __str__(self):
         return self.name

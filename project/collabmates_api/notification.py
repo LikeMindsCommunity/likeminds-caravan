@@ -3,6 +3,8 @@ from celery import shared_task
 import psycopg2
 from pyfcm import FCMNotification
 from django.conf import  settings
+import time
+from togther.models import Community_Rank
 
 # file to store configuration of the system
 
@@ -338,4 +340,40 @@ def send_notification_to_all_admins(community_id,name,current_promoter_id):
 
         print ("Error while connecting to PostgreSQL", error)
 
+@shared_task
+def notification_after_compute_rank(user_id):
+
+    '''function to send notification to referred member(who is referring)'''
+    time.sleep(30)
+    fcm_token=get_token_for_fcm(user_id)
+
+    if fcm_token:
+        token_list=[]
+        token_list.append(fcm_token)
+        #
+        # user = User.objects.get(pk = user_id)
+        # user_name = user.userinfo.name
+
+        sub_title = "Discover and join relevant communities based on your profile"
+
+        message={}
+        message['payload']={
+            'title':'Discover communities',
+            'sub_title':sub_title,
+            'route':'route://main'
+        }
+
+        count = 0
+        while True:
+            communities = Community_Rank.objects.filter(member_id=user_id)
+            if communities.exists():
+                return send_notification_to_multiple_devices(token_list, message)
+            elif count == 30:
+                return
+            else:
+                count += 1
+                time.sleep(60)
+
+    else:
+        print('No FCM token to send message')
 

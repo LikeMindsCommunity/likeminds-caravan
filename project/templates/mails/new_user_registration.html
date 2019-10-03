@@ -10,11 +10,12 @@
             </o:OfficeDocumentSettings>
         </xml>
         <![endif]-->
+
         <meta charset="UTF-8">
         <meta http-equiv="X-UA-Compatible" content="IE=edge">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>{{subject}}</title>
-        
+
     <style type="text/css">
 		p{
 			margin:10px 0;
@@ -472,7 +473,7 @@
 }</style></head>
     <body>
         <!--*|IF:MC_PREVIEW_TEXT|*-->
-        <!--[if !gte mso 9]>--><span class="mcnPreviewText" style="display:none; font-size:0px; line-height:0px; max-height:0px; max-width:0px; opacity:0; overflow:hidden; visibility:hidden; mso-hide:all;">"Greetings from collabmates"</span><!--<![endif]-->
+        <!--[if !gte mso 9]><!----><span class="mcnPreviewText" style="display:none; font-size:0px; line-height:0px; max-height:0px; max-width:0px; opacity:0; overflow:hidden; visibility:hidden; mso-hide:all;">Access to the first version of CollabMates App</span><!--<![endif]-->
         <!--*|END:IF|*-->
         <center>
             <table align="center" border="0" cellpadding="0" cellspacing="0" height="100%" width="100%" id="bodyTable">
@@ -497,29 +498,28 @@
 				<table align="left" border="0" cellspacing="0" cellpadding="0" width="100%" style="width:100%;">
 				<tr>
 				<![endif]-->
-			    
+
 				<!--[if mso]>
 				<td valign="top" width="600" style="width:600px;">
 				<![endif]-->
                 <table align="left" border="0" cellpadding="0" cellspacing="0" style="max-width:100%; min-width:100%;" width="100%" class="mcnTextContentContainer">
                     <tbody><tr>
-                        
+
                         <td valign="top" class="mcnTextContent" style="padding-top:0; padding-right:18px; padding-bottom:9px; padding-left:18px;">
-                        
+
                             Hi {{name}},<br>
 <br>
+{{text}}<br>
+                            <br>
 
-Welcome to the CollabMates family. We are grateful and proud to have you as one of our initial users of the app.<br>
-<br>
-To make the most out of CollabMates you should join all the relevant communities on the app. Most importantly, start engaging on relevant conversations in {{text}} on CollabMates and initiate conversation with your fellow community members whenever you need something. Don't forget to read purpose and guidelines of every community before you start engaging in it.<br>
-&nbsp;
+
                         </td>
                     </tr>
                 </tbody></table>
 				<!--[if mso]>
 				</td>
 				<![endif]-->
-                
+
 				<!--[if mso]>
 				</tr>
 				</table>
@@ -528,34 +528,15 @@ To make the most out of CollabMates you should join all the relevant communities
         </tr>
     </tbody>
 </table>
-<a class="mcnButton " title="Create Your Community" href="{{url}}" target="_blank" style="font-weight: bold;letter-spacing: normal;line-height: 100%;text-align: center;text-decoration: none;color: #FFFFFF;">
-    <table border="0" cellpadding="0" cellspacing="0" width="100%" class="mcnButtonBlock" style="min-width:100%;">
-        <tbody class="mcnButtonBlockOuter">
-            <tr>
-                <td style="padding-top:0; padding-right:18px; padding-bottom:18px; padding-left:18px;" valign="top" align="center" class="mcnButtonBlockInner">
-                    <table border="0" cellpadding="0" cellspacing="0" class="mcnButtonContentContainer" style="border-collapse: separate !important;border-radius: 0px;background-color: #075E54;">
-                        <tbody>
-                            <tr>
-                                <td align="center" valign="middle" class="mcnButtonContent" style="font-family: Arial; font-size: 16px; padding: 15px;">
-                                    Start Collaborating
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </td>
-            </tr>
-        </tbody>
-    </table>
-</a>
-<!--<table border="0" cellpadding="0" cellspacing="0" width="100%" class="mcnButtonBlock" style="min-width:100%;">-->
+<!--                                    <a class="mcnButton " title="Create Your Community" href="{{url}}/onboarding" target="_blank" style="font-weight: bold;letter-spacing: normal;line-height: 100%;text-align: center;text-decoration: none;color: #FFFFFF;"><table border="0" cellpadding="0" cellspacing="0" width="100%" class="mcnButtonBlock" style="min-width:100%;">-->
 <!--    <tbody class="mcnButtonBlockOuter">-->
 <!--        <tr>-->
 <!--            <td style="padding-top:0; padding-right:18px; padding-bottom:18px; padding-left:18px;" valign="top" align="center" class="mcnButtonBlockInner">-->
-<!--                <table border="0" cellpadding="0" cellspacing="0" class="mcnButtonContentContainer" style="border-collapse: separate !important;border-radius: 0px;background-color: #4CAAD8;">-->
+<!--                <table border="0" cellpadding="0" cellspacing="0" class="mcnButtonContentContainer" style="border-collapse: separate !important;border-radius: 0px;background-color: #075E54;">-->
 <!--                    <tbody>-->
 <!--                        <tr>-->
 <!--                            <td align="center" valign="middle" class="mcnButtonContent" style="font-family: Arial; font-size: 16px; padding: 15px;">-->
-<!--                                <a class="mcnButton " title="Explore Communities" href="http://www.collabmates.com" target="_blank" style="font-weight: bold;letter-spacing: normal;line-height: 100%;text-align: center;text-decoration: none;color: #FFFFFF;">Explore Communities</a>-->
+<!--                                Discover relevant communities-->
 <!--                            </td>-->
 <!--                        </tr>-->
 <!--                    </tbody>-->
@@ -563,41 +544,44 @@ To make the most out of CollabMates you should join all the relevant communities
 <!--            </td>-->
 <!--        </tr>-->
 <!--    </tbody>-->
+<!--</table></a>-->
+<!--                                    <table border="0" cellpadding="0" cellspacing="0" width="100%" class="mcnTextBlock" style="min-width:100%;">-->
+<!--    <tbody class="mcnTextBlockOuter">-->
+<!--        <tr>-->
+<!--            <td valign="top" class="mcnTextBlockInner" style="padding-top:9px;">-->
+<!--              	&lt;!&ndash;[if mso]>-->
+<!--				<table align="left" border="0" cellspacing="0" cellpadding="0" width="100%" style="width:100%;">-->
+<!--				<tr>-->
+<!--				<![endif]&ndash;&gt;-->
+
+<!--				&lt;!&ndash;[if mso]>-->
+<!--				<td valign="top" width="600" style="width:600px;">-->
+<!--				<![endif]&ndash;&gt;-->
+<!--                <table align="left" border="0" cellpadding="0" cellspacing="0" style="max-width:100%; min-width:100%;" width="100%" class="mcnTextContentContainer">-->
+<!--                    <tbody><tr>-->
+
+<!--                        <td valign="top" class="mcnTextContent" style="padding-top:0; padding-right:18px; padding-bottom:9px; padding-left:18px;">-->
+<!--                            More information to follow once you join these communities. Excited to have you aboard!  <br/><br/>-->
+
+
+<!--                            Excited to have you aboard!<br/><br/>-->
+<!--Team Collabmates-->
+<!--                        </td>-->
+<!--                    </tr>-->
+<!--                </tbody></table>-->
+<!--				&lt;!&ndash;[if mso]>-->
+<!--				</td>-->
+<!--				<![endif]&ndash;&gt;-->
+
+<!--				&lt;!&ndash;[if mso]>-->
+<!--				</tr>-->
+<!--				</table>-->
+<!--				<![endif]&ndash;&gt;-->
+<!--            </td>-->
+<!--        </tr>-->
+<!--    </tbody>-->
 <!--</table>-->
-    <table border="0" cellpadding="0" cellspacing="0" width="100%" class="mcnTextBlock" style="min-width:100%;">
-    <tbody class="mcnTextBlockOuter">
-        <tr>
-            <td valign="top" class="mcnTextBlockInner" style="padding-top:9px;">
-              	<!--[if mso]>
-				<table align="left" border="0" cellspacing="0" cellpadding="0" width="100%" style="width:100%;">
-				<tr>
-				<![endif]-->
-			    
-				<!--[if mso]>
-				<td valign="top" width="600" style="width:600px;">
-				<![endif]-->
-                <table align="left" border="0" cellpadding="0" cellspacing="0" style="max-width:100%; min-width:100%;" width="100%" class="mcnTextContentContainer">
-                    <tbody><tr>
-                        
-                        <td valign="top" class="mcnTextContent" style="padding-top:0; padding-right:18px; padding-bottom:9px; padding-left:18px;">
-                        
-                            Excited to have you aboard!<br>
-Team Collabmates
-                        </td>
-                    </tr>
-                </tbody></table>
-				<!--[if mso]>
-				</td>
-				<![endif]-->
-                
-				<!--[if mso]>
-				</tr>
-				</table>
-				<![endif]-->
-            </td>
-        </tr>
-    </tbody>
-</table></td>
+                                </td>
                             </tr>
                             <tr>
                                 <td valign="top" id="templateFooter"><table border="0" cellpadding="0" cellspacing="0" width="100%" class="mcnTextBlock" style="min-width:100%;">
@@ -608,15 +592,15 @@ Team Collabmates
 				<table align="left" border="0" cellspacing="0" cellpadding="0" width="100%" style="width:100%;">
 				<tr>
 				<![endif]-->
-			    
+
 				<!--[if mso]>
 				<td valign="top" width="600" style="width:600px;">
 				<![endif]-->
                 <table align="left" border="0" cellpadding="0" cellspacing="0" style="max-width:100%; min-width:100%;" width="100%" class="mcnTextContentContainer">
                     <tbody><tr>
-                        
+
                         <td valign="top" class="mcnTextContent" style="padding-top:0; padding-right:18px; padding-bottom:9px; padding-left:18px;">
-                        
+
 
                         </td>
                     </tr>
@@ -624,7 +608,7 @@ Team Collabmates
 				<!--[if mso]>
 				</td>
 				<![endif]-->
-                
+
 				<!--[if mso]>
 				</tr>
 				</table>

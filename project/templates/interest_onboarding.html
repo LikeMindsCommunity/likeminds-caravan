@@ -1,6 +1,32 @@
 {% extends "base.html" %}
 {% load staticfiles %}
 
+{% block menu %}
+{% if android%}
+
+{% else %}
+            <div class="right menu" style="float:right; ">
+                {% if user.is_authenticated %}
+                <div class="ui simple dropdown item" style="padding:0;">
+
+                    {% block user_image %}
+                    <img class="ui avatar image" src="{{request.user.userinfo.image_file.url}}"/>
+                    {% endblock %}
+                    <div class="menu">
+
+                        <a class="item" href="{% url 'logout_view' %}">Logout</a>
+                    </div>
+                </div>
+
+                {% else %}
+                <a class="item" id='test'>Signin</a>
+                {% endif %}
+
+            </div>
+{% endif %}
+{% endblock %}
+
+
 {% block content %}
 
 <!-- css styling -->
@@ -54,7 +80,6 @@
        {% endfor %}
     </select>
 </div>
-
 <!-- -->
 <!-- interest_fan -->
 <div class="field padd">
@@ -99,10 +124,7 @@
 
 <script>
 
-{% if not request.user.is_authenticated %}
 
-    $(".test").modal('show');
-{% endif %}
     $('.ui.dropdown.interest_hobby').dropdown({
   allowAdditions: true,
   fullTextSearch: true
@@ -148,12 +170,12 @@ $('#error_interest').css("display","none")
 
 })
 
-if(interest_hobby == null && interest_sports == null && interest_fan == null && interest_fan == null){
+if(interest_hobby == null && interest_sports == null && interest_fan == null && interest_cause == null){
 $('#error_interest').css("display","block")
     return;
 }
 
-
+$('#submit').addClass("loading")
 
 temp={
 
@@ -161,9 +183,18 @@ temp={
 'interest_sports':interest_sports,
 'interest_fan':interest_fan,
 'csrfmiddlewaretoken': '{{ csrf_token }}',
-'interest_cause':interest_cause
+'interest_cause':interest_cause,
+{% if member_id != None %}
+'member_id' : '{{member_id}}',
+{% endif %}
+
+{% if autheticate %}
+'autheticate':'{{autheticate}}'
+{% endif %}
+
 }
 
+console.log(temp)
 {% if request.user.is_authenticated %}
 
     $.ajax({
@@ -174,11 +205,9 @@ temp={
         dataType: "json",
         success:function(data){
             console.log(data)
-            if(data['is_iitd']){
-                location.href="/communities"
-            }else{
-                location.href="/access_page"
-            }
+
+            location.href="/communities"
+
 
         }
 
@@ -186,7 +215,27 @@ temp={
 
     })
 {% else %}
+    {% if android %}
+        $.ajax({
+
+            url:"/onboarding_interest",
+            type:"POST",
+            data:temp,
+            dataType: "json",
+            success:function(data){
+                console.log(data)
+
+                location.href="/communities"
+
+
+            }
+
+
+
+        })
+    {% else %}
     $(".test").modal('show');
+    {% endif %}
 {% endif %}
 })
 </script>

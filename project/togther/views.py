@@ -17,17 +17,21 @@ from collabmates_api.serializers import *
 from django.template.loader import get_template
 import traceback
 from collabmates_api.raw_queries import  compute_rank
+from collabmates_api.notification import notification_after_compute_rank
 from django.urls import reverse
 from utility.utils import (get_city_address, update_tag_image,
                            update_user_geography_tags, create_or_categorize_tag,
                            referal, insert_user_home_town_tags, )
 from urllib.parse import urlencode,quote
+from utility.tasks import new_member_request
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from user_agents import parse
 
 url = settings.URL
 
 # uncomment to run it in localhost
 #
-# url='http://localhost:8000'
+#url='http://localhost:8000'
 
 api_url = url + '/api/'
 
@@ -47,12 +51,22 @@ def home(request):
 def signup(request):
     # users = User.objects.all()
     if request.user.is_authenticated:
+        try:
+            # check if user has user info
+            user = Userinfo.objects.get(user_id=request.user.id)
+        except:
+            # if there is no user info for the user who is currently logged in
+            # create userinfo for current user
+            user = update_user_info(request)
+
         return redirect('dashboard')
     else:
         return render(request, 'signup.html',{})
 
 def dashboard(request):
     ''' function to show all communities and filter based on categories '''
+
+    # print('reqesut META  >>>>>>>>> ',request.META)
     if request.user.is_authenticated:
 
         try:
@@ -71,12 +85,28 @@ def dashboard(request):
         # check if user has completed onbarding and is from IIT Delhi
         onboard,is_iitd = user_onbaord(request)
 
+        # if 'HTTP_USER_AGENT' in request.META:
+        #     ua_string = request.META['HTTP_USER_AGENT']
+        #     #ua_string="Mozilla/5.0 (Linux; Android 9; Redmi Note 5 Pro) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.92 Mobile Safari/537.36"
+        #     user_agent = parse(ua_string)
+        #     mobile_os=request.user.userinfo.mobile_os
+        #     if user_agent.os.family == "Android" and mobile_os:
+        #         # user.mobile_os="Android"
+        #         # user.save()
+        #         base_url = reverse('dashboard')
+        #         query_string = urlencode({'member_id': request.user.id})
+        #         url = '{}?{}'.format(base_url, query_string)
+        #         return redirect(url)
+
+
         return render(request, 'dashboard.html',
                       {'usr': user, 'communities': communities, 'my_communities': my_community[:2],
                        "my_communities_count": len(my_community),'onboard':onboard,'is_iitd':True})
     communities = Community.objects.filter(Q(hide_community='0')|Q(hide_community = '4')).order_by('-updated_at')
     for community in communities:
         update_member_count(community.id)
+
+
 
 
     return render(request, 'dashboard.html', {'communities': communities})
@@ -164,6 +194,12 @@ def get_user_communities(request):
 
 def community(request, community_id):
 
+    if request.user.is_authenticated:
+        try:
+            user = Userinfo.objects.get(user_id=request.user.id)
+        except:
+            user = update_user_info(request)
+
     community = get_object_or_404(Community, pk=community_id)
 
     # ----- accept admin APi part ---------------
@@ -186,11 +222,12 @@ def community(request, community_id):
             member = Members.objects.filter(member_id=request.user, community_id = community)
             member_state = member[0].state if member.exists() else 0
 
-            questions, user, data, community = join_community(request, community_id)
+            questions, user, data, community = join_community(request, community_id,ref_id)
             if questions:
                 if member_state == 0 or member_state == 5:
                     return render(request, 'response_form.html', {"data": data, 'usr': user, 'community': community,'ref_id':ref_id})
             else:
+
                 if community.hide_community == '3':
                     if ref_id != '':
                         base_url = reverse('refer_members', kwargs={'community_id': community_id})
@@ -288,8 +325,12 @@ def refer_members(request,community_id):
 
     ref_id = request.GET.get('ref_id',None)
 
-
     if request.user.is_authenticated:
+
+        try:
+            user = Userinfo.objects.get(user_id=request.user.id)
+        except:
+            user = update_user_info(request)
 
         interested_member_id = request.user.id
 
@@ -456,6 +497,13 @@ def update_user_info(request,member_id=None):
 
 @login_required
 def accept_admin(request, community_id):
+
+    if request.user.is_authenticated:
+        try:
+            user = Userinfo.objects.get(user_id=request.user.id)
+        except:
+            user = update_user_info(request)
+
     ''' function to accept promoter invitation or decilne the invitation from web '''
     # getting value attribute which says whether the user accepted or declined it
     accepted = request.GET.get('value', 'true')
@@ -697,11 +745,18 @@ def edit_profile(request, user_id):
 @login_required
 def logout_view(request):
     logout(request)
-    return redirect('dashboard')
+    return redirect('signup')
 
 
 @login_required
-def join_community(request, community_id):
+def join_community(request, community_id,ref_id):
+
+    if request.user.is_authenticated:
+        try:
+            user = Userinfo.objects.get(user_id=request.user.id)
+        except:
+            user = update_user_info(request)
+
     '''function to join community'''
     if request.user.is_authenticated:
         user = Userinfo.objects.all().filter(user_id=request.user)
@@ -738,7 +793,7 @@ def join_community(request, community_id):
         json_dict = {}
         json_dict['questions'] = response_list
 
-        params = {'member_id': member_id, 'community_id': community_id}
+        params = {'member_id': member_id, 'community_id': community_id,'ref_id':ref_id}
         rqst.post(join_url, params=params, json=json_dict)
         # return false to show thank you page the user has now answered the questions
         return False, user, similar_communities, community
@@ -897,6 +952,13 @@ def terms(request):
 
 
 def collabcard(request, card_id):
+
+    if request.user.is_authenticated:
+        try:
+            user = Userinfo.objects.get(user_id=request.user.id)
+        except:
+            user = update_user_info(request)
+
     '''function to get data of collabcard'''
 
     collabcard_url = api_url + 'collabcard/' + str(card_id)
@@ -1058,6 +1120,13 @@ def update_member_count(community_id):
 def pending_list(request,community_id):
 
     '''function to show pending list in html'''
+
+
+    if request.user.is_authenticated:
+        try:
+            user = Userinfo.objects.get(user_id=request.user.id)
+        except:
+            user = update_user_info(request)
 
     link=api_url+'pending_members/'+str(community_id)
 
@@ -1469,21 +1538,43 @@ def get_community_interest_tags(community_id):
 def onboarding(request):
 
     '''function to show the legacy'''
+
+    if request.user.is_authenticated:
+        try:
+            user = Userinfo.objects.get(user_id=request.user.id)
+        except:
+            user = update_user_info(request)
+
     if request.method == 'GET':
 
-        community_id = request.GET.get('community_id')
-        user_id = request.GET.get('user_id', None)
+        community_id = request.GET.get('community_id',None)
+        member_id = request.GET.get('member_id', None)
+        autheticate = request.GET.get('authenticate', False)
+        print(autheticate)
+        if autheticate == "true" or autheticate == "True":
+            autheticate=True
+        else:
+            autheticate=False
+
         if community_id:
             legacy_work, legacy_education, legacy_hometown, geography = get_community_legacy_tags(
                 community_id)
-        elif user_id:
+        elif member_id and autheticate:
             legacy_work, legacy_education, legacy_hometown, geography = get_user_legacy_tags(
-                user_id)
+                member_id)
+        elif not member_id :
+            legacy_work, legacy_education, legacy_hometown, geography = get_user_legacy_tags(request.user.id)
         else:
             legacy_work = []
             legacy_education = []
             legacy_hometown = []
             geography = []
+
+        android = False
+
+        if is_request_android(request) and member_id and autheticate:
+            android = True
+        print(android)
 
 
         education_tags = Tags_lpig.objects.filter(attribute_id=2).order_by('name')
@@ -1500,14 +1591,19 @@ def onboarding(request):
             'community_legacy_hometown':legacy_hometown,
             'community_geography':geography,
             'community_id':community_id,
-            'user_id': user_id,
+            'member_id': member_id,
+            'android':android,
         }
 
         return render(request,'onboarding.html',context)
     else:
-        user_id=request.user.id
+
+        user_id = request.POST.get('member_id', None)
+        if not user_id:
+            user_id=request.user.id
+
         legacy_education =request.POST.getlist('legacy_education[]')
-        #legacy_work = request.POST.getlist('legacy_work[]')
+        # legacy_work = request.POST.getlist('legacy_work[]')
         legacy_hometown = request.POST.getlist('legacy_hometown[]')
         geography=request.POST.getlist('loc[]')
 
@@ -1530,19 +1626,38 @@ def onboarding_profession(request):
 
     '''onboarding for profession'''
 
+    if request.user.is_authenticated:
+        try:
+            user = Userinfo.objects.get(user_id=request.user.id)
+        except:
+            user = update_user_info(request)
+
     if request.method == 'GET':
 
         community_id = request.GET.get('community_id',None)
-        user_id = request.GET.get('user_id', None)
+        member_id = request.GET.get('member_id', None)
+        autheticate = request.GET.get('authenticate', False)
+        if autheticate == "true" or autheticate == "True":
+            autheticate=True
+        else:
+            autheticate=False
+
+
         if community_id:
 
             profession_industry,profession_skill,profession_designation = get_community_profession_tags(community_id)
-        elif user_id:
-            profession_industry,profession_skill,profession_designation = get_user_profession_tags(user_id)
+        elif member_id and autheticate:
+            profession_industry,profession_skill,profession_designation = get_user_profession_tags(member_id)
+        elif not member_id:
+            profession_industry,profession_skill,profession_designation = get_user_profession_tags(request.user.id)
         else:
             profession_industry = []
             profession_skill = []
             profession_designation = []
+
+        android = False
+        if is_request_android(request) and member_id and autheticate:
+            android = True
 
         industry_tags = Tags_lpig.objects.filter(attribute_id=6).order_by('name')
         skill_tags = Tags_lpig.objects.filter(attribute_id=5).order_by('name')
@@ -1555,12 +1670,18 @@ def onboarding_profession(request):
             'community_profession_skill': profession_skill,
             'community_profession_designation': profession_designation,
             'community_id': community_id,
-            'user_id' : user_id,
+            'user_id' : member_id,
+            'android': android,
+            'member_id':member_id
         }
 
         return render(request, 'onboarding_profession.html', context)
     else:
-        user_id = request.user.id
+
+        user_id = request.POST.get('member_id', None)
+        if not user_id:
+            user_id = request.user.id
+
         profession_industry = request.POST.getlist('profession_industry[]')
         profession_skill = request.POST.getlist('profession_skill[]')
         #profession_designation = request.POST.getlist('profession_designation[]')
@@ -1570,8 +1691,6 @@ def onboarding_profession(request):
         type_list = get_user_tags_from_list(profession_list, "Profession")
         insert_tags_for_user(user_id, type_list, "Profession")
 
-
-
         return JsonResponse({'success': True})
 
 
@@ -1579,20 +1698,49 @@ def onboarding_interest(request):
 
     '''onboarding for profession'''
 
+    if request.user.is_authenticated:
+        try:
+            user = Userinfo.objects.get(user_id=request.user.id)
+        except:
+            user = update_user_info(request)
+
     if request.method == 'GET':
 
-        community_id = request.GET.get('community_id')
-        user_id = request.GET.get('user_id', None)
+        community_id = request.GET.get('community_id',None)
+        member_id = request.GET.get('member_id', None)
+        autheticate = request.GET.get('authenticate', False)
+        if autheticate == "true" or autheticate == "True":
+            autheticate=True
+        else:
+            autheticate=False
+
+
         if community_id:
 
             interest_hobby, interest_sports, interest_fan, interest_cause = get_community_interest_tags(community_id)
-        elif user_id:
-            interest_hobby, interest_sports, interest_fan, interest_cause = get_user_interest_tags(user_id)
+        elif member_id and autheticate:
+            interest_hobby, interest_sports, interest_fan, interest_cause = get_user_interest_tags(member_id)
+        elif not member_id:
+            interest_hobby, interest_sports, interest_fan, interest_cause = get_user_interest_tags(request.user.id)
         else:
             interest_hobby = []
             interest_sports = []
             interest_fan = []
             interest_cause = []
+
+        android = False
+
+        if is_request_android(request) and member_id and autheticate:
+            android = True
+            try:
+                user_info=Userinfo.objects.get(user_id=member_id)
+                user_info.mobile_os="Android"
+                user_info.secondary_email=user_info.email
+                user_info.save()
+
+
+            except:
+                print("Error in getting user info object")
 
         hobby_tags = Tags_lpig.objects.filter(attribute_id=9).order_by('name')
         sports_tags = Tags_lpig.objects.filter(attribute_id=10).order_by('name')
@@ -1608,12 +1756,27 @@ def onboarding_interest(request):
             'community_interest_sports': interest_sports,
             'community_interest_fan': interest_fan,
             'community_interest_cause': interest_cause,
+            'android': android,
+            'member_id':member_id,
+            'autheticate':autheticate
         }
 
         return render(request, 'interest_onboarding.html', context)
 
     else:
-        user_id = request.user.id
+        # user_id = request.user.id
+
+        user_id = request.POST.get('member_id', None)
+        if not user_id:
+            user_id = request.user.id
+        member_id = request.POST.get('member_id', None)
+        autheticate = request.POST.get('autheticate', False)
+        if autheticate == "true" or autheticate == "True":
+            autheticate = True
+        else:
+            autheticate = False
+        print("authenticate === ",autheticate)
+
         interest_hobby = request.POST.getlist('interest_hobby[]')
         interest_sports = request.POST.getlist('interest_sports[]')
         interest_fan = request.POST.getlist('interest_fan[]')
@@ -1624,19 +1787,37 @@ def onboarding_interest(request):
         type_list = get_user_tags_from_list(interest_list, "Interests")
         insert_tags_for_user(user_id, type_list, "Interests")
         compute_rank(user_id=user_id)
+        print("authenticate === ",autheticate)
+        print(member_id)
+        print(is_request_android(request))
 
-        #checking for iit tag
-        is_iitd=False
-        user_lpig = User_Legacy.objects.filter(user_id=request.user,tags_id=6)
-        if user_lpig.exists():
-                # checking for iit
-                is_iitd = True
-        return JsonResponse({'is_iitd': True})
+        if is_request_android(request) and member_id and autheticate:
+            # sending notificaton after rank compuatation
+            notification_after_compute_rank.delay(user_id=member_id)
+
+
+        return JsonResponse({'user_agent': False})
+
+
+def is_request_android(request):
+
+    '''function to check whether the user agent is android or not'''
+
+    if 'HTTP_USER_AGENT' in request.META:
+        ua_string = request.META['HTTP_USER_AGENT']
+        user_agent = parse(ua_string)
+        if user_agent.os.family == "Android" and not user_agent.is_pc:
+            return True
+        else:
+            return False
+    return False
 
 
 def access_page(request):
 
     '''function to create an early access page and save early respose'''
+
+    # print('>>>>>>>>>>>    ',request.META)
     if request.method == "GET":
          return render(request,'access_page.html',{})
     else:
@@ -1654,11 +1835,16 @@ def access_page(request):
                 user_info.contact_number = None
             user_info.save()
 
+
+            # send_mail_after_rank_computation.delay(user_id=user_id)
             send_mail_after_rank_computation.delay(user_id=user_id)
 
         except:
 
             print("error in userinfo")
+
+
+
     return JsonResponse({'success': True,'mobile_os':mobile_os})
 
 

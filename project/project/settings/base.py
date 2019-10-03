@@ -210,6 +210,10 @@ SOCIAL_AUTH_PIPELINE = (
 
     # Update the user record with any changed info from the auth service.
     'social_core.pipeline.user.user_details',
+
+    #create userinfo after as soon as user creation is done
+    'utility.userinfo_pipeline.update_userinfo',
+
 )
 
 SENDGRID_API_KEY = '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'
@@ -227,3 +231,5 @@ FCM_DJANGO_SETTINGS = {
     "ONE_DEVICE_PER_USER": True,
     "DELETE_INACTIVE_DEVICES": False
 }
+
+
