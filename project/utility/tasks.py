@@ -17,7 +17,7 @@ from threading import Timer
 def mail_triger(member_id):
     print('member_id === ',member_id)
 
-    t = Timer(600.0, onboarding_mail_for_new_users,[member_id])
+    t = Timer(120.0, onboarding_mail_for_new_users,[member_id])
     t.start()
 
 

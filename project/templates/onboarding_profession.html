@@ -108,6 +108,10 @@
 
 <script>
 
+{% if not request.user.is_authenticated and not android %}
+    $(".test").modal('show');
+{% endif %}
+
     $('.ui.dropdown.profession_industry').dropdown({
   allowAdditions: true,
   fullTextSearch: true
