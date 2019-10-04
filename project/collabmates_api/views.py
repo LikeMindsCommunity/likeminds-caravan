@@ -707,6 +707,7 @@ def create_community(request):
             member.member_id = user
             member.community_id = community
             member.state=1                                  # admin state
+            member.created_at=time.time()
             member.save()
 
             #creating a card while a comunity is created
@@ -784,6 +785,7 @@ def create_community(request):
             member.member_id = user
             member.community_id = group
             member.state=2                              # temperary admin state
+            member.created_at=time.time()
             member.save()
             # get community serialized json
             serialized_object = CommunitySerializer(group)
@@ -864,7 +866,8 @@ def create_card(request):
 
         # if a community is a pilot community make the member as promoter
         if community.hide_community == '3':
-            Members.objects.filter(community_id=community,member_id=user.user_id).update(state=1)
+            join_time=time.time()
+            Members.objects.filter(community_id=community,member_id=user.user_id).update(state=1,created_at=join_time)
             # changing community state to 0 (zero) to make it a active community
             community.hide_community ='4'
             community.save()
@@ -1085,6 +1088,180 @@ def pending_request_count(request,community_id):
 
     no_of_pending_members = Members.objects.filter(community_id = community_id).filter(state = 3).count()
     return JsonResponse({'pending_request_count': no_of_pending_members})
+
+
+@csrf_exempt
+def accept_invitation(request):
+    ''' accept promoter request '''
+    # getting details of nominated person and the community promoter who proposed this invitation
+    member_id=request.GET.get('member_id')
+    community_id=request.GET.get('community_id')
+    community = Community.objects.get(id=community_id)
+    promoter = Members.objects.filter(community_id = community).filter(Q(state=1)|Q(state=2))
+    nom_admin = Userinfo.objects.filter(user_id = member_id)
+    # ------------------------------------------------------------------------------
+    # if only one promoter to a community
+
+    accepted = request.GET.get('value','true')
+
+    if accepted == 'true':
+        #saving data for a new member who is nominated and has accept the invitation
+        member_state=Members.objects.filter(community_id=community, member_id=member_id).values('state')
+        pending_members=Members.objects.filter(community_id=community,state=3).count()
+        if member_state:
+            state=member_state[0]['state']
+            if state == 6:
+                if is_member_engage(community,nom_admin[0].user_id) ==  False:
+                    try:
+                        purpose_card = Collabcard.objects.get(id=community.purpose_collabcard)
+                    except:
+                        card = Collabcard.objects.filter(community_id=community).order_by('id')
+                        if card:
+                            purpose_card = card[0].id
+                    unseen_count = Collabcard.objects.filter(community=community).count()
+
+                    engage = Member_Engage()
+                    engage.member_id = nom_admin[0].user_id
+                    engage.community_id = community
+                    engage.last_unseen_conversation = purpose_card
+                    engage.last_unseen_count = unseen_count
+                    engage.updated_at = time.time()
+                    engage.pending_members=pending_members
+                    engage.save()
+                    Members.objects.filter(community_id=community, member_id=member_id).update(created_at=time.time())
+
+
+        if len(promoter) == 1:
+            #if the community has only one promoter
+            prop_admin = Userinfo.objects.get(user_id=promoter[0].member_id.id)
+            # if the promoter is actually a promoter
+            if promoter[0].state == 1:
+                Members.objects.filter(community_id=community, member_id=member_id).update(state=1)
+                # updating member count of the community
+                update_member_count(community.id)
+                # set user hidden tag
+                set_user_tag(member_id, community.id)
+                #sending email to promoter , that user has accepted his request to beacome a promoter
+                send_email_to_proposed_admin.delay(NominatedAdmin=nom_admin[0].name,email=prop_admin.email,ProposedAdmin=prop_admin.name,proposedAdminState =1,CommunityName=community.name,community_id = community.id)
+                proposer_id = prop_admin.user_id.id
+                nom_admin_name = nom_admin[0].name
+                send_notification_to_proposer.delay(proposer_id,community_name =community.name,community_id=community.id,proposed_name = nom_admin_name)
+                return JsonResponse({'success':True})
+            # if the promoter is a temporary promoter
+            elif promoter[0].state == 2:
+                temp_promoter = Members.objects.filter(community_id = community,state=2)
+                Members.objects.filter(community_id = community,member_id=temp_promoter[0].member_id).update(state =4)
+                Members.objects.filter(community_id = community,member_id=member_id).update(state =1)
+                # updating member count of the community
+                update_member_count(community.id)
+                # set user hidden tag
+                set_user_tag(member_id, community.id)
+                #sending email to promoter , that user has accepted his request to beacome a promoter
+                send_email_to_proposed_admin.delay(NominatedAdmin=nom_admin[0].name,email=prop_admin.email,ProposedAdmin=prop_admin.name,proposedAdminState=2,CommunityName=community.name,community_id = community.id)
+                proposer_id = prop_admin.user_id.id
+                nom_admin_name = nom_admin[0].name
+                send_notification_to_proposer.delay(proposer_id, community_name =community.name,community_id=community.id,proposed_name = nom_admin_name)
+                return JsonResponse({'success':True})
+        else:
+            # if there are more than two admins , sent mail to the promoter who invited this member
+            # getting the promoter ID from temp admin model
+            promoter_who_proposed = temp_admin.objects.filter(community_id=community,email=nom_admin[0].email)
+            # getting the promoter details
+            prop_admin = Userinfo.objects.get(user_id=promoter_who_proposed[0].member_id)
+            # make th current member a promoter of this community
+            Members.objects.filter(community_id=community, member_id=member_id).update(state=1)
+            # updating member count of the community
+            update_member_count(community.id)
+            # set user hidden tag
+            # set_user_tag(member_id, community.id)
+            #sending email to promoter , that user has accepted his request to become a promoter
+            send_email_to_proposed_admin.delay(NominatedAdmin=nom_admin[0].name,email=prop_admin.email,ProposedAdmin=prop_admin.name,proposedAdminState=1,CommunityName=community.name,community_id = community.id)
+            proposer_id=prop_admin.user_id.id
+            nom_admin_name=nom_admin[0].name
+            send_notification_to_proposer.delay(proposer_id, community_name =community.name,community_id=community.id,proposed_name = nom_admin_name)
+            return JsonResponse({'success':True})
+    else:
+        # if nominated promoter didn't accept the invitation
+        member = Members.objects.filter(community_id=community, member_id=member_id)
+        if member[0].state == 6:
+            print("member state == 6")
+            # deleting his details from temp admin model
+            usr = Userinfo.objects.get(user_id = member[0].member_id)
+            temp = temp_admin.objects.filter(community_id=community,email= usr.email)
+            temp.delete()
+            # if he is previously not a member of this community
+            # then delete the member from members model
+            Members.objects.filter(community_id=community, member_id=member_id).delete()
+        elif member[0].state == 7:
+            print("member state == 7")
+            # if he is previously not a member of this community , then make him member again
+            Members.objects.filter(community_id=community, member_id=member_id).update(state=4)
+        return JsonResponse({'success': True})
+
+    return JsonResponse({'success': False})
+@csrf_exempt
+def request_response(request,req_dict=None):
+    ''' function to approve or decline a members who requested to join '''
+    if not req_dict:
+        res = json.loads(request.body)
+    else:
+        res=req_dict
+    if 'member_id' in res:
+        member_id = res['member_id']
+    if 'community_id' in res:
+        community_id = res['community_id']
+    if 'accepted' in res:
+        accepted = res['accepted']
+    community = Community.objects.get(id = community_id)
+    user = User.objects.get(id= member_id)
+    if accepted == True :
+        # if accepted , then make him a member of the community
+        #updating the approve state
+        join_time=time.time()
+        Members.objects.filter(member_id=member_id,community_id=community).update(state=4,created_at=join_time)  # aprove state = 4
+        community = Community.objects.get(id = community_id)
+        # set_user_tag(user.id, community_id)
+        members_count = community.members_count+1
+        Community.objects.filter(id = community_id).update(members_count=members_count)
+
+        # inserting data in member engage
+        try:
+            purpose_card = Collabcard.objects.get(id=community.purpose_collabcard)
+        except:
+            card=Collabcard.objects.filter(community_id=community).order_by('id')
+            if card:
+                purpose_card=card[0]
+        unseen_count=Collabcard.objects.filter(community=community).count()
+        if not is_member_engage(community, user.id):
+            engage = Member_Engage()
+            engage.member_id = user
+            engage.community_id = community
+            engage.last_unseen_conversation = purpose_card
+            engage.last_unseen_count=unseen_count
+            engage.updated_at = time.time()
+            engage.save()
+            update_pending_member_count_in_engage(community)
+
+        count = check_for_member_eligibiity(community_id, member_id)
+
+        # send notification
+        send_notification_for_join_requests.delay(community_id,True,member_id)
+
+        if not req_dict:
+            notify_referred_member_after_join(joined_member_id=member_id,
+                                              joined_member_name=user.userinfo.name,
+                                              community_name=community.name, community_id=community_id)
+
+    else:
+        # if rejected , change user state to 5
+        Members.objects.filter(member_id=member_id,community_id=community).update(state=5)  # decline state = 5
+        # and also send notification
+        send_notification_for_join_requests.delay(community_id, False, member_id)
+        Form_response.objects.filter(user=member_id,community=community_id).delete()
+
+
+    return JsonResponse({'success': True})
+
 
 
 ############# functions for  collabcard flow   ##########################
@@ -1660,77 +1837,15 @@ def login(request):
         has_tags=user_onbaord(usr['id'])
         tags = get_user_lpig_tags(usr['id'])
 
-        # if tags:
-        #     usr['tags']=tags
-        #     return JsonResponse({'user': usr, 'has_tags': has_tags})
+        if tags:
+            usr['tags']=tags
+            return JsonResponse({'user': usr, 'has_tags': has_tags})
         return JsonResponse ({'user': usr,'has_tags':has_tags})
 
     return HttpResponse('Login Api')
 
 
 
-
-@csrf_exempt
-def request_response(request,req_dict=None):
-    ''' function to approve or decline a members who requested to join '''
-    if not req_dict:
-        res = json.loads(request.body)
-    else:
-        res=req_dict
-    if 'member_id' in res:
-        member_id = res['member_id']
-    if 'community_id' in res:
-        community_id = res['community_id']
-    if 'accepted' in res:
-        accepted = res['accepted']
-    community = Community.objects.get(id = community_id)
-    user = User.objects.get(id= member_id)
-    if accepted == True :
-        # if accepted , then make him a member of the community
-        #updating the approve state
-        Members.objects.filter(member_id=member_id,community_id=community).update(state=4)  # aprove state = 4
-        community = Community.objects.get(id = community_id)
-        # set_user_tag(user.id, community_id)
-        members_count = community.members_count+1
-        Community.objects.filter(id = community_id).update(members_count=members_count)
-
-        # inserting data in member engage
-        try:
-            purpose_card = Collabcard.objects.get(id=community.purpose_collabcard)
-        except:
-            card=Collabcard.objects.filter(community_id=community).order_by('id')
-            if card:
-                purpose_card=card[0]
-        unseen_count=Collabcard.objects.filter(community=community).count()
-        if not is_member_engage(community, user.id):
-            engage = Member_Engage()
-            engage.member_id = user
-            engage.community_id = community
-            engage.last_unseen_conversation = purpose_card
-            engage.last_unseen_count=unseen_count
-            engage.updated_at = time.time()
-            engage.save()
-            update_pending_member_count_in_engage(community)
-
-        count = check_for_member_eligibiity(community_id, member_id)
-
-        # send notification
-        send_notification_for_join_requests.delay(community_id,True,member_id)
-
-        if not req_dict:
-            notify_referred_member_after_join(joined_member_id=member_id,
-                                              joined_member_name=user.userinfo.name,
-                                              community_name=community.name, community_id=community_id)
-
-    else:
-        # if rejected , change user state to 5
-        Members.objects.filter(member_id=member_id,community_id=community).update(state=5)  # decline state = 5
-        # and also send notification
-        send_notification_for_join_requests.delay(community_id, False, member_id)
-        Form_response.objects.filter(user=member_id,community=community_id).delete()
-
-
-    return JsonResponse({'success': True})
 
 
 def notify_referred_member_after_join(joined_member_id,joined_member_name,community_name,community_id):
@@ -1747,11 +1862,6 @@ def notify_referred_member_after_join(joined_member_id,joined_member_name,commun
                                  joined_member_name=joined_member_name,
                                  community_name=community_name,
                                  community_id=community_id)
-
-
-
-
-
 
 def members_state(request):
     '''This function gives the state of user.Get Api'''
@@ -1807,117 +1917,6 @@ def push(request):
 
     return JsonResponse({'success':success})
 
-
-
-
-@csrf_exempt
-def accept_invitation(request):
-    ''' accept promoter request '''
-    # getting details of nominated person and the community promoter who proposed this invitation
-    member_id=request.GET.get('member_id')
-    community_id=request.GET.get('community_id')
-    community = Community.objects.get(id=community_id)
-    promoter = Members.objects.filter(community_id = community).filter(Q(state=1)|Q(state=2))
-    nom_admin = Userinfo.objects.filter(user_id = member_id)
-    # ------------------------------------------------------------------------------
-    # if only one promoter to a community
-
-    accepted = request.GET.get('value','true')
-
-    if accepted == 'true':
-        #saving data for a new member who is nominated and has accept the invitation
-        member_state=Members.objects.filter(community_id=community, member_id=member_id).values('state')
-        pending_members=Members.objects.filter(community_id=community,state=3).count()
-        if member_state:
-            state=member_state[0]['state']
-            if state == 6:
-                if is_member_engage(community,nom_admin[0].user_id) ==  False:
-                    try:
-                        purpose_card = Collabcard.objects.get(id=community.purpose_collabcard)
-                    except:
-                        card = Collabcard.objects.filter(community_id=community).order_by('id')
-                        if card:
-                            purpose_card = card[0].id
-                    unseen_count = Collabcard.objects.filter(community=community).count()
-
-                    engage = Member_Engage()
-                    engage.member_id = nom_admin[0].user_id
-                    engage.community_id = community
-                    engage.last_unseen_conversation = purpose_card
-                    engage.last_unseen_count = unseen_count
-                    engage.updated_at = time.time()
-                    engage.pending_members=pending_members
-                    engage.save()
-
-
-        if len(promoter) == 1:
-            #if the community has only one promoter
-            prop_admin = Userinfo.objects.get(user_id=promoter[0].member_id.id)
-            # if the promoter is actually a promoter
-            if promoter[0].state == 1:
-                Members.objects.filter(community_id=community, member_id=member_id).update(state=1)
-                # updating member count of the community
-                update_member_count(community.id)
-                # set user hidden tag
-                set_user_tag(member_id, community.id)
-                #sending email to promoter , that user has accepted his request to beacome a promoter
-                send_email_to_proposed_admin.delay(NominatedAdmin=nom_admin[0].name,email=prop_admin.email,ProposedAdmin=prop_admin.name,proposedAdminState =1,CommunityName=community.name,community_id = community.id)
-                proposer_id = prop_admin.user_id.id
-                nom_admin_name = nom_admin[0].name
-                send_notification_to_proposer.delay(proposer_id,community_name =community.name,community_id=community.id,proposed_name = nom_admin_name)
-                return JsonResponse({'success':True})
-            # if the promoter is a temporary promoter
-            elif promoter[0].state == 2:
-                temp_promoter = Members.objects.filter(community_id = community,state=2)
-                Members.objects.filter(community_id = community,member_id=temp_promoter[0].member_id).update(state =4)
-                Members.objects.filter(community_id = community,member_id=member_id).update(state =1)
-                # updating member count of the community
-                update_member_count(community.id)
-                # set user hidden tag
-                set_user_tag(member_id, community.id)
-                #sending email to promoter , that user has accepted his request to beacome a promoter
-                send_email_to_proposed_admin.delay(NominatedAdmin=nom_admin[0].name,email=prop_admin.email,ProposedAdmin=prop_admin.name,proposedAdminState=2,CommunityName=community.name,community_id = community.id)
-                proposer_id = prop_admin.user_id.id
-                nom_admin_name = nom_admin[0].name
-                send_notification_to_proposer.delay(proposer_id, community_name =community.name,community_id=community.id,proposed_name = nom_admin_name)
-                return JsonResponse({'success':True})
-        else:
-            # if there are more than two admins , sent mail to the promoter who invited this member
-            # getting the promoter ID from temp admin model
-            promoter_who_proposed = temp_admin.objects.filter(community_id=community,email=nom_admin[0].email)
-            # getting the promoter details
-            prop_admin = Userinfo.objects.get(user_id=promoter_who_proposed[0].member_id)
-            # make th current member a promoter of this community
-            Members.objects.filter(community_id=community, member_id=member_id).update(state=1)
-            # updating member count of the community
-            update_member_count(community.id)
-            # set user hidden tag
-            set_user_tag(member_id, community.id)
-            #sending email to promoter , that user has accepted his request to become a promoter
-            send_email_to_proposed_admin.delay(NominatedAdmin=nom_admin[0].name,email=prop_admin.email,ProposedAdmin=prop_admin.name,proposedAdminState=1,CommunityName=community.name,community_id = community.id)
-            proposer_id=prop_admin.user_id.id
-            nom_admin_name=nom_admin[0].name
-            send_notification_to_proposer.delay(proposer_id, community_name =community.name,community_id=community.id,proposed_name = nom_admin_name)
-            return JsonResponse({'success':True})
-    else:
-        # if nominated promoter didn't accept the invitation
-        member = Members.objects.filter(community_id=community, member_id=member_id)
-        if member[0].state == 6:
-            print("member state == 6")
-            # deleting his details from temp admin model
-            usr = Userinfo.objects.get(user_id = member[0].member_id)
-            temp = temp_admin.objects.filter(community_id=community,email= usr.email)
-            temp.delete()
-            # if he is previously not a member of this community
-            # then delete the member from members model
-            Members.objects.filter(community_id=community, member_id=member_id).delete()
-        elif member[0].state == 7:
-            print("member state == 7")
-            # if he is previously not a member of this community , then make him member again
-            Members.objects.filter(community_id=community, member_id=member_id).update(state=4)
-        return JsonResponse({'success': True})
-
-    return JsonResponse({'success': False})
 
 
 
@@ -2193,7 +2192,7 @@ def accept_promotership(request):
     if value:
 
         if 'member_ids' not in res or not res['member_ids']:
-            Members.objects.filter(community_id=community_id,member_id=member_id).update(state=1)
+            Members.objects.filter(community_id=community_id,member_id=member_id).update(state=1,created_at=time.time())
             user = User.objects.get(pk=member_id)
             name  = user.userinfo.name
             send_notification_to_all_admins.delay(community_id, name, member_id)
