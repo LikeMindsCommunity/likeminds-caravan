@@ -1787,7 +1787,7 @@ def onboarding_interest(request):
         type_list = get_user_tags_from_list(interest_list, "Interests")
         insert_tags_for_user(user_id, type_list, "Interests")
         compute_rank.delay(user_id=user_id)
-        time.sleep(5)
+        time.sleep(3)
         print("authenticate === ",autheticate)
         print(member_id)
         print(is_request_android(request))
