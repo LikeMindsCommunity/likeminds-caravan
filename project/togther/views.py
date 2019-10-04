@@ -26,7 +26,7 @@ from urllib.parse import urlencode,quote
 from utility.tasks import new_member_request
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from user_agents import parse
-
+import time
 url = settings.URL
 
 # uncomment to run it in localhost
@@ -1786,7 +1786,8 @@ def onboarding_interest(request):
 
         type_list = get_user_tags_from_list(interest_list, "Interests")
         insert_tags_for_user(user_id, type_list, "Interests")
-        compute_rank(user_id=user_id)
+        compute_rank.delay(user_id=user_id)
+        time.sleep(3)
         print("authenticate === ",autheticate)
         print(member_id)
         print(is_request_android(request))
