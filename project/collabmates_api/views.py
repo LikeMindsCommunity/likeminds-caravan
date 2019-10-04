@@ -1660,9 +1660,9 @@ def login(request):
         has_tags=user_onbaord(usr['id'])
         tags = get_user_lpig_tags(usr['id'])
 
-        if tags:
-            usr['tags']=tags
-            return JsonResponse({'user': usr, 'has_tags': has_tags})
+        # if tags:
+        #     usr['tags']=tags
+        #     return JsonResponse({'user': usr, 'has_tags': has_tags})
         return JsonResponse ({'user': usr,'has_tags':has_tags})
 
     return HttpResponse('Login Api')
@@ -2230,6 +2230,10 @@ def get_profile(request):
     try:
         user=Userinfo.objects.get(user_id=member_id)
         usr = UserinfoSerializer(user)
+        tags = get_user_lpig_tags(usr['id'])
+        if tags:
+            usr['tags']=tags
+            return JsonResponse({'user': usr})
         return JsonResponse({'user': usr})
     except:
         print("userinfo object does not exist")
