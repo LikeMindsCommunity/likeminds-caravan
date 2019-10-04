@@ -1,0 +1,141 @@
+{% extends 'base.html' %}
+
+
+{% block menu %}
+{% endblock %}
+
+
+{% block login_or %}
+{% if not request.user.is_authenticated %}
+<br>
+
+OR
+<br><br>
+{% endif %}
+{% endblock %}
+
+{% block linkedin_login %}
+{% if not request.user.is_authenticated %}
+
+<div class="content">
+
+                                <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}">
+
+                                   <button class="ui linkedin button" style="width:200px;">
+                                                    <i class="fa fa-linkedin"></i>&nbsp;&nbsp;&nbsp;&nbsp;
+                                                    Login with LinkedIn
+                                    </button>
+                                </a>
+                            </div>
+
+{% endif %}
+{% endblock %}
+
+
+
+
+{% block fb_login %}
+{% if request.user.is_authenticated %}
+    <div class="content">
+        <br>
+
+        <button class="ui fluid button "
+                style=" z-index:2;width:60%; left:20%;  margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;"
+                onclick="join('{{community_id}}')"> Join this community
+        </button>
+        <br>
+
+
+    </div>
+<div style="height:10px">
+<br>
+</div>
+{% elif not request.user.is_authenticated%}
+
+<div class="content">
+
+                                <a href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}">
+
+                                    <button class="ui facebook button" style="width:200px;">
+
+                                        <i class="fa fa-facebook" ></i>&nbsp;&nbsp;&nbsp;&nbsp;
+                                        Login with Facebook
+                                    </button>
+                                </a>
+
+                            </div>
+{% endif %}
+{% endblock %}
+
+
+{% block login_text %}
+<p class="center aligned" id="login_text">
+    To join this community we
+</p>
+{% endblock %}
+
+table {
+height: 500px;
+overflow-y: scroll;
+}
+
+{% block styles %}
+<style>
+
+    table {
+  height: 60px;
+
+}
+
+  tbody{
+       height:60px;display:block;
+     }
+
+
+</style>
+{% endblock %}
+
+{% block header %}
+<div class="ui small inverted menu" style=" height:60px; background-color:#075e54; margin:0 0 0 0 !important;">
+
+
+
+    {% endblock %}
+
+    {% block content %}
+
+    <div style="margin:0 auto; max-width:786px;background-color:white;">
+
+
+    <div class="ui raised padded text container segment" style="margin: 8px 8px !important;">
+
+
+        <div class="card">
+
+            <div class="content">
+
+                <div class="meta"></div>
+                <div class="description">
+
+                    <br>
+                    gchvgkhscbvhjagvjyfgjvhfjhvdhjfb
+                </div>
+                <br>
+
+                <br/>
+                <br/>
+                <br/>
+            </div>
+        </div>
+
+    </div>
+
+    </div>
+
+
+        </div>
+
+        </div>
+
+
+        {% endblock %}

@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+{% load static %}
+<html>
+{% if request.user.id == 208 %}
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+          integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+
+    <link rel="stylesheet" type="text/css" href="{% static 'notes/main.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+
+
+    <style type="text/css">
+
+  body {
+  background: #fafafa;
+  color: #333333;
+  margin-top: 5rem;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  color: #444444;
+}
+
+ul {
+  margin: 0;
+}
+
+.bg-steel {
+  background-color: #5f788a;
+}
+
+.site-header .navbar-nav .nav-link {
+  color: #cbd5db;
+}
+
+.site-header .navbar-nav .nav-link:hover {
+  color: #ffffff;
+}
+
+.site-header .navbar-nav .nav-link.active {
+  font-weight: 500;
+}
+
+.content-section {
+  background: #ffffff;
+  padding: 10px 20px;
+  border: 1px solid #dddddd;
+  border-radius: 3px;
+  margin-bottom: 20px;
+  width:900px;
+}
+
+.article-title {
+  color: #444444;
+}
+
+a.article-title:hover {
+  color: #428bca;
+  text-decoration: none;
+}
+
+.article-content {
+  white-space: pre-line;
+}
+
+.article-img {
+  height: 65px;
+  width: 65px;
+  margin-right: 16px;
+}
+
+.article-metadata {
+  padding-bottom: 1px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid #e3e3e3
+}
+
+.article-metadata a:hover {
+  color: #333;
+  text-decoration: none;
+}
+
+.article-svg {
+  width: 25px;
+  height: 25px;
+  vertical-align: middle;
+}
+
+.account-img {
+  height: 125px;
+  width: 125px;
+  margin-right: 20px;
+  margin-bottom: 16px;
+}
+
+.account-heading {
+  font-size: 2.5rem;
+}
+
+.btn-orange {
+ background-color: #f08c35;
+}
+
+    </style>
+</head>
+
+<body>
+
+<main role="main" class="container">
+    <div class="row">
+        <div class="col-md-8">
+            {% for user in all_user %}
+            <article class="media content-section">
+                <img class="rounded-circle article-img" src="{{ user.image_url.url }}">
+                <div class="media-body">
+                    <div class="article-metadata">
+
+
+                {% if user.communities_count == 0 %}
+                <a class="btn btn-danger btn-sm mt-1 mb-1 mr-4 " href="{% url 'analytics_user_communities' user.user_id %}">Communities
+                    : ({{user.communities_count}})</a>
+                {% else %}
+                <a class="btn btn-info btn-sm mt-1 mb-1 mr-4 " href="{% url 'analytics_user_communities' user.user_id %}">Communities
+                    : ({{user.communities_count}})</a>
+                {% endif %}
+                {% if user.tags_count == 0 %}
+                <a class="btn btn-danger btn-sm mt-1 mb-1 mr-4 " href="{% url 'analytics_user_tags' user.user_id %}">User Tags : ({{user.tags_count}})</a>
+                {% elif user.tags_count > 0 %}
+                <a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 " href="{% url 'analytics_user_tags' user.user_id %}">User Tags : ({{user.tags_count}})</a>
+                {% endif %}
+                <a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 " href="{% url 'user_invited_members' user.user_id %}">User Invited Members</a>
+
+                    </div>
+                        <h2><a class="article-title" href="{% url 'analytics_user_tags'  user.user_id%}">{{ user.name }}</a>
+                        </h2>
+                        <p class="article-content"><b>Email:</b>{{ user.email }}</p>
+                        <p class="article-content"><b>Facebook:</b>{{ user.fb_link }}</p>
+                        <p class="article-content"><b>LinkedIn:</b>{{ user.linkedin_link }}</p>
+
+            </div>
+            </article>
+            {% endfor %}
+        </div>
+    </div>
+</main>
+<script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"
+        integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN"
+        crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"
+        integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
+        crossorigin="anonymous"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"
+        integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
+        crossorigin="anonymous"></script>
+
+</body>
+{% endif %}
+</html>
