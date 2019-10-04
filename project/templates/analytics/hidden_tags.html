@@ -1,0 +1,144 @@
+
+<!DOCTYPE html>
+{% load static %}
+<html>
+<!-- Latest compiled and minified CSS -->
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/css/bootstrap.min.css">
+
+<!-- jQuery library -->
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+<!-- Latest compiled JavaScript -->
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/js/bootstrap.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha384-tsQFqpEReu7ZLhBV2VZlAu7zcOV+rXbYlF2cqB8txI/8aZajjp4Bqd+V6D5IgvKT" crossorigin="anonymous"></script>
+<script src="{% static 'js/jquery.tagsinput-revisited.js' %}"></script>
+<link rel="stylesheet" href="{% static 'css/jquery.tagsinput-revisited.css' %}">
+<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js" integrity="sha256-VazP97ZCwtekAsvgPBSUwPFKdrwD3unUfSGVYrahUqU=" crossorigin="anonymous"></script>
+<link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+<style>
+
+    .center_div{
+    margin: 0 auto;
+    width:80% /* value of your choice which suits your alignment */
+}
+</style>
+<body>
+
+<div style="padding-top:25px; padding-left:20px;">
+
+</div>
+<h2 align="left" style="padding-left:20px">Community Tags : {{community_name}}</h2>
+
+
+<br>
+<br>
+
+    <form id="legacy_form" onsubmit="return false">
+     <div class="form-group center_div">
+            <label for="legacy">Legacy Tags :</label>
+            <input id="legacy" name="legacy" type="text" value="{{hidden_legacy_tag}}">
+        </div>
+      <br>
+
+
+    </form>
+
+
+    <form id="profession_form" onsubmit="return false">
+        <br>
+     <div class="form-group center_div">
+            <label for="profession">Profession Tags :</label>
+            <input id="profession" name="legacy" type="text" value="{{hidden_profession_tag}}">
+        </div>
+      <br>
+
+
+
+    </form>
+<br>
+    <form id="interests_form" onsubmit="return false">
+     <div class="form-group center_div">
+            <label for="interests">Interests Tags :</label>
+            <input id="interests" name="legacy" type="text" value="{{hidden_interests_tag}}">
+        </div>
+      <br>
+
+
+
+    </form>
+<br>
+
+
+    <form id="geography_form" onsubmit="return false">
+     <div class="form-group center_div">
+            <label for="geography">Geography Tags :</label>
+            <input id="geography" name="legacy" type="text" value="{{hidden_geography_tag}}">
+        </div>
+      <br>
+        <br>
+
+        <br>
+
+    </form>
+
+
+</body>
+</html>
+{% autoescape off %}
+
+
+
+<script>
+$('#legacy').tagsInput({
+
+  'autocomplete': {
+  source:[
+
+  ]
+
+  }
+
+
+});
+
+$('#profession').tagsInput({
+
+  'autocomplete': {
+    source: [
+
+    ]
+  }
+
+
+});
+
+
+$('#interests').tagsInput({
+
+  'autocomplete': {
+    source: [
+
+    ]
+  }
+
+
+});
+
+
+$('#geography').tagsInput({
+
+  'autocomplete': {
+    source: [
+
+    ]
+  }
+
+
+});
+
+
+
+
+</script>
+
+{% endautoescape %}
