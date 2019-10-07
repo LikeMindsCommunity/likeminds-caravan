@@ -39,7 +39,7 @@ def dashboard(request):
     dashboard_list=[]
 
     page = request.GET.get('page', 1)
-    paginator = Paginator(community_list, 100)
+    paginator = Paginator(community_list, 20)
     try:
         community_list = paginator.page(page)
     except PageNotAnInteger:
@@ -2312,3 +2312,139 @@ def search(request,tag_ids):
     return render(request, 'dashboard/search_results.html', {'communities': dashboard_list,
                                                         'community': community_list,
                                                         'tags': tags,'communities_length':len(dashboard_list) })
+
+
+
+##############  dashboard metrics   ###########
+
+def metrics(request):
+
+    '''This function returns the metrics'''
+    return render(request, 'dashboard/metrics.html', {})
+
+
+def community_metrics(request):
+
+    '''The function created a community metrics'''
+
+    community_list = Community.objects.all().order_by('-updated_at', '-active_since')
+    dashboard_list = []
+
+    page = request.GET.get('page', 1)
+    paginator = Paginator(community_list, 30)
+    try:
+        community_list = paginator.page(page)
+    except PageNotAnInteger:
+        community_list = paginator.page(1)
+    except EmptyPage:
+        community_list = paginator.page(paginator.num_pages)
+
+    communities=[]
+
+    for community in community_list:
+        temp={}
+        temp['name']=community.name
+        temp['total_members']=community.members_count
+        state=community.hide_community
+        if state == '0' or state == '4':
+            temp['status']="Live"
+        elif state == '3':
+            temp['status']="Pilot"
+        else:
+            continue
+        temp['tags']=community.id
+        temp['created_at']=time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(community.created_at))
+        temp['last_activity_date']=time.strftime('%Y-%m-%d    %H:%M:%S', time.localtime(community.updated_at))
+        temp['collabcard_count']=Collabcard.objects.filter(community_id=community.id).count()
+        temp['tags_count']=get_tags_count(community)
+        communities.append(temp)
+
+    context={
+        'communities':communities,
+        'community': community_list
+    }
+    return render(request, 'dashboard/community_metrics.html', context)
+
+
+def hidden_tags_for_metrcis(request,community_id):
+
+    '''function to show hidden tags'''
+
+    community = Community.objects.get(pk = community_id)
+
+    legacy_tags = list(Tags_lpig.objects.filter(category_id__id = '1').values_list('name', flat=True))
+    profession_tags = list(Tags_lpig.objects.filter(category_id__id = '2').values_list('name', flat=True))
+    interests_tags = list(Tags_lpig.objects.filter(category_id__id = '3').values_list('name', flat=True))
+    geography_tags = list(Tags_lpig.objects.filter(category_id__id = '4').values_list('name', flat=True))
+
+
+    # hidden_tags = Community_LPIG.objects.filter(community_id=community_id)
+
+    hidden_legacy_tags = list(Community_Legacy.objects.filter(community_id=community).values_list('tags_id', flat=True))
+    hidden_profession_tags = list(Community_Profession.objects.filter(community_id=community).values_list('tags_id', flat=True))
+    hidden_interests_tags = list(Community_Interest.objects.filter(community_id=community).values_list('tags_id', flat=True))
+    hidden_geography_tags = list(Community_Geography.objects.filter(community_id=community).values_list('tags_id', flat=True))
+
+
+    hidden_legacy_tag = ''
+    hidden_profession_tag = ''
+    hidden_interests_tag = ''
+    hidden_geography_tag = ''
+
+
+    for tag in hidden_legacy_tags:
+        global_tag = Tags_lpig.objects.get(name='legacy_any')
+        if tag == global_tag.id:
+            continue
+        try:
+            tag_object = Tags_lpig.objects.get(pk=tag)
+            hidden_legacy_tag=hidden_legacy_tag+tag_object.name+","
+        except:
+            pass
+
+    for tag in hidden_profession_tags:
+        global_tag = Tags_lpig.objects.get(name='profession_any')
+        if tag == global_tag.id:
+            continue
+        try:
+            tag_object = Tags_lpig.objects.get(pk=tag)
+            hidden_profession_tag=hidden_profession_tag+tag_object.name+","
+        except:
+            pass
+
+
+    for tag in hidden_interests_tags:
+        global_tag = Tags_lpig.objects.get(name='interest_any')
+        if tag == global_tag.id:
+            continue
+        try:
+            tag_object = Tags_lpig.objects.get(pk=tag)
+            hidden_interests_tag=hidden_interests_tag+tag_object.name+","
+        except:
+            pass
+
+
+    for tag in hidden_geography_tags:
+        global_tag = Tags_lpig.objects.get(name='Global')
+        if tag == global_tag.id:
+            continue
+        try:
+            tag_object = Tags_lpig.objects.get(pk=tag)
+            hidden_geography_tag = hidden_geography_tag+tag_object.name+","
+        except:
+            pass
+
+    context={
+        'legacy_tags':legacy_tags,
+        'profession_tags':profession_tags,
+        'interests_tags':interests_tags,
+        'geography_tags':geography_tags,
+        'hidden_legacy_tag':hidden_legacy_tag,
+        'hidden_profession_tag': hidden_profession_tag,
+        'hidden_interests_tag': hidden_interests_tag,
+        'hidden_geography_tag': hidden_geography_tag,
+        'community_id':community_id,
+        'community_name':community.name
+    }
+
+    return render(request,'dashboard/tags_metrics.html',context)
