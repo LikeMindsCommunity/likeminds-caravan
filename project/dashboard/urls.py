@@ -47,5 +47,7 @@ urlpatterns = [
     path('metrics', metrics, name='metrics'),
     path('community_metrics', community_metrics, name='community_metrics'),
     path('hidden_tags_for_metrcis/<int:community_id>', hidden_tags_for_metrcis, name='hidden_tags_for_metrcis'),
+    path('user_metrics', user_metrics, name='user_metrics'),
+    path('getfile/<int:member_id>', getfile, name='getfile'),
 
 ]
