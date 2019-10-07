@@ -249,35 +249,35 @@ overflow-y: scroll;
         {% endif %}
         {% endif %}
     </div>
-    {% if request.user.is_authenticated %}
-        <div id="answer"></div>
-        <div id="show" style=" height:50px;">
-                {%if is_member %}
+            {% if request.user.is_authenticated %}
+                <div id="answer"></div>
+                <div id="show" style=" height:50px;">
+                        {%if is_member %}
 
-                    <div class="ui action input" style="background-color:black;background:white;color: white;margin: 1em 1em;width:93%;position: fixed; bottom:0%;">
-                        <input type="text" id="msg">
-                        <button class="ui button" style="background-color:#00897b;color:white" id="send"><i
-                                class="fa fa-paper-plane" aria-hidden="true"></i></button>
-                    </div>
-                    {%else%}
-                    <button class="ui fluid button "
-                            style=" z-index:2;width:60%; left:20%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; "
-                            id="view_answer">View Answers
-                    </button>
-                {% endif %}
+                            <div class="ui action input" style="background-color:black;background:white;color: white;margin: 1em 1em;width:93%;position: fixed; bottom:0%;">
+                                <input type="text" id="msg">
+                                <button class="ui button" style="background-color:#00897b;color:white" id="send"><i
+                                        class="fa fa-paper-plane" aria-hidden="true"></i></button>
+                            </div>
+                        {%else%}
+                            <button class="ui fluid button "
+                                    style=" z-index:2;width:60%; left:20%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; "
+                                    id="view_answer">View Answers
+                            </button>
+                        {% endif %}
 
             {% else %}
 
-            <button class="ui fluid button "
-                    style=" z-index:2;width:60%; left:20%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; "
-                    id="view_answer">View Answers
-            </button>
+                <button class="ui fluid button "
+                        style=" z-index:2;width:60%; left:20%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; "
+                        id="view_answer">View Answers
+                </button>
 
-            <div  style="margin: 1em 1em;width:93%; position: fixed; bottom:0%;background:white;color: white; height:100px;">
-                <input type="text" id="msg">
-                <button class="ui button" style="background-color:#00897b;color:white; " id="send"><i
-                        class="fa fa-paper-plane" aria-hidden="true"></i></button>
-            </div>
+                <div class="ui action input"  style="margin: 1em 1em;width:93%; position: fixed; bottom:0%;background:white;color: white;">
+                    <input type="text" id="msg">
+                    <button class="ui button" style="background-color:#00897b;color:white; " id="send"><i
+                            class="fa fa-paper-plane" aria-hidden="true"></i></button>
+                </div>
 
             {% endif %}
 

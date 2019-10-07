@@ -31,12 +31,39 @@
         <script async src="https://www.googletagmanager.com/gtag/js?id=UA-130288684-1"></script>
         <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
 
+   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/css/bootstrap.min.css">
+
+
         {% block styles %}
                  <link rel="stylesheet" href="{% static 'css/main_css/onboarding.css' %}">
 
         {% endblock %}
 
+<style>
 
+ul {
+  margin: 0;
+}
+
+    .pagination a {
+  color: black;
+  float: left;
+  padding: 8px 16px;
+  text-decoration: none;
+  transition: background-color .3s;
+  border-radius: 5px;
+  border: 1px solid #ddd; /* Gray */
+
+}
+
+.pagination a.active {
+  background-color: #4CAF50;
+  color: white;
+}
+
+.pagination a:hover:not(.active) {background-color: #ddd;}
+
+</style>
 
     </head>
 <body>
@@ -333,6 +360,34 @@
 
     {% endfor %}
     <a id="back2Top" title="Back to top" href="#">&#10148;</a>
+<br><br>
+
+<div style="padding-left:18px;">
+    <h6>Go to page</h6>
+<ul class="pagination">
+
+
+{% if communities.number|add:'-4' > 1 %}
+    <li><a href="?page={{ communities.number|add:'-5' }}">&hellip;</a></li>
+{% endif %}
+
+{% for i in communities.paginator.page_range %}
+    {% if communities.number == i %}
+        <li style="border: 1px solid #ddd;border-radius: 5px;padding: 8px 16px;background-color:#f0ad4e;border-color: #eea236;"><span>{{ i }} </span></li>
+    {% elif i > communities.number|add:'-5' and i < communities.number|add:'5' %}
+        <li><a href="?page={{ i }}">{{ i }}</a></li>
+    {% endif %}
+{% endfor %}
+
+{% if communities.paginator.num_pages > communities.number|add:'4' %}
+    <li><a href="?page={{ communities.number|add:'5' }}">&hellip;</a></li>
+{% endif %}
+
+
+
+</ul>
+    <br><br><br><br><br><br><br>
+</div>
 
 
     <script>
