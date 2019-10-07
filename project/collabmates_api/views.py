@@ -619,6 +619,18 @@ def get_user_lpig_tags(user_id):
         if each.tags_id.id !=15:
             temp['id']=each.tags_id.id
             temp['name']=each.tags_id.name
+            if each.tags_id.tag_image:
+                temp['image_url']=url+each.tags_id.tag_image.url
+            attribute_id=each.tags_id.attribute_id.id
+
+            if attribute_id is 1:
+                temp['attribute_name']="Work"
+            elif attribute_id is 2:
+                temp['attribute_name'] = "Education"
+            elif attribute_id is 3:
+                temp['attribute_name'] = "Hometown"
+            elif attribute_id is 4:
+                temp['attribute_name'] = "Lifestyle"
             legacy_list.append(temp)
 
     for each in profession:
@@ -626,6 +638,15 @@ def get_user_lpig_tags(user_id):
         if each.tags_id.id !=16:
             temp['id']=each.tags_id.id
             temp['name']=each.tags_id.name
+            if each.tags_id.tag_image:
+                temp['image_url']=url+each.tags_id.tag_image.url
+            attribute_id=each.tags_id.attribute_id.id
+            if attribute_id is 5:
+                temp['attribute_name']="Skill"
+            elif attribute_id is 6:
+                temp['attribute_name'] = "Industry"
+            elif attribute_id is 7:
+                temp['attribute_name'] = "Designation"
             profession_list.append(temp)
 
     for each in interest:
@@ -633,6 +654,17 @@ def get_user_lpig_tags(user_id):
         if each.tags_id.id != 17:
             temp['id'] = each.tags_id.id
             temp['name'] = each.tags_id.name
+            if each.tags_id.tag_image:
+                temp['image_url']=url+each.tags_id.tag_image.url
+            attribute_id=each.tags_id.attribute_id.id
+            if attribute_id is 8:
+                temp['attribute_name']="Cause"
+            elif attribute_id is 9:
+                temp['attribute_name'] = "Hobby"
+            elif attribute_id is 10:
+                temp['attribute_name'] = "Sports"
+            elif attribute_id is 11:
+                temp['attribute_name'] = "Fan"
             interest_list.append(temp)
 
     for each in geography:
@@ -640,6 +672,15 @@ def get_user_lpig_tags(user_id):
         if each.tags_id.id != 18:
             temp['id'] = each.tags_id.id
             temp['name'] = each.tags_id.name
+            if each.tags_id.tag_image:
+                temp['image_url']=url+each.tags_id.tag_image.url
+            attribute_id=each.tags_id.attribute_id.id
+            if attribute_id is 12:
+                temp['attribute_name']="City"
+            elif attribute_id is 13:
+                temp['attribute_name'] = "State"
+            elif attribute_id is 14:
+                temp['attribute_name'] = "Country"
             geography_list.append(temp)
 
 
@@ -650,7 +691,7 @@ def get_user_lpig_tags(user_id):
         'geography':geography_list
     }
 
-
+    #print(tags)
     return tags
 
 ############# functions for  create flow of card,community and members   ##########################
