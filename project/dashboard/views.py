@@ -2495,7 +2495,7 @@ def user_metrics(request):
 
         referrer=Referal.objects.filter(invited_member=user.user_id.id).order_by('id').first()
         if referrer:
-           temp['referrer']=referrer.invited_member
+           temp['referrer']=referrer.member.userinfo.name
         else:
             temp['referrer']="NA"
 
