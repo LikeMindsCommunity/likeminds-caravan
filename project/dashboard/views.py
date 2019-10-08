@@ -364,7 +364,7 @@ def all_user(request):
     userinfo=Userinfo.objects.all().order_by('-user_id')
 
     page = request.GET.get('page', 1)
-    paginator = Paginator(userinfo, 2)
+    paginator = Paginator(userinfo, 20)
     try:
         userinfo = paginator.page(page)
     except PageNotAnInteger:
