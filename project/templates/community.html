@@ -152,7 +152,7 @@
                                 <div class="content">
 
                                     {% if ref_id != '' %}
-                                    <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join&ref_id={{ref_id}}">
+                                    <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join_{{ref_id}}">
                                         <button class="ui linkedin button" style="width:130px;">
                                     {% elif cta == 'share' %}
                                     <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join">
