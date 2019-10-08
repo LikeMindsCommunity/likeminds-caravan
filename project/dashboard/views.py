@@ -7,6 +7,7 @@ from .forms import *
 from django.db.models import Q
 from django.db.models import F
 import time
+import csv
 from django.template.loader import get_template
 from django.shortcuts import render
 from django.core.mail import EmailMultiAlternatives
@@ -40,7 +41,7 @@ def dashboard(request):
     dashboard_list=[]
 
     page = request.GET.get('page', 1)
-    paginator = Paginator(community_list, 100)
+    paginator = Paginator(community_list, 20)
     try:
         community_list = paginator.page(page)
     except PageNotAnInteger:
@@ -2321,3 +2322,246 @@ def search(request,tag_ids):
                                                         'community': community_list,
                                                         'tags': tags,'communities_length':len(dashboard_list) })
 
+
+##############  dashboard metrics   ###########
+
+def metrics(request):
+
+    '''This function returns the metrics'''
+    return render(request, 'dashboard/metrics.html', {})
+
+
+def community_metrics(request):
+
+    '''The function created a community metrics'''
+
+    community_list = Community.objects.order_by('-updated_at', '-active_since')
+    dashboard_list = []
+
+    page = request.GET.get('page', 1)
+    paginator = Paginator(community_list, 20)
+    try:
+        community_list = paginator.page(page)
+    except PageNotAnInteger:
+        community_list = paginator.page(1)
+    except EmptyPage:
+        community_list = paginator.page(paginator.num_pages)
+
+    communities=[]
+
+    for community in community_list:
+        temp={}
+        temp['name']=community.name
+        temp['total_members']=community.members_count
+        state=community.hide_community
+        if state == '0' or state == '4':
+            temp['status']="Live"
+        elif state == '3':
+            temp['status']="Pilot"
+        else:
+            continue
+        temp['tags']=community.id
+        temp['created_at']=time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(community.created_at))
+        temp['last_activity_date']=time.strftime('%Y-%m-%d    %H:%M:%S', time.localtime(community.updated_at))
+        temp['collabcard_count']=Collabcard.objects.filter(community_id=community.id).count()
+        temp['tags_count']=get_tags_count(community)
+        communities.append(temp)
+
+    context={
+        'communities':communities,
+        'community': community_list
+    }
+    return render(request, 'dashboard/community_metrics.html', context)
+
+
+def hidden_tags_for_metrcis(request,community_id):
+
+    '''function to show hidden tags'''
+
+    community = Community.objects.get(pk = community_id)
+
+    legacy_tags = list(Tags_lpig.objects.filter(category_id__id = '1').values_list('name', flat=True))
+    profession_tags = list(Tags_lpig.objects.filter(category_id__id = '2').values_list('name', flat=True))
+    interests_tags = list(Tags_lpig.objects.filter(category_id__id = '3').values_list('name', flat=True))
+    geography_tags = list(Tags_lpig.objects.filter(category_id__id = '4').values_list('name', flat=True))
+
+
+    # hidden_tags = Community_LPIG.objects.filter(community_id=community_id)
+
+    hidden_legacy_tags = list(Community_Legacy.objects.filter(community_id=community).values_list('tags_id', flat=True))
+    hidden_profession_tags = list(Community_Profession.objects.filter(community_id=community).values_list('tags_id', flat=True))
+    hidden_interests_tags = list(Community_Interest.objects.filter(community_id=community).values_list('tags_id', flat=True))
+    hidden_geography_tags = list(Community_Geography.objects.filter(community_id=community).values_list('tags_id', flat=True))
+
+
+    hidden_legacy_tag = ''
+    hidden_profession_tag = ''
+    hidden_interests_tag = ''
+    hidden_geography_tag = ''
+
+
+    for tag in hidden_legacy_tags:
+        global_tag = Tags_lpig.objects.get(name='legacy_any')
+        if tag == global_tag.id:
+            continue
+        try:
+            tag_object = Tags_lpig.objects.get(pk=tag)
+            hidden_legacy_tag=hidden_legacy_tag+tag_object.name+","
+        except:
+            pass
+
+    for tag in hidden_profession_tags:
+        global_tag = Tags_lpig.objects.get(name='profession_any')
+        if tag == global_tag.id:
+            continue
+        try:
+            tag_object = Tags_lpig.objects.get(pk=tag)
+            hidden_profession_tag=hidden_profession_tag+tag_object.name+","
+        except:
+            pass
+
+
+    for tag in hidden_interests_tags:
+        global_tag = Tags_lpig.objects.get(name='interest_any')
+        if tag == global_tag.id:
+            continue
+        try:
+            tag_object = Tags_lpig.objects.get(pk=tag)
+            hidden_interests_tag=hidden_interests_tag+tag_object.name+","
+        except:
+            pass
+
+
+    for tag in hidden_geography_tags:
+        global_tag = Tags_lpig.objects.get(name='Global')
+        if tag == global_tag.id:
+            continue
+        try:
+            tag_object = Tags_lpig.objects.get(pk=tag)
+            hidden_geography_tag = hidden_geography_tag+tag_object.name+","
+        except:
+            pass
+
+    context={
+        'legacy_tags':legacy_tags,
+        'profession_tags':profession_tags,
+        'interests_tags':interests_tags,
+        'geography_tags':geography_tags,
+        'hidden_legacy_tag':hidden_legacy_tag,
+        'hidden_profession_tag': hidden_profession_tag,
+        'hidden_interests_tag': hidden_interests_tag,
+        'hidden_geography_tag': hidden_geography_tag,
+        'community_id':community_id,
+        'community_name':community.name
+    }
+
+    return render(request,'dashboard/tags_metrics.html',context)
+
+
+
+def user_metrics(request):
+
+    '''The function created a community metrics'''
+
+    userinfo = Userinfo.objects.order_by('-user_id')
+    page = request.GET.get('page', 1)
+    paginator = Paginator(userinfo, 10)
+    try:
+        user_list = paginator.page(page)
+    except PageNotAnInteger:
+        user_list = paginator.page(1)
+    except EmptyPage:
+        user_list = paginator.page(paginator.num_pages)
+
+    users=[]
+
+    for user in user_list:
+        temp={}
+        temp['name']=user.name
+        member_of=Members.objects.filter(member_id=user.user_id.id)
+
+        if len(member_of) == 1:
+            status=member_of[0].community_id.name
+        elif len(member_of) == 0:
+            status="0"
+        else:
+            status="csv_file"
+        temp['status']=status
+
+        temp['count_of_joined_community']=Members.objects.filter(member_id=user.user_id.id)\
+            .filter(Q(state=1)|Q(state=2)|Q(state=4)).count()
+        temp['count_of_interested_community'] = Members.objects.filter(member_id=user.user_id.id) \
+            .filter(Q(state=8) | Q(state=9)).count()
+        temp['refered_count']=Referal.objects.filter(member=user.user_id.id).count()
+
+        referrer=Referal.objects.filter(invited_member=user.user_id.id).order_by('id').first()
+        if referrer:
+           temp['referrer']=referrer.invited_member
+        else:
+            temp['referrer']="NA"
+
+        is_promoter=Members.objects.filter(member_id=user.user_id.id).filter(state=1)
+        if is_promoter:
+            temp['is_promoter']="Y"
+        else:
+            temp['is_promoter']="N"
+
+        if user.mobile_os == "Android":
+            temp['has_android']="Yes"
+        else:
+            temp['has_android']="No"
+
+        if user.created_at < 0:
+            temp['created_at']="NA"
+        else:
+            temp['created_at']=time.strftime('%Y-%m-%d    %H:%M:%S', time.localtime(user.created_at))
+        temp['id']=user.user_id.id
+        users.append(temp)
+
+
+    print(users)
+
+    context={
+        'users':users,
+    }
+    return render(request, 'dashboard/user_metrics.html', context)
+
+
+
+def getfile(request,member_id):
+    '''function to create a csv'''
+    members=Members.objects.filter(member_id=member_id)
+    member_list=[]
+    for member in members:
+
+        temp={}
+        temp['name']=member.member_id.userinfo.name
+        temp['community_name']=member.community_id.name
+        state=member.state
+        if state:
+            if state == 1:
+                temp['state'] = 'Promoter'
+            elif state == 4:
+                temp['state'] = 'Member'
+            elif state == 8:
+                temp['state'] = 'Interested Member'
+            elif state == 9:
+                temp['state'] = 'Eligible Promoter'
+            else:
+                continue
+        member_list.append(temp)
+
+
+    if member_list:
+        response = HttpResponse(content_type='text/csv')
+        file_name=member_list[0]['name']
+        response['Content-Disposition'] = """attachment; filename=%s"""%(file_name)
+        writer = csv.writer(response)
+
+        writer.writerow(['UserName', 'Community', 'Status'])
+
+        for member in member_list:
+            writer.writerow([member['name'],member['community_name'], member['state']])
+        return response
+
+    return HttpResponse("")

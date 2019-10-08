@@ -44,5 +44,10 @@ urlpatterns = [
     path('rename_tag/<int:tag_id>', rename_tag, name='rename_tag_post'),
     path('get_tags/<int:attr_id>', get_tags_by_attributes, name='get_tags'),
     path('search/<str:tag_ids>', search, name='search'),
+    path('metrics', metrics, name='metrics'),
+    path('community_metrics', community_metrics, name='community_metrics'),
+    path('hidden_tags_for_metrcis/<int:community_id>', hidden_tags_for_metrcis, name='hidden_tags_for_metrcis'),
+    path('user_metrics', user_metrics, name='user_metrics'),
+    path('getfile/<int:member_id>', getfile, name='getfile'),
 
 ]
