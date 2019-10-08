@@ -38,7 +38,7 @@
         <link rel="stylesheet" href="{% static 'css/community.css' %}">
     </head>
 
-
+<!-- email popup -->
     <div class="ui modal" id="email_login">
         <i class="close icon"></i>
         <div class="header">
@@ -64,174 +64,38 @@
     </div>
 
 
-<script>
+<!-- back button popup -->
+   <div class="ui modal" id="back">
+    <div class="header">
+       {{community.name}}
+    </div>
 
+  <div class="image content">
 
-function open_community(id){
+    <div class="description">
+      <div class="ui header">Are you sure you don't want to join this community?</div>
+    </div>
+  </div>
+  <div class="actions">
+    <div class="ui black deny button">
+     No
+    </div>
+    <div class="ui positive button" id="yes">
+     Yes
 
-           console.log(id);
-            window.location.href ="../community/"+id;
-            console.log(window.location.href)
-          }
-
-                function join(community_id){
-                    console.log(1);
-                    {% if user.is_authenticated %}
-                        {% if ref_id != '' %}
-                           window.open("/"+"community/"+community_id+"?cta=join&ref_id={{ref_id}}",'_self');
-                        {% else %}
-                           window.open("/"+"community/"+community_id+"?cta=join",'_self');
-                        {% endif %}
-                    {% else %}
-                    $('.test')
-                    .modal('show')
-                  ;
-                    {% endif %}
-                }
-
-
-                function accept_admin(cta,community_id,Nom_mem_state){
-
-                    {% if user.is_authenticated %}
-                    if (Nom_mem_state!=6 & Nom_mem_state!=7)
-                    {
-                      alert("Sorry!You are not the Nominated Promoter of this Community");
-                      return;
-                    }
-                     $('.accept')
-                    .modal('show')
-                  ;
-                    {% else %}
-                    $('.test')
-                    .modal('show')
-                  ;
-                    {% endif %}
-
-                }
-
-
-                function referal(ref_id){
-
-                    {% if user.is_authenticated %}
-
-                     window.location.href ="../refer_members/"+{{community.id}}+"?ref_id="+ref_id;
-                    {% else %}
-                    $('.test')
-                    .modal('show')
-                  ;
-                    {% endif %}
-
-                }
-
-    $(function(){
-      $("#test").click(function(){
-        $(".test").modal('show');
-      });
-      $(".test").modal({
-        closable: true
-      });
-    });
-       function hide(){
-    $('.ui.modal').modal("hide");
-  }
-
-  //jquery
-
-   $(document).ready(function() {
-
-   for(var i=0;i<={{similar_community_length}};i++)
-   {
-   ans=$('#'+i).text();
-
-   ans=ans.substring(0,42)
-   ans=ans+'...'
-   $('#'+i).html(ans)
-   }
-
-
-//function to auto accept the invitation
-   var community_id={{community.id}}
-   console.log(community_id)
-   {% if request.user.is_authenticated and cta == 'accept_admin' %}
-
-     if(localStorage.getItem('community_id') != community_id+""){
-        $(window).load(function(){
-           $('#accept').modal('show');
-            });
-        localStorage.setItem('community_id',community_id+"")
-    }
-   {% endif %}
-
-    console.log(localStorage)
-    //localStorage.clear()
-
-             var showChar = 180;
-                    var ellipsestext = "...";
-                    var moretext = "more";
-                    var lesstext = "less";
-                    $('#more').each(function() {
-                        var content = $(this).html();
-
-                        if(content.length > showChar) {
-                            console.log(content.length);
-                            var c = content.substr(0, showChar);
-                            var h = content.substr(showChar-1, content.length - showChar);
-
-                            var html = c + '<span class="moreellipses">' + ellipsestext+ '&nbsp;</span><span class="morecontent"><span>' + h + '</span>&nbsp;&nbsp;<a href="" class="morelink">' + moretext + '</a></span>';
-
-                            $(this).html(html);
-                        }
-
-                    });
-
-                    $(".morelink").click(function(){
-                        if($(this).hasClass("less")) {
-                            $(this).removeClass("less");
-                            $(this).html(moretext);
-                        } else {
-                            $(this).addClass("less");
-                            $(this).html(lesstext);
-                        }
-                        $(this).parent().prev().toggle();
-                        $(this).prev().toggle();
-                        return false;
-                    });
+    </div>
+  </div>
+</div>
 
 
 
-
-});
-
-{% if user_email %}
-
-  //email_login popup start
-
-      $('#email_login').modal('show');
-
-      $('#email_submit').click(function(){
-
-      email=$('#email_input').val()
-      console.log(email)
-
-      })
-
-  //email_login popup end
-
-{% endif %}
-
-
-
-
-
-
-        </script>
 
 
     <div style="margin:0 auto; max-width:786px;">
 
         <div class="ui small inverted menu"
              style="  background-color:#075e54; margin:0 0 0 0 !important;display: flex;align-items: center;justify-content: center;  padding-left: 20px;">
-            <a href="../../communities"><i style="color:white; " class="big angle left icon"></i></a>
+            <a href="#" id="back_click"><i style="color:white;" class="big angle left icon"></i></a>
             <div class="ui center aligned grid container" style=" color:white; margin: 4%;">
 
                 <h2 style="margin-left:-10px; padding-left: 5px;"> {{community.name}} </h2>
@@ -288,7 +152,7 @@ function open_community(id){
                                 <div class="content">
 
                                     {% if ref_id != '' %}
-                                    <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join&ref_id={{ref_id}}">
+                                    <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join_{{ref_id}}">
                                         <button class="ui linkedin button" style="width:130px;">
                                     {% elif cta == 'share' %}
                                     <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join">
@@ -565,23 +429,7 @@ function open_community(id){
                 <br/>
 <br/>
 
-                <style>
-            a.morelink {
-                text-decoration:none;
-                outline: none;
-            }
-            .morecontent span {
-                display: none;
-            }
-            .comment {
-                width: 400px;
-                background-color: #f0f0f0;
-                margin: 10px;
-            }
 
-
-
-                </style>
             </div>
         </div>
     </div>
@@ -591,38 +439,159 @@ function open_community(id){
     </html>
 
 
-    <!-- download model -->
+    <script>
 
 
-<!--        <div class="ui modal download">-->
-<!--      <i class="close icon"></i>-->
-<!--      <div class="header">-->
-<!--        Profile Picture-->
-<!--      </div>-->
-<!--      <div class="image content">-->
-<!--        <div class="ui medium image">-->
-<!--          <img src="/images/avatar/large/chris.jpg">-->
-<!--        </div>-->
-<!--        <div class="description">-->
-<!--          <div class="ui header">We've auto-chosen a profile image for you.</div>-->
-<!--          <p>We've grabbed the following image from the <a href="https://www.gravatar.com" target="_blank">gravatar</a> image associated with your registered e-mail address.</p>-->
-<!--          <p>Is it okay to use this photo?</p>-->
-<!--        </div>-->
-<!--      </div>-->
-<!--      <div class="actions">-->
-<!--        <div class="ui black deny button">-->
-<!--          Nope-->
-<!--        </div>-->
-<!--        <div class="ui positive right labeled icon button">-->
-<!--          Yep, that's me-->
-<!--          <i class="checkmark icon"></i>-->
-<!--        </div>-->
-<!--      </div>-->
-<!--    </div>-->
+        function open_community(id){
+
+           console.log(id);
+            window.location.href ="../community/"+id;
+            console.log(window.location.href)
+          }
+
+                function join(community_id){
+                    console.log(1);
+                    {% if user.is_authenticated %}
+                        {% if ref_id != '' %}
+                           window.open("/"+"community/"+community_id+"?cta=join&ref_id={{ref_id}}",'_self');
+                        {% else %}
+                           window.open("/"+"community/"+community_id+"?cta=join",'_self');
+                        {% endif %}
+                    {% else %}
+                    $('.test')
+                    .modal('show')
+                  ;
+                    {% endif %}
+                }
+
+
+                function accept_admin(cta,community_id,Nom_mem_state){
+
+                    {% if user.is_authenticated %}
+                    if (Nom_mem_state!=6 & Nom_mem_state!=7)
+                    {
+                      alert("Sorry!You are not the Nominated Promoter of this Community");
+                      return;
+                    }
+                     $('.accept')
+                    .modal('show')
+                  ;
+                    {% else %}
+                    $('.test')
+                    .modal('show')
+                  ;
+                    {% endif %}
+
+                }
+
+
+                function referal(ref_id){
+
+                    {% if user.is_authenticated %}
+
+                     window.location.href ="../refer_members/"+{{community.id}}+"?ref_id="+ref_id;
+                    {% else %}
+                    $('.test')
+                    .modal('show')
+                  ;
+                    {% endif %}
+
+                }
+
+    $(function(){
+      $("#test").click(function(){
+        $(".test").modal('show');
+      });
+      $(".test").modal({
+        closable: true
+      });
+    });
+       function hide(){
+    $('.ui.modal').modal("hide");
+  }
+
+  //jquery
+
+$(document).ready(function() {
+
+       for(var i=0;i<={{similar_community_length}};i++)
+       {
+       ans=$('#'+i).text();
+
+       ans=ans.substring(0,42)
+       ans=ans+'...'
+       $('#'+i).html(ans)
+       }
+
+
+    //function to auto accept the invitation
+       var community_id={{community.id}}
+       console.log(community_id)
+       {% if request.user.is_authenticated and cta == 'accept_admin' %}
+
+         if(localStorage.getItem('community_id') != community_id+""){
+            $(window).load(function(){
+               $('#accept').modal('show');
+                });
+            localStorage.setItem('community_id',community_id+"")
+        }
+       {% endif %}
+
+        console.log(localStorage)
+        //localStorage.clear()
 
 
 
-    <!-- -->
+     //showing not interested popup when back button is clicked
+
+     $('#back_click').click(function(){
+
+     ct=false;
+
+     {% if ref_id %}
+        ct=true
+     {% endif %}
+
+
+     if(ct)
+     {
+       $('#back').modal('show');
+     }else{
+        location.href="/communities"
+     }
+
+
+     })
+
+      $("#yes").click(function(){
+
+        location.href="/communities"
+
+       })
+
+{% if user_email %}
+  //email_login popup start
+      $('#email_login').modal('show');
+      $('#email_submit').click(function(){
+      email=$('#email_input').val()
+      console.log(email)
+      })
+  //email_login popup end
+{% endif %}
+
+
+
+});
+
+
+
+
+
+
+
+
+        </script>
+
 
 
 
