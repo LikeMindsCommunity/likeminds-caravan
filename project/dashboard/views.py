@@ -363,6 +363,15 @@ def all_user(request):
     '''dashboard to show all users'''
     userinfo=Userinfo.objects.all().order_by('-user_id')
 
+    page = request.GET.get('page', 1)
+    paginator = Paginator(userinfo, 2)
+    try:
+        userinfo = paginator.page(page)
+    except PageNotAnInteger:
+        userinfo = paginator.page(1)
+    except EmptyPage:
+        userinfo = paginator.page(paginator.num_pages)
+
     users_list = []
     for i in userinfo:
         user_dic = {}
@@ -403,7 +412,7 @@ def all_user(request):
         communities_count = Members.objects.all().filter(member_id=i.user_id).filter(~Q(state=0)).count()
         user_dic['communities_count']=communities_count
         users_list.append(user_dic)
-    return render(request, 'dashboard/all_user.html', {'all_user': users_list})
+    return render(request, 'dashboard/all_user.html', {'all_user': users_list,'paginator':userinfo})
 
 
 def get_user_tags_count(user_id):
