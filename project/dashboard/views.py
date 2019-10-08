@@ -369,12 +369,19 @@ def all_user(request):
         user_dic['name'] = i.name
         user_dic['email'] = i.email
         user_dic['image_url'] = i.image_file
-        if i.fcm_token:
-            print("has token")
-            user_dic['fcm_token'] = 1
+
+        if i.mobile_os :
+            if i.mobile_os == 'Android':
+                user_dic['os'] = 'Android'
+
+            elif i.mobile_os == 'Both':
+                user_dic['os'] = 'Android and iOS Both'
+            else:
+                user_dic['os'] = 'iOS'
+
         else:
-            print("no token")
-            user_dic['fcm_token'] = 0
+            user_dic['os'] = 'Web'
+
         tags = userinfo_tags.objects.filter(user_id=i.user_id.id)
         tags_count = tags.count()
         tags_list=[]
@@ -538,7 +545,7 @@ def check_member(email,community_id,member_id,proposed_name):
 
         elif member and (member[0].state == 3 or member[0].state == 5):
             Members.objects.filter(community_id = community,member_id = user[0].user_id.id).update(state=6)
-            send_email_to_nominated_admin.delay(NominatedAdmin=NominatedAdmin, email=email, ProposedAdmin=ProposedAdmin,
+            send_email_to_nominated_admin(NominatedAdmin=NominatedAdmin, email=email, ProposedAdmin=ProposedAdmin,
                                                 proposedAdminState=proposedAdminState, CommunityName=CommunityName,
                                                 community_id=community.id)
             send_notification_to_proposed_admin.delay(nominated_admin_id=NominatedAdmin_id, community_id=community.id,
@@ -2312,3 +2319,4 @@ def search(request,tag_ids):
     return render(request, 'dashboard/search_results.html', {'communities': dashboard_list,
                                                         'community': community_list,
                                                         'tags': tags,'communities_length':len(dashboard_list) })
+
