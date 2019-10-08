@@ -335,11 +335,11 @@ def refer_members(request,community_id):
             user = update_user_info(request)
 
         interested_member_id = request.user.id
-        invited_member = Members.objects.filter(community_id=community_id,
-                                                member_id=ref_id)
-        if invited_member.exists():
-
-            referal(ref_id=ref_id, community_id=community_id, interested_member_id =interested_member_id)
+        # invited_member = Members.objects.filter(community_id=community_id,
+        #                                         member_id=ref_id)
+        # if invited_member.exists():
+        #
+        #     referal(ref_id=ref_id, community_id=community_id, interested_member_id =interested_member_id)
 
         share_url = url + '/community/' + str(community_id)+"?ref_id="+str(request.user.id)
         # decoded url for mobile web sharing

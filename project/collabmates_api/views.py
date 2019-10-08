@@ -1240,6 +1240,8 @@ def accept_invitation(request):
         return JsonResponse({'success': True})
 
     return JsonResponse({'success': False})
+
+
 @csrf_exempt
 def request_response(request,req_dict=None):
     ''' function to approve or decline a members who requested to join '''
