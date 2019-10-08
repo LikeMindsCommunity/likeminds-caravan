@@ -2558,8 +2558,7 @@ def getfile(request,member_id):
                 temp['state'] = 'Eligible Promoter'
             else:
                 continue
-        member_list.append(temp)
-
+            member_list.append(temp)
 
     if member_list:
         response = HttpResponse(content_type='text/csv')
@@ -2570,6 +2569,7 @@ def getfile(request,member_id):
         writer.writerow(['UserName', 'Community', 'Status'])
 
         for member in member_list:
+            #print(member)
             writer.writerow([member['name'],member['community_name'], member['state']])
         return response
 
