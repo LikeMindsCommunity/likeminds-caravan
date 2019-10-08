@@ -2532,6 +2532,7 @@ def user_metrics(request):
 
     context={
         'users':users,
+        'user':user_list
     }
     return render(request, 'dashboard/user_metrics.html', context)
 
