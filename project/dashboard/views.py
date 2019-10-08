@@ -1,6 +1,7 @@
 from django.shortcuts import render,redirect
 from django.http import HttpResponse
 from togther.models import *
+from togther.views import update_user_info
 from django.views.generic import *
 from .forms import *
 from django.db.models import Q
