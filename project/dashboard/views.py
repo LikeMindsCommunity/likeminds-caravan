@@ -611,7 +611,7 @@ def all_members(request,community_id):
 
         userinfo = Userinfo.objects.filter(user_id=i.member_id)
         if not userinfo.exists():
-            user = update_user_info(request=request, member_id=i.member_id)
+            user = update_user_info(request=None, member_id=i.member_id.id)
 
         image_url=Userinfo.objects.filter(user_id=i.member_id).values('image_file')
         image_url=image_url[0]['image_file']
