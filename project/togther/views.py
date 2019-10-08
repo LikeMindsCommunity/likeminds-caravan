@@ -31,7 +31,7 @@ url = settings.URL
 
 # uncomment to run it in localhost
 #
-#url='http://localhost:8000'
+# url='http://localhost:8000'
 
 api_url = url + '/api/'
 
@@ -102,14 +102,16 @@ def dashboard(request):
         return render(request, 'dashboard.html',
                       {'usr': user, 'communities': communities, 'my_communities': my_community[:2],
                        "my_communities_count": len(my_community),'onboard':onboard,'is_iitd':True})
+
+    page = request.GET.get('page',1)
     communities = Community.objects.filter(Q(hide_community='0')|Q(hide_community = '4')).order_by('-updated_at')
-    for community in communities:
+    paginator = Paginator(communities, 20)
+    queryset = paginator.get_page(page)
+
+    for community in queryset:
         update_member_count(community.id)
 
-
-
-
-    return render(request, 'dashboard.html', {'communities': communities})
+    return render(request, 'dashboard.html', {'communities': queryset})
 
 
 def user_onbaord(request):
@@ -333,8 +335,11 @@ def refer_members(request,community_id):
             user = update_user_info(request)
 
         interested_member_id = request.user.id
+        invited_member = Members.objects.filter(community_id=community_id,
+                                                member_id=ref_id)
+        if invited_member.exists():
 
-        referal(ref_id=ref_id, community_id=community_id, interested_member_id =interested_member_id)
+            referal(ref_id=ref_id, community_id=community_id, interested_member_id =interested_member_id)
 
         share_url = url + '/community/' + str(community_id)+"?ref_id="+str(request.user.id)
         # decoded url for mobile web sharing
