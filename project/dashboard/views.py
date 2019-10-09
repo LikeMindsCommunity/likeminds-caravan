@@ -2525,6 +2525,8 @@ def community_metrics_filter(request):
         elif state == '3':
             temp['status'] = "Pilot"
             temp['total_members'] =community.members_count
+        else:
+            continue
 
 
         temp['tags'] = community.id
