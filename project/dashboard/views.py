@@ -2520,13 +2520,13 @@ def community_metrics_filter(request):
         temp['name'] = community.name
         temp['total_members'] = community.members_count
         state = community.hide_community
-        if state == '0':
+        if state == '0' or state == '4':
             temp['status'] = "Live"
         elif state == '3':
             temp['status'] = "Pilot"
             temp['total_members'] =community.members_count
-        else:
-            continue
+
+
         temp['tags'] = community.id
         temp['created_at'] = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(community.created_at))
         temp['last_activity_date'] = time.strftime('%Y-%m-%d    %H:%M:%S', time.localtime(community.updated_at))
