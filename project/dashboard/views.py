@@ -36,8 +36,19 @@ api_url = url + '/api/'
 def dashboard(request):
     '''function to give list of community to edit'''
 
-    community_list=Community.objects.all().order_by('-updated_at', '-active_since')
+    select_type=request.GET.get('filter',None)
     dashboard_list=[]
+    if select_type == 'pilot_live':
+        community_list = Community.objects.filter(hide_community='4').order_by('-updated_at')
+    elif select_type == 'pilot_0_interested':
+        community_list = Community.objects.filter(hide_community='3').filter(members_count=0).order_by('-updated_at')
+    elif select_type == 'pilot_1_interested':
+        community_list = Community.objects.filter(hide_community='3').filter(members_count__gte=1).order_by(
+            '-updated_at')
+    elif select_type == 'user_created':
+        community_list = Community.objects.filter(hide_community='0').order_by('-updated_at')
+    else:
+        community_list = Community.objects.all().order_by('-updated_at', '-active_since')
 
     page = request.GET.get('page', 1)
     paginator = Paginator(community_list, 20)
