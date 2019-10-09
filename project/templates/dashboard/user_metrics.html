@@ -76,7 +76,11 @@
         <td>{{user.referrer}}</td>
         <td>{{user.is_promoter}}</td>
         <td>{{user.created_at}}</td>
-        <td>{{user.has_android}}</td>
+        {% if user.fcm_token and user.has_android == "Yes" %}
+            <td style="color:green">{{user.has_android}}</td>
+        {% else %}
+           <td style="color:red">{{user.has_android}}</td>
+        {% endif %}
 
 
 
