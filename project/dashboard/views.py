@@ -5,7 +5,6 @@ from togther.views import update_user_info
 from django.views.generic import *
 from .forms import *
 from django.db.models import Q
-from django.db.models import F
 import time
 import csv
 from django.template.loader import get_template
@@ -37,8 +36,19 @@ api_url = url + '/api/'
 def dashboard(request):
     '''function to give list of community to edit'''
 
-    community_list=Community.objects.all().order_by('-updated_at', '-active_since')
+    select_type=request.GET.get('filter',None)
     dashboard_list=[]
+    if select_type == 'pilot_live':
+        community_list = Community.objects.filter(hide_community='4').order_by('-updated_at')
+    elif select_type == 'pilot_0_interested':
+        community_list = Community.objects.filter(hide_community='3').filter(members_count=0).order_by('-updated_at')
+    elif select_type == 'pilot_1_interested':
+        community_list = Community.objects.filter(hide_community='3').filter(members_count__gte=1).order_by(
+            '-updated_at')
+    elif select_type == 'user_created':
+        community_list = Community.objects.filter(hide_community='0').order_by('-updated_at')
+    else:
+        community_list = Community.objects.all().order_by('-updated_at', '-active_since')
 
     page = request.GET.get('page', 1)
     paginator = Paginator(community_list, 20)
@@ -738,6 +748,12 @@ def analytics(request):
     conversations_count=Collabcard.objects.all().count()
     responses_count=card_answers.objects.all().count()
 
+    pilot_live = Community.objects.filter(hide_community='4').count()
+    pilot_0_interested = Community.objects.filter(hide_community='3').filter(members_count=0).count()
+    pilot_1_interested = Community.objects.filter(hide_community='3').filter(members_count__gte=1).count()
+    user_created = Community.objects.filter(hide_community='0').count()
+    all_communities = Community.objects.all().count()
+
 
     context={
         'community_count':community_count,
@@ -751,7 +767,13 @@ def analytics(request):
         'responses_count':responses_count,
         'total_promoter_count': total_promoter_count,
         'total_member_count': total_member_count,
-        'pre_created_communities':pre_created_communities
+        'pre_created_communities':pre_created_communities,
+        'pilot_live':pilot_live,
+        'pilot_0_interested': pilot_0_interested,
+        'pilot_1_interested': pilot_1_interested,
+        'user_created': user_created,
+        'all_communities': all_communities,
+
     }
     return render(request,'dashboard/analytics.html',context)
 
@@ -2354,10 +2376,8 @@ def community_metrics(request):
     '''The function created a community metrics'''
 
     community_list = Community.objects.order_by('-updated_at', '-active_since')
-    dashboard_list = []
-
     page = request.GET.get('page', 1)
-    paginator = Paginator(community_list, 20)
+    paginator = Paginator(community_list, 10)
     try:
         community_list = paginator.page(page)
     except PageNotAnInteger:
@@ -2389,6 +2409,7 @@ def community_metrics(request):
         'communities':communities,
         'community': community_list
     }
+
     return render(request, 'dashboard/community_metrics.html', context)
 
 
@@ -2476,6 +2497,68 @@ def hidden_tags_for_metrcis(request,community_id):
     return render(request,'dashboard/tags_metrics.html',context)
 
 
+def community_metrics_filter(request):
+    '''The function created a community metrics'''
+
+    select_type=request.GET.get('filter',None)
+
+    if select_type=='pilot_live':
+        community_list = Community.objects.filter(hide_community='4').order_by('-updated_at')
+    elif select_type=='pilot_0_interested':
+        community_list = Community.objects.filter(hide_community='3').filter(members_count=0).order_by('-updated_at')
+    elif select_type=='pilot_1_interested':
+        community_list = Community.objects.filter(hide_community='3').filter(members_count__gte=1).order_by('-updated_at')
+    elif select_type == 'user_created':
+        community_list = Community.objects.filter(hide_community='0').order_by('-updated_at')
+    else:
+        community_list = Community.objects.all().order_by('-updated_at', '-active_since')
+        print(community_list)
+    page = request.GET.get('page', 1)
+    paginator = Paginator(community_list, 20)
+    try:
+        community_list = paginator.page(page)
+    except PageNotAnInteger:
+        community_list = paginator.page(1)
+    except EmptyPage:
+        community_list = paginator.page(paginator.num_pages)
+
+    communities = []
+
+    for community in community_list:
+        temp = {}
+        temp['name'] = community.name
+        temp['total_members'] = community.members_count
+        state = community.hide_community
+        if state == '0' or state == '4':
+            temp['status'] = "Live"
+        elif state == '3':
+            temp['status'] = "Pilot"
+            temp['total_members'] =community.members_count
+        else:
+            continue
+
+
+        temp['tags'] = community.id
+        temp['created_at'] = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(community.created_at))
+        temp['last_activity_date'] = time.strftime('%Y-%m-%d    %H:%M:%S', time.localtime(community.updated_at))
+        temp['collabcard_count'] = Collabcard.objects.filter(community_id=community.id).count()
+        temp['tags_count'] = get_tags_count(community)
+        temp['url']=url+"/community/"+str(community.id)
+
+
+        communities.append(temp)
+
+    context = {
+        'communities': communities,
+        'community': community_list,
+        'select_type':select_type
+    }
+
+    return render(request, 'dashboard/community_metrics.html', context)
+
+
+
+############# user metrics ################
 
 def user_metrics(request):
 
@@ -2483,7 +2566,7 @@ def user_metrics(request):
 
     userinfo = Userinfo.objects.order_by('-user_id')
     page = request.GET.get('page', 1)
-    paginator = Paginator(userinfo, 10)
+    paginator = Paginator(userinfo, 20)
     try:
         user_list = paginator.page(page)
     except PageNotAnInteger:
@@ -2529,6 +2612,11 @@ def user_metrics(request):
         else:
             temp['has_android']="No"
 
+        if user.fcm_token:
+            temp['fcm_token']=True
+        else:
+            temp['fcm_token']=False
+
         if user.created_at < 0:
             temp['created_at']="NA"
         else:
@@ -2537,7 +2625,6 @@ def user_metrics(request):
         users.append(temp)
 
 
-    print(users)
 
     context={
         'users':users,

@@ -44,7 +44,17 @@
 
 <body>
 
+<br/>
+<h1 align="center">User Metrics</h1>
+<table>
+    <tr>
+    <td style="padding-left:10px;">
+        <a class="btn btn-warning  mt-1 mb-1 mr-4 "  href="{% url 'admin_dashboard' %}"><i class="fa fa-home" aria-hidden="true"></i>&nbsp;Go to Home</a>
+    </td>
 
+    </tr>
+</table>
+<br/>
 <table class="table table-bordered">
     <thead>
       <tr>
@@ -76,7 +86,11 @@
         <td>{{user.referrer}}</td>
         <td>{{user.is_promoter}}</td>
         <td>{{user.created_at}}</td>
-        <td>{{user.has_android}}</td>
+        {% if user.fcm_token and user.has_android == "Yes" %}
+            <td style="color:green">{{user.has_android}}</td>
+        {% else %}
+           <td style="color:red">{{user.has_android}}</td>
+        {% endif %}
 
 
 

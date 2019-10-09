@@ -151,10 +151,24 @@ a.article-title:hover {
 </head>
 
 <body>
-<div style="padding-left:70px;">
+<table>
+<tr>
+<td style="padding-left:80px;">
     <a class="btn btn-success" href="{% url 'metrics' %}">Metrics</a>
-</div>
-<div class="row-fluid" style="text-align:right;padding-right:30px;">
+</td>
+<td style="padding-left:250px;">
+    <select class="selectpicker" id="select" data-style="btn-primary"   data-live-search="true" data-show-subtext="true">
+    <option value="pilot_live" disabled selected>Filter By</option>
+    <option value="pilot_live">Live communities (pre-created)</option>
+    <option value="pilot_0_interested">Pilot communities (0 interested)</option>
+    <option value="pilot_1_interested">Pilot communities (1 or more interested)</option>
+   <option value="user_created">User Created</option>
+   <option value="None">All communities</option>
+
+
+</select>
+</td>
+<td class="row-fluid" style="text-align:right;padding-right:30px;padding-left:200px">
 <!--      <select class="selectpicker" id="del_tag" data-show-subtext="true" data-live-search="true">-->
 
 <!--      </select>-->
@@ -209,9 +223,10 @@ a.article-title:hover {
 
 
         <button id="search_submit" type="submit" class="btn btn-danger">Search</button></span>
-    </div>
+    </td>
+</tr>
 
-
+</table>
 
 <br/><br/>
 
@@ -322,6 +337,13 @@ a.article-title:hover {
          console.log(search_tags)
          window.location.href='./search/'+search_tags
        })
+
+      $('select').on('change', function() {
+          var val=this.value
+          console.log(val)
+          window.open("./?filter="+val,"_self")
+        });
+
 
 </script>
 
