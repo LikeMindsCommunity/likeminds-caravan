@@ -31,7 +31,7 @@ url = settings.URL
 
 # uncomment to run it in localhost
 #
-url='http://localhost:8000'
+# url='http://localhost:8000'
 
 api_url = url + '/api/'
 
