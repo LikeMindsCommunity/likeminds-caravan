@@ -47,21 +47,27 @@
 
 </head>
 
-<body>
 <br/>
 <h1 align="center">Community Metrics</h1>
-<div style="padding-left:900px;">
-<select class="selectpicker" id="select" data-style="btn-info"   data-live-search="true" data-show-subtext="true">
+<table>
+    <tr>
+    <td style="padding-left:10px;">
+        <a class="btn btn-warning  mt-1 mb-1 mr-4 "  href="{% url 'admin_dashboard' %}"><i class="fa fa-home" aria-hidden="true"></i>&nbsp;Go to Home</a>
+    </td>
+<td style="padding-left:800px;">
+    <select class="selectpicker" id="select" data-style="btn-info"   data-live-search="true" data-show-subtext="true">
     <option value="pilot_live" disabled selected>Filter</option>
     <option value="pilot_live">Live communities (pre-created)</option>
     <option value="pilot_0_interested">Pilot communities (0 interested)</option>
     <option value="pilot_1_interested">Pilot communities (1 or more interested)</option>
+   <option value="user_created">User Created</option>
     <option value="None">All communities</option>
 
 
 </select>
-</div>
-
+</td>
+    </tr>
+</table>
 <br/>
 <table class="table table-bordered" style="display:block">
     <thead>
