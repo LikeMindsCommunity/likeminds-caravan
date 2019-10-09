@@ -68,7 +68,7 @@ def update_member_count(community_id):
     ''' update members count of a community , when a promoter or member joins a community '''
     community = Community.objects.get(id=community_id)
     # getting the count of members including admins in a community
-    count = Members.objects.filter(community_id=community).filter(Q(state=1)|Q(state=2)|Q(state=4)|Q(state=7)).count()
+    count = Members.objects.filter(community_id=community).filter(Q(state=1)|Q(state=2)|Q(state=4)|Q(state=7)|Q(state=8)|Q(state=9)).count()
     # updating count
     Community.objects.filter(id=community_id).update(members_count = count)
     return count
@@ -339,6 +339,7 @@ def referal(ref_id, community_id, interested_member_id):
                                         member_id=invited_member,
                                         state=8)
             interested_member.save()
+            update_member_count(community_id)
 
     referred_member = User.objects.get(pk=ref_id) if (ref_id != '' and ref_id) else False
     if referred_member:

@@ -35,7 +35,7 @@ import requests as rqst
 from utility.utils import (decode_meta_from_url, update_tag_image,
                            referal, get_referred_members_of_a_member,
                            eligibility_count, notify_referred_member,
-                           user_onbaord,)
+                           user_onbaord,update_member_count)
 from utility.tasks import (mail_triger,new_member_request)
 
 
@@ -472,6 +472,7 @@ def join_community_responses(request):
                 member.state = 3  # pending members
             elif community.hide_community == '3':
                 member.state = 8
+                update_member_count(community_id)
             member.save()
     if 'questions' in res:
         for i in res['questions']:
@@ -2260,6 +2261,7 @@ def accept_promotership(request):
                 except:
                     print("Error for member engage update")
 
+    update_member_count(community_id)
     return JsonResponse({'success':True})
 
 
