@@ -26,7 +26,7 @@ from .tasks import send_email_to_nominated_admin, send_email_for_new_collabcard_
 from django.conf import settings
 from togther.tasks import send_email_to_proposed_admin
 from django.core.paginator import Paginator
-from togther.views import set_user_tag, get_user_tag, get_nominated_admin_details, update_member_count
+from togther.views import set_user_tag, get_user_tag, get_nominated_admin_details
 import os
 from .firebase import update_last_answer_id
 import re
@@ -35,8 +35,8 @@ import requests as rqst
 from utility.utils import (decode_meta_from_url, update_tag_image,
                            referal, get_referred_members_of_a_member,
                            eligibility_count, notify_referred_member,
-                           user_onbaord,update_member_count)
-from utility.tasks import (mail_triger,new_member_request)
+                           user_onbaord, update_member_count)
+from utility.tasks import (mail_triger, new_member_request)
 
 
 
@@ -470,10 +470,12 @@ def join_community_responses(request):
             member.community_id = community
             if community.hide_community == '0' or community.hide_community == '1' or community.hide_community =='4':
                 member.state = 3  # pending members
+                member.save()
             elif community.hide_community == '3':
                 member.state = 8
+                member.save()
                 update_member_count(community_id)
-            member.save()
+
     if 'questions' in res:
         for i in res['questions']:
             response = Form_response()
