@@ -37,15 +37,33 @@
 }
 
 .pagination a:hover:not(.active) {background-color: #ddd;}
+
+
 </style>
+
+
+
+
 
 </head>
 
-
 <body>
+<br/>
+<h1 align="center">Community Metrics</h1>
+<div style="padding-left:900px;">
+<select class="selectpicker" id="select" data-style="btn-info"   data-live-search="true" data-show-subtext="true">
+    <option value="pilot_live" disabled selected>Filter</option>
+    <option value="pilot_live">Live communities (pre-created)</option>
+    <option value="pilot_0_interested">Pilot communities (0 interested)</option>
+    <option value="pilot_1_interested">Pilot communities (1 or more interested)</option>
+    <option value="None">All communities</option>
 
 
-<table class="table table-bordered">
+</select>
+</div>
+
+<br/>
+<table class="table table-bordered" style="display:block">
     <thead>
       <tr>
         <th>Community Name</th>
@@ -60,9 +78,17 @@
     <tbody>
     {% for community in communities %}
       <tr>
-        <td>{{community.name}}</td>
+          {% if community.status == 'Pilot' %}
+            <td><a href="{{community.url}}" style="color:red">{{community.name}}</a></td>
+          {% else %}
+            <td><a href="{{community.url}}" style="color:green">{{community.name}}</a></td>
+          {% endif %}
         <td>{{community.total_members}}</td>
-        <td>{{community.status}}</td>
+          {% if community.status == 'Pilot' %}
+            <td style="color:red">{{community.status}}</td>
+          {% else %}
+             <td style="color:green">{{community.status}}</td>
+          {% endif %}
         <td><a class="btn btn-info" href="{% url 'hidden_tags_for_metrcis' community.tags %}">Tags({{community.tags_count}})</a></td>
         <td>{{community.created_at}}</td>
         <td>{{community.last_activity_date}}</td>
@@ -73,31 +99,45 @@
     </tbody>
   </table>
 
-
+ {% if communities %}
 <div style="padding-left:450px;">
+
+
 <ul class="pagination">
 
 
 {% if community.number|add:'-4' > 1 %}
-    <li><a href="?page={{ community.number|add:'-5' }}">&hellip;</a></li>
+    <li><a href="?filter={{select_type}}&page={{ community.number|add:'-5' }}">&hellip;</a></li>
 {% endif %}
 
 {% for i in community.paginator.page_range %}
     {% if community.number == i %}
         <li style="border: 1px solid #ddd;border-radius: 5px;padding: 8px 16px;background-color:#f0ad4e;border-color: #eea236;"><span>{{ i }} </span></li>
     {% elif i > community.number|add:'-5' and i < community.number|add:'5' %}
-        <li><a href="?page={{ i }}">{{ i }}</a></li>
+        <li><a href="?filter={{select_type}}&page={{ i }}">{{ i }}</a></li>
     {% endif %}
 {% endfor %}
 
 {% if community.paginator.num_pages > community.number|add:'4' %}
-    <li><a href="?page={{ community.number|add:'5' }}">&hellip;</a></li>
+    <li><a href="?filter={{select_type}}&page={{ community.number|add:'5' }}">&hellip;</a></li>
 {% endif %}
-
-
+{% else %}
+    <div align="center">
+        <h3>No Communities</h3>
+    </div>
+{% endif %}
 
 </ul>
 </div>
 </body>
 
 </html>
+<script>
+   $('select').on('change', function() {
+          var val=this.value
+          console.log(val)
+          window.open("./community_metrics_filter?filter="+val,"_self")
+        });
+
+
+</script>
