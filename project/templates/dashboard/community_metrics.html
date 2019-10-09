@@ -83,14 +83,12 @@
       <tr>
           {% if community.status == 'Pilot' %}
             <td><a href="{{community.url}}" style="color:red">{{community.name}}</a></td>
-          {% else %}
-            <td><a href="{{community.url}}" style="color:green">{{community.name}}</a></td>
-          {% endif %}
-        <td>{{community.total_members}}</td>
-          {% if community.status == 'Pilot' %}
+            <td>{{community.total_members}} (Interested)</td>
             <td style="color:red">{{community.status}}</td>
           {% else %}
-             <td style="color:green">{{community.status}}</td>
+            <td><a href="{{community.url}}" style="color:green">{{community.name}}</a></td>
+            <td>{{community.total_members}}</td>
+            <td style="color:green">{{community.status}}</td>
           {% endif %}
         <td><a class="btn btn-info" href="{% url 'hidden_tags_for_metrcis' community.tags %}">Tags({{community.tags_count}})</a></td>
         <td>{{community.created_at}}</td>
