@@ -31,7 +31,7 @@ url = settings.URL
 
 # uncomment to run it in localhost
 #
-# url='http://localhost:8000'
+url='http://localhost:8000'
 
 api_url = url + '/api/'
 
@@ -1114,13 +1114,11 @@ def get_nominated_admin_details(community_id,email):
 
 def update_member_count(community_id):
     ''' update members count of a community , when a promoter or member joins a community '''
-    community = Community.objects.get(id=community_id)
     # getting the count of members including admins in a community
-    count = Members.objects.filter(community_id=community).filter(Q(state=1)|Q(state=2)|Q(state=4)|Q(state=7)|Q(state=8)|Q(state=9)).count()
+    count = Members.objects.filter(community_id=community_id).filter(Q(state=1)|Q(state=2)|Q(state=4)|Q(state=7)|Q(state=8)|Q(state=9)).count()
     # updating count
-    # Community.objects.filter(id=community_id).update(members_count = count)
-    community.members_count=count
-    community.save()
+    Community.objects.filter(id=community_id).update(members_count = count)
+
     return count
 
 
