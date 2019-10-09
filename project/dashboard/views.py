@@ -728,6 +728,12 @@ def analytics(request):
     conversations_count=Collabcard.objects.all().count()
     responses_count=card_answers.objects.all().count()
 
+    pilot_live = Community.objects.filter(hide_community='4').count()
+    pilot_0_interested = Community.objects.filter(hide_community='3').filter(members_count=0).count()
+    pilot_1_interested = Community.objects.filter(hide_community='3').filter(members_count__gte=1).count()
+    user_created = Community.objects.filter(hide_community='0').count()
+    all_communities = Community.objects.all().count()
+
 
     context={
         'community_count':community_count,
@@ -741,7 +747,13 @@ def analytics(request):
         'responses_count':responses_count,
         'total_promoter_count': total_promoter_count,
         'total_member_count': total_member_count,
-        'pre_created_communities':pre_created_communities
+        'pre_created_communities':pre_created_communities,
+        'pilot_live':pilot_live,
+        'pilot_0_interested': pilot_0_interested,
+        'pilot_1_interested': pilot_1_interested,
+        'user_created': user_created,
+        'all_communities': all_communities,
+
     }
     return render(request,'dashboard/analytics.html',context)
 
@@ -2476,11 +2488,13 @@ def community_metrics_filter(request):
         community_list = Community.objects.filter(hide_community='3').filter(members_count=0).order_by('-updated_at')
     elif select_type=='pilot_1_interested':
         community_list = Community.objects.filter(hide_community='3').filter(members_count__gte=1).order_by('-updated_at')
+    elif select_type == 'user_created':
+        community_list = Community.objects.filter(hide_community='0').order_by('-updated_at')
     else:
         community_list = Community.objects.all().order_by('-updated_at', '-active_since')
         print(community_list)
     page = request.GET.get('page', 1)
-    paginator = Paginator(community_list, 10)
+    paginator = Paginator(community_list, 20)
     try:
         community_list = paginator.page(page)
     except PageNotAnInteger:
