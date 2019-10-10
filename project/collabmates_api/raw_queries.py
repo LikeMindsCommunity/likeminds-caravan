@@ -7,12 +7,14 @@ import psycopg2
 envir=False
 try:
     from .notification import get_connection
+    from project.celery import app
+
 except:
     envir=True
     import sys
     sys.path.append("..")
     from scripts.connection import get_connection
-
+    from project.celery import app
 
 
 def get_all_data(sql):
@@ -405,7 +407,7 @@ def compute_rank(user_id=None,community_id=None):
 
 
 
-
+@app.task
 def ranking_all_users_and_communities():
 
     '''function to rank all users and all communities to be triggered daily'''
