@@ -400,6 +400,15 @@ def all_user(request):
         user_dic['email'] = i.email
         user_dic['image_url'] = i.image_file
 
+        if i.fcm_token:
+            print("has token")
+            user_dic['fcm_token'] = 1
+            user_dic['color']='green'
+        else:
+            print("no token")
+            user_dic['fcm_token'] = 0
+            user_dic['color'] = 'Red'
+
         if i.mobile_os :
             if i.mobile_os == 'Android':
                 user_dic['os'] = 'Android'
