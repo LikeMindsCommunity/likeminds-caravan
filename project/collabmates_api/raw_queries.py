@@ -26,6 +26,7 @@ def get_all_data(sql):
         conn.close()
         if res:
             return res
+        return []
 
     except (Exception, psycopg2.Error) as error:
         print("Error while connecting to PostgreSQL  ", error)
@@ -98,7 +99,8 @@ def filter_tags(user_id=0,community_id=0):
     if user_id:
         sql = "select tags_id_id from togther_user_legacy where user_id_id=" + str(user_id)
         tags = get_all_data(sql)
-
+        if not tags:
+            return False
         legacy = []
         for data in tags:
             legacy.append(data[0])
@@ -106,6 +108,8 @@ def filter_tags(user_id=0,community_id=0):
 
         sql = "select tags_id_id from togther_user_profession where user_id_id=" + str(user_id)
         tags = get_all_data(sql)
+        if not tags:
+            return False
         profession = []
         for data in tags:
             profession.append(data[0])
@@ -113,6 +117,8 @@ def filter_tags(user_id=0,community_id=0):
 
         sql = "select tags_id_id from togther_user_interest where user_id_id=" + str(user_id)
         tags = get_all_data(sql)
+        if not tags:
+            return False
         interest = []
         for data in tags:
             interest.append(data[0])
@@ -120,10 +126,14 @@ def filter_tags(user_id=0,community_id=0):
 
         sql = "select tags_id_id from togther_user_geography where user_id_id=" + str(user_id)
         tags = get_all_data(sql)
+        if not tags:
+            return False
         geo_list = []
         for data in tags:
             geo_list.append(data[0])
         geo_list = get_list_of_tag_id(geo_list, hashmap)
+
+
 
 
 
@@ -278,8 +288,6 @@ def delele_tag_by_id(id):
         print("Error while connecting  to PostgreSQL", error)
 
 
-
-
 def action_for_user_crete_or_community_create(user_id,community_id):
 
     '''function to handle the create user or create community'''
@@ -388,11 +396,40 @@ def compute_rank(user_id=None,community_id=None):
                 delele_tag_by_id(id)
             if score[2] != 0:
                 ranking_tags(score)
+                #print(score)
 
 
     end_time=time.time()
 
-    print("Compute rank execution time:",(end_time-start_time))
+    print("Compute rank execution time :",(end_time-start_time))
+
+
+
+
+def ranking_all_users_and_communities():
+
+    '''function to rank all users and all communities to be triggered daily'''
+
+    start_time=time.time()
+
+    sql = "select user_id_id from togther_userinfo order by id desc"
+    all_user = get_all_data(sql)
+    for user in all_user:
+        filter_tag = filter_tags(user_id=user[0])
+        if filter_tag:
+            compute_rank(user_id=user[0])
+        else:
+            print("No Onboarding for user_id",user[0])
+
+
+    end_time=time.time()
+
+    diff=(end_time - start_time)
+
+    print("Ranking Script Execution Time:",diff)
+
+
+
 
 
 
@@ -402,7 +439,7 @@ if envir:
     if __name__ == "__main__":
         print("python file")
         start_time=time.time()
-        compute_rank(user_id=104)
+        ranking_all_users_and_communities()
 
         end_time=time.time()
 
