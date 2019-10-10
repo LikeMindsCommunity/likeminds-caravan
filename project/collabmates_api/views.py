@@ -31,7 +31,7 @@ import os
 from .firebase import update_last_answer_id
 import re
 import googlemaps
-import requests as rqst
+import logging
 from utility.utils import (decode_meta_from_url, update_tag_image,
                            referal, get_referred_members_of_a_member,
                            eligibility_count, notify_referred_member,
@@ -39,9 +39,10 @@ from utility.utils import (decode_meta_from_url, update_tag_image,
 from utility.tasks import (mail_triger, new_member_request)
 
 
-
 url  = settings.URL
 
+error_logger = logging.getLogger("error_logger")
+info_logger = logging.getLogger("info_logger")
 
 # /api/communities?category_id=&member_id=
 
@@ -51,9 +52,9 @@ def communities(request):
 
     ''' function to get all the communities '''
 
-    print("request METa ")
-
+   
     if request.method == 'GET':
+        info_logger.info("added")
         request = request.GET.dict()
         if 'member_id' in request:
             # get member id and members hidden tag
@@ -88,6 +89,7 @@ def communities(request):
 
                 queryset = get_communities_by_tags(user_tag=user_tag,page_number = page_number,user_id=user_id)
                 community = serialize_community(queryset=queryset)
+                info_logger.info(community)
                 return JsonResponse({'communities': community})
 
 def get_communities_by_tags(user_tag=0, category_tag=0,page_number=1,user_id=None):
