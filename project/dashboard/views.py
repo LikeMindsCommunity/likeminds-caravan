@@ -47,8 +47,16 @@ def dashboard(request):
             '-updated_at')
     elif select_type == 'user_created':
         community_list = Community.objects.filter(hide_community='0').order_by('-updated_at')
+    elif select_type == 'members_count_ascending':
+        community_list = Community.objects.order_by('members_count', '-updated_at')
+    elif select_type == 'members_count_descending':
+        community_list = Community.objects.order_by('-members_count', '-updated_at')
+    elif select_type == 'interested_count_ascending':
+        community_list = Community.objects.filter(hide_community='3').order_by('members_count', '-updated_at')
+    elif select_type == 'interested_count_descending':
+        community_list = Community.objects.filter(hide_community='3').order_by('-members_count', '-updated_at')
     else:
-        community_list = Community.objects.all().order_by('-updated_at', '-active_since')
+        community_list = Community.objects.order_by('-updated_at')
 
     page = request.GET.get('page', 1)
     paginator = Paginator(community_list, 20)
@@ -79,7 +87,8 @@ def dashboard(request):
     tags = Tags_lpig.objects.all().order_by('name')
     return render(request,'dashboard/dashboard.html',{'communities':dashboard_list,
                                                     'community':community_list,
-                                                    'tags': tags,})
+                                                    'tags': tags,
+                                                      'select_type':select_type})
 
 
 def get_tags_count(community):
@@ -2501,9 +2510,17 @@ def community_metrics_filter(request):
         community_list = Community.objects.filter(hide_community='3').filter(members_count__gte=1).order_by('-updated_at')
     elif select_type == 'user_created':
         community_list = Community.objects.filter(hide_community='0').order_by('-updated_at')
+    elif select_type == 'members_count_ascending':
+        community_list = Community.objects.order_by('members_count','-updated_at')
+    elif select_type == 'members_count_descending':
+        community_list = Community.objects.order_by( '-members_count','-updated_at')
+    elif select_type == 'interested_count_ascending':
+        community_list = Community.objects.filter(hide_community='3').order_by('members_count','-updated_at')
+    elif select_type == 'interested_count_descending':
+        community_list = Community.objects.filter(hide_community='3').order_by( '-members_count','-updated_at')
     else:
-        community_list = Community.objects.all().order_by('-updated_at', '-active_since')
-        print(community_list)
+        community_list = Community.objects.order_by('-updated_at')
+
     page = request.GET.get('page', 1)
     paginator = Paginator(community_list, 20)
     try:
