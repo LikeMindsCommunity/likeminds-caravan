@@ -233,3 +233,63 @@ FCM_DJANGO_SETTINGS = {
 }
 
 
+
+
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'large': {
+            'format': '%(asctime)s  %(levelname)s  %(filename)s  %(funcName)s  %(lineno)d  %(message)s  '
+        },
+        'tiny': {
+            'format': '%(asctime)s  %(levelname)s %(message)s  '
+        }
+    },
+    'handlers': {
+        'errors_file': {
+            'level': 'ERROR',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'maxBytes': 1024 * 10 * 10 ,#*1024*10, # 10 MB
+            'backupCount': 5,
+            'filename': 'utility/logs/collabmates.log',
+            'formatter': 'large',
+        },
+        'info_file': {
+            'level': 'INFO',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'maxBytes': 1024 * 10 * 10,#*1024*10, # 10 MB
+            'backupCount': 5,
+            'filename': 'utility/logs/collabmates.log',
+            'formatter': 'large',
+        },
+        'console': {
+            'level':'INFO',
+            'class':'logging.handlers.RotatingFileHandler',
+            'filename': 'utility/logs/collabmates.log',
+            'maxBytes': 1024*10*10 ,#*1024*10, # 10 MB
+            'backupCount': 5,
+            'formatter':'tiny',
+        },
+
+    },
+    'loggers': {
+        'error_logger': {
+            'handlers': ['errors_file'],
+            'level': 'WARNING',
+            'propagate': False,
+        },
+        'info_logger': {
+            'handlers': ['info_file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'django': {
+            'handlers': ['console'],
+            'level': os.getenv('DJANGO_LOG_LEVEL', 'INFO'),
+        },
+
+
+    },
+}
