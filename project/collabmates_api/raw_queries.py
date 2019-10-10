@@ -1,12 +1,13 @@
 from __future__ import absolute_import, unicode_literals
 from celery import shared_task
 import time
-import json
+import logging
 import psycopg2
 
 envir=False
 try:
     from .notification import get_connection
+
 except:
     envir=True
     import sys
@@ -294,22 +295,6 @@ def action_for_user_crete_or_community_create(user_id,community_id):
 
     user_tags = []
     community_tags = []
-    # if user_id is None and community_id is None:
-    #     sql = "select distinct(user_id_id) from togther_user_legacy"
-    #     all_user = get_all_data(sql)
-    #     user_tags = []
-    #     for user in all_user:
-    #         filter_tag = filter_tags(user_id=user[0])
-    #         user_tags.append(filter_tag)
-    #     # getting all communities
-    #     sql = "select distinct(community_id_id) from togther_community_legacy"
-    #     all_communities = get_all_data(sql)
-    #     community_tags = []
-    #     for community in all_communities:
-    #         filter_tag = filter_tags(community_id=community[0])
-    #         community_tags.append(filter_tag)
-
-
     if user_id is not None and community_id is None:
         all_user = [(user_id,)]
         user_tags = []
@@ -384,6 +369,7 @@ def action_for_user_crete_or_community_create(user_id,community_id):
 def compute_rank(user_id=None,community_id=None):
 
     '''function to compute the rank of community '''
+    print("Executing Compute Rank for User",user_id)
     start_time=time.time()
     action=action_for_user_crete_or_community_create(user_id,community_id)
     user_tags=action[0]
@@ -412,6 +398,8 @@ def ranking_all_users_and_communities():
 
     start_time=time.time()
 
+    print("Ranking All Users And Communities Based on tags")
+
     sql = "select user_id_id from togther_userinfo order by id desc"
     all_user = get_all_data(sql)
     for user in all_user:
@@ -419,7 +407,7 @@ def ranking_all_users_and_communities():
         if filter_tag:
             compute_rank(user_id=user[0])
         else:
-            print("No Onboarding for user_id",user[0])
+            print("No Onboarding for user_id:",user[0])
 
 
     end_time=time.time()
