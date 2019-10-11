@@ -30,7 +30,7 @@ app.conf.beat_schedule = {
     },
     'compute_rank_task_at_3_AM': {
         'task': 'collabmates_api.raw_queries.ranking_all_users_and_communities',
-        'schedule': crontab(hour=13, minute=0),
+        'schedule': crontab(hour=3, minute=0),
         # minute="*/10" change to `crontab(minute=0, hour=0)` if you want it to run daily at midnight
         # 'schedule':120.0, #for testing purpose
     },
