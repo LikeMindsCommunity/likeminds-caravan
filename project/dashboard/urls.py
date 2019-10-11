@@ -50,5 +50,6 @@ urlpatterns = [
     path('hidden_tags_for_metrcis/<int:community_id>', hidden_tags_for_metrcis, name='hidden_tags_for_metrcis'),
     path('user_metrics', user_metrics, name='user_metrics'),
     path('getfile/<int:member_id>', getfile, name='getfile'),
+    path('onboarding_metrics', onboarding_metrics, name='onboarding_metrics'),
 
 ]
