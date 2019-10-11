@@ -255,7 +255,7 @@ def create_or_categorize_tag(tag,category,attribute):
                     tag.save()
 
                     # tag is of category type geography update or create tag image
-                    if category.name == 'Geography':
+                    if category.name == 'Geography' or attribute.id == 3:
                         if tag and not tag.tag_image:
                             tag_name, tag_id = new_tag, tag.id
                             print("utils update tag image at create or categorize tags")
@@ -270,11 +270,17 @@ def create_or_categorize_tag(tag,category,attribute):
                         tag.category_id = category
                         tag.attribute_id = attribute
                         tag.save()
+
+                    if category.name == 'Geography' or attribute.id == 3:
+                        if tag and not tag.tag_image:
+                            tag_name, tag_id = new_tag, tag.id
+                            print("utils update tag image at create or categorize tags")
+                            update_tag_image.delay(tag_name=tag_name, tag_id=tag_id)
                 else:
                     tag = tag[0]
 
                     # tag is of category type geography update or create tag image
-                    if category.name == 'Geography':
+                    if category.name == 'Geography' or attribute.id == 3:
                         if tag and not tag.tag_image:
                             tag_name, tag_id = new_tag, tag.id
                             print("utils update tag image at create or categorize tags")
@@ -528,12 +534,14 @@ def create_user_hometown_tag_and_related_tags(user_id,tag_id,new_tag):
 
         if tag_name == '':
             continue
-        if attr == 'city':
-            continue
+
         # creating or categorizing a tag with known category and attribute
         # geography tag is created, create its related tags
         # for example, if gurgaon is created, create Haryana and India as well as state and country
         tag = create_or_categorize_tag(tag=tag_name, category='Geography', attribute=attr)
+
+        if attr == 'city':
+            continue
 
         user_geo_tag = User_Geography.objects.filter(tags_id=tag, user_id=user)
         user_legacy_home_town_tag = User_Legacy.objects.filter(tags_id=tag, user_id=user)
@@ -564,7 +572,7 @@ def create_user_hometown_tag_and_related_tags(user_id,tag_id,new_tag):
 def update_hometown_tags_for_all_users(tag_id):
     user_list_with_newly_categorized_tag = User_Legacy.objects.filter(tags_id=tag_id)
     for tag in user_list_with_newly_categorized_tag:
-        user_id, tag_id = tag.user_id.id, str(tag.tags_id.id)
+        user_id, tag_id = tag.user_id.id, str(tag_id)
         insert_user_home_town_tags(user_id=user_id, tag=tag_id)
 
 

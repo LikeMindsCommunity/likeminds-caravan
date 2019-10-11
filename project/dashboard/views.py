@@ -25,7 +25,8 @@ from django.urls import reverse
 from urllib.parse import urlencode
 from utility.utils import (get_city_address, update_tag_image,
                            create_or_categorize_tag, update_user_geography_tags,
-                           insert_user_home_town_tags, update_hometown_tags_for_all_users,)
+                           insert_user_home_town_tags, update_hometown_tags_for_all_users,
+                           user_onbaord)
 url = settings.URL
 
 # uncomment to run it in localhost
@@ -1331,6 +1332,10 @@ def get_or_create_sub_tags(new_tag,category,attribute):
         tag.save()
         tag.tag_id =tag.id
         tag.save()
+        if category.name == 'Geography' or attribute.id == 3:
+            if tag and not tag.tag_image:
+                tag_id,tag_name = tag.id,tag.name
+                update_tag_image(tag_id=tag_id,tag_name=tag_name)
 
     if category.name == 'Geography' or attribute.id == 3:
 
@@ -1416,15 +1421,29 @@ def update_uncategorize_tag(uncategorized, category, attribute):
 
     category = Category.objects.get(id=category)
     attribute = Attributes.objects.get(id=attribute)
-
+    deleted = False
     tag = Tags_lpig.objects.get(id=uncategorized)
-    tag.attribute_id = attribute
-    tag.category_id = category
-    tag.save()
+    tags = Tags_lpig.objects.filter(name=tag.name,attribute_id = attribute)
+    if tags.exists():
+        tag.delete()
+        deleted = True
+    if not deleted:
+        tag.attribute_id = attribute
+        tag.category_id = category
+        tag.save()
 
     if attribute.id == 3:
         tag_id = tag.id
+        if tag and not tag.tag_image:
+            tag_name = tag.name
+            update_tag_image(tag_id=tag_id, tag_name=tag_name)
         update_hometown_tags_for_all_users.delay(tag_id)
+
+    elif category.name == 'Geography':
+        if tag and not tag.tag_image:
+            tag_id = tag.id
+            tag_name = tag.name
+            update_tag_image.delay(tag_id=tag_id,tag_name=tag_name)
 
     return tag.tag_id
 
@@ -2721,3 +2740,39 @@ def get_relevant_communities_file(request,member_id):
         return response
 
     return HttpResponse("No Relevant Commmunities")
+def onboarding_metrics(request):
+
+    '''The function created a community metrics'''
+
+    userinfo = Userinfo.objects.order_by('-user_id')
+    page = request.GET.get('page', 1)
+    paginator = Paginator(userinfo, 20)
+    try:
+        user_list = paginator.page(page)
+    except PageNotAnInteger:
+        user_list = paginator.page(1)
+    except EmptyPage:
+        user_list = paginator.page(paginator.num_pages)
+
+    users=[]
+
+    for user in user_list:
+        temp={}
+        temp['name']=user.name
+
+        if user.fcm_token:
+            temp['fcm_token']=True
+        else:
+            temp['fcm_token']=False
+
+        # temp['id']=user.user_id.id
+        temp['onboarding'] = user_onbaord(user.user_id.id)
+        users.append(temp)
+
+
+
+    context={
+        'users':users,
+        'user':user_list
+    }
+    return render(request, 'dashboard/onboarding_metrics.html', context)
