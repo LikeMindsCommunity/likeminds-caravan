@@ -49,7 +49,7 @@ def get_state_and_country(hometown_list):
             pre_create_communities(tag_id=tag_id.id)
             print("Pre-creation completed for ",hometown)
             info_logger.info("""Pre-creation completed for %s\n"""%(hometown))
-        if c is 3:
+        if c is 70:
             break
 
 
