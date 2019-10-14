@@ -2658,6 +2658,12 @@ def user_metrics(request):
         else:
             temp['created_at']=time.strftime('%Y-%m-%d    %H:%M:%S', time.localtime(user.created_at))
         temp['id']=user.user_id.id
+        commmunities = Community_Rank.objects.filter(member_id=user.user_id)
+
+        if commmunities:
+            temp['relevance']=True
+        else:
+            temp['relevance']=False
         users.append(temp)
 
 
@@ -2709,6 +2715,31 @@ def getfile(request,member_id):
     return HttpResponse("")
 
 
+def get_relevant_communities_file(request,member_id):
+
+    '''function to create a csv of relevant communities'''
+
+    commmunities=Community_Rank.objects.filter(member_id=member_id)
+    userinfo=Userinfo.objects.get(user_id=member_id)
+    community_list=[]
+    for community in commmunities:
+        temp={}
+        temp['name']=community.community_id.name
+        community_list.append(temp)
+    if community_list:
+        response = HttpResponse(content_type='text/csv')
+        file_name=str(userinfo.name)+"_relevant_communities"
+        response['Content-Disposition'] = """attachment; filename=%s"""%(file_name)
+        writer = csv.writer(response)
+
+        writer.writerow(['Communities'])
+
+        for data in community_list:
+            #print(member)
+            writer.writerow([data['name']])
+        return response
+
+    return HttpResponse("No Relevant Commmunities")
 def onboarding_metrics(request):
 
     '''The function created a community metrics'''
@@ -2745,7 +2776,6 @@ def onboarding_metrics(request):
         'user':user_list
     }
     return render(request, 'dashboard/onboarding_metrics.html', context)
-
 
 
 def map_all_tags(request):
@@ -2794,3 +2824,4 @@ def map_all_tags(request):
 
 
         return JsonResponse({'success': True})
+

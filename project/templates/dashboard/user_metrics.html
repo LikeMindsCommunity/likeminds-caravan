@@ -67,6 +67,8 @@
         <th>Is Promoter</th>
         <th>User Creation Date</th>
         <th>Has Android</th>
+        <th>Relevant Communities</th>
+
 
       </tr>
     </thead>
@@ -91,6 +93,12 @@
         {% else %}
            <td style="color:red">{{user.has_android}}</td>
         {% endif %}
+        {% if user.relevance %}
+            <td><a class="btn btn-success" href="{% url 'get_relevant_communities_file' user.id  %}">CSV</a></td>
+         {% else %}
+            <td><a class="btn btn-danger" href="{% url 'get_relevant_communities_file' user.id  %}">CSV</a></td>
+          {% endif %}
+
 
 
 
