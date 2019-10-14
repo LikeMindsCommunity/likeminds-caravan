@@ -59,4 +59,8 @@ current_time = time.time()
 hometown_list = read_excell_file()
 get_state_and_country(hometown_list)
 print("Executing time:")
+diff=time.time() - current_time
 print(time.time() - current_time)
+
+info_logger.info("Executing time:")
+info_logger.info(diff)
