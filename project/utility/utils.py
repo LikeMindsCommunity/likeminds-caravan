@@ -255,7 +255,7 @@ def create_or_categorize_tag(tag,category,attribute):
                     tag.save()
 
                     # tag is of category type geography update or create tag image
-                    if category.name == 'Geography':
+                    if category.name == 'Geography' or attribute.id == 3:
                         if tag and not tag.tag_image:
                             tag_name, tag_id = new_tag, tag.id
                             print("utils update tag image at create or categorize tags")
@@ -270,11 +270,17 @@ def create_or_categorize_tag(tag,category,attribute):
                         tag.category_id = category
                         tag.attribute_id = attribute
                         tag.save()
+
+                    if category.name == 'Geography' or attribute.id == 3:
+                        if tag and not tag.tag_image:
+                            tag_name, tag_id = new_tag, tag.id
+                            print("utils update tag image at create or categorize tags")
+                            update_tag_image.delay(tag_name=tag_name, tag_id=tag_id)
                 else:
                     tag = tag[0]
 
                     # tag is of category type geography update or create tag image
-                    if category.name == 'Geography':
+                    if category.name == 'Geography' or attribute.id == 3:
                         if tag and not tag.tag_image:
                             tag_name, tag_id = new_tag, tag.id
                             print("utils update tag image at create or categorize tags")
@@ -340,6 +346,7 @@ def referal(ref_id, community_id, interested_member_id):
                                         state=8)
             interested_member.save()
             update_member_count(community_id)
+            update_community_tags_to_user(community_id=community_id,user_id=invited_member.id)
 
     referred_member = User.objects.get(pk=ref_id) if (ref_id != '' and ref_id) else False
     if referred_member:
@@ -528,12 +535,14 @@ def create_user_hometown_tag_and_related_tags(user_id,tag_id,new_tag):
 
         if tag_name == '':
             continue
-        if attr == 'city':
-            continue
+
         # creating or categorizing a tag with known category and attribute
         # geography tag is created, create its related tags
         # for example, if gurgaon is created, create Haryana and India as well as state and country
         tag = create_or_categorize_tag(tag=tag_name, category='Geography', attribute=attr)
+
+        if attr == 'city':
+            continue
 
         user_geo_tag = User_Geography.objects.filter(tags_id=tag, user_id=user)
         user_legacy_home_town_tag = User_Legacy.objects.filter(tags_id=tag, user_id=user)
@@ -564,7 +573,7 @@ def create_user_hometown_tag_and_related_tags(user_id,tag_id,new_tag):
 def update_hometown_tags_for_all_users(tag_id):
     user_list_with_newly_categorized_tag = User_Legacy.objects.filter(tags_id=tag_id)
     for tag in user_list_with_newly_categorized_tag:
-        user_id, tag_id = tag.user_id.id, str(tag.tags_id.id)
+        user_id, tag_id = tag.user_id.id, str(tag_id)
         insert_user_home_town_tags(user_id=user_id, tag=tag_id)
 
 
@@ -581,5 +590,55 @@ def user_onbaord(member_id):
         return True
     else:
         return False
+
+
+def update_community_tags_to_user(user_id,community_id):
+
+    user = User.objects.get(pk=user_id)
+    community = Community.objects.get(pk=community_id)
+
+    community_legacy_tags = Community_Legacy.objects.filter(community_id=community)
+
+    for tag in community_legacy_tags:
+
+        user_tag = User_Legacy.objects.filter(tags_id=tag.tags_id, user_id=user)
+        if not user_tag.exists():
+            user_tag = User_Legacy()
+            user_tag.user_id = user
+            user_tag.tags_id = tag.tags_id
+            user_tag.save()
+
+    community_profession_tags = Community_Profession.objects.filter(community_id=community)
+
+    for tag in community_profession_tags:
+
+        user_tag = User_Profession.objects.filter(tags_id=tag.tags_id, user_id=user)
+        if not user_tag.exists():
+            user_tag = User_Profession()
+            user_tag.user_id = user
+            user_tag.tags_id = tag.tags_id
+            user_tag.save()
+
+    community_interest_tags = Community_Interest.objects.filter(community_id=community)
+
+    for tag in community_interest_tags:
+
+        user_tag = User_Interest.objects.filter(tags_id=tag.tags_id, user_id=user)
+        if not user_tag.exists():
+            user_tag = User_Interest()
+            user_tag.user_id = user
+            user_tag.tags_id = tag.tags_id
+            user_tag.save()
+
+    community_geography_tags = Community_Geography.objects.filter(community_id=community)
+    for tag in community_geography_tags:
+        user_tag = User_Geography.objects.filter(tags_id=tag.tags_id, user_id=user)
+        if not user_tag.exists():
+            user_tag = User_Geography()
+            user_tag.user_id = user
+            user_tag.tags_id = tag.tags_id
+            user_tag.save()
+
+    return
 
 

@@ -163,6 +163,10 @@ a.article-title:hover {
     <option value="pilot_0_interested">Pilot communities (0 interested)</option>
     <option value="pilot_1_interested">Pilot communities (1 or more interested)</option>
    <option value="user_created">User Created</option>
+   <option value="members_count_ascending">Members Count (Ascending)</option>
+   <option value="members_count_descending">Members Count (Descending)</option>
+   <option value="interested_count_ascending">Interested Count (Ascending)</option>
+   <option value="interested_count_descending">Interested Count (Descending)</option>
    <option value="None">All communities</option>
 
 
@@ -307,19 +311,19 @@ a.article-title:hover {
 
 
 {% if community.number|add:'-4' > 1 %}
-    <li><a href="?page={{ community.number|add:'-5' }}">&hellip;</a></li>
+    <li><a href="?filter={{select_type}}&page={{ community.number|add:'-5' }}">&hellip;</a></li>
 {% endif %}
 
 {% for i in community.paginator.page_range %}
     {% if community.number == i %}
         <li style="border: 1px solid #ddd;border-radius: 5px;padding: 8px 16px;background-color:#f0ad4e;border-color: #eea236;"><span>{{ i }} </span></li>
     {% elif i > community.number|add:'-5' and i < community.number|add:'5' %}
-        <li><a href="?page={{ i }}">{{ i }}</a></li>
+        <li><a href="?filter={{select_type}}&page={{ i }}">{{ i }}</a></li>
     {% endif %}
 {% endfor %}
 
 {% if community.paginator.num_pages > community.number|add:'4' %}
-    <li><a href="?page={{ community.number|add:'5' }}">&hellip;</a></li>
+    <li><a href="?filter={{select_type}}&page={{ community.number|add:'5' }}">&hellip;</a></li>
 {% endif %}
 
 

@@ -31,17 +31,19 @@ import os
 from .firebase import update_last_answer_id
 import re
 import googlemaps
-import requests as rqst
+import logging
 from utility.utils import (decode_meta_from_url, update_tag_image,
                            referal, get_referred_members_of_a_member,
                            eligibility_count, notify_referred_member,
-                           user_onbaord, update_member_count)
+                           user_onbaord, update_member_count,
+                           update_community_tags_to_user)
 from utility.tasks import (mail_triger, new_member_request)
-
 
 
 url  = settings.URL
 
+error_logger = logging.getLogger("error_logger")
+info_logger = logging.getLogger("info_logger")
 
 # /api/communities?category_id=&member_id=
 
@@ -51,9 +53,9 @@ def communities(request):
 
     ''' function to get all the communities '''
 
-    print("request METa ")
-
+   
     if request.method == 'GET':
+        info_logger.info("added")
         request = request.GET.dict()
         if 'member_id' in request:
             # get member id and members hidden tag
@@ -88,6 +90,7 @@ def communities(request):
 
                 queryset = get_communities_by_tags(user_tag=user_tag,page_number = page_number,user_id=user_id)
                 community = serialize_community(queryset=queryset)
+                info_logger.info(community)
                 return JsonResponse({'communities': community})
 
 def get_communities_by_tags(user_tag=0, category_tag=0,page_number=1,user_id=None):
@@ -434,8 +437,6 @@ def join_community_responses(request):
     community = Community.objects.get(id=community_id)
     user = User.objects.get(id=user_id)
 
-    print('request meta ====== ',request.META)
-
     if 'ref_id' in res:
         ref_id = res['ref_id']
     else:
@@ -475,7 +476,7 @@ def join_community_responses(request):
                 member.state = 8
                 member.save()
                 update_member_count(community_id)
-
+            update_community_tags_to_user(community_id=community_id,user_id=user.id)
     if 'questions' in res:
         for i in res['questions']:
             response = Form_response()
@@ -1891,9 +1892,6 @@ def login(request):
     return HttpResponse('Login Api')
 
 
-
-
-
 def notify_referred_member_after_join(joined_member_id,joined_member_name,community_name,community_id):
 
     community = get_object_or_404(Community, pk=community_id)
@@ -2285,3 +2283,5 @@ def get_profile(request):
         print("userinfo object does not exist")
 
     return JsonResponse({'user': []})
+
+

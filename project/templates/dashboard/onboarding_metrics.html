@@ -59,16 +59,9 @@
     <thead>
       <tr>
         <th>User Name</th>
-        <th>Member of Communities</th>
-        <th>Count of Joined Communities</th>
-        <th>Count of Interested Communities</th>
-        <th>Referred Count</th>
-        <th>Referred by</th>
-        <th>Is Promoter</th>
-        <th>User Creation Date</th>
-        <th>Has Android</th>
-        <th>Relevant Communities</th>
-
+        <th>Has Logged In</th>
+        <th>Completed onboarding</th>
+        <th>Downloaded App</th>
 
       </tr>
     </thead>
@@ -76,29 +69,18 @@
     {% for user in users %}
       <tr>
         <td>{{user.name}}</td>
-        {% if user.status == "csv_file" %}
-     <td><a class="btn btn-info" href="{% url 'getfile' user.id  %}">CSV</a></td>
-
+        <td style="color:green">True</td>
+        {% if user.onboarding  %}
+            <td style="color:green">True</td>
         {% else %}
-         <td>{{user.status}}</td>
-          {% endif %}
-           <td>{{user.count_of_joined_community}}</td>
-         <td>{{user.count_of_interested_community}}</td>
-        <td>{{user.refered_count}}</td>
-        <td>{{user.referrer}}</td>
-        <td>{{user.is_promoter}}</td>
-        <td>{{user.created_at}}</td>
-        {% if user.fcm_token and user.has_android == "Yes" %}
-            <td style="color:green">{{user.has_android}}</td>
-        {% else %}
-           <td style="color:red">{{user.has_android}}</td>
+           <td style="color:red">False</td>
         {% endif %}
-        {% if user.relevance %}
-            <td><a class="btn btn-success" href="{% url 'get_relevant_communities_file' user.id  %}">CSV</a></td>
-         {% else %}
-            <td><a class="btn btn-danger" href="{% url 'get_relevant_communities_file' user.id  %}">CSV</a></td>
-          {% endif %}
 
+        {% if user.fcm_token  %}
+            <td style="color:green">True</td>
+        {% else %}
+           <td style="color:red">False</td>
+        {% endif %}
 
 
 
