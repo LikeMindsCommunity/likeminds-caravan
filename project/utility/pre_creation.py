@@ -20,7 +20,6 @@ except:
     from utility.utils import get_city_address
     print("except statement")
 
-
 def get_attribute_data(attribute_id):
 
     '''function that will give the global id to the user'''
@@ -874,20 +873,20 @@ def insert_pre_create_community(community):
 
         # #inserting the tags in community tags lpig table
 
-        sql = "insert into togther_community_legacy(tags_id_id,community_id_id) values(%s,%s)"
-        parameter=[community['tags']['legacy'],community_id]
+        sql = "insert into togther_community_legacy(tags_id_id,community_id_id,correct_tag_id) values(%s,%s,%s)"
+        parameter=[community['tags']['legacy'],community_id,community['tags']['legacy']]
         insert_tags_for_communities(sql,parameter)
 
-        sql = "insert into togther_community_profession(tags_id_id,community_id_id) values(%s,%s)"
-        parameter = [community['tags']['profession'], community_id]
+        sql = "insert into togther_community_profession(tags_id_id,community_id_id,correct_tag_id) values(%s,%s,%s)"
+        parameter = [community['tags']['profession'], community_id,community['tags']['profession']]
         insert_tags_for_communities(sql, parameter)
 
-        sql = "insert into togther_community_interest(tags_id_id,community_id_id) values(%s,%s)"
-        parameter = [community['tags']['interest'], community_id]
+        sql = "insert into togther_community_interest(tags_id_id,community_id_id,correct_tag_id) values(%s,%s,%s)"
+        parameter = [community['tags']['interest'], community_id,community['tags']['interest']]
         insert_tags_for_communities(sql, parameter)
 
-        sql = "insert into togther_community_geography(tags_id_id,community_id_id) values(%s,%s)"
-        parameter = [community['tags']['geography'], community_id]
+        sql = "insert into togther_community_geography(tags_id_id,community_id_id,correct_tag_id) values(%s,%s,%s)"
+        parameter = [community['tags']['geography'], community_id,community['tags']['geography']]
         insert_tags_for_communities(sql, parameter)
 
         count = curr.rowcount
