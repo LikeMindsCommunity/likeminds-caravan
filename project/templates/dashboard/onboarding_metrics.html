@@ -70,7 +70,12 @@
       <tr>
         <td>{{user.name}}</td>
         <td style="color:green">True</td>
-        <td>{{user.onboarding}}</td>
+        {% if user.onboarding  %}
+            <td style="color:green">True</td>
+        {% else %}
+           <td style="color:red">False</td>
+        {% endif %}
+
         {% if user.fcm_token  %}
             <td style="color:green">True</td>
         {% else %}

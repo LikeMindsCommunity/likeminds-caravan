@@ -346,6 +346,7 @@ def referal(ref_id, community_id, interested_member_id):
                                         state=8)
             interested_member.save()
             update_member_count(community_id)
+            update_community_tags_to_user(community_id=community_id,user_id=invited_member.id)
 
     referred_member = User.objects.get(pk=ref_id) if (ref_id != '' and ref_id) else False
     if referred_member:
@@ -589,5 +590,55 @@ def user_onbaord(member_id):
         return True
     else:
         return False
+
+
+def update_community_tags_to_user(user_id,community_id):
+
+    user = User.objects.get(pk=user_id)
+    community = Community.objects.get(pk=community_id)
+
+    community_legacy_tags = Community_Legacy.objects.filter(community_id=community)
+
+    for tag in community_legacy_tags:
+
+        user_tag = User_Legacy.objects.filter(tags_id=tag.tags_id, user_id=user)
+        if not user_tag.exists():
+            user_tag = User_Legacy()
+            user_tag.user_id = user
+            user_tag.tags_id = tag.tags_id
+            user_tag.save()
+
+    community_profession_tags = Community_Profession.objects.filter(community_id=community)
+
+    for tag in community_profession_tags:
+
+        user_tag = User_Profession.objects.filter(tags_id=tag.tags_id, user_id=user)
+        if not user_tag.exists():
+            user_tag = User_Profession()
+            user_tag.user_id = user
+            user_tag.tags_id = tag.tags_id
+            user_tag.save()
+
+    community_interest_tags = Community_Interest.objects.filter(community_id=community)
+
+    for tag in community_interest_tags:
+
+        user_tag = User_Interest.objects.filter(tags_id=tag.tags_id, user_id=user)
+        if not user_tag.exists():
+            user_tag = User_Interest()
+            user_tag.user_id = user
+            user_tag.tags_id = tag.tags_id
+            user_tag.save()
+
+    community_geography_tags = Community_Geography.objects.filter(community_id=community)
+    for tag in community_geography_tags:
+        user_tag = User_Geography.objects.filter(tags_id=tag.tags_id, user_id=user)
+        if not user_tag.exists():
+            user_tag = User_Geography()
+            user_tag.user_id = user
+            user_tag.tags_id = tag.tags_id
+            user_tag.save()
+
+    return
 
 
