@@ -301,24 +301,67 @@ class Community_Legacy(models.Model):
     '''Model to store the communities of legacy'''
     community_id=models.ForeignKey(Community, on_delete=models.CASCADE)
     tags_id=models.ForeignKey(Tags_lpig,on_delete=models.CASCADE)
+    correct_tag_id=models.IntegerField(null=True)
+
+    def save(self, *args, **kwargs):
+        if self.tags_id and not self.correct_tag_id:
+            correct_id=self.tags_id.tag_id
+            self.correct_tag_id=correct_id
+            self.save()
+
+        super(Community_Legacy, self).save(*args, **kwargs)
 
 
 class Community_Profession(models.Model):
     '''Model to store the communities of profession'''
     community_id = models.ForeignKey(Community, on_delete=models.CASCADE)
     tags_id = models.ForeignKey(Tags_lpig, on_delete=models.CASCADE)
+    correct_tag_id=models.IntegerField(null=True)
+
+    def save(self, *args, **kwargs):
+        if self.tags_id and not self.correct_tag_id:
+            correct_id=self.tags_id.tag_id
+            self.correct_tag_id=correct_id
+            self.save()
+
+        super(Community_Profession, self).save(*args, **kwargs)
+
+
+
 
 
 class Community_Interest(models.Model):
     '''Model to store the communities of interest'''
     community_id = models.ForeignKey(Community, on_delete=models.CASCADE)
     tags_id = models.ForeignKey(Tags_lpig, on_delete=models.CASCADE)
+    correct_tag_id=models.IntegerField(null=True)
+
+    def save(self, *args, **kwargs):
+        if self.tags_id and not self.correct_tag_id:
+            correct_id=self.tags_id.tag_id
+            self.correct_tag_id=correct_id
+            self.save()
+
+        super(Community_Interest, self).save(*args, **kwargs)
+
+
 
 
 class Community_Geography(models.Model):
     '''Model to store the communities of geography'''
     community_id = models.ForeignKey(Community, on_delete=models.CASCADE)
     tags_id = models.ForeignKey(Tags_lpig, on_delete=models.CASCADE)
+    correct_tag_id=models.IntegerField(null=True)
+
+    def save(self, *args, **kwargs):
+        if self.tags_id and not self.correct_tag_id:
+            correct_id=self.tags_id.tag_id
+            self.correct_tag_id=correct_id
+            self.save()
+
+        super(Community_Geography, self).save(*args, **kwargs)
+
+
 
 
 
@@ -329,30 +372,75 @@ class User_Legacy(models.Model):
     '''Model to store the user of legacy'''
     user_id = models.ForeignKey(User, on_delete=models.CASCADE)
     tags_id = models.ForeignKey(Tags_lpig, on_delete=models.CASCADE)
+    correct_tag_id=models.IntegerField(null=True)
+
+    def save(self, *args, **kwargs):
+        if self.tags_id and not self.correct_tag_id:
+            correct_id = self.tags_id.tag_id
+            self.correct_tag_id = correct_id
+            self.save()
+
+        super(User_Legacy, self).save(*args, **kwargs)
+
 
 
 class User_Profession(models.Model):
     '''Model to store the user of profession'''
     user_id = models.ForeignKey(User, on_delete=models.CASCADE)
     tags_id = models.ForeignKey(Tags_lpig, on_delete=models.CASCADE)
+    correct_tag_id=models.IntegerField(null=True)
+
+    def save(self, *args, **kwargs):
+        if self.tags_id and not self.correct_tag_id:
+            correct_id = self.tags_id.tag_id
+            self.correct_tag_id = correct_id
+            self.save()
+
+        super(User_Profession, self).save(*args, **kwargs)
+
+
+
 
 
 class User_Interest(models.Model):
     '''Model to store the user of interest'''
     user_id = models.ForeignKey(User, on_delete=models.CASCADE)
     tags_id = models.ForeignKey(Tags_lpig, on_delete=models.CASCADE)
+    correct_tag_id=models.IntegerField(null=True)
+
+    def save(self, *args, **kwargs):
+        if self.tags_id and not self.correct_tag_id:
+            correct_id = self.tags_id.tag_id
+            self.correct_tag_id = correct_id
+            self.save()
+
+        super(User_Interest, self).save(*args, **kwargs)
+
 
 
 class User_Geography(models.Model):
     '''Model to store the user of geography'''
     user_id = models.ForeignKey(User, on_delete=models.CASCADE)
     tags_id = models.ForeignKey(Tags_lpig, on_delete=models.CASCADE)
+    correct_tag_id=models.IntegerField(null=True)
+
+    def save(self, *args, **kwargs):
+        if self.tags_id and not self.correct_tag_id:
+            correct_id = self.tags_id.tag_id
+            self.correct_tag_id = correct_id
+            self.save()
+
+        super(User_Geography, self).save(*args, **kwargs)
+
+
+
 
 class Referal(models.Model):
     """ Model for reference module """
     member = models.ForeignKey(User, on_delete=models.CASCADE,related_name='member')
     invited_member = models.ForeignKey(User, on_delete=models.CASCADE,related_name='invited_member')
     community = models.ForeignKey(Community, on_delete=models.CASCADE)
+
 
 
 class Location_Info(models.Model):
