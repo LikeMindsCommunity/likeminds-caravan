@@ -2789,8 +2789,6 @@ def map_all_tags(request):
     else:
         selected_tag = request.POST.get('selected_tag')
         map_tag_to = request.POST.get('map_tag_to')
-        print(selected_tag)
-        print(map_tag_to)
         categorized_tag = Tags_lpig.objects.get(pk = selected_tag)
         mapped_tag = Tags_lpig.objects.get(pk=map_tag_to)
 
@@ -2802,22 +2800,24 @@ def map_all_tags(request):
         categorized_tag.tag_id = mapped_tag.id
         categorized_tag.save()
 
-        category=mapped_tag.category_id
+        category=mapped_tag.category_id.id
         tag_id=selected_tag
         correct_tag_id=map_tag_to
 
+
+
         if category is 1:
-            User_Legacy.objects.filter(tag_id=tag_id).update(correct_tag_id=correct_tag_id)
-            Community_Legacy.objects.filter(tag_id=tag_id).update(correct_tag_id=correct_tag_id)
+            User_Legacy.objects.filter(tags_id=tag_id).update(correct_tag_id=correct_tag_id)
+            Community_Legacy.objects.filter(tags_id=tag_id).update(correct_tag_id=correct_tag_id)
         elif category is 2:
-            User_Profession.objects.filter(tag_id=tag_id).update(correct_tag_id=correct_tag_id)
-            Community_Profession.objects.filter(tag_id=tag_id).update(correct_tag_id=correct_tag_id)
+            User_Profession.objects.filter(tags_id=tag_id).update(correct_tag_id=correct_tag_id)
+            Community_Profession.objects.filter(tags_id=tag_id).update(correct_tag_id=correct_tag_id)
         elif category is 3:
-            User_Interest.objects.filter(tag_id=tag_id).update(correct_tag_id=correct_tag_id)
-            Community_Interest.objects.filter(tag_id=tag_id).update(correct_tag_id=correct_tag_id)
+            User_Interest.objects.filter(tags_id=tag_id).update(correct_tag_id=correct_tag_id)
+            Community_Interest.objects.filter(tags_id=tag_id).update(correct_tag_id=correct_tag_id)
         elif category is 4:
-            User_Geography.objects.filter(tag_id=tag_id).update(correct_tag_id=correct_tag_id)
-            Community_Geography.objects.filter(tag_id=tag_id).update(correct_tag_id=correct_tag_id)
+            User_Geography.objects.filter(tags_id=tag_id).update(correct_tag_id=correct_tag_id)
+            Community_Geography.objects.filter(tags_id=tag_id).update(correct_tag_id=correct_tag_id)
 
         #
         # print()
