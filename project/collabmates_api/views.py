@@ -35,7 +35,8 @@ import logging
 from utility.utils import (decode_meta_from_url, update_tag_image,
                            referal, get_referred_members_of_a_member,
                            eligibility_count, notify_referred_member,
-                           user_onbaord, update_member_count)
+                           user_onbaord, update_member_count,
+                           update_community_tags_to_user)
 from utility.tasks import (mail_triger, new_member_request)
 
 
@@ -436,8 +437,6 @@ def join_community_responses(request):
     community = Community.objects.get(id=community_id)
     user = User.objects.get(id=user_id)
 
-    print('request meta ====== ',request.META)
-
     if 'ref_id' in res:
         ref_id = res['ref_id']
     else:
@@ -477,7 +476,7 @@ def join_community_responses(request):
                 member.state = 8
                 member.save()
                 update_member_count(community_id)
-
+            update_community_tags_to_user(community_id=community_id,user_id=user.id)
     if 'questions' in res:
         for i in res['questions']:
             response = Form_response()
@@ -1893,9 +1892,6 @@ def login(request):
     return HttpResponse('Login Api')
 
 
-
-
-
 def notify_referred_member_after_join(joined_member_id,joined_member_name,community_name,community_id):
 
     community = get_object_or_404(Community, pk=community_id)
@@ -2287,3 +2283,5 @@ def get_profile(request):
         print("userinfo object does not exist")
 
     return JsonResponse({'user': []})
+
+
