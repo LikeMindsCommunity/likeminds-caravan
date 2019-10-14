@@ -15,9 +15,10 @@ except:
     envir=True
     import sys
     sys.path.append("..")
+    from project.wsgi import *
     from scripts.connection import get_connection
+    from utility.utils import get_city_address
     print("except statement")
-
 
 def get_attribute_data(attribute_id):
 
