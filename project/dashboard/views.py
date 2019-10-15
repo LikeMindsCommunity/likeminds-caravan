@@ -2664,6 +2664,7 @@ def user_metrics(request):
             temp['relevance']=True
         else:
             temp['relevance']=False
+        temp['onboarding'] = user_onbaord(user.user_id.id)
         users.append(temp)
 
 
@@ -2740,6 +2741,8 @@ def get_relevant_communities_file(request,member_id):
         return response
 
     return HttpResponse("No Relevant Commmunities")
+
+
 def onboarding_metrics(request):
 
     '''The function created a community metrics'''
