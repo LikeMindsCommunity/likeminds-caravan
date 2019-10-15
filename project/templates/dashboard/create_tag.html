@@ -1,80 +1,144 @@
+{% load static %}
+
 <!DOCTYPE html>
 <html>
 <!-- Latest compiled and minified CSS -->
-<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
-      integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
-<!-- jQuery library -->
+    <link href="//netdna.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.6.3/css/bootstrap-select.min.css" />
+      <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
 
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
 
-<!-- Latest compiled JavaScript -->
-<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/js/bootstrap.min.js"></script>
-<script src="https://code.jquery.com/jquery-3.3.1.min.js"
-        integrity="sha384-tsQFqpEReu7ZLhBV2VZlAu7zcOV+rXbYlF2cqB8txI/8aZajjp4Bqd+V6D5IgvKT"
-        crossorigin="anonymous"></script>
-
-<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"
-        integrity="sha256-VazP97ZCwtekAsvgPBSUwPFKdrwD3unUfSGVYrahUqU=" crossorigin="anonymous"></script>
-<link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
-<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/js/bootstrap.min.js"></script>
+  <script src="//cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.6.3/js/bootstrap-select.min.js"></script>
+ <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.css"/>
+        <link rel='stylesheet prefetch' href='https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/components/icon.min.css'>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.js"></script>
+        <script async src="https://www.googletagmanager.com/gtag/js?id=UA-130288684-1"></script>
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
 <style>
     .center_div{
     margin: 0 auto;
     width:80% /* value of your choice which suits your alignment */
 }
+table {
+  border-collapse: separate;
+  border-spacing: 50px 0;
+}
+
+td {
+  padding: 10px 0;
+}
 
 </style>
 
 <body>
-<div style="padding-right:20px; text-align:right;" >
-        <a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 pull-right "  href="{% url 'admin_dashboard' %}"><i class="fa fa-home" aria-hidden="true"></i>&nbsp;Go to Home</a>
+<br/>
+<div style="padding-right:20px; text-align:right;">
+  <a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 pull-right " href="{% url 'admin_dashboard' %}"><i class="fa fa-home"
+                                                                                                     aria-hidden="true"></i>&nbsp;Go
+    to Home</a>
 
 </div>
-<h2 style="padding-top:20px;padding-left:50px;">Create Tag</h2>
-
-
-
+<div align="center">
+<h2 style="">Create Tag</h2>
+</div>
 <div style=" width:1000px;padding-top:20px;padding-left:50px;">
-<form id="tag_form" >
-
-  <div class="form-row">
-    <div class="form-group col-md-6">
-      <label for="new_tag">Tag name</label>
-      <input type="text" class="form-control" id="new_tag" placeholder="New Tag Name Here">
-    </div>
-
-  </div>
-<br>
-  <div class="form-row">
-
-    <div class="form-group col-md-4">
-      <label for="category">Category</label>
-      <select id="category" class="form-control">
-        <option selected style="color:black;">Choose...</option>
-        {% for cat in categories %}
-          <option value="{{cat.id}}">{{cat.name}}</option>
-        {% endfor %}
-      </select>
-    </div>
-      &nbsp&nbsp&nbsp&nbsp&nbsp&nbsp
-      <div class="form-group col-md-4">
-      <label for="attribute">Attribute</label>
-      <select id="attribute" class="form-control">
-        <option selected>Choose...</option>
+  <form id="tag_form">
 
 
+    <table>
+      <tr>
+        <td>
+          <label for="new_tag">Tag name</label>
+          <input type="text" class="form-control" id="new_tag" placeholder="New Tag Name Here" style="width:300px;">
+        </td>
+      </tr>
+     <!-- Radio Buttons for tag cluster -->
+      <tr>
+        <td>
+          <label class="radio-inline"><input type="radio" name="optradio" checked value="normal_tag"> Normal Tag</label>
+        </td>
+
+        <td>
+          <label class="radio-inline"><input type="radio" name="optradio" value="cluster_tag"> Cluster Tag</label>
+        </td>
+
+      </tr>
+<!---->
+      <tr id="normal_options">
+        <td>
+          <label for="category">Category</label>
+          <select id="category" class="form-control">
+            <option selected style="color:black;">Choose...</option>
+            {% for cat in categories %}
+            <option value="{{cat.id}}">{{cat.name}}</option>
+            {% endfor %}
+          </select>
+        </td>
+        <td style="width:300px;">
+          <label for="attribute">Attribute</label>
+          <select id="attribute" class="form-control">
+            <option selected>Choose...</option>
+
+          </select>
+        </td>
+
+      </tr>
 
 
-      </select>
-    </div>
+<!-- clustar dropdown -->
 
-  </div>
-    <br>
-    <br>
+       <tr id="cluster_options">
+        <td>
+          <label for="cluster_attribute">Cluster</label>
+          <select id="cluster_attribute" class="form-control">
+            {% for cat in clusters %}
+            <option value="{{cat.id}}">{{cat.attribute_name}}</option>
+            {% endfor %}
+          </select>
+        </td>
 
-  <button id="submit" type="submit" class="btn btn-primary">Submit</button>
-</form>
+
+      </tr>
+
+
+
+<!---->
+
+      <!-- select type of cluster-->
+      <tr><td>
+        <div id="cluster_dropdown" style="max-width:300px;display:none;">
+<select name="" multiple="" class="ui search fluid dropdown cluster" id="cluster">
+      <option value="">Enter Tags for Cluster</option>
+
+
+
+      {% for tag in tags %}
+        <option value="{{tag.id}}">{{tag.name}}</option>
+       {% endfor %}
+    </select>
 </div>
+        </td>
+
+
+      </tr>
+
+      <!---->
+      <tr>
+        <td>
+          <button id="submit" type="submit" class="btn btn-primary">Submit</button>
+        </td>
+      </tr>
+
+    </table>
+
+  </form>
+</div>
+
+
 {% autoescape off %}
 <script>
 var options="";
@@ -128,18 +192,61 @@ $("#category").on('change',function(){
 
     $(document).ready(function(){
 
+
+      $('#cluster_options').hide()
+       $('input[name="optradio"]').on("click", function(e) {
+
+       tag_type=$('input[name=optradio]:checked').val();
+
+       if(tag_type == "cluster_tag")
+       {
+            $('#cluster_dropdown').css("display","block")
+            $('#normal_options').hide()
+            $('#cluster_options').show()
+
+       }else{
+
+            $('#cluster_dropdown').css("display","none")
+           $('#normal_options').show()
+          $('#cluster_options').hide()
+
+
+
+       }
+
+      })
+
+
+
+ $('.ui.dropdown.cluster').dropdown({
+  allowAdditions: false,
+  fullTextSearch: true
+});
+
+
+
+
+
+
        $('#tag_form').on('submit',function()
        {
          category=$('#category').val();
          attribute=$('#attribute').val();
          new_tag = $('#new_tag').val();
+         tag_type=$('input[name=optradio]:checked').val();
 
+         cluster_tags=$('#cluster').val()
+
+         attribute_cluster=$('#cluster_attribute').val()
          select=""
 
          temp={
             'category':category,
            'attribute':attribute,
-           'new_tag':new_tag
+           'new_tag':new_tag,
+           'tag_type':tag_type,
+           'cluster_tags':cluster_tags,
+           'attribute_cluster':attribute_cluster
 
          }
 
@@ -151,7 +258,7 @@ $("#category").on('change',function(){
             dataType:'json',
             success:function(data){
                console.log('hello')
-               location.reload(true)
+               //location.reload(true)
 
             }
 
