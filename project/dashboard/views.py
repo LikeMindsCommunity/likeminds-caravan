@@ -1297,7 +1297,7 @@ def create_tag(request):
         new_tag = request.POST.get('new_tag')
         new_tag = new_tag.strip()
         tag_type=request.POST.get('tag_type')
-
+        print(new_tag)
         if tag_type == "normal_tag":
             get_or_create_sub_tags(new_tag, category, attribute)
 
@@ -1337,8 +1337,8 @@ def create_tag(request):
                 else:
                     error_logger.error("Tag not present for clustering")
             print("Inserted Successfully")
-        return redirect('create_tag')
-        #return JsonResponse({"success":True})
+        #return redirect('create_tag')
+        return JsonResponse({"success":True})
 
     else:
         categories = Category.objects.filter(~Q(name__icontains = 'ncategorized'))
@@ -1349,9 +1349,11 @@ def create_tag(request):
         global_attributes = Attributes.objects.filter(Q(attribute_name__icontains='Global'),~Q(attribute_name__icontains = 'uncategorized'))
 
         clusters=Attributes.objects.filter(Q(id=21)|Q(id=22)|Q(id=23)|Q(id=24))
-        all_tags=Tags_lpig.objects.all()
+        existing_clusters=Tags_lpig.objects.filter(is_cluster=1)
+        all_tags=Tags_lpig.objects.filter(is_cluster=0).order_by('name')
         tag_set=set()
         tags=[]
+
         for tag in all_tags:
             temp={}
             if not tag.name in tag_set:
@@ -1367,7 +1369,7 @@ def create_tag(request):
                                                      'geography_attributes': geography_attributes,
                                                      'interests_attributes': interests_attributes,
                                                      'global_attributes': global_attributes,'tags':tags,
-                                                     'clusters':clusters
+                                                     'clusters':clusters,'existing_clusters':existing_clusters
 
                                                              })
 
