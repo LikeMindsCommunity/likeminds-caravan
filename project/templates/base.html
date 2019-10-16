@@ -177,6 +177,66 @@
 </div>
 
 
+    <div class="ui modal" id="email_login">
+<!--        <i class="close icon"></i>-->
+        <div class="header">
+            Please provide your email id in order to continue
+        </div>
+        <div class="image content">
+
+            <div class="description">
+                <div class="ui  form">
+                  <div class="field">
+                    <label>E-mail</label>
+                    <input type="email" placeholder="Enter your email id" id="email_input">
+                  </div>
+                </div>
+            </div>
+        </div>
+        <div class="actions">
+            <div class="ui positive right labeled icon button" style="background-color:#00897b;" id="email_submit">
+                Submit
+
+            </div>
+        </div>
+    </div>
+
+<script>
+    {% if request.user.is_authenticated %}
+{% if not request.user.email %}
+  //email_login popup start
+
+      $('#email_login').modal('show');
+
+        $('#email_login').modal({
+      backdrop:'static',
+      keyboard: false,
+
+      });
+      $('#email_submit').click(function(){
+
+      email=$('#email_input').val()
+      console.log(email)
+
+
+      $.ajax({
+
+            url:'/update_user_info/'+email,
+
+            success:function(data){
+               console.log(data)
+
+            }
+
+         })
+
+      })
+
+  //email_login popup end
+{% endif %}
+{% endif %}
+</script>
+
 {% if not request.path_info|slice:"1:-4" == 'collabcard' %}
 <div style="margin:0 auto; max-width:786px;">
 {% endif %}

@@ -49,17 +49,20 @@ def dashboard(request):
     ''' function to show all communities and filter based on categories '''
 
     if request.user.is_authenticated:
+
+        # if user does not have a email linked to his account, ask for a email
         request_user_email = False
+        if not request.user.email:
+            request_user_email = True
 
         try:
             # check if user has user info
             user = Userinfo.objects.get(user_id=request.user.id)
-            if not request.user.email:
-                request_user_email = True
+
         except:
             # if there is no user info for the user who is currently logged in
             # create userinfo for current user
-            user, request_user_email = update_user_info(request)
+            user = update_user_info(request)
         # get users communities
         my_community = get_user_communities(request)
         # getting communities by user hidden tag
@@ -67,7 +70,6 @@ def dashboard(request):
 
         # check if user has completed onbarding and is from IIT Delhi
         onboard,is_iitd = user_onbaord(request)
-
         return render(request, 'dashboard.html',
                       {'usr': user, 'communities': communities, 'my_communities': my_community[:2],
                        "my_communities_count": len(my_community),'onboard':onboard,'is_iitd':is_iitd,
@@ -219,15 +221,18 @@ def community(request, community_id):
     else:
         cta = ''
 
+
+    # if user does not have a email linked to his account, ask for a email
     request_user_email = False
 
     if request.user.is_authenticated:
+        if not request.user.email:
+            request_user_email = True
         try:
             user = Userinfo.objects.get(user_id=request.user.id)
-            if not request.user.email:
-                request_user_email = True
+
         except:
-            user,request_user_email = update_user_info(request)
+            user = update_user_info(request)
 
         member = Members.objects.filter(member_id=request.user, community_id=community)
         try:
@@ -288,7 +293,7 @@ def community(request, community_id):
                                               'members_length': len(members),
                                               'similar_community_length':len(communities),
                                               'ref_id':ref_id,
-                                              'user_email':request_user_email})
+                                              'request_user_email':request_user_email})
 
 
 def refer_members(request,community_id):
@@ -343,10 +348,8 @@ def get_members_of_community(community):
 @login_required
 def update_user_info(request,user_email=None):
 
-    request_user_email = False
     user = Userinfo.objects.all().filter(user_id=request.user)
     if not user or not request.user.email:
-        print(">>>>>>>>>>>>>   ", user_email)
         social_user = request.user.social_auth.filter(user_id=request.user.id).first()
         if social_user:
             if social_user.provider == 'facebook':
@@ -371,8 +374,6 @@ def update_user_info(request,user_email=None):
                         if not user.email:
                             user.email = user_email
                             user.save()
-                        else:
-                            request_user_email = True
                 except:
                     user = Userinfo()
                     if 'name' in data:
@@ -391,7 +392,7 @@ def update_user_info(request,user_email=None):
                 if user_email:
                     return JsonResponse({"success":True})
 
-                return user,request_user_email
+                return user
 
             if social_user.provider == 'linkedin-oauth2':
                 # accessing Linked In API to get user basic information
@@ -411,15 +412,17 @@ def update_user_info(request,user_email=None):
                     'identifier']
                 email = email_data['elements'][0]['handle~']['emailAddress']
                 usr = User.objects.get(pk=request.user.id)
+                usr1 = Userinfo.objects.get(user_id=request.user.id)
                 if not usr.email:
                     if user_email:
                         email = user_email
                         usr.email = user_email
                         usr.save()
-                    else:
-                        request_user_email = True
+                if usr1 and not usr1.email:
+                    if user_email:
+                        usr1.email = user_email
+                        usr1.save()
                 # checking if there is any user having details with the email we got from linkedIn
-                usr1 = Userinfo.objects.all().filter(email=email)
                 if not usr1:
                     # if there is no user having th email , create a user info for the user
                     user = Userinfo()
@@ -435,7 +438,7 @@ def update_user_info(request,user_email=None):
                 if user_email:
                     return JsonResponse({"success":True})
 
-                return user,request_user_email
+                return user
 
 
 @login_required

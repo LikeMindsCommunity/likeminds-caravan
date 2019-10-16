@@ -1,4 +1,5 @@
-{% load staticfiles %}<!DOCTYPE html>
+{% load staticfiles %}
+<!DOCTYPE html>
 <html>
 <head>
 
@@ -185,9 +186,33 @@
 </div>
 
 
-<!---->
 
 
+<!-- model for taking user email if user does not have a email in his data -->
+    <div class="ui modal" id="email_login">
+<!--        <i class="close icon"></i>-->
+        <div class="header">
+            Please provide your email id in order to continue
+        </div>
+        <div class="image content">
+
+            <div class="description">
+                <div class="ui  form">
+                  <div class="field">
+                    <label>E-mail</label>
+                    <input type="email" placeholder="Enter your email id" id="email_input">
+                  </div>
+                </div>
+            </div>
+        </div>
+        <div class="actions">
+            <div class="ui positive right labeled icon button" style="background-color:#00897b;" id="email_submit">
+                Submit
+
+            </div>
+        </div>
+    </div>
+<!-- ending user email model -->
 
 <!-- model for showing legacy if there is iit-->
 <div style="background-color:red;">
@@ -331,11 +356,48 @@
 
     <script>
 
+{% if request_user_email %}
+
+  //email_login popup start
+
+      $('#email_login').modal('show');
+
+        $('#email_login').modal({
+      backdrop:'static',
+      keyboard: false,
+
+      });
+      $('#email_submit').click(function(){
+
+      email=$('#email_input').val()
+      console.log(email)
+
+
+      $.ajax({
+
+            url:'/update_user_info/'+email,
+
+            success:function(data){
+               console.log(data)
+               {% if not onboard %}
+                $('.ui.modal.onboard').modal('show');
+                {% endif %}
+
+            }
+
+         })
+
+      })
+
+  //email_login popup end
+
+{% endif %}
+
 //onboarding
 
 {% if request.user.is_authenticated %}
 
-{% if not onboard %}
+{% if not onboard and not request_user_email%}
  $('.ui.modal.onboard').modal('show');
 
 
