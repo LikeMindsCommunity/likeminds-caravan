@@ -2664,6 +2664,7 @@ def user_metrics(request):
             temp['relevance']=True
         else:
             temp['relevance']=False
+        temp['onboarding'] = user_onbaord(user.user_id.id)
         users.append(temp)
 
 
@@ -2740,6 +2741,8 @@ def get_relevant_communities_file(request,member_id):
         return response
 
     return HttpResponse("No Relevant Commmunities")
+
+
 def onboarding_metrics(request):
 
     '''The function created a community metrics'''
@@ -2776,3 +2779,52 @@ def onboarding_metrics(request):
         'user':user_list
     }
     return render(request, 'dashboard/onboarding_metrics.html', context)
+
+
+def map_all_tags(request):
+    ''' fucntion to map a tag to other tag and categorize it  '''
+
+    if request.method == 'GET':
+        tags = Tags_lpig.objects.filter(~Q(attribute_id__id=16)|~Q(attribute_id__id=17)|
+                                        ~Q(attribute_id__id=18)|~Q(attribute_id__id=19)|
+                                        ~Q(attribute_id__id=20))
+        return render(request, 'dashboard/map_all_tag.html', {'tags':tags})
+    else:
+        selected_tag = request.POST.get('selected_tag')
+        map_tag_to = request.POST.get('map_tag_to')
+        categorized_tag = Tags_lpig.objects.get(pk = selected_tag)
+        mapped_tag = Tags_lpig.objects.get(pk=map_tag_to)
+
+        # mapping the uncategorized tag to the mapped tag and
+        # categorizing it accroding to the mapped tag
+
+        categorized_tag.category_id = mapped_tag.category_id
+        categorized_tag.attribute_id = mapped_tag.attribute_id
+        categorized_tag.tag_id = mapped_tag.id
+        categorized_tag.save()
+
+        category=mapped_tag.category_id.id
+        tag_id=selected_tag
+        correct_tag_id=map_tag_to
+
+
+
+        if category is 1:
+            User_Legacy.objects.filter(tags_id=tag_id).update(correct_tag_id=correct_tag_id)
+            Community_Legacy.objects.filter(tags_id=tag_id).update(correct_tag_id=correct_tag_id)
+        elif category is 2:
+            User_Profession.objects.filter(tags_id=tag_id).update(correct_tag_id=correct_tag_id)
+            Community_Profession.objects.filter(tags_id=tag_id).update(correct_tag_id=correct_tag_id)
+        elif category is 3:
+            User_Interest.objects.filter(tags_id=tag_id).update(correct_tag_id=correct_tag_id)
+            Community_Interest.objects.filter(tags_id=tag_id).update(correct_tag_id=correct_tag_id)
+        elif category is 4:
+            User_Geography.objects.filter(tags_id=tag_id).update(correct_tag_id=correct_tag_id)
+            Community_Geography.objects.filter(tags_id=tag_id).update(correct_tag_id=correct_tag_id)
+
+        #
+        # print()
+
+
+        return JsonResponse({'success': True})
+

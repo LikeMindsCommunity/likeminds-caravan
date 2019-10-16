@@ -1,0 +1,113 @@
+<html>
+  <head>
+    <link href="//netdna.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.6.3/css/bootstrap-select.min.css" />
+      <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+
+  </head>
+
+  <div class="container">
+    <div class="row">
+        <br>
+        <div style="padding-right:20px; align:right;" >
+        <a class="btn btn-warning  mt-1 mb-1 mr-4 pull-right "  href="{% url 'admin_dashboard' %}"><i class="fa fa-home" aria-hidden="true"></i>&nbsp;Go to Home</a>
+
+</div>
+        <br>
+        <br>
+        <br>
+      <h2>Map Categorize  Tags :</h2>
+
+      <hr />
+    </div>
+    <table>
+        <tbody>
+        <tr>
+            <td>
+                <div class="row-fluid">
+                  <label for="selected_tag">Select tag</label><br>
+                  <select class="selectpicker" id="selected_tag" data-show-subtext="true" data-live-search="true">
+                      <option selected style="color:black;">Choose...</option>
+                      {% autoescape off %}
+                          {% for tag in tags %}
+                          <option value="{{tag.id}}">{{tag.name}}</option>
+                          {% endfor %}
+                      {% endautoescape %}
+                  </select>
+
+                </div>
+            </td>
+
+            <td style="padding-left:30px;">
+                <div class="row-fluid">
+                  <label for="map_tag">Map tag to</label><br>
+                  <select class="selectpicker" id="map_tag" data-show-subtext="true" data-live-search="true">
+                      <option selected style="color:black;">Choose...</option>
+                      {% autoescape off %}
+                          {% for tag in tags %}
+                          <option value="{{tag.id}}">{{tag.name}}</option>
+                          {% endfor %}
+                      {% endautoescape %}
+                  </select>
+
+                </div>
+            </td>
+
+            <td style="padding-left:30px; padding-top:23px;">
+<!--                <br>-->
+                        <button id="submit" type="submit" class="btn btn-primary">Map tag</button>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+  </div>
+
+
+
+
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/js/bootstrap.min.js"></script>
+  <script src="//cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.6.3/js/bootstrap-select.min.js"></script>
+
+  {% autoescape off %}
+
+<script>
+
+
+       $('#submit').click(function()
+       {
+         selected_tag=$('#selected_tag').val();
+         map_tag_to=$('#map_tag').val();
+         console.log(selected_tag)
+         console.log(map_tag_to)
+
+
+         temp={
+            'selected_tag':selected_tag,
+             'map_tag_to':map_tag_to,
+             'csrfmiddlewaretoken': '{{ csrf_token }}',
+
+         }
+         console.log(temp)
+
+         $.ajax({
+
+            url:'/admin_dashboard/map_all_tags',
+
+            data:temp,
+            type:"POST",
+            dataType:'json',
+            success:function(data){
+               console.log('hello')
+               location.reload(true)
+
+            }
+
+         })
+       })
+
+</script>
+{% endautoescape %}
+
+
+</html>
