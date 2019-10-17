@@ -27,6 +27,7 @@ from utility.tasks import new_member_request
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from user_agents import parse
 import time
+import logging
 url = settings.URL
 
 # uncomment to run it in localhost
@@ -34,8 +35,8 @@ url = settings.URL
 # url='http://localhost:8000'
 
 api_url = url + '/api/'
-
-
+error_logger=logging.getLogger("error_logger")
+info_logger=logging.getLogger("info_logger")
 def index(request):
     '''function to show promotion page'''
     return render(request, 'index.html')
@@ -1194,6 +1195,7 @@ def questions_responses(request):
     return JsonResponse(context)
 
 
+
 def get_or_create_tag(tag_name,tag_type):
 
     '''function to check whether the tag is existing tag or a new tag and
@@ -1207,7 +1209,7 @@ def get_or_create_tag(tag_name,tag_type):
         tag_id=int(tag_name)
         return tag_id
     except:
-        tag_name = tag_name.strip().title()
+        tag_name = tag_name.strip()
         try:
             tag = Tags_lpig.objects.get(name = tag_name)
         except:
@@ -1223,22 +1225,50 @@ def get_or_create_tag(tag_name,tag_type):
         return tag.id
 
 
+def fill_cluster_tags_in_tags_list(tag_list,typ):
+
+    '''function to fill cluster tags in tags list'''
+    clusted_tags=[]
+    for each_tag in tag_list:
+        tag=Tags_lpig.objects.get(pk=each_tag)
+        if tag.is_cluster:
+            #tag_list.remove(each_tag)
+            if typ == "Legacy":
+                clusted_tags=list(Tags_lpig.objects.filter(Q(cluster_tag_id=tag.tag_id)&(Q(category_id=1))).values_list('id',flat=True))
+            elif typ == "Profession":
+                clusted_tags=list(Tags_lpig.objects.filter(Q(cluster_tag_id=tag.tag_id)&(Q(category_id=2))).values_list('id',flat=True))
+            elif typ == "Interest":
+                clusted_tags=list(Tags_lpig.objects.filter(Q(cluster_tag_id=tag.tag_id)&(Q(category_id=3))).values_list('id',flat=True))
+            elif typ == "Geography":
+                clusted_tags=list(Tags_lpig.objects.filter(Q(cluster_tag_id=tag.tag_id)&(Q(category_id=4))).values_list('id',flat=True))
+
+
+    if not clusted_tags:
+        return tag_list
+    else:
+        tag_list=tag_list+clusted_tags
+        return tag_list
+
+
+
+
+
 def insert_tags_for_user(user_id,tag_list,typ):
 
     '''function to insert tags for user'''
 
     user=User.objects.get(id=user_id)
 
-    print('insert function ========== ',tag_list,type(tag_list))
 
     '''updating the list based on type'''
 
     if typ == "Legacy":
         user_tags_list = list(User_Legacy.objects.filter(user_id=user).values_list("tags_id", flat=True))
+        tag_list=fill_cluster_tags_in_tags_list(tag_list,"Legacy")
+        info_logger.info("""Tag_type=%s,Tag_list=%s"""%(typ,str(tag_list)))
 
         for each_tag in tag_list:
             if each_tag in user_tags_list:
-
                 continue
             elif not each_tag in user_tags_list:
                    tag = Tags_lpig.objects.get(pk=each_tag)
@@ -1259,6 +1289,8 @@ def insert_tags_for_user(user_id,tag_list,typ):
     if typ == "Profession":
 
         user_tags_list = list(User_Profession.objects.filter(user_id=user).values_list("tags_id", flat=True))
+        tag_list=fill_cluster_tags_in_tags_list(tag_list,"Profession")
+        info_logger.info("""Tag_type=%s,Tag_list=%s"""%(typ,str(tag_list)))
 
         for each_tag in tag_list:
             if each_tag in user_tags_list:
@@ -1284,6 +1316,8 @@ def insert_tags_for_user(user_id,tag_list,typ):
     if typ == "Interests":
 
         user_tags_list = list(User_Interest.objects.filter(user_id=user).values_list("tags_id", flat=True))
+        tag_list=fill_cluster_tags_in_tags_list(tag_list,"Interest")
+        info_logger.info("""Tag_type=%s,Tag_list=%s"""%(typ,str(tag_list)))
 
         for each_tag in tag_list:
             if each_tag in user_tags_list:
@@ -1308,6 +1342,8 @@ def insert_tags_for_user(user_id,tag_list,typ):
     if typ == "Geography":
 
         user_tags_list = list(User_Geography.objects.filter(user_id=user).values_list("tags_id", flat=True))
+        tag_list=fill_cluster_tags_in_tags_list(tag_list,"Geography")
+        info_logger.info("""Tag_type=%s,Tag_list=%s"""%(typ,str(tag_list)))
 
         for each_tag in tag_list:
             if each_tag in user_tags_list:
@@ -1354,7 +1390,6 @@ def get_user_legacy_tags(user_id):
 
     user_legacy = list(User_Legacy.objects.filter(user_id=user_id).values_list('tags_id', flat=True))
     user_geo = list(User_Geography.objects.filter(user_id=user_id).values_list('tags_id', flat=True))
-
     user_legacy_education = []
     user_legacy_work = []
     user_legacy_hometown = []
@@ -1368,19 +1403,21 @@ def get_user_legacy_tags(user_id):
             if tag.category_id.id == 1 and tag.attribute_id.id == 1:
                 user_legacy_work.append(tag)
 
-            elif tag.category_id.id == 1 and tag.attribute_id.id == 2:
+            elif tag.category_id.id == 1 and tag.attribute_id.id == 2 :
                 user_legacy_education.append(tag)
 
 
             elif tag.category_id.id == 1 and tag.attribute_id.id == 3:
                 user_legacy_hometown.append(tag)
 
+
+
     if user_geo:
 
         for tag_id in user_geo:
             tag = Tags_lpig.objects.get(pk=tag_id)
 
-            if tag.category_id.id == 4 and tag.attribute_id.id == 12:
+            if tag.category_id.id == 4 and tag.attribute_id.id == 12 or tag.attribute_id.id == 13 or tag.attribute_id.id == 14:
                 user_geography.append(tag)
 
 
