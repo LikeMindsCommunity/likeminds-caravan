@@ -46,7 +46,7 @@ td {
 <h2 style="">Create Tag</h2>
 </div>
 <div style=" width:1000px;padding-top:20px;padding-left:50px;">
-  <form id="tag_form">
+  <form id="tag_form" onsubmit="return false">
 
 
     <table>
@@ -72,7 +72,7 @@ td {
           <select id="existing_cluster" class="form-control" style="width:300px;">
             <option selected style="color:black;" disabled>Choose...</option>
             {% for cat in existing_clusters %}
-            <option value="{{cat.name}}">{{cat.name}}</option>
+            <option value="{{cat.name}}">{{cat.name}}({{cat.attribute_id}})</option>
             {% endfor %}
           </select>
         </td>
@@ -93,7 +93,7 @@ td {
         <td style="width:300px;">
           <label for="attribute">Attribute</label>
           <select id="attribute" class="form-control">
-            <option selected>Choose...</option>
+            <option selected disabled>Choose...</option>
 
           </select>
         </td>
@@ -125,14 +125,13 @@ td {
       <!-- select type of cluster-->
       <tr><td>
         <div id="cluster_dropdown" style="max-width:300px;display:none;">
-<select name="" multiple="" class="ui search fluid dropdown cluster" id="cluster">
+   <select name="" multiple="" class="ui search fluid dropdown cluster" id="cluster">
       <option value="">Enter Tags for Cluster</option>
-
       {% for tag in tags %}
-        <option value="{{tag.id}}">{{tag.name}}</option>
+        <option value="{{tag.id}}" id="{{tag.id}}">{{tag.name}}</option>
        {% endfor %}
     </select>
-</div>
+    </div>
         </td>
 
 
@@ -214,13 +213,27 @@ $("#category").on('change',function(){
        if(tag_type == "cluster_tag")
        {
             $('#cluster_dropdown').css("display","block")
-            $('#normal_options').hide()
-            $('#cluster_options').show()
             $('#select_cluster').show()
-
             $("#existing_cluster").on('change',function(){
               value=this.value
               $('#new_tag').val(value)
+              var html=""
+               {% for tag in clustered_tags %}
+                    if(this.value == '{{tag.name}}')
+                    {
+                        {% for cluster in tag.clusters %}
+                            var temp=`<option value="{{cluster.id}}" selected id="{{cluster.id}}">{{cluster.name}}</option>`
+                            html=html+temp;
+                        {% endfor%}
+                        {{break}}
+                    }
+               {% endfor%}
+
+
+
+       $("#cluster").append(html);
+
+
             })
 
        }else{
@@ -268,8 +281,19 @@ $("#category").on('change',function(){
            'attribute_cluster':attribute_cluster
 
          }
+         console.log(new_tag)
+         if(!new_tag)
+         {
+             alert("Please Enter the Tag Name")
+             return;
 
-         $.ajax({
+         }
+         if(category == null || attribute == null)
+         {
+            alert("Please Select the category and attribute")
+            return;
+         }
+        $.ajax({
 
             url:'/admin_dashboard/create_tag',
             type: "POST",

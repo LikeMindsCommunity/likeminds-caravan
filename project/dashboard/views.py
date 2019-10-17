@@ -1303,26 +1303,11 @@ def create_tag(request):
 
         else:
             cluster_tag = request.POST.getlist('cluster_tags[]')
-            attribute_cluster = request.POST.get('attribute_cluster')
-
-
-            if not cluster_tag or not attribute_cluster:
+            if not cluster_tag:
                 error_logger.error("Invalid Input")
                 return redirect('create_tag')
 
-            attribute_cluster=int(attribute_cluster)
-            # inserting the cluster tags
-            if attribute_cluster is 21:
-                tag=get_or_create_sub_tags(new_tag, 1, attribute_cluster, cluster=True)
-            elif attribute_cluster is 22:
-                tag=get_or_create_sub_tags(new_tag, 2, attribute_cluster, cluster=True)
-            elif attribute_cluster is 23:
-                tag=get_or_create_sub_tags(new_tag, 3, attribute_cluster, cluster=True)
-            elif attribute_cluster is 24:
-                tag=get_or_create_sub_tags(new_tag, 4, attribute_cluster, cluster=True)
-            else:
-                error_logger.error("Invalid input")
-
+            tag=get_or_create_sub_tags(new_tag, category, attribute,cluster=True)
             bl=False
             for cluster in cluster_tag:
                 if not bl:
@@ -1350,26 +1335,32 @@ def create_tag(request):
 
         clusters=Attributes.objects.filter(Q(id=21)|Q(id=22)|Q(id=23)|Q(id=24))
         existing_clusters=Tags_lpig.objects.filter(is_cluster=1)
-        all_tags=Tags_lpig.objects.filter(is_cluster=0).order_by('name')
+        all_tags=Tags_lpig.objects.all().order_by('name')
         tag_set=set()
         tags=[]
-
+        cluster_tags=[]
         for tag in all_tags:
             temp={}
-            if not tag.name in tag_set:
+            if not tag.name in tag_set and not tag.is_cluster:
                 temp['id']=tag.tag_id
                 temp['name']=tag.name
                 tags.append(temp)
+            if tag.is_cluster:
+                temp={}
+                temp['name']=tag.name
+                temp['clusters']=Tags_lpig.objects.filter(cluster_tag_id=tag.tag_id).distinct('name')
+                cluster_tags.append(temp)
+
             tag_set.add(tag.name)
-
-
+        #print(cluster_tags)
         return render(request, 'dashboard/create_tag.html', {'categories': categories,
                                                      'legacy_attributes': legacy_attributes,
                                                      'profession_attributes': profession_attributes,
                                                      'geography_attributes': geography_attributes,
                                                      'interests_attributes': interests_attributes,
                                                      'global_attributes': global_attributes,'tags':tags,
-                                                     'clusters':clusters,'existing_clusters':existing_clusters
+                                                     'clusters':clusters,'existing_clusters':existing_clusters,
+                                                        'clustered_tags':cluster_tags
 
                                                              })
 
