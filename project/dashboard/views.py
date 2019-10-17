@@ -61,7 +61,7 @@ def dashboard(request):
         community_list = Community.objects.order_by('-updated_at')
 
     page = request.GET.get('page', 1)
-    paginator = Paginator(community_list, 20)
+    paginator = Paginator(community_list, 10)
     try:
         community_list = paginator.page(page)
     except PageNotAnInteger:
