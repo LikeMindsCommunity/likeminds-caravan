@@ -32,7 +32,7 @@ import logging
 # uncomment to run it in localhost
 # url='http://localhost:8000'
 error_logger=logging.getLogger("error_logger")
-
+info_logger=logging.getLogger("info_logger")
 api_url = url + '/api/'
 
 def dashboard(request):
@@ -87,10 +87,12 @@ def dashboard(request):
         dashboard_list.append(community_dic)
 
     tags = Tags_lpig.objects.all().order_by('name')
-    return render(request,'dashboard/dashboard.html',{'communities':dashboard_list,
-                                                    'community':community_list,
-                                                    'tags': tags,
-                                                      'select_type':select_type})
+    context={'communities':dashboard_list,
+             'community':community_list,
+              'tags': tags,
+              'select_type':select_type}
+    info_logger.info(context)
+    return render(request,'dashboard/dashboard.html',context)
 
 
 def get_tags_count(community):
