@@ -2,6 +2,12 @@
 {% load static %}
 <html>
 {% if request.user.is_superuser %}
+
+Hello World
+{{communities}}
+{{community}}
+{{tags}}
+{{select_type}}
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
@@ -330,11 +336,7 @@ a.article-title:hover {
 
 </ul>
 </div>
-Hello World
-{{communities}}
-{{community}}
-{{tags}}
-{{select_type}}
+
 <br/>
 
 <script>
