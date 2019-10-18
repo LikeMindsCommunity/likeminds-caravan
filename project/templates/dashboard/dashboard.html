@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 {% load static %}
 <html>
+{% if request.user.is_superuser %}
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
@@ -303,6 +304,7 @@ a.article-title:hover {
     </div>
 
 
+{% endif %}
 </main>
 
 <div style="padding-left:450px;">
