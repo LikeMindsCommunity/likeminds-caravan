@@ -87,12 +87,12 @@ def dashboard(request):
         dashboard_list.append(community_dic)
 
     tags = Tags_lpig.objects.all().order_by('name')
-    context={'communities':dashboard_list,
-             'community':community_list,
-              'tags': tags,
-              'select_type':select_type}
-    info_logger.info(context)
-    return render(request,'dashboard/dashboard.html',context)
+    # context={'communities':dashboard_list,
+    #          'community':community_list,
+    #           'tags': tags,
+    #           'select_type':select_type}
+    # info_logger.info(context)
+    return render(request,'dashboard/dashboard.html',{})
 
 
 def get_tags_count(community):
