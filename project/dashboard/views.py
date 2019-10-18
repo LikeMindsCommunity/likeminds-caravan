@@ -28,10 +28,11 @@ from utility.utils import (get_city_address, update_tag_image,
                            insert_user_home_town_tags, update_hometown_tags_for_all_users,
                            user_onbaord)
 url = settings.URL
-
+import logging
 # uncomment to run it in localhost
 # url='http://localhost:8000'
-
+error_logger=logging.getLogger("error_logger")
+info_logger=logging.getLogger("info_logger")
 api_url = url + '/api/'
 
 def dashboard(request):
@@ -60,7 +61,7 @@ def dashboard(request):
         community_list = Community.objects.order_by('-updated_at')
 
     page = request.GET.get('page', 1)
-    paginator = Paginator(community_list, 20)
+    paginator = Paginator(community_list, 10)
     try:
         community_list = paginator.page(page)
     except PageNotAnInteger:
@@ -86,10 +87,12 @@ def dashboard(request):
         dashboard_list.append(community_dic)
 
     tags = Tags_lpig.objects.all().order_by('name')
-    return render(request,'dashboard/dashboard.html',{'communities':dashboard_list,
-                                                    'community':community_list,
-                                                    'tags': tags,
-                                                      'select_type':select_type})
+    context={'communities':dashboard_list,
+             'community':community_list,
+              'tags': tags,
+              'select_type':select_type}
+    info_logger.info(context)
+    return render(request,'dashboard/dashboard.html',context)
 
 
 def get_tags_count(community):
@@ -1294,11 +1297,35 @@ def create_tag(request):
         category = request.POST.get('category')
         attribute = request.POST.get('attribute')
         new_tag = request.POST.get('new_tag')
-        new_tag = new_tag.strip().title()
+        new_tag = new_tag.strip()
+        tag_type=request.POST.get('tag_type')
+        print(new_tag)
+        if tag_type == "normal_tag":
+            get_or_create_sub_tags(new_tag, category, attribute)
 
-        get_or_create_sub_tags(new_tag, category, attribute)
+        else:
+            cluster_tag = request.POST.getlist('cluster_tags[]')
+            if not cluster_tag:
+                error_logger.error("Invalid Input")
+                return redirect('create_tag')
 
-        return redirect('create_tag')
+            tag=get_or_create_sub_tags(new_tag, category, attribute,cluster=True)
+            bl=False
+            for cluster in cluster_tag:
+                if not bl:
+                    # removing the old cluster tag id
+                    Tags_lpig.objects.filter(cluster_tag_id=tag.tag_id).update(cluster_tag_id=None)
+                    bl=True
+                tag_object=Tags_lpig.objects.filter(id=cluster)
+                if tag_object:
+                    tag_name=tag_object[0].name
+                    print(tag_name)
+                    Tags_lpig.objects.filter(name=tag_name).update(cluster_tag_id=tag.tag_id)
+                else:
+                    error_logger.error("Tag not present for clustering")
+            print("Inserted Successfully")
+        #return redirect('create_tag')
+        return JsonResponse({"success":True})
 
     else:
         categories = Category.objects.filter(~Q(name__icontains = 'ncategorized'))
@@ -1308,21 +1335,51 @@ def create_tag(request):
         geography_attributes  = Attributes.objects.filter(Q(attribute_name__icontains = 'Geography'),~Q(attribute_name__icontains = 'uncategorized'))
         global_attributes = Attributes.objects.filter(Q(attribute_name__icontains='Global'),~Q(attribute_name__icontains = 'uncategorized'))
 
+        clusters=Attributes.objects.filter(Q(id=21)|Q(id=22)|Q(id=23)|Q(id=24))
+        existing_clusters=Tags_lpig.objects.filter(is_cluster=1)
+        all_tags=Tags_lpig.objects.all().order_by('name')
+        tag_set=set()
+        tags=[]
+        cluster_tags=[]
+        for tag in all_tags:
+            temp={}
+            if not tag.name in tag_set and not tag.is_cluster:
+                temp['id']=tag.tag_id
+                temp['name']=tag.name
+                tags.append(temp)
+            if tag.is_cluster:
+                temp={}
+                temp['name']=tag.name
+                temp['clusters']=Tags_lpig.objects.filter(cluster_tag_id=tag.tag_id).distinct('name')
+                cluster_tags.append(temp)
+
+            tag_set.add(tag.name)
+        #print(cluster_tags)
         return render(request, 'dashboard/create_tag.html', {'categories': categories,
                                                      'legacy_attributes': legacy_attributes,
                                                      'profession_attributes': profession_attributes,
                                                      'geography_attributes': geography_attributes,
                                                      'interests_attributes': interests_attributes,
-                                                     'global_attributes': global_attributes, })
+                                                     'global_attributes': global_attributes,'tags':tags,
+                                                     'clusters':clusters,'existing_clusters':existing_clusters,
+                                                        'clustered_tags':cluster_tags
+
+                                                             })
 
 
-def get_or_create_sub_tags(new_tag,category,attribute):
+def get_or_create_sub_tags(new_tag,category,attribute,cluster=False):
 
     ''' function to create sub tags with known category and attribute  '''
     category = Category.objects.get(id=category)
     attribute = Attributes.objects.get(id=attribute)
     try:
-        tag = Tags_lpig.objects.get(name=new_tag,attribute_id = attribute)
+        if not cluster:
+            tag = Tags_lpig.objects.get(name__iexact=new_tag,attribute_id = attribute)
+        else:
+            tag = Tags_lpig.objects.get(name__iexact=new_tag)
+            tag.attribute_id=attribute
+            tag.is_cluster=1
+            tag.save()
     except:
 
         tag = Tags_lpig()
@@ -1332,25 +1389,31 @@ def get_or_create_sub_tags(new_tag,category,attribute):
         tag.save()
         tag.tag_id =tag.id
         tag.save()
+        if cluster:
+            tag.is_cluster=1
+            tag.save()
+        if not cluster:
+            if category.name == 'Geography' or attribute.id == 3:
+                if tag and not tag.tag_image:
+                    tag_id,tag_name = tag.id,tag.name
+                    update_tag_image(tag_id=tag_id,tag_name=tag_name)
+
+
+    if not cluster:
         if category.name == 'Geography' or attribute.id == 3:
-            if tag and not tag.tag_image:
-                tag_id,tag_name = tag.id,tag.name
-                update_tag_image(tag_id=tag_id,tag_name=tag_name)
 
-    if category.name == 'Geography' or attribute.id == 3:
-
-        geography_list = get_city_address(city=new_tag)
-        print(new_tag,"  >>>>>  ",geography_list)
+            geography_list = get_city_address(city=new_tag)
+            print(new_tag,"  >>>>>  ",geography_list)
 
 
-        for attr, tag_name in geography_list.items():
-            print(attr,tag_name)
-            if tag_name == '':
-                continue
-            # creating or catgorizing a tag with known category and attribute
-            # geography tag is created, create its related tags
-            # for example, if gurgaon is created, create Haryana and India as well as state and country
-            tag = create_or_categorize_tag(tag=tag_name, category='Geography', attribute=attr)
+            for attr, tag_name in geography_list.items():
+                print(attr,tag_name)
+                if tag_name == '':
+                    continue
+                # creating or catgorizing a tag with known category and attribute
+                # geography tag is created, create its related tags
+                # for example, if gurgaon is created, create Haryana and India as well as state and country
+                tag = create_or_categorize_tag(tag=tag_name, category='Geography', attribute=attr)
 
     return tag
 

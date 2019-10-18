@@ -618,6 +618,7 @@ def get_user_lpig_tags(user_id):
     interest_list=[]
     geography_list=[]
 
+    cluster_tags=[]
     for each in legacy:
         temp={}
         if each.tags_id.id !=15:
@@ -635,8 +636,15 @@ def get_user_lpig_tags(user_id):
                 temp['attribute_name'] = "Hometown"
             elif attribute_id is 4:
                 temp['attribute_name'] = "Lifestyle"
+
+            if each.tags_id.is_cluster:
+                cluster=list(Tags_lpig.objects.filter(cluster_tag_id=each.tags_id.id).values_list('id',flat=True))
+                cluster_tags=cluster_tags+cluster
             legacy_list.append(temp)
 
+    legacy_list=get_clustered_tags_for_user(legacy_list,cluster_tags)
+
+    cluster_tags = []
     for each in profession:
         temp={}
         if each.tags_id.id !=16:
@@ -651,8 +659,16 @@ def get_user_lpig_tags(user_id):
                 temp['attribute_name'] = "Industry"
             elif attribute_id is 7:
                 temp['attribute_name'] = "Designation"
+
+            if each.tags_id.is_cluster:
+                cluster=list(Tags_lpig.objects.filter(cluster_tag_id=each.tags_id.id).values_list('id',flat=True))
+                cluster_tags=cluster_tags+cluster
             profession_list.append(temp)
 
+    profession_list=get_clustered_tags_for_user(profession_list,cluster_tags)
+
+
+    cluster_tags = []
     for each in interest:
         temp = {}
         if each.tags_id.id != 17:
@@ -669,8 +685,16 @@ def get_user_lpig_tags(user_id):
                 temp['attribute_name'] = "Sports"
             elif attribute_id is 11:
                 temp['attribute_name'] = "Fan"
+
+            if each.tags_id.is_cluster:
+                cluster=list(Tags_lpig.objects.filter(cluster_tag_id=each.tags_id.id).values_list('id',flat=True))
+                cluster_tags=cluster_tags+cluster
             interest_list.append(temp)
 
+
+    interest_list = get_clustered_tags_for_user(interest_list, cluster_tags)
+
+    cluster_tags = []
     for each in geography:
         temp = {}
         if each.tags_id.id != 18:
@@ -685,8 +709,13 @@ def get_user_lpig_tags(user_id):
                 temp['attribute_name'] = "State"
             elif attribute_id is 14:
                 temp['attribute_name'] = "Country"
+
+            if each.tags_id.is_cluster:
+                cluster=list(Tags_lpig.objects.filter(cluster_tag_id=each.tags_id.id).values_list('id',flat=True))
+                cluster_tags=cluster_tags+cluster
             geography_list.append(temp)
 
+    geography_list = get_clustered_tags_for_user(geography_list, cluster_tags)
 
     tags={
         'legacy':legacy_list,
@@ -697,6 +726,27 @@ def get_user_lpig_tags(user_id):
 
     #print(tags)
     return tags
+
+
+def get_clustered_tags_for_user(tag_list,cluster_tags):
+
+    if not cluster_tags:
+        return tag_list
+    result=[]
+    for tag_index in range(len(tag_list)):
+        for index in cluster_tags:
+            temp=tag_list[tag_index]
+            if not temp:
+                continue
+            if(temp['id'] == index):
+                tag_list[tag_index]=False
+
+    for tag in tag_list:
+        if tag == False:
+            continue
+        result.append(tag)
+    return result
+
 
 ############# functions for  create flow of card,community and members   ##########################
 

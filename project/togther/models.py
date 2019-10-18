@@ -278,6 +278,8 @@ class Tags_lpig(models.Model):
     tag_id=models.IntegerField(null=True)
     tag_characterstics=models.CharField(max_length=1024,null=True)
     tag_image = models.ImageField(upload_to="media/tags_images", default = '')
+    is_cluster=models.IntegerField(default=0)
+    cluster_tag_id=models.IntegerField(null=True)
     def __str__(self):
         return self.name
 
