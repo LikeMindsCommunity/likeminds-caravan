@@ -9,7 +9,8 @@ import json
 from django.http.response import JsonResponse
 from collabmates_api.serializers import *
 from django.views.decorators.csrf import csrf_exempt
-from datetime import datetime 
+from datetime import datetime
+from django.db.models import F
 import time
 from .notification import (send_follow_notification,send_notification_to_admins,
                            send_notification_for_join_requests,
@@ -250,6 +251,11 @@ def update_last_unseen_in_engage(user='',community='',is_seen=False):
         Member_Engage.objects.filter(community_id=community).filter(~Q(member_id=user)).update(last_unseen_count=collabcard_unseen,updated_at=current_time)
 
 
+def is_member_refered(member_id,community_id):
+
+    '''function to check whether the person is refered by someone or has come on own'''
+    pass
+
 # /api/your_communities/member_id?member_id=
 def your_communities(request,user_id):
     '''This function is used to see your communities based on user id'''
@@ -263,16 +269,18 @@ def your_communities(request,user_id):
     communities=Member_Engage.objects.filter(member_id=user).order_by('-updated_at')
     if page_number:
         communities=pagination(communities,page_number,paginate_by=10)
+    print(communities)
     for each_community in communities:
 
         community=CommunitySerializer(each_community.community_id)
         community['pending_members_count']=each_community.pending_members
         community['updated_at']=get_time_text(each_community.updated_at)
         community['collabcard_unseen']=each_community.last_unseen_count
-        collabcard=CollabcardSerializer(each_community.last_unseen_conversation)
-        user=each_community.last_unseen_conversation.user
-        collabcard['member']=UserinfoSerializer(user.userinfo)
-        community['collabcard']=collabcard
+        if each_community.last_unseen_conversation:
+            collabcard=CollabcardSerializer(each_community.last_unseen_conversation)
+            user=each_community.last_unseen_conversation.user
+            collabcard['member']=UserinfoSerializer(user.userinfo)
+            community['collabcard']=collabcard
         my_community.append(community)
 
     return JsonResponse({'your_communities':my_community})
@@ -445,7 +453,7 @@ def join_community_responses(request):
     if ref_id :
         # ref_id = res['ref_id']
         # sending mail to nipun and harsh
-        new_member_request.delay(member_id=user_id, commuinity_id=community_id, ref_id=ref_id)
+        #new_member_request.delay(member_id=user_id, commuinity_id=community_id, ref_id=ref_id)
         if community.hide_community == '3' or community.hide_community == '4':
             invited_member = Members.objects.filter(community_id=community,
                                                           member_id=ref_id)
@@ -453,7 +461,8 @@ def join_community_responses(request):
                 referal(ref_id=ref_id, community_id=community_id, interested_member_id=user_id)
     if not ref_id:
         # sending mail to nipun and harsh
-        new_member_request.delay(member_id=user_id, commuinity_id=community_id, ref_id=None)
+        pass
+        #new_member_request.delay(member_id=user_id, commuinity_id=community_id, ref_id=None)
     # inserting in members table if the member status is pending and inserting it to database with status=3
 
     # If the member is declined from the community and he applied again
@@ -493,7 +502,35 @@ def join_community_responses(request):
         update_pending_member_count_in_engage(community)
         # sending notification to admins of the community
         name = user.userinfo.name
-        send_notification_to_admins.delay(community_id,name)
+        #send_notification_to_admins.delay(community_id,name)
+
+    # if the community is the pilot community then filling the engage table
+    if community.hide_community == '3':
+        # if the user is not refered by anyone
+        if not ref_id:
+            # if the user data is already there in members engage
+            if not is_member_engage(community,user):
+                engage=Member_Engage()
+                engage.community_id=community
+                engage.member_id=user
+                engage.updated_at=time.time()
+                engage.save()
+                info_logger.info("""Data Inserted successfully in members engage table where user_id=%s and community_id=%s"""%(user_id,community_id))
+            else:
+                info_logger.info("Data already present for user")
+        else:
+            #if the user refered by someone
+            engage = Member_Engage()
+            engage.community_id = community
+            engage.member_id = user
+            engage.updated_at = time.time()
+            engage.save()
+            info_logger.info("""Data Inserted successfully in members engage table where user_id=%s and community_id=%s""" % (
+                user_id, community_id))
+            Member_Engage.objects.filter(community_id=community,member_id=user).update(pending_members=F('pending_members')+1)
+            info_logger.info(
+                """Members engage table updated  where ref_id=%s and community_id=%s""" % (
+                    user_id, community_id))
     return JsonResponse({'success':True})
 
 
