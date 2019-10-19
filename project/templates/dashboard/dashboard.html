@@ -172,6 +172,25 @@ a.article-title:hover {
 
 </select>
 </td>
+
+    <td class="row-fluid" style="text-align:right;padding-right:30px;padding-left:200px">
+<!--      <select class="selectpicker" id="del_tag" data-show-subtext="true" data-live-search="true">-->
+
+<!--      </select>-->
+    <select class="selectpicker" id="search" data-style="btn-info"  multiple data-live-search="true" data-show-subtext="true"  >
+
+          {% autoescape off %}
+                    {% for tag in tags %}
+                        <option value="{{tag.id}}">{{tag.name}} ({{tag.attribute}})</option>
+                    {% endfor %}
+          {% endautoescape %}
+</select>
+      <span class="help-inline"> &nbsp;
+
+
+        <button id="search_submit" type="submit" class="btn btn-danger">Search</button></span>
+    </td>
+
 </tr>
 
 </table>
@@ -288,7 +307,7 @@ a.article-title:hover {
          window.location.href='./search/'+search_tags
        })
 
-      $('select').on('change', function() {
+      $('#select').on('change', function() {
           var val=this.value
           console.log(val)
           window.open("./?filter="+val,"_self")

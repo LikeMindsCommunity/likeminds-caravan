@@ -86,7 +86,15 @@ def dashboard(request):
         community_dic['hidden_tags_count']=get_tags_count(i)
         dashboard_list.append(community_dic)
 
-    tags = Tags_lpig.objects.all().order_by('name')
+    tags_queryset=Tags_lpig.objects.order_by('name')
+    tags=[]
+    for tag in tags_queryset:
+        temp={}
+        temp['id']=tag.id
+        temp['name']=tag.name
+        temp['attribute']=tag.attribute_id.attribute_name
+        tags.append(temp)
+
     context={'communities':dashboard_list,
              'community':community_list,
               'tags': tags,
@@ -2467,7 +2475,7 @@ def search(request,tag_ids):
     dashboard_list = []
 
     page = request.GET.get('page', 1)
-    paginator = Paginator(community_list, 100)
+    paginator = Paginator(community_list, 20)
     try:
         community_list = paginator.page(page)
     except PageNotAnInteger:
