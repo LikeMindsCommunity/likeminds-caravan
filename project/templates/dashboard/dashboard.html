@@ -253,11 +253,9 @@ a.article-title:hover {
 <!-- Communities Display-->
 
           {% for community in communities %}
-                <div class="media-body">
-                    <h2><a  href="{% url 'update_form' community.id %}">{{ community.name }}</a>
+
+                    <h2><a>{{ community.name }}</a>
                     </h2>
-                    <p>{{ community.purpose }}</p>
-                </div>
             {% endfor %}
 
 <!-- -->
