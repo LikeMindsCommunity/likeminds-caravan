@@ -253,14 +253,11 @@ a.article-title:hover {
 <!-- Communities Display-->
 
           {% for community in communities %}
-            <article class="media content-section">
-                <img class="rounded-circle article-img" src="{{ community.image_url.url }}">
                 <div class="media-body">
-                    <h2><a class="article-title" href="{% url 'update_form' community.id %}">{{ community.name }}</a>
+                    <h2><a  href="{% url 'update_form' community.id %}">{{ community.name }}</a>
                     </h2>
-                    <p class="article-content">{{ community.purpose }}</p>
+                    <p>{{ community.purpose }}</p>
                 </div>
-            </article>
             {% endfor %}
 
 <!-- -->
