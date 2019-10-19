@@ -172,62 +172,6 @@ a.article-title:hover {
 
 </select>
 </td>
-<td class="row-fluid" style="text-align:right;padding-right:30px;padding-left:200px">
-<!--      <select class="selectpicker" id="del_tag" data-show-subtext="true" data-live-search="true">-->
-
-<!--      </select>-->
-    <select class="selectpicker" id="search" data-style="btn-info"  multiple data-live-search="true" data-show-subtext="true"  >
-
-          {% autoescape off %}
-                    {% for tag in tags %}
-                    {% if tag.attribute_id.id == 1 %}
-                        <option value="{{tag.id}}">{{tag.name}}  (Legacy_work)</option>
-                    {% elif tag.attribute_id.id == 2 %}
-                        <option value="{{tag.id}}">{{tag.name}}  (Legacy_education)</option>
-                    {% elif tag.attribute_id.id == 3 %}
-                        <option value="{{tag.id}}">{{tag.name}}  (Legacy_hometown)</option>
-                    {% elif tag.attribute_id.id == 4 %}
-                        <option value="{{tag.id}}">{{tag.name}}  (Legacy_lifestyle)</option>
-                    {% elif tag.attribute_id.id == 5 %}
-                        <option value="{{tag.id}}">{{tag.name}}  (Profession_skill)</option>
-                    {% elif tag.attribute_id.id == 6 %}
-                        <option value="{{tag.id}}">{{tag.name}}  (Profession_industry)</option>
-                    {% elif tag.attribute_id.id == 7 %}
-                        <option value="{{tag.id}}">{{tag.name}}  (Profession_designation)</option>
-                    {% elif tag.attribute_id.id == 8 %}
-                        <option value="{{tag.id}}">{{tag.name}}  (Interest_cause)</option>
-                    {% elif tag.attribute_id.id == 9 %}
-                        <option value="{{tag.id}}">{{tag.name}}  (Interest_hobby)</option>
-                    {% elif tag.attribute_id.id == 10 %}
-                        <option value="{{tag.id}}">{{tag.name}}  (Interest_sports)</option>
-                    {% elif tag.attribute_id.id == 11 %}
-                        <option value="{{tag.id}}">{{tag.name}}  (Interest_fan)</option>
-                    {% elif tag.attribute_id.id == 12 %}
-                        <option value="{{tag.id}}">{{tag.name}}  (Geography_copy)</option>
-                    {% elif tag.attribute_id.id == 13 %}
-                        <option value="{{tag.id}}">{{tag.name}}  (Geography_state)</option>
-                    {% elif tag.attribute_id.id == 14 %}
-                        <option value="{{tag.id}}">{{tag.name}}  (Geography_country)</option>
-                    {% elif tag.attribute_id.id == 15 %}
-                        <option value="{{tag.id}}">{{tag.name}}  (Geography_pincode)</option>
-                    {% elif tag.attribute_id.id == 17 %}
-                        <option value="{{tag.id}}">{{tag.name}}  (Legacy_Uncat)</option>
-                    {% elif tag.attribute_id.id == 18 %}
-                        <option value="{{tag.id}}">{{tag.name}}  (Profession_Uncat)</option>
-                    {% elif tag.attribute_id.id == 19 %}
-                        <option value="{{tag.id}}">{{tag.name}}  (Interest_Uncat)</option>
-                    {% elif tag.attribute_id.id == 20 %}
-                        <option value="{{tag.id}}">{{tag.name}}  (Geography_Uncat)</option>
-
-                    {% endif %}
-                    {% endfor %}
-          {% endautoescape %}
-</select>
-      <span class="help-inline"> &nbsp;
-
-
-        <button id="search_submit" type="submit" class="btn btn-danger">Search</button></span>
-    </td>
 </tr>
 
 </table>
