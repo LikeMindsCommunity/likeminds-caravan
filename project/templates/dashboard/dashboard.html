@@ -227,7 +227,34 @@ a.article-title:hover {
             {% endfor %}
         </div>
     </div>
+<!-- pagination code-->
+<div style="padding-left:450px;">
+        <ul class="pagination">
 
+        
+            {% if community.number|add:'-4' > 1 %}
+                <li><a href="?filter={{select_type}}&page={{ community.number|add:'-5' }}">&hellip;</a></li>
+            {% endif %}
+
+            {% for i in community.paginator.page_range %}
+                {% if community.number == i %}
+                    <li style="border: 1px solid #ddd;border-radius: 5px;padding: 8px 16px;background-color:#f0ad4e;border-color: #eea236;"><span>{{ i }} </span></li>
+                {% elif i > community.number|add:'-5' and i < community.number|add:'5' %}
+                    <li><a href="?filter={{select_type}}&page={{ i }}">{{ i }}</a></li>
+                {% endif %}
+            {% endfor %}
+
+            {% if community.paginator.num_pages > community.number|add:'4' %}
+                <li><a href="?filter={{select_type}}&page={{ community.number|add:'5' }}">&hellip;</a></li>
+            {% endif %}
+
+        </ul>
+</div>
+
+<br/>
+
+
+<!-- -->
 </body>
 {% endif %}
 </html>
