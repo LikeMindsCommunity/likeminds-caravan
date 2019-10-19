@@ -86,14 +86,14 @@ def dashboard(request):
         community_dic['hidden_tags_count']=get_tags_count(i)
         dashboard_list.append(community_dic)
 
-    tags_queryset=Tags_lpig.objects.order_by('name')
+    #tags_queryset=Tags_lpig.objects.order_by('name')
     tags=[]
-    for tag in tags_queryset:
-        temp={}
-        temp['id']=tag.id
-        temp['name']=tag.name
-        temp['attribute']=tag.attribute_id.attribute_name
-        tags.append(temp)
+    # for tag in tags_queryset:
+    #     temp={}
+    #     temp['id']=tag.id
+    #     temp['name']=tag.name
+    #     temp['attribute']=tag.attribute_id.attribute_name
+    #     tags.append(temp)
 
     context={'communities':dashboard_list,
              'community':community_list,
