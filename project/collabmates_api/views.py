@@ -997,7 +997,7 @@ def create_card(request):
             if is_pilot_active:
                 # updating the last unseen card for community and member who become promoter
                 engage=Member_Engage.objects.get(community_id=community,
-                                          member_id=user)
+                                          member_id=user.user_id)
                 engage.last_unseen_conversation=card
                 engage.updated_at = time.time()
                 engage.save()
