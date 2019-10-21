@@ -994,22 +994,22 @@ def create_card(request):
         update_last_answer_id(card.id,"")
 
         if is_member_engage(community,user.user_id):
-            # if is_pilot_active:
-            #     # updating the last unseen card for community and member who become promoter
-            #     Member_Engage.objects.get(community_id=community,
-            #                               member_id=user_id).update(last_unseen_conversation=card,
-            #                                                                                 updated_at=time.time())
-            #     #updating the members engage for members who is refered by user
-            #     refered_members=get_referred_members_of_a_member(community_id,user_id)
-            #     for member in refered_members:
-            #         user_id=User.objects.get(id=member)
-            #         engage=Member_Engage.objects.get(community_id=community,member_id=user_id)
-            #         engage.last_unseen_conversation=card
-            #         engage.last_unseen_count=1
-            #         engage.updated_at = time.time()
-            #         engage.save()
-            # else:
-            update_last_unseen_in_engage(user=user.user_id,community=community)
+            if is_pilot_active:
+                # updating the last unseen card for community and member who become promoter
+                Member_Engage.objects.get(community_id=community,
+                                          member_id=user_id).update(last_unseen_conversation=card,
+                                                                                            updated_at=time.time())
+                #updating the members engage for members who is refered by user
+                refered_members=get_referred_members_of_a_member(community_id,user_id)
+                for member in refered_members:
+                    user_id=User.objects.get(id=member)
+                    engage=Member_Engage.objects.get(community_id=community,member_id=user_id)
+                    engage.last_unseen_conversation=card
+                    engage.last_unseen_count=1
+                    engage.updated_at = time.time()
+                    engage.save()
+            else:
+                update_last_unseen_in_engage(user=user.user_id,community=community)
         else:
             engage = Member_Engage()
             engage.member_id = user.user_id
@@ -1384,14 +1384,7 @@ def request_response(request,req_dict=None):
             engage.updated_at = time.time()
             engage.save()
             update_pending_member_count_in_engage(community)
-        # else:
-        #     engage = Member_Engage.objects.get(community_id=community, member_id=user)
-        #     engage.community_id = community
-        #     engage.last_unseen_conversation = purpose_card
-        #     engage.last_unseen_count = unseen_count
-        #     engage.updated_at = time.time()
-        #     engage.save()
-        #     update_pending_member_count_in_engage(community)
+
 
         count = check_for_member_eligibiity(community_id, member_id)
 
