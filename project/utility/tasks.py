@@ -21,6 +21,16 @@ def mail_triger(member_id):
     t.start()
 
 
+def send_email(subject,template,to):
+    fail_silently=True
+    msg = EmailMultiAlternatives(subject,
+                                template,
+                                "Collabmates<hello@collabmates.com>",
+                                [to],)
+    msg.attach_alternative(template, "text/html")
+    return msg.send(fail_silently)
+
+
 @shared_task
 def onboarding_mail_for_new_users(member_id):
     print('member_id === ',member_id)
@@ -45,13 +55,14 @@ def onboarding_mail_for_new_users(member_id):
             template = get_template("mails/onboarding_mail.html").render({"name":user.userinfo.name,
                                                                           'subject':subject,'url':url,
                                                                           })
-            msg = EmailMultiAlternatives(subject,
-                                             template,
-                                             "Collabmates<hello@collabmates.com>",
-                                             [to],
-                                             )
-            msg.attach_alternative(template, "text/html")
-            return msg.send(fail_silently)
+            # msg = EmailMultiAlternatives(subject,
+            #                                  template,
+            #                                  "Collabmates<hello@collabmates.com>",
+            #                                  [to],
+            #                                  )
+            # msg.attach_alternative(template, "text/html")
+            # return msg.send(fail_silently)
+            send_email(subject, template, to)
 
 
 @shared_task
@@ -115,15 +126,17 @@ def new_member_request(member_id,commuinity_id,ref_id=None):
         to_list = ['nipungoyal.iitd@gmail.com','hrshshukl@gmail.com']
     else:
         to_list = ['mahesh61437mahe@gmail.com','rastogi.fresh88@gmail.com']
-    msg = EmailMultiAlternatives(subject,
-                                 template,
-                                 "Collabmates<hello@collabmates.com>",
-                                 # ['mahesh61437mahe@gmail.com','rastogi.fresh88@gmail.com'],
-                                 # ['nipungoyal.iitd@gmail.com','hrshshukl@gmail.com'],
-                                 to_list,
-                                 )
+    # msg = EmailMultiAlternatives(subject,
+    #                              template,
+    #                              "Collabmates<hello@collabmates.com>",
+    #
+    #                              to_list,
+    #                              )
+    #
+    # msg.attach_alternative(template, "text/html")
+    # return msg.send(fail_silently)
 
-    msg.attach_alternative(template, "text/html")
-    return msg.send(fail_silently)
+    send_email(subject, template, to=to_list)
+
 
 
