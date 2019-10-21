@@ -9,7 +9,8 @@ import json
 from django.http.response import JsonResponse
 from collabmates_api.serializers import *
 from django.views.decorators.csrf import csrf_exempt
-from datetime import datetime 
+from datetime import datetime
+from django.db.models import F
 import time
 from .notification import (send_follow_notification,send_notification_to_admins,
                            send_notification_for_join_requests,
@@ -244,10 +245,14 @@ def update_last_unseen_in_engage(user='',community='',is_seen=False):
             card = Collabcard.objects.get(id=total_collabcards[0]['id'])
 
     current_time=time.time()
-    Member_Engage.objects.filter(community_id=community,member_id=user).update(last_unseen_count=collabcard_unseen,last_unseen_conversation=card,updated_at=current_time)
+    Member_Engage.objects.filter(community_id=community,member_id=user).update(last_unseen_count=collabcard_unseen,
+                                                                               last_unseen_conversation=card,
+                                                                               updated_at=current_time)
 
     if is_seen == False:
         Member_Engage.objects.filter(community_id=community).filter(~Q(member_id=user)).update(last_unseen_count=collabcard_unseen,updated_at=current_time)
+
+
 
 
 # /api/your_communities/member_id?member_id=
@@ -263,16 +268,18 @@ def your_communities(request,user_id):
     communities=Member_Engage.objects.filter(member_id=user).order_by('-updated_at')
     if page_number:
         communities=pagination(communities,page_number,paginate_by=10)
+    print(communities)
     for each_community in communities:
 
         community=CommunitySerializer(each_community.community_id)
         community['pending_members_count']=each_community.pending_members
         community['updated_at']=get_time_text(each_community.updated_at)
         community['collabcard_unseen']=each_community.last_unseen_count
-        collabcard=CollabcardSerializer(each_community.last_unseen_conversation)
-        user=each_community.last_unseen_conversation.user
-        collabcard['member']=UserinfoSerializer(user.userinfo)
-        community['collabcard']=collabcard
+        if each_community.last_unseen_conversation:
+            collabcard=CollabcardSerializer(each_community.last_unseen_conversation)
+            user=each_community.last_unseen_conversation.user
+            collabcard['member']=UserinfoSerializer(user.userinfo)
+            community['collabcard']=collabcard
         my_community.append(community)
 
     return JsonResponse({'your_communities':my_community})
@@ -443,7 +450,7 @@ def join_community_responses(request):
         ref_id = request.GET.get('ref_id',None)
 
     if ref_id :
-        # ref_id = res['ref_id']
+        ref_id = res['ref_id']
         # sending mail to nipun and harsh
         new_member_request.delay(member_id=user_id, commuinity_id=community_id, ref_id=ref_id)
         if community.hide_community == '3' or community.hide_community == '4':
@@ -494,6 +501,35 @@ def join_community_responses(request):
         # sending notification to admins of the community
         name = user.userinfo.name
         send_notification_to_admins.delay(community_id,name)
+
+    # if the community is the pilot community then filling the engage table
+    if community.hide_community == '3':
+        # if the user is not refered by anyone
+        if not ref_id:
+            # if the user data is already there in members engage
+            if not is_member_engage(community,user):
+                engage=Member_Engage()
+                engage.community_id=community
+                engage.member_id=user
+                engage.updated_at=time.time()
+                engage.save()
+                info_logger.info("""Data Inserted successfully in members engage table where user_id=%s and community_id=%s"""%(user_id,community_id))
+            else:
+                info_logger.info("Data already present for user")
+        else:
+            #if the user refered by someone
+            referer=User.objects.get(id=ref_id)
+            engage = Member_Engage()
+            engage.community_id = community
+            engage.member_id = user
+            engage.updated_at = time.time()
+            engage.save()
+            info_logger.info("""Data Inserted successfully in members engage table where user_id=%s and community_id=%s""" % (
+                user_id, community_id))
+            Member_Engage.objects.filter(community_id=community,member_id=referer).update(pending_members=F('pending_members')+1)
+            info_logger.info(
+                """Members engage table updated  where ref_id=%s and community_id=%s""" % (
+                    user_id, community_id))
     return JsonResponse({'success':True})
 
 
@@ -922,10 +958,18 @@ def create_card(request):
         card.save()
         # if the community does not have a purpose card then a purpose will be created
         # the first card created for a community is the purpose card
-        print(community.purpose_collabcard)
+        # if its a pilot community making the user promoter and updating community state to pilot active
+        info_logger.info(community.purpose_collabcard)
+        is_pilot_active=False
         if not community.purpose_collabcard and community.hide_community == '3':
             community.purpose_collabcard=card.id
             community.save()
+            join_time = time.time()
+            Members.objects.filter(community_id=community, member_id=user.user_id).update(state=1, created_at=join_time)
+            # changing community state to 0 (zero) to make it a active community
+            community.hide_community = '4'
+            community.save()
+            is_pilot_active=True
 
 
         # sending notification to the user
@@ -950,6 +994,21 @@ def create_card(request):
         update_last_answer_id(card.id,"")
 
         if is_member_engage(community,user.user_id):
+            # if is_pilot_active:
+            #     # updating the last unseen card for community and member who become promoter
+            #     Member_Engage.objects.get(community_id=community,
+            #                               member_id=user_id).update(last_unseen_conversation=card,
+            #                                                                                 updated_at=time.time())
+            #     #updating the members engage for members who is refered by user
+            #     refered_members=get_referred_members_of_a_member(community_id,user_id)
+            #     for member in refered_members:
+            #         user_id=User.objects.get(id=member)
+            #         engage=Member_Engage.objects.get(community_id=community,member_id=user_id)
+            #         engage.last_unseen_conversation=card
+            #         engage.last_unseen_count=1
+            #         engage.updated_at = time.time()
+            #         engage.save()
+            # else:
             update_last_unseen_in_engage(user=user.user_id,community=community)
         else:
             engage = Member_Engage()
@@ -958,15 +1017,6 @@ def create_card(request):
             engage.last_unseen_conversation = card
             engage.updated_at = time.time()
             engage.save()
-
-        # if a community is a pilot community make the member as promoter
-        if community.hide_community == '3':
-            join_time=time.time()
-            Members.objects.filter(community_id=community,member_id=user.user_id).update(state=1,created_at=join_time)
-            # changing community state to 0 (zero) to make it a active community
-            community.hide_community ='4'
-            community.save()
-            return JsonResponse({'success': True, 'collabcard': collabcard})
 
         return JsonResponse({'success':True,'collabcard':collabcard})
     return JsonResponse({'success':False})
@@ -1322,12 +1372,8 @@ def request_response(request,req_dict=None):
         Community.objects.filter(id = community_id).update(members_count=members_count)
 
         # inserting data in member engage
-        try:
-            purpose_card = Collabcard.objects.get(id=community.purpose_collabcard)
-        except:
-            card=Collabcard.objects.filter(community_id=community).order_by('id')
-            if card:
-                purpose_card=card[0]
+        purpose_card = Collabcard.objects.get(id=community.purpose_collabcard)
+
         unseen_count=Collabcard.objects.filter(community=community).count()
         if not is_member_engage(community, user.id):
             engage = Member_Engage()
@@ -1338,6 +1384,14 @@ def request_response(request,req_dict=None):
             engage.updated_at = time.time()
             engage.save()
             update_pending_member_count_in_engage(community)
+        # else:
+        #     engage = Member_Engage.objects.get(community_id=community, member_id=user)
+        #     engage.community_id = community
+        #     engage.last_unseen_conversation = purpose_card
+        #     engage.last_unseen_count = unseen_count
+        #     engage.updated_at = time.time()
+        #     engage.save()
+        #     update_pending_member_count_in_engage(community)
 
         count = check_for_member_eligibiity(community_id, member_id)
 

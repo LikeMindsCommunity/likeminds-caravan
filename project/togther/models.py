@@ -290,7 +290,7 @@ class Member_Engage(models.Model):
 
     member_id=models.ForeignKey(User, on_delete=models.CASCADE)
     community_id=models.ForeignKey(Community, on_delete=models.CASCADE)
-    last_unseen_conversation=models.ForeignKey(Collabcard, on_delete=models.CASCADE)
+    last_unseen_conversation=models.ForeignKey(Collabcard, on_delete=models.CASCADE,null=True)
     last_unseen_count=models.IntegerField(default=0,null=True)
     pending_members=models.IntegerField(default=0,null=True)
     updated_at=models.BigIntegerField(default=0,null=True)

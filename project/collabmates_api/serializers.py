@@ -51,6 +51,7 @@ def UserinfoSerializer(user):
 
 def CollabcardSerializer(card,community=None):
     # function to serialize a community object
+    
     collabcard={
         'id': card.id,
         'title': card.title,
