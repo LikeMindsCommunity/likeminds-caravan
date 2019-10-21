@@ -1412,10 +1412,7 @@ def create_tag(request):
                                                      'interests_attributes': interests_attributes,
                                                      'global_attributes': global_attributes,'tags':tags,
                                                      'clusters':clusters,'existing_clusters':existing_clusters,
-                                                        'clustered_tags':cluster_tags
-
-                                                             })
-
+                                                     'clustered_tags':cluster_tags, })
 
 def get_or_create_sub_tags(new_tag,category,attribute,cluster=False):
 
