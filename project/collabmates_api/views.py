@@ -997,7 +997,7 @@ def create_card(request):
             if is_pilot_active:
                 # updating the last unseen card for community and member who become promoter
                 Member_Engage.objects.get(community_id=community,
-                                          member_id=user_id).update(last_unseen_conversation=card,
+                                          member_id=user).update(last_unseen_conversation=card,
                                                                                             updated_at=time.time())
                 #updating the members engage for members who is refered by user
                 refered_members=get_referred_members_of_a_member(community_id,user_id)
@@ -1008,6 +1008,7 @@ def create_card(request):
                     engage.last_unseen_count=1
                     engage.updated_at = time.time()
                     engage.save()
+                update_pending_member_count_in_engage(community)
             else:
                 update_last_unseen_in_engage(user=user.user_id,community=community)
         else:
