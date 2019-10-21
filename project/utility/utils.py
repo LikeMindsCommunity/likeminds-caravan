@@ -18,7 +18,7 @@ from .tasks import *
 
 from django.http.response import JsonResponse
 
-eligibility_count = 5
+eligibility_count = 2
 
 def decode_meta_from_url(url):
 
