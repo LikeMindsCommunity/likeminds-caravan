@@ -268,7 +268,6 @@ def your_communities(request,user_id):
     communities=Member_Engage.objects.filter(member_id=user).order_by('-updated_at')
     if page_number:
         communities=pagination(communities,page_number,paginate_by=10)
-    print(communities)
     for each_community in communities:
 
         community=CommunitySerializer(each_community.community_id)
@@ -280,9 +279,44 @@ def your_communities(request,user_id):
             user=each_community.last_unseen_conversation.user
             collabcard['member']=UserinfoSerializer(user.userinfo)
             community['collabcard']=collabcard
+
+        # getting the state of member
+        member_state=Members.objects.filter(community_id=each_community.community_id.id,
+                                            member_id=each_community.member_id.id)
+        if member_state:
+            state=member_state[0].state
+            community_state=each_community.community_id.hide_community
+            # if the community is pilot community and member has shown interest
+
+            if community_state == '3' and state == 8:
+                diff=eligibility_count-community['pending_members_count']
+                if community['pending_members_count'] == 0:
+                    community['member_referral'] = """Refer %s people to become promoter""" % (diff)
+                else:
+                    community['member_referral']="""%s people referred. Refer %s people to become promoter"""%(community['pending_members_count'],diff)
+
+
+            # if the community is pilot community and the member is eligible promoter
+            elif community_state == '3' and state == 9:
+                community['member_referral']="Congratulations you have become a eligible promoter"
+
+
+            # if the community becomes a pilot-active community and member approval is pending
+            elif community_state == '4' and state == 3:
+                community['member_referral'] = "Your request is waiting for approval by promoter"
+
+            # if the community becomes a pilot-active community and member request is approved
+            elif community_state == '4' and state == 4:
+                diff=eligibility_count-community['pending_members_count']
+                if community['pending_members_count'] == 0:
+                    community['member_referral'] = """Refer %s people to become promoter""" % (diff)
+                else:
+                    community['member_referral'] = """%s people referred. Refer %s people to become promoter""" % (
+                    community['pending_members_count'], diff)
         my_community.append(community)
 
     return JsonResponse({'your_communities':my_community})
+
 
 
 
@@ -460,7 +494,7 @@ def join_community_responses(request):
                 referal(ref_id=ref_id, community_id=community_id, interested_member_id=user_id)
     if not ref_id:
         # sending mail to nipun and harsh
-        new_member_request.delay(member_id=user_id, commuinity_id=community_id, ref_id=None)
+         new_member_request.delay(member_id=user_id, commuinity_id=community_id, ref_id=None)
     # inserting in members table if the member status is pending and inserting it to database with status=3
 
     # If the member is declined from the community and he applied again
@@ -1165,6 +1199,8 @@ def pending_members(request,community_id):
     return JsonResponse({'pending_members': pending_requests})
 
 def check_for_member_eligibiity(community_id,member_id):
+
+    '''That return count return you the no of people user referred and has become state 4'''
     # function to check if accepted member is a eligible admin or not
 
     community = Community.objects.get(pk = community_id)
@@ -1379,6 +1415,7 @@ def request_response(request,req_dict=None):
         purpose_card = Collabcard.objects.get(id=community.purpose_collabcard)
 
         unseen_count=Collabcard.objects.filter(community=community).count()
+        count = check_for_member_eligibiity(community_id, member_id)
         if not is_member_engage(community, user.id):
             engage = Member_Engage()
             engage.member_id = user
@@ -1388,9 +1425,12 @@ def request_response(request,req_dict=None):
             engage.updated_at = time.time()
             engage.save()
             update_pending_member_count_in_engage(community)
-
-
-        count = check_for_member_eligibiity(community_id, member_id)
+        else:
+            if community.hide_community == '4':
+                engage=Member_Engage.objects.get(community_id=community,member_id=user)
+                engage.pending_members=count
+                engage.save()
+                update_pending_member_count_in_engage(community)
 
         # send notification
         send_notification_for_join_requests.delay(community_id,True,member_id)
