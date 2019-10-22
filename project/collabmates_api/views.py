@@ -291,7 +291,7 @@ def your_communities(request,user_id):
             if community_state == '3' and state == 8:
                 diff=eligibility_count-community['pending_members_count']
                 if community['pending_members_count'] == 0:
-                    community['member_referral'] = """Please refer %s people to become promoter.""" % (diff)
+                    community['member_referral'] = """Refer %s people to become promoter.""" % (diff)
                 else:
                     community['member_referral']="""You have successfully referred %s members. Please refer %s more to become promoter.r"""%(community['pending_members_count'],diff)
 
@@ -309,7 +309,7 @@ def your_communities(request,user_id):
             elif community_state == '4' and state == 4:
                 diff = eligibility_count - community['pending_members_count']
                 if community['pending_members_count'] == 0:
-                    community['member_referral'] = """Please refer %s people to become promoter.""" % (diff)
+                    community['member_referral'] = """Refer %s people to become promoter.""" % (diff)
                 else:
                     community['member_referral'] = """You have successfully referred %s members. Please refer %s more to become promoter.r""" % (community['pending_members_count'], diff)
             elif community_state == '0' and community['pending_members_count']:
