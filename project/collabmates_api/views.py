@@ -291,9 +291,9 @@ def your_communities(request,user_id):
             if community_state == '3' and state == 8:
                 diff=eligibility_count-community['pending_members_count']
                 if community['pending_members_count'] == 0:
-                    community['member_referral'] = """Refer %s people to become promoter""" % (diff)
+                    community['member_referral'] = """Please refer %s people to become promoter.""" % (diff)
                 else:
-                    community['member_referral']="""%s people referred. Refer %s people to become promoter"""%(community['pending_members_count'],diff)
+                    community['member_referral']="""You have successfully referred %s members. Please refer %s more to become promoter.r"""%(community['pending_members_count'],diff)
 
 
             # if the community is pilot community and the member is eligible promoter
@@ -307,13 +307,16 @@ def your_communities(request,user_id):
 
             # if the community becomes a pilot-active community and member request is approved
             elif community_state == '4' and state == 4:
-                diff=eligibility_count-community['pending_members_count']
+                diff = eligibility_count - community['pending_members_count']
                 if community['pending_members_count'] == 0:
-                    community['member_referral'] = """Refer %s people to become promoter""" % (diff)
+                    community['member_referral'] = """Please refer %s people to become promoter.""" % (diff)
                 else:
-                    community['member_referral'] = """%s people referred. Refer %s people to become promoter""" % (
-                    community['pending_members_count'], diff)
-        my_community.append(community)
+                    community['member_referral'] = """You have successfully referred %s members. Please refer %s more to become promoter.r""" % (community['pending_members_count'], diff)
+            elif community_state == '0' and community['pending_members_count']:
+                community['member_referral']=str(community['pending_members_count']) + " new member requests"
+
+
+            my_community.append(community)
 
     return JsonResponse({'your_communities':my_community})
 
@@ -494,7 +497,7 @@ def join_community_responses(request):
                 referal(ref_id=ref_id, community_id=community_id, interested_member_id=user_id)
     if not ref_id:
         # sending mail to nipun and harsh
-         new_member_request.delay(member_id=user_id, commuinity_id=community_id, ref_id=None)
+        new_member_request.delay(member_id=user_id, commuinity_id=community_id, ref_id=None)
     # inserting in members table if the member status is pending and inserting it to database with status=3
 
     # If the member is declined from the community and he applied again
