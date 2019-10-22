@@ -126,17 +126,17 @@ def new_member_request(member_id,commuinity_id,ref_id=None):
         to_list = ['nipungoyal.iitd@gmail.com','hrshshukl@gmail.com']
     else:
         to_list = ['mahesh61437mahe@gmail.com','rastogi.fresh88@gmail.com']
-    # msg = EmailMultiAlternatives(subject,
-    #                              template,
-    #                              "Collabmates<hello@collabmates.com>",
-    #
-    #                              to_list,
-    #                              )
-    #
-    # msg.attach_alternative(template, "text/html")
-    # return msg.send(fail_silently)
+    msg = EmailMultiAlternatives(subject,
+                                 template,
+                                 "Collabmates<hello@collabmates.com>",
 
-    send_email(subject, template, to=to_list)
+                                 to_list,
+                                 )
+
+    msg.attach_alternative(template, "text/html")
+    return msg.send(fail_silently)
+
+    # send_email(subject, template, to=to_list)
 
 
 
