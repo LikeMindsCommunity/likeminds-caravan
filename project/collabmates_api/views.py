@@ -290,16 +290,17 @@ def your_communities(request,user_id):
 
             if community_state == '3' and state == 8:
                 diff=eligibility_count-community['pending_members_count']
-                if community['pending_members_count'] == 0:
-                    community['member_referral'] = """Refer %s people to become promoter.""" % (diff)
-                else:
+                if community['pending_members_count']:
                     community['member_referral']="""You have successfully referred %s members. Please refer %s more to become promoter.r"""%(community['pending_members_count'],diff)
 
 
             # if the community is pilot community and the member is eligible promoter
             elif community_state == '3' and state == 9:
-                community['member_referral']="Congratulations you have become a eligible promoter"
+                community['member_referral']="You are eligible to become a promoter of this community"
 
+            # if the community is pilot-active and new promoter comes
+            elif community_state == '4' and state == 9:
+                community['member_referral'] = "You are eligible to become a promoter of this community"
 
             # if the community becomes a pilot-active community and member approval is pending
             elif community_state == '4' and state == 3:
@@ -308,9 +309,7 @@ def your_communities(request,user_id):
             # if the community becomes a pilot-active community and member request is approved
             elif community_state == '4' and state == 4:
                 diff = eligibility_count - community['pending_members_count']
-                if community['pending_members_count'] == 0:
-                    community['member_referral'] = """Refer %s people to become promoter.""" % (diff)
-                else:
+                if community['pending_members_count']:
                     community['member_referral'] = """You have successfully referred %s members. Please refer %s more to become promoter.r""" % (community['pending_members_count'], diff)
             elif community_state == '0' and community['pending_members_count']:
                 community['member_referral']=str(community['pending_members_count']) + " new member requests"
@@ -1428,12 +1427,12 @@ def request_response(request,req_dict=None):
             engage.updated_at = time.time()
             engage.save()
             update_pending_member_count_in_engage(community)
-        else:
-            if community.hide_community == '4':
-                engage=Member_Engage.objects.get(community_id=community,member_id=user)
-                engage.pending_members=count
-                engage.save()
-                update_pending_member_count_in_engage(community)
+        # else:
+        #     if community.hide_community == '4':
+        #         engage=Member_Engage.objects.get(community_id=community,member_id=user)
+        #         engage.pending_members=count
+        #         engage.save()
+        #         update_pending_member_count_in_engage(community)
 
         # send notification
         send_notification_for_join_requests.delay(community_id,True,member_id)
