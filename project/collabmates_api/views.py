@@ -253,6 +253,61 @@ def update_last_unseen_in_engage(user='',community='',is_seen=False):
         Member_Engage.objects.filter(community_id=community).filter(~Q(member_id=user)).update(last_unseen_count=collabcard_unseen,updated_at=current_time)
 
 
+def update_referral_text_in_engage_table(community_object):
+
+    '''function to update the referal text in member engage table by taking member engage object'''
+    # getting the state of member
+
+    engage_communities=Member_Engage.objects.filter(community_id=community_object)
+
+    for each_community in engage_communities:
+        community={}
+        community['pending_members_count']=each_community.pending_members
+        community['member_referral']=""
+        member_state = Members.objects.filter(community_id=each_community.community_id.id,
+                                              member_id=each_community.member_id.id)
+        if member_state:
+            state = member_state[0].state
+            community_state = each_community.community_id.hide_community
+            # if the community is pilot community and member has shown interest
+
+            if community_state == '3' and state == 8:
+                diff = eligibility_count - community['pending_members_count']
+                if community['pending_members_count'] == 1:
+                    community['member_referral'] = """You have successfully referred %s member. Please refer %s more to become promoter.""" % (
+                    community['pending_members_count'], diff)
+                elif community['pending_members_count']:
+                    community['member_referral'] = """You have successfully referred %s members. Please refer %s more to become promoter.""" % (
+                    community['pending_members_count'], diff)
+
+
+            # if the community is pilot community and the member is eligible promoter
+            elif community_state == '3' and state == 9:
+                community['member_referral'] = "You are eligible to become a promoter of this community"
+
+            # if the community is pilot-active and new promoter comes
+            elif community_state == '4' and state == 9:
+                community['member_referral'] = "You are eligible to become a promoter of this community"
+
+            # if the community becomes a pilot-active community and member approval is pending
+            elif community_state == '4' and state == 3:
+                community['member_referral'] = "Your request is waiting for approval by promoter"
+
+            # if the community becomes a pilot-active community and member request is approved
+            elif community_state == '4' and state == 4:
+                diff = eligibility_count - community['pending_members_count']
+                if community['pending_members_count'] == 1:
+                    community['member_referral'] = """You have successfully referred %s member. Please refer %s more to become promoter.""" % (
+                        community['pending_members_count'], diff)
+                elif community['pending_members_count']:
+                    community[
+                        'member_referral'] = """You have successfully referred %s members. Please refer %s more to become promoter.""" % (
+                        community['pending_members_count'], diff)
+            elif community_state == '0' and community['pending_members_count']:
+                community['member_referral'] = str(community['pending_members_count']) + " new member requests"
+
+            each_community.member_referral=community['member_referral']
+            each_community.save()
 
 
 # /api/your_communities/member_id?member_id=
@@ -280,45 +335,11 @@ def your_communities(request,user_id):
             collabcard['member']=UserinfoSerializer(user.userinfo)
             community['collabcard']=collabcard
 
-        # getting the state of member
-        member_state=Members.objects.filter(community_id=each_community.community_id.id,
-                                            member_id=each_community.member_id.id)
-        if member_state:
-            state=member_state[0].state
-            community_state=each_community.community_id.hide_community
-            # if the community is pilot community and member has shown interest
-
-            if community_state == '3' and state == 8:
-                diff=eligibility_count-community['pending_members_count']
-                if community['pending_members_count']:
-                    community['member_referral']="""You have successfully referred %s members. Please refer %s more to become promoter.r"""%(community['pending_members_count'],diff)
-
-
-            # if the community is pilot community and the member is eligible promoter
-            elif community_state == '3' and state == 9:
-                community['member_referral']="You are eligible to become a promoter of this community"
-
-            # if the community is pilot-active and new promoter comes
-            elif community_state == '4' and state == 9:
-                community['member_referral'] = "You are eligible to become a promoter of this community"
-
-            # if the community becomes a pilot-active community and member approval is pending
-            elif community_state == '4' and state == 3:
-                community['member_referral'] = "Your request is waiting for approval by promoter"
-
-            # if the community becomes a pilot-active community and member request is approved
-            elif community_state == '4' and state == 4:
-                diff = eligibility_count - community['pending_members_count']
-                if community['pending_members_count']:
-                    community['member_referral'] = """You have successfully referred %s members. Please refer %s more to become promoter.r""" % (community['pending_members_count'], diff)
-            elif community_state == '0' and community['pending_members_count']:
-                community['member_referral']=str(community['pending_members_count']) + " new member requests"
-
-
-            my_community.append(community)
+        if each_community.member_referral:
+            community['member_referral']=each_community.member_referral
+        my_community.append(community)
 
     return JsonResponse({'your_communities':my_community})
-
 
 
 
@@ -566,6 +587,8 @@ def join_community_responses(request):
             info_logger.info(
                 """Members engage table updated  where ref_id=%s and community_id=%s""" % (
                     user_id, community_id))
+
+    update_referral_text_in_engage_table(community)
     return JsonResponse({'success':True})
 
 
@@ -1057,7 +1080,7 @@ def create_card(request):
             engage.last_unseen_conversation = card
             engage.updated_at = time.time()
             engage.save()
-
+        update_referral_text_in_engage_table(community)
         return JsonResponse({'success':True,'collabcard':collabcard})
     return JsonResponse({'success':False})
 
@@ -1427,6 +1450,7 @@ def request_response(request,req_dict=None):
             engage.updated_at = time.time()
             engage.save()
             update_pending_member_count_in_engage(community)
+            update_referral_text_in_engage_table(community)
         # else:
         #     if community.hide_community == '4':
         #         engage=Member_Engage.objects.get(community_id=community,member_id=user)
@@ -2373,9 +2397,7 @@ def accept_promotership(request):
     member_id=res['member_id']
     value=res['value']
     all_members=Members.objects.filter(community_id=community_id)
-
-
-
+    community = Community.objects.get(id=community_id)
     if value:
 
         if 'member_ids' not in res or not res['member_ids']:
@@ -2398,12 +2420,11 @@ def accept_promotership(request):
                 request_response(request,req_dict)
             else:
                 Members.objects.filter(community_id=community_id,member_id=member.member_id.id).update(state=3)
-                try:
-                    community=Community.objects.get(id=community_id)
-                    update_pending_member_count_in_engage(community)
-                except:
-                    print("Error for member engage update")
 
+
+    #update member engage table enteries
+    update_pending_member_count_in_engage(community)
+    update_referral_text_in_engage_table(community)
     update_member_count(community_id)
     return JsonResponse({'success':True})
 
