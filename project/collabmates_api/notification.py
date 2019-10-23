@@ -17,11 +17,13 @@ db_port=settings.DATABASES['default']['PORT']
 db_database=settings.DATABASES['default']['NAME']
 
 
-
+url=settings.URL
 
 # server keys for sending notification
-
-server_key = 'AAAAllezPSk:APA91bEYRnVqZGMS_YNTDwu4wJfQfbubN7jQtwvdAyZI6XvoRIjQPii9kj2joizPGJ8GhcoXpcIF5ftsZ-zyBuY9WzqS48b2JCZ51Lv8K9L56gMwBjLsW7tDSfntEqMtAQ9f8f024M5P'
+if url == "https://beta.collabmates.com":
+    server_key='AAAA5QiC06o:APA91bGK2e3Y9r2g5VXnJIwK7OJ8pliwpXs_cwayEJ2D32Dfn5TcXpiUJDJNw7w-NqSdUH93FrX5xFie8KfpQORigfSuNlDVXxgi1nt9FcB7y5e5f0428jRKX35vti3R-BhxzMc9yrj_'
+else:
+    server_key = 'AAAAllezPSk:APA91bEYRnVqZGMS_YNTDwu4wJfQfbubN7jQtwvdAyZI6XvoRIjQPii9kj2joizPGJ8GhcoXpcIF5ftsZ-zyBuY9WzqS48b2JCZ51Lv8K9L56gMwBjLsW7tDSfntEqMtAQ9f8f024M5P'
 
 
 
@@ -71,10 +73,10 @@ def get_community_name(community_id):
 
 def send_notification_to_multiple_devices(token_list,message):
     '''This function is used to send notifications'''
+    result=""
     push_service = FCMNotification(api_key=server_key)
-
-
     result = push_service.notify_multiple_devices(registration_ids=token_list,data_message=message['payload'])
+
     print(result)
 
     return result
