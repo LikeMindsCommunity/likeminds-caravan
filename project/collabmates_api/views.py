@@ -279,6 +279,8 @@ def update_referral_text_in_engage_table(community_object):
                 elif community['pending_members_count']:
                     community['member_referral'] = """You have successfully referred %s members. Please refer %s more to become promoter.""" % (
                     community['pending_members_count'], diff)
+                else:
+                    community['member_referral'] = """Refer %s people to become promoter.""" % (eligibility_count)
 
 
             # if the community is pilot community and the member is eligible promoter
