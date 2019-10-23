@@ -1,11 +1,12 @@
 from django.shortcuts import render,redirect
 from django.http import HttpResponse
 from togther.models import *
+from togther.views import update_user_info
 from django.views.generic import *
 from .forms import *
 from django.db.models import Q
-from django.db.models import F
 import time
+import csv
 from django.template.loader import get_template
 from django.shortcuts import render
 from django.core.mail import EmailMultiAlternatives
@@ -24,46 +25,82 @@ from django.urls import reverse
 from urllib.parse import urlencode
 from utility.utils import (get_city_address, update_tag_image,
                            create_or_categorize_tag, update_user_geography_tags,
-                           insert_user_home_town_tags, update_hometown_tags_for_all_users,)
+                           insert_user_home_town_tags, update_hometown_tags_for_all_users,
+                           user_onbaord)
 url = settings.URL
-
+import logging
 # uncomment to run it in localhost
 # url='http://localhost:8000'
-
+error_logger=logging.getLogger("error_logger")
+info_logger=logging.getLogger("info_logger")
 api_url = url + '/api/'
 
 def dashboard(request):
-  '''function to give list of community to edit'''
+    '''function to give list of community to edit'''
 
-  community_list=Community.objects.all().order_by('-updated_at', '-active_since')
-  dashboard_list=[]
+    select_type=request.GET.get('filter',None)
+    dashboard_list=[]
+    if select_type == 'pilot_live':
+        community_list = Community.objects.filter(hide_community='4').order_by('-updated_at')
+    elif select_type == 'pilot_0_interested':
+        community_list = Community.objects.filter(hide_community='3').filter(members_count=0).order_by('-updated_at')
+    elif select_type == 'pilot_1_interested':
+        community_list = Community.objects.filter(hide_community='3').filter(members_count__gte=1).order_by(
+            '-updated_at')
+    elif select_type == 'user_created':
+        community_list = Community.objects.filter(hide_community='0').order_by('-updated_at')
+    elif select_type == 'members_count_ascending':
+        community_list = Community.objects.order_by('members_count', '-updated_at')
+    elif select_type == 'members_count_descending':
+        community_list = Community.objects.order_by('-members_count', '-updated_at')
+    elif select_type == 'interested_count_ascending':
+        community_list = Community.objects.filter(hide_community='3').order_by('members_count', '-updated_at')
+    elif select_type == 'interested_count_descending':
+        community_list = Community.objects.filter(hide_community='3').order_by('-members_count', '-updated_at')
+    else:
+        community_list = Community.objects.order_by('-updated_at')
 
-  page = request.GET.get('page', 1)
-  paginator = Paginator(community_list, 100)
-  try:
-      community_list = paginator.page(page)
-  except PageNotAnInteger:
-      community_list = paginator.page(1)
-  except EmptyPage:
-      community_list = paginator.page(paginator.num_pages)
+    page = request.GET.get('page', 1)
+    paginator = Paginator(community_list, 10)
+    try:
+        community_list = paginator.page(page)
+    except PageNotAnInteger:
+        community_list = paginator.page(1)
+    except EmptyPage:
+        community_list = paginator.page(paginator.num_pages)
 
-  for i in community_list:
-      community_dic={}
-      if i.hide_community == '2':
-          continue
-      community_dic['id']=i.id
-      community_dic['name']=i.name
-      community_dic['image_url']=i.image_url
-      community_dic['purpose']=i.purpose
-      pending_members_count=Members.objects.filter(community_id=i,state=3).count()
-      community_dic['pending_member_count'] = pending_members_count
-      members_count = Members.objects.filter(community_id=i).filter(Q(state=1)|Q(state=2)|Q(state=4)|Q(state=7)).count()
-      community_dic['members_count'] = members_count
-      community_dic['active_since']=i.active_since
-      community_dic['question_count']=Form_data.objects.filter(community_id=i).count()
-      community_dic['hidden_tags_count']=get_tags_count(i)
-      dashboard_list.append(community_dic)
-  return render(request,'dashboard/dashboard.html',{'communities':dashboard_list,'community':community_list})
+    for i in community_list:
+        community_dic={}
+        if i.hide_community == '2':
+            continue
+        community_dic['id']=i.id
+        community_dic['name']=i.name
+        community_dic['image_url']=i.image_url
+        community_dic['purpose']=i.purpose
+        pending_members_count=Members.objects.filter(community_id=i,state=3).count()
+        community_dic['pending_member_count'] = pending_members_count
+        members_count = Members.objects.filter(community_id=i).filter(Q(state=1)|Q(state=2)|Q(state=4)|Q(state=7)).count()
+        community_dic['members_count'] = members_count
+        community_dic['active_since']=i.active_since
+        community_dic['question_count']=Form_data.objects.filter(community_id=i).count()
+        community_dic['hidden_tags_count']=get_tags_count(i)
+        dashboard_list.append(community_dic)
+
+    #tags_queryset=Tags_lpig.objects.order_by('name')
+    tags=[]
+    # for tag in tags_queryset:
+    #     temp={}
+    #     temp['id']=tag.id
+    #     temp['name']=tag.name
+    #     temp['attribute']=tag.attribute_id.attribute_name
+    #     tags.append(temp)
+
+    context={'communities':dashboard_list,
+             'community':community_list,
+              'tags': tags,
+              'select_type':select_type}
+    info_logger.info(context)
+    return render(request,'dashboard/dashboard.html',context)
 
 
 def get_tags_count(community):
@@ -356,6 +393,16 @@ def all_user(request):
 
     '''dashboard to show all users'''
     userinfo=Userinfo.objects.all().order_by('-user_id')
+
+    page = request.GET.get('page', 1)
+    paginator = Paginator(userinfo, 20)
+    try:
+        userinfo = paginator.page(page)
+    except PageNotAnInteger:
+        userinfo = paginator.page(1)
+    except EmptyPage:
+        userinfo = paginator.page(paginator.num_pages)
+
     users_list = []
     for i in userinfo:
         user_dic = {}
@@ -364,12 +411,28 @@ def all_user(request):
         user_dic['name'] = i.name
         user_dic['email'] = i.email
         user_dic['image_url'] = i.image_file
+
         if i.fcm_token:
             print("has token")
             user_dic['fcm_token'] = 1
+            user_dic['color']='green'
         else:
             print("no token")
             user_dic['fcm_token'] = 0
+            user_dic['color'] = 'Red'
+
+        if i.mobile_os :
+            if i.mobile_os == 'Android':
+                user_dic['os'] = 'Android'
+
+            elif i.mobile_os == 'Both':
+                user_dic['os'] = 'Android and iOS Both'
+            else:
+                user_dic['os'] = 'iOS'
+
+        else:
+            user_dic['os'] = 'Web'
+
         tags = userinfo_tags.objects.filter(user_id=i.user_id.id)
         tags_count = tags.count()
         tags_list=[]
@@ -389,7 +452,7 @@ def all_user(request):
         communities_count = Members.objects.all().filter(member_id=i.user_id).filter(~Q(state=0)).count()
         user_dic['communities_count']=communities_count
         users_list.append(user_dic)
-    return render(request, 'dashboard/all_user.html', {'all_user': users_list})
+    return render(request, 'dashboard/all_user.html', {'all_user': users_list,'paginator':userinfo})
 
 
 def get_user_tags_count(user_id):
@@ -533,7 +596,7 @@ def check_member(email,community_id,member_id,proposed_name):
 
         elif member and (member[0].state == 3 or member[0].state == 5):
             Members.objects.filter(community_id = community,member_id = user[0].user_id.id).update(state=6)
-            send_email_to_nominated_admin.delay(NominatedAdmin=NominatedAdmin, email=email, ProposedAdmin=ProposedAdmin,
+            send_email_to_nominated_admin(NominatedAdmin=NominatedAdmin, email=email, ProposedAdmin=ProposedAdmin,
                                                 proposedAdminState=proposedAdminState, CommunityName=CommunityName,
                                                 community_id=community.id)
             send_notification_to_proposed_admin.delay(nominated_admin_id=NominatedAdmin_id, community_id=community.id,
@@ -594,6 +657,10 @@ def all_members(request,community_id):
             member['state']='Nominated Promoter(already a member)'
         elif i.state == 5:
             member['state']='Declined by Promoter'
+
+        userinfo = Userinfo.objects.filter(user_id=i.member_id)
+        if not userinfo.exists():
+            user = update_user_info(request=None, member_id=i.member_id.id)
 
         image_url=Userinfo.objects.filter(user_id=i.member_id).values('image_file')
         image_url=image_url[0]['image_file']
@@ -702,6 +769,12 @@ def analytics(request):
     conversations_count=Collabcard.objects.all().count()
     responses_count=card_answers.objects.all().count()
 
+    pilot_live = Community.objects.filter(hide_community='4').count()
+    pilot_0_interested = Community.objects.filter(hide_community='3').filter(members_count=0).count()
+    pilot_1_interested = Community.objects.filter(hide_community='3').filter(members_count__gte=1).count()
+    user_created = Community.objects.filter(hide_community='0').count()
+    all_communities = Community.objects.all().count()
+
 
     context={
         'community_count':community_count,
@@ -715,7 +788,13 @@ def analytics(request):
         'responses_count':responses_count,
         'total_promoter_count': total_promoter_count,
         'total_member_count': total_member_count,
-        'pre_created_communities':pre_created_communities
+        'pre_created_communities':pre_created_communities,
+        'pilot_live':pilot_live,
+        'pilot_0_interested': pilot_0_interested,
+        'pilot_1_interested': pilot_1_interested,
+        'user_created': user_created,
+        'all_communities': all_communities,
+
     }
     return render(request,'dashboard/analytics.html',context)
 
@@ -870,7 +949,7 @@ def add_hidden_tags(request):
                         interest_tags=interest_tags,
                         grography_tags=grography_tags)
 
-    compute_rank.delay(community_id=community_id)
+    # compute_rank(community_id=community_id)
 
     return JsonResponse({'success':True})
 
@@ -907,7 +986,11 @@ def save_community_lpig_tags(community_id,legacy_tags,profession_tags,interest_t
             pass
     for tag in comm_tags_list:
         if tag not in legacy_tags:
-            Community_Legacy.objects.filter(tags_id = tag,community_id=community).delete()
+            present_tag = Tags_lpig.objects.get(pk=tag)
+            if present_tag.is_cluster == 1:
+                delete_cluster_related_tags_for_community(cluster_tag_id=tag,community_id=community_id,typ='Legacy')
+            else:
+                Community_Legacy.objects.filter(tags_id = tag,community_id=community).delete()
 
     if len(profession_tags)==0:
         global_profession_tag = Tags_lpig.objects.get(name='profession_any')
@@ -928,8 +1011,11 @@ def save_community_lpig_tags(community_id,legacy_tags,profession_tags,interest_t
             pass
     for tag in comm_tags_list:
         if tag not in profession_tags:
-            tag = Tags_lpig.objects.get(pk=tag)
-            Community_Profession.objects.filter(tags_id = tag,community_id=community).delete()
+            present_tag = Tags_lpig.objects.get(pk=tag)
+            if present_tag.is_cluster == 1:
+                delete_cluster_related_tags_for_community(cluster_tag_id=tag, community_id=community_id, typ='Profession')
+            else:
+                Community_Profession.objects.filter(tags_id = tag,community_id=community).delete()
 
 
     if len(interest_tags)==0:
@@ -952,7 +1038,12 @@ def save_community_lpig_tags(community_id,legacy_tags,profession_tags,interest_t
             pass
     for tag in comm_tags_list:
         if tag not in interest_tags:
-            Community_Interest.objects.filter(tags_id = tag,community_id=community).delete()
+            present_tag = Tags_lpig.objects.get(pk=tag)
+            if present_tag.is_cluster == 1:
+                delete_cluster_related_tags_for_community(cluster_tag_id=tag, community_id=community_id,
+                                                          typ='Interest')
+            else:
+                Community_Interest.objects.filter(tags_id = tag,community_id=community).delete()
 
     if len(grography_tags)==0:
         global_tag = Tags_lpig.objects.get(name='Global')
@@ -975,7 +1066,28 @@ def save_community_lpig_tags(community_id,legacy_tags,profession_tags,interest_t
 
     for tag in comm_tags_list:
         if tag not in grography_tags:
-            Community_Geography.objects.filter(tags_id = tag,community_id=community).delete()
+            present_tag = Tags_lpig.objects.get(pk=tag)
+            if present_tag.is_cluster == 1:
+                delete_cluster_related_tags_for_community(cluster_tag_id=tag, community_id=community_id,
+                                                          typ='Geography')
+            else:
+                Community_Geography.objects.filter(tags_id = tag,community_id=community).delete()
+
+
+def delete_cluster_related_tags_for_community(cluster_tag_id,community_id,typ):
+    cluster_list = get_cluster_tags(cluster_tag_id)
+    for tag in cluster_list:
+
+        if typ == 'Legacy':
+            tag = Community_Legacy.objects.filter(tags_id=tag, community_id=community_id)
+        elif typ == 'Profession':
+            tag = Community_Profession.objects.filter(tags_id=tag, community_id=community_id)
+        elif typ == 'Interest':
+            tag = Community_Interest.objects.filter(tags_id=tag, community_id=community_id)
+        elif typ == 'Geography':
+            tag = Community_Geography.objects.filter(tags_id=tag, community_id=community_id)
+
+        tag.delete()
 
 
 def get_or_create_tag_attributes_list(tags,tag_type):
@@ -987,27 +1099,44 @@ def get_or_create_tag_attributes_list(tags,tag_type):
     if len(tags) == 1 and tags[0]=='':
         return tags_list
     for each_tag in tags:
+        print('each tag  ===== ',each_tag)
         # attribute = Attributes.objects.filter(Q(attribute_name__icontains=tag_type))[0]
         # tag = Tags_lpig.objects.filter(name = each_tag,attribute_id=attribute)
         tag = Tags_lpig.objects.filter(name = each_tag)
 
-        if len(tag)>0:
+        cluster = False
+        if tag.exists() and tag[0].is_cluster == 1:
+            cluster = True
+            cluster_tags_list = get_cluster_tags(cluster_tag_id=tag[0].id)
+            tags_list = tags_list+cluster_tags_list
+
+        elif len(tag)>0:
             tag=tag[0]
 
         elif len(tag) == 0:
             tag = create_uncategorized_tag(each_tag,tag_type)
 
-        if tag.id not in tags_list:
-            tags_list.append(tag.id)
+        if not cluster:
+            if tag.id not in tags_list:
+                tags_list.append(tag.id)
     return tags_list
+
+
+def get_cluster_tags(cluster_tag_id):
+
+    cluster_tags_list = list(Tags_lpig.objects.filter(cluster_tag_id=cluster_tag_id).distinct('name').values_list('id',flat=True))
+    cluster_tags_list.append(cluster_tag_id)
+    return cluster_tags_list
 
 
 def create_uncategorized_tag(tag,tag_type):
     ''' function to create a un-categorized tag '''
+    print(tag)
 
     new_tag = tag
     new_tag = new_tag.strip().title()
     if new_tag != '':
+
         category = Category.objects.filter(Q(name__icontains=tag_type))[0]
         attribute = Attributes.objects.filter(Q(attribute_name__icontains=tag_type), Q(attribute_name__icontains='Uncategorized'))[0]
         tag = Tags_lpig.objects.filter(name = new_tag)
@@ -1024,7 +1153,7 @@ def create_uncategorized_tag(tag,tag_type):
         if tag_type == 'Geography':
             if tag and not tag.tag_image:
                 tag_name, tag_id = new_tag, tag.id
-                print(" dashboard update tag image at create or get uncategorized tag")
+                error_logger.error(" dashboard update tag image at create or get uncategorized tag")
                 update_tag_image.delay(tag_name=tag_name, tag_id=tag_id)
         return tag
     return None
@@ -1226,11 +1355,35 @@ def create_tag(request):
         category = request.POST.get('category')
         attribute = request.POST.get('attribute')
         new_tag = request.POST.get('new_tag')
-        new_tag = new_tag.strip().title()
+        new_tag = new_tag.strip()
+        tag_type=request.POST.get('tag_type')
+        print(new_tag)
+        if tag_type == "normal_tag":
+            get_or_create_sub_tags(new_tag, category, attribute)
 
-        get_or_create_sub_tags(new_tag, category, attribute)
+        else:
+            cluster_tag = request.POST.getlist('cluster_tags[]')
+            if not cluster_tag:
+                error_logger.error("Invalid Input")
+                return redirect('create_tag')
 
-        return redirect('create_tag')
+            tag=get_or_create_sub_tags(new_tag, category, attribute,cluster=True)
+            bl=False
+            for cluster in cluster_tag:
+                if not bl:
+                    # removing the old cluster tag id
+                    Tags_lpig.objects.filter(cluster_tag_id=tag.tag_id).update(cluster_tag_id=None)
+                    bl=True
+                tag_object=Tags_lpig.objects.filter(id=cluster)
+                if tag_object:
+                    tag_name=tag_object[0].name
+                    print(tag_name)
+                    Tags_lpig.objects.filter(name=tag_name).update(cluster_tag_id=tag.tag_id)
+                else:
+                    error_logger.error("Tag not present for clustering")
+            print("Inserted Successfully")
+        #return redirect('create_tag')
+        return JsonResponse({"success":True})
 
     else:
         categories = Category.objects.filter(~Q(name__icontains = 'ncategorized'))
@@ -1240,21 +1393,48 @@ def create_tag(request):
         geography_attributes  = Attributes.objects.filter(Q(attribute_name__icontains = 'Geography'),~Q(attribute_name__icontains = 'uncategorized'))
         global_attributes = Attributes.objects.filter(Q(attribute_name__icontains='Global'),~Q(attribute_name__icontains = 'uncategorized'))
 
+        clusters=Attributes.objects.filter(Q(id=21)|Q(id=22)|Q(id=23)|Q(id=24))
+        existing_clusters=Tags_lpig.objects.filter(is_cluster=1)
+        all_tags=Tags_lpig.objects.all().order_by('name')
+        tag_set=set()
+        tags=[]
+        cluster_tags=[]
+        for tag in all_tags:
+            temp={}
+            if not tag.name in tag_set and not tag.is_cluster:
+                temp['id']=tag.tag_id
+                temp['name']=tag.name
+                tags.append(temp)
+            if tag.is_cluster:
+                temp={}
+                temp['name']=tag.name
+                temp['clusters']=Tags_lpig.objects.filter(cluster_tag_id=tag.tag_id).distinct('name')
+                cluster_tags.append(temp)
+
+            tag_set.add(tag.name)
+        #print(cluster_tags)
         return render(request, 'dashboard/create_tag.html', {'categories': categories,
                                                      'legacy_attributes': legacy_attributes,
                                                      'profession_attributes': profession_attributes,
                                                      'geography_attributes': geography_attributes,
                                                      'interests_attributes': interests_attributes,
-                                                     'global_attributes': global_attributes, })
+                                                     'global_attributes': global_attributes,'tags':tags,
+                                                     'clusters':clusters,'existing_clusters':existing_clusters,
+                                                     'clustered_tags':cluster_tags, })
 
-
-def get_or_create_sub_tags(new_tag,category,attribute):
+def get_or_create_sub_tags(new_tag,category,attribute,cluster=False):
 
     ''' function to create sub tags with known category and attribute  '''
     category = Category.objects.get(id=category)
     attribute = Attributes.objects.get(id=attribute)
     try:
-        tag = Tags_lpig.objects.get(name=new_tag,attribute_id = attribute)
+        if not cluster:
+            tag = Tags_lpig.objects.get(name__iexact=new_tag,attribute_id = attribute)
+        else:
+            tag = Tags_lpig.objects.get(name__iexact=new_tag)
+            tag.attribute_id=attribute
+            tag.is_cluster=1
+            tag.save()
     except:
 
         tag = Tags_lpig()
@@ -1264,21 +1444,31 @@ def get_or_create_sub_tags(new_tag,category,attribute):
         tag.save()
         tag.tag_id =tag.id
         tag.save()
+        if cluster:
+            tag.is_cluster=1
+            tag.save()
+        if not cluster:
+            if category.name == 'Geography' or attribute.id == 3:
+                if tag and not tag.tag_image:
+                    tag_id,tag_name = tag.id,tag.name
+                    update_tag_image(tag_id=tag_id,tag_name=tag_name)
 
-    if category.name == 'Geography' or attribute.id == 3:
 
-        geography_list = get_city_address(city=new_tag)
-        print(new_tag,"  >>>>>  ",geography_list)
+    if not cluster:
+        if category.name == 'Geography' or attribute.id == 3:
+
+            geography_list = get_city_address(city=new_tag)
+            print(new_tag,"  >>>>>  ",geography_list)
 
 
-        for attr, tag_name in geography_list.items():
-            print(attr,tag_name)
-            if tag_name == '':
-                continue
-            # creating or catgorizing a tag with known category and attribute
-            # geography tag is created, create its related tags
-            # for example, if gurgaon is created, create Haryana and India as well as state and country
-            tag = create_or_categorize_tag(tag=tag_name, category='Geography', attribute=attr)
+            for attr, tag_name in geography_list.items():
+                print(attr,tag_name)
+                if tag_name == '':
+                    continue
+                # creating or catgorizing a tag with known category and attribute
+                # geography tag is created, create its related tags
+                # for example, if gurgaon is created, create Haryana and India as well as state and country
+                tag = create_or_categorize_tag(tag=tag_name, category='Geography', attribute=attr)
 
     return tag
 
@@ -1349,15 +1539,29 @@ def update_uncategorize_tag(uncategorized, category, attribute):
 
     category = Category.objects.get(id=category)
     attribute = Attributes.objects.get(id=attribute)
-
-    tag = Tags_lpig.objects.get(id  = uncategorized)
-    tag.attribute_id = attribute
-    tag.category_id = category
-    tag.save()
+    deleted = False
+    tag = Tags_lpig.objects.get(id=uncategorized)
+    tags = Tags_lpig.objects.filter(name=tag.name,attribute_id = attribute)
+    if tags.exists():
+        tag.delete()
+        deleted = True
+    if not deleted:
+        tag.attribute_id = attribute
+        tag.category_id = category
+        tag.save()
 
     if attribute.id == 3:
         tag_id = tag.id
+        if tag and not tag.tag_image:
+            tag_name = tag.name
+            update_tag_image(tag_id=tag_id, tag_name=tag_name)
         update_hometown_tags_for_all_users.delay(tag_id)
+
+    elif category.name == 'Geography':
+        if tag and not tag.tag_image:
+            tag_id = tag.id
+            tag_name = tag.name
+            update_tag_image.delay(tag_id=tag_id,tag_name=tag_name)
 
     return tag.tag_id
 
@@ -1477,7 +1681,7 @@ def add_user_tags(request):
     return JsonResponse({'success':True})
 
 
-def save_user_lpig_tags(user_id,legacy_tags,profession_tags,interest_tags,greography_tags):
+def  save_user_lpig_tags(user_id,legacy_tags,profession_tags,interest_tags,greography_tags):
 
     ''' function to update or create and delete users L,P,I,G tags '''
 
@@ -1494,11 +1698,11 @@ def save_user_lpig_tags(user_id,legacy_tags,profession_tags,interest_tags,greogr
             # dont have to do anything
             tag = Tags_lpig.objects.get(pk=each_tag)
 
-            if tag and ((tag.attribute_id.id >= 12 and tag.attribute_id.id <= 15) or tag.attribute_id.id == 3):
-                print("inside user home town updte tags -------------> ")
-                tag = insert_user_home_town_tags(user_id=user_id, tag=str(tag.id))
-                tag_id = tag.id
-                update_hometown_tags_for_all_users.delay(tag_id)
+            # if tag and ((tag.attribute_id.id >= 12 and tag.attribute_id.id <= 15) or tag.attribute_id.id == 3):
+            #     print("inside user home town updte tags -------------> ")
+            #     tag = insert_user_home_town_tags(user_id=user_id, tag=str(tag.id))
+            #     tag_id = tag.id
+            #     update_hometown_tags_for_all_users.delay(tag_id)
 
         elif not each_tag in user_tags_list:
 
@@ -1527,7 +1731,10 @@ def save_user_lpig_tags(user_id,legacy_tags,profession_tags,interest_tags,greogr
 
             tag = User_Legacy.objects.filter(tags_id=tag, user_id=user)
 
-            if str(tag[0].tags_id.id) != '15':
+            if tag[0].tags_id.is_cluster == 1:
+                delete_cluster_related_tags_for_users(cluster_tag_id=tag[0].tags_id.id, user_id=user, typ='Legacy')
+
+            elif str(tag[0].tags_id.id) != '15':
                 tag.delete()
 
     # profession tags update --------------------------------->
@@ -1562,7 +1769,12 @@ def save_user_lpig_tags(user_id,legacy_tags,profession_tags,interest_tags,greogr
 
             tag = User_Profession.objects.filter(tags_id=tag, user_id=user)
 
-            if str(tag[0].tags_id.id) != '16':
+
+            if tag[0].tags_id.is_cluster == 1:
+                delete_cluster_related_tags_for_users(cluster_tag_id=tag[0].tags_id.id, user_id=user, typ='Profession')
+
+
+            elif str(tag[0].tags_id.id) != '16':
                 tag.delete()
 
     # interests tags update --------------------------------->
@@ -1595,7 +1807,12 @@ def save_user_lpig_tags(user_id,legacy_tags,profession_tags,interest_tags,greogr
 
             tag = User_Interest.objects.filter(tags_id=tag, user_id=user)
 
-            if str(tag[0].tags_id.id) != '17':
+
+            if tag[0].tags_id.is_cluster == 1:
+                delete_cluster_related_tags_for_users(cluster_tag_id=tag[0].tags_id.id, user_id=user, typ='Interest')
+
+
+            elif str(tag[0].tags_id.id) != '17':
                 tag.delete()
 
     # geography tags update --------------------------------->
@@ -1630,11 +1847,31 @@ def save_user_lpig_tags(user_id,legacy_tags,profession_tags,interest_tags,greogr
 
             tag = User_Geography.objects.filter(tags_id=tag, user_id=user)
 
-            if str(tag[0].tags_id.id) != '18':
+
+            if tag[0].tags_id.is_cluster == 1:
+                delete_cluster_related_tags_for_users(cluster_tag_id=tag[0].tags_id.id, user_id=user, typ='Geography')
+
+
+            elif str(tag[0].tags_id.id) != '18':
                 tag.delete()
     # update user geography tags with images and tag related things like state and country
     update_user_geography_tags(user_id=user_id, typ='Geography')
 
+
+def delete_cluster_related_tags_for_users(cluster_tag_id,user_id,typ):
+    cluster_list = get_cluster_tags(cluster_tag_id)
+    for tag in cluster_list:
+
+        if typ == 'Legacy':
+            tag = User_Legacy.objects.filter(tags_id=tag, user_id=user_id)
+        elif typ == 'Profession':
+            tag = User_Profession.objects.filter(tags_id=tag, user_id=user_id)
+        elif typ == 'Interest':
+            tag = User_Interest.objects.filter(tags_id=tag, user_id=user_id)
+        elif typ == 'Geography':
+            tag = User_Geography.objects.filter(tags_id=tag, user_id=user_id)
+
+        tag.delete()
 
 def map_tags(request):
 
@@ -1654,7 +1891,6 @@ def map_tags(request):
     uncategorized_tag.tag_id = mapped_tag.id
     uncategorized_tag.save()
 
-    compute_rank.delay()
     return JsonResponse({'success': True})
 
 
@@ -2190,7 +2426,7 @@ def delete_tags_post(request,tag_id):
                     continue
                 tag_deleted = False
 
-    # if tag_deketed flag is true , then delete tag and users tags
+
     tag_community.delete()
     user_tags.delete()
     tags.delete()
@@ -2247,4 +2483,499 @@ def rename_tag(request,tag_id = None):
 
         return redirect(url)
 
+
+def search(request,tag_ids):
+
+    ''' function to fetch communities with searched tag '''
+
+    print("\n inside search    =====   ",type(tag_ids),tag_ids)
+    tag = Tags_lpig.objects.get(pk = tag_ids)
+
+    community_list = []
+
+    if tag.category_id.id == 1:
+        community_list = Community_Legacy.objects.filter(tags_id = tag).values_list('community_id', flat=True)
+
+    elif tag.category_id.id == 2:
+        community_list = Community_Profession.objects.filter(tags_id = tag).values_list('community_id', flat=True)
+
+    elif tag.category_id.id == 3:
+        community_list = Community_Interest.objects.filter(tags_id = tag).values_list('community_id', flat=True)
+
+    elif tag.category_id.id == 4:
+        community_list = Community_Geography.objects.filter(tags_id = tag).values_list('community_id', flat=True)
+
+    dashboard_list = []
+
+    page = request.GET.get('page', 1)
+    paginator = Paginator(community_list, 20)
+    try:
+        community_list = paginator.page(page)
+    except PageNotAnInteger:
+        community_list = paginator.page(1)
+    except EmptyPage:
+        community_list = paginator.page(paginator.num_pages)
+
+    for i in community_list:
+        print(i)
+        community = Community.objects.get(pk = i)
+        community_dic = {}
+        if community.hide_community == '2':
+            continue
+        community_dic['id'] = community.id
+        community_dic['name'] = community.name
+        community_dic['image_url'] = community.image_url
+        community_dic['purpose'] = community.purpose
+        pending_members_count = Members.objects.filter(community_id=community, state=3).count()
+        community_dic['pending_member_count'] = pending_members_count
+        members_count = Members.objects.filter(community_id=community).filter(
+            Q(state=1) | Q(state=2) | Q(state=4) | Q(state=7)).count()
+        community_dic['members_count'] = members_count
+        community_dic['active_since'] = community.active_since
+        community_dic['question_count'] = Form_data.objects.filter(community_id=community).count()
+        community_dic['hidden_tags_count'] = get_tags_count(community)
+        dashboard_list.append(community_dic)
+
+    tags = Tags_lpig.objects.all()
+    return render(request, 'dashboard/search_results.html', {'communities': dashboard_list,
+                                                        'community': community_list,
+                                                        'tags': tags,'communities_length':len(dashboard_list) })
+
+
+##############  dashboard metrics   ###########
+
+def metrics(request):
+
+    '''This function returns the metrics'''
+    return render(request, 'dashboard/metrics.html', {})
+
+
+def community_metrics(request):
+
+    '''The function created a community metrics'''
+
+    community_list = Community.objects.order_by('-updated_at', '-active_since')
+    page = request.GET.get('page', 1)
+    paginator = Paginator(community_list, 10)
+    try:
+        community_list = paginator.page(page)
+    except PageNotAnInteger:
+        community_list = paginator.page(1)
+    except EmptyPage:
+        community_list = paginator.page(paginator.num_pages)
+
+    communities=[]
+
+    for community in community_list:
+        temp={}
+        temp['name']=community.name
+        temp['total_members']=community.members_count
+        state=community.hide_community
+        if state == '0' or state == '4':
+            temp['status']="Live"
+        elif state == '3':
+            temp['status']="Pilot"
+        else:
+            continue
+        temp['tags']=community.id
+        temp['created_at']=time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(community.created_at))
+        temp['last_activity_date']=time.strftime('%Y-%m-%d    %H:%M:%S', time.localtime(community.updated_at))
+        temp['collabcard_count']=Collabcard.objects.filter(community_id=community.id).count()
+        temp['tags_count']=get_tags_count(community)
+        communities.append(temp)
+
+    context={
+        'communities':communities,
+        'community': community_list
+    }
+
+    return render(request, 'dashboard/community_metrics.html', context)
+
+
+def hidden_tags_for_metrcis(request,community_id):
+
+    '''function to show hidden tags'''
+
+    community = Community.objects.get(pk = community_id)
+
+    legacy_tags = list(Tags_lpig.objects.filter(category_id__id = '1').values_list('name', flat=True))
+    profession_tags = list(Tags_lpig.objects.filter(category_id__id = '2').values_list('name', flat=True))
+    interests_tags = list(Tags_lpig.objects.filter(category_id__id = '3').values_list('name', flat=True))
+    geography_tags = list(Tags_lpig.objects.filter(category_id__id = '4').values_list('name', flat=True))
+
+
+    # hidden_tags = Community_LPIG.objects.filter(community_id=community_id)
+
+    hidden_legacy_tags = list(Community_Legacy.objects.filter(community_id=community).values_list('tags_id', flat=True))
+    hidden_profession_tags = list(Community_Profession.objects.filter(community_id=community).values_list('tags_id', flat=True))
+    hidden_interests_tags = list(Community_Interest.objects.filter(community_id=community).values_list('tags_id', flat=True))
+    hidden_geography_tags = list(Community_Geography.objects.filter(community_id=community).values_list('tags_id', flat=True))
+
+
+    hidden_legacy_tag = ''
+    hidden_profession_tag = ''
+    hidden_interests_tag = ''
+    hidden_geography_tag = ''
+
+
+    for tag in hidden_legacy_tags:
+        global_tag = Tags_lpig.objects.get(name='legacy_any')
+        if tag == global_tag.id:
+            continue
+        try:
+            tag_object = Tags_lpig.objects.get(pk=tag)
+            hidden_legacy_tag=hidden_legacy_tag+tag_object.name+","
+        except:
+            pass
+
+    for tag in hidden_profession_tags:
+        global_tag = Tags_lpig.objects.get(name='profession_any')
+        if tag == global_tag.id:
+            continue
+        try:
+            tag_object = Tags_lpig.objects.get(pk=tag)
+            hidden_profession_tag=hidden_profession_tag+tag_object.name+","
+        except:
+            pass
+
+
+    for tag in hidden_interests_tags:
+        global_tag = Tags_lpig.objects.get(name='interest_any')
+        if tag == global_tag.id:
+            continue
+        try:
+            tag_object = Tags_lpig.objects.get(pk=tag)
+            hidden_interests_tag=hidden_interests_tag+tag_object.name+","
+        except:
+            pass
+
+
+    for tag in hidden_geography_tags:
+        global_tag = Tags_lpig.objects.get(name='Global')
+        if tag == global_tag.id:
+            continue
+        try:
+            tag_object = Tags_lpig.objects.get(pk=tag)
+            hidden_geography_tag = hidden_geography_tag+tag_object.name+","
+        except:
+            pass
+
+    context={
+        'legacy_tags':legacy_tags,
+        'profession_tags':profession_tags,
+        'interests_tags':interests_tags,
+        'geography_tags':geography_tags,
+        'hidden_legacy_tag':hidden_legacy_tag,
+        'hidden_profession_tag': hidden_profession_tag,
+        'hidden_interests_tag': hidden_interests_tag,
+        'hidden_geography_tag': hidden_geography_tag,
+        'community_id':community_id,
+        'community_name':community.name
+    }
+
+    return render(request,'dashboard/tags_metrics.html',context)
+
+
+def community_metrics_filter(request):
+    '''The function created a community metrics'''
+
+    select_type=request.GET.get('filter',None)
+
+    if select_type=='pilot_live':
+        community_list = Community.objects.filter(hide_community='4').order_by('-updated_at')
+    elif select_type=='pilot_0_interested':
+        community_list = Community.objects.filter(hide_community='3').filter(members_count=0).order_by('-updated_at')
+    elif select_type=='pilot_1_interested':
+        community_list = Community.objects.filter(hide_community='3').filter(members_count__gte=1).order_by('-updated_at')
+    elif select_type == 'user_created':
+        community_list = Community.objects.filter(hide_community='0').order_by('-updated_at')
+    elif select_type == 'members_count_ascending':
+        community_list = Community.objects.order_by('members_count','-updated_at')
+    elif select_type == 'members_count_descending':
+        community_list = Community.objects.order_by( '-members_count','-updated_at')
+    elif select_type == 'interested_count_ascending':
+        community_list = Community.objects.filter(hide_community='3').order_by('members_count','-updated_at')
+    elif select_type == 'interested_count_descending':
+        community_list = Community.objects.filter(hide_community='3').order_by( '-members_count','-updated_at')
+    else:
+        community_list = Community.objects.order_by('-updated_at')
+
+    page = request.GET.get('page', 1)
+    paginator = Paginator(community_list, 20)
+    try:
+        community_list = paginator.page(page)
+    except PageNotAnInteger:
+        community_list = paginator.page(1)
+    except EmptyPage:
+        community_list = paginator.page(paginator.num_pages)
+
+    communities = []
+
+    for community in community_list:
+        temp = {}
+        temp['name'] = community.name
+        temp['total_members'] = community.members_count
+        state = community.hide_community
+        if state == '0' or state == '4':
+            temp['status'] = "Live"
+        elif state == '3':
+            temp['status'] = "Pilot"
+            temp['total_members'] =community.members_count
+        else:
+            continue
+
+
+        temp['tags'] = community.id
+        temp['created_at'] = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(community.created_at))
+        temp['last_activity_date'] = time.strftime('%Y-%m-%d    %H:%M:%S', time.localtime(community.updated_at))
+        temp['collabcard_count'] = Collabcard.objects.filter(community_id=community.id).count()
+        temp['tags_count'] = get_tags_count(community)
+        temp['url']=url+"/community/"+str(community.id)
+
+
+        communities.append(temp)
+
+    context = {
+        'communities': communities,
+        'community': community_list,
+        'select_type':select_type
+    }
+
+    return render(request, 'dashboard/community_metrics.html', context)
+
+
+
+############# user metrics ################
+
+def user_metrics(request):
+
+    '''The function created a community metrics'''
+
+    userinfo = Userinfo.objects.order_by('-user_id')
+    page = request.GET.get('page', 1)
+    paginator = Paginator(userinfo, 20)
+    try:
+        user_list = paginator.page(page)
+    except PageNotAnInteger:
+        user_list = paginator.page(1)
+    except EmptyPage:
+        user_list = paginator.page(paginator.num_pages)
+
+    users=[]
+
+    for user in user_list:
+        temp={}
+        temp['name']=user.name
+        member_of=Members.objects.filter(member_id=user.user_id.id)
+
+        if len(member_of) == 1:
+            status=member_of[0].community_id.name
+        elif len(member_of) == 0:
+            status="0"
+        else:
+            status="csv_file"
+        temp['status']=status
+
+        temp['count_of_joined_community']=Members.objects.filter(member_id=user.user_id.id)\
+            .filter(Q(state=1)|Q(state=2)|Q(state=4)).count()
+        temp['count_of_interested_community'] = Members.objects.filter(member_id=user.user_id.id) \
+            .filter(Q(state=8) | Q(state=9)).count()
+        temp['refered_count']=Referal.objects.filter(member=user.user_id.id).count()
+
+        referrer=Referal.objects.filter(invited_member=user.user_id.id).order_by('id').first()
+        if referrer:
+           temp['referrer']=referrer.member.userinfo.name
+        else:
+            temp['referrer']="NA"
+
+        is_promoter=Members.objects.filter(member_id=user.user_id.id).filter(state=1)
+        if is_promoter:
+            temp['is_promoter']="Y"
+        else:
+            temp['is_promoter']="N"
+
+        if user.mobile_os == "Android":
+            temp['has_android']="Yes"
+        else:
+            temp['has_android']="No"
+
+        if user.fcm_token:
+            temp['fcm_token']=True
+        else:
+            temp['fcm_token']=False
+
+        if user.created_at < 0:
+            temp['created_at']="NA"
+        else:
+            temp['created_at']=time.strftime('%Y-%m-%d    %H:%M:%S', time.localtime(user.created_at))
+        temp['id']=user.user_id.id
+        commmunities = Community_Rank.objects.filter(member_id=user.user_id)
+
+        if commmunities:
+            temp['relevance']=True
+        else:
+            temp['relevance']=False
+        temp['onboarding'] = user_onbaord(user.user_id.id)
+        users.append(temp)
+
+
+
+    context={
+        'users':users,
+        'user':user_list
+    }
+    return render(request, 'dashboard/user_metrics.html', context)
+
+
+
+def getfile(request,member_id):
+    '''function to create a csv'''
+    members=Members.objects.filter(member_id=member_id)
+    member_list=[]
+    for member in members:
+
+        temp={}
+        temp['name']=member.member_id.userinfo.name
+        temp['community_name']=member.community_id.name
+        state=member.state
+        if state:
+            if state == 1:
+                temp['state'] = 'Promoter'
+            elif state == 4:
+                temp['state'] = 'Member'
+            elif state == 8:
+                temp['state'] = 'Interested Member'
+            elif state == 9:
+                temp['state'] = 'Eligible Promoter'
+            else:
+                continue
+            member_list.append(temp)
+
+    if member_list:
+        response = HttpResponse(content_type='text/csv')
+        file_name=member_list[0]['name']
+        response['Content-Disposition'] = """attachment; filename=%s"""%(file_name)
+        writer = csv.writer(response)
+
+        writer.writerow(['UserName', 'Community', 'Status'])
+
+        for member in member_list:
+            #print(member)
+            writer.writerow([member['name'],member['community_name'], member['state']])
+        return response
+
+    return HttpResponse("")
+
+
+def get_relevant_communities_file(request,member_id):
+
+    '''function to create a csv of relevant communities'''
+
+    commmunities=Community_Rank.objects.filter(member_id=member_id)
+    userinfo=Userinfo.objects.get(user_id=member_id)
+    community_list=[]
+    for community in commmunities:
+        temp={}
+        temp['name']=community.community_id.name
+        community_list.append(temp)
+    if community_list:
+        response = HttpResponse(content_type='text/csv')
+        file_name=str(userinfo.name)+"_relevant_communities"
+        response['Content-Disposition'] = """attachment; filename=%s"""%(file_name)
+        writer = csv.writer(response)
+
+        writer.writerow(['Communities'])
+
+        for data in community_list:
+            #print(member)
+            writer.writerow([data['name']])
+        return response
+
+    return HttpResponse("No Relevant Commmunities")
+
+
+def onboarding_metrics(request):
+
+    '''The function created a community metrics'''
+
+    userinfo = Userinfo.objects.order_by('-user_id')
+    page = request.GET.get('page', 1)
+    paginator = Paginator(userinfo, 20)
+    try:
+        user_list = paginator.page(page)
+    except PageNotAnInteger:
+        user_list = paginator.page(1)
+    except EmptyPage:
+        user_list = paginator.page(paginator.num_pages)
+
+    users=[]
+
+    for user in user_list:
+        temp={}
+        temp['name']=user.name
+
+        if user.fcm_token:
+            temp['fcm_token']=True
+        else:
+            temp['fcm_token']=False
+
+        # temp['id']=user.user_id.id
+        temp['onboarding'] = user_onbaord(user.user_id.id)
+        users.append(temp)
+
+
+
+    context={
+        'users':users,
+        'user':user_list
+    }
+    return render(request, 'dashboard/onboarding_metrics.html', context)
+
+
+def map_all_tags(request):
+    ''' fucntion to map a tag to other tag and categorize it  '''
+
+    if request.method == 'GET':
+        tags = Tags_lpig.objects.filter(~Q(attribute_id__id=16)|~Q(attribute_id__id=17)|
+                                        ~Q(attribute_id__id=18)|~Q(attribute_id__id=19)|
+                                        ~Q(attribute_id__id=20))
+        return render(request, 'dashboard/map_all_tag.html', {'tags':tags})
+    else:
+        selected_tag = request.POST.get('selected_tag')
+        map_tag_to = request.POST.get('map_tag_to')
+        categorized_tag = Tags_lpig.objects.get(pk = selected_tag)
+        mapped_tag = Tags_lpig.objects.get(pk=map_tag_to)
+
+        # mapping the uncategorized tag to the mapped tag and
+        # categorizing it accroding to the mapped tag
+
+        categorized_tag.category_id = mapped_tag.category_id
+        categorized_tag.attribute_id = mapped_tag.attribute_id
+        categorized_tag.tag_id = mapped_tag.id
+        categorized_tag.save()
+
+        category=mapped_tag.category_id.id
+        tag_id=selected_tag
+        correct_tag_id=map_tag_to
+
+
+
+        if category is 1:
+            User_Legacy.objects.filter(tags_id=tag_id).update(correct_tag_id=correct_tag_id)
+            Community_Legacy.objects.filter(tags_id=tag_id).update(correct_tag_id=correct_tag_id)
+        elif category is 2:
+            User_Profession.objects.filter(tags_id=tag_id).update(correct_tag_id=correct_tag_id)
+            Community_Profession.objects.filter(tags_id=tag_id).update(correct_tag_id=correct_tag_id)
+        elif category is 3:
+            User_Interest.objects.filter(tags_id=tag_id).update(correct_tag_id=correct_tag_id)
+            Community_Interest.objects.filter(tags_id=tag_id).update(correct_tag_id=correct_tag_id)
+        elif category is 4:
+            User_Geography.objects.filter(tags_id=tag_id).update(correct_tag_id=correct_tag_id)
+            Community_Geography.objects.filter(tags_id=tag_id).update(correct_tag_id=correct_tag_id)
+
+        #
+        # print()
+
+
+        return JsonResponse({'success': True})
 

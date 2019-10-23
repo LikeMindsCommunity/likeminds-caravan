@@ -1,4 +1,5 @@
-{% load static %}<!DOCTYPE html>
+<!DOCTYPE html>
+{% load static %}
 <html>
   <head>
       <meta charset="utf-8">
@@ -44,24 +45,24 @@
                   </div>
                   <br>
                   <div class="content">
-                      <a href="{% url 'social:begin' 'facebook' %}">
-                  <button class="ui facebook button">
-                      <i class="facebook icon"></i>
-                      Facebook
-                    </button>
-                    </a>
+                          <a href="{% url 'social:begin' 'facebook' %}">
+                              <button class="ui facebook button">
+                                  <i class="facebook icon"></i>
+                                  Facebook
+                              </button>
+                        </a>
                   </div>
                   <br>
                     OR 
                     <br>
                     <br>
                     <div class = "content">
-                        <a href="{% url 'social:begin' 'linkedin-oauth2' %}">
-                    <button class="ui linkedin button" >
-                        <i class="linkedin icon"></i>
-                        LinkedIn
-                      </button>
-                      </a>
+                            <a href="{% url 'social:begin' 'linkedin-oauth2' %}">
+                        <button class="ui linkedin button" >
+                            <i class="linkedin icon"></i>
+                            LinkedIn
+                          </button>
+                          </a>
                     </div>
                </div>
               

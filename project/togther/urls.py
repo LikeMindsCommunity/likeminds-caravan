@@ -3,10 +3,11 @@ from . import views
 
 urlpatterns = [
     path('login/', views.home, name="home"),
+    path('signup/', views.signup, name="signup"),
     path('privacy/', views.privacy, name="privacy"),
     path('terms/', views.terms, name="terms"),
     path('communities/', views.dashboard, name="dashboard"),
-    path('dashboard/<slug:data>', views.dashboard, name="dashboard"),
+    path('dashboard/<slug:data>', views.dashboard, name="dashboard1"),
     path('dashboard/recieved_requests', views.recieved_requests, name="recieved_requests"),
     path('community/<int:community_id>&cta=join', views.join_community, name="join_community"),
     path('requests', views.check_requests,name="check_requests"),

@@ -1,7 +1,32 @@
 {% extends "base.html" %}
 {% load staticfiles %}
-{% block content %}
 
+{% block menu %}
+{% if android or ios %}
+
+{% else %}
+            <div class="right menu" style="float:right; ">
+                {% if user.is_authenticated %}
+                <div class="ui simple dropdown item" style="padding:0;">
+
+                    {% block user_image %}
+                    <img class="ui avatar image" src="{{request.user.userinfo.image_file.url}}"/>
+                    {% endblock %}
+                    <div class="menu">
+
+                        <a class="item" href="{% url 'logout_view' %}">Logout</a>
+                    </div>
+                </div>
+
+                {% else %}
+                <a class="item" id='test'>Signin</a>
+                {% endif %}
+
+            </div>
+{% endif %}
+{% endblock %}
+
+{% block content %}
 
 <!-- css styling -->
  {% block styles %}
@@ -83,10 +108,10 @@
 
 <script>
 
-{% if not request.user.is_authenticated %}
-
+{% if not request.user.is_authenticated and not android and not ios %}
     $(".test").modal('show');
 {% endif %}
+
     $('.ui.dropdown.profession_industry').dropdown({
   allowAdditions: true,
   fullTextSearch: true
@@ -111,19 +136,20 @@ $("#submit").click(function(e){
 
 profession_industry=$('#profession_industry').val()
 
-
+/*
 if(profession_industry == null){
     $('#error_profession_industry').css("display","block")
     return;
 }
-
+*/
 
 profession_skill=$('#profession_skill').val()
+/*
 if(profession_skill == null){
     $('#error_profession_skill').css("display","block")
     return;
 }
-
+*/
 //profession_designation=$('#profession_designation').val()
 profession_designation=""
 
@@ -136,9 +162,14 @@ temp={
 'profession_skill':profession_skill,
 'profession_designation':profession_designation,
 'csrfmiddlewaretoken': '{{ csrf_token }}',
+{% if member_id != None %}
+'member_id' : '{{member_id}}',
+{% endif %}
 
 }
+
 console.log(temp)
+$('#submit').addClass("loading");
 
 {% if request.user.is_authenticated %}
 
@@ -149,14 +180,25 @@ console.log(temp)
         data:temp,
         dataType: "json",
         success:function(data){
-            //console.log(data)
-            {% if community_id != None %}
-            location.href="/onboarding_interest?community_id={{community_id}}"
-            {% elif user_id != None %}
-            location.href="/onboarding_interest?user_id={{user_id}}"
-            {% else %}
-            location.href="/onboarding_interest"
-            {% endif %}
+            console.log(data)
+
+            if(data['industry_error']){
+            $('#error_profession_industry').css("display","block")
+                $('#submit').removeClass("loading");
+                return;
+            }
+            else if(data['skill_error']){
+                $('#error_profession_skill').css("display","block")
+                $('#submit').removeClass("loading");
+                return;
+            }
+            else{
+                {% if community_id != None %}
+                location.href="/onboarding_interest?community_id={{community_id}}"
+                {% else %}
+                location.href="/onboarding_interest"
+                {% endif %}
+            }
 
         }
 
@@ -164,7 +206,42 @@ console.log(temp)
 
     })
 {% else %}
+    {% if android or ios %}
+
+     $.ajax({
+
+        url:"/onboarding_profession",
+        type:"POST",
+        data:temp,
+        dataType: "json",
+        success:function(data){
+            console.log(data)
+
+            if(data['industry_error']){
+            $('#error_profession_industry').css("display","block")
+                $('#submit').removeClass("loading");
+                return;
+            }
+            else if(data['skill_error']){
+                $('#error_profession_skill').css("display","block")
+                $('#submit').removeClass("loading");
+                return;
+            }
+            else{
+                {% if community_id != None %}
+                location.href="/onboarding_interest?community_id={{community_id}}"
+                {% else %}
+                location.href="/onboarding_interest"
+                {% endif %}
+            }
+        }
+
+
+
+    })
+    {% else %}
     $(".test").modal('show');
+    {% endif %}
 {% endif %}
 })
 </script>

@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+{% load static %}
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+          integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+
+    <link rel="stylesheet" type="text/css" href="{% static 'notes/main.css' %}">
+
+   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.13.1/css/bootstrap-select.css" />
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.13.1/js/bootstrap-select.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+<style>
+    .pagination a {
+  color: black;
+  float: left;
+  padding: 8px 16px;
+  text-decoration: none;
+  transition: background-color .3s;
+  border-radius: 5px;
+  border: 1px solid #ddd; /* Gray */
+
+}
+
+.pagination a.active {
+  background-color: #4CAF50;
+  color: white;
+}
+
+.pagination a:hover:not(.active) {background-color: #ddd;}
+
+
+</style>
+
+
+</head>
+
+<br/>
+<h1 align="center">Community Metrics</h1>
+<table>
+    <tr>
+    <td style="padding-left:10px;">
+        <a class="btn btn-warning  mt-1 mb-1 mr-4 "  href="{% url 'admin_dashboard' %}"><i class="fa fa-home" aria-hidden="true"></i>&nbsp;Go to Home</a>
+    </td>
+<td style="padding-left:800px;">
+    <select class="selectpicker" id="select" data-style="btn-info"   data-live-search="true" data-show-subtext="true">
+    <option value="pilot_live" disabled selected>Filter</option>
+    <option value="pilot_live">Live communities (pre-created)</option>
+    <option value="pilot_0_interested">Pilot communities (0 interested)</option>
+    <option value="pilot_1_interested">Pilot communities (1 or more interested)</option>
+   <option value="user_created">User Created</option>
+   <option value="members_count_ascending">Members Count (Ascending)</option>
+   <option value="members_count_descending">Members Count (Descending)</option>
+   <option value="interested_count_ascending">Interested Count (Ascending)</option>
+   <option value="interested_count_descending">Interested Count (Descending)</option>
+
+
+
+   <option value="None">All communities</option>
+
+
+</select>
+</td>
+    </tr>
+</table>
+<br/>
+<table class="table table-bordered" style="display:block">
+    <thead>
+      <tr>
+        <th>Community Name</th>
+        <th>Total Members</th>
+        <th>Status</th>
+        <th>Community Tags</th>
+        <th>Created Date</th>
+        <th>Last Activity Date</th>
+        <th>Count of Unique Conversation Cards</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for community in communities %}
+      <tr>
+          {% if community.status == 'Pilot' %}
+            <td><a href="{{community.url}}" style="color:red">{{community.name}}</a></td>
+            <td>{{community.total_members}} (Interested)</td>
+            <td style="color:red">{{community.status}}</td>
+          {% else %}
+            <td><a href="{{community.url}}" style="color:green">{{community.name}}</a></td>
+            <td>{{community.total_members}}</td>
+            <td style="color:green">{{community.status}}</td>
+          {% endif %}
+        <td><a class="btn btn-info" href="{% url 'hidden_tags_for_metrcis' community.tags %}">Tags({{community.tags_count}})</a></td>
+        <td>{{community.created_at}}</td>
+        <td>{{community.last_activity_date}}</td>
+        <td>{{community.collabcard_count}}</td>
+
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+
+ {% if communities %}
+<div style="padding-left:450px;">
+
+
+<ul class="pagination">
+
+
+{% if community.number|add:'-4' > 1 %}
+    <li><a href="?filter={{select_type}}&page={{ community.number|add:'-5' }}">&hellip;</a></li>
+{% endif %}
+
+{% for i in community.paginator.page_range %}
+    {% if community.number == i %}
+        <li style="border: 1px solid #ddd;border-radius: 5px;padding: 8px 16px;background-color:#f0ad4e;border-color: #eea236;"><span>{{ i }} </span></li>
+    {% elif i > community.number|add:'-5' and i < community.number|add:'5' %}
+        <li><a href="?filter={{select_type}}&page={{ i }}">{{ i }}</a></li>
+    {% endif %}
+{% endfor %}
+
+{% if community.paginator.num_pages > community.number|add:'4' %}
+    <li><a href="?filter={{select_type}}&page={{ community.number|add:'5' }}">&hellip;</a></li>
+{% endif %}
+{% else %}
+    <div align="center">
+        <h3>No Communities</h3>
+    </div>
+{% endif %}
+
+</ul>
+</div>
+</body>
+
+</html>
+<script>
+   $('select').on('change', function() {
+          var val=this.value
+          console.log(val)
+          window.open("./community_metrics_filter?filter="+val,"_self")
+        });
+
+
+</script>

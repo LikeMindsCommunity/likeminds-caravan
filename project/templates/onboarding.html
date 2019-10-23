@@ -2,6 +2,32 @@
 {% load staticfiles %}
 
 
+{% block menu %}
+{% if android or ios %}
+
+{% else %}
+            <div class="right menu" style="float:right; ">
+                {% if user.is_authenticated %}
+                <div class="ui simple dropdown item" style="padding:0;">
+
+                    {% block user_image %}
+                    <img class="ui avatar image" src="{{request.user.userinfo.image_file.url}}"/>
+                    {% endblock %}
+                    <div class="menu">
+
+                        <a class="item" href="{% url 'logout_view' %}">Logout</a>
+                    </div>
+                </div>
+
+                {% else %}
+                <a class="item" id='test'>Signin</a>
+                {% endif %}
+
+            </div>
+{% endif %}
+{% endblock %}
+
+
 {% block content %}
 
  {% block styles %}
@@ -56,18 +82,18 @@
 
 <!-- -->
 <!-- legacy work -->
-<div class="field padd">
-    <div class="form_field">Current/past companies </div>
-    <select name="" multiple="" class="ui search fluid dropdown legacy_work" id="legacy_work">
-      <option value="">Enter all the organization(s)</option>
-      {% for tag in community_legacy_work %}
-      <option value="{{tag.id}}" selected>{{tag.name}}</option>
-        {% endfor %}
-      {% for legacy in legacy_work %}
-        <option value="{{legacy.id}}">{{legacy.name}}</option>
-       {% endfor %}
-    </select>
-</div>
+<!--<div class="field padd">-->
+<!--    <div class="form_field">Current/past companies </div>-->
+<!--    <select name="" multiple="" class="ui search fluid dropdown legacy_work" id="legacy_work">-->
+<!--      <option value="">Enter all the organization(s)</option>-->
+<!--      {# for tag in community_legacy_work #}-->
+<!--      <option value="{{tag.id}}" selected>{{tag.name}}</option>-->
+<!--        {# endfor #}-->
+<!--      {# for legacy in legacy_work #}-->
+<!--        <option value="{{legacy.id}}">{{legacy.name}}</option>-->
+<!--       {# endfor #}-->
+<!--    </select>-->
+<!--</div>-->
 
 <!-- -->
 <!-- legacy hometown -->
@@ -95,11 +121,10 @@
 
 <script>
 
-
-{% if not request.user.is_authenticated %}
-
+{% if not request.user.is_authenticated and not android and not ios %}
     $(".test").modal('show');
 {% endif %}
+
     $('.ui.dropdown.legacy_education').dropdown({
   allowAdditions: true,
   fullTextSearch: true
@@ -108,11 +133,11 @@
 });
 
 
-   $('.ui.dropdown.legacy_work').dropdown({
-  allowAdditions: true,
-  fullTextSearch: true
+   //$('.ui.dropdown.legacy_work').dropdown({
+  //allowAdditions: true,
+  //fullTextSearch: true
 
-});
+//});
 
 
    $('.ui.dropdown.legacy_hometown').dropdown({
@@ -131,34 +156,38 @@ $("#submit").click(function(e){
 
 loc=$('#geography_city').val()
 
-
+/*
 if(loc == null){
     $('#error_geography').css("display","block")
     return;
 }
-
+*/
 
 legacy_education=$('#legacy_education').val()
+/*
 if(legacy_education == null){
     $('#error_legacy_eduction').css("display","block")
     return;
 }
+*/
 
-legacy_work=$('#legacy_work').val()
+//legacy_work=$('#legacy_work').val()
 
 legacy_hometown=$('#legacy_hometown').val()
-
 
 
 temp={
 
 'legacy_education':legacy_education,
-'legacy_work':legacy_work,
+//'legacy_work':legacy_work,
 'legacy_hometown':legacy_hometown,
 'csrfmiddlewaretoken': '{{ csrf_token }}',
-'loc':loc
+'loc':loc,
+{% if member_id != None %}
+'member_id' : '{{member_id}}',
+{% endif %}
 }
-
+$('#submit').addClass("loading");
 {% if request.user.is_authenticated %}
 
     $.ajax({
@@ -168,14 +197,26 @@ temp={
         data:temp,
         dataType: "json",
         success:function(data){
-            //console.log(data)
+
+            if(data['legacy_error']){
+            $('#error_legacy_eduction').css("display","block")
+                $('#submit').removeClass("loading");
+                return;
+            }
+            else if(data['geo_error']){
+                $('#error_geography').css("display","block")
+                $('#submit').removeClass("loading");
+                return;
+            }
+
+            else{
             {% if community_id != None %}
             location.href="/onboarding_profession?community_id={{community_id}}"
-            {% elif user_id != None %}
-            location.href="/onboarding_profession?user_id={{user_id}}"
             {% else %}
             location.href="/onboarding_profession"
             {% endif %}
+
+            }
 
         }
 
@@ -183,7 +224,46 @@ temp={
 
     })
 {% else %}
+    {% if android or ios %}
+
+         $.ajax({
+
+        url:"/onboarding",
+        type:"POST",
+        data:temp,
+        dataType: "json",
+        success:function(data){
+
+            if(data['legacy_error']){
+            $('#error_legacy_eduction').css("display","block")
+                $('#submit').removeClass("loading");
+                return;
+            }
+            else if(data['geo_error']){
+                $('#error_geography').css("display","block")
+                $('#submit').removeClass("loading");
+                return;
+            }
+
+            else{
+            {% if community_id != None %}
+            location.href="/onboarding_profession?community_id={{community_id}}"
+            {% else %}
+            location.href="/onboarding_profession"
+            {% endif %}
+
+            }
+
+        }
+
+
+
+    })
+
+
+    {% else %}
     $(".test").modal('show');
+    {% endif %}
 {% endif %}
 })
 </script>

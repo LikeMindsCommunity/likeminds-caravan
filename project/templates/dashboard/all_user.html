@@ -106,6 +106,31 @@ a.article-title:hover {
  background-color: #f08c35;
 }
 
+
+.pagination a {
+  color: black;
+  float: left;
+  padding: 8px 16px;
+  text-decoration: none;
+  transition: background-color .3s;
+  border-radius: 5px;
+  border: 1px solid #ddd; /* Gray */
+
+}
+
+.pagination a.active {
+  background-color: #4CAF50;
+  color: white;
+}
+
+.pagination a:hover:not(.active) {background-color: #ddd;}
+
+
+#search {
+    color: red;
+
+}
+
     </style>
 </head>
 
@@ -156,11 +181,16 @@ a.article-title:hover {
                         <a class="article-title" href="{% url 'update_user_tags' user.user_id %}" style="color:black; ">
                             <p class="article-content"><b style="color: black;">Tags : </b>None</p></a>
                         {% endif %}
-                        {% if user.fcm_token == 0 %}
-                        <p class="article-content"><b style="color: indianred;">FCM TOKEN </b></p>
-                        {% elif user.fcm_token == 1 %}
-                        <p class="article-content"><b style="color: lime;">FCM TOKEN </b></p>
+                        {% if user.os == 'Web' %}
+                        <p class="article-content"><b style="color: indianred;">Web User</b></p>
+                        {% else %}
+                        <p class="article-content"><b style="color: {{user.color}};">OS : {{user.os}} </b></p>
                         {% endif %}
+<!--                        {% if user.fcm_token == 0 %}-->
+<!--                        <p class="article-content"><b style="color: indianred;">FCM TOKEN </b></p>-->
+<!--                        {% elif user.fcm_token == 1 %}-->
+<!--                        <p class="article-content"><b style="color: lime;">Has Downloaded App </b></p>-->
+<!--                        {% endif %}-->
 
 
             </div>
@@ -168,6 +198,38 @@ a.article-title:hover {
             {% endfor %}
         </div>
     </div>
+    
+
+    <div style="padding-left:10px;">
+<ul class="pagination">
+
+
+{% if paginator.number|add:'-4' > 1 %}
+    <li><a href="?page={{ paginator.number|add:'-5' }}">&hellip;</a></li>
+{% endif %}
+
+{% for i in paginator.paginator.page_range %}
+    {% if paginator.number == i %}
+        <li style="border: 1px solid #ddd;border-radius: 5px;padding: 8px 16px;background-color:#f0ad4e;border-color: #eea236;"><span>{{ i }} </span></li>
+    {% elif i > paginator.number|add:'-5' and i < paginator.number|add:'5' %}
+        <li><a href="?page={{ i }}">{{ i }}</a></li>
+    {% endif %}
+{% endfor %}
+
+{% if paginator.paginator.num_pages > paginator.number|add:'4' %}
+    <li><a href="?page={{ paginator.number|add:'5' }}">&hellip;</a></li>
+{% endif %}
+
+
+
+</ul>
+</div>
+
+    <br>
+    <br>
+    <br><br><br>
+
+
 </main>
 <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"
         integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN"

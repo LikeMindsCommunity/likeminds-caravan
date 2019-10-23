@@ -3,6 +3,8 @@ from celery import shared_task
 import psycopg2
 from pyfcm import FCMNotification
 from django.conf import  settings
+import time
+from togther.models import Community_Rank
 
 # file to store configuration of the system
 
@@ -15,11 +17,13 @@ db_port=settings.DATABASES['default']['PORT']
 db_database=settings.DATABASES['default']['NAME']
 
 
-
+url=settings.URL
 
 # server keys for sending notification
-
-server_key = 'AAAAllezPSk:APA91bEYRnVqZGMS_YNTDwu4wJfQfbubN7jQtwvdAyZI6XvoRIjQPii9kj2joizPGJ8GhcoXpcIF5ftsZ-zyBuY9WzqS48b2JCZ51Lv8K9L56gMwBjLsW7tDSfntEqMtAQ9f8f024M5P'
+if url == "https://beta.collabmates.com":
+    server_key='AAAA5QiC06o:APA91bGK2e3Y9r2g5VXnJIwK7OJ8pliwpXs_cwayEJ2D32Dfn5TcXpiUJDJNw7w-NqSdUH93FrX5xFie8KfpQORigfSuNlDVXxgi1nt9FcB7y5e5f0428jRKX35vti3R-BhxzMc9yrj_'
+else:
+    server_key = 'AAAAllezPSk:APA91bEYRnVqZGMS_YNTDwu4wJfQfbubN7jQtwvdAyZI6XvoRIjQPii9kj2joizPGJ8GhcoXpcIF5ftsZ-zyBuY9WzqS48b2JCZ51Lv8K9L56gMwBjLsW7tDSfntEqMtAQ9f8f024M5P'
 
 
 
@@ -69,10 +73,10 @@ def get_community_name(community_id):
 
 def send_notification_to_multiple_devices(token_list,message):
     '''This function is used to send notifications'''
+    result=""
     push_service = FCMNotification(api_key=server_key)
-
-
     result = push_service.notify_multiple_devices(registration_ids=token_list,data_message=message['payload'])
+
     print(result)
 
     return result
@@ -338,4 +342,40 @@ def send_notification_to_all_admins(community_id,name,current_promoter_id):
 
         print ("Error while connecting to PostgreSQL", error)
 
+@shared_task
+def notification_after_compute_rank(user_id):
+
+    '''function to send notification to referred member(who is referring)'''
+    time.sleep(30)
+    fcm_token=get_token_for_fcm(user_id)
+
+    if fcm_token:
+        token_list=[]
+        token_list.append(fcm_token)
+        #
+        # user = User.objects.get(pk = user_id)
+        # user_name = user.userinfo.name
+
+        sub_title = "Discover and join relevant communities based on your profile"
+
+        message={}
+        message['payload']={
+            'title':'Discover communities',
+            'sub_title':sub_title,
+            'route':'route://main'
+        }
+
+        count = 0
+        while True:
+            communities = Community_Rank.objects.filter(member_id=user_id)
+            if communities.exists():
+                return send_notification_to_multiple_devices(token_list, message)
+            elif count == 30:
+                return
+            else:
+                count += 1
+                time.sleep(60)
+
+    else:
+        print('No FCM token to send message')
 

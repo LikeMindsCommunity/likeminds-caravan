@@ -210,6 +210,10 @@ SOCIAL_AUTH_PIPELINE = (
 
     # Update the user record with any changed info from the auth service.
     'social_core.pipeline.user.user_details',
+
+    #create userinfo after as soon as user creation is done
+    'utility.userinfo_pipeline.update_userinfo',
+
 )
 
 SENDGRID_API_KEY = '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'
@@ -226,4 +230,66 @@ FCM_DJANGO_SETTINGS = {
     "FCM_SERVER_KEY": "AAAAllezPSk:APA91bEYRnVqZGMS_YNTDwu4wJfQfbubN7jQtwvdAyZI6XvoRIjQPii9kj2joizPGJ8GhcoXpcIF5ftsZ-zyBuY9WzqS48b2JCZ51Lv8K9L56gMwBjLsW7tDSfntEqMtAQ9f8f024M5P",
     "ONE_DEVICE_PER_USER": True,
     "DELETE_INACTIVE_DEVICES": False
+}
+
+
+
+
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'large': {
+            'format': '%(asctime)s  %(levelname)s  %(filename)s  %(funcName)s  %(lineno)d  %(message)s  '
+        },
+        'tiny': {
+            'format': '%(asctime)s  %(levelname)s %(message)s  '
+        }
+    },
+    'handlers': {
+        'errors_file': {
+            'level': 'ERROR',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'maxBytes': 1024 * 10 * 10 ,#*1024*10, # 10 MB
+            'backupCount': 5,
+            'filename': 'utility/logs/custom.log',
+            'formatter': 'large',
+        },
+        'info_file': {
+            'level': 'INFO',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'maxBytes': 1024 * 10 * 10,#*1024*10, # 10 MB
+            'backupCount': 5,
+            'filename': 'utility/logs/custom.log',
+            'formatter': 'large',
+        },
+        'console': {
+            'level':'INFO',
+            'class':'logging.handlers.RotatingFileHandler',
+            'filename': 'utility/logs/collabmates.log',
+            'maxBytes': 1024*10*10 ,#*1024*10, # 10 MB
+            'backupCount': 5,
+            'formatter':'tiny',
+        },
+
+    },
+    'loggers': {
+        'error_logger': {
+            'handlers': ['errors_file'],
+            'level': 'WARNING',
+            'propagate': False,
+        },
+        'info_logger': {
+            'handlers': ['info_file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'django': {
+            'handlers': ['console'],
+            'level': os.getenv('DJANGO_LOG_LEVEL', 'INFO'),
+        },
+
+
+    },
 }
