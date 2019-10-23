@@ -23,7 +23,7 @@ from utility.utils import (get_city_address, update_tag_image,
                            update_user_geography_tags, create_or_categorize_tag,
                            referal, insert_user_home_town_tags, )
 from urllib.parse import urlencode,quote
-from utility.tasks import new_member_request
+from collabmates_api.tasks import send_email
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from user_agents import parse
 import time
@@ -37,6 +37,8 @@ url = settings.URL
 api_url = url + '/api/'
 error_logger=logging.getLogger("error_logger")
 info_logger=logging.getLogger("info_logger")
+
+
 def index(request):
     '''function to show promotion page'''
     return render(request, 'index.html')
@@ -888,12 +890,12 @@ def thankyou(request):
 def send_email(email):
     ''' function to send email to user to be notified '''
     fail_silently = True
-    to = email
+    to = 'nipungoyal.iitd@gmail.com'
     subject = email + " wants to be Notified"
     msg = EmailMultiAlternatives(subject,
                                  email,
                                  "Collabmates<hello@collabmates.com>",
-                                 ['nipungoyal.iitd@gmail.com'],
+                                 [to],
                                  )
     return msg.send(fail_silently)
 
@@ -1649,6 +1651,12 @@ def onboarding(request):
         legacy_hometown = request.POST.getlist('legacy_hometown[]')
         geography=request.POST.getlist('loc[]')
 
+        if not legacy_education:
+            return JsonResponse({'legacy_error': True})
+        elif not geography:
+            return JsonResponse({'geo_error': True})
+
+
         legacy_li = legacy_education + legacy_hometown   # + legacy_work
 
         type_list=get_user_tags_from_list(legacy_li,"Legacy")
@@ -1727,6 +1735,10 @@ def onboarding_profession(request):
         profession_industry = request.POST.getlist('profession_industry[]')
         profession_skill = request.POST.getlist('profession_skill[]')
         #profession_designation = request.POST.getlist('profession_designation[]')
+        if not profession_industry:
+            return JsonResponse({'industry_error': True})
+        elif not profession_skill:
+            return JsonResponse({'skill_error': True})
 
         profession_list = profession_industry + profession_skill
 
@@ -1823,6 +1835,10 @@ def onboarding_interest(request):
         interest_sports = request.POST.getlist('interest_sports[]')
         interest_fan = request.POST.getlist('interest_fan[]')
         interest_cause = request.POST.getlist('interest_cause[]')
+
+        if not interest_hobby and not interest_sports and not interest_fan and not interest_cause:
+            return JsonResponse({'interest_error': True})
+
 
         interest_list = interest_hobby + interest_sports + interest_fan + interest_cause
 

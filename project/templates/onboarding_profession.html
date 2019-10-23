@@ -144,6 +144,7 @@ if(profession_industry == null){
 
 
 profession_skill=$('#profession_skill').val()
+
 if(profession_skill == null){
     $('#error_profession_skill').css("display","block")
     return;
@@ -179,12 +180,25 @@ $('#submit').addClass("loading");
         data:temp,
         dataType: "json",
         success:function(data){
-            //console.log(data)
-            {% if community_id != None %}
-            location.href="/onboarding_interest?community_id={{community_id}}"
-            {% else %}
-            location.href="/onboarding_interest"
-            {% endif %}
+            console.log(data)
+
+            if(data['industry_error']){
+            $('#error_profession_industry').css("display","block")
+                $('#submit').removeClass("loading");
+                return;
+            }
+            else if(data['skill_error']){
+                $('#error_profession_skill').css("display","block")
+                $('#submit').removeClass("loading");
+                return;
+            }
+            else{
+                {% if community_id != None %}
+                location.href="/onboarding_interest?community_id={{community_id}}"
+                {% else %}
+                location.href="/onboarding_interest"
+                {% endif %}
+            }
 
         }
 
@@ -201,13 +215,25 @@ $('#submit').addClass("loading");
         data:temp,
         dataType: "json",
         success:function(data){
-            //console.log(data)
-            {% if community_id != None %}
-            location.href="/onboarding_interest?community_id={{community_id}}"
-            {% else %}
-            location.href="/onboarding_interest"
-            {% endif %}
+            console.log(data)
 
+            if(data['industry_error']){
+            $('#error_profession_industry').css("display","block")
+                $('#submit').removeClass("loading");
+                return;
+            }
+            else if(data['skill_error']){
+                $('#error_profession_skill').css("display","block")
+                $('#submit').removeClass("loading");
+                return;
+            }
+            else{
+                {% if community_id != None %}
+                location.href="/onboarding_interest?community_id={{community_id}}"
+                {% else %}
+                location.href="/onboarding_interest"
+                {% endif %}
+            }
         }
 
 
