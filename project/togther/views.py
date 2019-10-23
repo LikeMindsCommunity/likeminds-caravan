@@ -69,17 +69,22 @@ def signup(request):
 def dashboard(request):
     ''' function to show all communities and filter based on categories '''
 
-    # print('reqesut META  >>>>>>>>> ',request.META)
+
     if request.user.is_authenticated:
+
+        # if user does not have a email linked to his account, ask for a email
+        request_user_email = False
+        if not request.user.email:
+            request_user_email = True
 
         try:
             # check if user has user info
             user = Userinfo.objects.get(user_id=request.user.id)
+
         except:
             # if there is no user info for the user who is currently logged in
             # create userinfo for current user
             user = update_user_info(request)
-
         # get users communities
         my_community = get_user_communities(request)
         # getting communities by user hidden tag
@@ -87,29 +92,16 @@ def dashboard(request):
 
         # check if user has completed onbarding and is from IIT Delhi
         onboard,is_iitd = user_onbaord(request)
-
-        # if 'HTTP_USER_AGENT' in request.META:
-        #     ua_string = request.META['HTTP_USER_AGENT']
-        #     #ua_string="Mozilla/5.0 (Linux; Android 9; Redmi Note 5 Pro) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.92 Mobile Safari/537.36"
-        #     user_agent = parse(ua_string)
-        #     mobile_os=request.user.userinfo.mobile_os
-        #     if user_agent.os.family == "Android" and mobile_os:
-        #         # user.mobile_os="Android"
-        #         # user.save()
-        #         base_url = reverse('dashboard')
-        #         query_string = urlencode({'member_id': request.user.id})
-        #         url = '{}?{}'.format(base_url, query_string)
-        #         return redirect(url)
-
-
         return render(request, 'dashboard.html',
                       {'usr': user, 'communities': communities, 'my_communities': my_community[:2],
-                       "my_communities_count": len(my_community),'onboard':onboard,'is_iitd':True})
+                       "my_communities_count": len(my_community),'onboard':onboard,'is_iitd':True,
+                       'request_user_email':request_user_email})
 
     page = request.GET.get('page',1)
     communities = Community.objects.filter(Q(hide_community='0')|Q(hide_community = '4')).order_by('-updated_at')
     paginator = Paginator(communities, 20)
     queryset = paginator.get_page(page)
+
 
     for community in queryset:
         update_member_count(community.id)
@@ -254,15 +246,24 @@ def community(request, community_id):
                               {'usr': user,
                                'similar_communities': data,
                                'community': community,
-                               'onboard':onboard})
+                               'onboard':onboard,
+                               })
         elif cta == 'share':
             cta = 'join'
 
     else:
         cta = ''
+
+
+    # if user does not have a email linked to his account, ask for a email
+    request_user_email = False
+
     if request.user.is_authenticated:
+        if not request.user.email:
+            request_user_email = True
         try:
             user = Userinfo.objects.get(user_id=request.user.id)
+
         except:
             user = update_user_info(request)
 
@@ -316,6 +317,7 @@ def community(request, community_id):
     else:
         user = []
 
+    # user_email = True
     return render(request, 'community.html', {'usr': user, 'similar_communities': communities,
                                               'community': community, 'admins': admin_details,
                                               'members': members, 'source': source,
@@ -323,7 +325,8 @@ def community(request, community_id):
                                               'admin_length': len(admin_details),
                                               'members_length': len(members),
                                               'similar_community_length':len(communities),
-                                              'ref_id':ref_id,})
+                                              'ref_id':ref_id,
+                                              'request_user_email':request_user_email})
 
 
 def refer_members(request,community_id):
@@ -409,7 +412,7 @@ def get_members_of_community(request,community):
 
 
 @login_required
-def update_user_info(request,member_id=None):
+def update_user_info(request,member_id=None,user_email=None):
     if member_id:
         user_id = member_id
     elif request:
@@ -436,12 +439,20 @@ def update_user_info(request,member_id=None):
                 image_url = "http://graph.facebook.com/" + social_user.extra_data[
                     'id'] + "/picture?width=400&height=400"
                 print(data)
-                usr = User.objects.get(pk = user_id)
-                if not usr.email:
-                    usr.email = data['email']
-                    usr.save()
+                usr = User.objects.get(pk = request.user.id)
+
                 try:
-                    user = Userinfo.objects.get(user_id=user_id)
+                    user = Userinfo.objects.get(user_id=request.user.id)
+                    if not usr.email:
+
+                        if user_email:
+                            data['email'] = user_email
+                            usr.email = user_email
+                            usr.save()
+                        if not user.email:
+                            user.email = user_email
+                            user.save()
+
                 except:
                     user = Userinfo()
                     if 'name' in data:
@@ -461,7 +472,11 @@ def update_user_info(request,member_id=None):
                     user.save()
                     print("created userinfo")
 
+                if user_email:
+                    return JsonResponse({"success":True})
+
                 return user
+
             if social_user.provider == 'linkedin-oauth2':
                 # accessing Linked In API to get user basic information
                 url = 'https://api.linkedin.com/v2/me?projection=(id,firstName,emailAddress,lastName,vanityName,headline,interests,location,picture-url,name,profilePicture(displayImage~:playableStreams))&oauth2_access_token=' + \
@@ -479,12 +494,19 @@ def update_user_info(request,member_id=None):
                 profile_picture = data_main['profilePicture']['displayImage~']['elements'][2]['identifiers'][0][
                     'identifier']
                 email = email_data['elements'][0]['handle~']['emailAddress']
-                usr = User.objects.get(pk=user_id)
+                usr = User.objects.get(pk=request.user.id)
+                usr1 = Userinfo.objects.get(user_id=request.user.id)
+
                 if not usr.email:
-                    usr.email = email
-                    usr.save()
+                    if user_email:
+                        email = user_email
+                        usr.email = user_email
+                        usr.save()
+                if usr1 and not usr1.email:
+                    if user_email:
+                        usr1.email = user_email
+                        usr1.save()
                 # checking if there is any user having details with the email we got from linkedIn
-                usr1 = Userinfo.objects.all().filter(email=email)
                 if not usr1:
                     # if there is no user having th email , create a user info for the user
                     user = Userinfo()
@@ -499,6 +521,9 @@ def update_user_info(request,member_id=None):
                     elif request:
                         user.user_id = request.user
                     user.save()
+
+                if user_email:
+                    return JsonResponse({"success":True})
 
                 return user
 
@@ -972,10 +997,19 @@ def collabcard(request, card_id):
     collabcard_url = api_url + 'collabcard/' + str(card_id)
     collabcard = rqst.get(collabcard_url)
     collabcard_dict = json.loads(collabcard.content)
-    try:
-        user=Userinfo.objects.get(user_id=request.user.id)
+
+    request_user_email = False
+
+    if request.user.is_authenticated:
+        try:
+            user = Userinfo.objects.get(user_id=request.user.id)
+
+            if not request.user.email:
+                request_user_email = True
+        except:
+            user, request_user_email = update_user_info(request)
         user_image=user.image_file.url
-    except:
+    else:
         user_image=''
 
     answers = collabcard_dict['answers']
@@ -1018,6 +1052,7 @@ def collabcard(request, card_id):
                'created_at':collabcard_dict['collabcard']['created_at'],
                'answers_count': len(collabcard_dict['answers']),
                'is_member':is_member,
+               'request_user_email':request_user_email,
 
                }
     return render(request, 'card.html', context)
@@ -1141,12 +1176,12 @@ def pending_list(request,community_id):
     res = rqst.get(link)
     user_image_url=""
     is_promoter = 'false'
+    request_user_email = False
     if request.user.is_authenticated:
         try:
             userinfo = Userinfo.objects.get(user_id=request.user.id)
         except:
-            userinfo = update_user_info(request)
-
+            user, request_user_email = update_user_info(request)
         # userinfo=Userinfo.objects.get(user_id=request.user.id)
         user_image_url=userinfo.image_file.url
         link=api_url+'members_state?member_id='+str(request.user.id)+'&community_id='+str(community_id)
@@ -1172,7 +1207,8 @@ def pending_list(request,community_id):
         'user_image_url':url+user_image_url,
         'is_promoter':is_promoter,
         'list_length':len(pending_list),
-        'error':error
+        'error':error,
+        'request_user_email':request_user_email
     }
     return render(request,'pending_list.html',context)
 
