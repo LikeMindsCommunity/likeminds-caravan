@@ -253,7 +253,7 @@ LOGGING = {
             'class': 'logging.handlers.RotatingFileHandler',
             'maxBytes': 1024 * 10 * 10 ,#*1024*10, # 10 MB
             'backupCount': 5,
-            'filename': 'utility/logs/collabmates.log',
+            'filename': 'utility/logs/custom.log',
             'formatter': 'large',
         },
         'info_file': {
@@ -261,7 +261,7 @@ LOGGING = {
             'class': 'logging.handlers.RotatingFileHandler',
             'maxBytes': 1024 * 10 * 10,#*1024*10, # 10 MB
             'backupCount': 5,
-            'filename': 'utility/logs/collabmates.log',
+            'filename': 'utility/logs/custom.log',
             'formatter': 'large',
         },
         'console': {
