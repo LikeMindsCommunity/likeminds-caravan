@@ -3,7 +3,7 @@
 
 
 {% block menu %}
-{% if android %}
+{% if android or ios %}
 
 {% else %}
             <div class="right menu" style="float:right; ">
@@ -121,7 +121,7 @@
 
 <script>
 
-{% if not request.user.is_authenticated and not android %}
+{% if not request.user.is_authenticated and not android and not ios %}
     $(".test").modal('show');
 {% endif %}
 
@@ -224,7 +224,7 @@ $('#submit').addClass("loading");
 
     })
 {% else %}
-    {% if android %}
+    {% if android or ios %}
 
          $.ajax({
 
@@ -233,7 +233,7 @@ $('#submit').addClass("loading");
         data:temp,
         dataType: "json",
         success:function(data){
-        
+
             if(data['legacy_error']){
             $('#error_legacy_eduction').css("display","block")
                 $('#submit').removeClass("loading");
