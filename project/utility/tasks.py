@@ -121,11 +121,11 @@ def new_member_request(member_id,commuinity_id,ref_id=None):
                                                                   'text':text,'community_link':community_link})
     
     if url == "https://beta.collabmates.com":
-        to_list = ['mahesh61437mahe@gmail.com','rastogi.fresh88@gmail.com']
+        to_list = ['mahesh61437mahe@gmail.com']
     elif url == "https://www.collabmates.com":
         to_list = ['nipungoyal.iitd@gmail.com','hrshshukl@gmail.com']
     else:
-        to_list = ['mahesh61437mahe@gmail.com','rastogi.fresh88@gmail.com']
+        to_list = ['mahesh61437mahe@gmail.com']
     msg = EmailMultiAlternatives(subject,
                                  template,
                                  "Collabmates<hello@collabmates.com>",

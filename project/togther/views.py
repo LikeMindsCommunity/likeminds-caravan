@@ -1615,10 +1615,12 @@ def onboarding(request):
             geography = []
 
         android = False
-
+        ios = False
         if is_request_android(request) and member_id and autheticate:
             android = True
-        print(android)
+
+        if is_request_ios(request) and member_id and autheticate:
+            ios = True
 
 
         education_tags = Tags_lpig.objects.filter(attribute_id=2).order_by('name')
@@ -1637,6 +1639,7 @@ def onboarding(request):
             'community_id':community_id,
             'member_id': member_id,
             'android':android,
+            'ios':ios,
         }
 
         return render(request,'onboarding.html',context)
@@ -1706,8 +1709,12 @@ def onboarding_profession(request):
             profession_designation = []
 
         android = False
+        ios = False
         if is_request_android(request) and member_id and autheticate:
             android = True
+
+        if is_request_ios(request) and member_id and autheticate:
+            ios = True
 
         industry_tags = Tags_lpig.objects.filter(attribute_id=6).order_by('name')
         skill_tags = Tags_lpig.objects.filter(attribute_id=5).order_by('name')
@@ -1722,7 +1729,8 @@ def onboarding_profession(request):
             'community_id': community_id,
             'user_id' : member_id,
             'android': android,
-            'member_id':member_id
+            'member_id':member_id,
+            'ios': ios,
         }
 
         return render(request, 'onboarding_profession.html', context)
@@ -1783,7 +1791,7 @@ def onboarding_interest(request):
             interest_cause = []
 
         android = False
-
+        ios = False
         if is_request_android(request) and member_id and autheticate:
             android = True
             try:
@@ -1795,6 +1803,20 @@ def onboarding_interest(request):
 
             except:
                 print("Error in getting user info object")
+
+        if is_request_ios(request) and member_id and autheticate:
+            ios = True
+
+            try:
+                user_info=Userinfo.objects.get(user_id=member_id)
+                user_info.mobile_os="Android"
+                user_info.secondary_email=user_info.email
+                user_info.save()
+
+
+            except:
+                print("Error in getting user info object")
+
 
         hobby_tags = Tags_lpig.objects.filter(attribute_id=9).order_by('name')
         sports_tags = Tags_lpig.objects.filter(attribute_id=10).order_by('name')
@@ -1812,7 +1834,8 @@ def onboarding_interest(request):
             'community_interest_cause': interest_cause,
             'android': android,
             'member_id':member_id,
-            'autheticate':autheticate
+            'autheticate':autheticate,
+            'ios':ios,
         }
 
         return render(request, 'interest_onboarding.html', context)
@@ -1866,6 +1889,20 @@ def is_request_android(request):
         ua_string = request.META['HTTP_USER_AGENT']
         user_agent = parse(ua_string)
         if user_agent.os.family == "Android" and not user_agent.is_pc:
+            return True
+        else:
+            return False
+    return False
+
+
+def is_request_ios(request):
+
+    '''function to check whether the user agent is android or not'''
+
+    if 'HTTP_USER_AGENT' in request.META:
+        ua_string = request.META['HTTP_USER_AGENT']
+        user_agent = parse(ua_string)
+        if user_agent.os.family == "iOS" and not user_agent.is_pc:
             return True
         else:
             return False
