@@ -209,7 +209,17 @@ console.log(temp)
         success:function(data){
             console.log(data)
 
-            location.href="/communities"
+
+            if(data['interest_error']){
+            $('#error_interest').css("display","block")
+                $('#submit').removeClass("loading");
+                return;
+            }
+            else {
+                location.href="/communities"
+            }
+
+
 
 
         }
@@ -228,8 +238,14 @@ console.log(temp)
             success:function(data){
                 console.log(data)
 
+            if(data['interest_error']){
+            $('#error_interest').css("display","block")
+                $('#submit').removeClass("loading");
+                return;
+            }
+            else {
                 location.href="/communities"
-
+            }
 
             }
 
