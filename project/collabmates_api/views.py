@@ -39,7 +39,7 @@ from utility.utils import (decode_meta_from_url, update_tag_image,
                            user_onbaord, update_member_count,
                            update_community_tags_to_user)
 from utility.tasks import (mail_triger, new_member_request)
-
+from urllib.parse import urlencode,quote
 
 url  = settings.URL
 
@@ -2146,6 +2146,29 @@ def push(request):
     return JsonResponse({'success':success})
 
 
+@csrf_exempt
+def config(request):
+
+    '''function to update the version number of android for a user profile'''
+    headers=request.META
+    if 'HTTP_X_MEMBER_ID' in headers and 'HTTP_X_VERSION_CODE' in headers:
+        member_id=headers['HTTP_X_MEMBER_ID']
+        version_code=headers['HTTP_X_VERSION_CODE']
+
+        Userinfo.objects.filter(user_id=member_id).update(version_code=version_code)
+        log="""Version code updated for user %s"""%(str(member_id))
+        info_logger.info(log)
+        title="App Update"
+        message="Update to latest version 2.2.1"
+        cta_text="click"
+        cancelable=False
+        route="""route://dialog?title=%s&message=%s&cta_text=%s&cta=& cancelable=%s"""%(title,message,cta_text,cancelable)
+        encode_route=quote(route)
+        info_logger.info(route)
+        info_logger.info(encode_route)
+        return JsonResponse({'success': True,'route':encode_route})
+    error_logger.error("headers are not comming correctly")
+    return JsonResponse({'success':False})
 
 
 ############# functions edit community    ##########################
