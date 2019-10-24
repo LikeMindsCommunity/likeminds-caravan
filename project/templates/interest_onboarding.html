@@ -2,7 +2,7 @@
 {% load staticfiles %}
 
 {% block menu %}
-{% if android%}
+{% if android or ios %}
 
 {% else %}
             <div class="right menu" style="float:right; ">
@@ -124,7 +124,7 @@
 
 <script>
 
-{% if not request.user.is_authenticated and not android %}
+{% if not request.user.is_authenticated and not android and not ios %}
     $(".test").modal('show');
 {% endif %}
 
@@ -209,7 +209,17 @@ console.log(temp)
         success:function(data){
             console.log(data)
 
-            location.href="/communities"
+
+            if(data['interest_error']){
+            $('#error_interest').css("display","block")
+                $('#submit').removeClass("loading");
+                return;
+            }
+            else {
+                location.href="/communities"
+            }
+
+
 
 
         }
@@ -218,7 +228,7 @@ console.log(temp)
 
     })
 {% else %}
-    {% if android %}
+    {% if android or ios %}
         $.ajax({
 
             url:"/onboarding_interest",
@@ -228,8 +238,14 @@ console.log(temp)
             success:function(data){
                 console.log(data)
 
+            if(data['interest_error']){
+            $('#error_interest').css("display","block")
+                $('#submit').removeClass("loading");
+                return;
+            }
+            else {
                 location.href="/communities"
-
+            }
 
             }
 

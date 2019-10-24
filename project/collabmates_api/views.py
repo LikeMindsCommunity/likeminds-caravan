@@ -9,7 +9,8 @@ import json
 from django.http.response import JsonResponse
 from collabmates_api.serializers import *
 from django.views.decorators.csrf import csrf_exempt
-from datetime import datetime 
+from datetime import datetime
+from django.db.models import F
 import time
 from .notification import (send_follow_notification,send_notification_to_admins,
                            send_notification_for_join_requests,
@@ -244,10 +245,71 @@ def update_last_unseen_in_engage(user='',community='',is_seen=False):
             card = Collabcard.objects.get(id=total_collabcards[0]['id'])
 
     current_time=time.time()
-    Member_Engage.objects.filter(community_id=community,member_id=user).update(last_unseen_count=collabcard_unseen,last_unseen_conversation=card,updated_at=current_time)
+    Member_Engage.objects.filter(community_id=community,member_id=user).update(last_unseen_count=collabcard_unseen,
+                                                                               last_unseen_conversation=card,
+                                                                               updated_at=current_time)
 
     if is_seen == False:
         Member_Engage.objects.filter(community_id=community).filter(~Q(member_id=user)).update(last_unseen_count=collabcard_unseen,updated_at=current_time)
+
+
+def update_referral_text_in_engage_table(community_object):
+
+    '''function to update the referal text in member engage table by taking member engage object'''
+    # getting the state of member
+
+    engage_communities=Member_Engage.objects.filter(community_id=community_object)
+
+    for each_community in engage_communities:
+        community={}
+        community['pending_members_count']=each_community.pending_members
+        community['member_referral']=""
+        member_state = Members.objects.filter(community_id=each_community.community_id.id,
+                                              member_id=each_community.member_id.id)
+        if member_state:
+            state = member_state[0].state
+            community_state = each_community.community_id.hide_community
+            # if the community is pilot community and member has shown interest
+
+            if community_state == '3' and state == 8:
+                diff = eligibility_count - community['pending_members_count']
+                if community['pending_members_count'] == 1:
+                    community['member_referral'] = """You have successfully referred %s member. Please refer %s more to become promoter.""" % (
+                    community['pending_members_count'], diff)
+                elif community['pending_members_count']:
+                    community['member_referral'] = """You have successfully referred %s members. Please refer %s more to become promoter.""" % (
+                    community['pending_members_count'], diff)
+                # else:
+                #     community['member_referral'] = """Refer %s people to become promoter.""" % (eligibility_count)
+
+
+            # if the community is pilot community and the member is eligible promoter
+            elif community_state == '3' and state == 9:
+                community['member_referral'] = "You are eligible to become a promoter of this community"
+
+            # if the community is pilot-active and new promoter comes
+            elif community_state == '4' and state == 9:
+                community['member_referral'] = "You are eligible to become a promoter of this community"
+
+            # if the community becomes a pilot-active community and member approval is pending
+            elif community_state == '4' and state == 3:
+                community['member_referral'] = "Your request is waiting for approval by promoter"
+
+            # if the community becomes a pilot-active community and member request is approved
+            elif community_state == '4' and state == 4:
+                diff = eligibility_count - community['pending_members_count']
+                if community['pending_members_count'] == 1:
+                    community['member_referral'] = """You have successfully referred %s member. Please refer %s more to become promoter.""" % (
+                        community['pending_members_count'], diff)
+                elif community['pending_members_count']:
+                    community[
+                        'member_referral'] = """You have successfully referred %s members. Please refer %s more to become promoter.""" % (
+                        community['pending_members_count'], diff)
+            elif community_state == '0' and community['pending_members_count']:
+                community['member_referral'] = str(community['pending_members_count']) + " new member requests"
+
+            each_community.member_referral=community['member_referral']
+            each_community.save()
 
 
 # /api/your_communities/member_id?member_id=
@@ -269,10 +331,14 @@ def your_communities(request,user_id):
         community['pending_members_count']=each_community.pending_members
         community['updated_at']=get_time_text(each_community.updated_at)
         community['collabcard_unseen']=each_community.last_unseen_count
-        collabcard=CollabcardSerializer(each_community.last_unseen_conversation)
-        user=each_community.last_unseen_conversation.user
-        collabcard['member']=UserinfoSerializer(user.userinfo)
-        community['collabcard']=collabcard
+        if each_community.last_unseen_conversation:
+            collabcard=CollabcardSerializer(each_community.last_unseen_conversation)
+            user=each_community.last_unseen_conversation.user
+            collabcard['member']=UserinfoSerializer(user.userinfo)
+            community['collabcard']=collabcard
+
+        if each_community.member_referral:
+            community['member_referral']=each_community.member_referral
         my_community.append(community)
 
     return JsonResponse({'your_communities':my_community})
@@ -443,7 +509,7 @@ def join_community_responses(request):
         ref_id = request.GET.get('ref_id',None)
 
     if ref_id :
-        # ref_id = res['ref_id']
+        ref_id = res['ref_id']
         # sending mail to nipun and harsh
         new_member_request.delay(member_id=user_id, commuinity_id=community_id, ref_id=ref_id)
         if community.hide_community == '3' or community.hide_community == '4':
@@ -494,6 +560,37 @@ def join_community_responses(request):
         # sending notification to admins of the community
         name = user.userinfo.name
         send_notification_to_admins.delay(community_id,name)
+
+    # if the community is the pilot community then filling the engage table
+    if community.hide_community == '3':
+        # if the user is not refered by anyone
+        if not ref_id:
+            # if the user data is already there in members engage
+            if not is_member_engage(community,user):
+                engage=Member_Engage()
+                engage.community_id=community
+                engage.member_id=user
+                engage.updated_at=time.time()
+                engage.save()
+                info_logger.info("""Data Inserted successfully in members engage table where user_id=%s and community_id=%s"""%(user_id,community_id))
+            else:
+                info_logger.info("Data already present for user")
+        else:
+            #if the user refered by someone
+            referer=User.objects.get(id=ref_id)
+            engage = Member_Engage()
+            engage.community_id = community
+            engage.member_id = user
+            engage.updated_at = time.time()
+            engage.save()
+            info_logger.info("""Data Inserted successfully in members engage table where user_id=%s and community_id=%s""" % (
+                user_id, community_id))
+            Member_Engage.objects.filter(community_id=community,member_id=referer).update(pending_members=F('pending_members')+1)
+            info_logger.info(
+                """Members engage table updated  where ref_id=%s and community_id=%s""" % (
+                    user_id, community_id))
+
+    update_referral_text_in_engage_table(community)
     return JsonResponse({'success':True})
 
 
@@ -618,6 +715,7 @@ def get_user_lpig_tags(user_id):
     interest_list=[]
     geography_list=[]
 
+    cluster_tags=[]
     for each in legacy:
         temp={}
         if each.tags_id.id !=15:
@@ -635,8 +733,15 @@ def get_user_lpig_tags(user_id):
                 temp['attribute_name'] = "Hometown"
             elif attribute_id is 4:
                 temp['attribute_name'] = "Lifestyle"
+
+            if each.tags_id.is_cluster:
+                cluster=list(Tags_lpig.objects.filter(cluster_tag_id=each.tags_id.id).values_list('id',flat=True))
+                cluster_tags=cluster_tags+cluster
             legacy_list.append(temp)
 
+    legacy_list=get_clustered_tags_for_user(legacy_list,cluster_tags)
+
+    cluster_tags = []
     for each in profession:
         temp={}
         if each.tags_id.id !=16:
@@ -651,8 +756,16 @@ def get_user_lpig_tags(user_id):
                 temp['attribute_name'] = "Industry"
             elif attribute_id is 7:
                 temp['attribute_name'] = "Designation"
+
+            if each.tags_id.is_cluster:
+                cluster=list(Tags_lpig.objects.filter(cluster_tag_id=each.tags_id.id).values_list('id',flat=True))
+                cluster_tags=cluster_tags+cluster
             profession_list.append(temp)
 
+    profession_list=get_clustered_tags_for_user(profession_list,cluster_tags)
+
+
+    cluster_tags = []
     for each in interest:
         temp = {}
         if each.tags_id.id != 17:
@@ -669,8 +782,16 @@ def get_user_lpig_tags(user_id):
                 temp['attribute_name'] = "Sports"
             elif attribute_id is 11:
                 temp['attribute_name'] = "Fan"
+
+            if each.tags_id.is_cluster:
+                cluster=list(Tags_lpig.objects.filter(cluster_tag_id=each.tags_id.id).values_list('id',flat=True))
+                cluster_tags=cluster_tags+cluster
             interest_list.append(temp)
 
+
+    interest_list = get_clustered_tags_for_user(interest_list, cluster_tags)
+
+    cluster_tags = []
     for each in geography:
         temp = {}
         if each.tags_id.id != 18:
@@ -685,8 +806,13 @@ def get_user_lpig_tags(user_id):
                 temp['attribute_name'] = "State"
             elif attribute_id is 14:
                 temp['attribute_name'] = "Country"
+
+            if each.tags_id.is_cluster:
+                cluster=list(Tags_lpig.objects.filter(cluster_tag_id=each.tags_id.id).values_list('id',flat=True))
+                cluster_tags=cluster_tags+cluster
             geography_list.append(temp)
 
+    geography_list = get_clustered_tags_for_user(geography_list, cluster_tags)
 
     tags={
         'legacy':legacy_list,
@@ -697,6 +823,27 @@ def get_user_lpig_tags(user_id):
 
     #print(tags)
     return tags
+
+
+def get_clustered_tags_for_user(tag_list,cluster_tags):
+
+    if not cluster_tags:
+        return tag_list
+    result=[]
+    for tag_index in range(len(tag_list)):
+        for index in cluster_tags:
+            temp=tag_list[tag_index]
+            if not temp:
+                continue
+            if(temp['id'] == index):
+                tag_list[tag_index]=False
+
+    for tag in tag_list:
+        if tag == False:
+            continue
+        result.append(tag)
+    return result
+
 
 ############# functions for  create flow of card,community and members   ##########################
 
@@ -872,10 +1019,18 @@ def create_card(request):
         card.save()
         # if the community does not have a purpose card then a purpose will be created
         # the first card created for a community is the purpose card
-        print(community.purpose_collabcard)
+        # if its a pilot community making the user promoter and updating community state to pilot active
+        info_logger.info(community.purpose_collabcard)
+        is_pilot_active=False
         if not community.purpose_collabcard and community.hide_community == '3':
             community.purpose_collabcard=card.id
             community.save()
+            join_time = time.time()
+            Members.objects.filter(community_id=community, member_id=user.user_id).update(state=1, created_at=join_time)
+            # changing community state to 0 (zero) to make it a active community
+            community.hide_community = '4'
+            community.save()
+            is_pilot_active=True
 
 
         # sending notification to the user
@@ -900,7 +1055,26 @@ def create_card(request):
         update_last_answer_id(card.id,"")
 
         if is_member_engage(community,user.user_id):
-            update_last_unseen_in_engage(user=user.user_id,community=community)
+            if is_pilot_active:
+                # updating the last unseen card for community and member who become promoter
+                engage=Member_Engage.objects.get(community_id=community,
+                                          member_id=user.user_id)
+                engage.last_unseen_conversation=card
+                engage.updated_at = time.time()
+                engage.save()
+
+                #updating the members engage for members who is refered by user
+                refered_members=get_referred_members_of_a_member(community_id,user_id)
+                for member in refered_members:
+                    user_id=User.objects.get(id=member)
+                    engage=Member_Engage.objects.get(community_id=community,member_id=user_id)
+                    engage.last_unseen_conversation=card
+                    engage.last_unseen_count=1
+                    engage.updated_at = time.time()
+                    engage.save()
+                update_pending_member_count_in_engage(community)
+            else:
+                update_last_unseen_in_engage(user=user.user_id,community=community)
         else:
             engage = Member_Engage()
             engage.member_id = user.user_id
@@ -908,16 +1082,7 @@ def create_card(request):
             engage.last_unseen_conversation = card
             engage.updated_at = time.time()
             engage.save()
-
-        # if a community is a pilot community make the member as promoter
-        if community.hide_community == '3':
-            join_time=time.time()
-            Members.objects.filter(community_id=community,member_id=user.user_id).update(state=1,created_at=join_time)
-            # changing community state to 0 (zero) to make it a active community
-            community.hide_community ='4'
-            community.save()
-            return JsonResponse({'success': True, 'collabcard': collabcard})
-
+        update_referral_text_in_engage_table(community)
         return JsonResponse({'success':True,'collabcard':collabcard})
     return JsonResponse({'success':False})
 
@@ -1061,6 +1226,8 @@ def pending_members(request,community_id):
     return JsonResponse({'pending_members': pending_requests})
 
 def check_for_member_eligibiity(community_id,member_id):
+
+    '''That return count return you the no of people user referred and has become state 4'''
     # function to check if accepted member is a eligible admin or not
 
     community = Community.objects.get(pk = community_id)
@@ -1272,13 +1439,10 @@ def request_response(request,req_dict=None):
         Community.objects.filter(id = community_id).update(members_count=members_count)
 
         # inserting data in member engage
-        try:
-            purpose_card = Collabcard.objects.get(id=community.purpose_collabcard)
-        except:
-            card=Collabcard.objects.filter(community_id=community).order_by('id')
-            if card:
-                purpose_card=card[0]
+        purpose_card = Collabcard.objects.get(id=community.purpose_collabcard)
+
         unseen_count=Collabcard.objects.filter(community=community).count()
+        count = check_for_member_eligibiity(community_id, member_id)
         if not is_member_engage(community, user.id):
             engage = Member_Engage()
             engage.member_id = user
@@ -1288,8 +1452,13 @@ def request_response(request,req_dict=None):
             engage.updated_at = time.time()
             engage.save()
             update_pending_member_count_in_engage(community)
-
-        count = check_for_member_eligibiity(community_id, member_id)
+            update_referral_text_in_engage_table(community)
+        # else:
+        #     if community.hide_community == '4':
+        #         engage=Member_Engage.objects.get(community_id=community,member_id=user)
+        #         engage.pending_members=count
+        #         engage.save()
+        #         update_pending_member_count_in_engage(community)
 
         # send notification
         send_notification_for_join_requests.delay(community_id,True,member_id)
@@ -2230,9 +2399,7 @@ def accept_promotership(request):
     member_id=res['member_id']
     value=res['value']
     all_members=Members.objects.filter(community_id=community_id)
-
-
-
+    community = Community.objects.get(id=community_id)
     if value:
 
         if 'member_ids' not in res or not res['member_ids']:
@@ -2255,12 +2422,11 @@ def accept_promotership(request):
                 request_response(request,req_dict)
             else:
                 Members.objects.filter(community_id=community_id,member_id=member.member_id.id).update(state=3)
-                try:
-                    community=Community.objects.get(id=community_id)
-                    update_pending_member_count_in_engage(community)
-                except:
-                    print("Error for member engage update")
 
+
+    #update member engage table enteries
+    update_pending_member_count_in_engage(community)
+    update_referral_text_in_engage_table(community)
     update_member_count(community_id)
     return JsonResponse({'success':True})
 

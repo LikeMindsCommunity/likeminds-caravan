@@ -2,7 +2,7 @@
 {% load staticfiles %}
 
 {% block menu %}
-{% if android%}
+{% if android or ios %}
 
 {% else %}
             <div class="right menu" style="float:right; ">
@@ -108,7 +108,7 @@
 
 <script>
 
-{% if not request.user.is_authenticated and not android %}
+{% if not request.user.is_authenticated and not android and not ios %}
     $(".test").modal('show');
 {% endif %}
 
@@ -179,12 +179,25 @@ $('#submit').addClass("loading");
         data:temp,
         dataType: "json",
         success:function(data){
-            //console.log(data)
-            {% if community_id != None %}
-            location.href="/onboarding_interest?community_id={{community_id}}"
-            {% else %}
-            location.href="/onboarding_interest"
-            {% endif %}
+            console.log(data)
+
+            if(data['industry_error']){
+            $('#error_profession_industry').css("display","block")
+                $('#submit').removeClass("loading");
+                return;
+            }
+            else if(data['skill_error']){
+                $('#error_profession_skill').css("display","block")
+                $('#submit').removeClass("loading");
+                return;
+            }
+            else{
+                {% if community_id != None %}
+                location.href="/onboarding_interest?community_id={{community_id}}"
+                {% else %}
+                location.href="/onboarding_interest"
+                {% endif %}
+            }
 
         }
 
@@ -192,7 +205,7 @@ $('#submit').addClass("loading");
 
     })
 {% else %}
-    {% if android %}
+    {% if android or ios %}
 
      $.ajax({
 
@@ -201,13 +214,25 @@ $('#submit').addClass("loading");
         data:temp,
         dataType: "json",
         success:function(data){
-            //console.log(data)
-            {% if community_id != None %}
-            location.href="/onboarding_interest?community_id={{community_id}}"
-            {% else %}
-            location.href="/onboarding_interest"
-            {% endif %}
+            console.log(data)
 
+            if(data['industry_error']){
+            $('#error_profession_industry').css("display","block")
+                $('#submit').removeClass("loading");
+                return;
+            }
+            else if(data['skill_error']){
+                $('#error_profession_skill').css("display","block")
+                $('#submit').removeClass("loading");
+                return;
+            }
+            else{
+                {% if community_id != None %}
+                location.href="/onboarding_interest?community_id={{community_id}}"
+                {% else %}
+                location.href="/onboarding_interest"
+                {% endif %}
+            }
         }
 
 

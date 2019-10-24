@@ -9,23 +9,20 @@ from django.conf import settings
 from django.db.models import Q
 from togther.models import *
 from project.celery import app
+from utility.tasks import send_email
 
 
 url  = settings.URL
 
 
-# @shared_task
-# def send_email():
-# 	fail_silently=True
-# 	subject="Thanks for joining CollabMates! Here's what to expect"
-# 	template = get_template("mails/collabcard_posted.html").render()
-# 	msg = EmailMultiAlternatives(subject,
-# 	                                 template,
-# 	                                 "Collabmates<hello@collabmates.com>",
-# 	                                 [to],
-# 	                                 )
-# 	msg.attach_alternative(template, "text/html")
-# 	return msg.send(fail_silently)
+# def send_email(subject,template,to):
+#     fail_silently=True
+#     msg = EmailMultiAlternatives(subject,
+#                                 template,
+#                                 "Collabmates<hello@collabmates.com>",
+#                                 [to],)
+#     msg.attach_alternative(template, "text/html")
+#     return msg.send(fail_silently)
 
 @shared_task
 def send_email_to_nominated_admin(NominatedAdmin,email,ProposedAdmin,CommunityName,community_id,proposedAdminState):
@@ -39,13 +36,14 @@ def send_email_to_nominated_admin(NominatedAdmin,email,ProposedAdmin,CommunityNa
         template = get_template("mails/accept_admin_request.html").render({"NominatedAdmin":NominatedAdmin,"email":email,"ProposedAdmin":ProposedAdmin,"CommunityName":CommunityName,"community_id":community_id,'url':url})
     elif proposedAdminState == 2:
         template = get_template("mails/accept_temp_admin_request.html").render({"NominatedAdmin":NominatedAdmin,"email":email,"ProposedAdmin":ProposedAdmin,"CommunityName":CommunityName,"community_id":community_id,'url':url})
-    msg = EmailMultiAlternatives(subject,
-                                 template,
-                                 "Collabmates<hello@collabmates.com>",
-                                 [to],
-                                 )
-    msg.attach_alternative(template, "text/html")
-    return msg.send(fail_silently)
+    # msg = EmailMultiAlternatives(subject,
+    #                              template,
+    #                              "Collabmates<hello@collabmates.com>",
+    #                              [to],
+    #                              )
+    # msg.attach_alternative(template, "text/html")
+    # return msg.send(fail_silently)
+    send_email(subject, template, to)
 
 @shared_task
 def send_email_to_admin_of_community(CommmunityAdminName,CommunityName,email):
@@ -54,13 +52,14 @@ def send_email_to_admin_of_community(CommmunityAdminName,CommunityName,email):
     to = email
     subject = "Congrats! "+CommunityName+" community is now live"
     template = get_template("mails/create_community_as_admin.html").render({"CommmunityAdminName":CommmunityAdminName,"CommunityName":CommunityName})
-    msg = EmailMultiAlternatives(subject,
-                                 template,
-                                 "Collabmates<hello@collabmates.com>",
-                                 [to],
-                                 )
-    msg.attach_alternative(template, "text/html")
-    return msg.send(fail_silently)
+    # msg = EmailMultiAlternatives(subject,
+    #                              template,
+    #                              "Collabmates<hello@collabmates.com>",
+    #                              [to],
+    #                              )
+    # msg.attach_alternative(template, "text/html")
+    # return msg.send(fail_silently)
+    send_email(subject, template, to)
 
 @shared_task
 def send_email_to_temp_admin_of_community(CommmunityAdminName,CommunityName,email):
@@ -69,13 +68,14 @@ def send_email_to_temp_admin_of_community(CommmunityAdminName,CommunityName,emai
     to = email
     subject = "Congrats! "+CommunityName+" community is now live"
     template = get_template("mails/create_community_as_member.html").render({"CommmunityAdminName":CommmunityAdminName,"CommunityName":CommunityName})
-    msg = EmailMultiAlternatives(subject,
-                                 template,
-                                 "Collabmates<hello@collabmates.com>",
-                                 [to],
-                                 )
-    msg.attach_alternative(template, "text/html")
-    return msg.send(fail_silently)
+    # msg = EmailMultiAlternatives(subject,
+    #                              template,
+    #                              "Collabmates<hello@collabmates.com>",
+    #                              [to],
+    #                              )
+    # msg.attach_alternative(template, "text/html")
+    # return msg.send(fail_silently)
+    send_email(subject, template, to)
 
 
 @shared_task
@@ -94,13 +94,14 @@ def send_email_to_proposed_admin(NominatedAdmin, email, ProposedAdmin, Community
         template = get_template("mails/accepted_temp_admin_request.html").render(
             {"NominatedAdmin": NominatedAdmin, "email": email, "ProposedAdmin": ProposedAdmin,
              "CommunityName": CommunityName, "community_id": community_id, 'url': url})
-    msg = EmailMultiAlternatives(subject,
-                                 template,
-                                 "Collabmates<hello@collabmates.com>",
-                                 [to],
-                                 )
-    msg.attach_alternative(template, "text/html")
-    return msg.send(fail_silently)
+    # msg = EmailMultiAlternatives(subject,
+    #                              template,
+    #                              "Collabmates<hello@collabmates.com>",
+    #                              [to],
+    #                              )
+    # msg.attach_alternative(template, "text/html")
+    # return msg.send(fail_silently)
+    send_email(subject, template, to)
 
 @shared_task
 def send_email_for_new_collabcard_posted(context):
@@ -111,13 +112,14 @@ def send_email_for_new_collabcard_posted(context):
     fail_silently = True
     subject = str(context['collabcard_creater']) + " has started a new Conversation in "+ str(context['community_name'])+ " community"
     template = get_template("mails/collabcard_posted.html").render(context)
-    msg = EmailMultiAlternatives(subject,
-                                 template,
-                                 "Collabmates<hello@collabmates.com>",
-                                 [to],
-                                 )
-    msg.attach_alternative(template, "text/html")
-    return msg.send(fail_silently)
+    # msg = EmailMultiAlternatives(subject,
+    #                              template,
+    #                              "Collabmates<hello@collabmates.com>",
+    #                              [to],
+    #                              )
+    # msg.attach_alternative(template, "text/html")
+    # return msg.send(fail_silently)
+    send_email(subject, template, to)
 
 
 @app.task
@@ -163,14 +165,15 @@ def pending_members_mail():
                          'community_id': admin.community_id.id,
                          'url':url})
                 print(subject)
-
-                msg = EmailMultiAlternatives(subject,
-                                             template,
-                                             "Collabmates<hello@collabmates.com>",
-                                             [admin.member_id.userinfo.email],
-                                             )
-                msg.attach_alternative(template, "text/html")
-                msg.send(fail_silently)
+                to = admin.member_id.userinfo.email
+                # msg = EmailMultiAlternatives(subject,
+                #                              template,
+                #                              "Collabmates<hello@collabmates.com>",
+                #                              [admin.member_id.userinfo.email],
+                #                              )
+                # msg.attach_alternative(template, "text/html")
+                # msg.send(fail_silently)
+                send_email(subject, template, to)
     return
 
 
@@ -197,13 +200,14 @@ def send_welcome_mail(user_id):
                 text = 'your existing communities'
 
             template = get_template("mails/welcome_mail_non_zero.html").render({"name":user.userinfo.name,'url':url,'text':text})
-        msg = EmailMultiAlternatives(subject,
-                                     template,
-                                     "Collabmates<hello@collabmates.com>",
-                                     [to],
-                                     )
-        msg.attach_alternative(template, "text/html")
-        return msg.send(fail_silently)
+        # msg = EmailMultiAlternatives(subject,
+        #                              template,
+        #                              "Collabmates<hello@collabmates.com>",
+        #                              [to],
+        #                              )
+        # msg.attach_alternative(template, "text/html")
+        # return msg.send(fail_silently)
+        send_email(subject, template, to)
     else:
         return
 

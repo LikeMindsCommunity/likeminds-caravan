@@ -278,6 +278,8 @@ class Tags_lpig(models.Model):
     tag_id=models.IntegerField(null=True)
     tag_characterstics=models.CharField(max_length=1024,null=True)
     tag_image = models.ImageField(upload_to="media/tags_images", default = '')
+    is_cluster=models.IntegerField(default=0)
+    cluster_tag_id=models.IntegerField(null=True)
     def __str__(self):
         return self.name
 
@@ -288,10 +290,11 @@ class Member_Engage(models.Model):
 
     member_id=models.ForeignKey(User, on_delete=models.CASCADE)
     community_id=models.ForeignKey(Community, on_delete=models.CASCADE)
-    last_unseen_conversation=models.ForeignKey(Collabcard, on_delete=models.CASCADE)
+    last_unseen_conversation=models.ForeignKey(Collabcard, on_delete=models.CASCADE,null=True)
     last_unseen_count=models.IntegerField(default=0,null=True)
     pending_members=models.IntegerField(default=0,null=True)
     updated_at=models.BigIntegerField(default=0,null=True)
+    member_referral=models.CharField(default='',max_length=1024)
 
 
 # community lpig

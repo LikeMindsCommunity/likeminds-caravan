@@ -23,10 +23,11 @@ from utility.utils import (get_city_address, update_tag_image,
                            update_user_geography_tags, create_or_categorize_tag,
                            referal, insert_user_home_town_tags, )
 from urllib.parse import urlencode,quote
-from utility.tasks import new_member_request
+from collabmates_api.tasks import send_email
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from user_agents import parse
 import time
+import logging
 url = settings.URL
 
 # uncomment to run it in localhost
@@ -34,6 +35,8 @@ url = settings.URL
 # url='http://localhost:8000'
 
 api_url = url + '/api/'
+error_logger=logging.getLogger("error_logger")
+info_logger=logging.getLogger("info_logger")
 
 
 def index(request):
@@ -66,17 +69,22 @@ def signup(request):
 def dashboard(request):
     ''' function to show all communities and filter based on categories '''
 
-    # print('reqesut META  >>>>>>>>> ',request.META)
+
     if request.user.is_authenticated:
+
+        # if user does not have a email linked to his account, ask for a email
+        request_user_email = False
+        if not request.user.email:
+            request_user_email = True
 
         try:
             # check if user has user info
             user = Userinfo.objects.get(user_id=request.user.id)
+
         except:
             # if there is no user info for the user who is currently logged in
             # create userinfo for current user
             user = update_user_info(request)
-
         # get users communities
         my_community = get_user_communities(request)
         # getting communities by user hidden tag
@@ -84,29 +92,16 @@ def dashboard(request):
 
         # check if user has completed onbarding and is from IIT Delhi
         onboard,is_iitd = user_onbaord(request)
-
-        # if 'HTTP_USER_AGENT' in request.META:
-        #     ua_string = request.META['HTTP_USER_AGENT']
-        #     #ua_string="Mozilla/5.0 (Linux; Android 9; Redmi Note 5 Pro) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.92 Mobile Safari/537.36"
-        #     user_agent = parse(ua_string)
-        #     mobile_os=request.user.userinfo.mobile_os
-        #     if user_agent.os.family == "Android" and mobile_os:
-        #         # user.mobile_os="Android"
-        #         # user.save()
-        #         base_url = reverse('dashboard')
-        #         query_string = urlencode({'member_id': request.user.id})
-        #         url = '{}?{}'.format(base_url, query_string)
-        #         return redirect(url)
-
-
         return render(request, 'dashboard.html',
                       {'usr': user, 'communities': communities, 'my_communities': my_community[:2],
-                       "my_communities_count": len(my_community),'onboard':onboard,'is_iitd':True})
+                       "my_communities_count": len(my_community),'onboard':onboard,'is_iitd':True,
+                       'request_user_email':request_user_email})
 
     page = request.GET.get('page',1)
     communities = Community.objects.filter(Q(hide_community='0')|Q(hide_community = '4')).order_by('-updated_at')
     paginator = Paginator(communities, 20)
     queryset = paginator.get_page(page)
+
 
     for community in queryset:
         update_member_count(community.id)
@@ -251,15 +246,24 @@ def community(request, community_id):
                               {'usr': user,
                                'similar_communities': data,
                                'community': community,
-                               'onboard':onboard})
+                               'onboard':onboard,
+                               })
         elif cta == 'share':
             cta = 'join'
 
     else:
         cta = ''
+
+
+    # if user does not have a email linked to his account, ask for a email
+    request_user_email = False
+
     if request.user.is_authenticated:
+        if not request.user.email:
+            request_user_email = True
         try:
             user = Userinfo.objects.get(user_id=request.user.id)
+
         except:
             user = update_user_info(request)
 
@@ -313,6 +317,7 @@ def community(request, community_id):
     else:
         user = []
 
+    # user_email = True
     return render(request, 'community.html', {'usr': user, 'similar_communities': communities,
                                               'community': community, 'admins': admin_details,
                                               'members': members, 'source': source,
@@ -320,7 +325,8 @@ def community(request, community_id):
                                               'admin_length': len(admin_details),
                                               'members_length': len(members),
                                               'similar_community_length':len(communities),
-                                              'ref_id':ref_id,})
+                                              'ref_id':ref_id,
+                                              'request_user_email':request_user_email})
 
 
 def refer_members(request,community_id):
@@ -406,7 +412,7 @@ def get_members_of_community(request,community):
 
 
 @login_required
-def update_user_info(request,member_id=None):
+def update_user_info(request,member_id=None,user_email=None):
     if member_id:
         user_id = member_id
     elif request:
@@ -433,12 +439,20 @@ def update_user_info(request,member_id=None):
                 image_url = "http://graph.facebook.com/" + social_user.extra_data[
                     'id'] + "/picture?width=400&height=400"
                 print(data)
-                usr = User.objects.get(pk = user_id)
-                if not usr.email:
-                    usr.email = data['email']
-                    usr.save()
+                usr = User.objects.get(pk = request.user.id)
+
                 try:
-                    user = Userinfo.objects.get(user_id=user_id)
+                    user = Userinfo.objects.get(user_id=request.user.id)
+                    if not usr.email:
+
+                        if user_email:
+                            data['email'] = user_email
+                            usr.email = user_email
+                            usr.save()
+                        if not user.email:
+                            user.email = user_email
+                            user.save()
+
                 except:
                     user = Userinfo()
                     if 'name' in data:
@@ -458,7 +472,11 @@ def update_user_info(request,member_id=None):
                     user.save()
                     print("created userinfo")
 
+                if user_email:
+                    return JsonResponse({"success":True})
+
                 return user
+
             if social_user.provider == 'linkedin-oauth2':
                 # accessing Linked In API to get user basic information
                 url = 'https://api.linkedin.com/v2/me?projection=(id,firstName,emailAddress,lastName,vanityName,headline,interests,location,picture-url,name,profilePicture(displayImage~:playableStreams))&oauth2_access_token=' + \
@@ -476,12 +494,19 @@ def update_user_info(request,member_id=None):
                 profile_picture = data_main['profilePicture']['displayImage~']['elements'][2]['identifiers'][0][
                     'identifier']
                 email = email_data['elements'][0]['handle~']['emailAddress']
-                usr = User.objects.get(pk=user_id)
+                usr = User.objects.get(pk=request.user.id)
+                usr1 = Userinfo.objects.get(user_id=request.user.id)
+
                 if not usr.email:
-                    usr.email = email
-                    usr.save()
+                    if user_email:
+                        email = user_email
+                        usr.email = user_email
+                        usr.save()
+                if usr1 and not usr1.email:
+                    if user_email:
+                        usr1.email = user_email
+                        usr1.save()
                 # checking if there is any user having details with the email we got from linkedIn
-                usr1 = Userinfo.objects.all().filter(email=email)
                 if not usr1:
                     # if there is no user having th email , create a user info for the user
                     user = Userinfo()
@@ -496,6 +521,9 @@ def update_user_info(request,member_id=None):
                     elif request:
                         user.user_id = request.user
                     user.save()
+
+                if user_email:
+                    return JsonResponse({"success":True})
 
                 return user
 
@@ -887,12 +915,12 @@ def thankyou(request):
 def send_email(email):
     ''' function to send email to user to be notified '''
     fail_silently = True
-    to = email
+    to = 'nipungoyal.iitd@gmail.com'
     subject = email + " wants to be Notified"
     msg = EmailMultiAlternatives(subject,
                                  email,
                                  "Collabmates<hello@collabmates.com>",
-                                 ['nipungoyal.iitd@gmail.com'],
+                                 [to],
                                  )
     return msg.send(fail_silently)
 
@@ -969,10 +997,19 @@ def collabcard(request, card_id):
     collabcard_url = api_url + 'collabcard/' + str(card_id)
     collabcard = rqst.get(collabcard_url)
     collabcard_dict = json.loads(collabcard.content)
-    try:
-        user=Userinfo.objects.get(user_id=request.user.id)
+
+    request_user_email = False
+
+    if request.user.is_authenticated:
+        try:
+            user = Userinfo.objects.get(user_id=request.user.id)
+
+            if not request.user.email:
+                request_user_email = True
+        except:
+            user, request_user_email = update_user_info(request)
         user_image=user.image_file.url
-    except:
+    else:
         user_image=''
 
     answers = collabcard_dict['answers']
@@ -1015,6 +1052,7 @@ def collabcard(request, card_id):
                'created_at':collabcard_dict['collabcard']['created_at'],
                'answers_count': len(collabcard_dict['answers']),
                'is_member':is_member,
+               'request_user_email':request_user_email,
 
                }
     return render(request, 'card.html', context)
@@ -1138,12 +1176,12 @@ def pending_list(request,community_id):
     res = rqst.get(link)
     user_image_url=""
     is_promoter = 'false'
+    request_user_email = False
     if request.user.is_authenticated:
         try:
             userinfo = Userinfo.objects.get(user_id=request.user.id)
         except:
-            userinfo = update_user_info(request)
-
+            user, request_user_email = update_user_info(request)
         # userinfo=Userinfo.objects.get(user_id=request.user.id)
         user_image_url=userinfo.image_file.url
         link=api_url+'members_state?member_id='+str(request.user.id)+'&community_id='+str(community_id)
@@ -1169,7 +1207,8 @@ def pending_list(request,community_id):
         'user_image_url':url+user_image_url,
         'is_promoter':is_promoter,
         'list_length':len(pending_list),
-        'error':error
+        'error':error,
+        'request_user_email':request_user_email
     }
     return render(request,'pending_list.html',context)
 
@@ -1194,6 +1233,7 @@ def questions_responses(request):
     return JsonResponse(context)
 
 
+
 def get_or_create_tag(tag_name,tag_type):
 
     '''function to check whether the tag is existing tag or a new tag and
@@ -1207,7 +1247,7 @@ def get_or_create_tag(tag_name,tag_type):
         tag_id=int(tag_name)
         return tag_id
     except:
-        tag_name = tag_name.strip().title()
+        tag_name = tag_name.strip()
         try:
             tag = Tags_lpig.objects.get(name = tag_name)
         except:
@@ -1223,22 +1263,50 @@ def get_or_create_tag(tag_name,tag_type):
         return tag.id
 
 
+def fill_cluster_tags_in_tags_list(tag_list,typ):
+
+    '''function to fill cluster tags in tags list'''
+    clusted_tags=[]
+    for each_tag in tag_list:
+        tag=Tags_lpig.objects.get(pk=each_tag)
+        if tag.is_cluster:
+            #tag_list.remove(each_tag)
+            if typ == "Legacy":
+                clusted_tags=list(Tags_lpig.objects.filter(Q(cluster_tag_id=tag.tag_id)&(Q(category_id=1))).values_list('id',flat=True))
+            elif typ == "Profession":
+                clusted_tags=list(Tags_lpig.objects.filter(Q(cluster_tag_id=tag.tag_id)&(Q(category_id=2))).values_list('id',flat=True))
+            elif typ == "Interest":
+                clusted_tags=list(Tags_lpig.objects.filter(Q(cluster_tag_id=tag.tag_id)&(Q(category_id=3))).values_list('id',flat=True))
+            elif typ == "Geography":
+                clusted_tags=list(Tags_lpig.objects.filter(Q(cluster_tag_id=tag.tag_id)&(Q(category_id=4))).values_list('id',flat=True))
+
+
+    if not clusted_tags:
+        return tag_list
+    else:
+        tag_list=tag_list+clusted_tags
+        return tag_list
+
+
+
+
+
 def insert_tags_for_user(user_id,tag_list,typ):
 
     '''function to insert tags for user'''
 
     user=User.objects.get(id=user_id)
 
-    print('insert function ========== ',tag_list,type(tag_list))
 
     '''updating the list based on type'''
 
     if typ == "Legacy":
         user_tags_list = list(User_Legacy.objects.filter(user_id=user).values_list("tags_id", flat=True))
+        tag_list=fill_cluster_tags_in_tags_list(tag_list,"Legacy")
+        info_logger.info("""Tag_type=%s,Tag_list=%s"""%(typ,str(tag_list)))
 
         for each_tag in tag_list:
             if each_tag in user_tags_list:
-
                 continue
             elif not each_tag in user_tags_list:
                    tag = Tags_lpig.objects.get(pk=each_tag)
@@ -1259,6 +1327,8 @@ def insert_tags_for_user(user_id,tag_list,typ):
     if typ == "Profession":
 
         user_tags_list = list(User_Profession.objects.filter(user_id=user).values_list("tags_id", flat=True))
+        tag_list=fill_cluster_tags_in_tags_list(tag_list,"Profession")
+        info_logger.info("""Tag_type=%s,Tag_list=%s"""%(typ,str(tag_list)))
 
         for each_tag in tag_list:
             if each_tag in user_tags_list:
@@ -1284,6 +1354,8 @@ def insert_tags_for_user(user_id,tag_list,typ):
     if typ == "Interests":
 
         user_tags_list = list(User_Interest.objects.filter(user_id=user).values_list("tags_id", flat=True))
+        tag_list=fill_cluster_tags_in_tags_list(tag_list,"Interest")
+        info_logger.info("""Tag_type=%s,Tag_list=%s"""%(typ,str(tag_list)))
 
         for each_tag in tag_list:
             if each_tag in user_tags_list:
@@ -1308,6 +1380,8 @@ def insert_tags_for_user(user_id,tag_list,typ):
     if typ == "Geography":
 
         user_tags_list = list(User_Geography.objects.filter(user_id=user).values_list("tags_id", flat=True))
+        tag_list=fill_cluster_tags_in_tags_list(tag_list,"Geography")
+        info_logger.info("""Tag_type=%s,Tag_list=%s"""%(typ,str(tag_list)))
 
         for each_tag in tag_list:
             if each_tag in user_tags_list:
@@ -1354,7 +1428,6 @@ def get_user_legacy_tags(user_id):
 
     user_legacy = list(User_Legacy.objects.filter(user_id=user_id).values_list('tags_id', flat=True))
     user_geo = list(User_Geography.objects.filter(user_id=user_id).values_list('tags_id', flat=True))
-
     user_legacy_education = []
     user_legacy_work = []
     user_legacy_hometown = []
@@ -1368,19 +1441,21 @@ def get_user_legacy_tags(user_id):
             if tag.category_id.id == 1 and tag.attribute_id.id == 1:
                 user_legacy_work.append(tag)
 
-            elif tag.category_id.id == 1 and tag.attribute_id.id == 2:
+            elif tag.category_id.id == 1 and tag.attribute_id.id == 2 :
                 user_legacy_education.append(tag)
 
 
             elif tag.category_id.id == 1 and tag.attribute_id.id == 3:
                 user_legacy_hometown.append(tag)
 
+
+
     if user_geo:
 
         for tag_id in user_geo:
             tag = Tags_lpig.objects.get(pk=tag_id)
 
-            if tag.category_id.id == 4 and tag.attribute_id.id == 12:
+            if tag.category_id.id == 4 and tag.attribute_id.id == 12 or tag.attribute_id.id == 13 or tag.attribute_id.id == 14:
                 user_geography.append(tag)
 
 
@@ -1576,10 +1651,12 @@ def onboarding(request):
             geography = []
 
         android = False
-
+        ios = False
         if is_request_android(request) and member_id and autheticate:
             android = True
-        print(android)
+
+        if is_request_ios(request) and member_id and autheticate:
+            ios = True
 
 
         education_tags = Tags_lpig.objects.filter(attribute_id=2).order_by('name')
@@ -1598,6 +1675,7 @@ def onboarding(request):
             'community_id':community_id,
             'member_id': member_id,
             'android':android,
+            'ios':ios,
         }
 
         return render(request,'onboarding.html',context)
@@ -1611,6 +1689,12 @@ def onboarding(request):
         # legacy_work = request.POST.getlist('legacy_work[]')
         legacy_hometown = request.POST.getlist('legacy_hometown[]')
         geography=request.POST.getlist('loc[]')
+
+        if not legacy_education:
+            return JsonResponse({'legacy_error': True})
+        elif not geography:
+            return JsonResponse({'geo_error': True})
+
 
         legacy_li = legacy_education + legacy_hometown   # + legacy_work
 
@@ -1661,8 +1745,12 @@ def onboarding_profession(request):
             profession_designation = []
 
         android = False
+        ios = False
         if is_request_android(request) and member_id and autheticate:
             android = True
+
+        if is_request_ios(request) and member_id and autheticate:
+            ios = True
 
         industry_tags = Tags_lpig.objects.filter(attribute_id=6).order_by('name')
         skill_tags = Tags_lpig.objects.filter(attribute_id=5).order_by('name')
@@ -1677,7 +1765,8 @@ def onboarding_profession(request):
             'community_id': community_id,
             'user_id' : member_id,
             'android': android,
-            'member_id':member_id
+            'member_id':member_id,
+            'ios': ios,
         }
 
         return render(request, 'onboarding_profession.html', context)
@@ -1690,6 +1779,10 @@ def onboarding_profession(request):
         profession_industry = request.POST.getlist('profession_industry[]')
         profession_skill = request.POST.getlist('profession_skill[]')
         #profession_designation = request.POST.getlist('profession_designation[]')
+        if not profession_industry:
+            return JsonResponse({'industry_error': True})
+        elif not profession_skill:
+            return JsonResponse({'skill_error': True})
 
         profession_list = profession_industry + profession_skill
 
@@ -1734,7 +1827,7 @@ def onboarding_interest(request):
             interest_cause = []
 
         android = False
-
+        ios = False
         if is_request_android(request) and member_id and autheticate:
             android = True
             try:
@@ -1746,6 +1839,20 @@ def onboarding_interest(request):
 
             except:
                 print("Error in getting user info object")
+
+        if is_request_ios(request) and member_id and autheticate:
+            ios = True
+
+            try:
+                user_info=Userinfo.objects.get(user_id=member_id)
+                user_info.mobile_os="Android"
+                user_info.secondary_email=user_info.email
+                user_info.save()
+
+
+            except:
+                print("Error in getting user info object")
+
 
         hobby_tags = Tags_lpig.objects.filter(attribute_id=9).order_by('name')
         sports_tags = Tags_lpig.objects.filter(attribute_id=10).order_by('name')
@@ -1763,7 +1870,8 @@ def onboarding_interest(request):
             'community_interest_cause': interest_cause,
             'android': android,
             'member_id':member_id,
-            'autheticate':autheticate
+            'autheticate':autheticate,
+            'ios':ios,
         }
 
         return render(request, 'interest_onboarding.html', context)
@@ -1786,6 +1894,10 @@ def onboarding_interest(request):
         interest_sports = request.POST.getlist('interest_sports[]')
         interest_fan = request.POST.getlist('interest_fan[]')
         interest_cause = request.POST.getlist('interest_cause[]')
+
+        if not interest_hobby and not interest_sports and not interest_fan and not interest_cause:
+            return JsonResponse({'interest_error': True})
+
 
         interest_list = interest_hobby + interest_sports + interest_fan + interest_cause
 
@@ -1813,6 +1925,20 @@ def is_request_android(request):
         ua_string = request.META['HTTP_USER_AGENT']
         user_agent = parse(ua_string)
         if user_agent.os.family == "Android" and not user_agent.is_pc:
+            return True
+        else:
+            return False
+    return False
+
+
+def is_request_ios(request):
+
+    '''function to check whether the user agent is android or not'''
+
+    if 'HTTP_USER_AGENT' in request.META:
+        ua_string = request.META['HTTP_USER_AGENT']
+        user_agent = parse(ua_string)
+        if user_agent.os.family == "iOS" and not user_agent.is_pc:
             return True
         else:
             return False

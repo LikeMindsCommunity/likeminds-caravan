@@ -7,8 +7,18 @@ import time
 from django.template import Context
 from django.conf import settings
 from togther.models import *
-
+from utility.tasks import send_email
 url  = settings.URL
+
+# def send_email(subject,template,to):
+#     fail_silently=True
+#     msg = EmailMultiAlternatives(subject,
+#                                 template,
+#                                 "Collabmates<hello@collabmates.com>",
+#                                 [to],)
+#     msg.attach_alternative(template, "text/html")
+#     return msg.send(fail_silently)
+
 
 @shared_task
 def send_email_to_proposed_admin(NominatedAdmin,email,ProposedAdmin,CommunityName,proposedAdminState,community_id):
@@ -21,13 +31,15 @@ def send_email_to_proposed_admin(NominatedAdmin,email,ProposedAdmin,CommunityNam
         template = get_template("mails/accepted_admin_request.html").render({"NominatedAdmin":NominatedAdmin,"email":email,"ProposedAdmin":ProposedAdmin,"CommunityName":CommunityName,"community_id":community_id,'url':url})
     elif proposedAdminState == 2:
         template = get_template("mails/accepted_temp_admin_request.html").render({"NominatedAdmin":NominatedAdmin,"email":email,"ProposedAdmin":ProposedAdmin,"CommunityName":CommunityName,"community_id":community_id,'url':url})
-    msg = EmailMultiAlternatives(subject,
-                                     template,
-                                     "hello@collabmates.com",
-                                     [to],
-                                     )
-    msg.attach_alternative(template, "text/html")
-    return msg.send(fail_silently)
+    # msg = EmailMultiAlternatives(subject,
+    #                                  template,
+    #                                  "hello@collabmates.com",
+    #                                  [to],
+    #                                  )
+    # msg.attach_alternative(template, "text/html")
+    # return msg.send(fail_silently)
+    send_email(subject, template, to)
+
 
 
 @shared_task
@@ -47,17 +59,18 @@ def send_mail_after_rank_computation(user_id):
     else:
         subject = 'Access to the first version of CollabMates App'
         template = get_template("mails/ios_users.html").render({"name":user_name,'url':url})
-    msg = EmailMultiAlternatives(subject,
-                                 template,
-                                 "Collabmates<hello@collabmates.com>",
-                                 [to],
-                                 )
-    msg.attach_alternative(template, "text/html")
+    # msg = EmailMultiAlternatives(subject,
+    #                              template,
+    #                              "Collabmates<hello@collabmates.com>",
+    #                              [to],
+    #                              )
+    # msg.attach_alternative(template, "text/html")
     count = 0
     while True:
         communities = Community_Rank.objects.filter(member_id = user_id)
         if communities.exists():
-            return msg.send(fail_silently)
+            return send_email(subject, template, to)
+
         elif count == 30:
             return
         else:
