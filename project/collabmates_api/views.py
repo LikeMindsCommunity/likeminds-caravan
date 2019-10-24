@@ -292,7 +292,7 @@ def update_referral_text_in_engage_table(community_object):
                 community['member_referral'] = "You are eligible to become a promoter of this community"
 
             # if the community becomes a pilot-active community and member approval is pending
-            elif community_state == '4' and state == 3:
+            elif (community_state == '4' or community_state == '0' or community_state == '1') and state == 3:
                 community['member_referral'] = "Your request is waiting for approval by promoter"
 
             # if the community becomes a pilot-active community and member request is approved
@@ -556,6 +556,17 @@ def join_community_responses(request):
 
         # updating updated time of community and pending member count for admins of commnity
         Community.objects.filter(id=community_id).update(updated_at=time.time())
+
+        # if the member is not present in engage table
+        if not is_member_engage(community,user):
+            engage = Member_Engage()
+            engage.community_id = community
+            engage.member_id = user
+            engage.updated_at = time.time()
+            engage.save()
+            info_logger.info("""Data Inserted successfully in members engage table where user_id=%s and community_id=%s""" % (
+                user_id, community_id))
+
         update_pending_member_count_in_engage(community)
         # sending notification to admins of the community
         name = user.userinfo.name
@@ -1453,12 +1464,16 @@ def request_response(request,req_dict=None):
             engage.save()
             update_pending_member_count_in_engage(community)
             update_referral_text_in_engage_table(community)
-        # else:
-        #     if community.hide_community == '4':
-        #         engage=Member_Engage.objects.get(community_id=community,member_id=user)
-        #         engage.pending_members=count
-        #         engage.save()
-        #         update_pending_member_count_in_engage(community)
+        else:
+            # if the community is created by user than updating the user details
+            if community.hide_community == '0' or community.hide_community == '1':
+                engage=Member_Engage.objects.get(community_id=community,member_id=user)
+                engage.last_unseen_conversation = purpose_card
+                engage.last_unseen_count = unseen_count
+                engage.updated_at = time.time()
+                engage.save()
+                update_pending_member_count_in_engage(community)
+                update_referral_text_in_engage_table(community)
 
         # send notification
         send_notification_for_join_requests.delay(community_id,True,member_id)
