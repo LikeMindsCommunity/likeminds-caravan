@@ -292,7 +292,7 @@ def update_referral_text_in_engage_table(community_object):
                 community['member_referral'] = "You are eligible to become a promoter of this community"
 
             # if the community becomes a pilot-active community and member approval is pending
-            elif (community_state == '4' or community_state == '0' or community_state == '0') and state == 3:
+            elif (community_state == '4' or community_state == '0' or community_state == '1') and state == 3:
                 community['member_referral'] = "Your request is waiting for approval by promoter"
 
             # if the community becomes a pilot-active community and member request is approved
