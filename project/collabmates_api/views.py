@@ -273,9 +273,9 @@ def update_referral_text_in_engage_table(community_object):
 
             if community_state == '3' and state == 8:
                 diff = eligibility_count - community['pending_members_count']
-                if community['pending_members_count'] < 3:
+                if community['pending_members_count'] < (eligibility_count-2):
                     community['member_referral']="""[Pilot] Help this community find a promoter"""
-                elif community['pending_members_count'] >= 3 and  community['pending_members_count'] < 5:
+                elif community['pending_members_count'] >= (eligibility_count-2) and  community['pending_members_count'] < (eligibility_count-2):
                     community['member_referral'] = """You have successfully referred %s. Refer %s and become promoter of this community."""%(community['pending_members_count'],diff)
 
             # if the community is pilot community and the member is eligible promoter
@@ -2149,7 +2149,7 @@ def config(request):
         member_id=headers['HTTP_X_MEMBER_ID']
         version_code=headers['HTTP_X_VERSION_CODE']
 
-        Userinfo.objects.filter(user_id=member_id).update(version_code=version_code)
+        #Userinfo.objects.filter(user_id=member_id).update(version_code=version_code)
         log="""Version code updated for user %s"""%(str(member_id))
         info_logger.info(log)
         title="App Update"
@@ -2159,11 +2159,41 @@ def config(request):
         cta_link="""https://play.google.com/apps/testing/com.collabmates"""
         cta_link=quote(cta_link)
         cta="""route://browser?link=%s"""%(cta_link)
-        #route="""route://dialog?title=%s&message=%s&cta_text=%s& cancelable=%s"""%(title,message,cta_text,cancelable)
-        #info_logger.info(route)
-        return JsonResponse({'success': True})
-    error_logger.error("headers are not comming correctly")
+        route="""route://dialog?title=%s&message=%s&cta_text=%s&cta=%s&cancelable=%s"""%(title,message,cta_text,cta,cancelable)
+        info_logger.info(route)
+        #return JsonResponse({'success': True,'route':route})
+
+    ingest_your_communities=request.GET.get('ingest_your_communities',False)
+
+    if ingest_your_communities:
+        update_communities_in_member_engage_table(member_id)
+        info_logger.info("Updated successfully")
+        return JsonResponse({'success':True})
+    #error_logger.error("headers are not comming correctly")
     return JsonResponse({'success':False})
+
+
+def update_communities_in_member_engage_table(member_id):
+
+    '''function to update the user communities in engage table'''
+
+    all_members=Members.objects.filter(member_id=member_id)
+
+    for member in all_members:
+        community_id=member.community_id
+        if community_id.hide_community == '3':
+            community =Community.objects.get(id=community_id.id)
+            user=User.objects.get(id=member_id)
+            if not is_member_engage(community,user):
+                engage=Member_Engage()
+                engage.community_id=community
+                engage.member_id=user
+                engage.updated_at=time.time()
+                pending_count= get_referred_members_of_a_member(community.id,member_id)
+                engage.pending_members=len(pending_count)
+                engage.save()
+                update_referral_text_in_engage_table(community)
+
 
 
 ############# functions edit community    ##########################
