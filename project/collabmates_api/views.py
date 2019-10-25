@@ -2164,13 +2164,14 @@ def config(request):
         #return JsonResponse({'success': True,'route':route})
 
     ingest_your_communities=request.GET.get('ingest_your_communities',False)
-
+    info_logger.info(ingest_your_communities)
     if ingest_your_communities:
         update_communities_in_member_engage_table(member_id)
-        info_logger.info("Updated successfully")
+        log="""Updated successfull for user=%s"""%(member_id)
+        info_logger.info("Updated successfully for user")
         return JsonResponse({'success':True})
     #error_logger.error("headers are not comming correctly")
-    return JsonResponse({'success':False})
+    return JsonResponse({'success':True})
 
 
 def update_communities_in_member_engage_table(member_id):
@@ -2178,7 +2179,7 @@ def update_communities_in_member_engage_table(member_id):
     '''function to update the user communities in engage table'''
 
     all_members=Members.objects.filter(member_id=member_id)
-
+    c=0
     for member in all_members:
         community_id=member.community_id
         if community_id.hide_community == '3':
@@ -2192,8 +2193,11 @@ def update_communities_in_member_engage_table(member_id):
                 pending_count= get_referred_members_of_a_member(community.id,member_id)
                 engage.pending_members=len(pending_count)
                 engage.save()
+                info_logger.info("Communities")
+                info_logger.info(community)
                 update_referral_text_in_engage_table(community)
-
+                c=c+1
+    info_logger.info(c)
 
 
 ############# functions edit community    ##########################
