@@ -273,15 +273,10 @@ def update_referral_text_in_engage_table(community_object):
 
             if community_state == '3' and state == 8:
                 diff = eligibility_count - community['pending_members_count']
-                if community['pending_members_count'] == 1:
-                    community['member_referral'] = """You have successfully referred %s member. Please refer %s more to become promoter.""" % (
-                    community['pending_members_count'], diff)
-                elif community['pending_members_count']:
-                    community['member_referral'] = """You have successfully referred %s members. Please refer %s more to become promoter.""" % (
-                    community['pending_members_count'], diff)
-                # else:
-                #     community['member_referral'] = """Refer %s people to become promoter.""" % (eligibility_count)
-
+                if community['pending_members_count'] < 3:
+                    community['member_referral']="""[Pilot] Help this community find a promoter"""
+                elif community['pending_members_count'] >= 3 and  community['pending_members_count'] < 5:
+                    community['member_referral'] = """You have successfully referred %s. Refer %s and become promoter of this community."""%(community['pending_members_count'],diff)
 
             # if the community is pilot community and the member is eligible promoter
             elif community_state == '3' and state == 9:
@@ -296,15 +291,15 @@ def update_referral_text_in_engage_table(community_object):
                 community['member_referral'] = "Your request is waiting for approval by promoter"
 
             # if the community becomes a pilot-active community and member request is approved
-            elif community_state == '4' and state == 4:
-                diff = eligibility_count - community['pending_members_count']
-                if community['pending_members_count'] == 1:
-                    community['member_referral'] = """You have successfully referred %s member. Please refer %s more to become promoter.""" % (
-                        community['pending_members_count'], diff)
-                elif community['pending_members_count']:
-                    community[
-                        'member_referral'] = """You have successfully referred %s members. Please refer %s more to become promoter.""" % (
-                        community['pending_members_count'], diff)
+            # elif community_state == '4' and state == 4:
+            #     diff = eligibility_count - community['pending_members_count']
+            #     if community['pending_members_count'] == 1:
+            #         community['member_referral'] = """You have successfully referred %s member. Please refer %s more to become promoter.""" % (
+            #             community['pending_members_count'], diff)
+            #     elif community['pending_members_count']:
+            #         community[
+            #             'member_referral'] = """You have successfully referred %s members. Please refer %s more to become promoter.""" % (
+            #             community['pending_members_count'], diff)
             elif community_state == '0' and community['pending_members_count']:
                 community['member_referral'] = str(community['pending_members_count']) + " new member requests"
 
@@ -2146,7 +2141,6 @@ def push(request):
     return JsonResponse({'success':success})
 
 
-@csrf_exempt
 def config(request):
 
     '''function to update the version number of android for a user profile'''
@@ -2160,13 +2154,14 @@ def config(request):
         info_logger.info(log)
         title="App Update"
         message="Update to latest version 2.2.1"
-        cta_text="click"
-        cancelable=False
-        route="""route://dialog?title=%s&message=%s&cta_text=%s&cta=& cancelable=%s"""%(title,message,cta_text,cancelable)
-        encode_route=quote(route)
+        cta_text="Update"
+        cancelable=True
+        cta_link="""https://play.google.com/apps/testing/com.collabmates"""
+        cta_link=quote(cta_link)
+        cta="""route://browser?link=%s"""%(cta_link)
+        route="""route://dialog?title=%s&message=%s&cta_text=%s&cta=%s& cancelable=%s"""%(title,message,cta_text,cta,cancelable)
         info_logger.info(route)
-        info_logger.info(encode_route)
-        return JsonResponse({'success': True,'route':encode_route})
+        return JsonResponse({'success': True,'route':route})
     error_logger.error("headers are not comming correctly")
     return JsonResponse({'success':False})
 
