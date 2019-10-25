@@ -2155,7 +2155,7 @@ def config(request):
         title="App Update"
         message="Update to latest version 2.2.1"
         cta_text="Update"
-        cancelable=False
+        cancelable=True
         cta_link="""https://play.google.com/apps/testing/com.collabmates"""
         cta_link=quote(cta_link)
         cta="""route://browser?link=%s"""%(cta_link)
