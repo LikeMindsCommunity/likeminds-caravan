@@ -2159,9 +2159,9 @@ def config(request):
         cta_link="""https://play.google.com/apps/testing/com.collabmates"""
         cta_link=quote(cta_link)
         cta="""route://browser?link=%s"""%(cta_link)
-        route="""route://dialog?title=%s&message=%s&cta_text=%s&cta=%s& cancelable=%s"""%(title,message,cta_text,cta,cancelable)
-        info_logger.info(route)
-        return JsonResponse({'success': True,'route':route})
+        #route="""route://dialog?title=%s&message=%s&cta_text=%s& cancelable=%s"""%(title,message,cta_text,cancelable)
+        #info_logger.info(route)
+        return JsonResponse({'success': True})
     error_logger.error("headers are not comming correctly")
     return JsonResponse({'success':False})
 
