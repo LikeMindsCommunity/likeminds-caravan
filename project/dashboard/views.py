@@ -987,10 +987,7 @@ def save_community_lpig_tags(community_id,legacy_tags,profession_tags,interest_t
     for tag in comm_tags_list:
         if tag not in legacy_tags:
             present_tag = Tags_lpig.objects.get(pk=tag)
-            if present_tag.is_cluster == 1:
-                delete_cluster_related_tags_for_community(cluster_tag_id=tag,community_id=community_id,typ='Legacy')
-            else:
-                Community_Legacy.objects.filter(tags_id = tag,community_id=community).delete()
+            Community_Legacy.objects.filter(tags_id = tag,community_id=community).delete()
 
     if len(profession_tags)==0:
         global_profession_tag = Tags_lpig.objects.get(name='profession_any')
@@ -1012,10 +1009,7 @@ def save_community_lpig_tags(community_id,legacy_tags,profession_tags,interest_t
     for tag in comm_tags_list:
         if tag not in profession_tags:
             present_tag = Tags_lpig.objects.get(pk=tag)
-            if present_tag.is_cluster == 1:
-                delete_cluster_related_tags_for_community(cluster_tag_id=tag, community_id=community_id, typ='Profession')
-            else:
-                Community_Profession.objects.filter(tags_id = tag,community_id=community).delete()
+            Community_Profession.objects.filter(tags_id = tag,community_id=community).delete()
 
 
     if len(interest_tags)==0:
@@ -1038,12 +1032,7 @@ def save_community_lpig_tags(community_id,legacy_tags,profession_tags,interest_t
             pass
     for tag in comm_tags_list:
         if tag not in interest_tags:
-            present_tag = Tags_lpig.objects.get(pk=tag)
-            if present_tag.is_cluster == 1:
-                delete_cluster_related_tags_for_community(cluster_tag_id=tag, community_id=community_id,
-                                                          typ='Interest')
-            else:
-                Community_Interest.objects.filter(tags_id = tag,community_id=community).delete()
+            Community_Interest.objects.filter(tags_id = tag,community_id=community).delete()
 
     if len(grography_tags)==0:
         global_tag = Tags_lpig.objects.get(name='Global')
@@ -1066,28 +1055,23 @@ def save_community_lpig_tags(community_id,legacy_tags,profession_tags,interest_t
 
     for tag in comm_tags_list:
         if tag not in grography_tags:
-            present_tag = Tags_lpig.objects.get(pk=tag)
-            if present_tag.is_cluster == 1:
-                delete_cluster_related_tags_for_community(cluster_tag_id=tag, community_id=community_id,
-                                                          typ='Geography')
-            else:
-                Community_Geography.objects.filter(tags_id = tag,community_id=community).delete()
+            Community_Geography.objects.filter(tags_id = tag,community_id=community).delete()
 
 
-def delete_cluster_related_tags_for_community(cluster_tag_id,community_id,typ):
-    cluster_list = get_cluster_tags(cluster_tag_id)
-    for tag in cluster_list:
-
-        if typ == 'Legacy':
-            tag = Community_Legacy.objects.filter(tags_id=tag, community_id=community_id)
-        elif typ == 'Profession':
-            tag = Community_Profession.objects.filter(tags_id=tag, community_id=community_id)
-        elif typ == 'Interest':
-            tag = Community_Interest.objects.filter(tags_id=tag, community_id=community_id)
-        elif typ == 'Geography':
-            tag = Community_Geography.objects.filter(tags_id=tag, community_id=community_id)
-
-        tag.delete()
+# def delete_cluster_related_tags_for_community(cluster_tag_id,community_id,typ):
+#     cluster_list = get_cluster_tags(cluster_tag_id)
+#     for tag in cluster_list:
+#
+#         if typ == 'Legacy':
+#             tag = Community_Legacy.objects.filter(tags_id=tag, community_id=community_id)
+#         elif typ == 'Profession':
+#             tag = Community_Profession.objects.filter(tags_id=tag, community_id=community_id)
+#         elif typ == 'Interest':
+#             tag = Community_Interest.objects.filter(tags_id=tag, community_id=community_id)
+#         elif typ == 'Geography':
+#             tag = Community_Geography.objects.filter(tags_id=tag, community_id=community_id)
+#
+#         tag.delete()
 
 
 def get_or_create_tag_attributes_list(tags,tag_type):
@@ -1105,12 +1089,7 @@ def get_or_create_tag_attributes_list(tags,tag_type):
         tag = Tags_lpig.objects.filter(name = each_tag)
 
         cluster = False
-        if tag.exists() and tag[0].is_cluster == 1:
-            cluster = True
-            cluster_tags_list = get_cluster_tags(cluster_tag_id=tag[0].id)
-            tags_list = tags_list+cluster_tags_list
-
-        elif len(tag)>0:
+        if len(tag)>0:
             tag=tag[0]
 
         elif len(tag) == 0:
@@ -1122,11 +1101,11 @@ def get_or_create_tag_attributes_list(tags,tag_type):
     return tags_list
 
 
-def get_cluster_tags(cluster_tag_id):
-
-    cluster_tags_list = list(Tags_lpig.objects.filter(cluster_tag_id=cluster_tag_id).distinct('name').values_list('id',flat=True))
-    cluster_tags_list.append(cluster_tag_id)
-    return cluster_tags_list
+# def get_cluster_tags(cluster_tag_id):
+#
+#     cluster_tags_list = list(Tags_lpig.objects.filter(cluster_tag_id=cluster_tag_id).distinct('name').values_list('id',flat=True))
+#     cluster_tags_list.append(cluster_tag_id)
+#     return cluster_tags_list
 
 
 def create_uncategorized_tag(tag,tag_type):
