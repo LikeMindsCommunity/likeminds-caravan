@@ -2797,6 +2797,12 @@ def user_metrics(request):
         temp['onboarding'] = user_onbaord(user.user_id.id)
         users.append(temp)
 
+        legacy=User_Legacy.objects.filter(user_id=user.user_id)
+        profession=User_Profession.objects.filter(user_id=user.user_id)
+
+
+        temp['legacy']=True if legacy else False
+        temp['profession']=True if profession else False
 
 
     context={
