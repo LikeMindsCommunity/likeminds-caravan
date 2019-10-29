@@ -4,7 +4,7 @@ from togther.models import *
 from togther.views import update_user_info
 from django.views.generic import *
 from .forms import *
-from django.db.models import Q
+from django.db.models import Q,Max
 import time
 import csv
 from django.template.loader import get_template
@@ -22,7 +22,7 @@ from collabmates_api.raw_queries import compute_rank
 from utility.pre_creation import pre_create_communities
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.urls import reverse
-from urllib.parse import urlencode
+from urllib.parse import urlencode,quote
 from utility.utils import (get_city_address, update_tag_image,
                            create_or_categorize_tag, update_user_geography_tags,
                            insert_user_home_town_tags, update_hometown_tags_for_all_users,
@@ -987,10 +987,7 @@ def save_community_lpig_tags(community_id,legacy_tags,profession_tags,interest_t
     for tag in comm_tags_list:
         if tag not in legacy_tags:
             present_tag = Tags_lpig.objects.get(pk=tag)
-            if present_tag.is_cluster == 1:
-                delete_cluster_related_tags_for_community(cluster_tag_id=tag,community_id=community_id,typ='Legacy')
-            else:
-                Community_Legacy.objects.filter(tags_id = tag,community_id=community).delete()
+            Community_Legacy.objects.filter(tags_id = tag,community_id=community).delete()
 
     if len(profession_tags)==0:
         global_profession_tag = Tags_lpig.objects.get(name='profession_any')
@@ -1012,10 +1009,7 @@ def save_community_lpig_tags(community_id,legacy_tags,profession_tags,interest_t
     for tag in comm_tags_list:
         if tag not in profession_tags:
             present_tag = Tags_lpig.objects.get(pk=tag)
-            if present_tag.is_cluster == 1:
-                delete_cluster_related_tags_for_community(cluster_tag_id=tag, community_id=community_id, typ='Profession')
-            else:
-                Community_Profession.objects.filter(tags_id = tag,community_id=community).delete()
+            Community_Profession.objects.filter(tags_id = tag,community_id=community).delete()
 
 
     if len(interest_tags)==0:
@@ -1038,12 +1032,7 @@ def save_community_lpig_tags(community_id,legacy_tags,profession_tags,interest_t
             pass
     for tag in comm_tags_list:
         if tag not in interest_tags:
-            present_tag = Tags_lpig.objects.get(pk=tag)
-            if present_tag.is_cluster == 1:
-                delete_cluster_related_tags_for_community(cluster_tag_id=tag, community_id=community_id,
-                                                          typ='Interest')
-            else:
-                Community_Interest.objects.filter(tags_id = tag,community_id=community).delete()
+            Community_Interest.objects.filter(tags_id = tag,community_id=community).delete()
 
     if len(grography_tags)==0:
         global_tag = Tags_lpig.objects.get(name='Global')
@@ -1066,28 +1055,23 @@ def save_community_lpig_tags(community_id,legacy_tags,profession_tags,interest_t
 
     for tag in comm_tags_list:
         if tag not in grography_tags:
-            present_tag = Tags_lpig.objects.get(pk=tag)
-            if present_tag.is_cluster == 1:
-                delete_cluster_related_tags_for_community(cluster_tag_id=tag, community_id=community_id,
-                                                          typ='Geography')
-            else:
-                Community_Geography.objects.filter(tags_id = tag,community_id=community).delete()
+            Community_Geography.objects.filter(tags_id = tag,community_id=community).delete()
 
 
-def delete_cluster_related_tags_for_community(cluster_tag_id,community_id,typ):
-    cluster_list = get_cluster_tags(cluster_tag_id)
-    for tag in cluster_list:
-
-        if typ == 'Legacy':
-            tag = Community_Legacy.objects.filter(tags_id=tag, community_id=community_id)
-        elif typ == 'Profession':
-            tag = Community_Profession.objects.filter(tags_id=tag, community_id=community_id)
-        elif typ == 'Interest':
-            tag = Community_Interest.objects.filter(tags_id=tag, community_id=community_id)
-        elif typ == 'Geography':
-            tag = Community_Geography.objects.filter(tags_id=tag, community_id=community_id)
-
-        tag.delete()
+# def delete_cluster_related_tags_for_community(cluster_tag_id,community_id,typ):
+#     cluster_list = get_cluster_tags(cluster_tag_id)
+#     for tag in cluster_list:
+#
+#         if typ == 'Legacy':
+#             tag = Community_Legacy.objects.filter(tags_id=tag, community_id=community_id)
+#         elif typ == 'Profession':
+#             tag = Community_Profession.objects.filter(tags_id=tag, community_id=community_id)
+#         elif typ == 'Interest':
+#             tag = Community_Interest.objects.filter(tags_id=tag, community_id=community_id)
+#         elif typ == 'Geography':
+#             tag = Community_Geography.objects.filter(tags_id=tag, community_id=community_id)
+#
+#         tag.delete()
 
 
 def get_or_create_tag_attributes_list(tags,tag_type):
@@ -1105,12 +1089,7 @@ def get_or_create_tag_attributes_list(tags,tag_type):
         tag = Tags_lpig.objects.filter(name = each_tag)
 
         cluster = False
-        if tag.exists() and tag[0].is_cluster == 1:
-            cluster = True
-            cluster_tags_list = get_cluster_tags(cluster_tag_id=tag[0].id)
-            tags_list = tags_list+cluster_tags_list
-
-        elif len(tag)>0:
+        if len(tag)>0:
             tag=tag[0]
 
         elif len(tag) == 0:
@@ -1122,11 +1101,11 @@ def get_or_create_tag_attributes_list(tags,tag_type):
     return tags_list
 
 
-def get_cluster_tags(cluster_tag_id):
-
-    cluster_tags_list = list(Tags_lpig.objects.filter(cluster_tag_id=cluster_tag_id).distinct('name').values_list('id',flat=True))
-    cluster_tags_list.append(cluster_tag_id)
-    return cluster_tags_list
+# def get_cluster_tags(cluster_tag_id):
+#
+#     cluster_tags_list = list(Tags_lpig.objects.filter(cluster_tag_id=cluster_tag_id).distinct('name').values_list('id',flat=True))
+#     cluster_tags_list.append(cluster_tag_id)
+#     return cluster_tags_list
 
 
 def create_uncategorized_tag(tag,tag_type):
@@ -2979,3 +2958,53 @@ def map_all_tags(request):
 
         return JsonResponse({'success': True})
 
+
+
+def create_user_update(request):
+
+    '''function to create user update for user'''
+
+    # post method for inserting versions
+
+    if request.method != 'GET':
+
+        version= request.POST.get('version')
+        version_dropdown= request.POST.get('version_dropdown')
+        title=request.POST.get('title')
+        message= request.POST.get('message')
+        cta_text= request.POST.get('cta_text')
+        cta_route= request.POST.get('cta_route')
+        cancel_dropdown= request.POST.get('cancel_dropdown')
+
+        #creating the route link
+        cta_link=quote(cta_route)
+        cta="""route://browser?link=%s"""%(cta_link)
+        route="""route://dialog?title=%s&message=%s&cta_text=%s&cta=%s&cancelable=%s"""%(title,message,cta_text,cta,cancel_dropdown)
+
+
+        version_no=App_Update_Info.objects.filter(version_code=version)
+        if not version_no.exists():
+            update=App_Update_Info()
+            update.version_code=version
+            update.android_route=route
+            update.created_at=time.time()
+            update.save()
+
+        if version_dropdown == 'less_than_equal_to':
+            App_Update_Info.objects.filter(version_code__lte=version).update(android_route=route)
+        elif version_dropdown == 'less_than':
+            App_Update_Info.objects.filter(version_code__lt=version).update(android_route=route)
+        elif version_dropdown == 'equal_to':
+            App_Update_Info.objects.filter(version_code=version).update(android_route=route)
+
+
+
+        return JsonResponse({'success':True})
+
+
+
+    else:
+
+        max=App_Update_Info.objects.aggregate(Max('version_code'))
+        latest_version=max['version_code__max']
+        return render(request,'dashboard/app_update.html',{'latest_version':latest_version})

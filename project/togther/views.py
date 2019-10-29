@@ -1269,23 +1269,25 @@ def fill_cluster_tags_in_tags_list(tag_list,typ):
     clusted_tags=[]
     for each_tag in tag_list:
         tag=Tags_lpig.objects.get(pk=each_tag)
-        if tag.is_cluster:
+        if tag.cluster_tag_id:
             #tag_list.remove(each_tag)
-            if typ == "Legacy":
-                clusted_tags=list(Tags_lpig.objects.filter(Q(cluster_tag_id=tag.tag_id)&(Q(category_id=1))).values_list('id',flat=True))
-            elif typ == "Profession":
-                clusted_tags=list(Tags_lpig.objects.filter(Q(cluster_tag_id=tag.tag_id)&(Q(category_id=2))).values_list('id',flat=True))
-            elif typ == "Interest":
-                clusted_tags=list(Tags_lpig.objects.filter(Q(cluster_tag_id=tag.tag_id)&(Q(category_id=3))).values_list('id',flat=True))
-            elif typ == "Geography":
-                clusted_tags=list(Tags_lpig.objects.filter(Q(cluster_tag_id=tag.tag_id)&(Q(category_id=4))).values_list('id',flat=True))
-
-
+            # if typ == "Legacy":
+            #     clusted_tags=list(Tags_lpig.objects.filter(tag_id=tag.cluster_tag_id).values_list('id',flat=True))
+            # elif typ == "Profession":
+            #     clusted_tags=list(Tags_lpig.objects.filter(tag_id=tag.cluster_tag_id).values_list('id',flat=True))
+            # elif typ == "Interest":
+            #     clusted_tags=list(Tags_lpig.objects.filter(tag_id=tag.cluster_tag_id).values_list('id',flat=True))
+            # elif typ == "Geography":
+            #     clusted_tags=list(Tags_lpig.objects.filter(tag_id=tag.cluster_tag_id).values_list('id',flat=True))
+            temp=Tags_lpig.objects.filter(tag_id=tag.cluster_tag_id)
+            if temp:
+                clusted_tags.append(temp[0].tag_id)
     if not clusted_tags:
         return tag_list
     else:
         tag_list=tag_list+clusted_tags
         return tag_list
+
 
 
 
@@ -1659,10 +1661,10 @@ def onboarding(request):
             ios = True
 
 
-        education_tags = Tags_lpig.objects.filter(attribute_id=2).order_by('name')
-        work_tags = Tags_lpig.objects.filter(attribute_id=1).order_by('name')
-        hometown_tags = Tags_lpig.objects.filter(attribute_id=3).order_by('name')
-        geography_tags = Tags_lpig.objects.filter(attribute_id=12).order_by('name')
+        education_tags = Tags_lpig.objects.filter(attribute_id=2,is_cluster=0).order_by('name')
+        work_tags = Tags_lpig.objects.filter(attribute_id=1,is_cluster=0).order_by('name')
+        hometown_tags = Tags_lpig.objects.filter(attribute_id=3,is_cluster=0).order_by('name')
+        geography_tags = Tags_lpig.objects.filter(attribute_id=12,is_cluster=0).order_by('name')
         context={
             'legacy_education':education_tags,
             'legacy_work':work_tags,
@@ -1752,9 +1754,9 @@ def onboarding_profession(request):
         if is_request_ios(request) and member_id and autheticate:
             ios = True
 
-        industry_tags = Tags_lpig.objects.filter(attribute_id=6).order_by('name')
-        skill_tags = Tags_lpig.objects.filter(attribute_id=5).order_by('name')
-        designation_tags = Tags_lpig.objects.filter(attribute_id=7).order_by('name')
+        industry_tags = Tags_lpig.objects.filter(attribute_id=6,is_cluster=0).order_by('name')
+        skill_tags = Tags_lpig.objects.filter(attribute_id=5,is_cluster=0).order_by('name')
+        designation_tags = Tags_lpig.objects.filter(attribute_id=7,is_cluster=0).order_by('name')
         context = {
             'profession_industry': industry_tags,
             'profession_skill': skill_tags,
@@ -1854,10 +1856,10 @@ def onboarding_interest(request):
                 print("Error in getting user info object")
 
 
-        hobby_tags = Tags_lpig.objects.filter(attribute_id=9).order_by('name')
-        sports_tags = Tags_lpig.objects.filter(attribute_id=10).order_by('name')
-        fan_tags = Tags_lpig.objects.filter(attribute_id=11).order_by('name')
-        cause_tags = Tags_lpig.objects.filter(attribute_id=8).order_by('name')
+        hobby_tags = Tags_lpig.objects.filter(attribute_id=9,is_cluster=0).order_by('name')
+        sports_tags = Tags_lpig.objects.filter(attribute_id=10,is_cluster=0).order_by('name')
+        fan_tags = Tags_lpig.objects.filter(attribute_id=11,is_cluster=0).order_by('name')
+        cause_tags = Tags_lpig.objects.filter(attribute_id=8,is_cluster=0).order_by('name')
 
         context = {
             'interest_hobby': hobby_tags,
