@@ -38,6 +38,7 @@ api_url = url + '/api/'
 def dashboard(request):
     '''function to give list of community to edit'''
 
+
     select_type=request.GET.get('filter',None)
     dashboard_list=[]
     if select_type == 'pilot_live':
@@ -60,6 +61,23 @@ def dashboard(request):
     else:
         community_list = Community.objects.order_by('-updated_at')
 
+    search_key=request.GET.get('search_key',None)
+    if search_key:
+        tag_name=Tags_lpig.objects.filter(name__iexact=search_key)
+        if tag_name:
+            category_id=tag_name[0].category_id.id
+            tag_id=tag_name[0].tag_id
+            tag=Tags_lpig.objects.get(id=tag_id)
+            if category_id == 1:
+                community_list = list(Community_Legacy.objects.filter(tags_id=tag).values_list('community_id_id',flat=True))
+            elif category_id == 2:
+                community_list = list(Community_Profession.objects.filter(tags_id=tag).values_list('community_id_id',flat=True))
+            elif category_id == 3:
+                community_list = list(Community_Interest.objects.filter(tags_id=tag).values_list('community_id_id',flat=True))
+            elif category_id == 4:
+                community_list = list(Community_Geography.objects.filter(tags_id=tag).values_list('community_id_id',flat=True))
+
+
     page = request.GET.get('page', 1)
     paginator = Paginator(community_list, 10)
     try:
@@ -70,6 +88,8 @@ def dashboard(request):
         community_list = paginator.page(paginator.num_pages)
 
     for i in community_list:
+        if isinstance(i,int):
+            i=Community.objects.get(id=i)
         community_dic={}
         if i.hide_community == '2':
             continue
@@ -98,7 +118,8 @@ def dashboard(request):
     context={'communities':dashboard_list,
              'community':community_list,
               'tags': tags,
-              'select_type':select_type}
+              'select_type':select_type,
+             'search_key':search_key}
     info_logger.info(context)
     return render(request,'dashboard/dashboard.html',context)
 
@@ -2463,62 +2484,18 @@ def rename_tag(request,tag_id = None):
         return redirect(url)
 
 
-def search(request,tag_ids):
+def search(request):
 
     ''' function to fetch communities with searched tag '''
 
-    print("\n inside search    =====   ",type(tag_ids),tag_ids)
-    tag = Tags_lpig.objects.get(pk = tag_ids)
+    search_key=request.GET.get('value')
+    search_qs = Tags_lpig.objects.filter(name__icontains=search_key).distinct()[:20]
+    name_list=[]
+    for search in search_qs:
+        name_list.append(search.name)
+    return JsonResponse({'success':True,'tag_list':name_list})
 
-    community_list = []
 
-    if tag.category_id.id == 1:
-        community_list = Community_Legacy.objects.filter(tags_id = tag).values_list('community_id', flat=True)
-
-    elif tag.category_id.id == 2:
-        community_list = Community_Profession.objects.filter(tags_id = tag).values_list('community_id', flat=True)
-
-    elif tag.category_id.id == 3:
-        community_list = Community_Interest.objects.filter(tags_id = tag).values_list('community_id', flat=True)
-
-    elif tag.category_id.id == 4:
-        community_list = Community_Geography.objects.filter(tags_id = tag).values_list('community_id', flat=True)
-
-    dashboard_list = []
-
-    page = request.GET.get('page', 1)
-    paginator = Paginator(community_list, 20)
-    try:
-        community_list = paginator.page(page)
-    except PageNotAnInteger:
-        community_list = paginator.page(1)
-    except EmptyPage:
-        community_list = paginator.page(paginator.num_pages)
-
-    for i in community_list:
-        print(i)
-        community = Community.objects.get(pk = i)
-        community_dic = {}
-        if community.hide_community == '2':
-            continue
-        community_dic['id'] = community.id
-        community_dic['name'] = community.name
-        community_dic['image_url'] = community.image_url
-        community_dic['purpose'] = community.purpose
-        pending_members_count = Members.objects.filter(community_id=community, state=3).count()
-        community_dic['pending_member_count'] = pending_members_count
-        members_count = Members.objects.filter(community_id=community).filter(
-            Q(state=1) | Q(state=2) | Q(state=4) | Q(state=7)).count()
-        community_dic['members_count'] = members_count
-        community_dic['active_since'] = community.active_since
-        community_dic['question_count'] = Form_data.objects.filter(community_id=community).count()
-        community_dic['hidden_tags_count'] = get_tags_count(community)
-        dashboard_list.append(community_dic)
-
-    tags = Tags_lpig.objects.all()
-    return render(request, 'dashboard/search_results.html', {'communities': dashboard_list,
-                                                        'community': community_list,
-                                                        'tags': tags,'communities_length':len(dashboard_list) })
 
 
 ##############  dashboard metrics   ###########
