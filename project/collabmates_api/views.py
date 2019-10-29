@@ -724,7 +724,7 @@ def get_user_lpig_tags(user_id):
     cluster_tags=[]
     for each in legacy:
         temp={}
-        if each.tags_id.id !=15:
+        if each.tags_id.id !=15 and each.tags_id.is_cluster == 0:
             temp['id']=each.tags_id.id
             temp['name']=each.tags_id.name
             if each.tags_id.tag_image:
@@ -740,17 +740,17 @@ def get_user_lpig_tags(user_id):
             elif attribute_id is 4:
                 temp['attribute_name'] = "Lifestyle"
 
-            if each.tags_id.is_cluster:
-                cluster=list(Tags_lpig.objects.filter(cluster_tag_id=each.tags_id.id).values_list('id',flat=True))
-                cluster_tags=cluster_tags+cluster
+            # if each.tags_id.is_cluster:
+            #     cluster=list(Tags_lpig.objects.filter(cluster_tag_id=each.tags_id.id).values_list('id',flat=True))
+            #     cluster_tags=cluster_tags+cluster
             legacy_list.append(temp)
 
-    legacy_list=get_clustered_tags_for_user(legacy_list,cluster_tags)
+    # legacy_list=get_clustered_tags_for_user(legacy_list,cluster_tags)
 
     cluster_tags = []
     for each in profession:
         temp={}
-        if each.tags_id.id !=16:
+        if each.tags_id.id !=16 and each.tags_id.is_cluster == 0:
             temp['id']=each.tags_id.id
             temp['name']=each.tags_id.name
             if each.tags_id.tag_image:
@@ -763,18 +763,18 @@ def get_user_lpig_tags(user_id):
             elif attribute_id is 7:
                 temp['attribute_name'] = "Designation"
 
-            if each.tags_id.is_cluster:
-                cluster=list(Tags_lpig.objects.filter(cluster_tag_id=each.tags_id.id).values_list('id',flat=True))
-                cluster_tags=cluster_tags+cluster
+            # if each.tags_id.is_cluster:
+            #     cluster=list(Tags_lpig.objects.filter(cluster_tag_id=each.tags_id.id).values_list('id',flat=True))
+            #     cluster_tags=cluster_tags+cluster
             profession_list.append(temp)
 
-    profession_list=get_clustered_tags_for_user(profession_list,cluster_tags)
+    #profession_list=get_clustered_tags_for_user(profession_list,cluster_tags)
 
 
     cluster_tags = []
     for each in interest:
         temp = {}
-        if each.tags_id.id != 17:
+        if each.tags_id.id != 17 and each.tags_id.is_cluster == 0:
             temp['id'] = each.tags_id.id
             temp['name'] = each.tags_id.name
             if each.tags_id.tag_image:
@@ -789,18 +789,18 @@ def get_user_lpig_tags(user_id):
             elif attribute_id is 11:
                 temp['attribute_name'] = "Fan"
 
-            if each.tags_id.is_cluster:
-                cluster=list(Tags_lpig.objects.filter(cluster_tag_id=each.tags_id.id).values_list('id',flat=True))
-                cluster_tags=cluster_tags+cluster
+            # if each.tags_id.is_cluster:
+            #     cluster=list(Tags_lpig.objects.filter(cluster_tag_id=each.tags_id.id).values_list('id',flat=True))
+            #     cluster_tags=cluster_tags+cluster
             interest_list.append(temp)
 
 
-    interest_list = get_clustered_tags_for_user(interest_list, cluster_tags)
+    #interest_list = get_clustered_tags_for_user(interest_list, cluster_tags)
 
     cluster_tags = []
     for each in geography:
         temp = {}
-        if each.tags_id.id != 18:
+        if each.tags_id.id != 18 and each.tags_id.is_cluster == 0:
             temp['id'] = each.tags_id.id
             temp['name'] = each.tags_id.name
             if each.tags_id.tag_image:
@@ -813,12 +813,12 @@ def get_user_lpig_tags(user_id):
             elif attribute_id is 14:
                 temp['attribute_name'] = "Country"
 
-            if each.tags_id.is_cluster:
-                cluster=list(Tags_lpig.objects.filter(cluster_tag_id=each.tags_id.id).values_list('id',flat=True))
-                cluster_tags=cluster_tags+cluster
+            # if each.tags_id.is_cluster:
+            #     cluster=list(Tags_lpig.objects.filter(cluster_tag_id=each.tags_id.id).values_list('id',flat=True))
+            #     cluster_tags=cluster_tags+cluster
             geography_list.append(temp)
 
-    geography_list = get_clustered_tags_for_user(geography_list, cluster_tags)
+    #geography_list = get_clustered_tags_for_user(geography_list, cluster_tags)
 
     tags={
         'legacy':legacy_list,
@@ -2149,29 +2149,44 @@ def config(request):
         member_id=headers['HTTP_X_MEMBER_ID']
         version_code=headers['HTTP_X_VERSION_CODE']
 
-        #Userinfo.objects.filter(user_id=member_id).update(version_code=version_code)
+        Userinfo.objects.filter(user_id=member_id).update(version_code=version_code)
         log="""Version code updated for user %s"""%(str(member_id))
         info_logger.info(log)
-        title="App Update"
-        message="Update to latest version 2.2.1"
-        cta_text="Update"
-        cancelable=True
-        cta_link="""https://play.google.com/apps/testing/com.collabmates"""
-        cta_link=quote(cta_link)
-        cta="""route://browser?link=%s"""%(cta_link)
-        route="""route://dialog?title=%s&message=%s&cta_text=%s&cta=%s&cancelable=%s"""%(title,message,cta_text,cta,cancelable)
-        info_logger.info(route)
+        # title="App Update"
+        # message="Update to latest version 2.2.1"
+        # cta_text="Update"
+        # cancelable=True
+        # cta_link="""https://play.google.com/apps/testing/com.collabmates"""
+        # cta_link=quote(cta_link)
+        # cta="""route://browser?link=%s"""%(cta_link)
+        # route="""route://dialog?title=%s&message=%s&cta_text=%s&cta=%s&cancelable=%s"""%(title,message,cta_text,cta,cancelable)
+        # info_logger.info(route)
         #return JsonResponse({'success': True,'route':route})
+
+        version_no=App_Update_Info.objects.filter(version_code=version_code)
+        version_update=False
+        if version_no:
+            route=version_no[0].android_route
+            version_update=True
+
+
 
     ingest_your_communities=request.GET.get('ingest_your_communities',False)
     info_logger.info(ingest_your_communities)
     if ingest_your_communities:
         update_communities_in_member_engage_table(member_id)
         log="""Updated successfull for user=%s"""%(member_id)
-        info_logger.info("Updated successfully for user")
-        return JsonResponse({'success':True})
+        info_logger.info(log)
+        if version_update:
+            return JsonResponse({'success':True,'route':route})
+        else:
+            return JsonResponse({'success': True})
     #error_logger.error("headers are not comming correctly")
-    return JsonResponse({'success':True})
+
+    if version_update:
+        return JsonResponse({'success': True, 'route': route})
+    else:
+        return JsonResponse({'success': True})
 
 
 def update_communities_in_member_engage_table(member_id):

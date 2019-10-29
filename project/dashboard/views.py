@@ -4,7 +4,7 @@ from togther.models import *
 from togther.views import update_user_info
 from django.views.generic import *
 from .forms import *
-from django.db.models import Q
+from django.db.models import Q,Max
 import time
 import csv
 from django.template.loader import get_template
@@ -22,7 +22,7 @@ from collabmates_api.raw_queries import compute_rank
 from utility.pre_creation import pre_create_communities
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.urls import reverse
-from urllib.parse import urlencode
+from urllib.parse import urlencode,quote
 from utility.utils import (get_city_address, update_tag_image,
                            create_or_categorize_tag, update_user_geography_tags,
                            insert_user_home_town_tags, update_hometown_tags_for_all_users,
@@ -2979,3 +2979,53 @@ def map_all_tags(request):
 
         return JsonResponse({'success': True})
 
+
+
+def create_user_update(request):
+
+    '''function to create user update for user'''
+
+    # post method for inserting versions
+
+    if request.method != 'GET':
+
+        version= request.POST.get('version')
+        version_dropdown= request.POST.get('version_dropdown')
+        title=request.POST.get('title')
+        message= request.POST.get('message')
+        cta_text= request.POST.get('cta_text')
+        cta_route= request.POST.get('cta_route')
+        cancel_dropdown= request.POST.get('cancel_dropdown')
+
+        #creating the route link
+        cta_link=quote(cta_route)
+        cta="""route://browser?link=%s"""%(cta_link)
+        route="""route://dialog?title=%s&message=%s&cta_text=%s&cta=%s&cancelable=%s"""%(title,message,cta_text,cta,cancel_dropdown)
+
+
+        version_no=App_Update_Info.objects.filter(version_code=version)
+        if not version_no.exists():
+            update=App_Update_Info()
+            update.version_code=version
+            update.android_route=route
+            update.created_at=time.time()
+            update.save()
+
+        if version_dropdown == 'less_than_equal_to':
+            App_Update_Info.objects.filter(version_code__lte=version).update(android_route=route)
+        elif version_dropdown == 'less_than':
+            App_Update_Info.objects.filter(version_code__lt=version).update(android_route=route)
+        elif version_dropdown == 'equal_to':
+            App_Update_Info.objects.filter(version_code=version).update(android_route=route)
+
+
+
+        return JsonResponse({'success':True})
+
+
+
+    else:
+
+        max=App_Update_Info.objects.aggregate(Max('version_code'))
+        latest_version=max['version_code__max']
+        return render(request,'dashboard/app_update.html',{'latest_version':latest_version})

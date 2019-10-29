@@ -93,6 +93,7 @@ class Userinfo (models.Model):
     mobile_os=models.CharField(max_length = 200,null=True)
     created_at=models.BigIntegerField(default=-9223372036854775808)
     version_code=models.IntegerField(null=True,default=21)
+    android_route=models.CharField(max_length=2048,null=True)
 
 
     def __str__(self):
