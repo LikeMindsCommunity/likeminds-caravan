@@ -1,0 +1,159 @@
+<html>
+<head>
+
+    <!-- Adding the semantic files -->
+     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.css"/>
+    <link rel='stylesheet prefetch'
+          href='https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/components/icon.min.css'>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.js"></script>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-130288684-1"></script>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+
+
+
+
+</head>
+
+<!-- template for create app update -->
+
+<body >
+<br/>
+<h2 class="ui header" style="padding-left:500px;">
+ App Update Form
+</h2>
+
+<br/>
+<div style="padding-left:400px;padding-right:400px;">
+    <form class="ui form" onsubmit="return false">
+      <div class="field">
+        <label>Version No.</label>
+        <input type="text"  placeholder="Latest Version = {{latest_version}}" id="version_number">
+      </div>
+
+       <div class="field">
+              <label>Version Dropdown</label>
+              <div class="ui selection dropdown" id="version_dropdown">
+                  <input type="hidden">
+                  <i class="dropdown icon"></i>
+                  <div class="default text">Version Dropdown</div>
+                  <div class="menu">
+                      <div class="item" data-value="less_than">Less Than</div>
+                      <div class="item" data-value="less_than_equal_to">Less Than Equal To</div>
+                      <div class="item" data-value="equal_to">Equal To</div>
+<!--                      <div class="item" data-value="false">Greater than </div>-->
+<!--                      <div class="item" data-value="false">Greater than Equal To</div>-->
+
+                  </div>
+              </div>
+       </div>
+      <div class="field">
+        <label>Title</label>
+        <input type="text"  placeholder="Title" id="title">
+      </div>
+
+       <div class="field">
+        <label>Message</label>
+        <input type="text" placeholder="Message" id="message">
+      </div>
+
+      <div class="field">
+        <label>CTA Text</label>
+        <input type="text"  placeholder="CTA Text" id="cta_text">
+      </div>
+
+
+       <div class="field">
+        <label>CTA Route</label>
+        <input type="text"  placeholder="CTA Route" id="cta_route">
+      </div>
+       <div class="field">
+              <label>Cancellable</label>
+              <div class="ui selection dropdown" id="cancel_dropdown">
+                  <input type="hidden" name="gender">
+                  <i class="dropdown icon"></i>
+                  <div class="default text">Cancellable</div>
+                  <div class="menu">
+                      <div class="item" data-value="true">True</div>
+                      <div class="item" data-value="false">False</div>
+                  </div>
+              </div>
+       </div>
+
+
+      <button class="ui button" type="submit" id="submit">Submit</button>
+    </form>
+
+
+
+
+
+</div>
+</body>
+
+
+</html>
+
+
+<script>
+
+$(document).ready(function(){
+    $('#cancel_dropdown').dropdown();
+    $('#version_dropdown').dropdown();
+
+    $('#submit').click(function(){
+
+       version=$('#version_number').val()
+       version_dropdown=$('#version_dropdown').dropdown('get value')
+       title=$('#title').val()
+       message=$('#message').val()
+       cta_text=$('#cta_text').val()
+       cta_route=$('#cta_route').val()
+       cancel_dropdown=$('#cancel_dropdown').dropdown('get value')
+
+       // validation of forms
+       if(!(version&&version_dropdown&&title&&message&&cta_text&&cta_route&&cancel_dropdown))
+       {
+            alert("Please Enter the correct Details");
+            return;
+       }
+
+       form_json={
+
+       'version':version,
+       'version_dropdown':version_dropdown,
+       'title':title,
+       'message':message,
+       'cta_text':cta_text,
+       'cta_route':cta_route,
+       'cancel_dropdown':cancel_dropdown,
+       'csrfmiddlewaretoken': '{{ csrf_token }}'
+
+       }
+
+       console.log(form_json)
+
+       $.ajax({
+
+            url:'/admin_dashboard/create_user_update',
+            type:'POST',
+            data:form_json,
+            dataType:'json',
+            success:function(data){
+
+              console.log(data)
+              alert('Version Update Created Successfully')
+
+            }
+
+         })
+
+
+
+
+
+    })
+})
+
+</script>
