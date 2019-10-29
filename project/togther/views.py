@@ -1271,21 +1271,23 @@ def fill_cluster_tags_in_tags_list(tag_list,typ):
         tag=Tags_lpig.objects.get(pk=each_tag)
         if tag.cluster_tag_id:
             #tag_list.remove(each_tag)
-            if typ == "Legacy":
-                clusted_tags=list(Tags_lpig.objects.filter(tag_id=tag.cluster_tag_id).values_list('id',flat=True))
-            elif typ == "Profession":
-                clusted_tags=list(Tags_lpig.objects.filter(tag_id=tag.cluster_tag_id).values_list('id',flat=True))
-            elif typ == "Interest":
-                clusted_tags=list(Tags_lpig.objects.filter(tag_id=tag.cluster_tag_id).values_list('id',flat=True))
-            elif typ == "Geography":
-                clusted_tags=list(Tags_lpig.objects.filter(tag_id=tag.cluster_tag_id).values_list('id',flat=True))
-
-
+            # if typ == "Legacy":
+            #     clusted_tags=list(Tags_lpig.objects.filter(tag_id=tag.cluster_tag_id).values_list('id',flat=True))
+            # elif typ == "Profession":
+            #     clusted_tags=list(Tags_lpig.objects.filter(tag_id=tag.cluster_tag_id).values_list('id',flat=True))
+            # elif typ == "Interest":
+            #     clusted_tags=list(Tags_lpig.objects.filter(tag_id=tag.cluster_tag_id).values_list('id',flat=True))
+            # elif typ == "Geography":
+            #     clusted_tags=list(Tags_lpig.objects.filter(tag_id=tag.cluster_tag_id).values_list('id',flat=True))
+            temp=Tags_lpig.objects.filter(tag_id=tag.cluster_tag_id)
+            if temp:
+                clusted_tags.append(temp[0].tag_id)
     if not clusted_tags:
         return tag_list
     else:
         tag_list=tag_list+clusted_tags
         return tag_list
+
 
 
 
