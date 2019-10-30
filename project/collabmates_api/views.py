@@ -2176,7 +2176,7 @@ def config(request):
     ingest_your_communities=request.GET.get('ingest_your_communities',False)
     info_logger.info(ingest_your_communities)
     if ingest_your_communities:
-        update_communities_in_member_engage_table(member_id)
+        update_communities_in_member_engage_table.delay(member_id)
         log="""Updated successfull for user=%s"""%(member_id)
         info_logger.info(log)
         if version_update:
@@ -2190,7 +2190,7 @@ def config(request):
     else:
         return JsonResponse({'success': True})
 
-
+@shared_task
 def update_communities_in_member_engage_table(member_id):
 
     '''function to update the user communities in engage table'''
@@ -2533,5 +2533,6 @@ def get_profile(request):
         print("userinfo object does not exist")
 
     return JsonResponse({'user': []})
+
 
 
