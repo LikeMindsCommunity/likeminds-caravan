@@ -434,11 +434,11 @@ def all_user(request):
         user_dic['image_url'] = i.image_file
 
         if i.fcm_token:
-            print("has token")
+            #print("has token")
             user_dic['fcm_token'] = 1
             user_dic['color']='green'
         else:
-            print("no token")
+            #print("no token")
             user_dic['fcm_token'] = 0
             user_dic['color'] = 'Red'
 
@@ -1307,26 +1307,29 @@ def user_communities(request,user_id):
     communities=[]
     for community in my_communities:
         comm={"name":community.name}
-        mem_state_url = api_url + 'members_state'
-        params = {'member_id': user_id,"community_id" : community.id}
-        response = rqst.get(mem_state_url,params=params)
-        if response.status_code == 200:
-            state = json.loads(response.content.decode('utf-8'))['state']
-            if state:
-                if state ==1:
-                    comm['state'] = 'Promoter'
-                elif state ==2:
-                    comm['state'] = "Temporary Promoter"
-                elif state == 3:
-                    comm['state'] = 'Pending'
-                elif state == 4:
-                    comm['state'] = 'Member'
-                elif state == 6:
-                    comm['state'] = 'Nominated Promoter'
-                elif state == 7:
-                    comm['state'] = 'Nominated Promoter(already a member)'
-                elif state == 5:
-                    comm['state'] = 'Declined by Promoter'
+
+        state=Members.objects.filter(community_id=community.id,member_id=user_id).values('state')
+
+        if state:
+            state=state[0]['state']
+            if state == 1:
+                comm['state'] = 'Promoter'
+            elif state == 2:
+                comm['state'] = "Temporary Promoter"
+            elif state == 3:
+                comm['state'] = 'Pending'
+            elif state == 4:
+                comm['state'] = 'Member'
+            elif state == 6:
+                comm['state'] = 'Nominated Promoter'
+            elif state == 7:
+                comm['state'] = 'Nominated Promoter(already a member)'
+            elif state == 5:
+                comm['state'] = 'Declined by Promoter'
+            elif state == 8:
+                comm['state'] = 'Interested'
+            elif state == 9:
+                comm['state'] = 'Eligible Promoter'
         communities.append(comm)
 
     return render(request,'dashboard/user_communities.html',{"my_communities":communities,'count':count})
