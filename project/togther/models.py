@@ -92,6 +92,7 @@ class Userinfo (models.Model):
     secondary_email=models.CharField(max_length = 200,null=True)
     mobile_os=models.CharField(max_length = 200,null=True)
     created_at=models.BigIntegerField(default=-9223372036854775808)
+    version_code=models.IntegerField(null=True,default=21)
 
 
     def __str__(self):
@@ -459,3 +460,13 @@ class Location_Info(models.Model):
 
     def __str__(self):
         return self.tag_name
+
+
+class App_Update_Info(models.Model):
+
+    """Table containing all app update Informations for android"""
+
+    version_code=models.IntegerField(null=True)
+    android_route=models.CharField(max_length=2048,null=True)
+    created_at=models.BigIntegerField(null=True)
+

@@ -39,7 +39,7 @@ from utility.utils import (decode_meta_from_url, update_tag_image,
                            user_onbaord, update_member_count,
                            update_community_tags_to_user)
 from utility.tasks import (mail_triger, new_member_request)
-
+from urllib.parse import urlencode,quote
 
 url  = settings.URL
 
@@ -273,15 +273,10 @@ def update_referral_text_in_engage_table(community_object):
 
             if community_state == '3' and state == 8:
                 diff = eligibility_count - community['pending_members_count']
-                if community['pending_members_count'] == 1:
-                    community['member_referral'] = """You have successfully referred %s member. Please refer %s more to become promoter.""" % (
-                    community['pending_members_count'], diff)
-                elif community['pending_members_count']:
-                    community['member_referral'] = """You have successfully referred %s members. Please refer %s more to become promoter.""" % (
-                    community['pending_members_count'], diff)
-                # else:
-                #     community['member_referral'] = """Refer %s people to become promoter.""" % (eligibility_count)
-
+                if community['pending_members_count'] < (eligibility_count-2):
+                    community['member_referral']="""[Pilot] Help this community find a promoter"""
+                elif community['pending_members_count'] >= (eligibility_count-2) and  community['pending_members_count'] < (eligibility_count-2):
+                    community['member_referral'] = """You have successfully referred %s. Refer %s and become promoter of this community."""%(community['pending_members_count'],diff)
 
             # if the community is pilot community and the member is eligible promoter
             elif community_state == '3' and state == 9:
@@ -292,19 +287,19 @@ def update_referral_text_in_engage_table(community_object):
                 community['member_referral'] = "You are eligible to become a promoter of this community"
 
             # if the community becomes a pilot-active community and member approval is pending
-            elif community_state == '4' and state == 3:
+            elif (community_state == '4' or community_state == '0' or community_state == '1') and state == 3:
                 community['member_referral'] = "Your request is waiting for approval by promoter"
 
             # if the community becomes a pilot-active community and member request is approved
-            elif community_state == '4' and state == 4:
-                diff = eligibility_count - community['pending_members_count']
-                if community['pending_members_count'] == 1:
-                    community['member_referral'] = """You have successfully referred %s member. Please refer %s more to become promoter.""" % (
-                        community['pending_members_count'], diff)
-                elif community['pending_members_count']:
-                    community[
-                        'member_referral'] = """You have successfully referred %s members. Please refer %s more to become promoter.""" % (
-                        community['pending_members_count'], diff)
+            # elif community_state == '4' and state == 4:
+            #     diff = eligibility_count - community['pending_members_count']
+            #     if community['pending_members_count'] == 1:
+            #         community['member_referral'] = """You have successfully referred %s member. Please refer %s more to become promoter.""" % (
+            #             community['pending_members_count'], diff)
+            #     elif community['pending_members_count']:
+            #         community[
+            #             'member_referral'] = """You have successfully referred %s members. Please refer %s more to become promoter.""" % (
+            #             community['pending_members_count'], diff)
             elif community_state == '0' and community['pending_members_count']:
                 community['member_referral'] = str(community['pending_members_count']) + " new member requests"
 
@@ -556,6 +551,17 @@ def join_community_responses(request):
 
         # updating updated time of community and pending member count for admins of commnity
         Community.objects.filter(id=community_id).update(updated_at=time.time())
+
+        # if the member is not present in engage table
+        if not is_member_engage(community,user):
+            engage = Member_Engage()
+            engage.community_id = community
+            engage.member_id = user
+            engage.updated_at = time.time()
+            engage.save()
+            info_logger.info("""Data Inserted successfully in members engage table where user_id=%s and community_id=%s""" % (
+                user_id, community_id))
+
         update_pending_member_count_in_engage(community)
         # sending notification to admins of the community
         name = user.userinfo.name
@@ -718,7 +724,7 @@ def get_user_lpig_tags(user_id):
     cluster_tags=[]
     for each in legacy:
         temp={}
-        if each.tags_id.id !=15:
+        if each.tags_id.id !=15 and each.tags_id.is_cluster == 0:
             temp['id']=each.tags_id.id
             temp['name']=each.tags_id.name
             if each.tags_id.tag_image:
@@ -734,17 +740,17 @@ def get_user_lpig_tags(user_id):
             elif attribute_id is 4:
                 temp['attribute_name'] = "Lifestyle"
 
-            if each.tags_id.is_cluster:
-                cluster=list(Tags_lpig.objects.filter(cluster_tag_id=each.tags_id.id).values_list('id',flat=True))
-                cluster_tags=cluster_tags+cluster
+            # if each.tags_id.is_cluster:
+            #     cluster=list(Tags_lpig.objects.filter(cluster_tag_id=each.tags_id.id).values_list('id',flat=True))
+            #     cluster_tags=cluster_tags+cluster
             legacy_list.append(temp)
 
-    legacy_list=get_clustered_tags_for_user(legacy_list,cluster_tags)
+    # legacy_list=get_clustered_tags_for_user(legacy_list,cluster_tags)
 
     cluster_tags = []
     for each in profession:
         temp={}
-        if each.tags_id.id !=16:
+        if each.tags_id.id !=16 and each.tags_id.is_cluster == 0:
             temp['id']=each.tags_id.id
             temp['name']=each.tags_id.name
             if each.tags_id.tag_image:
@@ -757,18 +763,18 @@ def get_user_lpig_tags(user_id):
             elif attribute_id is 7:
                 temp['attribute_name'] = "Designation"
 
-            if each.tags_id.is_cluster:
-                cluster=list(Tags_lpig.objects.filter(cluster_tag_id=each.tags_id.id).values_list('id',flat=True))
-                cluster_tags=cluster_tags+cluster
+            # if each.tags_id.is_cluster:
+            #     cluster=list(Tags_lpig.objects.filter(cluster_tag_id=each.tags_id.id).values_list('id',flat=True))
+            #     cluster_tags=cluster_tags+cluster
             profession_list.append(temp)
 
-    profession_list=get_clustered_tags_for_user(profession_list,cluster_tags)
+    #profession_list=get_clustered_tags_for_user(profession_list,cluster_tags)
 
 
     cluster_tags = []
     for each in interest:
         temp = {}
-        if each.tags_id.id != 17:
+        if each.tags_id.id != 17 and each.tags_id.is_cluster == 0:
             temp['id'] = each.tags_id.id
             temp['name'] = each.tags_id.name
             if each.tags_id.tag_image:
@@ -783,18 +789,18 @@ def get_user_lpig_tags(user_id):
             elif attribute_id is 11:
                 temp['attribute_name'] = "Fan"
 
-            if each.tags_id.is_cluster:
-                cluster=list(Tags_lpig.objects.filter(cluster_tag_id=each.tags_id.id).values_list('id',flat=True))
-                cluster_tags=cluster_tags+cluster
+            # if each.tags_id.is_cluster:
+            #     cluster=list(Tags_lpig.objects.filter(cluster_tag_id=each.tags_id.id).values_list('id',flat=True))
+            #     cluster_tags=cluster_tags+cluster
             interest_list.append(temp)
 
 
-    interest_list = get_clustered_tags_for_user(interest_list, cluster_tags)
+    #interest_list = get_clustered_tags_for_user(interest_list, cluster_tags)
 
     cluster_tags = []
     for each in geography:
         temp = {}
-        if each.tags_id.id != 18:
+        if each.tags_id.id != 18 and each.tags_id.is_cluster == 0:
             temp['id'] = each.tags_id.id
             temp['name'] = each.tags_id.name
             if each.tags_id.tag_image:
@@ -807,12 +813,12 @@ def get_user_lpig_tags(user_id):
             elif attribute_id is 14:
                 temp['attribute_name'] = "Country"
 
-            if each.tags_id.is_cluster:
-                cluster=list(Tags_lpig.objects.filter(cluster_tag_id=each.tags_id.id).values_list('id',flat=True))
-                cluster_tags=cluster_tags+cluster
+            # if each.tags_id.is_cluster:
+            #     cluster=list(Tags_lpig.objects.filter(cluster_tag_id=each.tags_id.id).values_list('id',flat=True))
+            #     cluster_tags=cluster_tags+cluster
             geography_list.append(temp)
 
-    geography_list = get_clustered_tags_for_user(geography_list, cluster_tags)
+    #geography_list = get_clustered_tags_for_user(geography_list, cluster_tags)
 
     tags={
         'legacy':legacy_list,
@@ -825,24 +831,24 @@ def get_user_lpig_tags(user_id):
     return tags
 
 
-def get_clustered_tags_for_user(tag_list,cluster_tags):
-
-    if not cluster_tags:
-        return tag_list
-    result=[]
-    for tag_index in range(len(tag_list)):
-        for index in cluster_tags:
-            temp=tag_list[tag_index]
-            if not temp:
-                continue
-            if(temp['id'] == index):
-                tag_list[tag_index]=False
-
-    for tag in tag_list:
-        if tag == False:
-            continue
-        result.append(tag)
-    return result
+# def get_clustered_tags_for_user(tag_list,cluster_tags):
+#
+#     if not cluster_tags:
+#         return tag_list
+#     result=[]
+#     for tag_index in range(len(tag_list)):
+#         for index in cluster_tags:
+#             temp=tag_list[tag_index]
+#             if not temp:
+#                 continue
+#             if(temp['id'] == index):
+#                 tag_list[tag_index]=False
+#
+#     for tag in tag_list:
+#         if tag == False:
+#             continue
+#         result.append(tag)
+#     return result
 
 
 ############# functions for  create flow of card,community and members   ##########################
@@ -1453,12 +1459,16 @@ def request_response(request,req_dict=None):
             engage.save()
             update_pending_member_count_in_engage(community)
             update_referral_text_in_engage_table(community)
-        # else:
-        #     if community.hide_community == '4':
-        #         engage=Member_Engage.objects.get(community_id=community,member_id=user)
-        #         engage.pending_members=count
-        #         engage.save()
-        #         update_pending_member_count_in_engage(community)
+        else:
+            # if the community is created by user than updating the user details
+            if community.hide_community == '0' or community.hide_community == '1':
+                engage=Member_Engage.objects.get(community_id=community,member_id=user)
+                engage.last_unseen_conversation = purpose_card
+                engage.last_unseen_count = unseen_count
+                engage.updated_at = time.time()
+                engage.save()
+                update_pending_member_count_in_engage(community)
+                update_referral_text_in_engage_table(community)
 
         # send notification
         send_notification_for_join_requests.delay(community_id,True,member_id)
@@ -1524,11 +1534,13 @@ def collabcard(request, card_id):
     # get the card object
 
     cards = Collabcard.objects.get(id = card_id)
+    page=request.GET.get('page',1)
 
     # coverting current time into epoch time for getting time stamp of answers and card
 
     # get all the answers of the card
     answer = card_answers.objects.filter(card = cards)
+    answer=pagination(answer,page,paginate_by=10)
 
     answer_id=request.GET.get('answer_id','')
     user_id = request.GET.get('member_id', '')
@@ -1537,7 +1549,7 @@ def collabcard(request, card_id):
         answer_id=int(answer_id)
 
         answer=card_answers.objects.filter(card=cards,id__gte=answer_id).filter(~Q(user__id = user_id))
-
+        answer = pagination(answer, page, paginate_by=10)
         answers=get_answer_data(answer)
         return JsonResponse({'answers': answers})
     else:
@@ -2131,6 +2143,78 @@ def push(request):
     return JsonResponse({'success':success})
 
 
+def config(request):
+
+    '''function to update the version number of android for a user profile'''
+    headers=request.META
+    if 'HTTP_X_MEMBER_ID' in headers and 'HTTP_X_VERSION_CODE' in headers:
+        member_id=headers['HTTP_X_MEMBER_ID']
+        version_code=headers['HTTP_X_VERSION_CODE']
+
+        Userinfo.objects.filter(user_id=member_id).update(version_code=version_code)
+        log="""Version code updated for user %s"""%(str(member_id))
+        info_logger.info(log)
+        # title="App Update"
+        # message="Update to latest version 2.2.1"
+        # cta_text="Update"
+        # cancelable=True
+        # cta_link="""https://play.google.com/apps/testing/com.collabmates"""
+        # cta_link=quote(cta_link)
+        # cta="""route://browser?link=%s"""%(cta_link)
+        # route="""route://dialog?title=%s&message=%s&cta_text=%s&cta=%s&cancelable=%s"""%(title,message,cta_text,cta,cancelable)
+        # info_logger.info(route)
+        #return JsonResponse({'success': True,'route':route})
+
+        version_no=App_Update_Info.objects.filter(version_code=version_code)
+        version_update=False
+        if version_no:
+            route=version_no[0].android_route
+            version_update=True
+
+
+
+    ingest_your_communities=request.GET.get('ingest_your_communities',False)
+    info_logger.info(ingest_your_communities)
+    if ingest_your_communities:
+        update_communities_in_member_engage_table(member_id)
+        log="""Updated successfull for user=%s"""%(member_id)
+        info_logger.info(log)
+        if version_update:
+            return JsonResponse({'success':True})                   #route:route
+        else:
+            return JsonResponse({'success': True})
+    #error_logger.error("headers are not comming correctly")
+
+    if version_update:
+        return JsonResponse({'success': True})                      #route:route
+    else:
+        return JsonResponse({'success': True})
+
+
+def update_communities_in_member_engage_table(member_id):
+
+    '''function to update the user communities in engage table'''
+
+    all_members=Members.objects.filter(member_id=member_id)
+    c=0
+    for member in all_members:
+        community_id=member.community_id
+        if community_id.hide_community == '3':
+            community =Community.objects.get(id=community_id.id)
+            user=User.objects.get(id=member_id)
+            if not is_member_engage(community,user):
+                engage=Member_Engage()
+                engage.community_id=community
+                engage.member_id=user
+                engage.updated_at=time.time()
+                pending_count= get_referred_members_of_a_member(community.id,member_id)
+                engage.pending_members=len(pending_count)
+                engage.save()
+                info_logger.info("Communities")
+                info_logger.info(community)
+                update_referral_text_in_engage_table(community)
+                c=c+1
+    info_logger.info(c)
 
 
 ############# functions edit community    ##########################

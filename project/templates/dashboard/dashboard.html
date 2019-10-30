@@ -21,6 +21,14 @@
 
 
 
+ <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.css"/>
+        <link rel='stylesheet prefetch' href='https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/components/icon.min.css'>
+<!--        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>-->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.js"></script>
+<!--        <script async src="https://www.googletagmanager.com/gtag/js?id=UA-130288684-1"></script>-->
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+
+
 
     <style type="text/css">
 
@@ -173,23 +181,15 @@ a.article-title:hover {
 </select>
 </td>
 
-<!--    <td class="row-fluid" style="text-align:right;padding-right:30px;padding-left:200px">-->
-<!--&lt;!&ndash;      <select class="selectpicker" id="del_tag" data-show-subtext="true" data-live-search="true">&ndash;&gt;-->
-
-<!--&lt;!&ndash;      </select>&ndash;&gt;-->
-<!--    <select class="selectpicker" id="search" data-style="btn-info"  multiple data-live-search="true" data-show-subtext="true"  >-->
-
-<!--          {% autoescape off %}-->
-<!--                    {% for tag in tags %}-->
-<!--                        <option value="{{tag.id}}">{{tag.name}} ({{tag.attribute}})</option>-->
-<!--                    {% endfor %}-->
-<!--          {% endautoescape %}-->
-<!--    </select>-->
-<!--      <span class="help-inline"> &nbsp;-->
-
-
-<!--        <button id="search_submit" type="submit" class="btn btn-danger">Search</button></span>-->
-<!--    </td>-->
+    <td class="row-fluid" style="text-align:right;padding-right:30px;padding-left:200px">
+    <div class="ui search">
+  <div class="ui icon input">
+    <input class="prompt" type="text" placeholder="Search Tags..." id="target">
+    <button id="search_tags" style="border:none"><i class="search icon" ></i></button>
+  </div>
+  <div class="results"></div>
+</div>
+    </td>
 
 </tr>
 
@@ -207,7 +207,12 @@ a.article-title:hover {
 <a class="btn btn-primary btn-sm mt-1 mb-1 mr-4" href="{% url 'update_tag' %}" role="button">Update Tag</a>
 <a class="btn btn-primary btn-sm mt-1 mb-1 mr-4" href="{% url 'rename_tag' %}" role="button">Rename Tag</a>
 <a class="btn btn-danger btn-sm mt-1 mb-1 mr-4" href="{% url 'delete_tags' %}" role="button">Delete Tag</a>
-    <a class="btn btn-primary btn-sm mt-1 mb-1 mr-4" href="{% url 'map_all_tags' %}" role="button">Map all Tags</a>
+
+    <div style="padding-top:20px;">
+        <a class="btn btn-primary btn-sm mt-1 mb-1 mr-4" href="{% url 'map_all_tags' %}" role="button">Map all Tags</a>
+        <a class="btn btn-primary btn-sm mt-1 mb-1 mr-4" href="{% url 'create_user_update' %}" role="button">App Update</a>
+
+    </div>
     <br><br>
     <div class="row">
 
@@ -274,19 +279,19 @@ a.article-title:hover {
 
 
 {% if community.number|add:'-4' > 1 %}
-    <li><a href="?filter={{select_type}}&page={{ community.number|add:'-5' }}">&hellip;</a></li>
+    <li><a href="?filter={{select_type}}&page={{ community.number|add:'-5' }}&search_key={{search_key}}">&hellip;</a></li>
 {% endif %}
 
 {% for i in community.paginator.page_range %}
     {% if community.number == i %}
         <li style="border: 1px solid #ddd;border-radius: 5px;padding: 8px 16px;background-color:#f0ad4e;border-color: #eea236;"><span>{{ i }} </span></li>
     {% elif i > community.number|add:'-5' and i < community.number|add:'5' %}
-        <li><a href="?filter={{select_type}}&page={{ i }}">{{ i }}</a></li>
+        <li><a href="?filter={{select_type}}&page={{ i }}&search_key={{search_key}}">{{ i }}</a></li>
     {% endif %}
 {% endfor %}
 
 {% if community.paginator.num_pages > community.number|add:'4' %}
-    <li><a href="?filter={{select_type}}&page={{ community.number|add:'5' }}">&hellip;</a></li>
+    <li><a href="?filter={{select_type}}&page={{ community.number|add:'5' }}&search_key={{search_key}}">&hellip;</a></li>
 {% endif %}
 
 
@@ -300,18 +305,55 @@ a.article-title:hover {
 
 <script>
 
-     $('#search_submit').click(function()
-       {
-         search_tags=$('#search').val();
-         console.log(search_tags)
-         window.location.href='./search/'+search_tags
-       })
 
       $('#select').on('change', function() {
           var val=this.value
           console.log(val)
           window.open("./?filter="+val,"_self")
         });
+
+        $( "#target" ).keyup(function() {
+
+                value=$(this).val()
+                if(value.length >0 ){
+
+                temp={
+                'value':value
+                }
+                        $.ajax({
+
+                            url:"/admin_dashboard/search",
+                            data:temp,
+                            dataType: "json",
+                            success:function(data){
+                                var content = data['tag_list']
+                                var i;
+                                tag_list=[]
+                                for (i = 0; i < content.length; i++) {
+                                    tag_list.push({'title':content[i]})
+
+                                }
+                                $('.ui.search').search({source: tag_list});
+
+
+                            }
+                        })
+
+
+                }
+
+        });
+
+
+   $('#search_tags').click(function(){
+
+   value=$('#target').val()
+    window.open("./?search_key="+value,"_self")
+
+   })
+
+
+
 
 
 </script>
