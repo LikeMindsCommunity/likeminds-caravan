@@ -275,7 +275,7 @@ def update_referral_text_in_engage_table(community_object):
                 diff = eligibility_count - community['pending_members_count']
                 if community['pending_members_count'] < (eligibility_count-2):
                     community['member_referral']="""[Pilot] Help this community find a promoter"""
-                elif community['pending_members_count'] >= (eligibility_count-2) and  community['pending_members_count'] < (eligibility_count-2):
+                elif community['pending_members_count'] >= (eligibility_count-2) and  community['pending_members_count'] < (eligibility_count):
                     community['member_referral'] = """You have successfully referred %s. Refer %s and become promoter of this community."""%(community['pending_members_count'],diff)
 
             # if the community is pilot community and the member is eligible promoter
@@ -2212,8 +2212,8 @@ def update_communities_in_member_engage_table(member_id):
                 engage.save()
                 info_logger.info("Communities")
                 info_logger.info(community)
-                update_referral_text_in_engage_table(community)
                 c=c+1
+            update_referral_text_in_engage_table(community)
     info_logger.info(c)
 
 
