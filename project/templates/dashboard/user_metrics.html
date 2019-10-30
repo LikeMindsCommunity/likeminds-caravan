@@ -120,9 +120,15 @@
         {% endif %}
 
         {% if user.relevance %}
-            <td><a class="btn btn-success" href="{% url 'get_relevant_communities_file' user.id  %}">CSV</a></td>
+            <td>
+                <a class="btn btn-success" href="{% url 'get_relevant_communities_file' user.id  %}">CSV</a>
+                <p></p>
+                <a style="color:green" href="{% url 'get_relevant_communities_link' user.id  %}">Link</a>
+            </td>
          {% else %}
-            <td><a class="btn btn-danger" href="{% url 'get_relevant_communities_file' user.id  %}">CSV</a></td>
+            <td>
+                <a class="btn btn-danger" href="#" onclick="return alert('No Relevant Communities')">CSV</a>
+            </td>
           {% endif %}
 
 

@@ -51,6 +51,7 @@ urlpatterns = [
     path('user_metrics', user_metrics, name='user_metrics'),
     path('getfile/<int:member_id>', getfile, name='getfile'),
     path('get_relevant_communities_file/<int:member_id>', get_relevant_communities_file, name='get_relevant_communities_file'),
+    path('get_relevant_communities_link/<int:member_id>', get_relevant_communities_link,name='get_relevant_communities_link'),
     path('onboarding_metrics', onboarding_metrics, name='onboarding_metrics'),
     path('map_all_tags',map_all_tags,name='map_all_tags'),
     path('create_user_update', create_user_update, name='create_user_update'),
