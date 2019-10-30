@@ -170,17 +170,17 @@ a.article-title:hover {
                         <p class="article-content"><b>Email:</b>{{ user.email }}</p>
                         <p class="article-content"><b>Facebook:</b>{{ user.fb_link }}</p>
                         <p class="article-content"><b>LinkedIn:</b>{{ user.linkedin_link }}</p>
-                        {% if user.tags_count == 2 %}
-                        <a class="article-title" href="{% url 'update_user_tags' user.user_id %}"><p
-                                class="article-content" style="color:black;"><b style="color:INDIANRED;">Tags : </b>{{
-                            user.tags }}</p></a>
-                        {% elif user.tags_count == 1 %}
-                        <a class="article-title" href="{% url 'update_user_tags' user.user_id %}" style="color:black; ">
-                            <p class="article-content"><b style="color: lime;">Tags : </b>{{ user.tags }}</p></a>
-                        {% else %}
-                        <a class="article-title" href="{% url 'update_user_tags' user.user_id %}" style="color:black; ">
-                            <p class="article-content"><b style="color: black;">Tags : </b>None</p></a>
-                        {% endif %}
+<!--                        {% if user.tags_count == 2 %}-->
+<!--                        <a class="article-title" href="{% url 'update_user_tags' user.user_id %}"><p-->
+<!--                                class="article-content" style="color:black;"><b style="color:INDIANRED;">Tags : </b>{{-->
+<!--                            user.tags }}</p></a>-->
+<!--                        {% elif user.tags_count == 1 %}-->
+<!--                        <a class="article-title" href="{% url 'update_user_tags' user.user_id %}" style="color:black; ">-->
+<!--                            <p class="article-content"><b style="color: lime;">Tags : </b>{{ user.tags }}</p></a>-->
+<!--                        {% else %}-->
+<!--                        <a class="article-title" href="{% url 'update_user_tags' user.user_id %}" style="color:black; ">-->
+<!--                            <p class="article-content"><b style="color: black;">Tags : </b>None</p></a>-->
+<!--                        {% endif %}-->
                         {% if user.os == 'Web' %}
                         <p class="article-content"><b style="color: indianred;">Web User</b></p>
                         {% else %}
