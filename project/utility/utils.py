@@ -17,8 +17,14 @@ from collabmates_api.notification import (send_notification_to_eligible_member,
 from .tasks import *
 
 from django.http.response import JsonResponse
+from django.conf import settings
 
-eligibility_count = 5
+url=settings.URL
+
+if url == 'https://beta.collabmates.com':
+    eligibility_count = 2
+else:
+    eligibility_count = 5
 
 def decode_meta_from_url(url):
 
