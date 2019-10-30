@@ -831,24 +831,24 @@ def get_user_lpig_tags(user_id):
     return tags
 
 
-def get_clustered_tags_for_user(tag_list,cluster_tags):
-
-    if not cluster_tags:
-        return tag_list
-    result=[]
-    for tag_index in range(len(tag_list)):
-        for index in cluster_tags:
-            temp=tag_list[tag_index]
-            if not temp:
-                continue
-            if(temp['id'] == index):
-                tag_list[tag_index]=False
-
-    for tag in tag_list:
-        if tag == False:
-            continue
-        result.append(tag)
-    return result
+# def get_clustered_tags_for_user(tag_list,cluster_tags):
+#
+#     if not cluster_tags:
+#         return tag_list
+#     result=[]
+#     for tag_index in range(len(tag_list)):
+#         for index in cluster_tags:
+#             temp=tag_list[tag_index]
+#             if not temp:
+#                 continue
+#             if(temp['id'] == index):
+#                 tag_list[tag_index]=False
+#
+#     for tag in tag_list:
+#         if tag == False:
+#             continue
+#         result.append(tag)
+#     return result
 
 
 ############# functions for  create flow of card,community and members   ##########################
@@ -1534,11 +1534,13 @@ def collabcard(request, card_id):
     # get the card object
 
     cards = Collabcard.objects.get(id = card_id)
+    page=request.GET.get('page',1)
 
     # coverting current time into epoch time for getting time stamp of answers and card
 
     # get all the answers of the card
     answer = card_answers.objects.filter(card = cards)
+    answer=pagination(answer,page,paginate_by=10)
 
     answer_id=request.GET.get('answer_id','')
     user_id = request.GET.get('member_id', '')
@@ -1547,7 +1549,7 @@ def collabcard(request, card_id):
         answer_id=int(answer_id)
 
         answer=card_answers.objects.filter(card=cards,id__gte=answer_id).filter(~Q(user__id = user_id))
-
+        answer = pagination(answer, page, paginate_by=10)
         answers=get_answer_data(answer)
         return JsonResponse({'answers': answers})
     else:
