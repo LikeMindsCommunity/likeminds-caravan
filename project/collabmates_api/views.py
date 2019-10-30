@@ -275,7 +275,7 @@ def update_referral_text_in_engage_table(community_object):
                 diff = eligibility_count - community['pending_members_count']
                 if community['pending_members_count'] < (eligibility_count-2):
                     community['member_referral']="""[Pilot] Help this community find a promoter"""
-                elif community['pending_members_count'] >= (eligibility_count-2) and  community['pending_members_count'] < (eligibility_count-2):
+                elif community['pending_members_count'] >= (eligibility_count-2) and  community['pending_members_count'] < (eligibility_count):
                     community['member_referral'] = """You have successfully referred %s. Refer %s and become promoter of this community."""%(community['pending_members_count'],diff)
 
             # if the community is pilot community and the member is eligible promoter
@@ -2176,7 +2176,7 @@ def config(request):
     ingest_your_communities=request.GET.get('ingest_your_communities',False)
     info_logger.info(ingest_your_communities)
     if ingest_your_communities:
-        update_communities_in_member_engage_table(member_id)
+        update_communities_in_member_engage_table.delay(member_id)
         log="""Updated successfull for user=%s"""%(member_id)
         info_logger.info(log)
         if version_update:
@@ -2190,7 +2190,7 @@ def config(request):
     else:
         return JsonResponse({'success': True})
 
-
+@shared_task
 def update_communities_in_member_engage_table(member_id):
 
     '''function to update the user communities in engage table'''
@@ -2212,8 +2212,8 @@ def update_communities_in_member_engage_table(member_id):
                 engage.save()
                 info_logger.info("Communities")
                 info_logger.info(community)
-                update_referral_text_in_engage_table(community)
                 c=c+1
+            update_referral_text_in_engage_table(community)
     info_logger.info(c)
 
 
@@ -2533,5 +2533,6 @@ def get_profile(request):
         print("userinfo object does not exist")
 
     return JsonResponse({'user': []})
+
 
 
