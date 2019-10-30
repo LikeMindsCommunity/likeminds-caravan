@@ -1,0 +1,12 @@
+<html>
+<body>
+
+
+<h1 align="center" style="color:black">{{name}}</h1>
+<br>
+{% for community in community_list %}
+<h2 align="center" style="color:blue" onclick="window.open('{{community.url}}')" >{{community.name}}</h2>
+{% endfor %}
+</body>
+</html>
+
