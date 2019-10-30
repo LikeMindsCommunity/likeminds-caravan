@@ -2178,13 +2178,13 @@ def config(request):
         log="""Updated successfull for user=%s"""%(member_id)
         info_logger.info(log)
         if version_update:
-            return JsonResponse({'success':True,'route':route})
+            return JsonResponse({'success':True})                   #route:route
         else:
             return JsonResponse({'success': True})
     #error_logger.error("headers are not comming correctly")
 
     if version_update:
-        return JsonResponse({'success': True, 'route': route})
+        return JsonResponse({'success': True})                      #route:route
     else:
         return JsonResponse({'success': True})
 
