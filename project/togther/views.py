@@ -259,7 +259,7 @@ def community(request, community_id):
     request_user_email = False
 
     if request.user.is_authenticated:
-        if not request.user.email:
+        if not request.user.email and request.user.id !=37 and request.user.id != 176:          #admin case handling
             request_user_email = True
         try:
             user = Userinfo.objects.get(user_id=request.user.id)

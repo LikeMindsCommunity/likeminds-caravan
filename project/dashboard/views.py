@@ -2855,6 +2855,21 @@ def get_relevant_communities_file(request,member_id):
 
     return HttpResponse("No Relevant Commmunities")
 
+def get_relevant_communities_link(request,member_id):
+
+    '''function to get relevant communities for a user'''
+
+    commmunities = Community_Rank.objects.filter(member_id=member_id)
+    userinfo = Userinfo.objects.get(user_id=member_id)
+    file_name = " Relevant communities for "+str(userinfo.name)
+    community_list = []
+    for community in commmunities:
+        temp = {}
+        temp['name'] = community.community_id.name
+        temp['url']=url+'/community/'+str(community.community_id.id)
+        community_list.append(temp)
+    return render(request,'dashboard/relevant_communities.html',{'name':file_name,'community_list':community_list})
+
 
 def onboarding_metrics(request):
 

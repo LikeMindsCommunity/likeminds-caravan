@@ -2,7 +2,6 @@
 {% load static %}
 <html>
 <head>
-
     <html lang="zxx" class="no-js">
     <head>
 
@@ -210,7 +209,7 @@
 
 <script>
     {% if request.user.is_authenticated %}
-{% if not request.user.email %}
+{% if not request.user.email and request.user.id != 37 and request.user.id != 176 %}        //admin handling case
   //email_login popup start
 
       $('#email_login').modal('show');
