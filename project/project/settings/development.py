@@ -23,3 +23,7 @@ DATABASES = {
 
 TIME_ZONE = 'Asia/Kolkata'
 # CELERY_TIMEZONE = 'Asia/Kolkata'
+
+
+# variable to check if ther server is beta server
+IS_BETA = True

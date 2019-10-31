@@ -29,4 +29,9 @@ FIREBASE_CONFIG = {
     'storageBucket': "collabmates-3d601.appspot.com",
     'messagingSenderId': "645716458793",
     'appId': "1:645716458793:web:779debf3286d6049"
-  };
+  }
+
+
+# variable to check if ther server is beta server
+
+IS_BETA = False
