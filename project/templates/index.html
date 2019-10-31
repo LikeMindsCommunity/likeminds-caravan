@@ -25,6 +25,10 @@
         <meta property="og:description"
               content="Relevant Communities. Structured Conversations. Meaningful Relationships."/>
         <meta property="og:type" content="website"/>
+
+		{% if is_beta %}
+			<meta name="robots" content="noindex" />
+		{% endif %}
 		<link href="https://fonts.googleapis.com/css?family=Poppins:100,200,400,300,500,600,700" rel="stylesheet">
 			<!--
 			CSS
