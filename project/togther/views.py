@@ -21,7 +21,7 @@ from collabmates_api.notification import notification_after_compute_rank
 from django.urls import reverse
 from utility.utils import (get_city_address, update_tag_image,
                            update_user_geography_tags, create_or_categorize_tag,
-                           referal, insert_user_home_town_tags, )
+                           referal, insert_user_home_town_tags,user_onbaord)
 from urllib.parse import urlencode,quote
 from collabmates_api.tasks import send_email
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
@@ -32,7 +32,7 @@ url = settings.URL
 
 # uncomment to run it in localhost
 #
-# url='http://localhost:8000'
+#url='http://localhost:8000'
 
 api_url = url + '/api/'
 error_logger=logging.getLogger("error_logger")
@@ -91,7 +91,7 @@ def dashboard(request):
         communities = get_communities_by_rank(request)
 
         # check if user has completed onbarding and is from IIT Delhi
-        onboard,is_iitd = user_onbaord(request)
+        onboard= user_onbaord(request.user.id)
         return render(request, 'dashboard.html',
                       {'usr': user, 'communities': communities, 'my_communities': my_community[:2],
                        "my_communities_count": len(my_community),'onboard':onboard,'is_iitd':True,
@@ -109,21 +109,6 @@ def dashboard(request):
     return render(request, 'dashboard.html', {'communities': queryset})
 
 
-def user_onbaord(request):
-    ''' checking if user has gone through on-boarding flow or not'''
-    user_legacy = User_Legacy.objects.filter(user_id=request.user)
-    user_prof = User_Profession.objects.filter(user_id=request.user)
-    user_int = User_Interest.objects.filter(user_id=request.user)
-    user_gro = User_Geography.objects.filter(user_id=request.user)
-
-    # if user does not have any tags , user has to do on-boarding
-    if user_legacy.exists() and user_prof.exists() and user_int.exists() and user_gro.exists():
-
-        ''' if user comes back in the middle of on-baording flow,
-        make sure he continues the on-boarding'''
-        #iit_tag = user_legacy.filter(tags_id__id = 6)
-        return True, True
-    return False,False
 
 
 def get_communities_by_rank(request):
