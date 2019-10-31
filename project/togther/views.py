@@ -41,7 +41,7 @@ info_logger=logging.getLogger("info_logger")
 
 def index(request):
     '''function to show promotion page'''
-    return render(request, 'index.html')
+    return render(request, 'index.html',{'is_beta':settings.IS_BETA})
 
 
 def home(request):
