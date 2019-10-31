@@ -74,7 +74,7 @@ def dashboard(request):
 
         # if user does not have a email linked to his account, ask for a email
         request_user_email = False
-        if not request.user.email:
+        if not request.user.email and request.user.id != 37 and request.user.id != 176:
             request_user_email = True
 
         try:
