@@ -1825,13 +1825,12 @@ def get_cards_for_demo(community_id,member_id):
     referal_card['member'] = {
         'name': name
     }
-    referal_card['id']=""
+    referal_card['id']=member_id
     referal_card['title'] = """Just discovered this community which is %s""" % (community_purpose)
     referal_card['created_at'] = "Just Now"
     referal_card['share_url']=url+"/community/"+str(community_id)+"?ref_id="+str(member_id)
     card_list.append(referal_card)
     referal_card['answers']=[]
-    print(card_list)
     return card_list
 
 def get_status_of_collabcard(member_id,community,card):
