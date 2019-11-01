@@ -1790,7 +1790,7 @@ def get_cards_for_demo(community_id,member_id):
 
     temp = {}
     temp['id'] = ""
-    temp['answer'] = """Anyone can become a promoter and initiate this community by referring n new members to the community."""
+    temp['answer'] = """Anyone can become a promoter and initiate this community by referring %s new members to the community."""%(eligibility_count)
     temp['created_at'] = get_time_text(time.time())
     temp['member'] = {
         'name': "Third Promoter"
