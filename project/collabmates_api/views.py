@@ -1661,10 +1661,10 @@ def community_cards(request, community_id):
     community = Community.objects.get(id = community_id)
     cards = Collabcard.objects.filter(community = community_id).order_by('id')
     member_id=request.GET.get('member_id')
-    is_tour=request.GET.get('is_tour',False)
+    #is_tour=request.GET.get('is_tour',False)
 
     # if the community is pilot community and android tour is given
-    if community.hide_community == '3' and is_tour == 'true':
+    if community.hide_community == '3':
         card_list=get_cards_for_demo(community_id,member_id)
         return JsonResponse({'collabcards': card_list})
 
@@ -1709,7 +1709,7 @@ def get_cards_for_demo(community_id,member_id):
         community_purpose = community_purpose[0].lower() + community_purpose[1:]
     # sample card
     sample_card = {}
-    sample_card['id']=""
+    sample_card['id']="first_conversation"
     sample_card['title'] = """Welcome %s, I'll be initiating this community %s""" % (first_name, community_purpose)
     sample_card['community_id'] = community_id
     sample_card['member'] = {
@@ -1727,7 +1727,7 @@ def get_cards_for_demo(community_id,member_id):
         display_string = display_string + test[index]
         if test[index] == '.':
             break
-    temp['id']=""
+    temp['id']="first_conversation_1"
     temp['answer']=display_string
     temp['created_at']=get_time_text(time.time())
     temp['member']={
@@ -1736,7 +1736,7 @@ def get_cards_for_demo(community_id,member_id):
     answers.append(temp)
 
     temp = {}
-    temp['id']=""
+    temp['id']="first_conversation_2"
     temp['answer'] = """Interested members can respond by simply chatting with you and each other on your conversation card."""
     temp['created_at'] = get_time_text(time.time())
     temp['member'] = {
@@ -1745,7 +1745,7 @@ def get_cards_for_demo(community_id,member_id):
     answers.append(temp)
 
     temp = {}
-    temp['id']=""
+    temp['id']="first_conversation_3"
     temp['answer'] = """Members who want to follow the conversation can press the Follow button to receive notifications about future responses on the card."""
     temp['created_at'] = get_time_text(time.time())
     temp['member'] = {
@@ -1754,7 +1754,7 @@ def get_cards_for_demo(community_id,member_id):
     answers.append(temp)
 
     temp = {}
-    temp['id']=""
+    temp['id']="first_conversation_4"
     temp['answer'] = """Others would simply swipe through the conversation card and move to the next conversation"""
     temp['created_at'] = get_time_text(time.time())
     temp['member'] = {
@@ -1768,7 +1768,7 @@ def get_cards_for_demo(community_id,member_id):
     # purpose info card
 ###################### sample card end ################
     purpose_card = {}
-    purpose_card['id']=""
+    purpose_card['id']="second_conversation"
     purpose_card['title'] = """%s, this community is currently a pilot as it doesn't actually have any of us (promoters). Help this community find us and enable interactions between members""" % (
         first_name)
     purpose_card['community_id'] = community_id
@@ -1780,7 +1780,7 @@ def get_cards_for_demo(community_id,member_id):
     answers = []
 
     temp = {}
-    temp['id']=""
+    temp['id']="second_conversation_1"
     temp['answer'] = """Promoters are responsible to approve new member requests in the community and drive conversations between members."""
     temp['created_at'] = get_time_text(time.time())
     temp['member'] = {
@@ -1789,7 +1789,7 @@ def get_cards_for_demo(community_id,member_id):
     answers.append(temp)
 
     temp = {}
-    temp['id'] = ""
+    temp['id'] = "second_conversation_2"
     temp['answer'] = """Anyone can become a promoter and initiate this community by referring %s new members to the community."""%(eligibility_count)
     temp['created_at'] = get_time_text(time.time())
     temp['member'] = {
@@ -1798,7 +1798,7 @@ def get_cards_for_demo(community_id,member_id):
     answers.append(temp)
 
     temp = {}
-    temp['id'] = ""
+    temp['id'] = "second_conversation_3"
     temp['answer'] = """%s, please refer someone who you consider fit to become a promoter"""%(str(first_name))
     temp['created_at'] = get_time_text(time.time())
     temp['member'] = {
@@ -1807,7 +1807,7 @@ def get_cards_for_demo(community_id,member_id):
     answers.append(temp)
 
     temp = {}
-    temp['id'] = ""
+    temp['id'] = "second_conversation_4"
     refered_members=get_referred_members_of_a_member(community_id,member_id)
     diff=(eligibility_count-len(refered_members))
     temp['answer'] = """Alternatively, you can refer %s more members and become promoter of this community."""%(str(diff))
