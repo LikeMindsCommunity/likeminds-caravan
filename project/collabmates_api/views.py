@@ -1826,7 +1826,7 @@ def get_cards_for_demo(community_id,member_id):
         'id':member_id,
         'name': name
     }
-    referal_card['id']=""
+    referal_card['id']="third_conversation"
     referal_card['title'] = """Just discovered this community which is %s""" % (community_purpose)
     referal_card['created_at'] = "Just Now"
     referal_card['share_url']=url+"/community/"+str(community_id)+"?ref_id="+str(member_id)
