@@ -1709,6 +1709,7 @@ def get_cards_for_demo(community_id,member_id):
         community_purpose = community_purpose[0].lower() + community_purpose[1:]
     # sample card
     sample_card = {}
+    sample_card['id']=""
     sample_card['title'] = """Welcome %s, I'll be initiating this community %s""" % (first_name, community_purpose)
     sample_card['community_id'] = community_id
     sample_card['member'] = {
@@ -1726,6 +1727,7 @@ def get_cards_for_demo(community_id,member_id):
         display_string = display_string + test[index]
         if test[index] == '.':
             break
+    temp['id']=""
     temp['answer']=display_string
     temp['created_at']=get_time_text(time.time())
     temp['member']={
@@ -1734,6 +1736,7 @@ def get_cards_for_demo(community_id,member_id):
     answers.append(temp)
 
     temp = {}
+    temp['id']=""
     temp['answer'] = """Interested members can respond by simply chatting with you and each other on your conversation card."""
     temp['created_at'] = get_time_text(time.time())
     temp['member'] = {
@@ -1742,6 +1745,7 @@ def get_cards_for_demo(community_id,member_id):
     answers.append(temp)
 
     temp = {}
+    temp['id']=""
     temp['answer'] = """Members who want to follow the conversation can press the Follow button to receive notifications about future responses on the card."""
     temp['created_at'] = get_time_text(time.time())
     temp['member'] = {
@@ -1750,6 +1754,7 @@ def get_cards_for_demo(community_id,member_id):
     answers.append(temp)
 
     temp = {}
+    temp['id']=""
     temp['answer'] = """Others would simply swipe through the conversation card and move to the next conversation"""
     temp['created_at'] = get_time_text(time.time())
     temp['member'] = {
@@ -1763,6 +1768,7 @@ def get_cards_for_demo(community_id,member_id):
     # purpose info card
 ###################### sample card end ################
     purpose_card = {}
+    purpose_card['id']=""
     purpose_card['title'] = """%s, this community is currently a pilot as it doesn't actually have any of us (promoters). Help this community find us and enable interactions between members""" % (
         first_name)
     purpose_card['community_id'] = community_id
@@ -1774,6 +1780,7 @@ def get_cards_for_demo(community_id,member_id):
     answers = []
 
     temp = {}
+    temp['id']=""
     temp['answer'] = """Promoters are responsible to approve new member requests in the community and drive conversations between members."""
     temp['created_at'] = get_time_text(time.time())
     temp['member'] = {
@@ -1782,8 +1789,8 @@ def get_cards_for_demo(community_id,member_id):
     answers.append(temp)
 
     temp = {}
-    temp[
-        'answer'] = """Anyone can become a promoter and initiate this community by referring n new members to the community."""
+    temp['id'] = ""
+    temp['answer'] = """Anyone can become a promoter and initiate this community by referring n new members to the community."""
     temp['created_at'] = get_time_text(time.time())
     temp['member'] = {
         'name': "Third Promoter"
@@ -1791,6 +1798,7 @@ def get_cards_for_demo(community_id,member_id):
     answers.append(temp)
 
     temp = {}
+    temp['id'] = ""
     temp['answer'] = """%s, please refer someone who you consider fit to become a promoter"""%(str(first_name))
     temp['created_at'] = get_time_text(time.time())
     temp['member'] = {
@@ -1799,6 +1807,7 @@ def get_cards_for_demo(community_id,member_id):
     answers.append(temp)
 
     temp = {}
+    temp['id'] = ""
     refered_members=get_referred_members_of_a_member(community_id,member_id)
     diff=(eligibility_count-len(refered_members))
     temp['answer'] = """Alternatively, you can refer %s more members and become promoter of this community."""%(str(diff))
@@ -1816,6 +1825,7 @@ def get_cards_for_demo(community_id,member_id):
     referal_card['member'] = {
         'name': name
     }
+    referal_card['id']=""
     referal_card['title'] = """Just discovered this community which is %s""" % (community_purpose)
     referal_card['created_at'] = "Just Now"
     referal_card['share_url']=url+"/community/"+str(community_id)+"?ref_id="+str(member_id)
