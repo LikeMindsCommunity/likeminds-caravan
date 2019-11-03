@@ -128,7 +128,334 @@ header {
  {% endblock %}
 
 {% autoescape off %}
+{% endautoescape %}
+<h2 class="ui center aligned header" id="main_header">To engage in this community, download the app</h2>
+
+
+<!--    <h4 class="ui center aligned header"  style="font-size:16px;line-height: 150%;color:black;text-align:left;padding-left:20px;padding-right:20px;" id="referal">-->
+<!--Your request has been saved for approval by future promoter(s) of this community. This community is currently a pilot as it doesn't have any promoter. Promoters are responsible to approve new member requests in the community and drive conversations between members. Anyone can become a promoter and initiate this community by referring 5 new members to the community.-->
+<!--      <h4 class="ui center aligned header"  style="font-size:16px;padding-left:20px;padding-right:20px;line-height: 150%;text-align:left" id="referal">-->
+
+<!--You can choose to become a promoter of this community or invite someone who you consider fit to become one. You can also simply invite a friend who might benefit from this community when it goes live.-->
+
+<!--        <br/>-->
+<!--        <div style="text-align:center;">-->
+<!--        <br/>-->
+
+<!--    <button class="ui button " style="z-index:2; width:35%; left:34%; margin:0 auto; background-color: #00897b; border-radius:20px; bottom:15%;"  id="ref"><p style="color:white;">Invite </p></button>-->
+<div align="center">
+
+    <br/><br/>
+<button class="ui button " style="z-index:2; width:45%; left:34%; margin:0 auto; background-color: #00897b; border-radius:20px; bottom:15%;"  id="download_app"><p style="color:white;">Download Now</p></button>
+
+</div>
+<div style="text-align:center">
+    <br/>
+<!--<a href="/communities" style="color:#00897b;">Explore other communities</a>-->
+</div>
+
+<!-- ios popup -->
+
+<div class="ui modal" id="ios_popup">
+  <i class="close icon"></i>
+
+  <div class="image content">
+
+    <div class="description">
+      <div class="ui header">Thanks for signing up.</div>
+      <p> We are in the process of building our iOS app and will notify you when it is released.</p>
+      <p>Provide us your mobile number to get notified</p>
+    <div class="ui  form" onsubmit="return false">
+   <div class="form_field">Mobile Number</div>
+        {% csrf_token %}
+    <div class="field">
+        <input type="text" name="mobile" placeholder="We will not spam you or give this to anyone" id="mobile_no_ios"  minlength="10">
+    </div>
+
+</div>
+
+    </div>
+  </div>
+  <div class="actions">
+     <button class="ui positive right labeled icon button" id="notify_me" style="background-color:#00897b;">
+       Notify Me
+      <i class="checkmark icon"></i>
+    </button>
+  </div>
+</div>
+
+<!---ios popup closes-->
+
+
+<!-- web popup -->
+<div class="ui modal web_popup" id="web_popup">
+
+  <div class="small header">
+   1 last step!! Get early access to CollabMates app
+  <br/>
+      <p id="sec_header" style="padding-top:10px;">Provide us details below to get notified</p>
+
+  </div>
+
+  <div class="content">
+<div class="ui  form" onsubmit="return false">
+
+{% csrf_token %}
+
+
+<!-- mobile type -->
+<div class="field padd">
+         <div class="form_field">Mobile OS&nbsp;&nbsp;<sub style="color:red;font-size:20px">*</sub></div>
+       <select class="ui dropdown" id="mobile_os">
+        <option value="" disabled selected>Which phone OS do you have?</option>
+          <option value="Android">Android</option>
+          <option value="iOS">iOS</option>
+          <option value="Both">Both</option>
+        </select>
+    <div class="ui pointing red basic label" id="error_mobile" style="display:none">
+      Please select your mobile OS
+    </div>
+</div>
+
+<!-- -->
+<!-- Email -->
+<div class="field padd">
+    <div class="form_field">Email ID linked with Playstore/App store&nbsp;&nbsp;<sub style="color:red;font-size:20px">*</sub></div>
+    <div class="field">
+        <input type="email" name="email" value="{{request.user.email}}" id="email" placeholder="This is important to give you access of the app">
+    </div>
+</div>
+
+<!-- -->
+<!-- Mobile Number -->
+<div class="field padd">
+<div class="form_field">Mobile Number <sub style="color:red;font-size:20px">*</sub></div>
+    <div class="field">
+        <input type="text" name="mobile" placeholder="We will not spam you or give this to anyone" id="mobile_no"  minlength="10">
+    </div>
+
+</div>
+<!-- -->
+</div>
+
+  </div>
+ <div class="actions">
+    <button class="ui positive right labeled icon button" id="web_notify" disabled='disabled' style="background-color:#00897b;">
+       Notify Me
+      <i class="checkmark icon"></i>
+    </button>
+  </div>
+
+<!-- web popup close-->
+
+<!-- link share -->
+<div class="share-dialog">
+  <header>
+    <h3 class="dialog-title">Share</h3>
+    <button class="close-button"><svg><use href="#close"></use></svg></button>
+  </header>
+  <div class="targets">
+    <a class="button" href="http://www.facebook.com/sharer.php?u={{share_url}}" target="_blank">
+      <svg>
+        <use href="#facebook"></use>
+      </svg>
+      <span>Facebook</span>
+    </a>
+
+    <a class="button" href="https://twitter.com/share?text={{share_url}}&&url='{{share_url}}'" target="_blank">
+      <svg>
+        <use href="#twitter"></use>
+      </svg>
+      <span>Twitter</span>
+    </a>
+
+    <a class="button" href="http://www.linkedin.com/shareArticle?mini=true&amp;url='{{share_url}}'" target="_blank">
+      <svg>
+        <use href="#linkedin"></use>
+      </svg>
+      <span>LinkedIn</span>
+    </a>
+
+    <a class="button" href="https://api.whatsapp.com/send?text={{share_url}}">
+      <svg>
+        <i class="fa fa-whatsapp" aria-hidden="true"style="font-size:22px;color:green;"></i>
+      </svg>
+      &nbsp;&nbsp;<span>WhatsApp</span>
+    </a>
+  </div>
+  <div class="link">
+    <div class="pen-url" id="copyTarget">{{copy_url}}</div>
+    <button class="copy-link" id="copyButton">Copy Link</button>
+  </div>
+</div>
+
+<!--<button class="share-button" type="button" title="Share this article">-->
+<!--  <svg>-->
+<!--    <use href="#share-icon"></use>-->
+<!--  </svg>-->
+<!--  <span>Share</span>-->
+<!--</button>-->
+
+<svg class="hidden">
+  <defs>
+    <symbol id="share-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-share"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></symbol>
+
+    <symbol id="facebook" viewBox="0 0 24 24" fill="#3b5998" stroke="#3b5998" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-facebook"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path></symbol>
+
+    <symbol id="twitter" viewBox="0 0 24 24" fill="#1da1f2" stroke="#1da1f2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-twitter"><path d="M23 3a10.9 10.9 0 0 1-3.14 1.53 4.48 4.48 0 0 0-7.86 3v1A10.66 10.66 0 0 1 3 4s-4 9 5 13a11.64 11.64 0 0 1-7 2c9 5 20 0 20-11.5a4.5 4.5 0 0 0-.08-.83A7.72 7.72 0 0 0 23 3z"></path></symbol>
+
+    <symbol id="email" viewBox="0 0 24 24" fill="#777" stroke="#fafafa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class=""><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></symbol>
+
+    <symbol id="linkedin" viewBox="0 0 24 24" fill="#0077B5" stroke="#0077B5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-linkedin"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"></path><rect x="2" y="9" width="4" height="12"></rect><circle cx="4" cy="4" r="2"></circle></symbol>
+
+    <symbol id="close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-x-square"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="9" x2="15" y2="15"></line><line x1="15" y1="9" x2="9" y2="15"></line></symbol>
+  </defs>
+</svg>
+</body>
+</html>
+
 <script>
+
+$(document).ready(function(){
+
+function is_mobile_valid(mobile_no)
+{
+    if(!mobile_no)
+    {
+
+    return true;
+
+    }
+    var phoneno = /^\d{10}$/;
+            if(!(mobile_no.match(phoneno)))
+            {
+                    return false;
+            }
+
+    return true;
+}
+
+
+
+$('#download_app').click(function(e){
+
+{% if android %}
+    window.open("https://drive.google.com/open?id=1IQjFXjzxlUcMva7afZF_szwoYYaICdnf",'_self')
+{% endif %}
+
+
+{% if ios %}
+$('#ios_popup').modal('show')
+{% endif %}
+
+{% if pc %}
+$('#web_popup').modal('show')
+{% endif %}
+
+
+})
+
+//web popup
+
+$('#mobile_os').change(function(){
+    //Some condition
+
+    $('#web_notify').prop('disabled', false);
+
+});
+// sending web popup request
+$('#web_notify').click(function(e){
+
+mobile_os=$('#mobile_os').val()
+        email=$('#email').val()
+        mobile_no=$('#mobile_no').val()
+        if(mobile_no == ''){
+        alert("Enter Valid Mobile no.")
+               return;
+        }
+
+        temp={
+        'mobile_os':mobile_os,
+        'email':email,
+        'mobile_no':mobile_no,
+        'csrfmiddlewaretoken': '{{ csrf_token }}',
+
+        }
+
+        if(!email){
+            alert("Enter Valid Email Address!!")
+            return;
+        }
+
+         if(!is_mobile_valid(mobile_no))
+         {
+
+               alert("Enter Valid Mobile no.")
+               return;
+
+         }
+         $.ajax({
+
+                    url:"/refer_members/"+"{{community_id}}",
+                    type:"POST",
+                    data:temp,
+                    dataType: "json",
+                    success:function(data){
+                       console.log(data)
+                    }
+
+
+
+
+
+                })
+
+ })
+
+
+
+
+
+
+// mobile os is ios
+$('#notify_me').click(function(e){
+
+var mobile_no=$('#mobile_no_ios').val();
+ if(!is_mobile_valid(mobile_no))
+         {
+
+               alert("Enter Valid Mobile no.")
+               return;
+
+         }
+
+         temp={
+         'mobile_no_ios':mobile_no,
+         'csrfmiddlewaretoken': '{{ csrf_token }}',
+
+         }
+             $.ajax({
+
+                    url:"/refer_members/"+"{{community_id}}",
+                    type:"POST",
+                    data:temp,
+                    dataType: "json",
+                    success:function(data){
+                       console.log(data)
+                    }
+
+                })
+})
+
+
+})
+
+
+
+/*
+
+//commenting the share popup
+
 $(document).ready(function(){
  $('#ref').click(function(){
         var link='{{copy_url}}'
@@ -215,97 +542,10 @@ function copyToClipboard(elem) {
 
 
 });
+*/
 </script>
-{% endautoescape %}
-<h2 class="ui center aligned header" id="main_header">Help this community find a promoter</h2>
 
-
-
-    <h4 class="ui center aligned header"  style="font-size:16px;line-height: 150%;color:black;text-align:left;padding-left:20px;padding-right:20px;" id="referal">
-Your request has been saved for approval by future promoter(s) of this community. This community is currently a pilot as it doesn't have any promoter. Promoters are responsible to approve new member requests in the community and drive conversations between members. Anyone can become a promoter and initiate this community by referring 5 new members to the community.
-      <h4 class="ui center aligned header"  style="font-size:16px;padding-left:20px;padding-right:20px;line-height: 150%;text-align:left" id="referal">
-
-You can choose to become a promoter of this community or invite someone who you consider fit to become one. You can also simply invite a friend who might benefit from this community when it goes live.
-
-        <br/>
-        <div style="text-align:center;">
-        <br/>
-
-    <button class="ui button " style="z-index:2; width:35%; left:34%; margin:0 auto; background-color: #00897b; border-radius:20px; bottom:15%;"  id="ref"><p style="color:white;">Invite </p></button>
-
-    </div>
-<div style="text-align:center">
-    <br/>
-<a href="/communities" style="color:#00897b;">Explore other communities</a>
-</div>
-
-<!-- link share -->
-<div class="share-dialog">
-  <header>
-    <h3 class="dialog-title">Share</h3>
-    <button class="close-button"><svg><use href="#close"></use></svg></button>
-  </header>
-  <div class="targets">
-    <a class="button" href="http://www.facebook.com/sharer.php?u={{share_url}}" target="_blank">
-      <svg>
-        <use href="#facebook"></use>
-      </svg>
-      <span>Facebook</span>
-    </a>
-
-    <a class="button" href="https://twitter.com/share?text={{share_url}}&&url='{{share_url}}'" target="_blank">
-      <svg>
-        <use href="#twitter"></use>
-      </svg>
-      <span>Twitter</span>
-    </a>
-
-    <a class="button" href="http://www.linkedin.com/shareArticle?mini=true&amp;url='{{share_url}}'" target="_blank">
-      <svg>
-        <use href="#linkedin"></use>
-      </svg>
-      <span>LinkedIn</span>
-    </a>
-
-    <a class="button" href="https://api.whatsapp.com/send?text={{share_url}}">
-      <svg>
-        <i class="fa fa-whatsapp" aria-hidden="true"style="font-size:22px;color:green;"></i>
-      </svg>
-      &nbsp;&nbsp;<span>WhatsApp</span>
-    </a>
-  </div>
-  <div class="link">
-    <div class="pen-url" id="copyTarget">{{copy_url}}</div>
-    <button class="copy-link" id="copyButton">Copy Link</button>
-  </div>
-</div>
-
-<!--<button class="share-button" type="button" title="Share this article">-->
-<!--  <svg>-->
-<!--    <use href="#share-icon"></use>-->
-<!--  </svg>-->
-<!--  <span>Share</span>-->
-<!--</button>-->
-
-<svg class="hidden">
-  <defs>
-    <symbol id="share-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-share"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></symbol>
-
-    <symbol id="facebook" viewBox="0 0 24 24" fill="#3b5998" stroke="#3b5998" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-facebook"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path></symbol>
-
-    <symbol id="twitter" viewBox="0 0 24 24" fill="#1da1f2" stroke="#1da1f2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-twitter"><path d="M23 3a10.9 10.9 0 0 1-3.14 1.53 4.48 4.48 0 0 0-7.86 3v1A10.66 10.66 0 0 1 3 4s-4 9 5 13a11.64 11.64 0 0 1-7 2c9 5 20 0 20-11.5a4.5 4.5 0 0 0-.08-.83A7.72 7.72 0 0 0 23 3z"></path></symbol>
-
-    <symbol id="email" viewBox="0 0 24 24" fill="#777" stroke="#fafafa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class=""><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></symbol>
-
-    <symbol id="linkedin" viewBox="0 0 24 24" fill="#0077B5" stroke="#0077B5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-linkedin"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"></path><rect x="2" y="9" width="4" height="12"></rect><circle cx="4" cy="4" r="2"></circle></symbol>
-
-    <symbol id="close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-x-square"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="9" x2="15" y2="15"></line><line x1="15" y1="9" x2="9" y2="15"></line></symbol>
-  </defs>
-</svg>
 {% endblock %}
-</body>
-</html>
-
 
 
 
