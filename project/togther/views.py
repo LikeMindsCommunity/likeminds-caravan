@@ -316,7 +316,6 @@ def community(request, community_id):
 
 def refer_members(request,community_id):
 
-    ref_id = request.GET.get('ref_id',None)
 
     if request.user.is_authenticated:
 
@@ -325,44 +324,77 @@ def refer_members(request,community_id):
         except:
             user = update_user_info(request)
 
-        interested_member_id = request.user.id
-        # invited_member = Members.objects.filter(community_id=community_id,
-        #                                         member_id=ref_id)
-        # if invited_member.exists():
-        #
-        #     referal(ref_id=ref_id, community_id=community_id, interested_member_id =interested_member_id)
+        if request.method == 'GET':
 
-        share_url = url + '/community/' + str(community_id)+"?ref_id="+str(request.user.id)
-        # decoded url for mobile web sharing
-        copy_url=share_url
-        # encoded url for web sharing
-        share_url=quote(share_url)
+            share_url = url + '/community/' + str(community_id)+"?ref_id="+str(request.user.id)
+            # decoded url for mobile web sharing
+            copy_url=share_url
+            # encoded url for web sharing
+            share_url=quote(share_url)
 
-        community = Community.objects.get(pk = community_id)
+            community = Community.objects.get(pk = community_id)
 
-        member = Members.objects.filter(community_id=community,member_id=request.user)
-        admins = Members.objects.filter(community_id=community).filter(Q(state=1) | Q(state=2)).order_by('id')
+            member = Members.objects.filter(community_id=community,member_id=request.user)
+            admins = Members.objects.filter(community_id=community).filter(Q(state=1) | Q(state=2)).order_by('id')
 
-        share_text = 'Hi, I have added '+ str(community.name) +' community on CollabMates. It will be good if you can join this community'
+            share_text = 'Hi, I have added '+ str(community.name) +' community on CollabMates. It will be good if you can join this community'
 
+            android=is_request_android(request)
+            ios=False
+            if is_request_ios(request) and not user.contact_number:
+                ios=True
+            pc=is_request_pc(request)
+            #print(request.META)
+            # if admins.exists() and request.user.id == admins[0].member_id.id:
+            #     share_text = """Hi, I have initiated %s community on CollabMates. It will be good if you can join this community.\n""" % (community.name)
+            #
+            # elif member.exists() and member[0].state == 1 or member[0].state == 2 or member[0].state == 4 or member[0].state == 7 :
+            #     share_text = """I recently joined %s community on CollabMates. It will be good if you also join this community.\n""" % (community.name)
+            #
+            # elif member.exists() and member[0].state == 8 or member[0].state == 9 :
+            #     share_text = """I recently discovered %s community on CollabMates. You can join this community using this link.\n""" % (community.name)
 
-        # if admins.exists() and request.user.id == admins[0].member_id.id:
-        #     share_text = """Hi, I have initiated %s community on CollabMates. It will be good if you can join this community.\n""" % (community.name)
-        #
-        # elif member.exists() and member[0].state == 1 or member[0].state == 2 or member[0].state == 4 or member[0].state == 7 :
-        #     share_text = """I recently joined %s community on CollabMates. It will be good if you also join this community.\n""" % (community.name)
-        #
-        # elif member.exists() and member[0].state == 8 or member[0].state == 9 :
-        #     share_text = """I recently discovered %s community on CollabMates. You can join this community using this link.\n""" % (community.name)
+            # elif member.exists() and member[0].state == 0 :
+            #     share_text = 'Hi, I have added '+ str(community.name) +' community on CollabMates. It will be good if you can join this community'
+            #
+            # elif not member.exists():
+            #     share_text = 'Hi, I have added '+ str(community.name) +' community on CollabMates. It will be good if you can join this community'
 
-        # elif member.exists() and member[0].state == 0 :
-        #     share_text = 'Hi, I have added '+ str(community.name) +' community on CollabMates. It will be good if you can join this community'
-        #
-        # elif not member.exists():
-        #     share_text = 'Hi, I have added '+ str(community.name) +' community on CollabMates. It will be good if you can join this community'
+            context={   'share_url':share_url,
+                        'community':community,
+                        'copy_url':copy_url,
+                        'share_text':share_text,
+                        'android':android,
+                        'ios':ios,
+                        'community_id':community_id,
+                        'pc':pc
+                     }
 
+            return  render(request,'referal.html',context)
+        else:
+            mobile_no_ios=request.POST.get('mobile_no_ios',None)
+            if mobile_no_ios:
+               user.contact_number=mobile_no_ios
+               user.save()
+               return JsonResponse({'success': True})
 
-        return  render(request,'referal.html',{'share_url':share_url,'community':community,'copy_url':copy_url,'share_text':share_text})
+            user_id = request.user.id
+            mobile_os = request.POST.get('mobile_os')
+            email = request.POST.get('email')
+            mobile_no = request.POST.get('mobile_no')
+            try:
+                user_info = Userinfo.objects.get(user_id=user_id)
+                user_info.mobile_os = mobile_os
+                user_info.secondary_email = email
+                if mobile_no:
+                    user_info.contact_number = mobile_no
+                else:
+                    user_info.contact_number = None
+                user_info.save()
+            except:
+                print("Error in user info")
+
+            return JsonResponse({'success':True})
 
 
 def get_members_of_community(request,community):
@@ -1248,6 +1280,7 @@ def get_or_create_tag(tag_name,tag_type):
         return tag.id
 
 
+
 def fill_cluster_tags_in_tags_list(tag_list,typ):
 
     '''function to fill cluster tags in tags list'''
@@ -1272,9 +1305,6 @@ def fill_cluster_tags_in_tags_list(tag_list,typ):
     else:
         tag_list=tag_list+clusted_tags
         return tag_list
-
-
-
 
 
 
@@ -1687,8 +1717,6 @@ def onboarding(request):
 
         type_list=get_user_tags_from_list(legacy_li,"Legacy")
         insert_tags_for_user(user_id,type_list,"Legacy")
-
-
         type_list=get_user_tags_from_list(geography,"Geography")
         insert_tags_for_user(user_id, type_list, "Geography")
 
@@ -1832,7 +1860,7 @@ def onboarding_interest(request):
 
             try:
                 user_info=Userinfo.objects.get(user_id=member_id)
-                user_info.mobile_os="Android"
+                user_info.mobile_os="iOS"
                 user_info.secondary_email=user_info.email
                 user_info.save()
 
@@ -1931,6 +1959,16 @@ def is_request_ios(request):
             return False
     return False
 
+def is_request_pc(request):
+    '''function to check if request is pc or not'''
+    if 'HTTP_USER_AGENT' in request.META:
+        ua_string = request.META['HTTP_USER_AGENT']
+        user_agent = parse(ua_string)
+        if user_agent.is_pc:
+            return True
+        else:
+            return False
+    return False
 
 def access_page(request):
 
