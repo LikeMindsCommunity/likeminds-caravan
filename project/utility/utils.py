@@ -592,13 +592,18 @@ def user_onbaord(member_id):
     user_gro = User_Geography.objects.filter(user_id=member_id)
 
     # if user does not have any tags , user has to do on-boarding
+
     if user_legacy.exists() and user_prof.exists() and user_int.exists() and user_gro.exists():
+        if (len(user_legacy) == 1 and user_legacy[0].tags_id.tag_id == 15) or (len(user_prof) == 1 and user_prof[0].tags_id.tag_id ==16) or (len(user_int) == 1 and user_int[0].tags_id.tag_id == 17) or (len(user_gro) == 1 and user_int[0].tags_id.tag_id == 18):
+            return False
         return True
     else:
         return False
 
 
 def update_community_tags_to_user(user_id,community_id):
+
+    '''function to update the tags of the user if he joins a particular community'''
 
     user = User.objects.get(pk=user_id)
     community = Community.objects.get(pk=community_id)
