@@ -1716,6 +1716,7 @@ def get_cards_for_demo(community_id,member_id):
         'name': "Initial Promoter"
     }
     sample_card['created_at'] = get_time_text(time.time())
+    sample_card['answer_text']="Second Promoter & 3 others responded"
     answers=[]
 
     temp={}
@@ -1776,7 +1777,7 @@ def get_cards_for_demo(community_id,member_id):
         'name': "Initial Promoter"
     }
     purpose_card['created_at'] = "Just Now"
-
+    purpose_card['answer_text'] = "Second Promoter & 3 others responded"
     answers = []
 
     temp = {}
