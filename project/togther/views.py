@@ -190,8 +190,8 @@ def community(request, community_id):
     source = request.GET.get('source', '')
 
     # --------- referal part ----------------------
-    ref_id = request.GET.get('ref_id', '')
 
+    ref_id = request.GET.get('ref_id', '')
     cta = ''
     if 'cta' in res:
         cta = res['cta']
@@ -827,7 +827,6 @@ def join_community(request, community_id,ref_id):
     if request.method == "POST":
 
         question_data = request.POST.dict()
-        print(question_data)
         response_list = []
 
         for key, value in question_data.items():

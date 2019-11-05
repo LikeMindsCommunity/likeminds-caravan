@@ -39,7 +39,6 @@ from utility.utils import (decode_meta_from_url, update_tag_image,
                            user_onbaord, update_member_count,
                            update_community_tags_to_user)
 from utility.tasks import (mail_triger, new_member_request)
-from urllib.parse import urlencode,quote
 
 url  = settings.URL
 
@@ -503,8 +502,15 @@ def join_community_responses(request):
     else:
         ref_id = request.GET.get('ref_id',None)
 
+
+    info_logger.info("Join Community api")
+    info_logger.info("""Community Id=%s"""%(community_id))
+    info_logger.info("""Member Id=%s"""%(user_id))
+    info_logger.info("""ref_id=%s""",str(ref_id))
+    info_logger.info("""Community State=%s"""%str(ref_id))
+
     if ref_id :
-        ref_id = res['ref_id']
+        #ref_id = res['ref_id']
         # sending mail to nipun and harsh
         new_member_request.delay(member_id=user_id, commuinity_id=community_id, ref_id=ref_id)
         if community.hide_community == '3' or community.hide_community == '4':
@@ -1600,7 +1606,7 @@ def get_collabcard_files(card_id):
     img_list=[]
     pdf=[]
     for file in files:
-        if file.type == 'Image':
+        if file.type == 'image':
             img = {'image_url': url + file.attachment.url}
             img_list.append(img)
         elif file.type == 'pdf':
