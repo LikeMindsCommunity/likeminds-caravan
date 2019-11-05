@@ -109,8 +109,6 @@ def dashboard(request):
     return render(request, 'dashboard.html', {'communities': queryset})
 
 
-
-
 def get_communities_by_rank(request):
     ''' function to get communities based on rank '''
     communities_list = []
@@ -191,7 +189,6 @@ def community(request, community_id):
 
     # --------- referal part ----------------------
     ref_id = request.GET.get('ref_id', '')
-
     cta = ''
     if 'cta' in res:
         cta = res['cta']
@@ -827,7 +824,6 @@ def join_community(request, community_id,ref_id):
     if request.method == "POST":
 
         question_data = request.POST.dict()
-        print(question_data)
         response_list = []
 
         for key, value in question_data.items():
