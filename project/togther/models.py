@@ -3,7 +3,8 @@ from django.contrib.auth.models import User
 from django.core.files import File
 from urllib.request import urlopen
 from io import BytesIO
-
+from PIL import Image
+from django.core.files import File
 
 response_choices = (
     ('text','Text'),
@@ -15,6 +16,20 @@ card_action = (
     ('like','Like'),
     ('share','Share'),
 )
+
+
+def compress(image):
+
+
+    im = Image.open(image)
+    # create a BytesIO object
+    im_io = BytesIO()
+    # save image to BytesIO object
+    im.save(im_io, 'JPEG', quality=70)
+    # create a django-friendly Files object
+    new_image = File(im_io, name=image.name)
+    return new_image
+
 
 class Community (models.Model):
 
@@ -186,6 +201,14 @@ class Card_Attachment (models.Model):
     collabcard = models.ForeignKey(Collabcard, on_delete = models.CASCADE)
     attachment = models.FileField(upload_to="media/collabcard_files")
     type=models.CharField(max_length=50,default='')
+
+    def save(self, *args, **kwargs):
+        # call the compress function
+        attachment = compress(self.attachment)
+        # set self.image to new_image
+        self.attachment = attachment
+        # save
+        super().save(*args, **kwargs)
 
 class collabcard_seen(models.Model):
     card = models.ForeignKey(Collabcard, on_delete= models.CASCADE)
