@@ -1600,7 +1600,7 @@ def get_collabcard_files(card_id):
     img_list=[]
     pdf=[]
     for file in files:
-        if file.type == 'Image':
+        if file.type == 'image':
             img = {'image_url': url + file.attachment.url}
             img_list.append(img)
         elif file.type == 'pdf':
