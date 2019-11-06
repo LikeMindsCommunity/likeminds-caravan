@@ -29,7 +29,7 @@ from togther.tasks import send_email_to_proposed_admin
 from django.core.paginator import Paginator
 from togther.views import set_user_tag, get_user_tag, get_nominated_admin_details
 import os
-from .firebase import update_last_answer_id
+from .firebase import update_last_answer_id,upload_image_file
 import re
 import googlemaps
 import logging
@@ -1607,10 +1607,10 @@ def get_collabcard_files(card_id):
     pdf=[]
     for file in files:
         if file.type == 'image':
-            img = {'image_url': url + file.attachment.url}
+            img = {'image_url': file.attachment}
             img_list.append(img)
         elif file.type == 'pdf':
-            pdf_url = {'pdf_file': url + file.attachment.url}
+            pdf_url = {'pdf_file':file.attachment}
             pdf.append(pdf_url)
     return (img_list,pdf)
 
@@ -2136,9 +2136,11 @@ def upload_attachment(request):
             attachment_type=body['type']
             collabcard_id = body['collabcard_id']
             collabcard = Collabcard.objects.get(id = collabcard_id)
-
+            file_version=Card_Attachment.objects.filter(collabcard_id=collabcard).count()+1
+            file_name=str(collabcard_id)+"__version__"+str(file_version)
             file=Card_Attachment()
-            file.attachment=attachment
+            attachment_url=upload_image_file(collabcard_id,attachment,file_name)
+            file.attachment=attachment_url
             file.collabcard=collabcard
             file.type=attachment_type
             file.save()
