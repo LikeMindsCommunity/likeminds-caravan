@@ -1,9 +1,9 @@
 import pyrebase
 from django.conf import settings
 
-url=settings.URL
 
-if url == 'https://beta.collabmates.com':
+
+if settings.IS_BETA:
     # beta firebase config
     FIREBASE_CONFIG = {
         'apiKey': "AIzaSyBWjDQEiYKdQbQNvoiVvvOn_cbufQzvWuo",
@@ -32,7 +32,7 @@ else:
 firebaseConfig=FIREBASE_CONFIG
 firebase = pyrebase.initialize_app(firebaseConfig)
 database=firebase.database()
-
+storage = firebase.storage()
 
 
 def update_last_answer_id(card_id,answer_id):
@@ -44,11 +44,22 @@ def update_last_answer_id(card_id,answer_id):
         'answer_id':str(answer_id)
     }
 
-    if url == 'https://beta.collabmates.com':
+    if settings.IS_BETA:
         database.child("beta_collabcards").child(card_id).child("collabcard").update(data)
     else:
         database.child("collabcards").child(card_id).child("collabcard").update(data)
 
     print('Data Updated successfully in firebase')
+
+
+
+def upload_image_file(card_id,file,name):
+
+    '''function to upload image file in database'''
+
+    storage.child("collabcard_files").child(card_id).child(name).put(file)
+    image_url=storage.child("collabcard_files").child(card_id).child(name).get_url(None)
+    return image_url
+
 
 
