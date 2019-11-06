@@ -199,7 +199,7 @@ class Card_Attachment (models.Model):
     '''model to save files of collabcard'''
 
     collabcard = models.ForeignKey(Collabcard, on_delete = models.CASCADE)
-    attachment = models.FileField(upload_to="media/collabcard_files")
+    attachment = models.URLField()
     type=models.CharField(max_length=50,default='')
 
     # def save(self, *args, **kwargs):
