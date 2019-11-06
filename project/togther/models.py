@@ -319,6 +319,7 @@ class Member_Engage(models.Model):
     pending_members=models.IntegerField(default=0,null=True)
     updated_at=models.BigIntegerField(default=0,null=True)
     member_referral=models.CharField(default='',max_length=1024)
+    member_state=models.IntegerField(null=True)
 
 
 # community lpig

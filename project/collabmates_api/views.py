@@ -212,9 +212,12 @@ def update_pending_member_count_in_engage(community):
     current_time=time.time()
     for member in all_members:
         if member.state == 1 or member.state == 2:
-            Member_Engage.objects.filter(community_id=community,member_id=member.member_id).update(pending_members=pending__members_count,updated_at=current_time)
+            Member_Engage.objects.filter(community_id=community,member_id=member.member_id).update(
+                pending_members=pending__members_count,updated_at=current_time,member_state=member.state)
+        else:
+            Member_Engage.objects.filter(community_id=community, member_id=member.member_id).update(member_state=member.state)
 
-    print("Member Engage Pending Count Updated")
+    info_logger.info("Member Engage Pending Count Updated")
 
 
 def update_last_unseen_in_engage(user='',community='',is_seen=False):
@@ -303,6 +306,7 @@ def update_referral_text_in_engage_table(community_object):
                 community['member_referral'] = str(community['pending_members_count']) + " new member requests"
 
             each_community.member_referral=community['member_referral']
+            each_community.member_state=state
             each_community.save()
 
 
@@ -333,6 +337,8 @@ def your_communities(request,user_id):
 
         if each_community.member_referral:
             community['member_referral']=each_community.member_referral
+        if each_community.member_state:
+            community['member_state'] = each_community.member_state
         my_community.append(community)
 
     return JsonResponse({'your_communities':my_community})
@@ -964,6 +970,7 @@ def create_community(request):
             engage.community_id=community
             engage.last_unseen_conversation=card
             engage.updated_at=time.time()
+            engage.member_state=1
             engage.save()
 
             #send_email_to_admin_of_community.delay(CommmunityAdminName=user.name,CommunityName=res['name'],email=user.email)
@@ -1361,6 +1368,7 @@ def accept_invitation(request):
             # if the promoter is actually a promoter
             if promoter[0].state == 1:
                 Members.objects.filter(community_id=community, member_id=member_id).update(state=1)
+                Member_Engage.objects.filter(community_id=community, member_id=member_id).update(member_state=1)
                 # updating member count of the community
                 update_member_count(community.id)
                 # set user hidden tag
@@ -1375,7 +1383,10 @@ def accept_invitation(request):
             elif promoter[0].state == 2:
                 temp_promoter = Members.objects.filter(community_id = community,state=2)
                 Members.objects.filter(community_id = community,member_id=temp_promoter[0].member_id).update(state =4)
+                Member_Engage.objects.filter(community_id=community, member_id=temp_promoter[0].member_id).update(member_state=4)
+
                 Members.objects.filter(community_id = community,member_id=member_id).update(state =1)
+                Member_Engage.objects.filter(community_id=community, member_id=member_id).update(member_state=1)
                 # updating member count of the community
                 update_member_count(community.id)
                 # set user hidden tag
@@ -1394,6 +1405,9 @@ def accept_invitation(request):
             prop_admin = Userinfo.objects.get(user_id=promoter_who_proposed[0].member_id)
             # make th current member a promoter of this community
             Members.objects.filter(community_id=community, member_id=member_id).update(state=1)
+            Member_Engage.objects.filter(community_id=community, member_id=member_id).update(
+                member_state=1)
+
             # updating member count of the community
             update_member_count(community.id)
             # set user hidden tag
@@ -1416,10 +1430,14 @@ def accept_invitation(request):
             # if he is previously not a member of this community
             # then delete the member from members model
             Members.objects.filter(community_id=community, member_id=member_id).delete()
+            Members_Engage.objects.filter(community_id=community, member_id=member_id).delete()
+
         elif member[0].state == 7:
             print("member state == 7")
             # if he is previously not a member of this community , then make him member again
             Members.objects.filter(community_id=community, member_id=member_id).update(state=4)
+            Members_Engage.objects.filter(community_id=community, member_id=member_id).update(state=4)
+
         return JsonResponse({'success': True})
 
     return JsonResponse({'success': False})
@@ -1487,6 +1505,7 @@ def request_response(request,req_dict=None):
     else:
         # if rejected , change user state to 5
         Members.objects.filter(member_id=member_id,community_id=community).update(state=5)  # decline state = 5
+        Members_Engage.objects.filter(member_id=member_id, community_id=community).delete()
         # and also send notification
         send_notification_for_join_requests.delay(community_id, False, member_id)
         Form_response.objects.filter(user=member_id,community=community_id).delete()
