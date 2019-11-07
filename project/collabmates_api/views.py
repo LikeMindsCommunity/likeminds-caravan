@@ -1,6 +1,6 @@
 from __future__ import absolute_import, unicode_literals
 from celery import shared_task
-from django.shortcuts import render, get_object_or_404, redirect
+from django.shortcuts import get_object_or_404
 from django.http import HttpResponse
 from togther.models import *
 from togther.forms import *
@@ -12,14 +12,13 @@ from django.views.decorators.csrf import csrf_exempt
 from datetime import datetime
 from django.db.models import F
 import time
-from .notification import (send_follow_notification,send_notification_to_admins,
+from .notification import (send_follow_notification, send_notification_to_admins,
                            send_notification_for_join_requests,
                            send_notification_for_new_collabcard_posted,
                            send_notification_to_proposed_admin,
                            send_notification_to_proposer,
                            send_notification_to_eligible_member,
-                           send_notification_to_all_admins,
-                           send_notification_to_referred_member_in_active_community)
+                           send_notification_to_all_admins)
 
 from django.db.models import Q
 import dateutil.relativedelta
@@ -29,16 +28,18 @@ from togther.tasks import send_email_to_proposed_admin
 from django.core.paginator import Paginator
 from togther.views import set_user_tag, get_user_tag, get_nominated_admin_details
 import os
-from .firebase import update_last_answer_id,upload_image_to_firebase
 import re
 import googlemaps
 import logging
+
 from utility.utils import (decode_meta_from_url, update_tag_image,
                            referal, get_referred_members_of_a_member,
                            eligibility_count, notify_referred_member,
                            user_onbaord, update_member_count,
                            update_community_tags_to_user)
 from utility.tasks import (mail_triger, new_member_request)
+from utility.firebase import update_last_answer_id,upload_image_to_firebase
+
 
 url  = settings.URL
 
