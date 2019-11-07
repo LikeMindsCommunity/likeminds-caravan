@@ -324,7 +324,11 @@
         <div class="ui fluid card " onclick="" style="margin-right:0px;">
 
             <div class=" fluid image">
-                <img src="{{community.image_url.url}}" style="max-height: 400px;">
+                {% if not community.image_link %}
+                  <img src="{{community.image_url.url}}" style="max-height: 400px;">
+                {% else %}
+                   <img src="{{community.image_link}}" style="max-height: 400px;">
+                {% endif %}
                 {% if community.hide_community == '3' %}
                 <a class="ui teal ribbon label">Pilot</a>
                 {% endif %}

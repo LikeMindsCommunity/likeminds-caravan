@@ -227,12 +227,7 @@ def community(request, community_id):
                 if user_legacy.exists() and user_profession.exists() and user_interests.exists() and user_geography.exists():
                     onboard = True
 
-                return render(request, 'thankyou.html',
-                              {'usr': user,
-                               'similar_communities': data,
-                               'community': community,
-                               'onboard':onboard,
-                               })
+                return redirect('refer_members',community_id=community.id)
         elif cta == 'share':
             cta = 'join'
 
@@ -1158,11 +1153,11 @@ def get_nominated_admin_details(community_id,email):
     details = temp_admin.objects.filter(community_id=community,email=email)
     if details:
         '''details are present,return s true'''
-        print('details are present')
+        #print('details are present')
         return True
     else:
         '''details are not present, returns false'''
-        print('details are not present')
+        #print('details are not present')
         return False
 
 

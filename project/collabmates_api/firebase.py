@@ -53,13 +53,7 @@ def update_last_answer_id(card_id,answer_id):
 
 
 
-def upload_image_file(card_id,file,name):
 
-    '''function to upload image file in database'''
-
-    storage.child("collabcard_files").child(card_id).child(name).put(file)
-    image_url=storage.child("collabcard_files").child(card_id).child(name).get_url(None)
-    return image_url
 
 
 

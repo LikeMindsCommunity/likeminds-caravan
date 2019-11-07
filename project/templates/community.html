@@ -248,7 +248,11 @@
 
         <div class="ui fluid card" id="purpose" style="margin-top:0px;">
             <div class="ui fluid image">
+                {% if not community.image_link %}
                 <img src='/media/{{community.image_url}}'>
+                {% else %}
+                 <img src='{{community.image_link}}'>
+                {% endif %}
             </div>
             <div class="summary left aligned">
                 <p style="font-weight:100; padding:10px; color:#666666;">{{community.purpose}}</p>
