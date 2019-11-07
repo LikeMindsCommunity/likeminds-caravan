@@ -22,6 +22,7 @@ from django.urls import reverse
 from utility.utils import (get_city_address, update_tag_image,
                            update_user_geography_tags, create_or_categorize_tag,
                            referal, insert_user_home_town_tags,user_onbaord)
+from utility.firebase import upload_image_to_firebase
 from urllib.parse import urlencode,quote
 from collabmates_api.tasks import send_email
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
@@ -473,7 +474,7 @@ def update_user_info(request,member_id=None,user_email=None):
                         user.email = data['email']
                     if 'location' in data:
                         user.city = data['location']['name']
-                    user.image_url = image_url
+                    user.image_link = upload_image_to_firebase(image_url,usr.id)
                     user.login_type = 'facebook'
                     user.login_json = data
                     if member_id:
@@ -524,7 +525,7 @@ def update_user_info(request,member_id=None,user_email=None):
                     user = Userinfo()
                     user.name = user_name
                     user.email = email
-                    user.image_url = profile_picture
+                    user.image_link = upload_image_to_firebase(profile_picture,usr.id)
                     # info.linkedin_link = data['publicProfileUrl']
                     user.login_type = 'linkedIn'
                     user.login_json = [data_main, email_data]
@@ -1019,7 +1020,10 @@ def collabcard(request, card_id):
                 request_user_email = True
         except:
             user, request_user_email = update_user_info(request)
-        user_image=user.image_file.url
+        if not user.image_link:
+            user_image=user.image_file.url
+        else:
+            user_image=user.image_link
     else:
         user_image=''
 
@@ -1194,7 +1198,10 @@ def pending_list(request,community_id):
         except:
             user, request_user_email = update_user_info(request)
         # userinfo=Userinfo.objects.get(user_id=request.user.id)
-        user_image_url=userinfo.image_file.url
+        if not userinfo.image_link:
+            user_image_url=userinfo.image_file.url
+        else:
+            user_image_url=userinfo.image_link
         link=api_url+'members_state?member_id='+str(request.user.id)+'&community_id='+str(community_id)
         state=rqst.get(link)
         try:
@@ -1237,8 +1244,12 @@ def questions_responses(request):
         response['question']=data.data
         response['answer']=data.response
         response_list.append(response)
+    if not userinfo.image_link:
+        image=url+userinfo.image_file.url
+    else:
+        image=userinfo.image_link
     context={
-        'image_url':url+userinfo.image_file.url,
+        'image_url':image,
         'response_list':response_list
     }
     return JsonResponse(context)
