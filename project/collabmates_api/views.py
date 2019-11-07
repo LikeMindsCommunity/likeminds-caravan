@@ -29,7 +29,7 @@ from togther.tasks import send_email_to_proposed_admin
 from django.core.paginator import Paginator
 from togther.views import set_user_tag, get_user_tag, get_nominated_admin_details
 import os
-from .firebase import update_last_answer_id,upload_image_file
+from .firebase import update_last_answer_id
 import re
 import googlemaps
 import logging
@@ -508,12 +508,12 @@ def join_community_responses(request):
     else:
         ref_id = request.GET.get('ref_id',None)
 
-
+    info_logger.info("\n")
     info_logger.info("Join Community api")
     info_logger.info("""Community Id=%s"""%(community_id))
     info_logger.info("""Member Id=%s"""%(user_id))
     info_logger.info("""ref_id=%s""",str(ref_id))
-    info_logger.info("""Community State=%s"""%str(ref_id))
+    info_logger.info("""Community State=%s"""%str(community.hide_community))
 
     if ref_id :
         #ref_id = res['ref_id']
@@ -550,7 +550,9 @@ def join_community_responses(request):
                 member.save()
                 update_member_count(community_id)
             update_community_tags_to_user(community_id=community_id,user_id=user.id)
+
     if 'questions' in res:
+        info_logger.info(res['questions'])
         for i in res['questions']:
             response = Form_response()
             response.data = i['key']
@@ -609,6 +611,9 @@ def join_community_responses(request):
                     user_id, community_id))
 
     update_referral_text_in_engage_table(community)
+    log="""Request for community_id=%s is sent from member_id=%s\n"""%(community_id,user_id)
+    info_logger.info(log)
+    info_logger.info("\n")
     return JsonResponse({'success':True})
 
 
@@ -1626,10 +1631,16 @@ def get_collabcard_files(card_id):
     pdf=[]
     for file in files:
         if file.type == 'image':
-            img = {'image_url': file.attachment}
+            if file.file_url:
+                img = {'image_url': file.file_url}
+            else:
+                img = {'image_url': url + file.attachment.url}
             img_list.append(img)
         elif file.type == 'pdf':
-            pdf_url = {'pdf_file':file.attachment}
+            if file.file_url:
+                pdf_url = {'pdf_file': file.file_url}
+            else:
+                pdf_url = {'pdf_file': url + file.attachment.url}
             pdf.append(pdf_url)
     return (img_list,pdf)
 
@@ -2133,10 +2144,11 @@ def image_upload(request):
 
 @csrf_exempt
 def upload_attachment(request):
+
     '''function to upload attachments'''
-    body=request.GET
+    body = request.GET
     if request.method == 'POST':
-        attachment=request.FILES['file']
+        attachment = request.FILES['file']
         if 'community_id' in body:
             # if image to be updated in community
             community_id = body['community_id']
@@ -2152,18 +2164,44 @@ def upload_attachment(request):
             community.image_url = attachment
             community.save()
         elif 'collabcard_id' in body:
-            attachment_type=body['type']
+            attachment_type = body['type']
             collabcard_id = body['collabcard_id']
-            collabcard = Collabcard.objects.get(id = collabcard_id)
-            file_version=Card_Attachment.objects.filter(collabcard_id=collabcard).count()+1
-            file_name=str(collabcard_id)+"__version__"+str(file_version)
-            file=Card_Attachment()
-            attachment_url=upload_image_file(collabcard_id,attachment,file_name)
-            file.attachment=attachment_url
-            file.collabcard=collabcard
-            file.type=attachment_type
+            collabcard = Collabcard.objects.get(id=collabcard_id)
+
+            file = Card_Attachment()
+            file.attachment = attachment
+            file.collabcard = collabcard
+            file.type = attachment_type
             file.save()
-        return JsonResponse({'success':True})
+        return JsonResponse({'success': True})
+    return JsonResponse({'success': False})
+
+@csrf_exempt
+def upload_files(request):
+
+    '''function to upload files'''
+
+    body = request.GET
+    if request.method == 'POST':
+
+        if 'community_id' in body:
+            # if image to be updated in community
+            community_id = body['community_id']
+            community = Community.objects.get(id=community_id)
+            community.image_link=body['url']
+            community.save()
+        elif 'collabcard_id' in body:
+            attachment_type = body['type']
+            collabcard_id = body['collabcard_id']
+            collabcard = Collabcard.objects.get(id=collabcard_id)
+
+            file = Card_Attachment()
+            file.collabcard = collabcard
+            file.type = attachment_type
+            file.file_url=body['url']
+            file.save()
+        print(body['url'])
+        return JsonResponse({'success': True})
     return JsonResponse({'success': False})
 
 

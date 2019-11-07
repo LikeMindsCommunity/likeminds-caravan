@@ -114,7 +114,12 @@ a.article-title:hover {
     <div class="col-md-8">
               <div class="content-section">
               <div class="media">
+                {% if not community.image_link %}
                 <img class=" account-img" style="height: 300px ;width: 600px" src="{{community.image_url.url}}">
+                 {% else %}
+                <img class=" account-img" style="height: 300px ;width: 600px" src="{{community.image_link}}">
+
+                  {% endif %}
               </div>
               <form method="post" enctype = "multipart/form-data">
                 {% csrf_token %}
