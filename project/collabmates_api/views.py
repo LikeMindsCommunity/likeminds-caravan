@@ -29,7 +29,7 @@ from togther.tasks import send_email_to_proposed_admin
 from django.core.paginator import Paginator
 from togther.views import set_user_tag, get_user_tag, get_nominated_admin_details
 import os
-from .firebase import update_last_answer_id
+from .firebase import update_last_answer_id,upload_image_to_firebase
 import re
 import googlemaps
 import logging
@@ -2237,7 +2237,7 @@ def login(request):
                 userinfo.user_id = usr
                 userinfo.email = res['email']
                 userinfo.name = res['name']
-                userinfo.image_url = res['picture']['data']['url']
+                userinfo.image_link = upload_image_to_firebase(res['picture']['data']['url'],usr.id)
                 if 'link' in res:
                     userinfo.fb_link = res['link']
                 if 'location' in res:
@@ -2263,7 +2263,7 @@ def login(request):
                 userinfo.user_id=usr
                 userinfo.email=email
                 userinfo.name=user_name
-                userinfo.image_url=profile_picture
+                userinfo.image_link=upload_image_to_firebase(profile_picture,usr.id)
                 userinfo.login_type='linkedIn'
                 userinfo.login_json=json_to_save
                 userinfo.created_at = time.time()

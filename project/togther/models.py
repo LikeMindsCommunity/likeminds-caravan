@@ -103,14 +103,14 @@ class Userinfo (models.Model):
     def __str__(self):
         return self.name
 
-    def save(self, *args, **kwargs):
-        if self.image_url and not self.image_file:
-
-            response = urlopen(self.image_url)
-            img = BytesIO(response.read())
-            self.image_file.save("profile_pic_"+self.name+".jpeg", File(img))
-
-        super(Userinfo, self).save(*args, **kwargs)
+    # def save(self, *args, **kwargs):
+    #     if self.image_url and not self.image_file:
+    #
+    #         response = urlopen(self.image_url)
+    #         img = BytesIO(response.read())
+    #         self.image_file.save("profile_pic_"+self.name+".jpeg", File(img))
+    #
+    #     super(Userinfo, self).save(*args, **kwargs)
 
 
 class Experience (models.Model):
