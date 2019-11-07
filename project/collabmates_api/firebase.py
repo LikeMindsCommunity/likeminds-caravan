@@ -1,6 +1,6 @@
 import pyrebase
 from django.conf import settings
-
+import requests
 
 
 if settings.IS_BETA:
@@ -54,6 +54,11 @@ def update_last_answer_id(card_id,answer_id):
 
 
 
+def upload_image_to_firebase(image_url,user_id):
 
-
+    image_data = requests.get(image_url).content
+    user_id=str(user_id)
+    storage.child("files").child("Users").child(user_id).put(image_data)
+    image_url=storage.child("files").child("Users").child(user_id).get_url(None)
+    return image_url
 
