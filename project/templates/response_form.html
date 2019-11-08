@@ -23,11 +23,11 @@
                 <div class=" required field">
                     {% if i.data_type == 'text' %}
 
-                    <label>{{i.data}}</label><textarea name ="{{i.data}}"> </textarea>
+                    <label>{{i.data}}</label><textarea name ="{{i.data}}" rows="3"> </textarea>
                     {% elif i.data_type == 'pdf' %}
                     <label>{{i.data}}</label><input name = "{{i.data}}" type="text">
                     {% elif i.data_type == 'textarea' %}
-                    <label>{{i.data}}</label><textarea name ="{{i.data}}" ></textarea>
+                    <label>{{i.data}}</label><textarea name ="{{i.data}}" rows="3"></textarea>
                     {% endif %}
                 </div>
 
