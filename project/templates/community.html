@@ -279,7 +279,12 @@
                         {% for admin in admins%}
                         {% for i in admin %}
                         <div class="item">
+                            {% if not i.image_link %}
                             <img class="ui tiny circular image" src="{{i.image_file.url}}" style="border-radius:50%;width:80px;height:80px;">
+                            {% else %}
+                           <img class="ui tiny circular image" src="{{i.image_link}}" style="border-radius:50%;width:80px;height:80px;">
+
+                            {% endif %}
                             <p></p>
                             <p style="font-size:65%;">{{i.name}}</p>
                             <div class="content">

@@ -185,14 +185,28 @@
                                                                                                     <td style="vertical-align:top"
                                                                                                         valign="top"
                                                                                                         width="50">
+                                                                                                         {% if member.member_id.userinfo.image_link %}
 
                                                                                                             <img alt=""
                                                                                                                  border="0"
                                                                                                                  class="CToWUd"
                                                                                                                  height="54"
+
                                                                                                                  src="{{url}}{{member.member_id.userinfo.image_file.url}}"
                                                                                                                  style="border-radius:50%;outline:none;color:#ffffff;text-decoration:none"
                                                                                                                  width="54">
+                                                                                                        {% else %}
+
+                                                                                                            <img alt=""
+                                                                                                                 border="0"
+                                                                                                                 class="CToWUd"
+                                                                                                                 height="54"
+
+                                                                                                                 src="{{member.member_id.userinfo.image_link}}"
+                                                                                                                 style="border-radius:50%;outline:none;color:#ffffff;text-decoration:none"
+                                                                                                                 width="54">
+
+                                                                                                        {% endif %}
 
                                                                                                     </td>
                                                                                                     <td style="padding:0 16px"

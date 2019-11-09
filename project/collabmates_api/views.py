@@ -1539,10 +1539,14 @@ def send_email_for_collabcard(community,user,card):
             form_link='https://docs.google.com/forms/d/e/1FAIpQLSfqN2z1wg6CCJ4ZKH1lxQQgJ8iUWEbtTT0R9NT64zg5f13_ig/viewform'
 
     for member in members:
+        if not user.image_link:
+            collabcard_card_image=url+user.image_file.url
+        else:
+            collabcard_card_image=user.image_link
         context = {
             'community_name': community.name,
             'collabcard_creater': user.name,
-            'collabcard_creater_image':url+user.image_file.url,
+            'collabcard_creater_image':collabcard_card_image,
             'creater_header': user.headline,
             'url':  url + '/collabcard/' + str(card.id),
             'form_link':form_link
@@ -1552,8 +1556,12 @@ def send_email_for_collabcard(community,user,card):
             continue
         if member.state == 1 or member.state == 2 or member.state == 4:
             userinfo=Userinfo.objects.get(user_id=member.member_id)
+            if not userinfo.image_link:
+                reciever_image=url+userinfo.image_file.url
+            else:
+                reciever_image=userinfo.image_link
             context['reciever']=userinfo.name
-            context['reciever_image']=url+userinfo.image_file.url
+            context['reciever_image']=reciever_image
             context['to']=userinfo.email
             #print(context)
             send_email_for_new_collabcard_posted.delay(context)
