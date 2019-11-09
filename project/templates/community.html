@@ -318,7 +318,11 @@
                         {% for i in members%}
 
                         <div class="item">
-                            <img class="ui tiny circular centered image" src="{{i.image_file.url}}" style="border-radius:50%;width:80px;height:80px;"/>
+                            {% if not i.image_link %}
+                                <img class="ui tiny circular centered image" src="{{i.image_file.url}}" style="border-radius:50%;width:80px;height:80px;"/>
+                            {% else %}
+                                 <img class="ui tiny circular centered image" src="{{i.image_link}}" style="border-radius:50%;width:80px;height:80px;"/>
+                            {% endif %}
                             <p></p>
                             <!-- <a href="../../profile/{{i.user_id.id}}">-->
 
