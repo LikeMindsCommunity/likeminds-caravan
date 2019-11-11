@@ -15,7 +15,7 @@ from collabmates_api.notification import (send_notification_to_eligible_member,
                                           send_notification_to_referred_member_in_active_community,
                                           )
 from .tasks import *
-
+from .firebase import upload_tag_files
 from django.http.response import JsonResponse
 from django.conf import settings
 
@@ -136,22 +136,26 @@ def update_tag_image(tag_name, tag_id):
             if not tag_obj.tag_image:
 
                 image_url = response['query']['pages'][0]['thumbnail']['source']
-                img_data = rqst.get(image_url).content
-                # file_name = '/media/tags_images/' + tag_name + "__tag.jpeg"
 
-                path = os.path.join(os.path.split(os.path.dirname(__file__))[0], 'media/', )
-                to_path = path + file_name
+                image_link = upload_tag_files(tag_id=tag_id,url=True,image=image_url)
 
-                print(to_path)
+                # img_data = rqst.get(image_url).content
+                # # file_name = '/media/tags_images/' + tag_name + "__tag.jpeg"
+                #
+                # path = os.path.join(os.path.split(os.path.dirname(__file__))[0], 'media/', )
+                # to_path = path + file_name
+                #
+                # print(to_path)
+                #
+                # if not os.path.isfile(to_path):
+                #     with open(to_path,mode = 'wb+') as file :
+                #         print('creating file')
+                #         file.write(img_data)
+                # else:
+                #     print('file already exists')
 
-                if not os.path.isfile(to_path):
-                    with open(to_path,mode = 'wb+') as file :
-                        print('creating file')
-                        file.write(img_data)
-                else:
-                    print('file already exists')
-
-                tag_obj.tag_image = file_name
+                # tag_obj.tag_image = file_name
+                tag_obj.tag_image_link = image_link
                 tag_obj.save()
             return
     return

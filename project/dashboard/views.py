@@ -27,6 +27,8 @@ from utility.utils import (get_city_address, update_tag_image,
                            create_or_categorize_tag, update_user_geography_tags,
                            insert_user_home_town_tags, update_hometown_tags_for_all_users,
                            user_onbaord)
+
+from utility.firebase import upload_tag_files
 url = settings.URL
 import logging
 # uncomment to run it in localhost
@@ -2123,7 +2125,10 @@ def tag_update_form(request,tag_id):
                 image = form.cleaned_data['image']
 
         if image:
-            tag.tag_image = image
+            # tag.tag_image = image
+            image_link = upload_tag_files(tag_id=tag.id,image=image,url=False)
+            tag.tag_image_link = image_link
+
         tag.tag_characterstics = json.dumps(characteristics)
         tag.save()
 
@@ -2338,14 +2343,18 @@ def tag_update_form(request,tag_id):
             form = Tag_Form()
 
         tag_image = None
+        tag_image_link = None
         if tag.tag_image:
             tag_image =tag.tag_image.url
+        if tag.tag_image_link:
+            tag_image_link = tag.tag_image_link
 
         return render(request, 'dashboard/update_tag_form.html', {'form':form,
                                                              'tag_name':tag.name,
                                                              'tag_id':tag.id,
                                                              'attr_id':tag.attribute_id.id,
-                                                             'tag_image':tag_image
+                                                             'tag_image':tag_image,
+                                                             'tag_image_link':tag_image_link
                                                              })
 
 
