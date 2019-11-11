@@ -219,14 +219,14 @@ def community(request, community_id):
                         return redirect(url)
                     return redirect('refer_members',community_id=community.id)
 
-                onboard = False
-                user_legacy = User_Legacy.objects.filter(user_id = request.user)
-                user_profession = User_Profession.objects.filter(user_id = request.user)
-                user_interests = User_Interest.objects.filter(user_id = request.user)
-                user_geography = User_Geography.objects.filter(user_id = request.user)
-
-                if user_legacy.exists() and user_profession.exists() and user_interests.exists() and user_geography.exists():
-                    onboard = True
+                # onboard = False
+                # user_legacy = User_Legacy.objects.filter(user_id = request.user)
+                # user_profession = User_Profession.objects.filter(user_id = request.user)
+                # user_interests = User_Interest.objects.filter(user_id = request.user)
+                # user_geography = User_Geography.objects.filter(user_id = request.user)
+                #
+                # if user_legacy.exists() and user_profession.exists() and user_interests.exists() and user_geography.exists():
+                #     onboard = True
 
                 return redirect('refer_members',community_id=community.id)
         elif cta == 'share':
