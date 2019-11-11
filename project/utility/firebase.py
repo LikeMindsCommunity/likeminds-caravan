@@ -64,3 +64,54 @@ def upload_image_to_firebase(image_url,user_id):
 
 
 
+def is_url_image_valid(image_url):
+
+   '''function to check whether the image url is valid or not'''
+
+   image_formats = ("image/png", "image/jpeg", "image/jpg")
+   r = requests.head(image_url)
+   if r.headers["content-type"] in image_formats:
+      return True
+   return False
+
+
+def upload_files_to_firebase(image_url,user_id):
+
+    '''function to update files to firebase'''
+
+    if is_url_image_valid(image_url):
+        image_data = requests.get(image_url).content
+        user_id = str(user_id)
+        storage.child("files").child("Users").child(user_id).put(image_data)
+        image_url = storage.child("files").child("Users").child(user_id).get_url(None)
+        return image_url
+    else:
+        print("Image url is broken for user=",user_id)
+        return None
+
+
+def upload_tag_files(tag_id,image,url=False):
+
+    '''function to put tags images in firebase'''
+
+    if url:
+        image_url=image
+        if is_url_image_valid(image_url):
+            image_data = requests.get(image_url).content
+            tag_id = str(tag_id)
+            storage.child("files").child("Tags").child(tag_id).put(image_data)
+            image_url = storage.child("files").child("Tags").child(tag_id).get_url(None)
+            return image_url
+        else:
+            print("Image url is broken for tag=", tag_id)
+            return ''
+    else:
+        tag_id=str(tag_id)
+        storage.child("files").child("Tags").child(tag_id).put(image)
+        image_url = storage.child("files").child("Tags").child(tag_id).get_url(None)
+        return image_url
+
+
+
+
+
