@@ -113,6 +113,7 @@ def upload_all_communities_images_to_firebase():
     files = get_all_community_images()
     for file in files:
         image_url = upload_community_files(file[0], file[1])
+        print(image_url)
         update_image_link_for_community(image_url, file[0])
         print("file uploaded for community=", file[0])
 
