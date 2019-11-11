@@ -131,7 +131,13 @@ a.article-title:hover {
 
                         </form>
                     </td>
-                    {% if tag_image %}
+                    {% if tag_image_link %}
+                        <td style="padding-left:100px">
+                        <img src="{{tag_image_link}}"
+                        width="200"
+                        height="200">
+                        </td>
+                    {% elif tag_image %}
                     <td style="padding-left:100px">
                         <img src="{{tag_image}}"
                         width="200"
