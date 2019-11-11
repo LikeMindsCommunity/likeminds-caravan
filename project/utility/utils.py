@@ -155,7 +155,7 @@ def update_tag_image(tag_name, tag_id):
                 #     print('file already exists')
 
                 # tag_obj.tag_image = file_name
-                tag_obj.tag_image_link = image_link
+                tag_obj.image_link = image_link
                 tag_obj.save()
             return
     return

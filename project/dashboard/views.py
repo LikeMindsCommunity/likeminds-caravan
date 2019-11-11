@@ -2127,7 +2127,7 @@ def tag_update_form(request,tag_id):
         if image:
             # tag.tag_image = image
             image_link = upload_tag_files(tag_id=tag.id,image=image,url=False)
-            tag.tag_image_link = image_link
+            tag.image_link = image_link
 
         tag.tag_characterstics = json.dumps(characteristics)
         tag.save()
@@ -2346,8 +2346,8 @@ def tag_update_form(request,tag_id):
         tag_image_link = None
         if tag.tag_image:
             tag_image =tag.tag_image.url
-        if tag.tag_image_link:
-            tag_image_link = tag.tag_image_link
+        if tag.image_link:
+            tag_image_link = tag.image_link
 
         return render(request, 'dashboard/update_tag_form.html', {'form':form,
                                                              'tag_name':tag.name,
