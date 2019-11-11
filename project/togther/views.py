@@ -934,7 +934,8 @@ def send_email(email):
                                  "Collabmates<hello@collabmates.com>",
                                  [to],
                                  )
-    return msg.send(fail_silently)
+    if email:
+        return msg.send(fail_silently)
 
 
 def my_communities(request, user_id):

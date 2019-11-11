@@ -100,7 +100,7 @@
 
             {% block menu %}
             <div class="right menu" style="float:right; ">
-                {% if user.is_authenticated %}
+                {% if request.user.is_authenticated %}
                 <div class="ui simple dropdown item" style="padding:0;">
 
                     {% block user_image %}

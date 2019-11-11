@@ -424,9 +424,9 @@ def community(request, community_id):
     serialized_object = CommunitySerializer(community)
     new_dict = {}
 
-    if member_id:
+    if member_id and (community.hide_community == '3' or community.hide_community =='4'):
         serialized_object['share_url'] = serialized_object['share_url']+"?ref_id="+str(member_id)
-    elif community.hide_community == '0' or community.hide_community == '1' or community.hide_community =='4':
+    elif community.hide_community == '0' or community.hide_community == '1':
         serialized_object['share_url'] = serialized_object['share_url'] + "?cta=share"
 
     # form a dictionary of community objects
@@ -1023,6 +1023,7 @@ def create_card(request):
 
     user_id = request.GET.get('member_id')
     community_id = request.GET.get('community_id')
+    files_count = request.GET.get('files_count',0)
 
     # useer = User.objects.get(id = user_id)
     user = Userinfo.objects.get(user_id = user_id)
@@ -1039,7 +1040,7 @@ def create_card(request):
             card.share_link=res['share_link']
             og_tags = decode_meta_from_url(res['share_link'])
             card.og_tags=json.dumps(og_tags)
-
+        card.files_count = files_count
         card.date_epoch=time.time()
         card.save()
         # if the community does not have a purpose card then a purpose will be created
