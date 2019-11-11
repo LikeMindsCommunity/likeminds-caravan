@@ -90,6 +90,7 @@ def upload_files_to_firebase(image_url,user_id):
         return None
 
 
+
 def upload_tag_files(tag_id,image,url=False):
 
     '''function to put tags images in firebase'''
@@ -112,6 +113,21 @@ def upload_tag_files(tag_id,image,url=False):
         return image_url
 
 
+
+
+def upload_community_files(community_id,image_url):
+
+    '''function to upload existing community image files to firebase'''
+
+    if is_url_image_valid(image_url):
+        image_data = requests.get(image_url).content
+        community_id = str(community_id)
+        storage.child("files").child("Communities").child(community_id).put(image_data)
+        image_url = storage.child("files").child("Communities").child(community_id).get_url(None)
+        return image_url
+    else:
+        print("Image url is broken for community=", community_id)
+        return None
 
 
 
