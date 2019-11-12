@@ -155,20 +155,20 @@ def upload_community_files(community_id,image,url=False):
         storage.child("files").child("Communities").child(community_id).put(image)
         image_url = storage.child("files").child("Communities").child(community_id).get_url(None)
         return image_url
-
-def upload_community_files(community_id,image_url):
-
-    '''function to upload existing community image files to firebase'''
-
-    if is_url_image_valid(image_url):
-        image_data = requests.get(image_url).content
-        community_id = str(community_id)
-        storage.child("files").child("Communities").child(community_id).put(image_data)
-        image_url = storage.child("files").child("Communities").child(community_id).get_url(None)
-        return image_url
-    else:
-        print("Image url is broken for community=", community_id)
-        return None
+#
+# def upload_community_files(community_id,image_url):
+#
+#     '''function to upload existing community image files to firebase'''
+#
+#     if is_url_image_valid(image_url):
+#         image_data = requests.get(image_url).content
+#         community_id = str(community_id)
+#         storage.child("files").child("Communities").child(community_id).put(image_data)
+#         image_url = storage.child("files").child("Communities").child(community_id).get_url(None)
+#         return image_url
+#     else:
+#         print("Image url is broken for community=", community_id)
+#         return None
 
 
 
