@@ -141,10 +141,10 @@ a.article-title:hover {
         <div class="col-md-8">
             {% for user in all_user %}
             <article class="media content-section">
-                {% if not  user.image_link %}
-                <img class="rounded-circle article-img" src="{{ user.image_url.url }}">
-                {% elif user.image_link %}
-                <img class="rounded-circle article-img" src="{{ user.image_link }}">
+                {% if user.image_link %}
+                <img class="rounded-circle article-img" src="{{ user.image_link  }}">
+                {% else %}
+                <img class="rounded-circle article-img" src="{{ user.image_url.url}}">
                 {% endif %}
                 <div class="media-body">
                     <div class="article-metadata">

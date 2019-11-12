@@ -435,6 +435,12 @@ def all_user(request):
         user_dic['email'] = i.email
         user_dic['image_url'] = i.image_file
 
+        if i.image_link:
+            user_dic['image_link'] = i.image_link
+        else:
+            user_dic['image_link'] = None
+
+
         if i.fcm_token:
             #print("has token")
             user_dic['fcm_token'] = 1
