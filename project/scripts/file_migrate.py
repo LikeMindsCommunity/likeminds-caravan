@@ -42,6 +42,8 @@ def upload_all_user_images_to_firebase():
         print(image_url)
         update_image_link_for_user(image_url,file[0])
         print("file uploaded for user=",file[0])
+        print("\n")
+
 
     print("User Image migration end_time=",(time.time()-start_time))
 
@@ -115,6 +117,8 @@ def upload_all_communities_images_to_firebase():
         print(image_url)
         update_image_link_for_community(image_url, file[0])
         print("file uploaded for community=", file[0])
+        print("\n")
+
 
 
     print("Communities Image migration end time=", (time.time() - start_time))
@@ -154,6 +158,7 @@ def upload_all_tag_images_to_firebase():
         print(image_url)
         update_image_link_for_tags(image_url, file[0])
         print("file uploaded for community=", file[0])
+        print("\n")
 
 
 
@@ -187,9 +192,9 @@ def update_image_link_for_tags(image_link,tag_id):
 start_time=time.time()
 
 upload_all_user_images_to_firebase()
-
+print("\n")
 upload_all_communities_images_to_firebase()
-
+print("\n")
 upload_all_tag_images_to_firebase()
 
 end_time=time.time()
