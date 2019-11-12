@@ -45,10 +45,10 @@ def upload_all_user_images_to_firebase():
         update_image_link_for_user(image_url,file[0])
         print("file uploaded for user=",file[0])
         print("\n")
-        if count == 500:
+        if count == 300:
             count=0
             print("\n sleeping for 30 sec \n")
-            time.sleep(10)
+            time.sleep(20)
 
 
     print("User Image migration end_time=",(time.time()-start_time))
@@ -128,11 +128,11 @@ def upload_all_communities_images_to_firebase():
         print("file uploaded for community=", file[0])
         print("\n")
 
-        if count == 500:
+        if count == 300:
             count=0
             print("\n sleeping for 30 sec \n")
 
-            time.sleep(10)
+            time.sleep(20)
 
 
 
@@ -178,11 +178,11 @@ def upload_all_tag_images_to_firebase():
         print("file uploaded for tag=", file[0])
         print("\n")
 
-        if count == 500:
+        if count == 300:
             count=0
             print("\n sleeping for 30 sec \n")
 
-            time.sleep(10)
+            time.sleep(20)
 
 
 
