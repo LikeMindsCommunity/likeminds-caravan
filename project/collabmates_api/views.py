@@ -745,8 +745,10 @@ def get_user_lpig_tags(user_id):
         if each.tags_id.id !=15 and each.tags_id.is_cluster == 0:
             temp['id']=each.tags_id.id
             temp['name']=each.tags_id.name
-            if each.tags_id.tag_image:
-                temp['image_url']=url+each.tags_id.tag_image.url
+            if each.tags_id.image_link:
+                temp['image_url'] = each.tags_id.image_link
+            elif each.tags_id.tag_image:
+                temp['image_url'] = url+each.tags_id.tag_image.url
             attribute_id=each.tags_id.attribute_id.id
 
             if attribute_id is 1:
