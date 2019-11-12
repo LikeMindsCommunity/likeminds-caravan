@@ -1,6 +1,5 @@
 # file to migrate existing files in media folder to firebase
-from __future__ import absolute_import, unicode_literals
-from celery import shared_task
+
 from collabmates_api.notification import get_connection
 import  psycopg2
 from django.conf import  settings
@@ -110,7 +109,6 @@ def upload_all_communities_images_to_firebase():
     '''function to migrate user images to firebase'''
 
     start_time = time.time()
-    print("Communities Image migration start time=", start_time)
     files = get_all_community_images()
     for file in files:
         image_url = upload_community_files(file[0], file[1])
@@ -150,7 +148,6 @@ def upload_all_tag_images_to_firebase():
     '''function to migrate user images to firebase'''
 
     start_time = time.time()
-    print("Tags Image migration start time=", start_time)
     files = get_all_tags_images()
     for file in files:
         image_url = upload_tag_files(file[0], file[1],True)
@@ -184,23 +181,20 @@ def update_image_link_for_tags(image_link,tag_id):
 
 # migrating image files from server to firebase
 
-@shared_task
-def migrate_files():
-
-    '''function to migrate all the existing files in '''
-
-    start_time=time.time()
-
-    upload_all_user_images_to_firebase()
-
-    upload_all_communities_images_to_firebase()
-
-    upload_all_tag_images_to_firebase()
-
-    end_time=time.time()
-
-    print("Overall Time of execution=",(end_time-start_time))
 
 
 
-migrate_files.delay()
+start_time=time.time()
+
+upload_all_user_images_to_firebase()
+
+upload_all_communities_images_to_firebase()
+
+upload_all_tag_images_to_firebase()
+
+end_time=time.time()
+
+print("Overall Time of execution=",(end_time-start_time))
+
+
+
