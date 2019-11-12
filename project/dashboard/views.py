@@ -28,7 +28,7 @@ from utility.utils import (get_city_address, update_tag_image,
                            insert_user_home_town_tags, update_hometown_tags_for_all_users,
                            user_onbaord)
 
-from utility.firebase import upload_tag_files
+from utility.firebase import upload_tag_files, upload_user_files, upload_community_files
 url = settings.URL
 import logging
 # uncomment to run it in localhost
@@ -171,41 +171,45 @@ def update_form(request,community_id):
 
         community=Community.objects.get(id=community_id)
         community.updated_at=time.time()
-        community.save()
-        old_image_file = community.image_url
-        # get the version of the image
-        version = re.findall(r'\w*__image__(\d+)', old_image_file.name)
-        if version:
-            version = int(version[0]) + 1
-        else:
-            version = 1
+
 
         community_form=CommunityForm(request.POST,request.FILES,instance=community)
         admins=Members.objects.filter(community_id=community).filter(Q(state=1)|Q(state=2))
         member_id=0
         purpose=""
-        rename = False
+
         hide_community=3
         if community_form.is_valid():
             purpose=community_form.cleaned_data['purpose']
+            purpose_community = purpose
             for_string=purpose.split(' ', 1)[0]
             purpose = "Created this community " + for_string.lower() + purpose.split("For", 1)[1]
             hide_community=community_form.cleaned_data['hide_community']
 
-            # deleting the old file after new file is updated
-            # get the new image file
-            new_image_file = community_form.cleaned_data['image_url']
-            if not old_image_file == new_image_file:
-                # if both are not same delete old file
-                if os.path.isfile(old_image_file.path):
-                    os.remove(old_image_file.path)
-                    rename =True
+
+            name = community_form.cleaned_data['name']
+            about = community_form.cleaned_data['about']
+            location = community_form.cleaned_data['location']
+
+            community.name = name
+            community.about = about
+            community.location = location
+            community.purpose = purpose_community
+            community.hide_community = hide_community
+
+            image = community_form.cleaned_data['image_url']
+            image_link = upload_community_files(community_id=community_id, image=image, url=False)
+            community.image_link = image_link
+
+            community.save()
+
+
         else:
             print("some error is there")
         if admins:
             for admin in admins:
                 member_id=admin.member_id
-                break;
+                break
 
         if hide_community != '3':
             try:
@@ -221,19 +225,10 @@ def update_form(request,community_id):
                 collabcard.save()
                 community.purpose_collabcard=collabcard.id
                 community.save()
-            community_form.save()
-        else:
-            community_form.save()
-
-
-        # renaming the image
-        if rename:
-            community=Community.objects.get(id=community_id)
-            new_name = 'media/'+str(community_id) + '__image__' + str(version) + '.jpg'
-            old_path = community.image_url.path
-            community.image_url.name = new_name
-            os.rename(old_path, community.image_url.path)
             community.save()
+        else:
+            community.save()
+
 
         return redirect('admin_dashboard')
     else:
@@ -522,30 +517,36 @@ def get_user_tags_count(user_id):
 
 
 def update_user(request,user_id):
-
     if request.method == 'POST':
 
         user_info = Userinfo.objects.get(user_id = user_id)
-        old_image_file = user_info.image_file
-        user_info_form=UserForm(request.POST,request.FILES or None,instance=user_info)
+        # old_image_file = user_info.image_file
+        user_info_form=UserForm(request.POST, request.FILES or None, instance=user_info)
         # deleting the old file after new file is updated
         if user_info_form.is_valid():
             # get the new image file
-            new_image_file = user_info_form.cleaned_data['image_file']
-            if not old_image_file == new_image_file:
-                # if both are not same delete old file
-                if os.path.isfile(old_image_file.path):
-                    # if file is present
-                    os.remove(old_image_file.path)
-        user_info_form.save()
-        # saving with the new name
-        user_info = Userinfo.objects.get(user_id = user_id)
-        # renaming the image
-        new_name ='media/profile_pics/profile_picture_' + str(user_info).replace(" ", "_") + '.jpeg'
-        old_path = user_info.image_file.path
-        user_info.image_file.name = new_name
-        os.rename(old_path, user_info.image_file.path)
-        user_info.save()
+            name = user_info_form.cleaned_data['name']
+            city = user_info_form.cleaned_data['city']
+            contact_number = user_info_form.cleaned_data['contact_number']
+            interests = user_info_form.cleaned_data['interests']
+            fb_link = user_info_form.cleaned_data['fb_link']
+            linkedin_link = user_info_form.cleaned_data['linkedin_link']
+            fcm_token = user_info_form.cleaned_data['fcm_token']
+            login_type = user_info_form.cleaned_data['login_type']
+
+            user_info.name = name
+            user_info.city = city
+            user_info.contact_number = contact_number
+            user_info.interests = interests
+            user_info.fb_link = fb_link
+            user_info.linkedin_link = linkedin_link
+            user_info.fcm_token = fcm_token
+            user_info.login_type = login_type
+
+            image = user_info_form.cleaned_data['image_file']
+            image_link = upload_user_files(user_id=user_id, image=image, url=False)
+            user_info.image_link = image_link
+            user_info.save()
 
         return redirect('all_user')
     else:

@@ -113,7 +113,48 @@ def upload_tag_files(tag_id,image,url=False):
         return image_url
 
 
+def upload_user_files(user_id,image,url=False):
 
+    '''function to put tags images in firebase'''
+
+    if url:
+        image_url=image
+        if is_url_image_valid(image_url):
+            image_data = requests.get(image_url).content
+            user_id = str(user_id)
+            storage.child("files").child("Users").child(user_id).put(image_data)
+            image_url = storage.child("files").child("Users").child(user_id).get_url(None)
+            return image_url
+        else:
+            print("Image url is broken for tag=", user_id)
+            return ''
+    else:
+        user_id=str(user_id)
+        storage.child("files").child("Users").child(user_id).put(image)
+        image_url = storage.child("files").child("Users").child(user_id).get_url(None)
+        return image_url
+
+
+def upload_community_files(community_id,image,url=False):
+
+    '''function to put tags images in firebase'''
+
+    if url:
+        image_url=image
+        if is_url_image_valid(image_url):
+            image_data = requests.get(image_url).content
+            community_id = str(community_id)
+            storage.child("files").child("Communities").child(community_id).put(image_data)
+            image_url = storage.child("files").child("Communities").child(community_id).get_url(None)
+            return image_url
+        else:
+            print("Image url is broken for tag=", community_id)
+            return ''
+    else:
+        community_id=str(community_id)
+        storage.child("files").child("Communities").child(community_id).put(image)
+        image_url = storage.child("files").child("Communities").child(community_id).get_url(None)
+        return image_url
 
 def upload_community_files(community_id,image_url):
 
