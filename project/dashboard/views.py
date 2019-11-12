@@ -106,6 +106,7 @@ def dashboard(request):
         community_dic['active_since']=i.active_since
         community_dic['question_count']=Form_data.objects.filter(community_id=i).count()
         community_dic['hidden_tags_count']=get_tags_count(i)
+        community_dic['image_link'] = i.image_link
         dashboard_list.append(community_dic)
 
     #tags_queryset=Tags_lpig.objects.order_by('name')
