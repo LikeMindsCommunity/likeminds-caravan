@@ -37,12 +37,17 @@ def upload_all_user_images_to_firebase():
     print("User Image migration start time=",start_time)
     files=get_all_users_images()
 
+    count = 0
     for file in files:
+        count+=1
         image_url=upload_files_to_firebase(file[1],file[0])
         print(image_url)
         update_image_link_for_user(image_url,file[0])
         print("file uploaded for user=",file[0])
         print("\n")
+        if count == 100:
+            count=0
+            time.sleep(30)
 
 
     print("User Image migration end_time=",(time.time()-start_time))
@@ -112,12 +117,19 @@ def upload_all_communities_images_to_firebase():
 
     start_time = time.time()
     files = get_all_community_images()
+
+    count = 0
     for file in files:
+        count += 1
         image_url = upload_community_files(file[0], file[1])
         print(image_url)
         update_image_link_for_community(image_url, file[0])
         print("file uploaded for community=", file[0])
         print("\n")
+
+        if count == 100:
+            count=0
+            time.sleep(30)
 
 
 
@@ -153,12 +165,19 @@ def upload_all_tag_images_to_firebase():
 
     start_time = time.time()
     files = get_all_tags_images()
+
+    count = 0
     for file in files:
+        count += 1
         image_url = upload_tag_files(file[0], file[1],True)
         print(image_url)
         update_image_link_for_tags(image_url, file[0])
         print("file uploaded for community=", file[0])
         print("\n")
+
+        if count == 100:
+            count=0
+            time.sleep(30)
 
 
 
