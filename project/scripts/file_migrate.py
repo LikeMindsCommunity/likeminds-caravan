@@ -47,6 +47,7 @@ def upload_all_user_images_to_firebase():
         print("\n")
         if count == 100:
             count=0
+            print("\n sleeping for 30 sec \n")
             time.sleep(30)
 
 
@@ -129,6 +130,8 @@ def upload_all_communities_images_to_firebase():
 
         if count == 100:
             count=0
+            print("\n sleeping for 30 sec \n")
+
             time.sleep(30)
 
 
@@ -172,11 +175,13 @@ def upload_all_tag_images_to_firebase():
         image_url = upload_tag_files(file[0], file[1],True)
         print(image_url)
         update_image_link_for_tags(image_url, file[0])
-        print("file uploaded for community=", file[0])
+        print("file uploaded for tag=", file[0])
         print("\n")
 
         if count == 100:
             count=0
+            print("\n sleeping for 30 sec \n")
+
             time.sleep(30)
 
 
@@ -212,8 +217,8 @@ start_time=time.time()
 
 upload_all_user_images_to_firebase()
 print("\n")
-# upload_all_communities_images_to_firebase()
-# print("\n")
+upload_all_communities_images_to_firebase()
+print("\n")
 upload_all_tag_images_to_firebase()
 
 end_time=time.time()
