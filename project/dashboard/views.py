@@ -1517,12 +1517,11 @@ def categorize_tag(request):
         uncategortized_tags = Tags_lpig.objects.filter(Q(attribute_id = legacy_uncat.id )|
                                                        Q(attribute_id = profession_uncat.id )|
                                                        Q(attribute_id = interests_uncat.id )|
-                                                       Q(attribute_id = geography_uncat.id ))
+                                                       Q(attribute_id = geography_uncat.id )).order_by("name")
 
-        categortized_tags = Tags_lpig.objects.filter(~Q(attribute_id__id = legacy_uncat.id )|
-                                                     ~Q(attribute_id__id = profession_uncat.id)|
-                                                     ~Q(attribute_id__id = interests_uncat.id)|
-                                                     ~Q(attribute_id__id = geography_uncat.id)).order_by("name")
+        categortized_tags = Tags_lpig.objects.filter(~Q(attribute_id=16),~Q(attribute_id=17),~Q(attribute_id=18),~Q(attribute_id=19),~Q(attribute_id=20)).order_by("name")
+
+
 
 
         legacy_attributes  = Attributes.objects.filter(Q(attribute_name__icontains = 'Legacy')
@@ -2514,8 +2513,6 @@ def search(request):
     for search in search_qs:
         name_list.append(search.name)
     return JsonResponse({'success':True,'tag_list':name_list})
-
-
 
 
 ##############  dashboard metrics   ###########
