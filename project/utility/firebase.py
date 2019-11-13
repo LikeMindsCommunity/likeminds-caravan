@@ -160,6 +160,7 @@ def upload_community_files(community_id,image,url=False):
         community_id=str(community_id)
         storage.child("files").child("Communities").child(community_id).put(image)
         image_url = storage.child("files").child("Communities").child(community_id).get_url(None)
+        print(image_url)
         return image_url
 
 
