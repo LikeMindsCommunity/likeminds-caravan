@@ -1521,7 +1521,7 @@ def categorize_tag(request):
 
         categortized_tags = Tags_lpig.objects.filter(~Q(attribute_id=16),~Q(attribute_id=17),
                                                      ~Q(attribute_id=18),~Q(attribute_id=19),
-                                                     ~Q(attribute_id=20)).order_by("name")[:500]
+                                                     ~Q(attribute_id=20)).order_by("name")
 
         categortized_tags_list = []
         for tag in categortized_tags:
