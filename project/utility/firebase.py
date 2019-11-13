@@ -143,7 +143,7 @@ def upload_community_files(community_id,image,url=False):
         image_url=image
         if is_url_image_valid(image_url):
             try:
-                r = requests.get("https:beta.collabmates.com/media/media/check.jpeg")
+                r = requests.get(image_url)
                 if r.status_code == 200:
                     image_data=r.content
                     community_id = str(community_id)
