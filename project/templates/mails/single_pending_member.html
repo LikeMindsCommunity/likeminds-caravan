@@ -153,11 +153,11 @@ font-size:20px;
                                                         <tr>
                                                             <td style="padding-top:15px; padding-right:18px; padding-bottom:1px; padding-left:18px;text-align:center"
                                                                 class="mcnTextContent">
-                                                                {% if not pending_members.member_id.userinfo.image_link %}
-                                                                <img src="{{url}}{{pending_members.member_id.userinfo.image_file.url}}"
+                                                                {% if pending_members.member_id.userinfo.image_link %}
+                                                                <img src="{{pending_members.member_id.userinfo.image_link}}"
                                                                      style="width:100px; border-radius: 50%;"/>
                                                                 {% else %}
-                                                                    <img src="{{url}}{{pending_members.member_id.userinfo.image_link}}"
+                                                                    <img src="{{url}}{{pending_members.member_id.userinfo.image_file.url}}"
                                                                      style="width:100px; border-radius: 50%;"/>
                                                                 {% endif %}
                                                             </td>
