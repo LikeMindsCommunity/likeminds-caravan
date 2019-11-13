@@ -128,14 +128,46 @@ Go to Home</a>
 
             <div class="form-group col-md-8">
                 <div>
-                <label for="map_tags">Category</label>
+                <label for="map_tags">Categorized Tag</label>
                     </div>
 
                 <div>
 
                   <select id="map_tags" data-placeholder="Select..." style="width:320px;height:40px;padding-bottom:10px;">
                     {% for cat in categortized_tags %}
-                    <option value="{{cat.id}}">{{cat.name}}</option>
+                      {% if cat.attribute_id.id == 1 %}
+                    <option value="{{cat.id}}">{{cat.name}}  ( L work)</option>
+                    {% elif cat.attribute_id.id == 2 %}
+                    <option value="{{cat.id}}">{{cat.name}}  ( L education)</option>
+                    {% elif cat.attribute_id.id == 3 %}
+                    <option value="{{cat.id}}">{{cat.name}}  ( L hometown)</option>
+                    {% elif cat.attribute_id.id == 4 %}
+                    <option value="{{cat.id}}">{{cat.name}}  ( L lifestyle)</option>
+                    {% elif cat.attribute_id.id == 5 %}
+                    <option value="{{cat.id}}">{{cat.name}}  ( P skill)</option>
+                    {% elif cat.attribute_id.id == 6 %}
+                    <option value="{{cat.id}}">{{cat.name}}  ( P industry)</option>
+                    {% elif cat.attribute_id.id == 7 %}
+                    <option value="{{cat.id}}">{{cat.name}}  ( P designation)</option>
+                    {% elif cat.attribute_id.id == 8 %}
+                    <option value="{{cat.id}}">{{cat.name}}  ( I cause)</option>
+                    {% elif cat.attribute_id.id == 9 %}
+                    <option value="{{cat.id}}">{{cat.name}}  ( I hobby)</option>
+                    {% elif cat.attribute_id.id == 10 %}
+                    <option value="{{cat.id}}">{{cat.name}}  ( I sports )</option>
+                    {% elif cat.attribute_id.id == 11 %}
+                    <option value="{{cat.id}}">{{cat.name}}  ( I fan)</option>
+                    {% elif cat.attribute_id.id == 12 %}
+                    <option value="{{cat.id}}">{{cat.name}}  ( G city)</option>
+                    {% elif cat.attribute_id.id == 13 %}
+                    <option value="{{cat.id}}">{{cat.name}}  ( G state)</option>
+                    {% elif cat.attribute_id.id == 14 %}
+                    <option value="{{cat.id}}">{{cat.name}}  ( G country)</option>
+                    {% elif cat.attribute_id.id == 15 %}
+                    <option value="{{cat.id}}">{{cat.name}}  ( G pincode)</option>
+
+                    {% endif %}
+<!--                    <option value="{{cat.id}}">{{cat.name}}</option>-->
                     {% endfor %}
                   </select>
                     </div>
@@ -167,7 +199,18 @@ Go to Home</a>
                 <select id="del_uncategorized" class="form-control">
                     <option selected style="color:black;">Choose...</option>
                     {% for cat in uncategortized_tags %}
+                    {% if cat.attribute_id.id == 17 %}
+                    <option value="{{cat.id}}">{{cat.name}}  (legacy)</option>
+                    {% elif cat.attribute_id.id == 18 %}
+                    <option value="{{cat.id}}">{{cat.name}}  (profession)</option>
+                    {% elif cat.attribute_id.id == 19 %}
+                    <option value="{{cat.id}}">{{cat.name}}  (interests)</option>
+                    {% elif cat.attribute_id.id == 20 %}
+                    <option value="{{cat.id}}">{{cat.name}}  (geography)</option>
+                    {% else %}
                     <option value="{{cat.id}}">{{cat.name}}</option>
+                    {% endif %}
+<!--                    <option value="{{cat.id}}">{{cat.name}}</option>-->
                     {% endfor %}
                 </select>
             </div>
