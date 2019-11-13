@@ -1519,7 +1519,18 @@ def categorize_tag(request):
                                                        Q(attribute_id = interests_uncat.id )|
                                                        Q(attribute_id = geography_uncat.id )).order_by("name")
 
-        categortized_tags = Tags_lpig.objects.filter(~Q(attribute_id=16),~Q(attribute_id=17),~Q(attribute_id=18),~Q(attribute_id=19),~Q(attribute_id=20)).order_by("name")[:100]
+        categortized_tags = Tags_lpig.objects.filter(~Q(attribute_id=16),~Q(attribute_id=17),
+                                                     ~Q(attribute_id=18),~Q(attribute_id=19),
+                                                     ~Q(attribute_id=20)).order_by("name")[:500]
+
+        categortized_tags_list = []
+        for tag in categortized_tags:
+            tag_dict = {}
+            tag_dict['id'] = tag.id
+            tag_dict['name'] = tag.name
+            tag_dict['attr'] = tag.attribute_id.attribute_name
+
+            categortized_tags_list.append(tag_dict)
 
 
 
@@ -1537,7 +1548,7 @@ def categorize_tag(request):
 
         return render(request, 'dashboard/categorize_tags.html', {'categories': categories,
                                                                   'uncategortized_tags':uncategortized_tags,
-                                                                  'categortized_tags': categortized_tags,
+                                                                  'categortized_tags': categortized_tags_list,
                                                                   'legacy_attributes': legacy_attributes,
                                                                   'profession_attributes': profession_attributes,
                                                                   'geography_attributes': geography_attributes,
