@@ -1519,7 +1519,7 @@ def categorize_tag(request):
                                                        Q(attribute_id = interests_uncat.id )|
                                                        Q(attribute_id = geography_uncat.id )).order_by("name")
 
-        categortized_tags = Tags_lpig.objects.filter(~Q(attribute_id=16),~Q(attribute_id=17),~Q(attribute_id=18),~Q(attribute_id=19),~Q(attribute_id=20)).order_by("name")
+        categortized_tags = Tags_lpig.objects.filter(~Q(attribute_id=16),~Q(attribute_id=17),~Q(attribute_id=18),~Q(attribute_id=19),~Q(attribute_id=20)).order_by("name")[:100]
 
 
 
