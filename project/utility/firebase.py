@@ -158,10 +158,16 @@ def upload_community_files(community_id,image,url=False):
             return ''
     else:
         community_id=str(community_id)
-        storage.child("files").child("Communities").child(community_id).put(image)
-        image_url = storage.child("files").child("Communities").child(community_id).get_url(None)
-        print(image_url)
-        return image_url
+        try:
+            time.sleep(.200)
+            storage.child("files").child("Communities").child(community_id).put(image)
+            time.sleep(.200)
+            image_url = storage.child("files").child("Communities").child(community_id).get_url(None)
+            return image_url
+        except Exception as e:
+            print(e)
+            return None
+
 
 
 

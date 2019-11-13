@@ -121,6 +121,8 @@ def upload_all_communities_images_to_firebase():
     count = 0
     for file in files:
         count += 1
+        if file[0] > 8300:
+            continue
         # image_url = upload_community_files(file[0], file[1],url=True)
         # print(image_url)
         # update_image_link_for_community(image_url, file[0])
@@ -140,8 +142,13 @@ def upload_all_communities_images_to_firebase():
             image = url + "/media/media/community/default.jpeg"
             image_url=upload_community_files(file[0],image,url=True)
 
+        if image_url:
+            update_image_link_for_community(image_url, file[0])
+        else:
+            image = url + "/media/media/community/default.jpeg"
+            image_url = upload_community_files(file[0], image, url=True)
+            update_image_link_for_community(image_url, file[0])
 
-        update_image_link_for_community(image_url, file[0])
         print("file uploaded for community=", file[0])
         print("\n")
         if count == 200:
