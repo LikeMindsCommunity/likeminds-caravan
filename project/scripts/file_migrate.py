@@ -143,16 +143,11 @@ def upload_all_communities_images_to_firebase():
 
         update_image_link_for_community(image_url, file[0])
         print("file uploaded for community=", file[0])
-
+        print("\n")
         if count == 200:
             count=0
+            print("\n Process sleep for 5 sec")
             time.sleep(5)
-
-
-
-
-
-
 
 
     print("Communities Image migration end time=", (time.time() - start_time))
@@ -167,8 +162,8 @@ def get_all_tags_images():
     try:
         connection = get_connection()
         curr = connection.cursor()
-        link = str(url) + "/media/"
-        sql = """select id,concat('%s',tag_image) from togther_tags_lpig where tag_image!='' order by id desc""" % (link)
+        #link = str(url) + "/media/"
+        sql = """select id,tag_image from togther_tags_lpig where tag_image!='' order by id desc"""
         curr.execute(sql)
         res = curr.fetchall()
         curr.close()
@@ -191,16 +186,33 @@ def upload_all_tag_images_to_firebase():
     count = 0
     for file in files:
         count += 1
-        image_url = upload_tag_files(file[0], file[1],True)
-        print(image_url)
-        update_image_link_for_tags(image_url, file[0])
-        print("file uploaded for tag=", file[0])
-        print("\n")
+        # image_url = upload_tag_files(file[0], file[1],url=False)
+        # print(image_url)
+        # update_image_link_for_tags(image_url, file[0])
+        # print("file uploaded for tag=", file[0])
+        # print("\n")
+        #
+        # if count == 200:
+        #     count=0
+        #     print("\n for every 200 sleeping 10 sec \n")
+        #     time.sleep(10)
 
+        file_path = settings.MEDIA_ROOT + "/" + str(file[1])
+        try:
+            with open(file_path, "rb") as image:
+                image_url = upload_tag_files(file[0], image, url=False)
+                update_image_link_for_tags(image_url, file[0])
+
+        except FileNotFoundError as e:
+            print(e)
+
+
+        print("file uploaded for tags=", file[0])
+        print("\n")
         if count == 200:
-            count=0
-            print("\n for every 200 sleeping 10 sec \n")
-            time.sleep(10)
+            count = 0
+            print("\n Process sleep for 5 sec")
+            time.sleep(5)
 
 
 
