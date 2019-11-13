@@ -1,5 +1,3 @@
-# file to migrate existing files in media folder to firebase
-
 from collabmates_api.notification import get_connection
 import  psycopg2
 from django.conf import  settings
@@ -45,10 +43,10 @@ def upload_all_user_images_to_firebase():
         update_image_link_for_user(image_url,file[0])
         print("file uploaded for user=",file[0])
         print("\n")
-        if count == 100:
+        if count == 200:
             count=0
-            print("\n for every 100 sleeping 20 sec \n")
-            time.sleep(20)
+            print("\n for every 200 sleeping 10 sec \n")
+            time.sleep(10)
 
 
     print("User Image migration end_time=",(time.time()-start_time))
@@ -128,11 +126,10 @@ def upload_all_communities_images_to_firebase():
         print("file uploaded for community=", file[0])
         print("\n")
 
-        if count == 100:
+        if count == 200:
             count=0
-            print("\n for every 100 sleeping 20 sec \n")
-
-            time.sleep(20)
+            print("\n for every 200 sleeping 10 sec \n")
+            time.sleep(10)
 
 
 
@@ -178,11 +175,10 @@ def upload_all_tag_images_to_firebase():
         print("file uploaded for tag=", file[0])
         print("\n")
 
-        if count == 100:
+        if count == 200:
             count=0
-            print("\n for every 100 sleeping 20 sec \n")
-
-            time.sleep(20)
+            print("\n for every 200 sleeping 10 sec \n")
+            time.sleep(10)
 
 
 
@@ -224,6 +220,3 @@ upload_all_tag_images_to_firebase()
 end_time=time.time()
 
 print("Overall Time of execution=",(end_time-start_time))
-
-
-
