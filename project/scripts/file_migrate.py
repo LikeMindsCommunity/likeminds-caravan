@@ -1,8 +1,10 @@
-from collabmates_api.notification import get_connection
-import  psycopg2
-from django.conf import  settings
-from utility.firebase import upload_files_to_firebase,upload_community_files,upload_tag_files
 import time
+
+import psycopg2
+from collabmates_api.notification import get_connection
+from django.conf import settings
+from utility.firebase import upload_files_to_firebase, upload_community_files, upload_tag_files
+
 url=settings.URL
 
 
@@ -80,8 +82,7 @@ def get_all_community_images():
     try:
         connection = get_connection()
         curr = connection.cursor()
-        link = str(url) + "/media/"
-        sql = """select id,concat('%s',image_url) from togther_community where image_url!='' order by id desc""" % (link)
+        sql = """select id,image_url from togther_community where image_url!='' order by id desc"""
         curr.execute(sql)
         res = curr.fetchall()
         curr.close()
@@ -120,16 +121,37 @@ def upload_all_communities_images_to_firebase():
     count = 0
     for file in files:
         count += 1
-        image_url = upload_community_files(file[0], file[1],url=True)
-        print(image_url)
+        # image_url = upload_community_files(file[0], file[1],url=True)
+        # print(image_url)
+        # update_image_link_for_community(image_url, file[0])
+        # print("file uploaded for community=", file[0])
+        # print("\n")
+        #
+        # if count == 200:
+        #     count=0
+        #     print("\n for every 200 sleeping 10 sec \n")
+        #     time.sleep(10)
+        file_path=settings.MEDIA_ROOT+"/"+str(file[1])
+        try:
+            with open(file_path, "rb") as image:
+                image_url = upload_community_files(file[0], image, url=False)
+        except FileNotFoundError as e:
+            print(e)
+            image = url + "/media/media/community/default.jpeg"
+            image_url=upload_community_files(file[0],image,url=True)
+
+
         update_image_link_for_community(image_url, file[0])
         print("file uploaded for community=", file[0])
-        print("\n")
 
         if count == 200:
             count=0
-            print("\n for every 200 sleeping 10 sec \n")
-            time.sleep(10)
+            time.sleep(5)
+
+
+
+
+
 
 
 
@@ -220,3 +242,4 @@ upload_all_tag_images_to_firebase()
 end_time=time.time()
 
 print("Overall Time of execution=",(end_time-start_time))
+
