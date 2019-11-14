@@ -1014,8 +1014,8 @@ def create_card(request):
 
     user_id = request.GET.get('member_id')
     community_id = request.GET.get('community_id')
-    image_count = request.GET.get('image_count',0)
-    pdf_count = request.GET.get('pdf_count',0)
+    # image_count = request.GET.get('image_count',0)
+    # pdf_count = request.GET.get('pdf_count',0)
 
 
     # useer = User.objects.get(id = user_id)
@@ -1033,8 +1033,18 @@ def create_card(request):
             card.share_link=res['share_link']
             og_tags = decode_meta_from_url(res['share_link'])
             card.og_tags=json.dumps(og_tags)
+        if 'image_count' in res:
+            image_count = res['image_count']
+        else:
+            image_count = 0
         card.image_count = image_count
+
+        if 'pdf_count' in res:
+            pdf_count = res['pdf_count']
+        else:
+            pdf_count = 0
         card.pdf_count = pdf_count
+
         card.date_epoch=time.time()
         card.save()
         # if the community does not have a purpose card then a purpose will be created
