@@ -66,7 +66,8 @@ def CollabcardSerializer(card,community=None):
         'share_url': url + '/collabcard/' + str(card.id),
         'answer_text': card.answer_text,
         'share_link': card.share_link,
-        'files_count':card.files_count
+        'image_count':card.image_count,
+        'pdf_count': card.pdf_count,
     }
     if card.og_tags:
         og_tags=json.loads(card.og_tags)

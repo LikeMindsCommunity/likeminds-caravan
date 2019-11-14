@@ -26,7 +26,7 @@ from .tasks import send_email_to_nominated_admin, send_email_for_new_collabcard_
 from django.conf import settings
 from togther.tasks import send_email_to_proposed_admin
 from django.core.paginator import Paginator
-from togther.views import set_user_tag, get_user_tag, get_nominated_admin_details
+from togther.views import get_nominated_admin_details
 import os
 import re
 import googlemaps
@@ -61,13 +61,7 @@ def communities(request):
         if 'member_id' in request:
             # get member id and members hidden tag
             user_id = request['member_id']
-            user_tag = get_user_tag(user_id)
-            if user_tag:
-                # if member has a hidden tag
-                user_tag = user_tag[0].tag_id
-            else:
-                # if member does not have a hidden tag
-                user_tag = 0
+            user_tag = 0
         if 'page' in request:
             # if page number is in request
             page_number = request['page']
@@ -444,12 +438,7 @@ def similar_community(request, community_id):
     '''function to return similar communitites'''
     body = request.GET
     user_id = body['member_id']
-    user_tag = get_user_tag(user_id)
-
-    if user_tag:
-        user_tag = user_tag[0].tag_id
-    else:
-        user_tag = 0
+    user_tag = 0
     # getting communities based on user hidden tags
     queryset = get_communities_by_tags(user_tag=user_tag,user_id=user_id)[:11]
     community = []
@@ -1025,7 +1014,9 @@ def create_card(request):
 
     user_id = request.GET.get('member_id')
     community_id = request.GET.get('community_id')
-    files_count = request.GET.get('files_count',0)
+    image_count = request.GET.get('image_count',0)
+    pdf_count = request.GET.get('pdf_count',0)
+
 
     # useer = User.objects.get(id = user_id)
     user = Userinfo.objects.get(user_id = user_id)
@@ -1042,7 +1033,8 @@ def create_card(request):
             card.share_link=res['share_link']
             og_tags = decode_meta_from_url(res['share_link'])
             card.og_tags=json.dumps(og_tags)
-        card.files_count = files_count
+        card.image_count = image_count
+        card.pdf_count = pdf_count
         card.date_epoch=time.time()
         card.save()
         # if the community does not have a purpose card then a purpose will be created
@@ -1380,8 +1372,6 @@ def accept_invitation(request):
                 Member_Engage.objects.filter(community_id=community, member_id=member_id).update(member_state=1)
                 # updating member count of the community
                 update_member_count(community.id)
-                # set user hidden tag
-                set_user_tag(member_id, community.id)
                 #sending email to promoter , that user has accepted his request to beacome a promoter
                 send_email_to_proposed_admin.delay(NominatedAdmin=nom_admin[0].name,email=prop_admin.email,ProposedAdmin=prop_admin.name,proposedAdminState =1,CommunityName=community.name,community_id = community.id)
                 proposer_id = prop_admin.user_id.id
@@ -1398,8 +1388,6 @@ def accept_invitation(request):
                 Member_Engage.objects.filter(community_id=community, member_id=member_id).update(member_state=1)
                 # updating member count of the community
                 update_member_count(community.id)
-                # set user hidden tag
-                set_user_tag(member_id, community.id)
                 #sending email to promoter , that user has accepted his request to beacome a promoter
                 send_email_to_proposed_admin.delay(NominatedAdmin=nom_admin[0].name,email=prop_admin.email,ProposedAdmin=prop_admin.name,proposedAdminState=2,CommunityName=community.name,community_id = community.id)
                 proposer_id = prop_admin.user_id.id
@@ -1419,8 +1407,6 @@ def accept_invitation(request):
 
             # updating member count of the community
             update_member_count(community.id)
-            # set user hidden tag
-            # set_user_tag(member_id, community.id)
             #sending email to promoter , that user has accepted his request to become a promoter
             send_email_to_proposed_admin.delay(NominatedAdmin=nom_admin[0].name,email=prop_admin.email,ProposedAdmin=prop_admin.name,proposedAdminState=1,CommunityName=community.name,community_id = community.id)
             proposer_id=prop_admin.user_id.id
@@ -1473,7 +1459,6 @@ def request_response(request,req_dict=None):
         join_time=time.time()
         Members.objects.filter(member_id=member_id,community_id=community).update(state=4,created_at=join_time)  # aprove state = 4
         community = Community.objects.get(id = community_id)
-        # set_user_tag(user.id, community_id)
         members_count = community.members_count+1
         Community.objects.filter(id = community_id).update(members_count=members_count)
 
