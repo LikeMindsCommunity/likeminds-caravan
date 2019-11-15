@@ -34,7 +34,7 @@ class Community (models.Model):
     purpose_collabcard=models.IntegerField(null=True)
     hide_community=models.CharField(default=0,max_length=1)
     introduction_text=models.CharField(max_length= 2048,null=True)
-    image_link=models.URLField(null=True)
+    image_link=models.CharField(max_length= 500,null=True)
 
     def __str__(self):
         return self.name
@@ -97,7 +97,7 @@ class Userinfo (models.Model):
     mobile_os=models.CharField(max_length = 200,null=True)
     created_at=models.BigIntegerField(default=-9223372036854775808)
     version_code=models.IntegerField(null=True,default=21)
-    image_link=models.URLField(null=True)
+    image_link=models.CharField(max_length=500,null=True)
 
 
     def __str__(self):
@@ -192,7 +192,7 @@ class Card_Attachment (models.Model):
 
     collabcard = models.ForeignKey(Collabcard, on_delete = models.CASCADE)
     attachment = models.FileField(upload_to="media/collabcard_files",default='')
-    file_url=models.URLField(null=True)
+    file_url=models.CharField(max_length=500,null=True)
     type=models.CharField(max_length=50,default='')
 
 
@@ -290,7 +290,7 @@ class Tags_lpig(models.Model):
     tag_image = models.ImageField(upload_to="media/tags_images", default = '')
     is_cluster=models.IntegerField(default=0)
     cluster_tag_id=models.IntegerField(null=True)
-    image_link = models.URLField(null=True)
+    image_link = models.CharField(max_length= 500,null=True)
 
     def __str__(self):
         return self.name
