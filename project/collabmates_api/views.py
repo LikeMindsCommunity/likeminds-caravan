@@ -1,6 +1,6 @@
 from __future__ import absolute_import, unicode_literals
 from celery import shared_task
-from django.shortcuts import render, get_object_or_404, redirect
+from django.shortcuts import get_object_or_404
 from django.http import HttpResponse
 from togther.models import *
 from togther.forms import *
@@ -12,14 +12,13 @@ from django.views.decorators.csrf import csrf_exempt
 from datetime import datetime
 from django.db.models import F
 import time
-from .notification import (send_follow_notification,send_notification_to_admins,
+from .notification import (send_follow_notification, send_notification_to_admins,
                            send_notification_for_join_requests,
                            send_notification_for_new_collabcard_posted,
                            send_notification_to_proposed_admin,
                            send_notification_to_proposer,
                            send_notification_to_eligible_member,
-                           send_notification_to_all_admins,
-                           send_notification_to_referred_member_in_active_community)
+                           send_notification_to_all_admins)
 
 from django.db.models import Q
 import dateutil.relativedelta
@@ -27,18 +26,20 @@ from .tasks import send_email_to_nominated_admin, send_email_for_new_collabcard_
 from django.conf import settings
 from togther.tasks import send_email_to_proposed_admin
 from django.core.paginator import Paginator
-from togther.views import set_user_tag, get_user_tag, get_nominated_admin_details
+from togther.views import get_nominated_admin_details
 import os
-from .firebase import update_last_answer_id
 import re
 import googlemaps
 import logging
+
 from utility.utils import (decode_meta_from_url, update_tag_image,
                            referal, get_referred_members_of_a_member,
                            eligibility_count, notify_referred_member,
                            user_onbaord, update_member_count,
                            update_community_tags_to_user)
 from utility.tasks import (mail_triger, new_member_request)
+from utility.firebase import update_last_answer_id,upload_image_to_firebase
+
 
 url  = settings.URL
 
@@ -60,13 +61,7 @@ def communities(request):
         if 'member_id' in request:
             # get member id and members hidden tag
             user_id = request['member_id']
-            user_tag = get_user_tag(user_id)
-            if user_tag:
-                # if member has a hidden tag
-                user_tag = user_tag[0].tag_id
-            else:
-                # if member does not have a hidden tag
-                user_tag = 0
+            user_tag = 0
         if 'page' in request:
             # if page number is in request
             page_number = request['page']
@@ -212,9 +207,12 @@ def update_pending_member_count_in_engage(community):
     current_time=time.time()
     for member in all_members:
         if member.state == 1 or member.state == 2:
-            Member_Engage.objects.filter(community_id=community,member_id=member.member_id).update(pending_members=pending__members_count,updated_at=current_time)
+            Member_Engage.objects.filter(community_id=community,member_id=member.member_id).update(
+                pending_members=pending__members_count,updated_at=current_time,member_state=member.state)
+        else:
+            Member_Engage.objects.filter(community_id=community, member_id=member.member_id).update(member_state=member.state)
 
-    print("Member Engage Pending Count Updated")
+    info_logger.info("Member Engage Pending Count Updated")
 
 
 def update_last_unseen_in_engage(user='',community='',is_seen=False):
@@ -303,6 +301,7 @@ def update_referral_text_in_engage_table(community_object):
                 community['member_referral'] = str(community['pending_members_count']) + " new member requests"
 
             each_community.member_referral=community['member_referral']
+            each_community.member_state=state
             each_community.save()
 
 
@@ -333,6 +332,8 @@ def your_communities(request,user_id):
 
         if each_community.member_referral:
             community['member_referral']=each_community.member_referral
+        if each_community.member_state:
+            community['member_state'] = each_community.member_state
         my_community.append(community)
 
     return JsonResponse({'your_communities':my_community})
@@ -417,9 +418,9 @@ def community(request, community_id):
     serialized_object = CommunitySerializer(community)
     new_dict = {}
 
-    if member_id:
+    if member_id and (community.hide_community == '3' or community.hide_community =='4'):
         serialized_object['share_url'] = serialized_object['share_url']+"?ref_id="+str(member_id)
-    elif community.hide_community == '0' or community.hide_community == '1' or community.hide_community =='4':
+    elif community.hide_community == '0' or community.hide_community == '1':
         serialized_object['share_url'] = serialized_object['share_url'] + "?cta=share"
 
     # form a dictionary of community objects
@@ -437,12 +438,7 @@ def similar_community(request, community_id):
     '''function to return similar communitites'''
     body = request.GET
     user_id = body['member_id']
-    user_tag = get_user_tag(user_id)
-
-    if user_tag:
-        user_tag = user_tag[0].tag_id
-    else:
-        user_tag = 0
+    user_tag = 0
     # getting communities based on user hidden tags
     queryset = get_communities_by_tags(user_tag=user_tag,user_id=user_id)[:11]
     community = []
@@ -502,12 +498,12 @@ def join_community_responses(request):
     else:
         ref_id = request.GET.get('ref_id',None)
 
-
+    info_logger.info("\n")
     info_logger.info("Join Community api")
     info_logger.info("""Community Id=%s"""%(community_id))
     info_logger.info("""Member Id=%s"""%(user_id))
     info_logger.info("""ref_id=%s""",str(ref_id))
-    info_logger.info("""Community State=%s"""%str(ref_id))
+    info_logger.info("""Community State=%s"""%str(community.hide_community))
 
     if ref_id :
         #ref_id = res['ref_id']
@@ -544,7 +540,9 @@ def join_community_responses(request):
                 member.save()
                 update_member_count(community_id)
             update_community_tags_to_user(community_id=community_id,user_id=user.id)
+
     if 'questions' in res:
+        info_logger.info(res['questions'])
         for i in res['questions']:
             response = Form_response()
             response.data = i['key']
@@ -603,6 +601,9 @@ def join_community_responses(request):
                     user_id, community_id))
 
     update_referral_text_in_engage_table(community)
+    log="""Request for community_id=%s is sent from member_id=%s\n"""%(community_id,user_id)
+    info_logger.info(log)
+    info_logger.info("\n")
     return JsonResponse({'success':True})
 
 
@@ -733,8 +734,10 @@ def get_user_lpig_tags(user_id):
         if each.tags_id.id !=15 and each.tags_id.is_cluster == 0:
             temp['id']=each.tags_id.id
             temp['name']=each.tags_id.name
-            if each.tags_id.tag_image:
-                temp['image_url']=url+each.tags_id.tag_image.url
+            if each.tags_id.image_link:
+                temp['image_url'] = each.tags_id.image_link
+            elif each.tags_id.tag_image:
+                temp['image_url'] = url+each.tags_id.tag_image.url
             attribute_id=each.tags_id.attribute_id.id
 
             if attribute_id is 1:
@@ -964,6 +967,7 @@ def create_community(request):
             engage.community_id=community
             engage.last_unseen_conversation=card
             engage.updated_at=time.time()
+            engage.member_state=1
             engage.save()
 
             #send_email_to_admin_of_community.delay(CommmunityAdminName=user.name,CommunityName=res['name'],email=user.email)
@@ -1010,6 +1014,9 @@ def create_card(request):
 
     user_id = request.GET.get('member_id')
     community_id = request.GET.get('community_id')
+    # image_count = request.GET.get('image_count',0)
+    # pdf_count = request.GET.get('pdf_count',0)
+
 
     # useer = User.objects.get(id = user_id)
     user = Userinfo.objects.get(user_id = user_id)
@@ -1026,6 +1033,17 @@ def create_card(request):
             card.share_link=res['share_link']
             og_tags = decode_meta_from_url(res['share_link'])
             card.og_tags=json.dumps(og_tags)
+        if 'image_count' in res:
+            image_count = res['image_count']
+        else:
+            image_count = 0
+        card.image_count = image_count
+
+        if 'pdf_count' in res:
+            pdf_count = res['pdf_count']
+        else:
+            pdf_count = 0
+        card.pdf_count = pdf_count
 
         card.date_epoch=time.time()
         card.save()
@@ -1361,10 +1379,9 @@ def accept_invitation(request):
             # if the promoter is actually a promoter
             if promoter[0].state == 1:
                 Members.objects.filter(community_id=community, member_id=member_id).update(state=1)
+                Member_Engage.objects.filter(community_id=community, member_id=member_id).update(member_state=1)
                 # updating member count of the community
                 update_member_count(community.id)
-                # set user hidden tag
-                set_user_tag(member_id, community.id)
                 #sending email to promoter , that user has accepted his request to beacome a promoter
                 send_email_to_proposed_admin.delay(NominatedAdmin=nom_admin[0].name,email=prop_admin.email,ProposedAdmin=prop_admin.name,proposedAdminState =1,CommunityName=community.name,community_id = community.id)
                 proposer_id = prop_admin.user_id.id
@@ -1375,11 +1392,12 @@ def accept_invitation(request):
             elif promoter[0].state == 2:
                 temp_promoter = Members.objects.filter(community_id = community,state=2)
                 Members.objects.filter(community_id = community,member_id=temp_promoter[0].member_id).update(state =4)
+                Member_Engage.objects.filter(community_id=community, member_id=temp_promoter[0].member_id).update(member_state=4)
+
                 Members.objects.filter(community_id = community,member_id=member_id).update(state =1)
+                Member_Engage.objects.filter(community_id=community, member_id=member_id).update(member_state=1)
                 # updating member count of the community
                 update_member_count(community.id)
-                # set user hidden tag
-                set_user_tag(member_id, community.id)
                 #sending email to promoter , that user has accepted his request to beacome a promoter
                 send_email_to_proposed_admin.delay(NominatedAdmin=nom_admin[0].name,email=prop_admin.email,ProposedAdmin=prop_admin.name,proposedAdminState=2,CommunityName=community.name,community_id = community.id)
                 proposer_id = prop_admin.user_id.id
@@ -1394,10 +1412,11 @@ def accept_invitation(request):
             prop_admin = Userinfo.objects.get(user_id=promoter_who_proposed[0].member_id)
             # make th current member a promoter of this community
             Members.objects.filter(community_id=community, member_id=member_id).update(state=1)
+            Member_Engage.objects.filter(community_id=community, member_id=member_id).update(
+                member_state=1)
+
             # updating member count of the community
             update_member_count(community.id)
-            # set user hidden tag
-            # set_user_tag(member_id, community.id)
             #sending email to promoter , that user has accepted his request to become a promoter
             send_email_to_proposed_admin.delay(NominatedAdmin=nom_admin[0].name,email=prop_admin.email,ProposedAdmin=prop_admin.name,proposedAdminState=1,CommunityName=community.name,community_id = community.id)
             proposer_id=prop_admin.user_id.id
@@ -1416,10 +1435,14 @@ def accept_invitation(request):
             # if he is previously not a member of this community
             # then delete the member from members model
             Members.objects.filter(community_id=community, member_id=member_id).delete()
+            Members_Engage.objects.filter(community_id=community, member_id=member_id).delete()
+
         elif member[0].state == 7:
             print("member state == 7")
             # if he is previously not a member of this community , then make him member again
             Members.objects.filter(community_id=community, member_id=member_id).update(state=4)
+            Members_Engage.objects.filter(community_id=community, member_id=member_id).update(state=4)
+
         return JsonResponse({'success': True})
 
     return JsonResponse({'success': False})
@@ -1446,7 +1469,6 @@ def request_response(request,req_dict=None):
         join_time=time.time()
         Members.objects.filter(member_id=member_id,community_id=community).update(state=4,created_at=join_time)  # aprove state = 4
         community = Community.objects.get(id = community_id)
-        # set_user_tag(user.id, community_id)
         members_count = community.members_count+1
         Community.objects.filter(id = community_id).update(members_count=members_count)
 
@@ -1487,6 +1509,7 @@ def request_response(request,req_dict=None):
     else:
         # if rejected , change user state to 5
         Members.objects.filter(member_id=member_id,community_id=community).update(state=5)  # decline state = 5
+        Members_Engage.objects.filter(member_id=member_id, community_id=community).delete()
         # and also send notification
         send_notification_for_join_requests.delay(community_id, False, member_id)
         Form_response.objects.filter(user=member_id,community=community_id).delete()
@@ -1514,10 +1537,14 @@ def send_email_for_collabcard(community,user,card):
             form_link='https://docs.google.com/forms/d/e/1FAIpQLSfqN2z1wg6CCJ4ZKH1lxQQgJ8iUWEbtTT0R9NT64zg5f13_ig/viewform'
 
     for member in members:
+        if not user.image_link:
+            collabcard_card_image=url+user.image_file.url
+        else:
+            collabcard_card_image=user.image_link
         context = {
             'community_name': community.name,
             'collabcard_creater': user.name,
-            'collabcard_creater_image':url+user.image_file.url,
+            'collabcard_creater_image':collabcard_card_image,
             'creater_header': user.headline,
             'url':  url + '/collabcard/' + str(card.id),
             'form_link':form_link
@@ -1527,8 +1554,12 @@ def send_email_for_collabcard(community,user,card):
             continue
         if member.state == 1 or member.state == 2 or member.state == 4:
             userinfo=Userinfo.objects.get(user_id=member.member_id)
+            if not userinfo.image_link:
+                reciever_image=url+userinfo.image_file.url
+            else:
+                reciever_image=userinfo.image_link
             context['reciever']=userinfo.name
-            context['reciever_image']=url+userinfo.image_file.url
+            context['reciever_image']=reciever_image
             context['to']=userinfo.email
             #print(context)
             send_email_for_new_collabcard_posted.delay(context)
@@ -1607,10 +1638,16 @@ def get_collabcard_files(card_id):
     pdf=[]
     for file in files:
         if file.type == 'image':
-            img = {'image_url': url + file.attachment.url}
+            if file.file_url:
+                img = {'image_url': file.file_url}
+            else:
+                img = {'image_url': url + file.attachment.url}
             img_list.append(img)
         elif file.type == 'pdf':
-            pdf_url = {'pdf_file': url + file.attachment.url}
+            if file.file_url:
+                pdf_url = {'pdf_file': file.file_url}
+            else:
+                pdf_url = {'pdf_file': url + file.attachment.url}
             pdf.append(pdf_url)
     return (img_list,pdf)
 
@@ -2114,10 +2151,11 @@ def image_upload(request):
 
 @csrf_exempt
 def upload_attachment(request):
+
     '''function to upload attachments'''
-    body=request.GET
+    body = request.GET
     if request.method == 'POST':
-        attachment=request.FILES['file']
+        attachment = request.FILES['file']
         if 'community_id' in body:
             # if image to be updated in community
             community_id = body['community_id']
@@ -2133,16 +2171,44 @@ def upload_attachment(request):
             community.image_url = attachment
             community.save()
         elif 'collabcard_id' in body:
-            attachment_type=body['type']
+            attachment_type = body['type']
             collabcard_id = body['collabcard_id']
-            collabcard = Collabcard.objects.get(id = collabcard_id)
+            collabcard = Collabcard.objects.get(id=collabcard_id)
 
-            file=Card_Attachment()
-            file.attachment=attachment
-            file.collabcard=collabcard
-            file.type=attachment_type
+            file = Card_Attachment()
+            file.attachment = attachment
+            file.collabcard = collabcard
+            file.type = attachment_type
             file.save()
-        return JsonResponse({'success':True})
+        return JsonResponse({'success': True})
+    return JsonResponse({'success': False})
+
+@csrf_exempt
+def upload_files(request):
+
+    '''function to upload files'''
+
+    body = request.GET
+    if request.method == 'POST':
+
+        if 'community_id' in body:
+            # if image to be updated in community
+            community_id = body['community_id']
+            community = Community.objects.get(id=community_id)
+            community.image_link=body['url']
+            community.save()
+        elif 'collabcard_id' in body:
+            attachment_type = body['type']
+            collabcard_id = body['collabcard_id']
+            collabcard = Collabcard.objects.get(id=collabcard_id)
+
+            file = Card_Attachment()
+            file.collabcard = collabcard
+            file.type = attachment_type
+            file.file_url=body['url']
+            file.save()
+        print(body['url'])
+        return JsonResponse({'success': True})
     return JsonResponse({'success': False})
 
 
@@ -2178,7 +2244,7 @@ def login(request):
                 userinfo.user_id = usr
                 userinfo.email = res['email']
                 userinfo.name = res['name']
-                userinfo.image_url = res['picture']['data']['url']
+                userinfo.image_link = upload_image_to_firebase(res['picture']['data']['url'],usr.id)
                 if 'link' in res:
                     userinfo.fb_link = res['link']
                 if 'location' in res:
@@ -2204,7 +2270,7 @@ def login(request):
                 userinfo.user_id=usr
                 userinfo.email=email
                 userinfo.name=user_name
-                userinfo.image_url=profile_picture
+                userinfo.image_link=upload_image_to_firebase(profile_picture,usr.id)
                 userinfo.login_type='linkedIn'
                 userinfo.login_json=json_to_save
                 userinfo.created_at = time.time()

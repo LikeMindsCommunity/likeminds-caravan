@@ -137,7 +137,7 @@
                         <a href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta={{cta}}">
                             <button class="ui facebook button" style="width:130px;">
                                 {% else %}
-                                <a href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}">
+                                <a href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join">
                                     <button class="ui facebook button" style="width:200px;">
                                         {% endif %}
                                         <i class="fa fa-facebook" ></i>&nbsp;&nbsp;&nbsp;&nbsp;
@@ -160,15 +160,14 @@
                                     {% elif cta != '' %}
                                     <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta={{cta}}">
                                         <button class="ui linkedin button" style="width:130px;">
-                                            {% else %}
-                                            <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}">
-                                                <button class="ui linkedin button" style="width:200px;">
-                                                    {% endif %}
-                                                    <i class="fa fa-linkedin"></i>&nbsp;&nbsp;&nbsp;&nbsp;
-                                                    Login with LinkedIn
-                                                </button>
-                                            </a>
-                                        </button>
+                                    {% else %}
+                                        <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join">
+                                        <button class="ui linkedin button" style="width:200px;">
+                                    {% endif %}
+                                    <i class="fa fa-linkedin"></i>&nbsp;&nbsp;&nbsp;&nbsp;
+                                    Login with LinkedIn
+                                    </button>
+                                    </a></button>
                                     </a>
                                 </div>
                             </button>
@@ -248,7 +247,11 @@
 
         <div class="ui fluid card" id="purpose" style="margin-top:0px;">
             <div class="ui fluid image">
+                {% if not community.image_link %}
                 <img src='/media/{{community.image_url}}'>
+                {% else %}
+                 <img src='{{community.image_link}}'>
+                {% endif %}
             </div>
             <div class="summary left aligned">
                 <p style="font-weight:100; padding:10px; color:#666666;">{{community.purpose}}</p>
@@ -275,7 +278,12 @@
                         {% for admin in admins%}
                         {% for i in admin %}
                         <div class="item">
+                            {% if not i.image_link %}
                             <img class="ui tiny circular image" src="{{i.image_file.url}}" style="border-radius:50%;width:80px;height:80px;">
+                            {% else %}
+                           <img class="ui tiny circular image" src="{{i.image_link}}" style="border-radius:50%;width:80px;height:80px;">
+
+                            {% endif %}
                             <p></p>
                             <p style="font-size:65%;">{{i.name}}</p>
                             <div class="content">
@@ -314,7 +322,11 @@
                         {% for i in members%}
 
                         <div class="item">
-                            <img class="ui tiny circular centered image" src="{{i.image_file.url}}" style="border-radius:50%;width:80px;height:80px;"/>
+                            {% if not i.image_link %}
+                                <img class="ui tiny circular centered image" src="{{i.image_file.url}}" style="border-radius:50%;width:80px;height:80px;"/>
+                            {% else %}
+                                 <img class="ui tiny circular centered image" src="{{i.image_link}}" style="border-radius:50%;width:80px;height:80px;"/>
+                            {% endif %}
                             <p></p>
                             <!-- <a href="../../profile/{{i.user_id.id}}">-->
 

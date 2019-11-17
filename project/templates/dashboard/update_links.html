@@ -113,8 +113,11 @@ a.article-title:hover {
     <div class="col-md-8">
               <div class="content-section">
                <div class="media" >
-
+                {% if user_info.image_link %}
+                <img class=" account-img" style="height: 300px ;width: 300px" src="{{user_info.image_link}}">
+                {% else %}
                 <img class=" account-img" style="height: 300px ;width: 300px" src="{{user_info.image_file.url}}">
+                 {% endif %}
               </div>
               <form method="post" enctype = "multipart/form-data">
                 {% csrf_token %}

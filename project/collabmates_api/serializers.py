@@ -18,14 +18,17 @@ def CommunitySerializer(community):
         'id': community.id,
         'name': community.name,
         'purpose': community.purpose,
-        'image_url': community.image_url.url,
         'about': community.about,
         'location': community.location,
     }
-    if new_dict['image_url'] == "/media/https%3A/upload.wikimedia.org/wikipedia/en/0/09/Community_title.jpg":
-        new_dict[
-            'image_url'] = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQMUCHvC0wEVO5yDMe9wddUoagIqQ3VPH0nm8_VtjK5gk3M0mMO'
+    if community.image_link:
+        new_dict['image_url']=community.image_link
     else:
+        new_dict['image_url'] = community.image_url.url
+
+    if new_dict['image_url'] == "/media/https%3A/upload.wikimedia.org/wikipedia/en/0/09/Community_title.jpg":
+        new_dict['image_url'] = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQMUCHvC0wEVO5yDMe9wddUoagIqQ3VPH0nm8_VtjK5gk3M0mMO'
+    elif not community.image_link:
         new_dict['image_url'] = url + new_dict['image_url']
     new_dict['is_member'] = ''
     new_dict['share_url'] = url + '/community/' + str(new_dict['id'])
@@ -36,18 +39,23 @@ def CommunitySerializer(community):
 
 def UserinfoSerializer(user):
     # function to serialize a community object
-    return {
+    userinfo= {
         'id': user.user_id.id,
         "name": user.name,
         "email": user.email,
         "city": user.city,
         "headline": user.headline,
         "contact_number": user.contact_number,
-        "image_url": url +user.image_file.url,
         "about": user.about,
         "fb_link": user.fb_link,
         "linkedin_link": user.linkedin_link,
     }
+
+    if not user.image_link:
+        userinfo['image_url']: url + user.image_file.url
+    else:
+        userinfo['image_url']=user.image_link
+    return userinfo
 
 def CollabcardSerializer(card,community=None):
     # function to serialize a community object
@@ -58,6 +66,8 @@ def CollabcardSerializer(card,community=None):
         'share_url': url + '/collabcard/' + str(card.id),
         'answer_text': card.answer_text,
         'share_link': card.share_link,
+        'image_count':card.image_count,
+        'pdf_count': card.pdf_count,
     }
     if card.og_tags:
         og_tags=json.loads(card.og_tags)

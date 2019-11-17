@@ -221,7 +221,11 @@ a.article-title:hover {
 
             {% for community in communities %}
             <article class="media content-section">
+                {% if not community.image_link %}
                 <img class="rounded-circle article-img" src="{{ community.image_url.url }}">
+                {% else %}
+                <img class="rounded-circle article-img" src="{{ community.image_link }}">
+                {% endif %}
                 <div class="media-body">
                     <div class="article-metadata">
 

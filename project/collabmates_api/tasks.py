@@ -143,9 +143,13 @@ def pending_members_mail():
                 pending_count = pending_members_in_community.count()
                 # pending_count = 1
                 if pending_count == 1:
+                    if not admin.member_id.userinfo.image_link:
+                        promoter_image=admin.member_id.userinfo.image_file.url
+                    else:
+                        promoter_image = admin.member_id.userinfo.image_link
                     template = get_template("mails/single_pending_member.html").render(
                         {'promoter': admin.member_id.userinfo.name,
-                         'promoter_image': admin.member_id.userinfo.image_file.url,
+                         'promoter_image': promoter_image,
                          'pending_members': pending_members_in_community[0],
                          'pending_member_count': pending_count,
                          'community': admin.community_id,
@@ -157,7 +161,7 @@ def pending_members_mail():
                     subject = str(pending_count)+' new members have requested to join '+str(admin.community_id.name)
                     template = get_template("mails/multiple_pending_members_mail.html").render(
                         {'promoter': admin.member_id.userinfo.name,
-                         'promoter_image': admin.member_id.userinfo.image_file.url,
+                         'promoter_image': promoter_image,
                          'pending_members': pending_members_in_community[:4],
                          'pending_member_count': pending_count,
                          'remaining_pending_requests': pending_count-4,

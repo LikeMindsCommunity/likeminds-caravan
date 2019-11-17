@@ -22,6 +22,7 @@ from django.urls import reverse
 from utility.utils import (get_city_address, update_tag_image,
                            update_user_geography_tags, create_or_categorize_tag,
                            referal, insert_user_home_town_tags,user_onbaord)
+from utility.firebase import upload_image_to_firebase
 from urllib.parse import urlencode,quote
 from collabmates_api.tasks import send_email
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
@@ -218,21 +219,16 @@ def community(request, community_id):
                         return redirect(url)
                     return redirect('refer_members',community_id=community.id)
 
-                onboard = False
-                user_legacy = User_Legacy.objects.filter(user_id = request.user)
-                user_profession = User_Profession.objects.filter(user_id = request.user)
-                user_interests = User_Interest.objects.filter(user_id = request.user)
-                user_geography = User_Geography.objects.filter(user_id = request.user)
+                # onboard = False
+                # user_legacy = User_Legacy.objects.filter(user_id = request.user)
+                # user_profession = User_Profession.objects.filter(user_id = request.user)
+                # user_interests = User_Interest.objects.filter(user_id = request.user)
+                # user_geography = User_Geography.objects.filter(user_id = request.user)
+                #
+                # if user_legacy.exists() and user_profession.exists() and user_interests.exists() and user_geography.exists():
+                #     onboard = True
 
-                if user_legacy.exists() and user_profession.exists() and user_interests.exists() and user_geography.exists():
-                    onboard = True
-
-                return render(request, 'thankyou.html',
-                              {'usr': user,
-                               'similar_communities': data,
-                               'community': community,
-                               'onboard':onboard,
-                               })
+                return redirect('refer_members',community_id=community.id)
         elif cta == 'share':
             cta = 'join'
 
@@ -478,7 +474,7 @@ def update_user_info(request,member_id=None,user_email=None):
                         user.email = data['email']
                     if 'location' in data:
                         user.city = data['location']['name']
-                    user.image_url = image_url
+                    user.image_link = upload_image_to_firebase(image_url,usr.id)
                     user.login_type = 'facebook'
                     user.login_json = data
                     if member_id:
@@ -529,7 +525,7 @@ def update_user_info(request,member_id=None,user_email=None):
                     user = Userinfo()
                     user.name = user_name
                     user.email = email
-                    user.image_url = profile_picture
+                    user.image_link = upload_image_to_firebase(profile_picture,usr.id)
                     # info.linkedin_link = data['publicProfileUrl']
                     user.login_type = 'linkedIn'
                     user.login_json = [data_main, email_data]
@@ -938,7 +934,8 @@ def send_email(email):
                                  "Collabmates<hello@collabmates.com>",
                                  [to],
                                  )
-    return msg.send(fail_silently)
+    if email:
+        return msg.send(fail_silently)
 
 
 def my_communities(request, user_id):
@@ -1024,7 +1021,10 @@ def collabcard(request, card_id):
                 request_user_email = True
         except:
             user, request_user_email = update_user_info(request)
-        user_image=user.image_file.url
+        if not user.image_link:
+            user_image=user.image_file.url
+        else:
+            user_image=user.image_link
     else:
         user_image=''
 
@@ -1158,11 +1158,11 @@ def get_nominated_admin_details(community_id,email):
     details = temp_admin.objects.filter(community_id=community,email=email)
     if details:
         '''details are present,return s true'''
-        print('details are present')
+        #print('details are present')
         return True
     else:
         '''details are not present, returns false'''
-        print('details are not present')
+        #print('details are not present')
         return False
 
 
@@ -1199,7 +1199,10 @@ def pending_list(request,community_id):
         except:
             user, request_user_email = update_user_info(request)
         # userinfo=Userinfo.objects.get(user_id=request.user.id)
-        user_image_url=userinfo.image_file.url
+        if not userinfo.image_link:
+            user_image_url=userinfo.image_file.url
+        else:
+            user_image_url=userinfo.image_link
         link=api_url+'members_state?member_id='+str(request.user.id)+'&community_id='+str(community_id)
         state=rqst.get(link)
         try:
@@ -1242,8 +1245,12 @@ def questions_responses(request):
         response['question']=data.data
         response['answer']=data.response
         response_list.append(response)
+    if not userinfo.image_link:
+        image=url+userinfo.image_file.url
+    else:
+        image=userinfo.image_link
     context={
-        'image_url':url+userinfo.image_file.url,
+        'image_url':image,
         'response_list':response_list
     }
     return JsonResponse(context)

@@ -18,18 +18,6 @@ card_action = (
 )
 
 
-# def compress(image):
-#
-#
-#     im = Image.open(image)
-#     # create a BytesIO object
-#     im_io = BytesIO()
-#     # save image to BytesIO object
-#     im.save(im_io, 'JPEG', quality=70)
-#     # create a django-friendly Files object
-#     new_image = File(im_io, name=image.name)
-#     return new_image
-
 
 class Community (models.Model):
 
@@ -46,6 +34,7 @@ class Community (models.Model):
     purpose_collabcard=models.IntegerField(null=True)
     hide_community=models.CharField(default=0,max_length=1)
     introduction_text=models.CharField(max_length= 2048,null=True)
+    image_link=models.CharField(max_length= 500,null=True)
 
     def __str__(self):
         return self.name
@@ -108,19 +97,20 @@ class Userinfo (models.Model):
     mobile_os=models.CharField(max_length = 200,null=True)
     created_at=models.BigIntegerField(default=-9223372036854775808)
     version_code=models.IntegerField(null=True,default=21)
+    image_link=models.CharField(max_length=500,null=True)
 
 
     def __str__(self):
         return self.name
 
-    def save(self, *args, **kwargs):
-        if self.image_url and not self.image_file:
-
-            response = urlopen(self.image_url)
-            img = BytesIO(response.read())
-            self.image_file.save("profile_pic_"+self.name+".jpeg", File(img))
-
-        super(Userinfo, self).save(*args, **kwargs)
+    # def save(self, *args, **kwargs):
+    #     if self.image_url and not self.image_file:
+    #
+    #         response = urlopen(self.image_url)
+    #         img = BytesIO(response.read())
+    #         self.image_file.save("profile_pic_"+self.name+".jpeg", File(img))
+    #
+    #     super(Userinfo, self).save(*args, **kwargs)
 
 
 class Experience (models.Model):
@@ -165,6 +155,8 @@ class Collabcard (models.Model):
     answer_text = models.CharField(max_length = 100, default = '')
     share_link=models.CharField(max_length=2048,default='')
     og_tags=models.CharField(max_length=2048,default='')
+    image_count = models.IntegerField(default=0, null=True)
+    pdf_count = models.IntegerField(default=0, null=True)
 
 
 
@@ -199,16 +191,10 @@ class Card_Attachment (models.Model):
     '''model to save files of collabcard'''
 
     collabcard = models.ForeignKey(Collabcard, on_delete = models.CASCADE)
-    attachment = models.FileField(upload_to="media/collabcard_files")
+    attachment = models.FileField(upload_to="media/collabcard_files",default='')
+    file_url=models.CharField(max_length=500,null=True)
     type=models.CharField(max_length=50,default='')
 
-    # def save(self, *args, **kwargs):
-    #     # call the compress function
-    #     attachment = compress(self.attachment)
-    #     # set self.image to new_image
-    #     self.attachment = attachment
-    #     # save
-    #     super().save(*args, **kwargs)
 
 class collabcard_seen(models.Model):
     card = models.ForeignKey(Collabcard, on_delete= models.CASCADE)
@@ -304,6 +290,8 @@ class Tags_lpig(models.Model):
     tag_image = models.ImageField(upload_to="media/tags_images", default = '')
     is_cluster=models.IntegerField(default=0)
     cluster_tag_id=models.IntegerField(null=True)
+    image_link = models.CharField(max_length= 500,null=True)
+
     def __str__(self):
         return self.name
 
@@ -319,6 +307,7 @@ class Member_Engage(models.Model):
     pending_members=models.IntegerField(default=0,null=True)
     updated_at=models.BigIntegerField(default=0,null=True)
     member_referral=models.CharField(default='',max_length=1024)
+    member_state=models.IntegerField(null=True)
 
 
 # community lpig

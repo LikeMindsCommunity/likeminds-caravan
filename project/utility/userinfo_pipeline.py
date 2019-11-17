@@ -3,7 +3,7 @@ import requests as rqst
 import json
 import time
 from .tasks import *
-
+from .firebase import upload_image_to_firebase
 
 def update_userinfo(backend, user, response, *args, **kwargs):
     ''' update user info of user as soon as user registers '''
@@ -31,7 +31,7 @@ def update_userinfo(backend, user, response, *args, **kwargs):
                     user.email = data['email']
                 if 'location' in data:
                     user.city = data['location']['name']
-                user.image_url = image_url
+                user.image_link = upload_image_to_firebase(image_url,usr.id)
                 user.created_at = time.time()
                 user.login_type = 'facebook'
                 user.login_json = data
@@ -67,7 +67,7 @@ def update_userinfo(backend, user, response, *args, **kwargs):
                 user = Userinfo()
                 user.name = user_name
                 user.email = email
-                user.image_url = profile_picture
+                user.image_link = upload_image_to_firebase(profile_picture,usr.id)
                 # info.linkedin_link = data['publicProfileUrl']
                 user.created_at = time.time()
                 user.login_type = 'linkedIn'
