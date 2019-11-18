@@ -81,7 +81,7 @@ def is_url_image_valid(image_url):
 def upload_tag_files(tag_id,image,url=False):
 
     '''function to put tags images in firebase'''
-    name="Image_Tag_"+str(tag_id)
+    name="img_tag_"+str(tag_id)
     if url:
         image_url=image
         if is_url_image_valid(image_url):
@@ -103,7 +103,7 @@ def upload_tag_files(tag_id,image,url=False):
 def upload_user_files(user_id,image,url=False):
 
     '''function to put tags images in firebase'''
-    name="Image_User_"+str(user_id)
+    name="img_user_"+str(user_id)
     if url:
         image_url=image
         if is_url_image_valid(image_url):
@@ -125,7 +125,7 @@ def upload_user_files(user_id,image,url=False):
 def upload_community_files(community_id,image,url=False):
 
     '''function to put tags images in firebase'''
-    name = "Image_Community_" + str(community_id)
+    name = "img_community_" + str(community_id)
     if url:
         image_url=image
         if is_url_image_valid(image_url):
