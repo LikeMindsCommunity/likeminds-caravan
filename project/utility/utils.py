@@ -80,34 +80,6 @@ def update_member_count(community_id):
     return count
 
 
-def set_user_tag(user_id, community_id):
-    ''' function to set hidden tag for user '''
-    community = Community.objects.get(id=community_id)
-    iit_tag = Community_tags.objects.filter(community_id=community, tags_id=41)
-    nsit_tag = Community_tags.objects.filter(community_id=community, tags_id=42)
-    check = True
-    # we have only two hidden tags now
-    # if we have more hidden tags this function is gonna change
-    if iit_tag:
-        tag_id = 41
-        check = check_user_tag(user_id=user_id, tag_id=tag_id)
-    elif nsit_tag:
-        tag_id = 42
-        check = check_user_tag(user_id=user_id, tag_id=tag_id)
-    if not check:
-        user_tag = userinfo_tags()
-        user_tag.user_id = user_id
-        user_tag.tag_id = tag_id
-        user_tag.save()
-    return
-
-
-def get_user_tag(user_id):
-    ''' function to get user hidden tag '''
-    user_tag = userinfo_tags.objects.all().filter(user_id=user_id)
-    return user_tag
-
-
 @shared_task
 def update_tag_image(tag_name, tag_id):
 
@@ -132,7 +104,7 @@ def update_tag_image(tag_name, tag_id):
         if 'thumbnail' in response['query']['pages'][0]:
 
             tag_obj = Tags_lpig.objects.get(pk = tag_id)
-            file_name = 'media/tags_images/' + tag_name + "__tag.jpeg"
+            # file_name = 'media/tags_images/' + tag_name + "__tag.jpeg"
             if not tag_obj.tag_image:
 
                 image_url = response['query']['pages'][0]['thumbnail']['source']
