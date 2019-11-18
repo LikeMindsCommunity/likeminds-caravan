@@ -125,7 +125,7 @@ def upload_user_files(user_id,image,url=False):
 def upload_community_files(community_id,image,url=False):
 
     '''function to put tags images in firebase'''
-    name = "Image_Community" + str(community_id)
+    name = "Image_Community_" + str(community_id)
     if url:
         image_url=image
         if is_url_image_valid(image_url):
