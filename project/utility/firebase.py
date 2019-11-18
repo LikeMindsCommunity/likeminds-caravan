@@ -78,12 +78,12 @@ def is_url_image_valid(image_url):
 def upload_files_to_firebase(image_url,user_id):
 
     '''function to update files to firebase'''
-
+    name="Image_"+str(user_id)
     if is_url_image_valid(image_url):
         image_data = requests.get(image_url).content
         user_id = str(user_id)
-        storage.child("files").child("user").child(user_id).put(image_data)
-        image_url = storage.child("files").child("user").child(user_id).get_url(None)
+        storage.child("files").child("user").child(user_id).child(name).put(image_data)
+        image_url = storage.child("files").child("user").child(user_id).child(name).get_url(None)
         return image_url
     else:
         print("Image url is broken for user=",user_id)
