@@ -3,7 +3,7 @@ import time
 import psycopg2
 from collabmates_api.notification import get_connection
 from django.conf import settings
-from utility.firebase import upload_files_to_firebase, upload_community_files, upload_tag_files
+from utility.firebase import upload_user_files, upload_community_files, upload_tag_files
 
 url=settings.URL
 
@@ -40,7 +40,7 @@ def upload_all_user_images_to_firebase():
     count = 0
     for file in files:
         count+=1
-        image_url=upload_files_to_firebase(file[1],file[0])
+        image_url=upload_user_files(file[0],file[1],url=True)
         print(image_url)
         update_image_link_for_user(image_url,file[0])
         print("file uploaded for user=",file[0])
