@@ -254,9 +254,9 @@ start_time=time.time()
 
 upload_all_user_images_to_firebase()
 print("\n")
-upload_all_communities_images_to_firebase()
+upload_all_tag_images_to_firebase
 print("\n")
-upload_all_tag_images_to_firebase()
+upload_all_communities_images_to_firebase()
 
 end_time=time.time()
 
