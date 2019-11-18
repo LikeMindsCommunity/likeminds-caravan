@@ -58,8 +58,8 @@ def upload_image_to_firebase(image_url,user_id):
 
     image_data = requests.get(image_url).content
     user_id=str(user_id)
-    storage.child("files").child("Users").child(user_id).put(image_data)
-    image_url=storage.child("files").child("Users").child(user_id).get_url(None)
+    storage.child("files").child("user").child(user_id).put(image_data)
+    image_url=storage.child("files").child("user").child(user_id).get_url(None)
     return image_url
 
 
@@ -75,70 +75,57 @@ def is_url_image_valid(image_url):
    return False
 
 
-def upload_files_to_firebase(image_url,user_id):
-
-    '''function to update files to firebase'''
-
-    if is_url_image_valid(image_url):
-        image_data = requests.get(image_url).content
-        user_id = str(user_id)
-        storage.child("files").child("Users").child(user_id).put(image_data)
-        image_url = storage.child("files").child("Users").child(user_id).get_url(None)
-        return image_url
-    else:
-        print("Image url is broken for user=",user_id)
-        return None
 
 
 
 def upload_tag_files(tag_id,image,url=False):
 
     '''function to put tags images in firebase'''
-
+    name="Image_Tag_"+str(tag_id)
     if url:
         image_url=image
         if is_url_image_valid(image_url):
             image_data = requests.get(image_url).content
             tag_id = str(tag_id)
-            storage.child("files").child("Tags").child(tag_id).put(image_data)
-            image_url = storage.child("files").child("Tags").child(tag_id).get_url(None)
+            storage.child("files").child("tag").child(tag_id).child(name).put(image_data)
+            image_url = storage.child("files").child("tag").child(tag_id).child(name).get_url(None)
             return image_url
         else:
             print("Image url is broken for tag=", tag_id)
             return ''
     else:
         tag_id=str(tag_id)
-        storage.child("files").child("Tags").child(tag_id).put(image)
-        image_url = storage.child("files").child("Tags").child(tag_id).get_url(None)
+        storage.child("files").child("tag").child(tag_id).child(name).put(image)
+        image_url = storage.child("files").child("tag").child(tag_id).child(name).get_url(None)
         return image_url
 
 
 def upload_user_files(user_id,image,url=False):
 
     '''function to put tags images in firebase'''
-
+    name="Image_User_"+str(user_id)
     if url:
         image_url=image
         if is_url_image_valid(image_url):
             image_data = requests.get(image_url).content
             user_id = str(user_id)
-            storage.child("files").child("Users").child(user_id).put(image_data)
-            image_url = storage.child("files").child("Users").child(user_id).get_url(None)
+            storage.child("files").child("user").child(user_id).child(name).put(image_data)
+            image_url = storage.child("files").child("user").child(user_id).child(name).get_url(None)
             return image_url
         else:
             print("Image url is broken for tag=", user_id)
             return ''
     else:
         user_id=str(user_id)
-        storage.child("files").child("Users").child(user_id).put(image)
-        image_url = storage.child("files").child("Users").child(user_id).get_url(None)
+        storage.child("files").child("user").child(user_id).child(name).put(image)
+        image_url = storage.child("files").child("user").child(user_id).child(name).get_url(None)
         return image_url
 
 
 def upload_community_files(community_id,image,url=False):
 
     '''function to put tags images in firebase'''
-
+    name = "Image_Community" + str(community_id)
     if url:
         image_url=image
         if is_url_image_valid(image_url):
@@ -147,9 +134,9 @@ def upload_community_files(community_id,image,url=False):
                 if r.status_code == 200:
                     image_data=r.content
                     community_id = str(community_id)
-                    storage.child("files").child("Communities").child(community_id).put(image_data)
+                    storage.child("files").child("community").child(community_id).child(name).put(image_data)
                     time.sleep(1)
-                    image_url = storage.child("files").child("Communities").child(community_id).get_url(None)
+                    image_url = storage.child("files").child("community").child(community_id).child(name).get_url(None)
                     return image_url
             except Exception as e:
                 print(e)
@@ -160,9 +147,9 @@ def upload_community_files(community_id,image,url=False):
         community_id=str(community_id)
         try:
             time.sleep(.200)
-            storage.child("files").child("Communities").child(community_id).put(image)
+            storage.child("files").child("community").child(community_id).child(name).put(image)
             time.sleep(.200)
-            image_url = storage.child("files").child("Communities").child(community_id).get_url(None)
+            image_url = storage.child("files").child("community").child(community_id).child(name).get_url(None)
             return image_url
         except Exception as e:
             print(e)
