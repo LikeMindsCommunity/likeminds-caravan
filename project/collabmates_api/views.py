@@ -31,6 +31,7 @@ import os
 import re
 import googlemaps
 import logging
+from itertools import chain
 
 from utility.utils import (decode_meta_from_url, update_tag_image,
                            referal, get_referred_members_of_a_member,
@@ -1702,14 +1703,17 @@ def community_cards(request, community_id):
     ''' function get all the cards in a community '''
 
     community = Community.objects.get(id = community_id)
-    cards = Collabcard.objects.filter(community = community_id).order_by('id')
     member_id=request.GET.get('member_id')
+
+
     #is_tour=request.GET.get('is_tour',False)
 
     # if the community is pilot community and android tour is given
     if community.hide_community == '3':
         card_list=get_cards_for_demo(community_id,member_id)
         return JsonResponse({'collabcards': card_list})
+
+    cards = Collabcard.objects.filter(community = community_id).order_by('id')
 
     card_list = []
     for card in cards:
@@ -2351,13 +2355,16 @@ def push(request):
         is_member=Userinfo.objects.filter(user_id=member_id)
     else:
         is_member=None
+    print("is_member ========= ?   ",is_member)
     success=False
     if is_member:
         success=True
         if not is_member[0].fcm_token:
             send_welcome_mail.delay(member_id)
         fcm_token=Userinfo.objects.filter(user_id=member_id).update(fcm_token=token)
+        print("inside success ========= ?   ", success)
 
+    print("success ========= ?   ",success)
     return JsonResponse({'success':success})
 
 
