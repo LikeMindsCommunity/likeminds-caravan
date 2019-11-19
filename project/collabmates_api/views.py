@@ -1713,9 +1713,12 @@ def community_cards(request, community_id):
         card_list=get_cards_for_demo(community_id,member_id)
         return JsonResponse({'collabcards': card_list})
 
-    size=request.GET.get('size',10)
-    size=int(size)
-    cards = Collabcard.objects.filter(community = community_id).order_by('id')[:size]
+    size=request.GET.get('size',False)
+    if size:
+        size=int(size)
+        cards = Collabcard.objects.filter(community = community_id).order_by('id')[:size]
+    else:
+        cards = Collabcard.objects.filter(community=community_id).order_by('id')
 
     card_list = []
     for card in cards:
