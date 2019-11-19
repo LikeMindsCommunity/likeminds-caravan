@@ -2354,10 +2354,14 @@ def push(request):
     token=request.GET.get('token','')
     print('member_id ===>>> ',member_id)
     if member_id:
+        print("if block")
         is_member=Userinfo.objects.filter(user_id=member_id)
     else:
+        print("else block")
         is_member=None
+
     print("is_member ========= ?   ",is_member)
+
     success=False
     if is_member:
         success=True
@@ -2367,6 +2371,7 @@ def push(request):
         print("inside success ========= ?   ", success)
 
     print("success ========= ?   ",success)
+
     return JsonResponse({'success':success})
 
 
