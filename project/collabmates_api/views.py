@@ -2348,9 +2348,11 @@ def members_state(request):
 @csrf_exempt
 def push(request):
     '''This function is used to insert fcm token to the database in order to generate notifications from database'''
+
+    print("push API")
     member_id=request.GET.get('member_id','')
     token=request.GET.get('token','')
-    print('member_id === ',member_id)
+    print('member_id ===>>> ',member_id)
     if member_id:
         is_member=Userinfo.objects.filter(user_id=member_id)
     else:
