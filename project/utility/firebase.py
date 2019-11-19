@@ -1,7 +1,15 @@
+from __future__ import absolute_import, unicode_literals
+from celery import shared_task
 import pyrebase
 from django.conf import settings
 import requests
 import time
+from urllib.request import urlopen
+import os
+from PIL import Image
+from io import BytesIO
+from togther.models import Community
+
 
 if settings.IS_BETA:
     # beta firebase config
@@ -157,4 +165,38 @@ def upload_community_files(community_id,image,url=False):
 
 
 
+@shared_task
+def upload_community_thumbnail(community_id,image_url):
 
+
+    name="img_community_thumbnail__"+str(community_id)
+    try:
+        response = urlopen(image_url)
+    except Exception as e:
+        print(e)
+        return
+
+
+
+    img = BytesIO(response.read())
+    img = Image.open(img)
+    image = img.resize((200, 200), Image.ANTIALIAS)
+    file_name=name+".jpg"
+    image.save(file_name)
+
+
+    community_id = str(community_id)
+    community=Community.objects.get(id=community_id)
+    try:
+        time.sleep(.200)
+        storage.child("files").child("community").child(community_id).child(name).put(file_name)
+        time.sleep(.200)
+        image_url = storage.child("files").child("community").child(community_id).child(name).get_url(None)
+        print(image_url)
+        community.thumbnail=image_url
+        community.save()
+    except Exception as e:
+        print(e)
+        return None
+    finally:
+        os.remove(file_name)

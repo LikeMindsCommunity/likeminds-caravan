@@ -35,6 +35,7 @@ class Community (models.Model):
     hide_community=models.CharField(default=0,max_length=1)
     introduction_text=models.CharField(max_length= 2048,null=True)
     image_link=models.CharField(max_length= 500,null=True)
+    thumbnail=models.CharField(max_length=500,null=True)
 
     def __str__(self):
         return self.name

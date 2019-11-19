@@ -20,8 +20,13 @@
         <title>{{community.name}}</title>
         <meta name="description"
               content={{community.name}}/>
+        {% if not community.thumbnail %}
         <meta property="og:image" itemprop="image"
-              content='{{community.image_link}}'/>
+              content='https://beta.collabmates.com/media/media/ic_launcher_round.png'/>
+        {% else %}
+            <meta property="og:image" itemprop="image"
+              content='{{community.thumbnail}}'/>
+        {% endif %}
         <meta property="og:title" content="{{community.name}}"/>
         <meta property="og:description"
               content="{{community.purpose}}"/>
