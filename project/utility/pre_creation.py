@@ -6,10 +6,14 @@ import requests as rqst
 import time
 from datetime import date
 import re
+from django.conf import  settings
+
 envir=False
 try:
     from collabmates_api.notification import get_connection
     from utility.utils import get_city_address
+    from utility.firebase import upload_community_files,upload_community_thumbnail
+    url=settings.URL
     print("try statement")
 except:
     envir=True
@@ -26,7 +30,7 @@ def get_attribute_data(attribute_id):
     try:
         conn = get_connection()
         curr = conn.cursor()
-        sql = "select name,tag_characterstics,tag_image,tag_id from togther_tags_lpig where attribute_id_id="+str(attribute_id)+" order by id desc"
+        sql = "select name,tag_characterstics,image_link,tag_id from togther_tags_lpig where attribute_id_id="+str(attribute_id)+" order by id desc"
         curr.execute(sql)
         res = curr.fetchall()
         curr.close()
@@ -67,7 +71,7 @@ def get_tag_by_id(id):
     try:
         conn = get_connection()
         curr = conn.cursor()
-        sql = "select name,tag_characterstics,tag_image,id,attribute_id_id from togther_tags_lpig where id=%s"
+        sql = "select name,tag_characterstics,image_link,id,attribute_id_id from togther_tags_lpig where id=%s"
         parameter = [id]
         curr.execute(sql, parameter)
         res=curr.fetchall()
@@ -90,7 +94,7 @@ def get_tag_by_name(name):
     try:
         conn = get_connection()
         curr = conn.cursor()
-        sql = "select tag_id,tag_characterstics,tag_image,tag_id,attribute_id_id from togther_tags_lpig where name=%s"
+        sql = "select tag_id,tag_characterstics,image_link,tag_id,attribute_id_id from togther_tags_lpig where name=%s"
         parameter = [name]
         curr.execute(sql, parameter)
         res=curr.fetchone()
@@ -187,7 +191,6 @@ Members who want to follow the conversation can press the Follow button to recei
                 temp['image_url']=college[2]
             temp['tags']['legacy']=college[3]
             temp['tags']['geography']=city[3]
-
             community_id=is_community_tags_exists(temp)
             if not community_id:
                 insert_pre_create_community(temp)
@@ -747,6 +750,7 @@ def pre_create_communities(tag_id=0):
         if attribute_id is 2:                                            #college
             legacy_college=tags_data
             college_city(legacy_college, geography_city)
+
             college_industry(legacy_college, profession_industry)
             college_skill(legacy_college, industry_skill)
 
@@ -835,7 +839,7 @@ def insert_pre_create_community(community):
 
     '''function to insert pre created communities in database'''
     if 'image_url' not in community:
-        community['image_url'] = 'media/community/default.jpeg'
+        community['image_url'] = url + "/media/media/community/default.jpeg"
 
     community['created_at']=time.time()
     community['updated_at']=time.time()
@@ -850,8 +854,8 @@ def insert_pre_create_community(community):
         curr = conn.cursor()
         hide_community='3'
         # inserting the communities
-        sql="insert into togther_community(name,about,purpose,location,created_at,updated_at,image_url,members_count,active_since,hide_community,introduction_text) values(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id;"
-        parameter_list=[community['name'],community['about'],community['purpose'],community['geography'],community['created_at'],community['updated_at'],community['image_url'],community['member_count'],
+        sql="insert into togther_community(name,about,purpose,location,created_at,updated_at,members_count,active_since,hide_community,introduction_text) values(%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id;"
+        parameter_list=[community['name'],community['about'],community['purpose'],community['geography'],community['created_at'],community['updated_at'],community['member_count'],
                         community['active_since'],hide_community,community['question']]
         curr.execute(sql, parameter_list)
         conn.commit()
@@ -860,6 +864,11 @@ def insert_pre_create_community(community):
 
 
         community_id=curr.fetchone()[0]
+
+        #updating community images
+        firebase_community_image=upload_community_files(community_id,community['image_url'],url=True)
+        firebase_community_thumbnail=upload_community_thumbnail(community_id,community['image_url'])
+        update_image_and_thumbnail_of_community(community_id,firebase_community_image,firebase_community_thumbnail)
 
 
         # inserting the questions
@@ -894,6 +903,7 @@ def insert_pre_create_community(community):
 
         curr.close()
         conn.close()
+        time.sleep(.100)
     except (Exception, psycopg2.Error) as error:
         print(error)
         print("Error while connecting  to PostgreSQL", error)
@@ -908,9 +918,8 @@ def update_pre_created_community(community_id,community):
     if has_members:
         print("Some Members are already present")
         return
-
     if 'image_url' not in community:
-        community['image_url'] = 'media/community/default.jpeg'
+        community['image_url'] = url+"/media/media/community/default.jpeg"
     print(community['name'])
     print("\n\n")
 
@@ -920,16 +929,19 @@ def update_pre_created_community(community_id,community):
         updated_at=time.time()
         hide_community='3'
         # inserting the communities
-        sql = "update togther_community set name=%s,about=%s,purpose=%s,location=%s,image_url=%s,updated_at=%s,hide_community=%s,introduction_text=%s where id=%s"
+        sql = "update togther_community set name=%s,about=%s,purpose=%s,location=%s,updated_at=%s,hide_community=%s,introduction_text=%s where id=%s"
         parameter_list = [community['name'], community['about'], community['purpose'], community['geography'],
-                          community['image_url'],updated_at,hide_community,community['question'],community_id
+                          updated_at,hide_community,community['question'],community_id
                          ]
         curr.execute(sql, parameter_list)
         conn.commit()
         count = curr.rowcount
         print(count, "Record updated successfully into %s " % (community['name']))
 
-
+        # updating community images
+        firebase_community_image = upload_community_files(community_id, community['image_url'], url=True)
+        firebase_community_thumbnail = upload_community_thumbnail(community_id, community['image_url'])
+        update_image_and_thumbnail_of_community(community_id, firebase_community_image, firebase_community_thumbnail)
 
         # inserting the questions
         sql = "update togther_form_data set data=%s where community_id_id=%s"
@@ -979,10 +991,28 @@ def insert_tags_for_communities(sql,parameter):
     except (Exception, psycopg2.Error) as error:
         print("Error while connecting to PostgreSQL  ", error)
 
+def update_image_and_thumbnail_of_community(community_id,image_url,thumbnail):
+
+    '''function to update thumbnail and community image'''
+
+    try:
+        conn = get_connection()
+        curr = conn.cursor()
+        sql = "update togther_community set image_link=%s,thumbnail=%s"
+        parameter_list=[image_url,thumbnail]
+        curr.execute(sql, parameter_list)
+        print("Image updated successfully for community_id=",community_id)
+        conn.commit()
+        curr.close()
+        conn.close()
+        print("\n")
+    except (Exception, psycopg2.Error) as error:
+        print("Error while connecting  to PostgreSQL", error)
+
+
 
 if envir:
     if __name__=="__main__":
-
         pre_create_communities()
 
 
