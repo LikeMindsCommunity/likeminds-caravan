@@ -25,7 +25,7 @@ class Community (models.Model):
     about = models.TextField()
     purpose = models.CharField(max_length= 300)
     location = models.CharField(max_length = 200)
-    image_url = models.ImageField(upload_to="media/community", default = 'media/community/default.jpeg')
+    image_url = models.ImageField(upload_to="media/community", null=True)
     members_count = models.IntegerField(default = 0)
     active_since = models.DateField(auto_now_add = True)
     whatsapp_group_link = models.CharField(max_length = 400, null=True)
@@ -35,6 +35,7 @@ class Community (models.Model):
     hide_community=models.CharField(default=0,max_length=1)
     introduction_text=models.CharField(max_length= 2048,null=True)
     image_link=models.CharField(max_length= 500,null=True)
+    thumbnail=models.CharField(max_length=500,null=True)
 
     def __str__(self):
         return self.name
