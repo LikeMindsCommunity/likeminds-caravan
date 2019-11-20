@@ -1013,6 +1013,6 @@ def update_image_and_thumbnail_of_community(community_id,image_url,thumbnail):
 
 if envir:
     if __name__=="__main__":
-        pre_create_communities(tag_id=41)
+        pre_create_communities()
 
 
