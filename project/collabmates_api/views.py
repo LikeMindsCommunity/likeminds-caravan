@@ -31,7 +31,7 @@ import os
 import re
 import googlemaps
 import logging
-from itertools import chain
+from PIL import Image
 
 from utility.utils import (decode_meta_from_url, update_tag_image,
                            referal, get_referred_members_of_a_member,
@@ -39,7 +39,7 @@ from utility.utils import (decode_meta_from_url, update_tag_image,
                            user_onbaord, update_member_count,
                            update_community_tags_to_user)
 from utility.tasks import (mail_triger, new_member_request)
-from utility.firebase import update_last_answer_id,upload_image_to_firebase
+from utility.firebase import update_last_answer_id,upload_image_to_firebase,upload_community_thumbnail,upload_community_files
 
 
 url  = settings.URL
@@ -906,6 +906,8 @@ def create_community(request):
             group.updated_at=time.time()
             group.created_at=time.time()
             group.save()
+            upload_community_files(community_id = group.id,image='https://beta.collabmates.com/media/media/community/default.jpeg',url=True)
+            upload_community_thumbnail.delay(group.id, 'https://beta.collabmates.com/media/media/community/default.jpeg')
 
             # create user as a admin for the community as the user is creating the community as a admin
             user = User.objects.get(id = user_id)
@@ -1713,7 +1715,13 @@ def community_cards(request, community_id):
         card_list=get_cards_for_demo(community_id,member_id)
         return JsonResponse({'collabcards': card_list})
 
-    cards = Collabcard.objects.filter(community = community_id).order_by('id')
+    size=request.GET.get('size','')
+    if size:
+        size=int(size)
+        cards = Collabcard.objects.filter(community = community_id).order_by('id')[:size]
+    else:
+        cards = Collabcard.objects.filter(community = community_id).order_by('id')
+
 
     card_list = []
     for card in cards:
@@ -2200,6 +2208,7 @@ def upload_files(request):
             community_id = body['community_id']
             community = Community.objects.get(id=community_id)
             community.image_link=body['url']
+            upload_community_thumbnail.delay(community_id,body['url'])
             community.save()
         elif 'collabcard_id' in body:
             attachment_type = body['type']
@@ -2211,7 +2220,7 @@ def upload_files(request):
             file.type = attachment_type
             file.file_url=body['url']
             file.save()
-        print(body['url'])
+
         return JsonResponse({'success': True})
     return JsonResponse({'success': False})
 
@@ -2349,28 +2358,19 @@ def members_state(request):
 def push(request):
     '''This function is used to insert fcm token to the database in order to generate notifications from database'''
 
-    print("push API")
     member_id=request.GET.get('member_id','')
     token=request.GET.get('token','')
     print('member_id ===>>> ',member_id)
     if member_id:
-        print("if block")
         is_member=Userinfo.objects.filter(user_id=member_id)
     else:
-        print("else block")
         is_member=None
-
-    print("is_member ========= ?   ",is_member)
-
     success=False
     if is_member:
         success=True
         if not is_member[0].fcm_token:
             send_welcome_mail.delay(member_id)
         fcm_token=Userinfo.objects.filter(user_id=member_id).update(fcm_token=token)
-        print("inside success ========= ?   ", success)
-
-    print("success ========= ?   ",success)
 
     return JsonResponse({'success':success})
 
