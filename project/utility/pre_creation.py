@@ -998,8 +998,8 @@ def update_image_and_thumbnail_of_community(community_id,image_url,thumbnail):
     try:
         conn = get_connection()
         curr = conn.cursor()
-        sql = "update togther_community set image_link=%s,thumbnail=%s"
-        parameter_list=[image_url,thumbnail]
+        sql = "update togther_community set image_link=%s,thumbnail=%s where community_id=%s"
+        parameter_list=[image_url,thumbnail,community_id]
         curr.execute(sql, parameter_list)
         print("Image updated successfully for community_id=",community_id)
         conn.commit()
