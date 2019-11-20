@@ -28,6 +28,7 @@ def CommunitySerializer(community):
     else:
         new_dict['image_url'] = 'https://beta.collabmates.com/media/media/community/default.jpeg'
 
+
     if new_dict['image_url'] == "/media/https%3A/upload.wikimedia.org/wikipedia/en/0/09/Community_title.jpg":
         new_dict['image_url'] = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQMUCHvC0wEVO5yDMe9wddUoagIqQ3VPH0nm8_VtjK5gk3M0mMO'
     elif not community.image_link:

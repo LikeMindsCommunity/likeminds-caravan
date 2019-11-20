@@ -906,6 +906,8 @@ def create_community(request):
             group.updated_at=time.time()
             group.created_at=time.time()
             group.save()
+            
+            # uploading community image and thumbnail
             upload_community_files(community_id = group.id,image='https://beta.collabmates.com/media/media/community/default.jpeg',url=True)
             upload_community_thumbnail.delay(group.id, 'https://beta.collabmates.com/media/media/community/default.jpeg')
 
