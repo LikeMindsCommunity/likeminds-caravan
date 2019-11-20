@@ -77,6 +77,7 @@ def is_url_image_valid(image_url):
 
    image_formats = ("image/png", "image/jpeg", "image/jpg")
    r = requests.head(image_url)
+   print(r.headers["content-type"])
    if r.headers["content-type"] in image_formats:
       return True
    return False
@@ -120,7 +121,7 @@ def upload_user_files(user_id,image,url=False):
             image_url = storage.child("files").child("user").child(user_id).child(name).get_url(None)
             return image_url
         else:
-            print("Image url is broken for tag=", user_id)
+            print("Image url is broken for user=", user_id)
             return ''
     else:
         user_id=str(user_id)
@@ -135,21 +136,19 @@ def upload_community_files(community_id,image,url=False):
     name = "img_community_" + str(community_id)
     if url:
         image_url=image
-        if is_url_image_valid(image_url):
-            try:
-                r = requests.get(image_url)
-                if r.status_code == 200:
-                    image_data=r.content
-                    community_id = str(community_id)
-                    storage.child("files").child("community").child(community_id).child(name).put(image_data)
-                    time.sleep(1)
-                    image_url = storage.child("files").child("community").child(community_id).child(name).get_url(None)
-                    return image_url
-            except Exception as e:
-                print(e)
-        else:
-            print("Image url is broken for tag=", community_id)
-            return ''
+        print(image_url)
+        try:
+            response = urlopen(image_url)
+            image_data=response.read()
+        except Exception as e:
+            print(e)
+            return
+        community_id = str(community_id)
+        storage.child("files").child("community").child(community_id).child(name).put(image_data)
+        time.sleep(1)
+        image_url = storage.child("files").child("community").child(community_id).child(name).get_url(None)
+        return image_url
+
     else:
         community_id=str(community_id)
         try:
