@@ -186,9 +186,9 @@ def upload_community_thumbnail(community_id,image_url):
     community=Community.objects.get(id=community_id)
     try:
         time.sleep(.200)
-        storage.child("files").child("thumbnail").child(community_id).child(name).put(file_name)
+        storage.child("files").child("community").child(community_id).child(name).put(file_name)
         time.sleep(.200)
-        image_url = storage.child("files").child("thumbnail").child(community_id).child(name).get_url(None)
+        image_url = storage.child("files").child("community").child(community_id).child(name).get_url(None)
         print(image_url)
         community.thumbnail=image_url
         community.save()
