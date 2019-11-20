@@ -21,10 +21,13 @@ from django.conf import settings
 
 url=settings.URL
 
-if url == 'https://beta.collabmates.com':
+if settings.IS_BETA:
     eligibility_count = 2
 else:
     eligibility_count = 5
+
+# count for a particular community to show tutorial
+tutorial_count=3
 
 def decode_meta_from_url(url):
 
