@@ -26,7 +26,7 @@ def CommunitySerializer(community):
     elif community.image_url:
         new_dict['image_url'] = community.image_url.url
     else:
-        new_dict['image_url'] = 'https://beta.collabmates.com/media/media/community/default.jpeg'
+        new_dict['image_url'] = '/media/media/community/default.jpeg'
 
 
     if new_dict['image_url'] == "/media/https%3A/upload.wikimedia.org/wikipedia/en/0/09/Community_title.jpg":
