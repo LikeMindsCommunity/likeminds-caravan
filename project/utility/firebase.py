@@ -10,7 +10,6 @@ from PIL import Image
 from io import BytesIO
 from togther.models import Community
 
-
 if settings.IS_BETA:
     # beta firebase config
     FIREBASE_CONFIG = {
@@ -169,19 +168,17 @@ def upload_community_files(community_id,image,url=False):
 def upload_community_thumbnail(community_id,image_url):
 
 
-    name="img_community_thumbnail__"+str(community_id)
+    name = "img_community_thumbnail__" + str(community_id)
+
     try:
         response = urlopen(image_url)
     except Exception as e:
         print(e)
         return
-
-
-
     img = BytesIO(response.read())
-    img = Image.open(img)
+    img = Image.open(img).convert('RGB')
     image = img.resize((200, 200), Image.ANTIALIAS)
-    file_name=name+".jpg"
+    file_name=name+".jpeg"
     image.save(file_name)
 
 
