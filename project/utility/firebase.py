@@ -77,7 +77,6 @@ def is_url_image_valid(image_url):
 
    image_formats = ("image/png", "image/jpeg", "image/jpg")
    r = requests.head(image_url)
-   print(r.headers["content-type"])
    if r.headers["content-type"] in image_formats:
       return True
    return False
@@ -136,7 +135,6 @@ def upload_community_files(community_id,image,url=False):
     name = "img_community_" + str(community_id)
     if url:
         image_url=image
-        print(image_url)
         try:
             response = urlopen(image_url)
             image_data=response.read()
