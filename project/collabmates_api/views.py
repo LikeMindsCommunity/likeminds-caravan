@@ -39,7 +39,8 @@ from utility.utils import (decode_meta_from_url, update_tag_image,
                            user_onbaord, update_member_count,
                            update_community_tags_to_user)
 from utility.tasks import (mail_triger, new_member_request)
-from utility.firebase import update_last_answer_id,upload_image_to_firebase,upload_community_thumbnail
+from utility.firebase import update_last_answer_id,upload_image_to_firebase,upload_community_thumbnail,upload_community_files
+
 
 
 url  = settings.URL
@@ -906,6 +907,10 @@ def create_community(request):
             group.updated_at=time.time()
             group.created_at=time.time()
             group.save()
+            
+            # uploading community image and thumbnail
+            upload_community_files(community_id = group.id,image='https://beta.collabmates.com/media/media/community/default.jpeg',url=True)
+            upload_community_thumbnail.delay(group.id, 'https://beta.collabmates.com/media/media/community/default.jpeg')
 
             # create user as a admin for the community as the user is creating the community as a admin
             user = User.objects.get(id = user_id)
@@ -2356,7 +2361,6 @@ def members_state(request):
 def push(request):
     '''This function is used to insert fcm token to the database in order to generate notifications from database'''
 
-    print("push API")
     member_id=request.GET.get('member_id','')
     token=request.GET.get('token','')
     print('member_id ===>>> ',member_id)
@@ -2364,16 +2368,13 @@ def push(request):
         is_member=Userinfo.objects.filter(user_id=member_id)
     else:
         is_member=None
-    print("is_member ========= ?   ",is_member)
     success=False
     if is_member:
         success=True
         if not is_member[0].fcm_token:
             send_welcome_mail.delay(member_id)
         fcm_token=Userinfo.objects.filter(user_id=member_id).update(fcm_token=token)
-        print("inside success ========= ?   ", success)
 
-    print("success ========= ?   ",success)
     return JsonResponse({'success':success})
 
 
