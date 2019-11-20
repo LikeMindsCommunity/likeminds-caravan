@@ -941,8 +941,8 @@ def update_pre_created_community(community_id,community):
 
         # updating community images
         firebase_community_image = upload_community_files(community_id, community['image_url'], url=True)
-        firebase_community_thumbnail = upload_community_thumbnail(community_id, community['image_url'])
-        update_image_and_thumbnail_of_community(community_id, firebase_community_image, firebase_community_thumbnail)
+        upload_community_thumbnail(community_id, community['image_url'])
+        update_image_and_thumbnail_of_community(community_id, firebase_community_image)
 
         # inserting the questions
         sql = "update togther_form_data set data=%s where community_id_id=%s"
@@ -992,15 +992,15 @@ def insert_tags_for_communities(sql,parameter):
     except (Exception, psycopg2.Error) as error:
         print("Error while connecting to PostgreSQL  ", error)
 
-def update_image_and_thumbnail_of_community(community_id,image_url,thumbnail):
+def update_image_and_thumbnail_of_community(community_id,image_url):
 
     '''function to update thumbnail and community image'''
 
     try:
         conn = get_connection()
         curr = conn.cursor()
-        sql = "update togther_community set image_link=%s,thumbnail=%s where id=%s"
-        parameter_list=[image_url,thumbnail,community_id]
+        sql = "update togther_community set image_link=%s where id=%s"
+        parameter_list=[image_url,community_id]
         curr.execute(sql, parameter_list)
         print("Image updated successfully for community_id=",community_id)
         conn.commit()
@@ -1012,6 +1012,6 @@ def update_image_and_thumbnail_of_community(community_id,image_url,thumbnail):
 
 
 
-#pre_create_communities(tag_id=150)
+# pre_create_communities(tag_id=150)
 
 
