@@ -854,14 +854,14 @@ def insert_pre_create_community(community):
         curr = conn.cursor()
         hide_community='3'
         # inserting the communities
-        sql="insert into togther_community(name,about,purpose,location,created_at,updated_at,members_count,active_since,hide_community,introduction_text) values(%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id;"
+        sql="""insert into togther_community(name,about,purpose,location,created_at,updated_at,members_count,active_since,hide_community,introduction_text) values(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id;"""
         parameter_list=[community['name'],community['about'],community['purpose'],community['geography'],community['created_at'],community['updated_at'],community['member_count'],
                         community['active_since'],hide_community,community['question']]
+        print(len(parameter_list))
         curr.execute(sql, parameter_list)
         conn.commit()
         count = curr.rowcount
-        print(count, "Record inserted successfully for %s "%(community['name']))
-
+        print(count, """Record inserted successfully for %s """%(community['name']))
 
         community_id=curr.fetchone()[0]
 
@@ -871,7 +871,7 @@ def insert_pre_create_community(community):
         update_image_and_thumbnail_of_community(community_id,firebase_community_image,firebase_community_thumbnail)
 
 
-        # inserting the questions
+        # # inserting the questions
         sql="insert into togther_form_data(data,data_type,community_id_id) values(%s,%s,%s)"
         parameter_list=[community['question'],'text',community_id]
         curr.execute(sql, parameter_list)
@@ -933,6 +933,7 @@ def update_pre_created_community(community_id,community):
         parameter_list = [community['name'], community['about'], community['purpose'], community['geography'],
                           updated_at,hide_community,community['question'],community_id
                          ]
+
         curr.execute(sql, parameter_list)
         conn.commit()
         count = curr.rowcount
@@ -1011,8 +1012,6 @@ def update_image_and_thumbnail_of_community(community_id,image_url,thumbnail):
 
 
 
-if envir:
-    if __name__=="__main__":
-        pre_create_communities()
+#pre_create_communities(tag_id=150)
 
 
