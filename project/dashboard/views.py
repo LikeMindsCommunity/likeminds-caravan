@@ -28,7 +28,7 @@ from utility.utils import (get_city_address, update_tag_image,
                            insert_user_home_town_tags, update_hometown_tags_for_all_users,
                            user_onbaord)
 
-from utility.firebase import upload_tag_files, upload_user_files, upload_community_files
+from utility.firebase import upload_tag_files, upload_user_files, upload_community_files, upload_community_thumbnail
 url = settings.URL
 import logging
 # uncomment to run it in localhost
@@ -198,9 +198,15 @@ def update_form(request,community_id):
             community.purpose = purpose_community
             community.hide_community = hide_community
 
+            #uploading community image to firebase
             image = community_form.cleaned_data['image_url']
             image_link = upload_community_files(community_id=community_id, image=image, url=False)
+
+            # saving image link in community object
             community.image_link = image_link
+
+            # saving community image thumbnail
+            upload_community_thumbnail.dealy(community_id=community_id,image_url=image_link)
 
             community.save()
 
