@@ -19,7 +19,7 @@ db_database=settings.DATABASES['default']['NAME']
 
 url=settings.URL
 
-# server keys for sending notification
+#server keys for sending notification
 if url == "https://beta.collabmates.com":
     server_key='AAAA5QiC06o:APA91bGK2e3Y9r2g5VXnJIwK7OJ8pliwpXs_cwayEJ2D32Dfn5TcXpiUJDJNw7w-NqSdUH93FrX5xFie8KfpQORigfSuNlDVXxgi1nt9FcB7y5e5f0428jRKX35vti3R-BhxzMc9yrj_'
 else:
@@ -74,9 +74,10 @@ def get_community_name(community_id):
 def send_notification_to_multiple_devices(token_list,message):
     '''This function is used to send notifications'''
     result=""
+
     push_service = FCMNotification(api_key=server_key)
     result = push_service.notify_multiple_devices(registration_ids=token_list,message_title=message['payload']['title'],
-                                                  message_body=message['payload']['subtitle'],data_message=message['payload'])
+                                                  message_body=message['payload']['sub_title'],data_message=message['payload'])
     print(result)
 
     return result
@@ -379,4 +380,14 @@ def notification_after_compute_rank(user_id):
     else:
         print('No FCM token to send message')
 
-
+# token_list=['ctOQ_i-byd4:APA91bExfVZPP4jeyWNXU4GK4erQpDk2rUUbR9ImwUE7Ha561ZtOEcLJCnbX9PJ-B101BlmqLKj4pI_y8PX2TSLuOrANl4oUbhXkjB1hwspilD4PJXqzFMkdCR5598Ngldti6HSMiVEI']
+# message = {}
+# message['payload'] = {
+#     'title': 'Discover communities',
+#     'sub_title': "Discover and join relevant communities based on your profile",
+#     'route': 'route://main'
+# }
+# title=message['payload']['title']
+# sub_title=message['payload']['sub_title']
+# send_notification_to_multiple_devices(token_list,message)
+#
