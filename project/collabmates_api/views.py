@@ -37,7 +37,7 @@ from utility.utils import (decode_meta_from_url, update_tag_image,
                            referal, get_referred_members_of_a_member,
                            eligibility_count, notify_referred_member,
                            user_onbaord, update_member_count,
-                           update_community_tags_to_user)
+                           update_community_tags_to_user,tutorial_count)
 from utility.tasks import (mail_triger, new_member_request)
 from utility.firebase import update_last_answer_id,upload_image_to_firebase,upload_community_thumbnail,upload_community_files
 
@@ -2083,12 +2083,14 @@ def member_activity(request):
     community=Community.objects.get(pk=community_id)
     member=User.objects.get(pk=user_id)
 
-    status=Collabcard.objects.filter(community=community,user=member)
+    #status=Collabcard.objects.filter(community=community,user=member)
 
-    if status:
-        state=1
-    if state == 1:
-        return JsonResponse({'state':state})
+    # if status:
+    #     state=1
+    # if state == 1:
+    state=community.introduction_text_state
+    if state:
+        return JsonResponse({'state':state,'tutorial_count':tutorial_count})
 
     if state == 0:
 
@@ -2096,7 +2098,7 @@ def member_activity(request):
        if form_response.exists():
         introduction_question=form_response[0].data
         introduction_answer=form_response[0].response
-        return JsonResponse({'state':state,'introduction_question':introduction_question,'introduction_answer':introduction_answer})
+        return JsonResponse({'state':state,'introduction_question':introduction_question,'introduction_answer':introduction_answer,tutorial_count:tutorial_count})
     return JsonResponse({'state': state})
 
 
