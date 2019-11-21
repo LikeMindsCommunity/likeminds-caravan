@@ -2756,6 +2756,17 @@ def get_profile(request):
     return JsonResponse({'user': []})
 
 
+def get_member_id_from_headers(request):
+
+    '''function to get member id from headers'''
+
+    headers = request.META
+    member_id=0
+    if 'HTTP_X_MEMBER_ID' in headers and 'HTTP_X_VERSION_CODE' in headers:
+        member_id = headers['HTTP_X_MEMBER_ID']
+    return member_id
+
+
 ################ functions for getting and setting of tags ##########################################
 
 
@@ -2768,9 +2779,10 @@ def get_first_screen_of_onboarding(member_tags_list):
     temp['sub_title'] = "You can connect with the communities from your classmates, seniors and juniors"
     attribute_list=[]
     attribute_id = 2
+    category_id=1
     attribute_name = "Legacy_education"
     hint = "Your Schools/Colleges"
-    college_list = get_tag_attributes(member_tags_list, attribute_id, attribute_name, hint)
+    college_list = get_tag_attributes(member_tags_list, attribute_id, attribute_name, hint,category_id)
     attribute_list.append(college_list)
     temp['attributes'] = college_list
 
@@ -2788,20 +2800,22 @@ def get_second_screen_of_onboarding(member_tags_list):
     attribute_id = 12
     attribute_name = "Geography_city"
     hint="Your localities"
-    city_list=get_tag_attributes(member_tags_list,attribute_id,attribute_name,hint)
+    category_id=4
+    city_list=get_tag_attributes(member_tags_list,attribute_id,attribute_name,hint,category_id)
     attribute_list.append(city_list)
 
 
     attribute_id = 3
     attribute_name = "Legacy_hometown"
     hint="+ Add hometown"
-    hometown_list=get_tag_attributes(member_tags_list,attribute_id,attribute_name,hint)
+    category_id=1
+    hometown_list=get_tag_attributes(member_tags_list,attribute_id,attribute_name,hint,category_id)
     attribute_list.append(hometown_list)
     temp['attributes'] = attribute_list
 
     return temp
 
-def get_tag_attributes(member_tags_list,attribute_id,attribute_name,hint):
+def get_tag_attributes(member_tags_list,attribute_id,attribute_name,hint,category_id):
 
     '''function to get sports tags'''
 
@@ -2813,6 +2827,7 @@ def get_tag_attributes(member_tags_list,attribute_id,attribute_name,hint):
     attribute_temp['hint'] = hint
     attribute_temp['id'] = attribute_id
     attribute_temp['name'] = attribute_name
+    attribute_temp['category_id']=category_id
     tag_list = []
     for each_tag in tags:
         tag = {}
@@ -2842,7 +2857,8 @@ def get_third_screen_of_onboarding(member_tags_list):
     attribute_id = 10
     attribute_name = "Interests_sports"
     hint="Sports that you follow"
-    sports_list=get_tag_attributes(member_tags_list,attribute_id,attribute_name,hint)
+    category_id=3
+    sports_list=get_tag_attributes(member_tags_list,attribute_id,attribute_name,hint,category_id)
     attribute_list.append(sports_list)
 
 
@@ -2851,7 +2867,9 @@ def get_third_screen_of_onboarding(member_tags_list):
     attribute_id = 9
     attribute_name = "Interests_hobby"
     hint = "Your hobbies"
-    hobbies = get_tag_attributes(member_tags_list, attribute_id, attribute_name, hint)
+    category_id=3
+
+    hobbies = get_tag_attributes(member_tags_list, attribute_id, attribute_name, hint,category_id)
     attribute_list.append(hobbies)
 
     # getting cause
@@ -2859,7 +2877,8 @@ def get_third_screen_of_onboarding(member_tags_list):
     attribute_id = 8
     attribute_name = "Interests_cause"
     hint = "Your Cause"
-    cause = get_tag_attributes(member_tags_list, attribute_id, attribute_name, hint)
+    category_id=3
+    cause = get_tag_attributes(member_tags_list, attribute_id, attribute_name, hint,category_id)
     attribute_list.append(cause)
 
     # getting fan
@@ -2867,7 +2886,8 @@ def get_third_screen_of_onboarding(member_tags_list):
     attribute_id = 11
     attribute_name = "Interests_fan"
     hint = "Fans"
-    fan = get_tag_attributes(member_tags_list, attribute_id, attribute_name, hint)
+    category_id=3
+    fan = get_tag_attributes(member_tags_list, attribute_id, attribute_name, hint,category_id)
     attribute_list.append(fan)
 
     #getting industry
@@ -2875,7 +2895,8 @@ def get_third_screen_of_onboarding(member_tags_list):
     attribute_id = 6
     attribute_name = "Profession_industry"
     hint = "Industry"
-    industry = get_tag_attributes(member_tags_list, attribute_id, attribute_name, hint)
+    category_id=2
+    industry = get_tag_attributes(member_tags_list, attribute_id, attribute_name, hint,category_id)
     attribute_list.append(industry)
 
     #getting skill
@@ -2883,7 +2904,8 @@ def get_third_screen_of_onboarding(member_tags_list):
     attribute_id = 5
     attribute_name = "Profession_skill"
     hint = "skill"
-    skill = get_tag_attributes(member_tags_list, attribute_id, attribute_name, hint)
+    category_id=2
+    skill = get_tag_attributes(member_tags_list, attribute_id, attribute_name, hint,category_id)
     attribute_list.append(skill)
 
 
@@ -2922,3 +2944,98 @@ def onboarding(request):
 
 
     return JsonResponse({'onboarding':onboarding_screens})
+
+
+def save_tags_for_user_from_onboarding(category_id,tag_id,member_id):
+
+    '''function to save user tags in lpig tables'''
+    if category_id == 1:
+        user_legacy_object = User_Legacy()
+        user_legacy_object.user_id = member_id
+        user_legacy_object.tags_id = tag_id
+        user_legacy_object.save()
+    elif category_id == 2:
+        user_profession_object = User_Profession()
+        user_profession_object.user_id = member_id
+        user_profession_object.tags_id = tag_id
+        user_profession_object.save()
+    elif category_id == 3:
+        user_interest_object = User_Interest()
+        user_interest_object.user_id = member_id
+        user_interest_object.tags_id = tag_id
+        user_interest_object.save()
+    elif category_id == 4:
+        user_geography_object = User_Geography()
+        user_geography_object.user_id = member_id
+        user_geography_object.tags_id = tag_id
+        user_geography_object.save()
+
+    log="""for category_id=%s, tags_id=%s saved for member_id=%s"""%(str(category_id),str(tag_id),str(member_id))
+    info_logger.info(log)
+
+
+@csrf_exempt
+def push_onboarding(request):
+
+    '''function to save user tags'''
+
+    user_id=get_member_id_from_headers(request)
+    response = json.loads(request.body)
+    member_id=0
+    try:
+        member_id=User.objects.get(id=user_id)
+    except:
+        error_logger.error("User does not exist")
+    for data in response:
+
+        category_id=data['category_id']
+        tags=data['tags']
+
+        for tag in tags:
+
+           if 'id' in tag:
+              tag_id=Tags_lpig.objects.get(id=tag['id'])
+              save_tags_for_user_from_onboarding(category_id,tag_id,member_id)
+           else:
+               tag_object=Tags_lpig()
+               tag_object.name=tag['name']
+               tag_object.attribute_id=data['id']
+               tag_object.category_id=6      # uncategorized tag
+               tag_object.save()
+               tag_object.tag_id=tag_object.id
+               tag_object.save()
+               save_tags_for_user_from_onboarding(category_id,tag_object,member_id)
+
+
+    #saving global tags for user
+
+    tag_id = Tags_lpig.objects.get(id=15)
+    legacy_global=User_Legacy.objects.filter(tags_id=tag_id,user_id=member_id)
+    if not legacy_global:
+        save_tags_for_user_from_onboarding(1, tag_id, member_id)
+
+
+    tag_id = Tags_lpig.objects.get(id=16)
+    profession_global = User_Profession.objects.filter(tags_id=tag_id, user_id=member_id)
+    if not profession_global:
+        save_tags_for_user_from_onboarding(2, tag_id, member_id)
+
+
+    tag_id = Tags_lpig.objects.get(id=17)
+    interest_global = User_Interest.objects.filter(tags_id=tag_id, user_id=member_id)
+    if not interest_global:
+        save_tags_for_user_from_onboarding(3, tag_id, member_id)
+
+
+    tag_id = Tags_lpig.objects.get(id=18)
+    geography_global = User_Geography.objects.filter(tags_id=tag_id, user_id=member_id)
+    if not geography_global:
+        save_tags_for_user_from_onboarding(4, tag_id, member_id)
+
+    log="""All tags inserted success fully for user=%s"""%(str(member_id))
+    info_logger.info(log)
+
+    return JsonResponse({'success':True})
+
+
+
