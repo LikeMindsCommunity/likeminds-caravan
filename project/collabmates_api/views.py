@@ -842,24 +842,6 @@ def get_user_lpig_tags(user_id):
     return tags
 
 
-# def get_clustered_tags_for_user(tag_list,cluster_tags):
-#
-#     if not cluster_tags:
-#         return tag_list
-#     result=[]
-#     for tag_index in range(len(tag_list)):
-#         for index in cluster_tags:
-#             temp=tag_list[tag_index]
-#             if not temp:
-#                 continue
-#             if(temp['id'] == index):
-#                 tag_list[tag_index]=False
-#
-#     for tag in tag_list:
-#         if tag == False:
-#             continue
-#         result.append(tag)
-#     return result
 
 
 ############# functions for  create flow of card,community and members   ##########################
@@ -2774,4 +2756,169 @@ def get_profile(request):
     return JsonResponse({'user': []})
 
 
+################ functions for getting and setting of tags ##########################################
 
+
+def get_first_screen_of_onboarding(member_tags_list):
+
+    '''function to take college of a user'''
+
+    temp = {}
+    temp['titile'] = "Enter your schools/colleges"
+    temp['sub_title'] = "You can connect with the communities from your classmates, seniors and juniors"
+    attribute_list=[]
+    attribute_id = 2
+    attribute_name = "Legacy_education"
+    hint = "Your Schools/Colleges"
+    college_list = get_tag_attributes(member_tags_list, attribute_id, attribute_name, hint)
+    attribute_list.append(college_list)
+    temp['attributes'] = college_list
+
+    return temp
+
+def get_second_screen_of_onboarding(member_tags_list):
+
+    '''function to get secong screen of onboarding'''
+
+    temp = {}
+    temp['titile'] = "Mention your neighbourhood"
+    temp['sub_title'] = "Your society/locality/city"
+    attribute_list=[]
+
+    attribute_id = 12
+    attribute_name = "Geography_city"
+    hint="Your localities"
+    city_list=get_tag_attributes(member_tags_list,attribute_id,attribute_name,hint)
+    attribute_list.append(city_list)
+
+
+    attribute_id = 3
+    attribute_name = "Legacy_hometown"
+    hint="+ Add hometown"
+    hometown_list=get_tag_attributes(member_tags_list,attribute_id,attribute_name,hint)
+    attribute_list.append(hometown_list)
+    temp['attributes'] = attribute_list
+
+    return temp
+
+def get_tag_attributes(member_tags_list,attribute_id,attribute_name,hint):
+
+    '''function to get sports tags'''
+
+    # for sports
+    # attribute_id = 10
+    # attribute_name = "Interests_sports"
+    tags = Tags_lpig.objects.filter(attribute_id=attribute_id)
+    attribute_temp = {}
+    attribute_temp['hint'] = hint
+    attribute_temp['id'] = attribute_id
+    attribute_temp['name'] = attribute_name
+    tag_list = []
+    for each_tag in tags:
+        tag = {}
+        tag['id'] = each_tag.tag_id
+        tag['name'] = each_tag.name
+        tag['attribute_name'] = attribute_name
+        if each_tag.image_link:
+            tag['image_url'] = each_tag.image_link
+        tag['state'] = 0
+        if tag['id'] in member_tags_list:
+            tag['state'] = 1
+        tag_list.append(tag)
+    attribute_temp['tags'] = tag_list
+
+    return attribute_temp
+
+def get_third_screen_of_onboarding(member_tags_list):
+
+    '''function to show third screen of onboarding'''
+
+    temp = {}
+    temp['titile'] = "What do you identify yourself with"
+    temp['sub_title'] = "Select atleast 5"
+    attribute_list = []
+
+    # getting sport list
+    attribute_id = 10
+    attribute_name = "Interests_sports"
+    hint="Sports that you follow"
+    sports_list=get_tag_attributes(member_tags_list,attribute_id,attribute_name,hint)
+    attribute_list.append(sports_list)
+
+
+    # getting hobbies
+
+    attribute_id = 9
+    attribute_name = "Interests_hobby"
+    hint = "Your hobbies"
+    hobbies = get_tag_attributes(member_tags_list, attribute_id, attribute_name, hint)
+    attribute_list.append(hobbies)
+
+    # getting cause
+
+    attribute_id = 8
+    attribute_name = "Interests_cause"
+    hint = "Your Cause"
+    cause = get_tag_attributes(member_tags_list, attribute_id, attribute_name, hint)
+    attribute_list.append(cause)
+
+    # getting fan
+
+    attribute_id = 11
+    attribute_name = "Interests_fan"
+    hint = "Fans"
+    fan = get_tag_attributes(member_tags_list, attribute_id, attribute_name, hint)
+    attribute_list.append(fan)
+
+    #getting industry
+
+    attribute_id = 6
+    attribute_name = "Profession_industry"
+    hint = "Industry"
+    industry = get_tag_attributes(member_tags_list, attribute_id, attribute_name, hint)
+    attribute_list.append(industry)
+
+    #getting skill
+
+    attribute_id = 5
+    attribute_name = "Profession_skill"
+    hint = "skill"
+    skill = get_tag_attributes(member_tags_list, attribute_id, attribute_name, hint)
+    attribute_list.append(skill)
+
+
+    temp['attributes']=attribute_list
+
+    return temp
+
+
+def onboarding(request):
+
+    '''function to send all the tags for onboarding'''
+
+    onboarding_screens=[]
+    user_id=request.GET.get('member_id','')
+    member_tags_list=[]
+    if user_id:
+        legacy = list(User_Legacy.objects.filter(user_id=user_id).values_list('correct_tag_id',flat=True))
+        profession = list(User_Profession.objects.filter(user_id=user_id).values_list('correct_tag_id',flat=True))
+        interest = list(User_Profession.objects.filter(user_id=user_id).values_list('correct_tag_id',flat=True))
+        geography =list(User_Profession.objects.filter(user_id=user_id).values_list('correct_tag_id',flat=True))
+        member_tags_list=legacy+profession+interest+geography
+    # print(member_tags_list)
+
+    # first screen flow
+    first_screen=get_first_screen_of_onboarding(member_tags_list)
+    onboarding_screens.append(first_screen)
+
+
+    # second screen flow
+    second_screen=get_second_screen_of_onboarding(member_tags_list)
+    onboarding_screens.append(second_screen)
+
+    # third screen flow
+    third_screen=get_third_screen_of_onboarding(member_tags_list)
+    onboarding_screens.append(third_screen)
+
+
+    return JsonResponse({'onboarding':onboarding_screens})
