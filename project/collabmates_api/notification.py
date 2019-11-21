@@ -75,8 +75,8 @@ def send_notification_to_multiple_devices(token_list,message):
     '''This function is used to send notifications'''
     result=""
     push_service = FCMNotification(api_key=server_key)
-    result = push_service.notify_multiple_devices(registration_ids=token_list,data_message=message['payload'])
-
+    result = push_service.notify_multiple_devices(registration_ids=token_list,message_title=message['payload']['title'],
+                                                  message_body=message['payload']['subtitle'],data_message=message['payload'])
     print(result)
 
     return result
@@ -378,4 +378,5 @@ def notification_after_compute_rank(user_id):
 
     else:
         print('No FCM token to send message')
+
 
