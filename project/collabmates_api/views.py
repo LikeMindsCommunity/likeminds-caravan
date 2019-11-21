@@ -2098,7 +2098,7 @@ def member_activity(request):
        if form_response.exists():
         introduction_question=form_response[0].data
         introduction_answer=form_response[0].response
-        return JsonResponse({'state':state,'introduction_question':introduction_question,'introduction_answer':introduction_answer,tutorial_count:tutorial_count})
+        return JsonResponse({'state':state,'introduction_question':introduction_question,'introduction_answer':introduction_answer,'tutorial_count':tutorial_count})
     return JsonResponse({'state': state})
 
 
