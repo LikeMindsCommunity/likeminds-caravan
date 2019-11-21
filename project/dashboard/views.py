@@ -206,7 +206,7 @@ def update_form(request,community_id):
             community.image_link = image_link
 
             # saving community image thumbnail
-            upload_community_thumbnail.dealy(community_id=community_id,image_url=image_link)
+            upload_community_thumbnail.delay(community_id=community_id,image_url=image_link)
 
             community.save()
 
