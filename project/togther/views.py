@@ -564,231 +564,6 @@ def accept_admin(request, community_id):
 
 
 @login_required
-def creategroup(request):
-    print(request)
-    if request.method == 'POST':
-        res = request.POST.dict()
-        img = request.FILES.dict()
-        print(img)
-        group = Community()
-        group.members_count = group.members_count + 1
-        group.name = res['name']
-        group.about = res['about']
-        group.purpose = res['purpose']
-        group.location = res['location']
-        if 'image' in img:
-            print('yeah')
-            group.image_url = img['image']
-        if 'whatsapp_link' in res:
-            group.whatsapp_group_link = res['whatsapp_link']
-        group.save()
-
-        categories = request.POST.getlist('category')
-        for i in categories:
-            category = Community_tags()
-            category.category = i
-            category.community_id_id = group.id
-            category.save()
-
-        admin = Admins()
-        admin.admin_id = request.user
-        community = Community.objects.get(id=group.id)
-        admin.community_id = community
-        admin.save()
-        member = Members()
-        member.member_id = request.user
-        member.community_id = community
-        member.save()
-        return redirect('form_data', community_id=group.id)
-    if request.user.is_authenticated:
-        user = Userinfo.objects.all().filter(user_id=request.user)
-    else:
-        user = []
-    return render(request, 'creategroup.html', {'usr': user})
-
-
-@login_required
-def profile(request, user_id):
-    info = Userinfo.objects.get(user_id=request.user)
-    if request.method == 'GET':
-        res = request.GET.dict()
-        print(res)
-        if 'name' in res:
-            if (res['name'] == 'headline'):
-                info.headline = res['headline']
-                info.save()
-            if (res['name'] == 'summary'):
-                info.about = res['summary']
-                info.save()
-            if (res['name'] == 'experience'):
-                info.headline = res['headline']
-                info.fb_link = res['fb_link']
-                info.linkedin_link = res['linkedin']
-                info.save()
-            if (res['name'] == 'education'):
-                info.headline = res['headline']
-                info.fb_link = res['fb_link']
-                info.linkedin_link = res['linkedin']
-                info.save()
-            if (res['name'] == 'interests'):
-                info.interests = res['interests']
-                info.save()
-            if (res['name'] == 'add_education'):
-                edu = Education()
-                edu.user_id = info
-                edu.degree = res['degree']
-                edu.instituion = res['institution']
-                edu.from_year = res['from']
-                edu.to_year = res['to']
-                edu.description = res['description']
-                edu.save()
-            if (res['name'] == 'add_experience'):
-                exp = Experience()
-                exp.user_id = info
-                exp.company = res['company']
-                exp.title = res['title']
-                exp.from_year = res['from']
-                exp.to_year = res['to']
-                exp.description = res['description']
-                exp.save()
-            return JsonResponse({'status': 'ok'})
-    info = Userinfo.objects.all().filter(user_id=user_id)
-    if request.user.is_authenticated:
-        user = Userinfo.objects.all().filter(user_id=request.user)
-    else:
-        user = []
-    communities = Members.objects.all().filter(member_id=user_id)
-    my_communities = []
-    for i in communities:
-        my_communities.append(i.community_id)
-    experiences = Experience.objects.all().filter(user_id=info[0])
-    educations = Education.objects.all().filter(user_id=info[0])
-    print(':', my_communities)
-
-    return render(request, 'profile.html',
-                  {'usr': user, "info": info, "my_communities": my_communities, "experience": experiences,
-                   "education": educations})
-
-
-@login_required
-def recieved_requests(request):
-    admins_communities = Admins.objects.all().filter(admin_id=1)
-    req = []
-    # data = Form_response.objects.all().filter(user_id = request.user.id)
-    for c in admins_communities:
-        r = Requests.objects.all().filter(community_id_id=c.admin_id_id)
-        req.append(r)
-    return render(request, 'requests.html', {'req': req})
-
-
-@login_required
-def check_requests(request):
-    if request.method == 'GET':
-        res = request.GET.dict()
-        print(res)
-        if 'status' in res:
-            req = Requests.objects.get(id=int(res['id']))
-            comm = Community.objects.get(id=req.community.id)
-            print(req)
-            if res['status'] == '1':
-                req.status = 1
-                req.save()
-                print(req.status)
-                mem = Members()
-                mem.member_id = req.user_id
-                mem.community_id = req.community
-                mem.save()
-                comm.members_count = comm.members_count + 1
-                comm.save()
-                email = req.user_info.email
-                print(email)
-                send_mail('Collabmates: Group Joining', 'Your request has been approved by the admin.',
-                          'Collabmates<hello@collabmates.com>', [email], fail_silently=False)
-            else:
-                req.status = -1
-                req.save()
-                email = req.user_info.email
-                print(email)
-                send_mail('Collabmates: Group Joining', 'Your request has been Rejected by the admin.',
-                          'Collabmates<hello@collabmates.com>', [email], fail_silently=False)
-            return JsonResponse({'status': 'OK'})
-    admins_communities = Admins.objects.all().filter(admin_id=request.user)
-    print(admins_communities)
-    rqsts = []
-    requests = Requests.objects.all()
-    for i in requests:
-        if i.status != -1:
-            for j in admins_communities:
-                print((j.community_id.id))
-                if i.community.id == j.community_id.id:
-                    rqsts.append(i)
-    if request.user.is_authenticated:
-        user = Userinfo.objects.all().filter(user_id=request.user)
-    else:
-        user = []
-    print(rqsts)
-    return render(request, 'requests.html', {'usr': user, 'admins_communities': admins_communities, 'req': rqsts})
-
-
-def request_response(request):
-    if request.method == "GET":
-        id = request.GET.get("id")
-        req = Requests.objects.get(id=id)
-        val = request.GET.get("value")
-        print(type(val))
-        if val == '1':
-            print('heloo')
-            req.status = 1
-            print(req.community_id_id)
-            comm = Community.objects.get(id=req.community_id_id)
-            print(comm.members_count)
-            comm.members_count = comm.members_count + 1
-            member = Members()
-            member.community_id_id = comm.id
-            user = User.objects.get(id=req.user_id_id)
-            member.member_id_id = user.id
-            print(comm)
-            comm.save()
-            req.save()
-            member.save()
-        else:
-            print('adfa')
-    return HttpResponse('hi')
-
-
-@login_required
-def edit_profile(request, user_id):
-    if request.method == 'POST':
-        form = NewProfileForm(request.POST, request.FILES)
-        usr = Userinfo.objects.all().filter(user_id_id=request.user.id)
-        if usr:
-            usr.delete()
-        if form.is_valid():
-            print(user_id)
-            userinfo = form.save(commit=False)
-            userinfo.user_id = request.user
-            userinfo.profile_completed = 1
-            userinfo.save()
-            return redirect('profile', user_id=request.user.id)
-    else:
-        usr = Userinfo.objects.all().filter(user_id_id=user_id)
-
-        if not usr:
-            form = NewProfileForm()
-        else:
-            usr = usr[0]
-            form = NewProfileForm(
-                initial={'name': usr.name, 'city': usr.city, 'image_url': usr.image_url, 'college': usr.college,
-                         'contact_number': usr.contact_number, 'experience': usr.experience, 'gender': usr.gender,
-                         'interests': usr.interests, 'fb_link': usr.fb_link, 'linkedin_link': usr.linkedin_link})
-    if request.user.is_authenticated:
-        user = Userinfo.objects.all().filter(user_id=request.user)
-    else:
-        user = []
-    return render(request, 'editprofile.html', {'usr': user, 'form': form})
-
-
-@login_required
 def logout_view(request):
     logout(request)
     return redirect('signup')
@@ -856,71 +631,15 @@ def join_community(request, community_id,ref_id):
             return True, user, data, community
 
 
-@login_required
-def form_data(request, community_id):
-    print(community_id)
-    if request.user.is_authenticated:
-        user = Userinfo.objects.all().filter(user_id=request.user)
-    else:
-        user = []
-    if request.method == "POST":
-        print(request.POST.dict())
-        res = request.POST.dict()
-        community = Community.objects.all().filter(id=community_id)
-        if 'college' in res:
-            mForm_data = Form_data()
-            mForm_data.data = 'College'
-            mForm_data.community_id = community[0]
-            mForm_data.data_type = 'text'
-            mForm_data.save()
-        if 'contact' in res:
-            mForm_data = Form_data()
-            mForm_data.data = 'Contact'
-            mForm_data.community_id = community[0]
-            mForm_data.data_type = 'text'
-            mForm_data.save()
-        if 'experience' in res:
-            mForm_data = Form_data()
-            mForm_data.data = 'Experience'
-            mForm_data.community_id = community[0]
-            mForm_data.data_type = 'text'
-            mForm_data.save()
-        if 'interests' in res:
-            mForm_data = Form_data()
-            mForm_data.data = 'Interests'
-            mForm_data.community_id = community[0]
-            mForm_data.data_type = 'text'
-            mForm_data.save()
-        count = 1
-        q = 'question_'
-        i = q + str(count)
-        print(i)
-        while (1):
-            if i in res and res[i] != '':
-                print(i)
-                mForm_data = Form_data()
-                mForm_data.data = res[i]
-                mForm_data.community_id = community[0]
-                mForm_data.data_type = res['response' + str(count)]
-                mForm_data.save()
-            else:
-                break
-            count = count + 1
-            i = q + str(count)
-    else:
-        return render(request, 'form_data.html', {'usr': user})
-
-    return redirect('comunity', community_id)
-
-
 def thankyou(request):
     email = request.GET.get("mail")
     print("email = = ", email)
-    mail = get_notified()
-    mail.email = email
-    mail.save()
+    if email:
+        mail = get_notified()
+        mail.email = email
+        mail.save()
+        send_email(email)
 
-    send_email(email)
     return render(request, 'thankyou2.html')
 
 
@@ -936,57 +655,6 @@ def send_email(email):
                                  )
     if email:
         return msg.send(fail_silently)
-
-
-def my_communities(request, user_id):
-    communities = Members.objects.all().filter(member_id=user_id)
-    my_communities = []
-    for i in communities:
-        my_communities.append(i.community_id)
-
-    if request.user.is_authenticated:
-        user = Userinfo.objects.all().filter(user_id=request.user)
-    else:
-        user = []
-    return render(request, 'my_community.html', {'usr': user, 'my_communities': my_communities})
-
-
-def communities_as_admin(request, user_id):
-    communities = Admins.objects.all().filter(admin_id=user_id)
-    admins_communities = []
-    for i in communities:
-        admins_communities.append(i.community_id)
-
-    if request.user.is_authenticated:
-        user = Userinfo.objects.all().filter(user_id=request.user)
-    else:
-        user = []
-    return render(request, 'communities_as_admin.html', {'usr': user, 'admins_communities': admins_communities})
-
-
-def members_list(request, community_id):
-    member_list = Members.objects.all().filter(community_id=community_id)
-    members = []
-    for i in member_list:
-        user = Userinfo.objects.all().filter(user_id=i.member_id)
-        if user:
-            members.append(user[0])
-
-    if request.user.is_authenticated:
-        user = Userinfo.objects.all().filter(user_id=request.user)
-    else:
-        user = []
-    community = Community.objects.all().filter(id=community_id)
-    return render(request, 'members.html', {'usr': user, 'members': members, 'community': community})
-
-
-def user_response(request, community_id, user_id):
-    if request.user.is_authenticated:
-        user = Userinfo.objects.all().filter(user_id=request.user)
-    else:
-        user = []
-    responses = Form_response.objects.all().filter(user=user_id, community=community_id)
-    return render(request, 'user_response.html', {'usr': user, 'responses': responses})
 
 
 def privacy(request):
@@ -1114,44 +782,6 @@ def create_message(request):
     return JsonResponse({'success':True,'msg':msg,'image_url':user['image_url'],'name':user['name']})
 
 
-def set_user_tag(user_id, community_id):
-    ''' function to set hidden tag for user '''
-    community = Community.objects.get(id=community_id)
-    iit_tag = Community_tags.objects.filter(community_id=community, tags_id=41)
-    nsit_tag = Community_tags.objects.filter(community_id=community, tags_id=42)
-    check = True
-    # we have only two hidden tags now
-    # if we have more hidden tags this function is gonna change
-    if iit_tag:
-        tag_id = 41
-        check = check_user_tag(user_id=user_id, tag_id=tag_id)
-    elif nsit_tag:
-        tag_id = 42
-        check = check_user_tag(user_id=user_id, tag_id=tag_id)
-    if not check:
-        user_tag = userinfo_tags()
-        user_tag.user_id = user_id
-        user_tag.tag_id = tag_id
-        user_tag.save()
-    return
-
-
-def check_user_tag(user_id, tag_id):
-    ''' fucntion to check if user has a hidden tag already
-     prevent user from having same tag twice'''
-    user_tag = userinfo_tags.objects.filter(user_id=user_id, tag_id=tag_id)
-    if user_tag:
-        return True
-    else:
-        return False
-
-
-def get_user_tag(user_id):
-    ''' function to get user hidden tag '''
-    user_tag = userinfo_tags.objects.all().filter(user_id=user_id)
-    return user_tag
-
-
 def get_nominated_admin_details(community_id,email):
     '''fetching nominated promoter details from temp admin table'''
     community = get_object_or_404(Community, pk = community_id)
@@ -1274,7 +904,7 @@ def get_or_create_tag(tag_name,tag_type):
         try:
             tag = Tags_lpig.objects.get(name = tag_name)
         except:
-            category = Category.objects.filter(Q(name__icontains=tag_type))[0]
+            category = Category.objects.get(pk=6)
             attribute = Attributes.objects.filter(Q(attribute_name__icontains=tag_type), Q(attribute_name__icontains='Uncategorized'))[0]
             tag = Tags_lpig()
             tag.name = tag_name

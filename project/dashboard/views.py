@@ -857,21 +857,6 @@ def analytics_community(request,community_id):
     return render(request,'dashboard/community_analytics.html',context)
 
 
-def is_tag_present(tag,hide_status):
-    '''function to check whether the tag is present or not'''
-    tags=Tags.objects.filter(category_name=tag)
-
-    if tags:
-        return tags[0].id
-    else:
-        new_tag=Tags()
-        new_tag.category_name=tag
-        if hide_status:
-            new_tag.state=1
-        new_tag.save()
-        return new_tag.id
-
-
 def hidden_tags(request,community_id):
 
     '''function to show hidden tags'''
@@ -1153,7 +1138,7 @@ def create_uncategorized_tag(tag,tag_type):
     new_tag = new_tag.strip().title()
     if new_tag != '':
 
-        category = Category.objects.filter(Q(name__icontains=tag_type))[0]
+        category = Category.objects.get(pk=6)
         attribute = Attributes.objects.filter(Q(attribute_name__icontains=tag_type), Q(attribute_name__icontains='Uncategorized'))[0]
         tag = Tags_lpig.objects.filter(name = new_tag)
         if not tag.exists():
@@ -1183,28 +1168,6 @@ def delete_hidden_tags(request):
     Tags_lpig.objects.filter(pk=tag).delete()
 
     return JsonResponse({'success': True})
-
-
-def add_location_tags(location,community_id):
-
-    '''function to add location tags for a communities'''
-
-    location_list=location.split(",")
-
-    for data in location_list:
-        if data:
-            tag_id=is_tag_present(data,True)
-            is_present=Community_tags.objects.filter(community_id=community_id,tags_id=tag_id)
-            community = Community.objects.get(id=community_id)
-            if not is_present:
-                community_tags_object = Community_tags()
-                community_tags_object.category = data
-                community_tags_object.community_id = community
-                community_tags_object.state='1'
-                community_tags_object.tags_id = tag_id
-                community_tags_object.save()
-
-    print('location Inserted Successfully')
 
 
 def alpha_sign_up_mail(request,user_id):
@@ -1523,11 +1486,12 @@ def categorize_tag(request):
         uncategortized_tags = Tags_lpig.objects.filter(Q(attribute_id = legacy_uncat.id )|
                                                        Q(attribute_id = profession_uncat.id )|
                                                        Q(attribute_id = interests_uncat.id )|
-                                                       Q(attribute_id = geography_uncat.id )).order_by("name")
+                                                       Q(attribute_id = geography_uncat.id )|
+                                                       Q(category_id = 6)).order_by("name")
 
         categortized_tags = Tags_lpig.objects.filter(~Q(attribute_id=16),~Q(attribute_id=17),
                                                      ~Q(attribute_id=18),~Q(attribute_id=19),
-                                                     ~Q(attribute_id=20)).order_by("name")
+                                                     ~Q(attribute_id=20),~Q(category_id=6)).order_by("name")
 
         categortized_tags_list = []
         for tag in categortized_tags:
@@ -2947,9 +2911,9 @@ def map_all_tags(request):
     ''' fucntion to map a tag to other tag and categorize it  '''
 
     if request.method == 'GET':
-        tags = Tags_lpig.objects.filter(~Q(attribute_id__id=16)|~Q(attribute_id__id=17)|
-                                        ~Q(attribute_id__id=18)|~Q(attribute_id__id=19)|
-                                        ~Q(attribute_id__id=20))
+        tags = Tags_lpig.objects.filter(~Q(attribute_id=16),~Q(attribute_id=17),
+                                        ~Q(attribute_id=18),~Q(attribute_id=19),
+                                        ~Q(attribute_id=20),~Q(category_id=6))
         return render(request, 'dashboard/map_all_tag.html', {'tags':tags})
     else:
         selected_tag = request.POST.get('selected_tag')
