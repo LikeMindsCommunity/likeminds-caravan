@@ -2995,7 +2995,7 @@ def push_onboarding(request):
 
         for tag in tags:
 
-           if 'id' in tag or tag['id']:
+           if 'id' in tag and tag['id']:
               tag_id=Tags_lpig.objects.get(id=tag['id'])
               save_tags_for_user_from_onboarding(category_id,tag_id,member_id)
            else:
