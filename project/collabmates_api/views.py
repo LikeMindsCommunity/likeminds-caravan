@@ -2931,17 +2931,17 @@ def onboarding(request):
 
     # first screen flow
     first_screen=get_first_screen_of_onboarding(member_tags_list)
-    onboarding_screens.append(first_screen)
 
 
     # second screen flow
     second_screen=get_second_screen_of_onboarding(member_tags_list)
-    onboarding_screens.append(second_screen)
 
     # third screen flow
     third_screen=get_third_screen_of_onboarding(member_tags_list)
-    onboarding_screens.append(third_screen)
 
+    onboarding_screens.append(second_screen)
+    onboarding_screens.append(first_screen)
+    onboarding_screens.append(third_screen)
 
     return JsonResponse({'onboarding':onboarding_screens})
 
@@ -2997,10 +2997,12 @@ def push_onboarding(request):
               tag_id=Tags_lpig.objects.get(id=tag['id'])
               save_tags_for_user_from_onboarding(category_id,tag_id,member_id)
            else:
+               attribute_id=Attributes.objects.get(id=data['id'])
+               uncharacterized_category_id=Category.objects.get(id=6)
                tag_object=Tags_lpig()
                tag_object.name=tag['name']
-               tag_object.attribute_id=data['id']
-               tag_object.category_id=6      # uncategorized tag
+               tag_object.attribute_id=attribute_id
+               tag_object.category_id=uncharacterized_category_id      # uncategorized tag
                tag_object.save()
                tag_object.tag_id=tag_object.id
                tag_object.save()
