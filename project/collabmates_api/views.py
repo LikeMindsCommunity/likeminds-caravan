@@ -40,7 +40,7 @@ from utility.utils import (decode_meta_from_url, update_tag_image,
                            update_community_tags_to_user,tutorial_count)
 from utility.tasks import (mail_triger, new_member_request)
 from utility.firebase import update_last_answer_id,upload_image_to_firebase,upload_community_thumbnail,upload_community_files
-
+from .raw_queries import compute_rank
 
 
 url  = settings.URL
@@ -3038,6 +3038,8 @@ def push_onboarding(request):
 
     log="""All tags inserted success fully for user=%s"""%(str(member_id))
     info_logger.info(log)
+
+    compute_rank.delay(user_id=user_id)
 
     return JsonResponse({'success':True})
 
