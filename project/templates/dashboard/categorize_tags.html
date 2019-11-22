@@ -67,7 +67,7 @@ Go to Home</a>
                     {% elif cat.attribute_id.id == 20 %}
                     <option value="{{cat.id}}">{{cat.name}}  (geography)</option>
                     {% else %}
-                    <option value="{{cat.id}}">{{cat.name}} {{cat.attribute_id.attribute_name}}</option>
+                    <option value="{{cat.id}}">{{cat.name}} ( {{cat.attribute_id.attribute_name}} )</option>
                     {% endif %}
                     {% endfor %}
                 </select>
@@ -130,7 +130,7 @@ Go to Home</a>
                     {% elif cat.attribute_id.id == 20 %}
                     <option value="{{cat.id}}">{{cat.name}}  (geography)</option>
                     {% else %}
-                    <option value="{{cat.id}}">{{cat.name}} {{cat.attribute_id.attribute_name}}</option>
+                    <option value="{{cat.id}}">{{cat.name}} ( {{cat.attribute_id.attribute_name}} )</option>
                     {% endif %}
                     {% endfor %}
                 </select>
@@ -188,7 +188,7 @@ Go to Home</a>
                     {% elif cat.attribute_id.id == 20 %}
                     <option value="{{cat.id}}">{{cat.name}}  (geography)</option>
                     {% else %}
-                    <option value="{{cat.id}}">{{cat.name}} {{cat.attribute_id.attribute_name}}</option>
+                    <option value="{{cat.id}}">{{cat.name}} ( {{cat.attribute_id.attribute_name}} )</option>
                     {% endif %}
                     {% endfor %}
                 </select>
