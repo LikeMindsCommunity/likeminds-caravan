@@ -64,7 +64,7 @@ $(window).load(function(){
           <option selected style="color:black;">Choose...</option>
           {% autoescape off %}
                     {% for tag in tags %}
-                    <option value="{{tag.id}}">{{tag.name}}</option>
+                    <option value="{{tag.id}}">{{tag.name}}  ( {{tag.attribute_id.attribute_name}} )</option>
                     {% endfor %}
           {% endautoescape %}
       </select>
