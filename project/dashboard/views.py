@@ -1502,6 +1502,24 @@ def categorize_tag(request):
 
             categortized_tags_list.append(tag_dict)
 
+        un_categortized_tags_list = []
+        for tag in uncategortized_tags:
+            tag_dict = {}
+            tag_dict['id'] = tag.id
+            tag_dict['name'] = tag.name
+            if tag.attribute_id.id == 17:
+                tag_dict['attr'] = 'legacy'
+            elif tag.attribute_id.id == 18:
+                tag_dict['attr'] = 'profession'
+            elif tag.attribute_id.id == 19:
+                tag_dict['attr'] = 'interest'
+            elif tag.attribute_id.id == 20:
+                tag_dict['attr'] = 'geography'
+            else:
+                tag_dict['attr'] = tag.attribute_id.attribute_name
+
+            un_categortized_tags_list.append(tag_dict)
+
 
 
 
@@ -1517,7 +1535,7 @@ def categorize_tag(request):
                                                       ,~Q(attribute_name__icontains = 'uncategorized'))
 
         return render(request, 'dashboard/categorize_tags.html', {'categories': categories,
-                                                                  'uncategortized_tags':uncategortized_tags,
+                                                                  'uncategortized_tags':un_categortized_tags_list,
                                                                   'categortized_tags': categortized_tags_list,
                                                                   'legacy_attributes': legacy_attributes,
                                                                   'profession_attributes': profession_attributes,
