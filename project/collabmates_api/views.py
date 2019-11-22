@@ -2761,6 +2761,7 @@ def get_member_id_from_headers(request):
     '''function to get member id from headers'''
 
     headers = request.META
+    print(headers)
     member_id=0
     if 'HTTP_X_MEMBER_ID' in headers and 'HTTP_X_VERSION_CODE' in headers:
         member_id = headers['HTTP_X_MEMBER_ID']
