@@ -2856,7 +2856,7 @@ def get_third_screen_of_onboarding(member_tags_list):
     # getting sport list
     attribute_id = 10
     attribute_name = "Interests_sports"
-    hint="Sports that you follow"
+    hint="Playing these sports"
     category_id=3
     sports_list=get_tag_attributes(member_tags_list,attribute_id,attribute_name,hint,category_id)
     attribute_list.append(sports_list)
@@ -2866,47 +2866,49 @@ def get_third_screen_of_onboarding(member_tags_list):
 
     attribute_id = 9
     attribute_name = "Interests_hobby"
-    hint = "Your hobbies"
+    hint = "Pursuing these hobbies"
     category_id=3
 
     hobbies = get_tag_attributes(member_tags_list, attribute_id, attribute_name, hint,category_id)
     attribute_list.append(hobbies)
 
-    # getting cause
-
-    attribute_id = 8
-    attribute_name = "Interests_cause"
-    hint = "Your Cause"
-    category_id=3
-    cause = get_tag_attributes(member_tags_list, attribute_id, attribute_name, hint,category_id)
-    attribute_list.append(cause)
-
     # getting fan
 
     attribute_id = 11
     attribute_name = "Interests_fan"
-    hint = "Fans"
-    category_id=3
-    fan = get_tag_attributes(member_tags_list, attribute_id, attribute_name, hint,category_id)
+    hint = "Following these teams, sports, genres or topics"
+    category_id = 3
+    fan = get_tag_attributes(member_tags_list, attribute_id, attribute_name, hint, category_id)
     attribute_list.append(fan)
 
-    #getting industry
+    # getting cause
 
-    attribute_id = 6
-    attribute_name = "Profession_industry"
-    hint = "Industry"
-    category_id=2
-    industry = get_tag_attributes(member_tags_list, attribute_id, attribute_name, hint,category_id)
-    attribute_list.append(industry)
+    attribute_id = 8
+    attribute_name = "Interests_cause"
+    hint = "Working on these causes"
+    category_id=3
+    cause = get_tag_attributes(member_tags_list, attribute_id, attribute_name, hint,category_id)
+    attribute_list.append(cause)
 
     #getting skill
 
     attribute_id = 5
     attribute_name = "Profession_skill"
-    hint = "skill"
+    hint = "skills that you have"
     category_id=2
     skill = get_tag_attributes(member_tags_list, attribute_id, attribute_name, hint,category_id)
     attribute_list.append(skill)
+
+
+    #getting industry
+
+    attribute_id = 6
+    attribute_name = "Profession_industry"
+    hint = "Industry that you belong to"
+    category_id=2
+    industry = get_tag_attributes(member_tags_list, attribute_id, attribute_name, hint,category_id)
+    attribute_list.append(industry)
+
 
 
     temp['attributes']=attribute_list
