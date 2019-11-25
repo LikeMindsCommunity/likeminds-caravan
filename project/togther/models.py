@@ -51,12 +51,12 @@ class Members (models.Model):
     def __str__(self):
         return self.community_id.name
 
-class Admins (models.Model):
-    admin_id = models.ForeignKey(User, on_delete=models.CASCADE)
-    community_id = models.ForeignKey(Community, on_delete = models.CASCADE)
-
-    def __str__(self):
-        return self.community_id.name
+# class Admins (models.Model):
+#     admin_id = models.ForeignKey(User, on_delete=models.CASCADE)
+#     community_id = models.ForeignKey(Community, on_delete = models.CASCADE)
+#
+#     def __str__(self):
+#         return self.community_id.name
 
 class Community_tags (models.Model):
     community_id = models.ForeignKey(Community, on_delete = models.CASCADE)
@@ -195,6 +195,15 @@ class Card_Attachment (models.Model):
 
     collabcard = models.ForeignKey(Collabcard, on_delete = models.CASCADE)
     attachment = models.FileField(upload_to="media/collabcard_files",default='')
+    file_url=models.CharField(max_length=500,null=True)
+    type=models.CharField(max_length=50,default='')
+
+class Answer_Attachment (models.Model):
+
+    '''model to save files of collabcard'''
+
+    answer = models.ForeignKey(card_answers, on_delete = models.CASCADE)
+    # attachment = models.FileField(upload_to="media/collabcard_files",default='')
     file_url=models.CharField(max_length=500,null=True)
     type=models.CharField(max_length=50,default='')
 
