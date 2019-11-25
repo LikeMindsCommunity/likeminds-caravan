@@ -2988,7 +2988,7 @@ def push_onboarding(request):
         member_id=User.objects.get(id=user_id)
     except:
         error_logger.error("User does not exist")
-    for data in response:
+    for data in response['attributes']:
 
         category_id=data['category_id']
         tags=data['tags']
