@@ -1633,7 +1633,10 @@ def get_answer_data(answer):
         else:
             time_text = get_time_text(ans.date_epoch)
 
-        answers.append({'id': ans.id, 'answer': ans.answer, 'created_at': time_text, 'member': usr})
+        attachements = get_answer_files(ans.id)
+
+        answers.append({'id': ans.id, 'answer': ans.answer, 'created_at': time_text, 'member': usr,
+                        'images':attachements[0], 'pdf':attachements[1]})
     return answers
 
 
@@ -1657,6 +1660,25 @@ def get_collabcard_files(card_id):
             else:
                 pdf_url = {'pdf_file': url + file.attachment.url}
             pdf.append(pdf_url)
+    return (img_list,pdf)
+
+
+def get_answer_files(answer_id):
+
+    '''function to return pdf and image files of a collabcard'''
+
+    files = Answer_Attachment.objects.filter(answer=answer_id)
+    img_list=[]
+    pdf=[]
+    for file in files:
+        if file.type == 'image':
+            if file.file_url:
+                img = {'image_url': file.file_url}
+                img_list.append(img)
+        elif file.type == 'pdf':
+            if file.file_url:
+                pdf_url = {'pdf_file': file.file_url}
+                pdf.append(pdf_url)
     return (img_list,pdf)
 
 
@@ -2222,6 +2244,17 @@ def upload_files(request):
 
             file = Card_Attachment()
             file.collabcard = collabcard
+            file.type = attachment_type
+            file.file_url=body['url']
+            file.save()
+
+        elif 'answer_id' in body:
+            attachment_type = body['type']
+            answer_id = body['answer_id']
+            answer_obj = card_answers.objects.get(id=answer_id)
+
+            file = Answer_Attachment()
+            file.answer = answer_obj
             file.type = attachment_type
             file.file_url=body['url']
             file.save()
