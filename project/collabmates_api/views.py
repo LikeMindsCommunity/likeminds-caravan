@@ -920,12 +920,12 @@ def create_community(request):
             # saving details in firebase
             update_last_answer_id(card.id,"")
 
-
-            print("\n>>>>>>>>>>>>>   card  =====  ",card.id)
-            print("\n>>>>>>>>>>>>>   community  =====  ",community.id)
-            Community.objects.filter(id=community.id).update(purpose_collabcard = card.id)
+            # Community.objects.filter(id=community.id).update(purpose_collabcard = card.id)
             # community.purpose_collabcard = card.id
             # community.save()
+            community_id = community.id
+            card_id = card.id
+            save_community_purpose_card(community_id, card_id)
             print("updated card id >>>>>>>   \n",card.id,"\n")
             # created card will be auto followed by the creator if the card
             follow=follow_collabcard()
@@ -1001,6 +1001,13 @@ def create_community(request):
             #send_email_to_temp_admin_of_community.delay(CommmunityAdminName=user.name,CommunityName=res['name'],email=user.email)
             return JsonResponse({'success':True, 'community':new_dict})
     return HttpResponse("Create Community Api")
+
+def save_community_purpose_card(community_id,card_id):
+    print("\n>>>>>>>>>>>>>   card  =====  ", card_id)
+    print("\n>>>>>>>>>>>>>   community  =====  ", community_id)
+    community = Community.objects.get(id=community_id)
+    community.purpose_collabcard = card_id
+    community.save()
 
 
 # /api/create_collabcard?community_id=300&member_id=21
