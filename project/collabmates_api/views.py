@@ -921,8 +921,8 @@ def create_community(request):
             update_last_answer_id(card.id,"")
 
             # Community.objects.filter(id=group.id).update(purpose_collabcard = card.id)
-            group.purpose_collabcard = card.id
-            group.save()
+            community.purpose_collabcard = card.id
+            community.save()
             # created card will be auto followed by the creator if the card
             follow=follow_collabcard()
             follow.collabcard_id=card
