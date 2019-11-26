@@ -922,9 +922,10 @@ def create_community(request):
 
 
             print("\n>>>>>>>>>>>>>   card  =====  ",card.id)
+            print("\n>>>>>>>>>>>>>   community  =====  ",community.id)
             Community.objects.filter(id=community.id).update(purpose_collabcard = card.id)
-            community.purpose_collabcard = card.id
-            community.save()
+            # community.purpose_collabcard = card.id
+            # community.save()
             print("updated card id >>>>>>>   \n",card.id,"\n")
             # created card will be auto followed by the creator if the card
             follow=follow_collabcard()
