@@ -2808,7 +2808,7 @@ def get_second_screen_of_onboarding(member_tags_list):
     '''function to take college of a user'''
 
     temp = {}
-    temp['titile'] = "Enter your schools/colleges"
+    temp['title'] = "Enter your schools/colleges"
     temp['sub_title'] = "You can connect with the communities from your classmates, seniors and juniors"
     attribute_list=[]
     attribute_id = 2
@@ -2826,7 +2826,7 @@ def get_first_screen_of_onboarding(member_tags_list):
     '''function to get secong screen of onboarding'''
 
     temp = {}
-    temp['titile'] = "Mention your neighbourhood"
+    temp['title'] = "Mention your neighbourhood"
     temp['sub_title'] = "Your society/locality/city"
     attribute_list=[]
 
@@ -2882,7 +2882,7 @@ def get_third_screen_of_onboarding(member_tags_list):
     '''function to show third screen of onboarding'''
 
     temp = {}
-    temp['titile'] = "What do you identify yourself with"
+    temp['title'] = "What do you identify yourself with"
     temp['sub_title'] = "Select atleast 5"
     attribute_list = []
 
