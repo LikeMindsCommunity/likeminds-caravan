@@ -1425,13 +1425,13 @@ def accept_invitation(request):
             # if he is previously not a member of this community
             # then delete the member from members model
             Members.objects.filter(community_id=community, member_id=member_id).delete()
-            Members_Engage.objects.filter(community_id=community, member_id=member_id).delete()
+            Member_Engage.objects.filter(community_id=community, member_id=member_id).delete()
 
         elif member[0].state == 7:
             print("member state == 7")
             # if he is previously not a member of this community , then make him member again
             Members.objects.filter(community_id=community, member_id=member_id).update(state=4)
-            Members_Engage.objects.filter(community_id=community, member_id=member_id).update(state=4)
+            Member_Engage.objects.filter(community_id=community, member_id=member_id).update(state=4)
 
         return JsonResponse({'success': True})
 
@@ -1499,7 +1499,7 @@ def request_response(request,req_dict=None):
     else:
         # if rejected , change user state to 5
         Members.objects.filter(member_id=member_id,community_id=community).update(state=5)  # decline state = 5
-        Members_Engage.objects.filter(member_id=member_id, community_id=community).delete()
+        Member_Engage.objects.filter(member_id=member_id, community_id=community).delete()
         # and also send notification
         send_notification_for_join_requests.delay(community_id, False, member_id)
         Form_response.objects.filter(user=member_id,community=community_id).delete()
