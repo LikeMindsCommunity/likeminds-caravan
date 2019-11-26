@@ -938,7 +938,9 @@ def create_community(request):
             # saving details in firebase
             update_last_answer_id(card.id,"")
 
-            Community.objects.filter(id=group.id).update(purpose_collabcard = card.id)
+            # Community.objects.filter(id=group.id).update(purpose_collabcard = card.id)
+            group.purpose_collabcard = card.id
+            group.save()
             # created card will be auto followed by the creator if the card
             follow=follow_collabcard()
             follow.collabcard_id=card
