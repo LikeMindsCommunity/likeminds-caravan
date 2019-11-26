@@ -2803,7 +2803,7 @@ def get_member_id_from_headers(request):
 ################ functions for getting and setting of tags ##########################################
 
 
-def get_first_screen_of_onboarding(member_tags_list):
+def get_second_screen_of_onboarding(member_tags_list):
 
     '''function to take college of a user'''
 
@@ -2821,7 +2821,7 @@ def get_first_screen_of_onboarding(member_tags_list):
 
     return temp
 
-def get_second_screen_of_onboarding(member_tags_list):
+def get_first_screen_of_onboarding(member_tags_list):
 
     '''function to get secong screen of onboarding'''
 
@@ -2965,18 +2965,26 @@ def onboarding(request):
     # print(member_tags_list)
 
     # first screen flow
-    first_screen=get_first_screen_of_onboarding(member_tags_list)
 
+    screen=request.GET.get('screen','')
+
+    if screen == "first":
+        first_screen=get_first_screen_of_onboarding(member_tags_list)
+        onboarding_screens.append(first_screen)
+        return JsonResponse({'onboarding': onboarding_screens})
 
     # second screen flow
-    second_screen=get_second_screen_of_onboarding(member_tags_list)
+    if screen == "second":
+        second_screen=get_second_screen_of_onboarding(member_tags_list)
+        onboarding_screens.append(second_screen)
+        return JsonResponse({'onboarding': onboarding_screens})
 
     # third screen flow
-    third_screen=get_third_screen_of_onboarding(member_tags_list)
 
-    onboarding_screens.append(second_screen)
-    onboarding_screens.append(first_screen)
-    onboarding_screens.append(third_screen)
+    if screen == "third":
+        third_screen=get_third_screen_of_onboarding(member_tags_list)
+        onboarding_screens.append(third_screen)
+        return JsonResponse({'onboarding': onboarding_screens})
 
     return JsonResponse({'onboarding':onboarding_screens})
 
