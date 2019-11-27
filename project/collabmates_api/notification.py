@@ -380,14 +380,29 @@ def notification_after_compute_rank(user_id):
     else:
         print('No FCM token to send message')
 
-# token_list=['ctOQ_i-byd4:APA91bExfVZPP4jeyWNXU4GK4erQpDk2rUUbR9ImwUE7Ha561ZtOEcLJCnbX9PJ-B101BlmqLKj4pI_y8PX2TSLuOrANl4oUbhXkjB1hwspilD4PJXqzFMkdCR5598Ngldti6HSMiVEI']
-# message = {}
-# message['payload'] = {
-#     'title': 'Discover communities',
-#     'sub_title': "Discover and join relevant communities based on your profile",
-#     'route': 'route://main'
-# }
-# title=message['payload']['title']
-# sub_title=message['payload']['sub_title']
-# send_notification_to_multiple_devices(token_list,message)
-#
+@shared_task
+def notification_to_complete_onboarding(user_id):
+
+    '''function to send notification when the user has not completed onboarding in 5 minutes'''
+
+    fcm_token = get_token_for_fcm(user_id)
+
+    if fcm_token:
+        token_list = []
+        token_list.append(fcm_token)
+        message = {}
+        message['payload'] = {
+            'title': 'Complete Onboarding',
+            'sub_title': """Thanks for joining CollabMates! Here's the next step""",
+            'route': 'route://main'
+        }
+
+        send_notification_to_multiple_devices(token_list,message)
+        print("notification send when user has not completed onbaording in 5 minutes")
+
+
+
+
+
+
+
