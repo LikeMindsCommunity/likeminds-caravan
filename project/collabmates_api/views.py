@@ -2825,6 +2825,8 @@ def get_tag_attributes(member_tags_list,attribute_id,attribute_name,hint,categor
     # for sports
     # attribute_id = 10
     # attribute_name = "Interests_sports"
+    print("member_tags_list===",member_tags_list)
+    print(attribute_name)
     tags = Tags_lpig.objects.filter(attribute_id=attribute_id)
     attribute_temp = {}
     attribute_temp['hint'] = hint
@@ -2940,7 +2942,7 @@ def onboarding(request):
         interest = list(User_Profession.objects.filter(user_id=user_id).values_list('correct_tag_id',flat=True))
         geography =list(User_Profession.objects.filter(user_id=user_id).values_list('correct_tag_id',flat=True))
         member_tags_list=legacy+profession+interest+geography
-    print(member_tags_list)
+
 
     # first screen flow
 
