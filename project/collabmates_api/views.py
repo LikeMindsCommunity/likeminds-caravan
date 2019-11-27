@@ -2978,7 +2978,7 @@ def onboarding(request):
     onboarding_screens=[]
     user_id=request.GET.get('member_id','')
     member_tags_list=[]
-    print("user_id===="user_id)
+    print("user_id====",user_id)
 
     if user_id:
         legacy = list(User_Legacy.objects.filter(user_id=user_id).values_list('correct_tag_id',flat=True))
