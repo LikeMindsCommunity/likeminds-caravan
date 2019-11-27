@@ -24,7 +24,7 @@ from django.db.models import Q
 import dateutil.relativedelta
 from .tasks import send_email_to_nominated_admin, send_email_for_new_collabcard_posted, send_welcome_mail
 from django.conf import settings
-from togther.tasks import send_email_to_proposed_admin
+from togther.tasks import send_email_to_proposed_admin, send_mail_after_rank_computation
 from django.core.paginator import Paginator
 from togther.views import get_nominated_admin_details
 import os
@@ -2301,7 +2301,7 @@ def login(request):
                 userinfo.login_json=json_to_save
                 userinfo.created_at = time.time()
                 userinfo.save()
-                mail_triger(str(usr.id))
+                mail_triger(str(usr.id)) # both mail and notification will be sent here
         else:
             # if user is logging in with linkedIn
             user_name=res['firstName']['localized']['en_US'] + " " + res['lastName']['localized']['en_US']
@@ -2323,7 +2323,7 @@ def login(request):
                 userinfo.login_json=json_to_save
                 userinfo.created_at = time.time()
                 userinfo.save()
-                mail_triger(str(usr.id))
+                mail_triger(str(usr.id)) # both mail and notification will be sent here
 
         userinfo=Userinfo.objects.filter(email=email)
         # get serialized user object
@@ -3111,6 +3111,7 @@ def push_onboarding(request):
     info_logger.info(log)
 
     compute_rank.delay(user_id=user_id)
+    send_mail_after_rank_computation(user_id) # both mail and notification will be sent here
 
     return JsonResponse({'success':True})
 

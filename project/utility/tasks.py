@@ -6,6 +6,7 @@ from django.core.mail import EmailMultiAlternatives
 from togther.models import *
 from django.conf import settings
 from togther.models import *
+from collabmates_api.notification import notification_to_complete_onboarding
 
 
 url  = settings.URL
@@ -28,7 +29,8 @@ def send_email(subject,template,to):
                                 "Collabmates<hello@collabmates.com>",
                                 [to],)
     msg.attach_alternative(template, "text/html")
-    return msg.send(fail_silently)
+    msg.send(fail_silently)
+    return
 
 
 @shared_task
@@ -63,6 +65,8 @@ def onboarding_mail_for_new_users(member_id):
             # msg.attach_alternative(template, "text/html")
             # return msg.send(fail_silently)
             send_email(subject, template, to)
+            notification_to_complete_onboarding(member_id) # notification to complete onboarding
+            return
 
 
 @shared_task
