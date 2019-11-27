@@ -3014,6 +3014,10 @@ def onboarding(request):
 def save_tags_for_user_from_onboarding(category_id,tag_id,member_id):
 
     '''function to save user tags in lpig tables'''
+    print(category_id)
+    print(tag_id)
+    print(member_id)
+    print("\n")
     if category_id == 1:
         user_legacy_object = User_Legacy()
         user_legacy_object.user_id = member_id
@@ -3072,6 +3076,7 @@ def push_onboarding(request):
                tag_object.tag_id=tag_object.id
                tag_object.save()
                save_tags_for_user_from_onboarding(category_id,tag_object,member_id)
+           print(tag)
 
 
     #saving global tags for user
