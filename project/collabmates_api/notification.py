@@ -19,7 +19,7 @@ db_database=settings.DATABASES['default']['NAME']
 
 url=settings.URL
 
-# server keys for sending notification
+#server keys for sending notification
 if url == "https://beta.collabmates.com":
     server_key='AAAA5QiC06o:APA91bGK2e3Y9r2g5VXnJIwK7OJ8pliwpXs_cwayEJ2D32Dfn5TcXpiUJDJNw7w-NqSdUH93FrX5xFie8KfpQORigfSuNlDVXxgi1nt9FcB7y5e5f0428jRKX35vti3R-BhxzMc9yrj_'
 else:
@@ -74,9 +74,10 @@ def get_community_name(community_id):
 def send_notification_to_multiple_devices(token_list,message):
     '''This function is used to send notifications'''
     result=""
-    push_service = FCMNotification(api_key=server_key)
-    result = push_service.notify_multiple_devices(registration_ids=token_list,data_message=message['payload'])
 
+    push_service = FCMNotification(api_key=server_key)
+    result = push_service.notify_multiple_devices(registration_ids=token_list,message_title=message['payload']['title'],
+                                                  message_body=message['payload']['sub_title'],data_message=message['payload'])
     print(result)
 
     return result
@@ -378,4 +379,30 @@ def notification_after_compute_rank(user_id):
 
     else:
         print('No FCM token to send message')
+
+@shared_task
+def notification_to_complete_onboarding(user_id):
+
+    '''function to send notification when the user has not completed onboarding in 5 minutes'''
+
+    fcm_token = get_token_for_fcm(user_id)
+
+    if fcm_token:
+        token_list = []
+        token_list.append(fcm_token)
+        message = {}
+        message['payload'] = {
+            'title': 'Complete Onboarding',
+            'sub_title': """Thanks for joining CollabMates! Here's the next step""",
+            'route': 'route://main'
+        }
+
+        send_notification_to_multiple_devices(token_list,message)
+        print("notification send when user has not completed onbaording in 5 minutes")
+
+
+
+
+
+
 

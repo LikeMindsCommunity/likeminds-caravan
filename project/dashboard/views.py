@@ -3022,3 +3022,21 @@ def create_user_update(request):
         max=App_Update_Info.objects.aggregate(Max('version_code'))
         latest_version=max['version_code__max']
         return render(request,'dashboard/app_update.html',{'latest_version':latest_version})
+
+
+def disable_introduction_state(request,community_id):
+
+    '''function to disable or enable the introduction text'''
+
+    state=Community.objects.filter(id=community_id).update(introduction_text_state=1)
+
+    return redirect('admin_dashboard')
+
+
+def enable_introduction_state(request,community_id):
+
+    '''function to disable or enable the introduction text'''
+
+    state=Community.objects.filter(id=community_id).update(introduction_text_state=0)
+
+    return redirect('admin_dashboard')
