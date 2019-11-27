@@ -2932,13 +2932,15 @@ def onboarding(request):
     onboarding_screens=[]
     user_id=request.GET.get('member_id','')
     member_tags_list=[]
+    print("user_id===="user_id)
+
     if user_id:
         legacy = list(User_Legacy.objects.filter(user_id=user_id).values_list('correct_tag_id',flat=True))
         profession = list(User_Profession.objects.filter(user_id=user_id).values_list('correct_tag_id',flat=True))
         interest = list(User_Profession.objects.filter(user_id=user_id).values_list('correct_tag_id',flat=True))
         geography =list(User_Profession.objects.filter(user_id=user_id).values_list('correct_tag_id',flat=True))
         member_tags_list=legacy+profession+interest+geography
-    # print(member_tags_list)
+    print(member_tags_list)
 
     # first screen flow
 
@@ -2968,9 +2970,9 @@ def onboarding(request):
 def save_tags_for_user_from_onboarding(category_id,tag_id,member_id):
 
     '''function to save user tags in lpig tables'''
-    print(category_id)
-    print(tag_id)
-    print(member_id)
+    print("Catefory_id===",category_id)
+    print("tags_id==",tag_id)
+    print("member_id==",member_id)
     print("\n")
     if category_id == 1:
         user_legacy_object = User_Legacy()
