@@ -2825,8 +2825,7 @@ def get_tag_attributes(member_tags_list,attribute_id,attribute_name,hint,categor
     # for sports
     # attribute_id = 10
     # attribute_name = "Interests_sports"
-    print("member_tags_list===",member_tags_list)
-    print(attribute_name)
+
     tags = Tags_lpig.objects.filter(attribute_id=attribute_id)
     attribute_temp = {}
     attribute_temp['hint'] = hint
@@ -2844,6 +2843,7 @@ def get_tag_attributes(member_tags_list,attribute_id,attribute_name,hint,categor
             tag['image_url'] = each_tag.image_link
         tag['state'] = 0
         if tag['id'] in member_tags_list:
+            print(tag)
             tag['state'] = 1
         tag_list.append(tag)
     attribute_temp['tags'] = tag_list
@@ -2934,7 +2934,6 @@ def onboarding(request):
     onboarding_screens=[]
     user_id=request.GET.get('member_id','')
     member_tags_list=[]
-    print("user_id====",user_id)
 
     if user_id:
         legacy = list(User_Legacy.objects.filter(user_id=user_id).values_list('correct_tag_id',flat=True))
@@ -3031,7 +3030,6 @@ def push_onboarding(request):
                tag_object.tag_id=tag_object.id
                tag_object.save()
                save_tags_for_user_from_onboarding(category_id,tag_object,member_id)
-           print(tag)
 
 
     #saving global tags for user
