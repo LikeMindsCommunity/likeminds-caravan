@@ -2997,14 +2997,14 @@ def onboarding(request):
     if screen == "first":
         first_screen=get_first_screen_of_onboarding(member_tags_list)
         onboarding_screens.append(first_screen)
-        print(onboarding_screens)
+        #print(onboarding_screens)
         return JsonResponse({'onboarding': onboarding_screens})
 
     # second screen flow
     if screen == "second":
         second_screen=get_second_screen_of_onboarding(member_tags_list)
         onboarding_screens.append(second_screen)
-        print(onboarding_screens)
+        #print(onboarding_screens)
         return JsonResponse({'onboarding': onboarding_screens})
 
     # third screen flow
@@ -3012,7 +3012,7 @@ def onboarding(request):
     if screen == "third":
         third_screen=get_third_screen_of_onboarding(member_tags_list)
         onboarding_screens.append(third_screen)
-        print(onboarding_screens)
+        #print(onboarding_screens)
         return JsonResponse({'onboarding': onboarding_screens})
 
     return JsonResponse({'onboarding':onboarding_screens})
