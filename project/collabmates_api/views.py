@@ -3016,27 +3016,23 @@ def onboarding(request):
 def save_tags_for_user_from_onboarding(category_id,tag_id,member_id):
 
     '''function to save user tags in lpig tables'''
-    print("Catefory_id===",category_id)
-    print(type(category_id))
-    print("tags_id==",tag_id)
-    print("member_id==",member_id)
-    print("\n")
-    if category_id == "1":
+    category_id=int(category_id)
+    if category_id == 1:
         user_legacy_object = User_Legacy()
         user_legacy_object.user_id = member_id
         user_legacy_object.tags_id = tag_id
         user_legacy_object.save()
-    elif category_id == "2":
+    elif category_id == 2:
         user_profession_object = User_Profession()
         user_profession_object.user_id = member_id
         user_profession_object.tags_id = tag_id
         user_profession_object.save()
-    elif category_id == "3":
+    elif category_id == 3:
         user_interest_object = User_Interest()
         user_interest_object.user_id = member_id
         user_interest_object.tags_id = tag_id
         user_interest_object.save()
-    elif category_id == "4":
+    elif category_id == 4:
         user_geography_object = User_Geography()
         user_geography_object.user_id = member_id
         user_geography_object.tags_id = tag_id
