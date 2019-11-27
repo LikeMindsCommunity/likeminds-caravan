@@ -2888,8 +2888,10 @@ def get_tag_attributes(member_tags_list,attribute_id,attribute_name,hint,categor
         if each_tag.image_link:
             tag['image_url'] = each_tag.image_link
         tag['state'] = 0
+        print("member_list==",member_tags_list)
         if tag['id'] in member_tags_list:
             print(tag)
+            print("\n\n")
             tag['state'] = 1
         tag_list.append(tag)
     attribute_temp['tags'] = tag_list
