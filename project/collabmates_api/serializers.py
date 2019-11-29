@@ -23,8 +23,11 @@ def CommunitySerializer(community):
     }
     if community.image_link:
         new_dict['image_url']=community.image_link
-    else:
+    elif community.image_url:
         new_dict['image_url'] = community.image_url.url
+    else:
+        new_dict['image_url'] = '/media/media/community/default.jpeg'
+
 
     if new_dict['image_url'] == "/media/https%3A/upload.wikimedia.org/wikipedia/en/0/09/Community_title.jpg":
         new_dict['image_url'] = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQMUCHvC0wEVO5yDMe9wddUoagIqQ3VPH0nm8_VtjK5gk3M0mMO'

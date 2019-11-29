@@ -1,7 +1,14 @@
+from __future__ import absolute_import, unicode_literals
+from celery import shared_task
 import pyrebase
 from django.conf import settings
 import requests
 import time
+from urllib.request import urlopen
+import os
+from PIL import Image
+from io import BytesIO
+from togther.models import Community
 
 if settings.IS_BETA:
     # beta firebase config
@@ -113,7 +120,7 @@ def upload_user_files(user_id,image,url=False):
             image_url = storage.child("files").child("user").child(user_id).child(name).get_url(None)
             return image_url
         else:
-            print("Image url is broken for tag=", user_id)
+            print("Image url is broken for user=", user_id)
             return ''
     else:
         user_id=str(user_id)
@@ -128,21 +135,18 @@ def upload_community_files(community_id,image,url=False):
     name = "img_community_" + str(community_id)
     if url:
         image_url=image
-        if is_url_image_valid(image_url):
-            try:
-                r = requests.get(image_url)
-                if r.status_code == 200:
-                    image_data=r.content
-                    community_id = str(community_id)
-                    storage.child("files").child("community").child(community_id).child(name).put(image_data)
-                    time.sleep(1)
-                    image_url = storage.child("files").child("community").child(community_id).child(name).get_url(None)
-                    return image_url
-            except Exception as e:
-                print(e)
-        else:
-            print("Image url is broken for tag=", community_id)
-            return ''
+        try:
+            response = urlopen(image_url)
+            image_data=response.read()
+        except Exception as e:
+            print(e)
+            return
+        community_id = str(community_id)
+        storage.child("files").child("community").child(community_id).child(name).put(image_data)
+        time.sleep(1)
+        image_url = storage.child("files").child("community").child(community_id).child(name).get_url(None)
+        return image_url
+
     else:
         community_id=str(community_id)
         try:
@@ -157,4 +161,36 @@ def upload_community_files(community_id,image,url=False):
 
 
 
+@shared_task
+def upload_community_thumbnail(community_id,image_url):
 
+
+    name = "img_community_thumbnail__" + str(community_id)
+
+    try:
+        response = urlopen(image_url)
+    except Exception as e:
+        print(e)
+        return
+    img = BytesIO(response.read())
+    img = Image.open(img).convert('RGB')
+    image = img.resize((200, 200), Image.ANTIALIAS)
+    file_name=name+".jpeg"
+    image.save(file_name)
+
+
+    community_id = str(community_id)
+    community=Community.objects.get(id=community_id)
+    try:
+        time.sleep(.200)
+        storage.child("files").child("community").child(community_id).child(name).put(file_name)
+        time.sleep(.200)
+        image_url = storage.child("files").child("community").child(community_id).child(name).get_url(None)
+        print(image_url)
+        community.thumbnail=image_url
+        community.save()
+    except Exception as e:
+        print(e)
+        return None
+    finally:
+        os.remove(file_name)

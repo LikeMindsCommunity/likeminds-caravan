@@ -24,21 +24,23 @@ from django.db.models import Q
 import dateutil.relativedelta
 from .tasks import send_email_to_nominated_admin, send_email_for_new_collabcard_posted, send_welcome_mail
 from django.conf import settings
-from togther.tasks import send_email_to_proposed_admin
+from togther.tasks import send_email_to_proposed_admin, send_mail_after_rank_computation
 from django.core.paginator import Paginator
 from togther.views import get_nominated_admin_details
 import os
 import re
 import googlemaps
 import logging
+from PIL import Image
 
 from utility.utils import (decode_meta_from_url, update_tag_image,
                            referal, get_referred_members_of_a_member,
                            eligibility_count, notify_referred_member,
                            user_onbaord, update_member_count,
-                           update_community_tags_to_user)
+                           update_community_tags_to_user,tutorial_count)
 from utility.tasks import (mail_triger, new_member_request)
-from utility.firebase import update_last_answer_id,upload_image_to_firebase
+from utility.firebase import update_last_answer_id,upload_image_to_firebase,upload_community_thumbnail,upload_community_files
+from .raw_queries import compute_rank
 
 
 url  = settings.URL
@@ -840,24 +842,6 @@ def get_user_lpig_tags(user_id):
     return tags
 
 
-# def get_clustered_tags_for_user(tag_list,cluster_tags):
-#
-#     if not cluster_tags:
-#         return tag_list
-#     result=[]
-#     for tag_index in range(len(tag_list)):
-#         for index in cluster_tags:
-#             temp=tag_list[tag_index]
-#             if not temp:
-#                 continue
-#             if(temp['id'] == index):
-#                 tag_list[tag_index]=False
-#
-#     for tag in tag_list:
-#         if tag == False:
-#             continue
-#         result.append(tag)
-#     return result
 
 
 ############# functions for  create flow of card,community and members   ##########################
@@ -906,6 +890,12 @@ def create_community(request):
             group.created_at=time.time()
             group.save()
 
+            # uploading community image and thumbnail
+            image_link = upload_community_files(community_id = group.id,image='https://beta.collabmates.com/media/media/community/default.jpeg',url=True)
+            group.image_link = image_link
+            group.save()
+            upload_community_thumbnail.delay(group.id, 'https://beta.collabmates.com/media/media/community/default.jpeg')
+
             # create user as a admin for the community as the user is creating the community as a admin
             user = User.objects.get(id = user_id)
             community = Community.objects.get(id = group.id)
@@ -930,7 +920,13 @@ def create_community(request):
             # saving details in firebase
             update_last_answer_id(card.id,"")
 
-            Community.objects.filter(id=group.id).update(purpose_collabcard = card.id)
+            # Community.objects.filter(id=community.id).update(purpose_collabcard = card.id)
+            # community.purpose_collabcard = card.id
+            # community.save()
+            community_id = community.id
+            card_id = card.id
+            save_community_purpose_card(community_id, card_id)
+            print("updated card id >>>>>>>   \n",card.id,"\n")
             # created card will be auto followed by the creator if the card
             follow=follow_collabcard()
             follow.collabcard_id=card
@@ -1005,6 +1001,13 @@ def create_community(request):
             #send_email_to_temp_admin_of_community.delay(CommmunityAdminName=user.name,CommunityName=res['name'],email=user.email)
             return JsonResponse({'success':True, 'community':new_dict})
     return HttpResponse("Create Community Api")
+
+def save_community_purpose_card(community_id,card_id):
+    print("\n>>>>>>>>>>>>>   card  =====  ", card_id)
+    print("\n>>>>>>>>>>>>>   community  =====  ", community_id)
+    community = Community.objects.get(id=community_id)
+    community.purpose_collabcard = card_id
+    community.save()
 
 
 # /api/create_collabcard?community_id=300&member_id=21
@@ -1435,13 +1438,13 @@ def accept_invitation(request):
             # if he is previously not a member of this community
             # then delete the member from members model
             Members.objects.filter(community_id=community, member_id=member_id).delete()
-            Members_Engage.objects.filter(community_id=community, member_id=member_id).delete()
+            Member_Engage.objects.filter(community_id=community, member_id=member_id).delete()
 
         elif member[0].state == 7:
             print("member state == 7")
             # if he is previously not a member of this community , then make him member again
             Members.objects.filter(community_id=community, member_id=member_id).update(state=4)
-            Members_Engage.objects.filter(community_id=community, member_id=member_id).update(state=4)
+            Member_Engage.objects.filter(community_id=community, member_id=member_id).update(state=4)
 
         return JsonResponse({'success': True})
 
@@ -1509,7 +1512,7 @@ def request_response(request,req_dict=None):
     else:
         # if rejected , change user state to 5
         Members.objects.filter(member_id=member_id,community_id=community).update(state=5)  # decline state = 5
-        Members_Engage.objects.filter(member_id=member_id, community_id=community).delete()
+        Member_Engage.objects.filter(member_id=member_id, community_id=community).delete()
         # and also send notification
         send_notification_for_join_requests.delay(community_id, False, member_id)
         Form_response.objects.filter(user=member_id,community=community_id).delete()
@@ -1625,7 +1628,10 @@ def get_answer_data(answer):
         else:
             time_text = get_time_text(ans.date_epoch)
 
-        answers.append({'id': ans.id, 'answer': ans.answer, 'created_at': time_text, 'member': usr})
+        attachements = get_answer_files(ans.id)
+
+        answers.append({'id': ans.id, 'answer': ans.answer, 'created_at': time_text, 'member': usr,
+                        'images':attachements[0], 'pdf':attachements[1]})
     return answers
 
 
@@ -1649,6 +1655,25 @@ def get_collabcard_files(card_id):
             else:
                 pdf_url = {'pdf_file': url + file.attachment.url}
             pdf.append(pdf_url)
+    return (img_list,pdf)
+
+
+def get_answer_files(answer_id):
+
+    '''function to return pdf and image files of a collabcard'''
+
+    files = Answer_Attachment.objects.filter(answer=answer_id)
+    img_list=[]
+    pdf=[]
+    for file in files:
+        if file.type == 'image':
+            if file.file_url:
+                img = {'image_url': file.file_url}
+                img_list.append(img)
+        elif file.type == 'pdf':
+            if file.file_url:
+                pdf_url = {'pdf_file': file.file_url}
+                pdf.append(pdf_url)
     return (img_list,pdf)
 
 
@@ -1702,14 +1727,23 @@ def community_cards(request, community_id):
     ''' function get all the cards in a community '''
 
     community = Community.objects.get(id = community_id)
-    cards = Collabcard.objects.filter(community = community_id).order_by('id')
     member_id=request.GET.get('member_id')
+
+
     #is_tour=request.GET.get('is_tour',False)
 
     # if the community is pilot community and android tour is given
     if community.hide_community == '3':
         card_list=get_cards_for_demo(community_id,member_id)
         return JsonResponse({'collabcards': card_list})
+
+    size=request.GET.get('size','')
+    if size:
+        size=int(size)
+        cards = Collabcard.objects.filter(community = community_id).order_by('id')[:size]
+    else:
+        cards = Collabcard.objects.filter(community = community_id).order_by('id')
+
 
     card_list = []
     for card in cards:
@@ -2066,12 +2100,14 @@ def member_activity(request):
     community=Community.objects.get(pk=community_id)
     member=User.objects.get(pk=user_id)
 
-    status=Collabcard.objects.filter(community=community,user=member)
+    #status=Collabcard.objects.filter(community=community,user=member)
 
-    if status:
-        state=1
-    if state == 1:
-        return JsonResponse({'state':state})
+    # if status:
+    #     state=1
+    # if state == 1:
+    state=community.introduction_text_state
+    if state:
+        return JsonResponse({'state':state,'tutorial_count':tutorial_count})
 
     if state == 0:
 
@@ -2079,7 +2115,7 @@ def member_activity(request):
        if form_response.exists():
         introduction_question=form_response[0].data
         introduction_answer=form_response[0].response
-        return JsonResponse({'state':state,'introduction_question':introduction_question,'introduction_answer':introduction_answer})
+        return JsonResponse({'state':state,'introduction_question':introduction_question,'introduction_answer':introduction_answer,'tutorial_count':tutorial_count})
     return JsonResponse({'state': state})
 
 
@@ -2196,6 +2232,7 @@ def upload_files(request):
             community_id = body['community_id']
             community = Community.objects.get(id=community_id)
             community.image_link=body['url']
+            upload_community_thumbnail.delay(community_id,body['url'])
             community.save()
         elif 'collabcard_id' in body:
             attachment_type = body['type']
@@ -2207,7 +2244,18 @@ def upload_files(request):
             file.type = attachment_type
             file.file_url=body['url']
             file.save()
-        print(body['url'])
+
+        elif 'answer_id' in body:
+            attachment_type = body['type']
+            answer_id = body['answer_id']
+            answer_obj = card_answers.objects.get(id=answer_id)
+
+            file = Answer_Attachment()
+            file.answer = answer_obj
+            file.type = attachment_type
+            file.file_url=body['url']
+            file.save()
+
         return JsonResponse({'success': True})
     return JsonResponse({'success': False})
 
@@ -2253,7 +2301,7 @@ def login(request):
                 userinfo.login_json=json_to_save
                 userinfo.created_at = time.time()
                 userinfo.save()
-                mail_triger(str(usr.id))
+                mail_triger(str(usr.id)) # both mail and notification will be sent here
         else:
             # if user is logging in with linkedIn
             user_name=res['firstName']['localized']['en_US'] + " " + res['lastName']['localized']['en_US']
@@ -2275,7 +2323,7 @@ def login(request):
                 userinfo.login_json=json_to_save
                 userinfo.created_at = time.time()
                 userinfo.save()
-                mail_triger(str(usr.id))
+                mail_triger(str(usr.id)) # both mail and notification will be sent here
 
         userinfo=Userinfo.objects.filter(email=email)
         # get serialized user object
@@ -2344,9 +2392,10 @@ def members_state(request):
 @csrf_exempt
 def push(request):
     '''This function is used to insert fcm token to the database in order to generate notifications from database'''
+
     member_id=request.GET.get('member_id','')
     token=request.GET.get('token','')
-    print('member_id === ',member_id)
+    print('member_id ===>>> ',member_id)
     if member_id:
         is_member=Userinfo.objects.filter(user_id=member_id)
     else:
@@ -2751,6 +2800,320 @@ def get_profile(request):
         print("userinfo object does not exist")
 
     return JsonResponse({'user': []})
+
+
+def get_member_id_from_headers(request):
+
+    '''function to get member id from headers'''
+
+    headers = request.META
+    member_id=0
+    if 'HTTP_X_MEMBER_ID' in headers and 'HTTP_X_VERSION_CODE' in headers:
+        member_id = headers['HTTP_X_MEMBER_ID']
+    return member_id
+
+
+################ functions for getting and setting of tags ##########################################
+
+
+def get_second_screen_of_onboarding(member_tags_list):
+
+    '''function to take college of a user'''
+
+    temp = {}
+    temp['title'] = "Enter your schools/colleges"
+    temp['sub_title'] = "You can connect with the communities from your classmates, seniors and juniors"
+    attribute_list=[]
+    attribute_id = 2
+    category_id=1
+    attribute_name = "Legacy_education"
+    hint = "Your Schools/Colleges"
+    display_name="Education"
+    college_list = get_tag_attributes(member_tags_list, attribute_id, attribute_name, hint,category_id,display_name)
+    attribute_list.append(college_list)
+    temp['attributes'] = attribute_list
+
+    return temp
+
+def get_first_screen_of_onboarding(member_tags_list):
+
+    '''function to get secong screen of onboarding'''
+
+    temp = {}
+    temp['title'] = "Mention your neighbourhood"
+    temp['sub_title'] = "Your society/locality/city"
+    attribute_list=[]
+
+    attribute_id = 12
+    attribute_name = "Geography_city"
+    hint="Your localities"
+    category_id=4
+    display_name="city"
+    city_list=get_tag_attributes(member_tags_list,attribute_id,attribute_name,hint,category_id,display_name)
+    attribute_list.append(city_list)
+
+
+    attribute_id = 3
+    attribute_name = "Legacy_hometown"
+    hint="+ Add hometown"
+    category_id=1
+    display_name="hometown"
+    hometown_list=get_tag_attributes(member_tags_list,attribute_id,attribute_name,hint,category_id,display_name)
+    attribute_list.append(hometown_list)
+    temp['attributes'] = attribute_list
+
+    return temp
+
+def get_tag_attributes(member_tags_list,attribute_id,attribute_name,hint,category_id,display_name):
+
+    '''function to get sports tags'''
+
+    # for sports
+    # attribute_id = 10
+    # attribute_name = "Interests_sports"
+
+    tags = Tags_lpig.objects.filter(attribute_id=attribute_id)
+    attribute_temp = {}
+    attribute_temp['hint'] = hint
+    attribute_temp['id'] = attribute_id
+    attribute_temp['name'] = attribute_name
+    attribute_temp['category_id']=category_id
+    attribute_temp['display_name']=display_name.capitalize()
+    tag_list = []
+    for each_tag in tags:
+        tag = {}
+        tag['id'] = each_tag.tag_id
+        tag['name'] = each_tag.name
+        tag['attribute_name'] = attribute_name
+        if each_tag.image_link:
+            tag['image_url'] = each_tag.image_link
+        tag['state'] = 0
+        if tag['id'] in member_tags_list:
+            print(tag)
+            print("\n\n")
+            tag['state'] = 1
+        tag_list.append(tag)
+    attribute_temp['tags'] = tag_list
+
+    return attribute_temp
+
+def get_third_screen_of_onboarding(member_tags_list):
+
+    '''function to show third screen of onboarding'''
+
+    temp = {}
+    temp['title'] = "What do you identify yourself with"
+    temp['sub_title'] = "Select atleast 5"
+    attribute_list = []
+
+    # getting sport list
+    attribute_id = 10
+    attribute_name = "Interests_sports"
+    hint="Playing these sports"
+    category_id=3
+    display_name="sport"
+    sports_list=get_tag_attributes(member_tags_list,attribute_id,attribute_name,hint,category_id,display_name)
+    attribute_list.append(sports_list)
+
+
+    # getting hobbies
+
+    attribute_id = 9
+    attribute_name = "Interests_hobby"
+    hint = "Pursuing these hobbies"
+    category_id=3
+    display_name="hobby"
+    hobbies = get_tag_attributes(member_tags_list, attribute_id, attribute_name, hint,category_id,display_name)
+    attribute_list.append(hobbies)
+
+    # getting fan
+
+    attribute_id = 11
+    attribute_name = "Interests_fan"
+    hint = "Following these teams, sports, genres or topics"
+    category_id = 3
+    display_name="fan"
+    fan = get_tag_attributes(member_tags_list, attribute_id, attribute_name, hint, category_id,display_name)
+    attribute_list.append(fan)
+
+    # getting cause
+
+    attribute_id = 8
+    attribute_name = "Interests_cause"
+    hint = "Working on these causes"
+    category_id=3
+    display_name="cause"
+    cause = get_tag_attributes(member_tags_list, attribute_id, attribute_name, hint,category_id,display_name)
+    attribute_list.append(cause)
+
+    #getting skill
+
+    attribute_id = 5
+    attribute_name = "Profession_skill"
+    hint = "Skills that you have"
+    category_id=2
+    display_name="skill"
+    skill = get_tag_attributes(member_tags_list, attribute_id, attribute_name, hint,category_id,display_name)
+    attribute_list.append(skill)
+
+
+    #getting industry
+
+    attribute_id = 6
+    attribute_name = "Profession_industry"
+    hint = "Industry that you belong to"
+    category_id=2
+    display_name="industry"
+    industry = get_tag_attributes(member_tags_list, attribute_id, attribute_name, hint,category_id,display_name)
+    attribute_list.append(industry)
+
+
+
+    temp['attributes']=attribute_list
+
+    return temp
+
+
+def onboarding(request):
+
+    '''function to send all the tags for onboarding'''
+
+    onboarding_screens=[]
+    user_id=request.GET.get('member_id','')
+    member_tags_list=[]
+
+    if user_id:
+        legacy = list(User_Legacy.objects.filter(user_id=user_id).values_list('correct_tag_id',flat=True))
+        profession = list(User_Profession.objects.filter(user_id=user_id).values_list('correct_tag_id',flat=True))
+        interest = list(User_Profession.objects.filter(user_id=user_id).values_list('correct_tag_id',flat=True))
+        geography =list(User_Profession.objects.filter(user_id=user_id).values_list('correct_tag_id',flat=True))
+        member_tags_list=legacy+profession+interest+geography
+
+
+    # first screen flow
+
+    screen=request.GET.get('screen','')
+
+    if screen == "first":
+        first_screen=get_first_screen_of_onboarding(member_tags_list)
+        onboarding_screens.append(first_screen)
+        #print(onboarding_screens)
+        return JsonResponse({'onboarding': onboarding_screens})
+
+    # second screen flow
+    if screen == "second":
+        second_screen=get_second_screen_of_onboarding(member_tags_list)
+        onboarding_screens.append(second_screen)
+        #print(onboarding_screens)
+        return JsonResponse({'onboarding': onboarding_screens})
+
+    # third screen flow
+
+    if screen == "third":
+        third_screen=get_third_screen_of_onboarding(member_tags_list)
+        onboarding_screens.append(third_screen)
+        #print(onboarding_screens)
+        return JsonResponse({'onboarding': onboarding_screens})
+
+    return JsonResponse({'onboarding':onboarding_screens})
+
+
+def save_tags_for_user_from_onboarding(category_id,tag_id,member_id):
+
+    '''function to save user tags in lpig tables'''
+    category_id=int(category_id)
+    if category_id == 1:
+        user_legacy_object = User_Legacy()
+        user_legacy_object.user_id = member_id
+        user_legacy_object.tags_id = tag_id
+        user_legacy_object.save()
+    elif category_id == 2:
+        user_profession_object = User_Profession()
+        user_profession_object.user_id = member_id
+        user_profession_object.tags_id = tag_id
+        user_profession_object.save()
+    elif category_id == 3:
+        user_interest_object = User_Interest()
+        user_interest_object.user_id = member_id
+        user_interest_object.tags_id = tag_id
+        user_interest_object.save()
+    elif category_id == 4:
+        user_geography_object = User_Geography()
+        user_geography_object.user_id = member_id
+        user_geography_object.tags_id = tag_id
+        user_geography_object.save()
+
+    log="""for category_id=%s, tags_id=%s saved for member_id=%s"""%(str(category_id),str(tag_id),str(member_id))
+    info_logger.info(log)
+
+
+@csrf_exempt
+def push_onboarding(request):
+
+    '''function to save user tags'''
+
+    user_id=get_member_id_from_headers(request)
+    response = json.loads(request.body)
+    member_id=0
+    try:
+        member_id=User.objects.get(id=user_id)
+    except:
+        error_logger.error("User does not exist")
+    for data in response['attributes']:
+
+        category_id=data['category_id']
+        tags=data['tags']
+
+        for tag in tags:
+
+           if 'id' in tag and tag['id']:
+              tag_id=Tags_lpig.objects.get(id=tag['id'])
+              save_tags_for_user_from_onboarding(category_id,tag_id,member_id)
+           else:
+               attribute_id=Attributes.objects.get(id=data['id'])
+               uncharacterized_category_id=Category.objects.get(id=6)
+               tag_object=Tags_lpig()
+               tag_object.name=tag['name']
+               tag_object.attribute_id=attribute_id
+               tag_object.category_id=uncharacterized_category_id      # uncategorized tag
+               tag_object.save()
+               tag_object.tag_id=tag_object.id
+               tag_object.save()
+               save_tags_for_user_from_onboarding(category_id,tag_object,member_id)
+
+
+    #saving global tags for user
+
+    tag_id = Tags_lpig.objects.get(id=15)
+    legacy_global=User_Legacy.objects.filter(tags_id=tag_id,user_id=member_id)
+    if not legacy_global:
+        save_tags_for_user_from_onboarding(1, tag_id, member_id)
+
+
+    tag_id = Tags_lpig.objects.get(id=16)
+    profession_global = User_Profession.objects.filter(tags_id=tag_id, user_id=member_id)
+    if not profession_global:
+        save_tags_for_user_from_onboarding(2, tag_id, member_id)
+
+
+    tag_id = Tags_lpig.objects.get(id=17)
+    interest_global = User_Interest.objects.filter(tags_id=tag_id, user_id=member_id)
+    if not interest_global:
+        save_tags_for_user_from_onboarding(3, tag_id, member_id)
+
+
+    tag_id = Tags_lpig.objects.get(id=18)
+    geography_global = User_Geography.objects.filter(tags_id=tag_id, user_id=member_id)
+    if not geography_global:
+        save_tags_for_user_from_onboarding(4, tag_id, member_id)
+
+    log="""All tags inserted success fully for user=%s"""%(str(member_id))
+    info_logger.info(log)
+
+    compute_rank.delay(user_id=user_id)
+    send_mail_after_rank_computation(user_id) # both mail and notification will be sent here
+
+    return JsonResponse({'success':True})
 
 
 

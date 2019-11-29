@@ -55,5 +55,7 @@ urlpatterns = [
     path('onboarding_metrics', onboarding_metrics, name='onboarding_metrics'),
     path('map_all_tags',map_all_tags,name='map_all_tags'),
     path('create_user_update', create_user_update, name='create_user_update'),
+    path('disable_introduction_state/<int:community_id>', disable_introduction_state,name='disable_introduction_state'),
+    path('enable_introduction_state/<int:community_id>', enable_introduction_state,name='enable_introduction_state'),
 
 ]

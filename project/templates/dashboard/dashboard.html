@@ -262,6 +262,11 @@ a.article-title:hover {
                            href="{% url 'send_invitation' community.id %}">Nominate Promoter</a>
                         <a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 "
                            href="{% url 'analytics_community' community.id %}">Analytics</a>
+                         <a class="btn btn-danger btn-sm mt-1 mb-1 mr-4 "
+                           href="{% url 'disable_introduction_state' community.id %}">Disable Introduction </a>
+
+                         <a class="btn btn-success btn-sm mt-1 mb-1 mr-4"
+                           href="{% url 'enable_introduction_state' community.id %}">Enable Introduction</a>
 
 
                     </div>
