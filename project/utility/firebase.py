@@ -51,10 +51,7 @@ def update_last_answer_id(card_id,answer_id):
         'answer_id':str(answer_id)
     }
 
-    if settings.IS_BETA:
-        database.child("beta_collabcards").child(card_id).child("collabcard").update(data)
-    else:
-        database.child("collabcards").child(card_id).child("collabcard").update(data)
+    database.child("collabcards").child(card_id).child("collabcard").update(data)
 
     print('Data Updated successfully in firebase')
 
