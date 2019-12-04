@@ -3111,7 +3111,7 @@ def push_onboarding(request):
     info_logger.info(log)
 
     compute_rank.delay(user_id=user_id)
-    send_mail_after_rank_computation(user_id) # both mail and notification will be sent here
+    send_mail_after_rank_computation.delay(user_id) # both mail and notification will be sent here
 
     return JsonResponse({'success':True})
 
