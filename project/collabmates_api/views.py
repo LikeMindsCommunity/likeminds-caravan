@@ -94,7 +94,7 @@ def communities(request):
                     community = serialize_community(queryset=queryset)
                     custom_cache.set(cache_key,community,timeout=CACHE_TTL)
                 info_logger.info(community)
-                print(custom_cache.keys('*'))
+                #print(custom_cache.keys('*'))
                 return JsonResponse({'communities': community})
 
 def get_communities_by_tags(user_tag=0, category_tag=0,page_number=1,user_id=None):
