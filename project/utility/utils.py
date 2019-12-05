@@ -18,8 +18,13 @@ from .tasks import *
 from .firebase import upload_tag_files
 from django.http.response import JsonResponse
 from django.conf import settings
+
+# cache details
 from django.core.cache import cache
 custom_cache=cache
+cache_timeout=3600
+
+
 url=settings.URL
 
 if settings.IS_BETA:

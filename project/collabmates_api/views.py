@@ -37,13 +37,12 @@ from utility.utils import (decode_meta_from_url, update_tag_image,
                            referal, get_referred_members_of_a_member,
                            eligibility_count, notify_referred_member,
                            user_onbaord, update_member_count,
-                           update_community_tags_to_user,tutorial_count,custom_cache)
+                           update_community_tags_to_user,tutorial_count,custom_cache,cache_timeout)
 from utility.tasks import (mail_triger, new_member_request)
 from utility.firebase import update_last_answer_id,upload_image_to_firebase,upload_community_thumbnail,upload_community_files
 from .raw_queries import compute_rank
 
-from django.core.cache.backends.base import DEFAULT_TIMEOUT
-CACHE_TTL = getattr(settings, 'CACHE_TTL', DEFAULT_TIMEOUT)
+CACHE_TTL = getattr(settings, 'CACHE_TTL', cache_timeout)
 
 
 url  = settings.URL
@@ -85,9 +84,10 @@ def communities(request):
                 return JsonResponse({'communities': community})
             else:
                 # if category is not provided, get categories according to the user tag if user has one
+                #custom_cache.clear()
                 print(custom_cache.keys('*'))
                 cache_key=communities_url
-                #custom_cache.clear()
+
                 if cache_key in custom_cache:
                     community=custom_cache.get(cache_key)
                 else:
@@ -95,7 +95,7 @@ def communities(request):
                     community = serialize_community(queryset=queryset)
                     custom_cache.set(cache_key,community,timeout=CACHE_TTL)
                 info_logger.info(community)
-
+                #custom_cache.clear()
                 return JsonResponse({'communities': community})
 
 def get_communities_by_tags(user_tag=0, category_tag=0,page_number=1,user_id=None):
