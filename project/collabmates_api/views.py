@@ -3040,26 +3040,34 @@ def save_tags_for_user_from_onboarding(category_id,tag_id,member_id):
     if category_id == 1:
         if tag_id.attribute_id.id == 3:
             tag_id = insert_user_home_town_tags(user_id=member_id,tag_id=str(tag_id.tag_id))
-        user_legacy_object = User_Legacy()
-        user_legacy_object.user_id = member_id
-        user_legacy_object.tags_id = tag_id
-        user_legacy_object.save()
+        user_tag = User_Legacy.objects.filter(tags_id=tag_id, user_id=member_id)
+        if not user_tag.exists():
+            user_legacy_object = User_Legacy()
+            user_legacy_object.user_id = member_id
+            user_legacy_object.tags_id = tag_id
+            user_legacy_object.save()
 
     elif category_id == 2:
-        user_profession_object = User_Profession()
-        user_profession_object.user_id = member_id
-        user_profession_object.tags_id = tag_id
-        user_profession_object.save()
+        user_tag = User_Profession.objects.filter(tags_id=tag_id, user_id=member_id)
+        if not user_tag.exists():
+            user_profession_object = User_Profession()
+            user_profession_object.user_id = member_id
+            user_profession_object.tags_id = tag_id
+            user_profession_object.save()
     elif category_id == 3:
-        user_interest_object = User_Interest()
-        user_interest_object.user_id = member_id
-        user_interest_object.tags_id = tag_id
-        user_interest_object.save()
+        user_tag = User_Interest.objects.filter(tags_id=tag_id, user_id=member_id)
+        if not user_tag.exists():
+            user_interest_object = User_Interest()
+            user_interest_object.user_id = member_id
+            user_interest_object.tags_id = tag_id
+            user_interest_object.save()
     elif category_id == 4:
-        user_geography_object = User_Geography()
-        user_geography_object.user_id = member_id
-        user_geography_object.tags_id = tag_id
-        user_geography_object.save()
+        user_tag = User_Geography.objects.filter(tags_id=tag_id, user_id=member_id)
+        if not user_tag.exists():
+            user_geography_object = User_Geography()
+            user_geography_object.user_id = member_id
+            user_geography_object.tags_id = tag_id
+            user_geography_object.save()
         update_user_geography_tags.delay(user_id=member_id)
 
     log="""for category_id=%s, tags_id=%s saved for member_id=%s"""%(str(category_id),str(tag_id),str(member_id))
