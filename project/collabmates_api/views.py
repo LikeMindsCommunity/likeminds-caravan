@@ -57,7 +57,7 @@ def communities(request):
 
     ''' function to get all the communities '''
 
-   
+    communities_url=request.build_absolute_uri()
     if request.method == 'GET':
         info_logger.info("added")
         request = request.GET.dict()
@@ -85,8 +85,8 @@ def communities(request):
                 return JsonResponse({'communities': community})
             else:
                 # if category is not provided, get categories according to the user tag if user has one
-                cache_key="communities_"+str("user_id")+"_"+str(page_number)
-                #cache.clear()
+                cache_key=communities_url
+                custom_cache.clear()
                 if cache_key in custom_cache:
                     community=custom_cache.get(cache_key)
                 else:
