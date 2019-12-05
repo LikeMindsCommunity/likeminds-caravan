@@ -86,7 +86,7 @@ def communities(request):
             else:
                 # if category is not provided, get categories according to the user tag if user has one
                 cache_key=communities_url
-                custom_cache.clear()
+                #custom_cache.clear()
                 if cache_key in custom_cache:
                     community=custom_cache.get(cache_key)
                 else:
@@ -94,6 +94,7 @@ def communities(request):
                     community = serialize_community(queryset=queryset)
                     custom_cache.set(cache_key,community,timeout=CACHE_TTL)
                 info_logger.info(community)
+                print(custom_cache.keys('*'))
                 return JsonResponse({'communities': community})
 
 def get_communities_by_tags(user_tag=0, category_tag=0,page_number=1,user_id=None):
