@@ -41,3 +41,5 @@ beautifulsoup4==4.8.0
 googlemaps==3.0.2
 user-agents==2.0
 ua-parser==0.8.0
+django-redis==4.10.0
+redis==3.3.11

@@ -18,7 +18,8 @@ from .tasks import *
 from .firebase import upload_tag_files
 from django.http.response import JsonResponse
 from django.conf import settings
-
+from django.core.cache import cache
+custom_cache=cache
 url=settings.URL
 
 if settings.IS_BETA:

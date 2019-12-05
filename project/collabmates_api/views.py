@@ -37,21 +37,22 @@ from utility.utils import (decode_meta_from_url, update_tag_image,
                            referal, get_referred_members_of_a_member,
                            eligibility_count, notify_referred_member,
                            user_onbaord, update_member_count,
-                           update_community_tags_to_user,tutorial_count)
+                           update_community_tags_to_user,tutorial_count,custom_cache)
 from utility.tasks import (mail_triger, new_member_request)
 from utility.firebase import update_last_answer_id,upload_image_to_firebase,upload_community_thumbnail,upload_community_files
 from .raw_queries import compute_rank
+
+from django.core.cache.backends.base import DEFAULT_TIMEOUT
+CACHE_TTL = getattr(settings, 'CACHE_TTL', DEFAULT_TIMEOUT)
 
 
 url  = settings.URL
 
 error_logger = logging.getLogger("error_logger")
 info_logger = logging.getLogger("info_logger")
-
 # /api/communities?category_id=&member_id=
 
 ############# functions for community api ##########################
-
 def communities(request):
 
     ''' function to get all the communities '''
@@ -84,9 +85,14 @@ def communities(request):
                 return JsonResponse({'communities': community})
             else:
                 # if category is not provided, get categories according to the user tag if user has one
-
-                queryset = get_communities_by_tags(user_tag=user_tag,page_number = page_number,user_id=user_id)
-                community = serialize_community(queryset=queryset)
+                cache_key="communities_"+str("user_id")+"_"+str(page_number)
+                #cache.clear()
+                if cache_key in custom_cache:
+                    community=custom_cache.get(cache_key)
+                else:
+                    queryset = get_communities_by_tags(user_tag=user_tag,page_number = page_number,user_id=user_id)
+                    community = serialize_community(queryset=queryset)
+                    custom_cache.set(cache_key,community,timeout=CACHE_TTL)
                 info_logger.info(community)
                 return JsonResponse({'communities': community})
 
@@ -97,8 +103,9 @@ def get_communities_by_tags(user_tag=0, category_tag=0,page_number=1,user_id=Non
 
     if is_user_tags:
         if user_id:
+
             user_tag = Community_Rank.objects.filter(member_id=user_id).values('community_id').order_by(
-                "-weight").distinct()
+                    "-weight").distinct()
             queryset = pagination(user_tag, page_number)
             return queryset
 
