@@ -3039,7 +3039,7 @@ def save_tags_for_user_from_onboarding(category_id,tag_id,member_id):
     category_id=int(category_id)
     if category_id == 1:
         if tag_id.attribute_id.id == 3:
-            tag_id = insert_user_home_town_tags(user_id=member_id.id,tag_id=str(tag_id.tag_id))
+            tag_id = insert_user_home_town_tags(user_id=member_id.id,tag=str(tag_id.tag_id))
         user_tag = User_Legacy.objects.filter(tags_id=tag_id, user_id=member_id)
         if not user_tag.exists():
             user_legacy_object = User_Legacy()
