@@ -933,7 +933,7 @@ def create_community(request):
             # community.save()
             community_id = community.id
             card_id = card.id
-            save_community_purpose_card(community_id, card_id)
+            save_community_purpose_card.delay(community_id, card_id)
             print("updated card id >>>>>>>   \n",card.id,"\n")
             # created card will be auto followed by the creator if the card
             follow=follow_collabcard()
@@ -1010,9 +1010,11 @@ def create_community(request):
             return JsonResponse({'success':True, 'community':new_dict})
     return HttpResponse("Create Community Api")
 
+@shared_task
 def save_community_purpose_card(community_id,card_id):
     print("\n>>>>>>>>>>>>>   card  =====  ", card_id)
     print("\n>>>>>>>>>>>>>   community  =====  ", community_id)
+    time.sleep(2)
     community = Community.objects.get(id=community_id)
     community.purpose_collabcard = card_id
     community.save()
@@ -3119,7 +3121,7 @@ def push_onboarding(request):
     info_logger.info(log)
 
     compute_rank.delay(user_id=user_id)
-    send_mail_after_rank_computation(user_id) # both mail and notification will be sent here
+    send_mail_after_rank_computation.delay(user_id) # both mail and notification will be sent here
 
     return JsonResponse({'success':True})
 
