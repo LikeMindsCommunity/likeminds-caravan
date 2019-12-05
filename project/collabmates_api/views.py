@@ -37,7 +37,11 @@ from utility.utils import (decode_meta_from_url, update_tag_image,
                            referal, get_referred_members_of_a_member,
                            eligibility_count, notify_referred_member,
                            user_onbaord, update_member_count,
-                           update_community_tags_to_user,tutorial_count,custom_cache,cache_timeout)
+                           update_community_tags_to_user,tutorial_count,custom_cache,cache_timeout,
+                           get_city_address,
+                           update_user_geography_tags, create_or_categorize_tag,
+                           insert_user_home_town_tags,user_onbaord)
+
 from utility.tasks import (mail_triger, new_member_request)
 from utility.firebase import update_last_answer_id,upload_image_to_firebase,upload_community_thumbnail,upload_community_files
 from .raw_queries import compute_rank
@@ -3034,10 +3038,13 @@ def save_tags_for_user_from_onboarding(category_id,tag_id,member_id):
     '''function to save user tags in lpig tables'''
     category_id=int(category_id)
     if category_id == 1:
+        if tag_id.attribute_id.id == 3:
+            tag_id = insert_user_home_town_tags(user_id=member_id,tag_id=str(tag_id.tag_id))
         user_legacy_object = User_Legacy()
         user_legacy_object.user_id = member_id
         user_legacy_object.tags_id = tag_id
         user_legacy_object.save()
+
     elif category_id == 2:
         user_profession_object = User_Profession()
         user_profession_object.user_id = member_id
@@ -3053,6 +3060,7 @@ def save_tags_for_user_from_onboarding(category_id,tag_id,member_id):
         user_geography_object.user_id = member_id
         user_geography_object.tags_id = tag_id
         user_geography_object.save()
+        update_user_geography_tags.delay(user_id=member_id)
 
     log="""for category_id=%s, tags_id=%s saved for member_id=%s"""%(str(category_id),str(tag_id),str(member_id))
     info_logger.info(log)
