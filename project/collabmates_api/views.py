@@ -2932,7 +2932,7 @@ def get_third_screen_of_onboarding(member_tags_list):
     attribute_name = "Interests_sports"
     hint="Playing these sports"
     category_id=3
-    display_name="sport"
+    display_name="sports"
     sports_list=get_tag_attributes(member_tags_list,attribute_id,attribute_name,hint,category_id,display_name)
     attribute_list.append(sports_list)
 
@@ -2943,7 +2943,7 @@ def get_third_screen_of_onboarding(member_tags_list):
     attribute_name = "Interests_hobby"
     hint = "Pursuing these hobbies"
     category_id=3
-    display_name="hobby"
+    display_name="hobbies"
     hobbies = get_tag_attributes(member_tags_list, attribute_id, attribute_name, hint,category_id,display_name)
     attribute_list.append(hobbies)
 
@@ -2953,7 +2953,7 @@ def get_third_screen_of_onboarding(member_tags_list):
     attribute_name = "Interests_fan"
     hint = "Following these teams, sports, genres or topics"
     category_id = 3
-    display_name="fan"
+    display_name="fans"
     fan = get_tag_attributes(member_tags_list, attribute_id, attribute_name, hint, category_id,display_name)
     attribute_list.append(fan)
 
@@ -2963,7 +2963,7 @@ def get_third_screen_of_onboarding(member_tags_list):
     attribute_name = "Interests_cause"
     hint = "Working on these causes"
     category_id=3
-    display_name="cause"
+    display_name="causes"
     cause = get_tag_attributes(member_tags_list, attribute_id, attribute_name, hint,category_id,display_name)
     attribute_list.append(cause)
 
@@ -2973,7 +2973,7 @@ def get_third_screen_of_onboarding(member_tags_list):
     attribute_name = "Profession_skill"
     hint = "Skills that you have"
     category_id=2
-    display_name="skill"
+    display_name="skills"
     skill = get_tag_attributes(member_tags_list, attribute_id, attribute_name, hint,category_id,display_name)
     attribute_list.append(skill)
 
@@ -2984,7 +2984,7 @@ def get_third_screen_of_onboarding(member_tags_list):
     attribute_name = "Profession_industry"
     hint = "Industry that you belong to"
     category_id=2
-    display_name="industry"
+    display_name="industries"
     industry = get_tag_attributes(member_tags_list, attribute_id, attribute_name, hint,category_id,display_name)
     attribute_list.append(industry)
 
