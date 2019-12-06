@@ -556,7 +556,7 @@ def create_user_hometown_tag_and_related_tags(user_id,tag_id,new_tag):
         # finally update all user geography tags to
         # get related things for all tags like state and country
         # with images
-        # update_user_geography_tags.delay(user_id=user_id, typ='Geography')
+        update_user_geography_tags.delay(user_id=user_id, typ='Geography')
     return
 
 
