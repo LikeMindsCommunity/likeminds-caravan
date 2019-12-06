@@ -1025,7 +1025,7 @@ def save_community_purpose_card(community_id,card_id):
     community.save()
 
 
-# /api/create_collabcard?community_id=300&member_id=21
+# /api/create_collabcard?community_id=&member_id=
 @csrf_exempt
 def create_card(request):
     ''' function to create a card '''
@@ -1134,7 +1134,7 @@ def create_card(request):
         return JsonResponse({'success':True,'collabcard':collabcard})
     return JsonResponse({'success':False})
 
-
+# /api/add_admin/community_id
 @csrf_exempt
 def create_admin(request,community_id):
     ''' saving admin details given by user of a community
@@ -1349,7 +1349,7 @@ def pending_request_count(request,community_id):
     no_of_pending_members = Members.objects.filter(community_id = community_id).filter(state = 3).count()
     return JsonResponse({'pending_request_count': no_of_pending_members})
 
-
+# api/accept_invitation?member_id=&community_id=&value=false
 @csrf_exempt
 def accept_invitation(request):
     ''' accept promoter request '''
@@ -1465,7 +1465,7 @@ def accept_invitation(request):
 
     return JsonResponse({'success': False})
 
-
+#   /api/join?member_id=  # accepted or denied request
 @csrf_exempt
 def request_response(request,req_dict=None):
     ''' function to approve or decline a members who requested to join '''
@@ -1941,7 +1941,7 @@ def get_status_of_collabcard(member_id,community,card):
 
     return state
 
-
+# /api/create_answer?collabcard_id=&member_id=
 @csrf_exempt
 def create_answer(request):
     '''function to post answer on collabcard'''
