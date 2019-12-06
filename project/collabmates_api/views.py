@@ -3176,12 +3176,12 @@ def save_geography_and_hometown_tags_of_user_from_onboarding(address_input,user_
             tag_object.save()
             tag_object.tag_id = tag_object.id
             tag_object.save()
-            save_tags_for_user_from_onboarding(4, city_tag[0], user_id)
+            save_tags_for_user_from_onboarding(4, tag_object, user_id)
 
     elif category_id == 1:
         hometown=Tags_lpig.objects.filter(attribute_id=attribute_id,name=city)
         if hometown:
-            save_tags_for_user_from_onboarding(4, hometown[0], user_id)
+            save_tags_for_user_from_onboarding(1, hometown[0], user_id)
         else:
             category = Category.objects.filter(id=1)
             tag_object = Tags_lpig()
@@ -3191,7 +3191,7 @@ def save_geography_and_hometown_tags_of_user_from_onboarding(address_input,user_
             tag_object.save()
             tag_object.tag_id = tag_object.id
             tag_object.save()
-            save_tags_for_user_from_onboarding(4, hometown[0], user_id)
+            save_tags_for_user_from_onboarding(1, tag_object, user_id)
 
     print("Hometown and city updated successfully")
 
