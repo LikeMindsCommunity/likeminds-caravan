@@ -37,7 +37,8 @@ from utility.utils import (decode_meta_from_url, update_tag_image,
                            referal, get_referred_members_of_a_member,
                            eligibility_count, notify_referred_member,
                            user_onbaord, update_member_count,
-                           update_community_tags_to_user,tutorial_count,custom_cache,cache_timeout,
+                           update_community_tags_to_user,tutorial_count,
+                           #custom_cache,cache_timeout,
                            get_city_address,
                            update_user_geography_tags, create_or_categorize_tag,
                            insert_user_home_town_tags,user_onbaord)
@@ -46,7 +47,7 @@ from utility.tasks import (mail_triger, new_member_request)
 from utility.firebase import update_last_answer_id,upload_image_to_firebase,upload_community_thumbnail,upload_community_files
 from .raw_queries import compute_rank
 
-CACHE_TTL = getattr(settings, 'CACHE_TTL', cache_timeout)
+# CACHE_TTL = getattr(settings, 'CACHE_TTL', cache_timeout)
 
 
 url  = settings.URL
@@ -89,15 +90,15 @@ def communities(request):
             else:
                 # if category is not provided, get categories according to the user tag if user has one
                 #custom_cache.clear()
-                print(custom_cache.keys('*'))
-                cache_key=communities_url
+                # print(custom_cache.keys('*'))
+                # cache_key=communities_url
 
-                if cache_key in custom_cache:
-                    community=custom_cache.get(cache_key)
-                else:
-                    queryset = get_communities_by_tags(user_tag=user_tag,page_number = page_number,user_id=user_id)
-                    community = serialize_community(queryset=queryset)
-                    custom_cache.set(cache_key,community,timeout=CACHE_TTL)
+                # if cache_key in custom_cache:
+                #     # community=custom_cache.get(cache_key)
+                # else:
+                queryset = get_communities_by_tags(user_tag=user_tag,page_number = page_number,user_id=user_id)
+                community = serialize_community(queryset=queryset)
+                # custom_cache.set(cache_key,community,timeout=CACHE_TTL)
                 info_logger.info(community)
                 #custom_cache.clear()
                 return JsonResponse({'communities': community})
@@ -1025,7 +1026,7 @@ def save_community_purpose_card(community_id,card_id):
     community.save()
 
 
-# /api/create_collabcard?community_id=300&member_id=21
+# /api/create_collabcard?community_id=&member_id=
 @csrf_exempt
 def create_card(request):
     ''' function to create a card '''
@@ -1131,11 +1132,11 @@ def create_card(request):
             engage.updated_at = time.time()
             engage.save()
         update_referral_text_in_engage_table(community)
-        custom_cache.clear()
+        # custom_cache.clear()
         return JsonResponse({'success':True,'collabcard':collabcard})
     return JsonResponse({'success':False})
 
-
+# /api/add_admin/community_id
 @csrf_exempt
 def create_admin(request,community_id):
     ''' saving admin details given by user of a community
@@ -1350,7 +1351,7 @@ def pending_request_count(request,community_id):
     no_of_pending_members = Members.objects.filter(community_id = community_id).filter(state = 3).count()
     return JsonResponse({'pending_request_count': no_of_pending_members})
 
-
+# api/accept_invitation?member_id=&community_id=&value=false
 @csrf_exempt
 def accept_invitation(request):
     ''' accept promoter request '''
@@ -1466,7 +1467,7 @@ def accept_invitation(request):
 
     return JsonResponse({'success': False})
 
-
+#   /api/join?member_id=  # accepted or denied request
 @csrf_exempt
 def request_response(request,req_dict=None):
     ''' function to approve or decline a members who requested to join '''
@@ -1760,10 +1761,11 @@ def community_cards(request, community_id):
     else:
         cards = Collabcard.objects.filter(community = community_id).order_by('id')
 
-    collabcard_url=request.build_absolute_uri()
-    if collabcard_url in custom_cache:
-        card_list=custom_cache.get(collabcard_url)
-    else:
+    # collabcard_url=request.build_absolute_uri()
+    # if collabcard_url in custom_cache:
+    #     card_list=custom_cache.get(collabcard_url)
+    # else:
+    if True:
         card_list = []
         for card in cards:
             user = Userinfo.objects.get(user_id = card.user)
@@ -1788,7 +1790,7 @@ def community_cards(request, community_id):
             card_dict['images'] = files[0]
             card_dict['pdf'] = files[1]
             card_list.append(card_dict)
-        custom_cache.set(collabcard_url,card_list,timeout=CACHE_TTL)
+        # custom_cache.set(collabcard_url,card_list,timeout=CACHE_TTL)
     return JsonResponse ({'collabcards': card_list})
 
 
@@ -1945,7 +1947,7 @@ def get_status_of_collabcard(member_id,community,card):
 
     return state
 
-
+# /api/create_answer?collabcard_id=&member_id=
 @csrf_exempt
 def create_answer(request):
     '''function to post answer on collabcard'''
@@ -2053,7 +2055,7 @@ def collabcard_follow(request):
         '''Deleting the collabcard '''
         if status == False:
             follow_collabcard.objects.filter(collabcard_id=collabcard,member_id=member_id).delete()
-    custom_cache.clear()
+    # custom_cache.clear()
     return JsonResponse({'success':True})
 
 
@@ -2094,7 +2096,7 @@ def collabcards_seen(request):
        collab_seen.community=community
        collab_seen.save()
     update_last_unseen_in_engage(user=user,community=community,is_seen=True)
-    custom_cache.clear()
+    # custom_cache.clear()
     return JsonResponse({'success': True})
 
 
