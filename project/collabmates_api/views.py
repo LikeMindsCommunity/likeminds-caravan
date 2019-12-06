@@ -1131,6 +1131,7 @@ def create_card(request):
             engage.updated_at = time.time()
             engage.save()
         update_referral_text_in_engage_table(community)
+        custom_cache.clear()
         return JsonResponse({'success':True,'collabcard':collabcard})
     return JsonResponse({'success':False})
 
@@ -1759,32 +1760,35 @@ def community_cards(request, community_id):
     else:
         cards = Collabcard.objects.filter(community = community_id).order_by('id')
 
+    collabcard_url=request.build_absolute_uri()
+    if collabcard_url in custom_cache:
+        card_list=custom_cache.get(collabcard_url)
+    else:
+        card_list = []
+        for card in cards:
+            user = Userinfo.objects.get(user_id = card.user)
+            # serialize user object
+            usr = UserinfoSerializer(user)
+            # get card images --------------------------------------------------------
+            files=get_collabcard_files(card)
+            # -----------------------------------------------------------------------
+            share_url = url+'/collabcard/'+str(card.id)
 
-    card_list = []
-    for card in cards:
-        user = Userinfo.objects.get(user_id = card.user)
-        # serialize user object
-        usr = UserinfoSerializer(user)
-        # get card images --------------------------------------------------------
-        files=get_collabcard_files(card)
-        # -----------------------------------------------------------------------
-        share_url = url+'/collabcard/'+str(card.id)
-
-        # get time stamp
-        if str(card.date_epoch) == "-9223372036854775808":
-            # if there is no time stamp , return nothing
-            time_text=""
-        else:
             # get time stamp
-            time_text = get_time_text(card.date_epoch)
-        card_dict = CollabcardSerializer(card, card.community)
-        card_dict['state'] = get_status_of_collabcard(member_id,community,card)
-        card_dict['created_at'] = time_text
-        card_dict['member'] = usr
-        card_dict['images'] = files[0]
-        card_dict['pdf'] = files[1]
-
-        card_list.append(card_dict)
+            if str(card.date_epoch) == "-9223372036854775808":
+                # if there is no time stamp , return nothing
+                time_text=""
+            else:
+                # get time stamp
+                time_text = get_time_text(card.date_epoch)
+            card_dict = CollabcardSerializer(card, card.community)
+            card_dict['state'] = get_status_of_collabcard(member_id,community,card)
+            card_dict['created_at'] = time_text
+            card_dict['member'] = usr
+            card_dict['images'] = files[0]
+            card_dict['pdf'] = files[1]
+            card_list.append(card_dict)
+        custom_cache.set(collabcard_url,card_list,timeout=CACHE_TTL)
     return JsonResponse ({'collabcards': card_list})
 
 
@@ -2049,7 +2053,7 @@ def collabcard_follow(request):
         '''Deleting the collabcard '''
         if status == False:
             follow_collabcard.objects.filter(collabcard_id=collabcard,member_id=member_id).delete()
-
+    custom_cache.clear()
     return JsonResponse({'success':True})
 
 
@@ -2090,7 +2094,7 @@ def collabcards_seen(request):
        collab_seen.community=community
        collab_seen.save()
     update_last_unseen_in_engage(user=user,community=community,is_seen=True)
-
+    custom_cache.clear()
     return JsonResponse({'success': True})
 
 
@@ -2115,12 +2119,12 @@ def member_activity(request):
     community=Community.objects.get(pk=community_id)
     member=User.objects.get(pk=user_id)
 
-    #status=Collabcard.objects.filter(community=community,user=member)
+    status=Collabcard.objects.filter(community=community,user=member)
 
-    # if status:
-    #     state=1
+    if status:
+        state=1
     # if state == 1:
-    state=community.introduction_text_state
+    #state=community.introduction_text_state
     if state:
         return JsonResponse({'state':state,'tutorial_count':tutorial_count})
 
@@ -3085,7 +3089,7 @@ def push_onboarding(request):
     response = json.loads(request.body)
     member_id=0
     try:
-        member_id=User.objects.get(id=user_id)
+        member_id=User.objects.get(id=user_id)   #getting a user object in member id
     except:
         error_logger.error("User does not exist")
     for data in response['attributes']:
@@ -3100,15 +3104,23 @@ def push_onboarding(request):
               save_tags_for_user_from_onboarding(category_id,tag_id,member_id)
            else:
                attribute_id=Attributes.objects.get(id=data['id'])
-               uncharacterized_category_id=Category.objects.get(id=6)
-               tag_object=Tags_lpig()
-               tag_object.name=tag['name']
-               tag_object.attribute_id=attribute_id
-               tag_object.category_id=uncharacterized_category_id      # uncategorized tag
-               tag_object.save()
-               tag_object.tag_id=tag_object.id
-               tag_object.save()
-               save_tags_for_user_from_onboarding(category_id,tag_object,member_id)
+               if attribute_id.id == 12:
+                   update_status=Userinfo.objects.filter(user_id=user_id).update(address=tag['name'])
+                   print(update_status)
+                   save_geography_and_hometown_tags_of_user_from_onboarding(tag['name'],member_id,attribute_id,4)
+
+               elif attribute_id.id == 3:
+                   save_geography_and_hometown_tags_of_user_from_onboarding(tag['name'],member_id,attribute_id,1)
+               else:
+                   uncharacterized_category_id=Category.objects.get(id=6)
+                   tag_object=Tags_lpig()
+                   tag_object.name=tag['name']
+                   tag_object.attribute_id=attribute_id
+                   tag_object.category_id=uncharacterized_category_id      # uncategorized tag
+                   tag_object.save()
+                   tag_object.tag_id=tag_object.id
+                   tag_object.save()
+                   save_tags_for_user_from_onboarding(category_id,tag_object,member_id)
 
 
     #saving global tags for user
@@ -3143,6 +3155,49 @@ def push_onboarding(request):
     send_mail_after_rank_computation.delay(user_id) # both mail and notification will be sent here
 
     return JsonResponse({'success':True})
+
+def save_geography_and_hometown_tags_of_user_from_onboarding(address_input,user_id,attribute_id,category_id):
+
+    '''function to take the address of the user and get its city,state and country tags to save in tags'''
+
+    user_address=get_city_address(city=address_input)
+
+    city=user_address['city']
+    if category_id == 4:
+        city_tag=Tags_lpig.objects.filter(attribute_id=attribute_id,name=city)
+        if city_tag:
+            save_tags_for_user_from_onboarding(4,city_tag[0],user_id)
+        else:
+            category=Category.objects.get(id=4)
+            tag_object = Tags_lpig()
+            tag_object.name = user_address['city']
+            tag_object.attribute_id = attribute_id
+            tag_object.category_id = category                   # uncategorized tag
+            tag_object.save()
+            tag_object.tag_id = tag_object.id
+            tag_object.save()
+            save_tags_for_user_from_onboarding(4, tag_object, user_id)
+
+    elif category_id == 1:
+        hometown=Tags_lpig.objects.filter(attribute_id=attribute_id,name=city)
+        if hometown:
+            save_tags_for_user_from_onboarding(1, hometown[0], user_id)
+        else:
+            category = Category.objects.get(id=1)
+            tag_object = Tags_lpig()
+            tag_object.name = user_address['city']
+            tag_object.attribute_id = attribute_id
+            tag_object.category_id = category  # uncategorized tag
+            tag_object.save()
+            tag_object.tag_id = tag_object.id
+            tag_object.save()
+            save_tags_for_user_from_onboarding(1, tag_object, user_id)
+
+    print("Hometown and city updated successfully")
+
+
+
+
 
 
 
