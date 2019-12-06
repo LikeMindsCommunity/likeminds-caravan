@@ -2843,7 +2843,7 @@ def get_second_screen_of_onboarding(member_tags_list):
 
     temp = {}
     temp['title'] = "Enter your schools/colleges"
-    temp['sub_title'] = "You can connect with the communities from your classmates, seniors and juniors"
+    temp['sub_title'] = "Discover relevant alumni communities"
     attribute_list=[]
     attribute_id = 2
     category_id=1
@@ -2862,14 +2862,14 @@ def get_first_screen_of_onboarding(member_tags_list):
 
     temp = {}
     temp['title'] = "Mention your neighbourhood"
-    temp['sub_title'] = "Your society/locality/city"
+    temp['sub_title'] = "Discover relevant local communities"
     attribute_list=[]
 
     attribute_id = 12
     attribute_name = "Geography_city"
     hint="Your localities"
     category_id=4
-    display_name="city"
+    display_name="Your society/locality/city"
     city_list=get_tag_attributes(member_tags_list,attribute_id,attribute_name,hint,category_id,display_name)
     attribute_list.append(city_list)
 
