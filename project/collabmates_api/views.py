@@ -3089,7 +3089,7 @@ def push_onboarding(request):
     response = json.loads(request.body)
     member_id=0
     try:
-        member_id=User.objects.get(id=user_id)
+        member_id=User.objects.get(id=user_id)   #getting a user object in member id
     except:
         error_logger.error("User does not exist")
     for data in response['attributes']:
@@ -3104,15 +3104,23 @@ def push_onboarding(request):
               save_tags_for_user_from_onboarding(category_id,tag_id,member_id)
            else:
                attribute_id=Attributes.objects.get(id=data['id'])
-               uncharacterized_category_id=Category.objects.get(id=6)
-               tag_object=Tags_lpig()
-               tag_object.name=tag['name']
-               tag_object.attribute_id=attribute_id
-               tag_object.category_id=uncharacterized_category_id      # uncategorized tag
-               tag_object.save()
-               tag_object.tag_id=tag_object.id
-               tag_object.save()
-               save_tags_for_user_from_onboarding(category_id,tag_object,member_id)
+               if attribute_id.id == 12:
+                   update_status=Userinfo.objects.filter(user_id=user_id).update(address=tag['name'])
+                   print(update_status)
+                   save_geography_and_hometown_tags_of_user_from_onboarding(tag['name'],member_id,attribute_id,4)
+
+               elif attribute_id.id == 3:
+                   save_geography_and_hometown_tags_of_user_from_onboarding(tag['name'],member_id,attribute_id,1)
+               else:
+                   uncharacterized_category_id=Category.objects.get(id=6)
+                   tag_object=Tags_lpig()
+                   tag_object.name=tag['name']
+                   tag_object.attribute_id=attribute_id
+                   tag_object.category_id=uncharacterized_category_id      # uncategorized tag
+                   tag_object.save()
+                   tag_object.tag_id=tag_object.id
+                   tag_object.save()
+                   save_tags_for_user_from_onboarding(category_id,tag_object,member_id)
 
 
     #saving global tags for user
@@ -3147,6 +3155,49 @@ def push_onboarding(request):
     send_mail_after_rank_computation.delay(user_id) # both mail and notification will be sent here
 
     return JsonResponse({'success':True})
+
+def save_geography_and_hometown_tags_of_user_from_onboarding(address_input,user_id,attribute_id,category_id):
+
+    '''function to take the address of the user and get its city,state and country tags to save in tags'''
+
+    user_address=get_city_address(city=address_input)
+
+    city=user_address['city']
+    if category_id == 4:
+        city_tag=Tags_lpig.objects.filter(attribute_id=attribute_id,name=city)
+        if city_tag:
+            save_tags_for_user_from_onboarding(4,city_tag[0],user_id)
+        else:
+            category=Category.objects.filter(id=4)
+            tag_object = Tags_lpig()
+            tag_object.name = user_address['city']
+            tag_object.attribute_id = attribute_id
+            tag_object.category_id = category                   # uncategorized tag
+            tag_object.save()
+            tag_object.tag_id = tag_object.id
+            tag_object.save()
+            save_tags_for_user_from_onboarding(4, city_tag[0], user_id)
+
+    elif category_id == 1:
+        hometown=Tags_lpig.objects.filter(attribute_id=attribute_id,name=city)
+        if hometown:
+            save_tags_for_user_from_onboarding(4, hometown[0], user_id)
+        else:
+            category = Category.objects.filter(id=1)
+            tag_object = Tags_lpig()
+            tag_object.name = user_address['city']
+            tag_object.attribute_id = attribute_id
+            tag_object.category_id = category  # uncategorized tag
+            tag_object.save()
+            tag_object.tag_id = tag_object.id
+            tag_object.save()
+            save_tags_for_user_from_onboarding(4, hometown[0], user_id)
+
+    print("Hometown and city updated successfully")
+
+
+
+
 
 
 
