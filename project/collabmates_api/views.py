@@ -2375,6 +2375,8 @@ def members_state(request):
     member_id=request.GET.get('member_id')
     community_id=request.GET.get('community_id')
     collabcard_id = request.GET.get('collabcard_id')
+    if not collabcard_id.isdigit():
+        return JsonResponse({'state':0})
     if collabcard_id and not community_id:
         card = Collabcard.objects.get(pk = collabcard_id)
         community_id = card.community.id
