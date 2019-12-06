@@ -1125,6 +1125,7 @@ def create_card(request):
             engage.updated_at = time.time()
             engage.save()
         update_referral_text_in_engage_table(community)
+        custom_cache.clear()
         return JsonResponse({'success':True,'collabcard':collabcard})
     return JsonResponse({'success':False})
 
