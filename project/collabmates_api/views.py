@@ -2119,12 +2119,12 @@ def member_activity(request):
     community=Community.objects.get(pk=community_id)
     member=User.objects.get(pk=user_id)
 
-    #status=Collabcard.objects.filter(community=community,user=member)
+    status=Collabcard.objects.filter(community=community,user=member)
 
-    # if status:
-    #     state=1
+    if status:
+        state=1
     # if state == 1:
-    state=community.introduction_text_state
+    #state=community.introduction_text_state
     if state:
         return JsonResponse({'state':state,'tutorial_count':tutorial_count})
 
