@@ -3168,7 +3168,7 @@ def save_geography_and_hometown_tags_of_user_from_onboarding(address_input,user_
         if city_tag:
             save_tags_for_user_from_onboarding(4,city_tag[0],user_id)
         else:
-            category=Category.objects.filter(id=4)
+            category=Category.objects.get(id=4)
             tag_object = Tags_lpig()
             tag_object.name = user_address['city']
             tag_object.attribute_id = attribute_id
@@ -3183,7 +3183,7 @@ def save_geography_and_hometown_tags_of_user_from_onboarding(address_input,user_
         if hometown:
             save_tags_for_user_from_onboarding(1, hometown[0], user_id)
         else:
-            category = Category.objects.filter(id=1)
+            category = Category.objects.get(id=1)
             tag_object = Tags_lpig()
             tag_object.name = user_address['city']
             tag_object.attribute_id = attribute_id
