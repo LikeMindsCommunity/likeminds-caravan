@@ -3105,7 +3105,7 @@ def push_onboarding(request):
 
            if 'id' in tag and tag['id']:
               tag_id=Tags_lpig.objects.get(id=tag['id'])
-              tag_id=tag_id.tag_rank + 1
+              tag_id.tag_rank=tag_id.tag_rank + 1
               tag_id.save()
               save_tags_for_user_from_onboarding(category_id,tag_id,member_id)
            else:
