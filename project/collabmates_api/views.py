@@ -3045,6 +3045,8 @@ def save_tags_for_user_from_onboarding(category_id,tag_id,member_id):
 
     '''function to save user tags in lpig tables'''
     category_id=int(category_id)
+
+
     if category_id == 1:
         if tag_id.attribute_id.id == 3:
             tag_id = insert_user_home_town_tags(user_id=member_id.id,tag=str(tag_id.tag_id))
@@ -3103,6 +3105,8 @@ def push_onboarding(request):
 
            if 'id' in tag and tag['id']:
               tag_id=Tags_lpig.objects.get(id=tag['id'])
+              tag_id=tag_id.tag_rank + 1
+              tag_id.save()
               save_tags_for_user_from_onboarding(category_id,tag_id,member_id)
            else:
                attribute_id=Attributes.objects.get(id=data['id'])
@@ -3123,6 +3127,7 @@ def push_onboarding(request):
                    tag_object.tag_id=tag_object.id
                    tag_object.save()
                    save_tags_for_user_from_onboarding(category_id,tag_object,member_id)
+
 
 
     #saving global tags for user
