@@ -2901,7 +2901,7 @@ def get_tag_attributes(member_tags_list,attribute_id,attribute_name,hint,categor
     # attribute_id = 10
     # attribute_name = "Interests_sports"
 
-    tags = Tags_lpig.objects.filter(attribute_id=attribute_id)
+    tags = Tags_lpig.objects.filter(attribute_id=attribute_id).order_by('-tag_rank')
     attribute_temp = {}
     attribute_temp['hint'] = hint
     attribute_temp['id'] = attribute_id
