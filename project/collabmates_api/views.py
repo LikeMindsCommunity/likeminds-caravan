@@ -222,6 +222,7 @@ def update_pending_member_count_in_engage(community):
     all_members=Members.objects.filter(community_id=community)
     current_time=time.time()
     for member in all_members:
+
         if member.state == 1 or member.state == 2:
             Member_Engage.objects.filter(community_id=community,member_id=member.member_id).update(
                 pending_members=pending__members_count,updated_at=current_time,member_state=member.state)
@@ -314,7 +315,10 @@ def update_referral_text_in_engage_table(community_object):
             #             'member_referral'] = """You have successfully referred %s members. Please refer %s more to become promoter.""" % (
             #             community['pending_members_count'], diff)
             elif community_state == '0' and community['pending_members_count']:
-                community['member_referral'] = str(community['pending_members_count']) + " new member requests"
+                if community['pending_members_count'] == 1:
+                    community['member_referral'] = str(community['pending_members_count']) + " new member request"
+                elif community['pending_members_count'] > 1:
+                    community['member_referral'] = str(community['pending_members_count']) + " new member requests"
 
             each_community.member_referral=community['member_referral']
             each_community.member_state=state
@@ -1533,6 +1537,8 @@ def request_response(request,req_dict=None):
         # and also send notification
         send_notification_for_join_requests.delay(community_id, False, member_id)
         Form_response.objects.filter(user=member_id,community=community_id).delete()
+        update_pending_member_count_in_engage(community)
+        update_referral_text_in_engage_table(community)
 
 
     return JsonResponse({'success': True})
