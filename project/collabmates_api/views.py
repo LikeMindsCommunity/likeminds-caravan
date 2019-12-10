@@ -2869,7 +2869,7 @@ def get_first_screen_of_onboarding(member_tags_list):
 
     attribute_id = 12
     attribute_name = "Geography_city"
-    hint="Your society/locality/city"
+    hint="Your society/locality"
     category_id=4
     display_name="city"
     city_list=get_tag_attributes(member_tags_list,attribute_id,attribute_name,hint,category_id,display_name)
