@@ -3111,16 +3111,19 @@ def push_onboarding(request):
               tag_id=Tags_lpig.objects.get(id=tag['id'])
               save_tags_for_user_from_onboarding(category_id,tag_id,member_id)
            else:
-               attribute_id=Attributes.objects.get(id=data['id'])
-               if attribute_id.id == 12:
+
+               if data['id'] == 12 or data['id'] == '12':
+                   attribute_id = Attributes.objects.get(id=data['id'])
                    update_status=Userinfo.objects.filter(user_id=user_id).update(address=tag['name'])
                    print(update_status)
                    save_geography_and_hometown_tags_of_user_from_onboarding(tag['name'],member_id,attribute_id,4)
 
-               elif attribute_id.id == 3:
+               elif data['id'] == 3 or data['id'] == '13':
+                   attribute_id = Attributes.objects.get(id=data['id'])
                    save_geography_and_hometown_tags_of_user_from_onboarding(tag['name'],member_id,attribute_id,1)
                else:
                    uncharacterized_category_id=Category.objects.get(id=6)
+                   print("push_onboarding tag  create   ",tag['name'])
                    tag_object=Tags_lpig()
                    tag_object.name=tag['name']
                    tag_object.attribute_id=attribute_id
@@ -3177,6 +3180,7 @@ def save_geography_and_hometown_tags_of_user_from_onboarding(address_input,user_
             save_tags_for_user_from_onboarding(4,city_tag[0],user_id)
         else:
             category=Category.objects.get(id=4)
+            print(">>>>>>   tag  create   ", user_address['city'])
             tag_object = Tags_lpig()
             tag_object.name = user_address['city']
             tag_object.attribute_id = attribute_id
@@ -3192,6 +3196,7 @@ def save_geography_and_hometown_tags_of_user_from_onboarding(address_input,user_
             save_tags_for_user_from_onboarding(1, hometown[0], user_id)
         else:
             category = Category.objects.get(id=1)
+            print("???????  tag  create   ", user_address['city'])
             tag_object = Tags_lpig()
             tag_object.name = user_address['city']
             tag_object.attribute_id = attribute_id
