@@ -3114,11 +3114,13 @@ def push_onboarding(request):
 
                if data['id'] == 12 or data['id'] == '12':
                    attribute_id = Attributes.objects.get(id=data['id'])
+                   print("push_onboarding id = 12   ", tag['name'])
                    update_status=Userinfo.objects.filter(user_id=user_id).update(address=tag['name'])
                    print(update_status)
                    save_geography_and_hometown_tags_of_user_from_onboarding(tag['name'],member_id,attribute_id,4)
 
                elif data['id'] == 3 or data['id'] == '13':
+                   print("push_onboarding id = 13   ", tag['name'])
                    attribute_id = Attributes.objects.get(id=data['id'])
                    save_geography_and_hometown_tags_of_user_from_onboarding(tag['name'],member_id,attribute_id,1)
                else:
@@ -3172,11 +3174,13 @@ def save_geography_and_hometown_tags_of_user_from_onboarding(address_input,user_
     '''function to take the address of the user and get its city,state and country tags to save in tags'''
 
     user_address=get_city_address(city=address_input)
-
+    print("get_city_address \n",address_input,"\n",user_address)
     city=user_address['city']
     if category_id == 4:
         city_tag=Tags_lpig.objects.filter(attribute_id=attribute_id,name=city)
+        print("city tag   ", city_tag)
         if city_tag:
+            print("city tag   ",city_tag)
             save_tags_for_user_from_onboarding(4,city_tag[0],user_id)
         else:
             category=Category.objects.get(id=4)
