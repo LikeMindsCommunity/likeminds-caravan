@@ -46,7 +46,6 @@ from utility.utils import (decode_meta_from_url, update_tag_image,
 from utility.tasks import (mail_triger, new_member_request)
 from utility.firebase import update_last_answer_id,upload_image_to_firebase,upload_community_thumbnail,upload_community_files
 from .raw_queries import compute_rank
-import threading
 
 # CACHE_TTL = getattr(settings, 'CACHE_TTL', cache_timeout)
 
@@ -3115,26 +3114,15 @@ def push_onboarding(request):
 
                if data['id'] == 12 or data['id'] == '12':
                    attribute_id = Attributes.objects.get(id=data['id'])
-                   print("push_onboarding id = 12   ", tag['name'])
                    update_status=Userinfo.objects.filter(user_id=user_id).update(address=tag['name'])
                    print(update_status)
-                   thread = threading.Thread(target=save_geography_and_hometown_tags_of_user_from_onboarding,
-                                             args=(tag['name'],member_id,attribute_id,4))
-                   thread.daemon = True  # Daemonize thread
-                   thread.start()  # Start the execution
-                   # save_geography_and_hometown_tags_of_user_from_onboarding(tag['name'],member_id,attribute_id,4)
+                   save_geography_and_hometown_tags_of_user_from_onboarding(tag['name'],member_id,attribute_id,4)
 
                elif data['id'] == 3 or data['id'] == '13':
-                   print("push_onboarding id = 13   ", tag['name'])
                    attribute_id = Attributes.objects.get(id=data['id'])
-                   thread = threading.Thread(target=save_geography_and_hometown_tags_of_user_from_onboarding,
-                                             args=(tag['name'], member_id, attribute_id, 1))
-                   thread.daemon = True  # Daemonize thread
-                   thread.start()  # Start the execution
-                   # save_geography_and_hometown_tags_of_user_from_onboarding(tag['name'],member_id,attribute_id,1)
+                   save_geography_and_hometown_tags_of_user_from_onboarding(tag['name'],member_id,attribute_id,1)
                else:
                    uncharacterized_category_id=Category.objects.get(id=6)
-                   print("push_onboarding tag  create   ",tag['name'])
                    tag_object=Tags_lpig()
                    tag_object.name=tag['name']
                    tag_object.attribute_id=attribute_id
@@ -3183,17 +3171,14 @@ def save_geography_and_hometown_tags_of_user_from_onboarding(address_input,user_
     '''function to take the address of the user and get its city,state and country tags to save in tags'''
 
     user_address=get_city_address(city=address_input)
-    print("get_city_address \n",address_input,"\n",user_address)
+
     city=user_address['city']
     if category_id == 4:
         city_tag=Tags_lpig.objects.filter(attribute_id=attribute_id,name=city)
-        print("city tag   ", city_tag)
         if city_tag:
-            print("city tag   ",city_tag)
             save_tags_for_user_from_onboarding(4,city_tag[0],user_id)
         else:
             category=Category.objects.get(id=4)
-            print(">>>>>>   tag  create   ", user_address['city'])
             tag_object = Tags_lpig()
             tag_object.name = user_address['city']
             tag_object.attribute_id = attribute_id
@@ -3209,7 +3194,6 @@ def save_geography_and_hometown_tags_of_user_from_onboarding(address_input,user_
             save_tags_for_user_from_onboarding(1, hometown[0], user_id)
         else:
             category = Category.objects.get(id=1)
-            print("???????  tag  create   ", user_address['city'])
             tag_object = Tags_lpig()
             tag_object.name = user_address['city']
             tag_object.attribute_id = attribute_id
