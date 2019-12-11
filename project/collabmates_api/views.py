@@ -46,6 +46,7 @@ from utility.utils import (decode_meta_from_url, update_tag_image,
 from utility.tasks import (mail_triger, new_member_request)
 from utility.firebase import update_last_answer_id,upload_image_to_firebase,upload_community_thumbnail,upload_community_files
 from .raw_queries import compute_rank
+import threading
 
 # CACHE_TTL = getattr(settings, 'CACHE_TTL', cache_timeout)
 
@@ -3117,12 +3118,20 @@ def push_onboarding(request):
                    print("push_onboarding id = 12   ", tag['name'])
                    update_status=Userinfo.objects.filter(user_id=user_id).update(address=tag['name'])
                    print(update_status)
-                   save_geography_and_hometown_tags_of_user_from_onboarding(tag['name'],member_id,attribute_id,4)
+                   thread = threading.Thread(target=save_geography_and_hometown_tags_of_user_from_onboarding,
+                                             args=(tag['name'],member_id,attribute_id,4))
+                   thread.daemon = True  # Daemonize thread
+                   thread.start()  # Start the execution
+                   # save_geography_and_hometown_tags_of_user_from_onboarding(tag['name'],member_id,attribute_id,4)
 
                elif data['id'] == 3 or data['id'] == '13':
                    print("push_onboarding id = 13   ", tag['name'])
                    attribute_id = Attributes.objects.get(id=data['id'])
-                   save_geography_and_hometown_tags_of_user_from_onboarding(tag['name'],member_id,attribute_id,1)
+                   thread = threading.Thread(target=save_geography_and_hometown_tags_of_user_from_onboarding,
+                                             args=(tag['name'], member_id, attribute_id, 1))
+                   thread.daemon = True  # Daemonize thread
+                   thread.start()  # Start the execution
+                   # save_geography_and_hometown_tags_of_user_from_onboarding(tag['name'],member_id,attribute_id,1)
                else:
                    uncharacterized_category_id=Category.objects.get(id=6)
                    print("push_onboarding tag  create   ",tag['name'])
