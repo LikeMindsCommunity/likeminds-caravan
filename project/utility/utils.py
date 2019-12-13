@@ -19,6 +19,12 @@ from .firebase import upload_tag_files
 from django.http.response import JsonResponse
 from django.conf import settings
 
+# cache details
+# from django.core.cache import cache
+# custom_cache=cache
+# cache_timeout=3600
+
+
 url=settings.URL
 
 if settings.IS_BETA:
@@ -108,7 +114,7 @@ def update_tag_image(tag_name, tag_id):
 
             tag_obj = Tags_lpig.objects.get(pk = tag_id)
             # file_name = 'media/tags_images/' + tag_name + "__tag.jpeg"
-            if not tag_obj.tag_image:
+            if not tag_obj.image_link:
 
                 image_url = response['query']['pages'][0]['thumbnail']['source']
 
@@ -129,7 +135,7 @@ def update_tag_image(tag_name, tag_id):
                 # else:
                 #     print('file already exists')
 
-                # tag_obj.tag_image = file_name
+                # tag_obj.image_link = file_name
                 tag_obj.image_link = image_link
                 tag_obj.save()
             return
@@ -241,7 +247,7 @@ def create_or_categorize_tag(tag,category,attribute):
 
                     # tag is of category type geography update or create tag image
                     if category.name == 'Geography' or attribute.id == 3:
-                        if tag and not tag.tag_image:
+                        if tag and not tag.image_link:
                             tag_name, tag_id = new_tag, tag.id
                             print("utils update tag image at create or categorize tags")
                             update_tag_image.delay(tag_name=tag_name, tag_id=tag_id)
@@ -257,7 +263,7 @@ def create_or_categorize_tag(tag,category,attribute):
                         tag.save()
 
                     if category.name == 'Geography' or attribute.id == 3:
-                        if tag and not tag.tag_image:
+                        if tag and not tag.image_link:
                             tag_name, tag_id = new_tag, tag.id
                             print("utils update tag image at create or categorize tags")
                             update_tag_image.delay(tag_name=tag_name, tag_id=tag_id)
@@ -266,7 +272,7 @@ def create_or_categorize_tag(tag,category,attribute):
 
                     # tag is of category type geography update or create tag image
                     if category.name == 'Geography' or attribute.id == 3:
-                        if tag and not tag.tag_image:
+                        if tag and not tag.image_link:
                             tag_name, tag_id = new_tag, tag.id
                             print("utils update tag image at create or categorize tags")
                             update_tag_image.delay(tag_name=tag_name, tag_id=tag_id)
@@ -289,7 +295,7 @@ def update_user_geography_tags(user_id, typ=''):
         tag = Tags_lpig.objects.get(pk=each_tag)
         tag_name = tag.name
 
-        if tag.id == 15 or tag.id == 16 or tag.id == 17 or tag.id == 18:
+        if tag.id == 15 or tag.id == 16 or tag.id == 17 or tag.id == 18 or tag.category_id == 6:
             continue
 
         geography_list = get_city_address(city = tag_name)
@@ -464,7 +470,7 @@ def insert_user_home_town_tags(user_id,tag):
             tag = tags[0]
             new_tag = tags[0].name
             new_tag = new_tag.strip().title()
-            if tag and not tag.tag_image:
+            if tag and not tag.image_link:
                 tag_id = tag.id
                 update_tag_image.delay(tag_name=new_tag, tag_id=tag_id)
         else:
@@ -479,7 +485,7 @@ def insert_user_home_town_tags(user_id,tag):
                 tag.save()
                 tag.tag_id = tag.id
                 tag.save()
-                if tag and not tag.tag_image:
+                if tag and not tag.image_link:
                     tag_id = tag.id
                     update_tag_image.delay(tag_name=new_tag, tag_id=tag_id)
 
@@ -509,7 +515,7 @@ def create_user_hometown_tag_and_related_tags(user_id,tag_id,new_tag):
         user_tag.tags_id = tag
         user_tag.user_id = user
         user_tag.save()
-        if tag and not tag.tag_image:
+        if tag and not tag.image_link:
             tag_name, tag_id = new_tag, tag.id
             print("utils update tag image at create user hometown tags")
             update_tag_image.delay(tag_name=tag_name, tag_id=tag_id)

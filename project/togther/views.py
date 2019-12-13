@@ -886,7 +886,6 @@ def questions_responses(request):
     return JsonResponse(context)
 
 
-
 def get_or_create_tag(tag_name,tag_type):
 
     '''function to check whether the tag is existing tag or a new tag and
@@ -962,11 +961,11 @@ def insert_tags_for_user(user_id,tag_list,typ):
             if each_tag in user_tags_list:
                 continue
             elif not each_tag in user_tags_list:
-                   tag = Tags_lpig.objects.get(pk=each_tag)
-                   user_tag = User_Legacy()
-                   user_tag.tags_id = tag
-                   user_tag.user_id = user
-                   user_tag.save()
+                tag = Tags_lpig.objects.get(pk=each_tag)
+                user_tag = User_Legacy()
+                user_tag.tags_id = tag
+                user_tag.user_id = user
+                user_tag.save()
 
             else:
                 pass
@@ -1055,6 +1054,8 @@ def insert_tags_for_user(user_id,tag_list,typ):
 
                 if str(tag[0].tags_id.id) != '18':
                     tag.delete()
+
+        # update_user_geography_tags.delay(user_id=user.id)
 
 
 def get_user_tags_from_list(tag_list,type):
@@ -1350,6 +1351,7 @@ def onboarding(request):
 
 
         legacy_li = legacy_education + legacy_hometown   # + legacy_work
+
 
         type_list=get_user_tags_from_list(legacy_li,"Legacy")
         insert_tags_for_user(user_id,type_list,"Legacy")

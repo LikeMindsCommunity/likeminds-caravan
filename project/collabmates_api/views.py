@@ -37,26 +37,31 @@ from utility.utils import (decode_meta_from_url, update_tag_image,
                            referal, get_referred_members_of_a_member,
                            eligibility_count, notify_referred_member,
                            user_onbaord, update_member_count,
-                           update_community_tags_to_user,tutorial_count)
+                           update_community_tags_to_user,tutorial_count,
+                           #custom_cache,cache_timeout,
+                           get_city_address,
+                           update_user_geography_tags, create_or_categorize_tag,
+                           insert_user_home_town_tags,user_onbaord)
+
 from utility.tasks import (mail_triger, new_member_request)
 from utility.firebase import update_last_answer_id,upload_image_to_firebase,upload_community_thumbnail,upload_community_files
 from .raw_queries import compute_rank
+
+# CACHE_TTL = getattr(settings, 'CACHE_TTL', cache_timeout)
 
 
 url  = settings.URL
 
 error_logger = logging.getLogger("error_logger")
 info_logger = logging.getLogger("info_logger")
-
 # /api/communities?category_id=&member_id=
 
 ############# functions for community api ##########################
-
 def communities(request):
 
     ''' function to get all the communities '''
 
-   
+    communities_url=request.build_absolute_uri()
     if request.method == 'GET':
         info_logger.info("added")
         request = request.GET.dict()
@@ -84,10 +89,18 @@ def communities(request):
                 return JsonResponse({'communities': community})
             else:
                 # if category is not provided, get categories according to the user tag if user has one
+                #custom_cache.clear()
+                # print(custom_cache.keys('*'))
+                # cache_key=communities_url
 
+                # if cache_key in custom_cache:
+                #     # community=custom_cache.get(cache_key)
+                # else:
                 queryset = get_communities_by_tags(user_tag=user_tag,page_number = page_number,user_id=user_id)
                 community = serialize_community(queryset=queryset)
+                # custom_cache.set(cache_key,community,timeout=CACHE_TTL)
                 info_logger.info(community)
+                #custom_cache.clear()
                 return JsonResponse({'communities': community})
 
 def get_communities_by_tags(user_tag=0, category_tag=0,page_number=1,user_id=None):
@@ -97,8 +110,9 @@ def get_communities_by_tags(user_tag=0, category_tag=0,page_number=1,user_id=Non
 
     if is_user_tags:
         if user_id:
+
             user_tag = Community_Rank.objects.filter(member_id=user_id).values('community_id').order_by(
-                "-weight").distinct()
+                    "-weight").distinct()
             queryset = pagination(user_tag, page_number)
             return queryset
 
@@ -208,6 +222,7 @@ def update_pending_member_count_in_engage(community):
     all_members=Members.objects.filter(community_id=community)
     current_time=time.time()
     for member in all_members:
+
         if member.state == 1 or member.state == 2:
             Member_Engage.objects.filter(community_id=community,member_id=member.member_id).update(
                 pending_members=pending__members_count,updated_at=current_time,member_state=member.state)
@@ -300,7 +315,10 @@ def update_referral_text_in_engage_table(community_object):
             #             'member_referral'] = """You have successfully referred %s members. Please refer %s more to become promoter.""" % (
             #             community['pending_members_count'], diff)
             elif community_state == '0' and community['pending_members_count']:
-                community['member_referral'] = str(community['pending_members_count']) + " new member requests"
+                if community['pending_members_count'] == 1:
+                    community['member_referral'] = str(community['pending_members_count']) + " new member request"
+                elif community['pending_members_count'] > 1:
+                    community['member_referral'] = str(community['pending_members_count']) + " new member requests"
 
             each_community.member_referral=community['member_referral']
             each_community.member_state=state
@@ -925,7 +943,7 @@ def create_community(request):
             # community.save()
             community_id = community.id
             card_id = card.id
-            save_community_purpose_card(community_id, card_id)
+            save_community_purpose_card.delay(community_id, card_id)
             print("updated card id >>>>>>>   \n",card.id,"\n")
             # created card will be auto followed by the creator if the card
             follow=follow_collabcard()
@@ -1002,15 +1020,17 @@ def create_community(request):
             return JsonResponse({'success':True, 'community':new_dict})
     return HttpResponse("Create Community Api")
 
+@shared_task
 def save_community_purpose_card(community_id,card_id):
     print("\n>>>>>>>>>>>>>   card  =====  ", card_id)
     print("\n>>>>>>>>>>>>>   community  =====  ", community_id)
+    time.sleep(2)
     community = Community.objects.get(id=community_id)
     community.purpose_collabcard = card_id
     community.save()
 
 
-# /api/create_collabcard?community_id=300&member_id=21
+# /api/create_collabcard?community_id=&member_id=
 @csrf_exempt
 def create_card(request):
     ''' function to create a card '''
@@ -1116,10 +1136,11 @@ def create_card(request):
             engage.updated_at = time.time()
             engage.save()
         update_referral_text_in_engage_table(community)
+        # custom_cache.clear()
         return JsonResponse({'success':True,'collabcard':collabcard})
     return JsonResponse({'success':False})
 
-
+# /api/add_admin/community_id
 @csrf_exempt
 def create_admin(request,community_id):
     ''' saving admin details given by user of a community
@@ -1334,7 +1355,7 @@ def pending_request_count(request,community_id):
     no_of_pending_members = Members.objects.filter(community_id = community_id).filter(state = 3).count()
     return JsonResponse({'pending_request_count': no_of_pending_members})
 
-
+# api/accept_invitation?member_id=&community_id=&value=false
 @csrf_exempt
 def accept_invitation(request):
     ''' accept promoter request '''
@@ -1450,7 +1471,7 @@ def accept_invitation(request):
 
     return JsonResponse({'success': False})
 
-
+#   /api/join?member_id=  # accepted or denied request
 @csrf_exempt
 def request_response(request,req_dict=None):
     ''' function to approve or decline a members who requested to join '''
@@ -1516,6 +1537,8 @@ def request_response(request,req_dict=None):
         # and also send notification
         send_notification_for_join_requests.delay(community_id, False, member_id)
         Form_response.objects.filter(user=member_id,community=community_id).delete()
+        update_pending_member_count_in_engage(community)
+        update_referral_text_in_engage_table(community)
 
 
     return JsonResponse({'success': True})
@@ -1744,32 +1767,36 @@ def community_cards(request, community_id):
     else:
         cards = Collabcard.objects.filter(community = community_id).order_by('id')
 
+    # collabcard_url=request.build_absolute_uri()
+    # if collabcard_url in custom_cache:
+    #     card_list=custom_cache.get(collabcard_url)
+    # else:
+    if True:
+        card_list = []
+        for card in cards:
+            user = Userinfo.objects.get(user_id = card.user)
+            # serialize user object
+            usr = UserinfoSerializer(user)
+            # get card images --------------------------------------------------------
+            files=get_collabcard_files(card)
+            # -----------------------------------------------------------------------
+            share_url = url+'/collabcard/'+str(card.id)
 
-    card_list = []
-    for card in cards:
-        user = Userinfo.objects.get(user_id = card.user)
-        # serialize user object
-        usr = UserinfoSerializer(user)
-        # get card images --------------------------------------------------------
-        files=get_collabcard_files(card)
-        # -----------------------------------------------------------------------
-        share_url = url+'/collabcard/'+str(card.id)
-
-        # get time stamp
-        if str(card.date_epoch) == "-9223372036854775808":
-            # if there is no time stamp , return nothing
-            time_text=""
-        else:
             # get time stamp
-            time_text = get_time_text(card.date_epoch)
-        card_dict = CollabcardSerializer(card, card.community)
-        card_dict['state'] = get_status_of_collabcard(member_id,community,card)
-        card_dict['created_at'] = time_text
-        card_dict['member'] = usr
-        card_dict['images'] = files[0]
-        card_dict['pdf'] = files[1]
-
-        card_list.append(card_dict)
+            if str(card.date_epoch) == "-9223372036854775808":
+                # if there is no time stamp , return nothing
+                time_text=""
+            else:
+                # get time stamp
+                time_text = get_time_text(card.date_epoch)
+            card_dict = CollabcardSerializer(card, card.community)
+            card_dict['state'] = get_status_of_collabcard(member_id,community,card)
+            card_dict['created_at'] = time_text
+            card_dict['member'] = usr
+            card_dict['images'] = files[0]
+            card_dict['pdf'] = files[1]
+            card_list.append(card_dict)
+        # custom_cache.set(collabcard_url,card_list,timeout=CACHE_TTL)
     return JsonResponse ({'collabcards': card_list})
 
 
@@ -1926,7 +1953,7 @@ def get_status_of_collabcard(member_id,community,card):
 
     return state
 
-
+# /api/create_answer?collabcard_id=&member_id=
 @csrf_exempt
 def create_answer(request):
     '''function to post answer on collabcard'''
@@ -2034,7 +2061,7 @@ def collabcard_follow(request):
         '''Deleting the collabcard '''
         if status == False:
             follow_collabcard.objects.filter(collabcard_id=collabcard,member_id=member_id).delete()
-
+    # custom_cache.clear()
     return JsonResponse({'success':True})
 
 
@@ -2075,7 +2102,7 @@ def collabcards_seen(request):
        collab_seen.community=community
        collab_seen.save()
     update_last_unseen_in_engage(user=user,community=community,is_seen=True)
-
+    # custom_cache.clear()
     return JsonResponse({'success': True})
 
 
@@ -2100,12 +2127,12 @@ def member_activity(request):
     community=Community.objects.get(pk=community_id)
     member=User.objects.get(pk=user_id)
 
-    #status=Collabcard.objects.filter(community=community,user=member)
+    status=Collabcard.objects.filter(community=community,user=member)
 
-    # if status:
-    #     state=1
+    if status:
+        state=1
     # if state == 1:
-    state=community.introduction_text_state
+    #state=community.introduction_text_state
     if state:
         return JsonResponse({'state':state,'tutorial_count':tutorial_count})
 
@@ -2360,6 +2387,8 @@ def members_state(request):
     member_id=request.GET.get('member_id')
     community_id=request.GET.get('community_id')
     collabcard_id = request.GET.get('collabcard_id')
+    # if not collabcard_id.isdigit():
+    #     return JsonResponse({'state':0})
     if collabcard_id and not community_id:
         card = Collabcard.objects.get(pk = collabcard_id)
         community_id = card.community.id
@@ -2822,7 +2851,7 @@ def get_second_screen_of_onboarding(member_tags_list):
 
     temp = {}
     temp['title'] = "Enter your schools/colleges"
-    temp['sub_title'] = "You can connect with the communities from your classmates, seniors and juniors"
+    temp['sub_title'] = "Discover relevant alumni communities"
     attribute_list=[]
     attribute_id = 2
     category_id=1
@@ -2841,12 +2870,12 @@ def get_first_screen_of_onboarding(member_tags_list):
 
     temp = {}
     temp['title'] = "Mention your neighbourhood"
-    temp['sub_title'] = "Your society/locality/city"
+    temp['sub_title'] = "Discover relevant local communities"
     attribute_list=[]
 
     attribute_id = 12
     attribute_name = "Geography_city"
-    hint="Your localities"
+    hint="Your society/locality"
     category_id=4
     display_name="city"
     city_list=get_tag_attributes(member_tags_list,attribute_id,attribute_name,hint,category_id,display_name)
@@ -2872,7 +2901,7 @@ def get_tag_attributes(member_tags_list,attribute_id,attribute_name,hint,categor
     # attribute_id = 10
     # attribute_name = "Interests_sports"
 
-    tags = Tags_lpig.objects.filter(attribute_id=attribute_id)
+    tags = Tags_lpig.objects.filter(attribute_id=attribute_id).order_by('-tag_rank')
     attribute_temp = {}
     attribute_temp['hint'] = hint
     attribute_temp['id'] = attribute_id
@@ -2911,7 +2940,7 @@ def get_third_screen_of_onboarding(member_tags_list):
     attribute_name = "Interests_sports"
     hint="Playing these sports"
     category_id=3
-    display_name="sport"
+    display_name="sports"
     sports_list=get_tag_attributes(member_tags_list,attribute_id,attribute_name,hint,category_id,display_name)
     attribute_list.append(sports_list)
 
@@ -2922,7 +2951,7 @@ def get_third_screen_of_onboarding(member_tags_list):
     attribute_name = "Interests_hobby"
     hint = "Pursuing these hobbies"
     category_id=3
-    display_name="hobby"
+    display_name="hobbies"
     hobbies = get_tag_attributes(member_tags_list, attribute_id, attribute_name, hint,category_id,display_name)
     attribute_list.append(hobbies)
 
@@ -2932,7 +2961,7 @@ def get_third_screen_of_onboarding(member_tags_list):
     attribute_name = "Interests_fan"
     hint = "Following these teams, sports, genres or topics"
     category_id = 3
-    display_name="fan"
+    display_name="fans"
     fan = get_tag_attributes(member_tags_list, attribute_id, attribute_name, hint, category_id,display_name)
     attribute_list.append(fan)
 
@@ -2942,7 +2971,7 @@ def get_third_screen_of_onboarding(member_tags_list):
     attribute_name = "Interests_cause"
     hint = "Working on these causes"
     category_id=3
-    display_name="cause"
+    display_name="causes"
     cause = get_tag_attributes(member_tags_list, attribute_id, attribute_name, hint,category_id,display_name)
     attribute_list.append(cause)
 
@@ -2952,7 +2981,7 @@ def get_third_screen_of_onboarding(member_tags_list):
     attribute_name = "Profession_skill"
     hint = "Skills that you have"
     category_id=2
-    display_name="skill"
+    display_name="skills"
     skill = get_tag_attributes(member_tags_list, attribute_id, attribute_name, hint,category_id,display_name)
     attribute_list.append(skill)
 
@@ -2963,7 +2992,7 @@ def get_third_screen_of_onboarding(member_tags_list):
     attribute_name = "Profession_industry"
     hint = "Industry that you belong to"
     category_id=2
-    display_name="industry"
+    display_name="industries"
     industry = get_tag_attributes(member_tags_list, attribute_id, attribute_name, hint,category_id,display_name)
     attribute_list.append(industry)
 
@@ -3022,26 +3051,40 @@ def save_tags_for_user_from_onboarding(category_id,tag_id,member_id):
 
     '''function to save user tags in lpig tables'''
     category_id=int(category_id)
+
+
     if category_id == 1:
-        user_legacy_object = User_Legacy()
-        user_legacy_object.user_id = member_id
-        user_legacy_object.tags_id = tag_id
-        user_legacy_object.save()
+        if tag_id.attribute_id.id == 3:
+            tag_id = insert_user_home_town_tags(user_id=member_id.id,tag=str(tag_id.tag_id))
+        user_tag = User_Legacy.objects.filter(tags_id=tag_id, user_id=member_id)
+        if not user_tag.exists():
+            user_legacy_object = User_Legacy()
+            user_legacy_object.user_id = member_id
+            user_legacy_object.tags_id = tag_id
+            user_legacy_object.save()
+
     elif category_id == 2:
-        user_profession_object = User_Profession()
-        user_profession_object.user_id = member_id
-        user_profession_object.tags_id = tag_id
-        user_profession_object.save()
+        user_tag = User_Profession.objects.filter(tags_id=tag_id, user_id=member_id)
+        if not user_tag.exists():
+            user_profession_object = User_Profession()
+            user_profession_object.user_id = member_id
+            user_profession_object.tags_id = tag_id
+            user_profession_object.save()
     elif category_id == 3:
-        user_interest_object = User_Interest()
-        user_interest_object.user_id = member_id
-        user_interest_object.tags_id = tag_id
-        user_interest_object.save()
+        user_tag = User_Interest.objects.filter(tags_id=tag_id, user_id=member_id)
+        if not user_tag.exists():
+            user_interest_object = User_Interest()
+            user_interest_object.user_id = member_id
+            user_interest_object.tags_id = tag_id
+            user_interest_object.save()
     elif category_id == 4:
-        user_geography_object = User_Geography()
-        user_geography_object.user_id = member_id
-        user_geography_object.tags_id = tag_id
-        user_geography_object.save()
+        user_tag = User_Geography.objects.filter(tags_id=tag_id, user_id=member_id)
+        if not user_tag.exists():
+            user_geography_object = User_Geography()
+            user_geography_object.user_id = member_id
+            user_geography_object.tags_id = tag_id
+            user_geography_object.save()
+        update_user_geography_tags.delay(user_id=member_id.id)
 
     log="""for category_id=%s, tags_id=%s saved for member_id=%s"""%(str(category_id),str(tag_id),str(member_id))
     info_logger.info(log)
@@ -3056,7 +3099,7 @@ def push_onboarding(request):
     response = json.loads(request.body)
     member_id=0
     try:
-        member_id=User.objects.get(id=user_id)
+        member_id=User.objects.get(id=user_id)   #getting a user object in member id
     except:
         error_logger.error("User does not exist")
     for data in response['attributes']:
@@ -3068,18 +3111,31 @@ def push_onboarding(request):
 
            if 'id' in tag and tag['id']:
               tag_id=Tags_lpig.objects.get(id=tag['id'])
+              status=Tags_lpig.objects.filter(id=tag['id']).update(tag_rank=F('tag_rank')+1)
+              print(status)
               save_tags_for_user_from_onboarding(category_id,tag_id,member_id)
            else:
-               attribute_id=Attributes.objects.get(id=data['id'])
-               uncharacterized_category_id=Category.objects.get(id=6)
-               tag_object=Tags_lpig()
-               tag_object.name=tag['name']
-               tag_object.attribute_id=attribute_id
-               tag_object.category_id=uncharacterized_category_id      # uncategorized tag
-               tag_object.save()
-               tag_object.tag_id=tag_object.id
-               tag_object.save()
-               save_tags_for_user_from_onboarding(category_id,tag_object,member_id)
+
+               if data['id'] == 12 or data['id'] == '12':
+                   attribute_id = Attributes.objects.get(id=data['id'])
+                   update_status=Userinfo.objects.filter(user_id=user_id).update(address=tag['name'])
+                   print(update_status)
+                   save_geography_and_hometown_tags_of_user_from_onboarding(tag['name'],member_id,attribute_id,4)
+
+               elif data['id'] == 3 or data['id'] == '13':
+                   attribute_id = Attributes.objects.get(id=data['id'])
+                   save_geography_and_hometown_tags_of_user_from_onboarding(tag['name'],member_id,attribute_id,1)
+               else:
+                   uncharacterized_category_id=Category.objects.get(id=6)
+                   tag_object=Tags_lpig()
+                   tag_object.name=tag['name']
+                   tag_object.attribute_id=attribute_id
+                   tag_object.category_id=uncharacterized_category_id      # uncategorized tag
+                   tag_object.save()
+                   tag_object.tag_id=tag_object.id
+                   tag_object.save()
+                   save_tags_for_user_from_onboarding(category_id,tag_object,member_id)
+
 
 
     #saving global tags for user
@@ -3114,6 +3170,49 @@ def push_onboarding(request):
     send_mail_after_rank_computation.delay(user_id) # both mail and notification will be sent here
 
     return JsonResponse({'success':True})
+
+def save_geography_and_hometown_tags_of_user_from_onboarding(address_input,user_id,attribute_id,category_id):
+
+    '''function to take the address of the user and get its city,state and country tags to save in tags'''
+
+    user_address=get_city_address(city=address_input)
+
+    city=user_address['city']
+    if category_id == 4:
+        city_tag=Tags_lpig.objects.filter(attribute_id=attribute_id,name=city)
+        if city_tag:
+            save_tags_for_user_from_onboarding(4,city_tag[0],user_id)
+        else:
+            category=Category.objects.get(id=4)
+            tag_object = Tags_lpig()
+            tag_object.name = user_address['city']
+            tag_object.attribute_id = attribute_id
+            tag_object.category_id = category                   # uncategorized tag
+            tag_object.save()
+            tag_object.tag_id = tag_object.id
+            tag_object.save()
+            save_tags_for_user_from_onboarding(4, tag_object, user_id)
+
+    elif category_id == 1:
+        hometown=Tags_lpig.objects.filter(attribute_id=attribute_id,name=city)
+        if hometown:
+            save_tags_for_user_from_onboarding(1, hometown[0], user_id)
+        else:
+            category = Category.objects.get(id=1)
+            tag_object = Tags_lpig()
+            tag_object.name = user_address['city']
+            tag_object.attribute_id = attribute_id
+            tag_object.category_id = category  # uncategorized tag
+            tag_object.save()
+            tag_object.tag_id = tag_object.id
+            tag_object.save()
+            save_tags_for_user_from_onboarding(1, tag_object, user_id)
+
+    print("Hometown and city updated successfully")
+
+
+
+
 
 
 
