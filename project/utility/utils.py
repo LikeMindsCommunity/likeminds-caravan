@@ -20,9 +20,9 @@ from django.http.response import JsonResponse
 from django.conf import settings
 
 # cache details
-# from django.core.cache import cache
-# custom_cache=cache
-# cache_timeout=3600
+from django.core.cache import cache
+custom_cache=cache
+cache_timeout=3600
 
 
 url=settings.URL
