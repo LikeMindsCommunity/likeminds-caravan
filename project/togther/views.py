@@ -651,7 +651,7 @@ def send_email(email):
     msg = EmailMultiAlternatives(subject,
                                  email,
                                  "Collabmates<hello@collabmates.com>",
-                                 [to],
+                                 [to,'harsh.shukla@collabmates.com'],
                                  )
     if email:
         return msg.send(fail_silently)
