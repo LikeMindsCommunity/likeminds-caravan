@@ -2914,7 +2914,7 @@ def get_tag_attributes(member_tags_list,attribute_id,attribute_name,hint,categor
         tag['name'] = each_tag.name
         tag['attribute_name'] = attribute_name
         if each_tag.image_link:
-            tag['image_url'] = each_tag.image_link
+            tag['image_url'] = each_tag.thumbnail
         tag['state'] = 0
         if tag['id'] in member_tags_list:
             print(tag)
