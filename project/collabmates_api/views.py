@@ -2293,7 +2293,7 @@ def get_request_type(request):
 
     '''function to get the mobile type of user whether its ios or android'''
 
-    print(request.META)
+    #print(request.META)
     if 'HTTP_X_PLATFORM_CODE' in request.META:
         request_agent=request.META['HTTP_X_PLATFORM_CODE']
         if request_agent == "an":
@@ -2926,6 +2926,9 @@ def get_tag_attributes(member_tags_list,attribute_id,attribute_name,hint,categor
     attribute_temp['category_id']=category_id
     attribute_temp['display_name']=display_name.capitalize()
     tag_list = []
+    if attribute_id ==3 or attribute_id ==12:
+        attribute_temp['tags'] = tag_list
+        return attribute_temp
     for each_tag in tags:
         tag = {}
         tag['id'] = each_tag.tag_id
