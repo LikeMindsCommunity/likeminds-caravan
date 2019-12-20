@@ -304,6 +304,9 @@ class Tags_lpig(models.Model):
     cluster_tag_id=models.IntegerField(null=True)
     image_link = models.CharField(max_length= 500,null=True)
     tag_rank=models.IntegerField(default=0)
+    thumbnail=models.CharField(max_length=500,null=True)
+
+
 
     def __str__(self):
         return self.name
