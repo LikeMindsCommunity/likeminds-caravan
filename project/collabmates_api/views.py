@@ -3143,6 +3143,7 @@ def push_onboarding(request):
                    attribute_id = Attributes.objects.get(id=data['id'])
                    save_geography_and_hometown_tags_of_user_from_onboarding(tag['name'],member_id,attribute_id,1)
                else:
+                   attribute_id=Attributes.objects.get(id=data['id'])
                    uncharacterized_category_id=Category.objects.get(id=6)
                    tag_object=Tags_lpig()
                    tag_object.name=tag['name']
