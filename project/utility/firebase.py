@@ -8,7 +8,7 @@ from urllib.request import urlopen
 import os
 from PIL import Image
 from io import BytesIO
-from togther.models import Community
+from togther.models import Community,Tags_lpig
 
 if settings.IS_BETA:
     # beta firebase config
@@ -77,8 +77,6 @@ def is_url_image_valid(image_url):
    if r.headers["content-type"] in image_formats:
       return True
    return False
-
-
 
 
 
@@ -186,6 +184,43 @@ def upload_community_thumbnail(community_id,image_url):
         print(image_url)
         community.thumbnail=image_url
         community.save()
+    except Exception as e:
+        print(e)
+        return None
+    finally:
+        os.remove(file_name)
+
+
+
+
+
+def upload_tag_thumbnail(tag_id,image_url):
+
+
+    name = "img_tag_thumbnail__" + str(tag_id)
+
+    try:
+        response = urlopen(image_url)
+    except Exception as e:
+        print(e)
+        return
+    img = BytesIO(response.read())
+    img = Image.open(img).convert('RGB')
+    image = img.resize((200, 200), Image.ANTIALIAS)
+    file_name=name+".jpeg"
+    image.save(file_name)
+
+
+    tag_id = str(tag_id)
+    tag=Tags_lpig.objects.get(id=tag_id)
+    try:
+        time.sleep(.200)
+        storage.child("files").child("tags").child(tag_id).child(name).put(file_name)
+        time.sleep(.200)
+        image_url = storage.child("files").child("tags").child(tag_id).child(name).get_url(None)
+        print(image_url)
+        tag.thumbnail=image_url
+        tag.save()
     except Exception as e:
         print(e)
         return None
