@@ -2289,6 +2289,21 @@ def upload_files(request):
 
 ############# functions for  login flow   ##########################
 
+def get_request_type(request):
+
+    '''function to get the mobile type of user whether its ios or android'''
+
+    print(request.META)
+    if 'HTTP_X_PLATFORM_CODE' in request.META:
+        request_agent=request.META['HTTP_X_PLATFORM_CODE']
+        if request_agent == "an":
+            return "Android"
+        elif request_agent == "iOS":
+            return "iOS"
+    return False
+
+
+
 
 @csrf_exempt
 def login(request):
@@ -2356,6 +2371,9 @@ def login(request):
         usr = UserinfoSerializer(userinfo[0])
         has_tags=user_onbaord(usr['id'])
         tags = get_user_lpig_tags(usr['id'])
+        request_type=get_request_type(request)
+        if request_type:
+            Userinfo.objects.filter(user_id=usr['id']).update(mobile_os=request_type)
 
         if tags:
             usr['tags']=tags
