@@ -193,7 +193,7 @@ def upload_community_thumbnail(community_id,image_url):
 
 
 
-
+@shared_task
 def upload_tag_thumbnail(tag_id,image_url):
 
 

@@ -28,7 +28,9 @@ from utility.utils import (get_city_address, update_tag_image,
                            insert_user_home_town_tags, update_hometown_tags_for_all_users,
                            user_onbaord)
 
-from utility.firebase import upload_tag_files, upload_user_files, upload_community_files, upload_community_thumbnail
+from utility.firebase import (upload_tag_files, upload_user_files,
+                              upload_community_files, upload_community_thumbnail,
+                              upload_tag_thumbnail)
 url = settings.URL
 import logging
 # uncomment to run it in localhost
@@ -2133,6 +2135,7 @@ def tag_update_form(request,tag_id):
         if image:
             # tag.tag_image = image
             image_link = upload_tag_files(tag_id=tag.id,image=image,url=False)
+            upload_tag_thumbnail.delay(tag_id=tag.id, image_url=image_link)
             tag.image_link = image_link
 
         tag.tag_characterstics = json.dumps(characteristics)
