@@ -215,9 +215,9 @@ def upload_tag_thumbnail(tag_id,image_url):
     tag=Tags_lpig.objects.get(id=tag_id)
     try:
         time.sleep(.200)
-        storage.child("files").child("tags").child(tag_id).child(name).put(file_name)
+        storage.child("files").child("tag").child(tag_id).child(name).put(file_name)
         time.sleep(.200)
-        image_url = storage.child("files").child("tags").child(tag_id).child(name).get_url(None)
+        image_url = storage.child("files").child("tag").child(tag_id).child(name).get_url(None)
         print(image_url)
         tag.thumbnail=image_url
         tag.save()
