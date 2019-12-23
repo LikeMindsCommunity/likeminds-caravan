@@ -189,7 +189,7 @@ def send_welcome_mail(user_id):
     count = 0
     communities = Members.objects.filter(member_id = user).distinct('community_id')
     for community in communities:
-        if community.community_id == '0' or community.community_id == '1' or community.community_id == '4' :
+        if community.community_id.hide_community == '0' or community.community_id.hide_community == '1' or community.community_id.hide_community == '4' :
             if community.state == 1 or community.state == 2 or community.state == 4 or community.state == 7:
                 count +=1
     fail_silently=True
