@@ -5,7 +5,7 @@ import time
 from .tasks import *
 from .firebase import upload_image_to_firebase
 
-def update_userinfo(backend, user, response, *args, **kwargs):
+def update_userinfo(strategy,backend, user, response, *args, **kwargs):
     ''' update user info of user as soon as user registers '''
 
     userinfo = Userinfo.objects.filter(user_id=user)
@@ -37,7 +37,7 @@ def update_userinfo(backend, user, response, *args, **kwargs):
                 user.login_json = data
                 user.user_id = usr
                 user.save()
-                mail_triger(str(usr.id))
+                mail_triger(str(usr.id),request = strategy.request)
 
         if backend.name == 'linkedin-oauth2':
             # accessing Linked In API to get user basic information
@@ -74,7 +74,7 @@ def update_userinfo(backend, user, response, *args, **kwargs):
                 user.login_json = [data_main, email_data]
                 user.user_id = usr
                 user.save()
-                mail_triger(str(usr.id))
+                mail_triger(str(usr.id),request = strategy.request)
 
 
 

@@ -36,13 +36,14 @@ def send_email_to_nominated_admin(NominatedAdmin,email,ProposedAdmin,CommunityNa
         template = get_template("mails/accept_admin_request.html").render({"NominatedAdmin":NominatedAdmin,"email":email,"ProposedAdmin":ProposedAdmin,"CommunityName":CommunityName,"community_id":community_id,'url':url})
     elif proposedAdminState == 2:
         template = get_template("mails/accept_temp_admin_request.html").render({"NominatedAdmin":NominatedAdmin,"email":email,"ProposedAdmin":ProposedAdmin,"CommunityName":CommunityName,"community_id":community_id,'url':url})
-    # msg = EmailMultiAlternatives(subject,
-    #                              template,
-    #                              "Collabmates<hello@collabmates.com>",
-    #                              [to],
-    #                              )
-    # msg.attach_alternative(template, "text/html")
-    # return msg.send(fail_silently)
+    msg = EmailMultiAlternatives(subject,
+                                 template,
+                                 "Collabmates<hello@collabmates.com>",
+                                 [to],
+                                 )
+    msg.attach_alternative(template, "text/html")
+    # print("printing mag >>> ",msg.send(fail_silently))
+    # return
     send_email(subject, template, to)
 
 @shared_task
@@ -188,8 +189,9 @@ def send_welcome_mail(user_id):
     count = 0
     communities = Members.objects.filter(member_id = user).distinct('community_id')
     for community in communities:
-        if community.state == 1 or community.state == 2 or community.state == 4 or community.state == 7:
-            count +=1
+        if community.community_id == '0' or community.community_id == '1' or community.community_id == '4' :
+            if community.state == 1 or community.state == 2 or community.state == 4 or community.state == 7:
+                count +=1
     fail_silently=True
     if user.email:
         to = user.email

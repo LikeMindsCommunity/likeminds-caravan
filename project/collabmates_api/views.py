@@ -1508,16 +1508,18 @@ def request_response(request,req_dict=None):
             engage.last_unseen_conversation = purpose_card
             engage.last_unseen_count=unseen_count
             engage.updated_at = time.time()
+            engage.member_state = 4
             engage.save()
             update_pending_member_count_in_engage(community)
             update_referral_text_in_engage_table(community)
         else:
             # if the community is created by user than updating the user details
             if community.hide_community == '0' or community.hide_community == '1':
-                engage=Member_Engage.objects.get(community_id=community,member_id=user)
+                engage=Member_Engage.objects.get(community_id = community,member_id = user)
                 engage.last_unseen_conversation = purpose_card
                 engage.last_unseen_count = unseen_count
                 engage.updated_at = time.time()
+                engage.member_state = 4
                 engage.save()
                 update_pending_member_count_in_engage(community)
                 update_referral_text_in_engage_table(community)

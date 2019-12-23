@@ -7,7 +7,7 @@ from togther.models import *
 from django.conf import settings
 from togther.models import *
 from collabmates_api.notification import notification_to_complete_onboarding
-
+from togther.views import is_request_android,is_request_ios,is_request_pc
 
 url  = settings.URL
 
@@ -15,10 +15,13 @@ url  = settings.URL
 
 from threading import Timer
 
-def mail_triger(member_id):
+def mail_triger(member_id,request):
     print('member_id === ',member_id)
 
-    t = Timer(300.0, onboarding_mail_for_new_users,[member_id])
+    android = is_request_android(request)
+    ios = is_request_ios(request)
+    pc = is_request_pc(request)
+    t = Timer(300.0, onboarding_mail_for_new_users,[member_id,android,ios,pc])
     t.start()
 
 
@@ -34,7 +37,7 @@ def send_email(subject,template,to):
 
 
 @shared_task
-def onboarding_mail_for_new_users(member_id):
+def onboarding_mail_for_new_users(member_id,android,ios,pc):
     print('member_id === ',member_id)
 
     user = User.objects.get(pk = member_id)
@@ -52,6 +55,18 @@ def onboarding_mail_for_new_users(member_id):
     else:
         fail_silently=True
         if user.email:
+
+            if user.fcm_token and not pc:
+                link = url
+            elif pc :
+                link = url + "/signup"
+            else:
+                if android:
+                    link = "https://drive.google.com/open?id=1IQjFXjzxlUcMva7afZF_szwoYYaICdnf"
+                elif ios:
+                    link = url+"/communities"
+                else:
+                    link = url+"/onboarding"
             to = user.email
             subject="Thanks for joining CollabMates! Here's the next step"
             template = get_template("mails/onboarding_mail.html").render({"name":user.userinfo.name,

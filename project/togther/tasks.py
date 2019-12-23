@@ -70,12 +70,12 @@ def send_mail_after_rank_computation(user_id):
     while True:
         communities = Community_Rank.objects.filter(member_id = user_id)
         if communities.exists():
-            send_email(subject, template, to)
+            # send_email(subject, template, to)
             notification_after_compute_rank(user_id=user_id)
             return
         elif count == 30:
             return
         else:
             count += 1
-            time.sleep(60)
+            time.sleep(30)
 
