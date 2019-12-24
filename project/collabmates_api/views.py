@@ -1915,7 +1915,7 @@ def get_cards_for_demo(community_id,member_id):
     temp['id'] = "second_conversation_4"
     refered_members=get_referred_members_of_a_member(community_id,member_id)
     diff=(eligibility_count-len(refered_members))
-    temp['answer'] = """Alternatively, you can refer %s more members and become promoter of this community."""%(str(diff))
+    temp['answer'] = """Alternatively, you can refer %s  members and become promoter of this community."""%(str(diff))
     temp['created_at'] = get_time_text(time.time())
     temp['member'] = {
         'name': "Initial Promoter"
