@@ -452,8 +452,8 @@ def notification_to_complete_onboarding(user_id):
         token_list.append(fcm_token)
         message = {}
         message['payload'] = {
-            'title': 'Complete Onboarding',
-            'sub_title': """Thanks for joining CollabMates! Here's the next step""",
+            'title': 'Complete your registration',
+            'sub_title': """and discover relevant communities""",
             'route': 'route://main'
         }
 

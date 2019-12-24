@@ -36,13 +36,14 @@ def send_email_to_nominated_admin(NominatedAdmin,email,ProposedAdmin,CommunityNa
         template = get_template("mails/accept_admin_request.html").render({"NominatedAdmin":NominatedAdmin,"email":email,"ProposedAdmin":ProposedAdmin,"CommunityName":CommunityName,"community_id":community_id,'url':url})
     elif proposedAdminState == 2:
         template = get_template("mails/accept_temp_admin_request.html").render({"NominatedAdmin":NominatedAdmin,"email":email,"ProposedAdmin":ProposedAdmin,"CommunityName":CommunityName,"community_id":community_id,'url':url})
-    # msg = EmailMultiAlternatives(subject,
-    #                              template,
-    #                              "Collabmates<hello@collabmates.com>",
-    #                              [to],
-    #                              )
-    # msg.attach_alternative(template, "text/html")
-    # return msg.send(fail_silently)
+    msg = EmailMultiAlternatives(subject,
+                                 template,
+                                 "Collabmates<hello@collabmates.com>",
+                                 [to],
+                                 )
+    msg.attach_alternative(template, "text/html")
+    # print("printing mag >>> ",msg.send(fail_silently))
+    # return
     send_email(subject, template, to)
 
 @shared_task
@@ -186,10 +187,11 @@ def send_welcome_mail(user_id):
 
     user = User.objects.get(pk = user_id)
     count = 0
-    communities = Members.objects.filter(member_id = user).distinct('community_id')
-    for community in communities:
-        if community.state == 1 or community.state == 2 or community.state == 4 or community.state == 7:
-            count +=1
+    member_communities_list = Members.objects.filter(member_id = user).distinct('community_id')
+    for community in member_communities_list:
+        if community.community_id.hide_community == '0' or community.community_id.hide_community == '1' or community.community_id.hide_community == '4' :
+            if community.state == 1 or community.state == 2 or community.state == 4 or community.state == 7:
+                count +=1
     fail_silently=True
     if user.email:
         to = user.email
@@ -199,7 +201,7 @@ def send_welcome_mail(user_id):
             template = get_template("mails/welcome_mail_zero.html").render({"name":user.userinfo.name})
         else:
             if count == 1:
-                text = 'the '+communities[0].community_id.name+' community'
+                text = 'the '+member_communities_list[0].community_id.name+' community'
             if count > 1:
                 text = 'your existing communities'
 

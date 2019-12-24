@@ -21,7 +21,8 @@ from collabmates_api.notification import notification_after_compute_rank
 from django.urls import reverse
 from utility.utils import (get_city_address, update_tag_image,
                            update_user_geography_tags, create_or_categorize_tag,
-                           referal, insert_user_home_town_tags,user_onbaord)
+                           referal, insert_user_home_town_tags,user_onbaord,
+                           is_request_android,is_request_ios,is_request_pc)
 from utility.firebase import upload_image_to_firebase
 from urllib.parse import urlencode,quote
 from collabmates_api.tasks import send_email
@@ -1570,43 +1571,6 @@ def onboarding_interest(request):
         return JsonResponse({'user_agent': False})
 
 
-def is_request_android(request):
-
-    '''function to check whether the user agent is android or not'''
-
-    if 'HTTP_USER_AGENT' in request.META:
-        ua_string = request.META['HTTP_USER_AGENT']
-        user_agent = parse(ua_string)
-        if user_agent.os.family == "Android" and not user_agent.is_pc:
-            return True
-        else:
-            return False
-    return False
-
-
-def is_request_ios(request):
-
-    '''function to check whether the user agent is android or not'''
-
-    if 'HTTP_USER_AGENT' in request.META:
-        ua_string = request.META['HTTP_USER_AGENT']
-        user_agent = parse(ua_string)
-        if user_agent.os.family == "iOS" and not user_agent.is_pc:
-            return True
-        else:
-            return False
-    return False
-
-def is_request_pc(request):
-    '''function to check if request is pc or not'''
-    if 'HTTP_USER_AGENT' in request.META:
-        ua_string = request.META['HTTP_USER_AGENT']
-        user_agent = parse(ua_string)
-        if user_agent.is_pc:
-            return True
-        else:
-            return False
-    return False
 
 def access_page(request):
 
