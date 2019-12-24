@@ -82,12 +82,12 @@ def is_mobile_os_android(fcm_token):
         curr.execute(sql)
         print(sql)
         mobile_os = curr.fetchone()
-        print(mobile_os)
         if mobile_os:
-            if mobile_os == "Android":
+            print(mobile_os[0])
+            if mobile_os[0] == "Android":
                 print("Android")
                 return True
-            elif mobile_os == "iOS":
+            elif mobile_os[0] == "iOS":
                 print("iOS")
                 return False
         else:
