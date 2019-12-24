@@ -28,7 +28,9 @@ from utility.utils import (get_city_address, update_tag_image,
                            insert_user_home_town_tags, update_hometown_tags_for_all_users,
                            user_onbaord)
 
-from utility.firebase import upload_tag_files, upload_user_files, upload_community_files, upload_community_thumbnail
+from utility.firebase import (upload_tag_files, upload_user_files,
+                              upload_community_files, upload_community_thumbnail,
+                              upload_tag_thumbnail)
 url = settings.URL
 import logging
 # uncomment to run it in localhost
@@ -2034,7 +2036,14 @@ def tag_update_form(request,tag_id):
     if request.method=="POST":
         characteristics = None
         image = None
-
+        if 'rank_update' in request.POST:
+            tag_rank_form = Tag_Rank_Form(request.POST,instance=tag)
+            if tag_rank_form.is_valid():
+                tag_rank = tag_rank_form.cleaned_data['tag_rank']
+                tag.tag_rank = tag_rank
+                tag.save()
+                print("rank update")
+                return HttpResponse("Rank Updated")
         # save characteristics and image from form according to attribute given
         if attr_id == 2:
             form = Legacy_Education_Form(request.POST, request.FILES)
@@ -2133,6 +2142,7 @@ def tag_update_form(request,tag_id):
         if image:
             # tag.tag_image = image
             image_link = upload_tag_files(tag_id=tag.id,image=image,url=False)
+            upload_tag_thumbnail.delay(tag_id=tag.id, image_url=image_link)
             tag.image_link = image_link
 
         tag.tag_characterstics = json.dumps(characteristics)
@@ -2148,6 +2158,9 @@ def tag_update_form(request,tag_id):
     else:
 
         # render form according to attribute given
+        #tag_instance=Tags_lpig.objects.get(id=tag_id)
+        tag_rank_form=Tag_Rank_Form(instance=tag)
+
 
         if attr_id == 2:
             char={}
@@ -2360,7 +2373,8 @@ def tag_update_form(request,tag_id):
                                                              'tag_id':tag.id,
                                                              'attr_id':tag.attribute_id.id,
                                                              'tag_image':tag_image,
-                                                             'tag_image_link':tag_image_link
+                                                             'tag_image_link':tag_image_link,
+                                                              'tag_rank_form':tag_rank_form
                                                              })
 
 

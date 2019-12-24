@@ -47,7 +47,7 @@ from utility.tasks import (mail_triger, new_member_request)
 from utility.firebase import update_last_answer_id,upload_image_to_firebase,upload_community_thumbnail,upload_community_files
 from .raw_queries import compute_rank
 
-# CACHE_TTL = getattr(settings, 'CACHE_TTL', cache_timeout)
+#CACHE_TTL = getattr(settings, 'CACHE_TTL', cache_timeout)
 
 
 url  = settings.URL
@@ -90,15 +90,15 @@ def communities(request):
             else:
                 # if category is not provided, get categories according to the user tag if user has one
                 #custom_cache.clear()
-                # print(custom_cache.keys('*'))
+                #print(custom_cache.keys('*'))
                 # cache_key=communities_url
-
+                #
                 # if cache_key in custom_cache:
-                #     # community=custom_cache.get(cache_key)
+                #     community=custom_cache.get(cache_key)
                 # else:
                 queryset = get_communities_by_tags(user_tag=user_tag,page_number = page_number,user_id=user_id)
                 community = serialize_community(queryset=queryset)
-                # custom_cache.set(cache_key,community,timeout=CACHE_TTL)
+                #custom_cache.set(cache_key,community,timeout=CACHE_TTL)
                 info_logger.info(community)
                 #custom_cache.clear()
                 return JsonResponse({'communities': community})
@@ -1767,7 +1767,7 @@ def community_cards(request, community_id):
     else:
         cards = Collabcard.objects.filter(community = community_id).order_by('id')
 
-    # collabcard_url=request.build_absolute_uri()
+    collabcard_url=request.build_absolute_uri()
     # if collabcard_url in custom_cache:
     #     card_list=custom_cache.get(collabcard_url)
     # else:
@@ -1796,7 +1796,7 @@ def community_cards(request, community_id):
             card_dict['images'] = files[0]
             card_dict['pdf'] = files[1]
             card_list.append(card_dict)
-        # custom_cache.set(collabcard_url,card_list,timeout=CACHE_TTL)
+        #custom_cache.set(collabcard_url,card_list,timeout=CACHE_TTL)
     return JsonResponse ({'collabcards': card_list})
 
 
@@ -2290,6 +2290,21 @@ def upload_files(request):
 
 ############# functions for  login flow   ##########################
 
+def get_request_type(request):
+
+    '''function to get the mobile type of user whether its ios or android'''
+
+    #print(request.META)
+    if 'HTTP_X_PLATFORM_CODE' in request.META:
+        request_agent=request.META['HTTP_X_PLATFORM_CODE']
+        if request_agent == "an":
+            return "Android"
+        elif request_agent == "iOS":
+            return "iOS"
+    return False
+
+
+
 
 @csrf_exempt
 def login(request):
@@ -2357,6 +2372,9 @@ def login(request):
         usr = UserinfoSerializer(userinfo[0])
         has_tags=user_onbaord(usr['id'])
         tags = get_user_lpig_tags(usr['id'])
+        request_type=get_request_type(request)
+        if request_type:
+            Userinfo.objects.filter(user_id=usr['id']).update(mobile_os=request_type)
 
         if tags:
             usr['tags']=tags
@@ -2909,13 +2927,16 @@ def get_tag_attributes(member_tags_list,attribute_id,attribute_name,hint,categor
     attribute_temp['category_id']=category_id
     attribute_temp['display_name']=display_name.capitalize()
     tag_list = []
+    if attribute_id ==3 or attribute_id ==12:
+        attribute_temp['tags'] = tag_list
+        return attribute_temp
     for each_tag in tags:
         tag = {}
         tag['id'] = each_tag.tag_id
         tag['name'] = each_tag.name
         tag['attribute_name'] = attribute_name
         if each_tag.image_link:
-            tag['image_url'] = each_tag.image_link
+            tag['image_url'] = each_tag.thumbnail
         tag['state'] = 0
         if tag['id'] in member_tags_list:
             print(tag)
@@ -3126,6 +3147,7 @@ def push_onboarding(request):
                    attribute_id = Attributes.objects.get(id=data['id'])
                    save_geography_and_hometown_tags_of_user_from_onboarding(tag['name'],member_id,attribute_id,1)
                else:
+                   attribute_id=Attributes.objects.get(id=data['id'])
                    uncharacterized_category_id=Category.objects.get(id=6)
                    tag_object=Tags_lpig()
                    tag_object.name=tag['name']

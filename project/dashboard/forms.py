@@ -159,3 +159,18 @@ class Geography_Form(forms.Form):
 class Tag_Form(forms.Form):
 
     image = forms.ImageField(label='Select Image', required=False,widget=forms.FileInput(attrs=({'class': 'file-upload btn btn-primary'})))
+
+
+class Tag_Rank_Form(forms.ModelForm):
+
+
+    class Meta:
+        model=Tags_lpig
+        fields=['tag_rank']
+        attrs = {'class': 'form-control form-group'}
+
+
+        widgets = {
+           'tag_rank':forms.TextInput(attrs=attrs)
+        }
+
