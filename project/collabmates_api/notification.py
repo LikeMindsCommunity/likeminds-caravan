@@ -81,7 +81,7 @@ def is_mobile_os_android(fcm_token):
         sql="select mobile_os from togther_userinfo where fcm_token='"+fcm_token+"'"
         curr.execute(sql)
         print(sql)
-        mobile_os = curr.fetchall()
+        mobile_os = curr.fetchone()
         print(mobile_os)
         if mobile_os:
             if mobile_os == "Android":
@@ -467,6 +467,3 @@ def notification_to_complete_onboarding(user_id):
 
 
 
-
-print(is_mobile_os_android(
- "e6MjwPDRXOU:APA91bGogk0VEHXbxW5vsFiNve7rTw9dpeuTBCVdaYHdx5T5-iBaRCRgaVNheifpmMIAhCluz5q8eoZjdxscYVKPY7eol9AvsCEAwk0RAKrSbLbSj79FBOK9GB34kKKW5UhUVbv0UlgX"))
