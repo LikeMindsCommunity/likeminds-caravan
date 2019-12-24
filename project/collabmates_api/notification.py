@@ -78,13 +78,17 @@ def is_mobile_os_android(fcm_token):
     try:
         conn = get_connection()
         curr = conn.cursor()
-
-        curr.execute("select mobile_os from togther_userinfo where fcm_token=" + str(fcm_token))
-        mobile_os = curr.fetchone()
+        sql="select mobile_os from togther_userinfo where fcm_token='"+fcm_token+"'"
+        curr.execute(sql)
+        print(sql)
+        mobile_os = curr.fetchall()
+        print(mobile_os)
         if mobile_os:
             if mobile_os == "Android":
+                print("Android")
                 return True
             elif mobile_os == "iOS":
+                print("iOS")
                 return False
         else:
             return True
@@ -94,31 +98,30 @@ def is_mobile_os_android(fcm_token):
 
 
 
-# def send_notification_to_multiple_devices(token_list,message):
-#
-#     '''This function is used to send notifications by checking whether the request is android or ios'''
-#
-#     for token in token_list:
-#
-#         mobile_os=is_mobile_os_android(token)
-#
-#         if mobile_os:
-#             send_notification(token,message,True)               #if request is android
-#         else:
-#             send_notification(token,message,False)              #if request is iOS
-#
-
-
 def send_notification_to_multiple_devices(token_list,message):
 
-    '''This function is used to send notifications'''
-    result=""
+    '''This function is used to send notifications by checking whether the request is android or ios'''
 
-    push_service = FCMNotification(api_key=server_key)
-    result = push_service.notify_multiple_devices(registration_ids=token_list,data_message=message['payload'])
-    print(result)
+    for token in token_list:
 
-    return result
+        mobile_os=is_mobile_os_android(token)
+        if mobile_os:
+            send_notification(token,message,True)               #if request is android
+        else:
+            send_notification(token,message,False)              #if request is iOS
+
+
+
+# def send_notification_to_multiple_devices(token_list,message):
+#
+#     '''This function is used to send notifications'''
+#     result=""
+#
+#     push_service = FCMNotification(api_key=server_key)
+#     result = push_service.notify_multiple_devices(registration_ids=token_list,data_message=message['payload'])
+#     print(result)
+#
+#     return result
 
 
 
@@ -128,16 +131,16 @@ def send_notification(fcm_token,message,is_android):
 
     token_list=[]
     token_list.append(fcm_token)
-    push_service = FCMNotification(api_key=server_key)
     if not is_android:
+        push_service = FCMNotification(api_key=server_key)
         result = push_service.notify_multiple_devices(registration_ids=token_list,
                                                       message_title=message['payload']['title'],
                                                       message_body=message['payload']['sub_title'],
                                                       data_message=message['payload'])
     else:
+        push_service = FCMNotification(api_key=server_key)
         result = push_service.notify_multiple_devices(registration_ids=token_list,
                                                       data_message=message['payload'])
-    print(result)
     print(result)
 
 
@@ -465,4 +468,5 @@ def notification_to_complete_onboarding(user_id):
 
 
 
-
+print(is_mobile_os_android(
+ "e6MjwPDRXOU:APA91bGogk0VEHXbxW5vsFiNve7rTw9dpeuTBCVdaYHdx5T5-iBaRCRgaVNheifpmMIAhCluz5q8eoZjdxscYVKPY7eol9AvsCEAwk0RAKrSbLbSj79FBOK9GB34kKKW5UhUVbv0UlgX"))
