@@ -28,7 +28,7 @@ from django.conf import settings
 url=settings.URL
 
 if settings.IS_BETA:
-    eligibility_count = 2
+    eligibility_count = 3
 else:
     eligibility_count = 5
 
