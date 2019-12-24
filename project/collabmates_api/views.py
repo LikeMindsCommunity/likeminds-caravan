@@ -38,7 +38,7 @@ from utility.utils import (decode_meta_from_url, update_tag_image,
                            eligibility_count, notify_referred_member,
                            user_onbaord, update_member_count,
                            update_community_tags_to_user,tutorial_count,
-                           custom_cache,cache_timeout,
+                           #custom_cache,cache_timeout,
                            get_city_address,
                            update_user_geography_tags, create_or_categorize_tag,
                            insert_user_home_town_tags,user_onbaord)
@@ -47,7 +47,7 @@ from utility.tasks import (mail_triger, new_member_request)
 from utility.firebase import update_last_answer_id,upload_image_to_firebase,upload_community_thumbnail,upload_community_files
 from .raw_queries import compute_rank
 
-CACHE_TTL = getattr(settings, 'CACHE_TTL', cache_timeout)
+#CACHE_TTL = getattr(settings, 'CACHE_TTL', cache_timeout)
 
 
 url  = settings.URL
@@ -91,14 +91,14 @@ def communities(request):
                 # if category is not provided, get categories according to the user tag if user has one
                 #custom_cache.clear()
                 #print(custom_cache.keys('*'))
-                cache_key=communities_url
-
-                if cache_key in custom_cache:
-                    community=custom_cache.get(cache_key)
-                else:
-                    queryset = get_communities_by_tags(user_tag=user_tag,page_number = page_number,user_id=user_id)
-                    community = serialize_community(queryset=queryset)
-                    custom_cache.set(cache_key,community,timeout=CACHE_TTL)
+                # cache_key=communities_url
+                #
+                # if cache_key in custom_cache:
+                #     community=custom_cache.get(cache_key)
+                # else:
+                queryset = get_communities_by_tags(user_tag=user_tag,page_number = page_number,user_id=user_id)
+                community = serialize_community(queryset=queryset)
+                #custom_cache.set(cache_key,community,timeout=CACHE_TTL)
                 info_logger.info(community)
                 #custom_cache.clear()
                 return JsonResponse({'communities': community})
@@ -1768,9 +1768,10 @@ def community_cards(request, community_id):
         cards = Collabcard.objects.filter(community = community_id).order_by('id')
 
     collabcard_url=request.build_absolute_uri()
-    if collabcard_url in custom_cache:
-        card_list=custom_cache.get(collabcard_url)
-    else:
+    # if collabcard_url in custom_cache:
+    #     card_list=custom_cache.get(collabcard_url)
+    # else:
+    if True:
         card_list = []
         for card in cards:
             user = Userinfo.objects.get(user_id = card.user)
@@ -1795,7 +1796,7 @@ def community_cards(request, community_id):
             card_dict['images'] = files[0]
             card_dict['pdf'] = files[1]
             card_list.append(card_dict)
-        custom_cache.set(collabcard_url,card_list,timeout=CACHE_TTL)
+        #custom_cache.set(collabcard_url,card_list,timeout=CACHE_TTL)
     return JsonResponse ({'collabcards': card_list})
 
 
