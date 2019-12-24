@@ -2125,6 +2125,10 @@ def member_activity(request):
     user_id=request.GET.get('member_id')
 
     community=Community.objects.get(pk=community_id)
+    if community.introduction_text_state:
+        state=1
+        return JsonResponse({'state':state})
+
     member=User.objects.get(pk=user_id)
 
     status=Collabcard.objects.filter(community=community,user=member)
