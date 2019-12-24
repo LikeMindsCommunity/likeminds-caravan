@@ -2036,7 +2036,14 @@ def tag_update_form(request,tag_id):
     if request.method=="POST":
         characteristics = None
         image = None
-
+        if 'rank_update' in request.POST:
+            tag_rank_form = Tag_Rank_Form(request.POST,instance=tag)
+            if tag_rank_form.is_valid():
+                tag_rank = tag_rank_form.cleaned_data['tag_rank']
+                tag.tag_rank = tag_rank
+                tag.save()
+                print("rank update")
+                return HttpResponse("Rank Updated")
         # save characteristics and image from form according to attribute given
         if attr_id == 2:
             form = Legacy_Education_Form(request.POST, request.FILES)
@@ -2151,6 +2158,9 @@ def tag_update_form(request,tag_id):
     else:
 
         # render form according to attribute given
+        #tag_instance=Tags_lpig.objects.get(id=tag_id)
+        tag_rank_form=Tag_Rank_Form(instance=tag)
+
 
         if attr_id == 2:
             char={}
@@ -2363,7 +2373,8 @@ def tag_update_form(request,tag_id):
                                                              'tag_id':tag.id,
                                                              'attr_id':tag.attribute_id.id,
                                                              'tag_image':tag_image,
-                                                             'tag_image_link':tag_image_link
+                                                             'tag_image_link':tag_image_link,
+                                                              'tag_rank_form':tag_rank_form
                                                              })
 
 
