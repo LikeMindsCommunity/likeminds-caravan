@@ -216,9 +216,7 @@ def is_member_engage(community,member):
 def update_pending_member_count_in_engage(community):
 
     '''function to update the member count in engage'''
-
     pending__members_count=Members.objects.filter(community_id=community,state=3).count()
-
     all_members=Members.objects.filter(community_id=community)
     current_time=time.time()
     for member in all_members:
@@ -1513,8 +1511,8 @@ def request_response(request,req_dict=None):
             update_referral_text_in_engage_table(community)
         else:
             # if the community is created by user than updating the user details
-            if community.hide_community == '0' or community.hide_community == '1':
-                engage=Member_Engage.objects.get(community_id=community,member_id=user)
+            if community.hide_community == '0' or community.hide_community == '1' or community.hide_community == '4':
+                engage=Member_Engage.objects.get(community_id = community,member_id = user)
                 engage.last_unseen_conversation = purpose_card
                 engage.last_unseen_count = unseen_count
                 engage.updated_at = time.time()
@@ -1604,7 +1602,7 @@ def collabcard(request, card_id):
 
     # get all the answers of the card
     answer = card_answers.objects.filter(card = cards)
-    answer=pagination(answer,page,paginate_by=10)
+    # answer=pagination(answer,page,paginate_by=10)
 
     answer_id=request.GET.get('answer_id','')
     user_id = request.GET.get('member_id', '')
@@ -1613,7 +1611,7 @@ def collabcard(request, card_id):
         answer_id=int(answer_id)
 
         answer=card_answers.objects.filter(card=cards,id__gte=answer_id).filter(~Q(user__id = user_id))
-        answer = pagination(answer, page, paginate_by=10)
+        # answer = pagination(answer, page, paginate_by=10)
         answers=get_answer_data(answer)
         return JsonResponse({'answers': answers})
     else:
@@ -1915,7 +1913,7 @@ def get_cards_for_demo(community_id,member_id):
     temp['id'] = "second_conversation_4"
     refered_members=get_referred_members_of_a_member(community_id,member_id)
     diff=(eligibility_count-len(refered_members))
-    temp['answer'] = """Alternatively, you can refer %s more members and become promoter of this community."""%(str(diff))
+    temp['answer'] = """Alternatively, you can refer %s  members and become promoter of this community."""%(str(diff))
     temp['created_at'] = get_time_text(time.time())
     temp['member'] = {
         'name': "Initial Promoter"
@@ -2125,6 +2123,10 @@ def member_activity(request):
     user_id=request.GET.get('member_id')
 
     community=Community.objects.get(pk=community_id)
+    if community.introduction_text_state:
+        state=1
+        return JsonResponse({'state':state})
+
     member=User.objects.get(pk=user_id)
 
     status=Collabcard.objects.filter(community=community,user=member)
@@ -2343,7 +2345,7 @@ def login(request):
                 userinfo.login_json=json_to_save
                 userinfo.created_at = time.time()
                 userinfo.save()
-                mail_triger(str(usr.id)) # both mail and notification will be sent here
+                mail_triger(str(usr.id),request) # both mail and notification will be sent here
         else:
             # if user is logging in with linkedIn
             user_name=res['firstName']['localized']['en_US'] + " " + res['lastName']['localized']['en_US']
@@ -2365,7 +2367,7 @@ def login(request):
                 userinfo.login_json=json_to_save
                 userinfo.created_at = time.time()
                 userinfo.save()
-                mail_triger(str(usr.id)) # both mail and notification will be sent here
+                mail_triger(str(usr.id),request) # both mail and notification will be sent here
 
         userinfo=Userinfo.objects.filter(email=email)
         # get serialized user object

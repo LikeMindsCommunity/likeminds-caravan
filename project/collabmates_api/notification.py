@@ -70,17 +70,80 @@ def get_community_name(community_id):
     except (Exception, psycopg2.Error) as error:
         print ("Error while connecting to PostgreSQL", error)
 
+def is_mobile_os_android(fcm_token):
+
+    '''function to change whether the mobile os is android or ios'''
+
+
+    try:
+        conn = get_connection()
+        curr = conn.cursor()
+        sql="select mobile_os from togther_userinfo where fcm_token='"+fcm_token+"'"
+        curr.execute(sql)
+        print(sql)
+        mobile_os = curr.fetchone()
+        if mobile_os:
+            print(mobile_os[0])
+            if mobile_os[0] == "Android":
+                print("Android")
+                return True
+            elif mobile_os[0] == "iOS":
+                print("iOS")
+                return False
+        else:
+            return True
+
+    except (Exception, psycopg2.Error) as error:
+        print("Error while connecting to PostgreSQL  ", error)
+
+
 
 def send_notification_to_multiple_devices(token_list,message):
-    '''This function is used to send notifications'''
-    result=""
 
-    push_service = FCMNotification(api_key=server_key)
-    result = push_service.notify_multiple_devices(registration_ids=token_list,message_title=message['payload']['title'],
-                                                  message_body=message['payload']['sub_title'],data_message=message['payload'])
+    '''This function is used to send notifications by checking whether the request is android or ios'''
+
+    for token in token_list:
+
+        mobile_os=is_mobile_os_android(token)
+        if mobile_os:
+            send_notification(token,message,True)               #if request is android
+        else:
+            send_notification(token,message,False)              #if request is iOS
+
+
+
+# def send_notification_to_multiple_devices(token_list,message):
+#
+#     '''This function is used to send notifications'''
+#     result=""
+#
+#     push_service = FCMNotification(api_key=server_key)
+#     result = push_service.notify_multiple_devices(registration_ids=token_list,data_message=message['payload'])
+#     print(result)
+#
+#     return result
+
+
+
+def send_notification(fcm_token,message,is_android):
+
+    '''function to send notification for android as well as iOS'''
+
+    token_list=[]
+    token_list.append(fcm_token)
+    if not is_android:
+        push_service = FCMNotification(api_key=server_key)
+        result = push_service.notify_multiple_devices(registration_ids=token_list,
+                                                      message_title=message['payload']['title'],
+                                                      message_body=message['payload']['sub_title'],
+                                                      data_message=message['payload'])
+    else:
+        push_service = FCMNotification(api_key=server_key)
+        result = push_service.notify_multiple_devices(registration_ids=token_list,
+                                                      data_message=message['payload'])
     print(result)
 
-    return result
+
 
 @shared_task
 def send_follow_notification(card_id,user_id,answer):
@@ -392,15 +455,13 @@ def notification_to_complete_onboarding(user_id):
         token_list.append(fcm_token)
         message = {}
         message['payload'] = {
-            'title': 'Complete Onboarding',
-            'sub_title': """Thanks for joining CollabMates! Here's the next step""",
+            'title': 'Complete your registration',
+            'sub_title': """and discover relevant communities""",
             'route': 'route://main'
         }
 
         send_notification_to_multiple_devices(token_list,message)
         print("notification send when user has not completed onbaording in 5 minutes")
-
-
 
 
 
