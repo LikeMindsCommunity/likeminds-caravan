@@ -4,7 +4,7 @@ import time
 import logging
 import psycopg2
 envir=False
-from utility.utils import custom_cache
+#from utility.utils import custom_cache
 try:
     from .notification import get_connection
     from project.celery import app
@@ -314,7 +314,7 @@ def compute_rank(user_id=None,community_id=None):
     '''function to compute the rank of community '''
     print("Executing Compute Rank for User",user_id)
     #clearing the custom_cache
-    custom_cache.clear()
+    #custom_cache.clear()
     start_time=time.time()
     action=action_for_user_crete_or_community_create(user_id,community_id)
     user_tags=action[0]
