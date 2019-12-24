@@ -7,7 +7,7 @@ from togther.models import *
 from django.conf import settings
 from togther.models import *
 from collabmates_api.notification import notification_to_complete_onboarding
-from togther.views import is_request_android,is_request_ios,is_request_pc
+from .utils import is_request_android,is_request_ios,is_request_pc
 
 url  = settings.URL
 
@@ -21,7 +21,8 @@ def mail_triger(member_id,request):
     android = is_request_android(request)
     ios = is_request_ios(request)
     pc = is_request_pc(request)
-    t = Timer(300.0, onboarding_mail_for_new_users,[member_id,android,ios,pc])
+
+    t = Timer(60.0, onboarding_mail_for_new_users,[member_id,android,ios,pc])
     t.start()
 
 
@@ -56,8 +57,10 @@ def onboarding_mail_for_new_users(member_id,android,ios,pc):
         fail_silently=True
         if user.email:
 
-            if user.fcm_token and not pc:
+            if user.userinfo.fcm_token and not pc:
                 link = url
+            elif user.userinfo.fcm_token and pc:
+                link = url+"/newpage"
             elif pc :
                 link = url + "/signup"
             else:
@@ -70,7 +73,7 @@ def onboarding_mail_for_new_users(member_id,android,ios,pc):
             to = user.email
             subject="Thanks for joining CollabMates! Here's the next step"
             template = get_template("mails/onboarding_mail.html").render({"name":user.userinfo.name,
-                                                                          'subject':subject,'url':url,
+                                                                          'subject':subject,'url':link,
                                                                           })
             # msg = EmailMultiAlternatives(subject,
             #                                  template,

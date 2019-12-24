@@ -18,6 +18,7 @@ from .tasks import *
 from .firebase import upload_tag_files
 from django.http.response import JsonResponse
 from django.conf import settings
+from user_agents import parse
 
 # cache details
 from django.core.cache import cache
@@ -636,5 +637,45 @@ def update_community_tags_to_user(user_id,community_id):
             user_tag.save()
 
     return
+
+
+# <<<< -------- Function to know device of user -------------------------- >>>>>
+def is_request_android(request):
+
+    '''function to check whether the user agent is android or not'''
+
+    if 'HTTP_USER_AGENT' in request.META:
+        ua_string = request.META['HTTP_USER_AGENT']
+        user_agent = parse(ua_string)
+        if user_agent.os.family == "Android" and not user_agent.is_pc:
+            return True
+        else:
+            return False
+    return False
+
+
+def is_request_ios(request):
+
+    '''function to check whether the user agent is android or not'''
+
+    if 'HTTP_USER_AGENT' in request.META:
+        ua_string = request.META['HTTP_USER_AGENT']
+        user_agent = parse(ua_string)
+        if user_agent.os.family == "iOS" and not user_agent.is_pc:
+            return True
+        else:
+            return False
+    return False
+
+def is_request_pc(request):
+    '''function to check if request is pc or not'''
+    if 'HTTP_USER_AGENT' in request.META:
+        ua_string = request.META['HTTP_USER_AGENT']
+        user_agent = parse(ua_string)
+        if user_agent.is_pc:
+            return True
+        else:
+            return False
+    return False
 
 
