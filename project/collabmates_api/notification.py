@@ -169,9 +169,10 @@ def send_follow_notification(card_id,user_id,answer,tagged_users_list):
             "route":"route://collabcard?collabcard_id="+str(card_id)
         }
         token_list=[]
-
+        print("\n members list >>>> ",member_list)
         for member in member_list:
-            print("\n member >>>>>  ",member,type(member[0]))
+            print("\n tagged users list >>>>>  ", member[0], type(member[0]))
+            print("\n member >>>>>  ",member[0],type(member[0]))
             print("\n member >>>>>  ",int(member[0]) not in tagged_users_list)
             if str(member[0]) != user_id and int(member[0]) not in tagged_users_list:
                 fcm_token = get_token_for_fcm(member[0])
