@@ -179,6 +179,29 @@ def send_follow_notification(card_id,user_id,answer):
     except (Exception, psycopg2.Error) as error:
         print ("Error while connecting to PostgreSQL", error)
 
+@shared_task
+def send_notification_to_tagged_users(card_id,answerer_name,answer,user_id):
+
+    '''function to send notification to those users who did n't follow the collabcard but tagged in an answer'''
+
+    try:
+
+        message={}
+
+        message['payload']={
+            "title":str(answerer_name) + " tagged you",
+            "sub_title":answer,
+            "route":"route://collabcard?collabcard_id="+str(card_id)
+        }
+        token_list=[]
+        fcm_token=get_token_for_fcm(user_id)
+        token_list.append(fcm_token)
+
+        send_notification_to_multiple_devices(token_list,message)
+
+    except (Exception, psycopg2.Error) as error:
+        print ("Error while connecting to PostgreSQL", error)
+
 
 @shared_task
 def send_notification_to_admins(community_id,name):
