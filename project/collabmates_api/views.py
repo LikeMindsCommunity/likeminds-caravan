@@ -1989,7 +1989,7 @@ def create_answer(request):
         update_answer_text(card_id)
 
         tagged_users=re.findall("route://member/"'([0-9]+)',res['title'])
-        answerer_name=user.name
+        answerer_name=user.userinfo.name
         for user_id in tagged_users:
             user=User.objects.get(id=user_id)
             if not is_collabcard_already_followed(card,user):
