@@ -1982,8 +1982,8 @@ def create_answer(request):
             follow.collabcard_id = card
             follow.member_id = user
             follow.save()
-
-        send_follow_notification.delay(card_id=card_id,user_id=user_id,answer=res['title'])
+        answer_text = re.split('>>',res['title'])[-1]
+        send_follow_notification.delay(card_id=card_id,user_id=user_id,answer=answer_text)
 
         #calling update_answer_text 
         update_answer_text(card_id)
@@ -1993,7 +1993,7 @@ def create_answer(request):
         for user_id in tagged_users:
             user=User.objects.get(id=user_id)
             if not is_collabcard_already_followed(card,user):
-                send_notification_to_tagged_users.delay(card_id=card_id,answerer_name=answerer_name,answer=res['title'],user_id=user_id)
+                send_notification_to_tagged_users.delay(card_id=card_id,answerer_name=answerer_name,answer=answer_text,user_id=user_id)
 
         return JsonResponse({'success':True})
 
