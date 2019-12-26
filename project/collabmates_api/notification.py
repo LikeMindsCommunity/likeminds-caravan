@@ -146,7 +146,7 @@ def send_notification(fcm_token,message,is_android):
 
 
 @shared_task
-def send_follow_notification(card_id,user_id,answer):
+def send_follow_notification(card_id,user_id,answer,tagged_users_list):
 
     '''function to send notification to followed members'''
 
@@ -171,7 +171,7 @@ def send_follow_notification(card_id,user_id,answer):
         token_list=[]
 
         for member in member_list:
-            if str(member[0]) != user_id:
+            if str(member[0]) != user_id and int(member[0]) not in tagged_users_list:
                 fcm_token = get_token_for_fcm(member[0])
                 token_list.append(fcm_token)
         send_notification_to_multiple_devices(token_list,message)
