@@ -176,8 +176,8 @@ def send_follow_notification(card_id,user_id,answer,tagged_users_list):
         for member in member_list:
             print("\n tagged users list >>>>>  ", tagged_users_list,"\n tagged users list ......  ")
             print("\n member >>>>>  ",member[0],type(member[0]))
-            print("\n member >>>>>  ",int(member[0]) not in tagged_users_list)
-            if str(member[0]) != user_id and int(member[0]) not in tagged_users_list:
+            print("\n member >>>>>  ",str(member[0]) not in tagged_users_list)
+            if str(member[0]) != user_id and str(member[0]) not in tagged_users_list:
                 fcm_token = get_token_for_fcm(member[0])
                 token_list.append(fcm_token)
         send_notification_to_multiple_devices(token_list,message)
