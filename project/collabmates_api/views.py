@@ -18,7 +18,8 @@ from .notification import (send_follow_notification, send_notification_to_admins
                            send_notification_to_proposed_admin,
                            send_notification_to_proposer,
                            send_notification_to_eligible_member,
-                           send_notification_to_all_admins)
+                           send_notification_to_all_admins,
+                           send_notification_to_tagged_users)
 
 from django.db.models import Q
 import dateutil.relativedelta
@@ -1986,6 +1987,13 @@ def create_answer(request):
 
         #calling update_answer_text 
         update_answer_text(card_id)
+
+        tagged_users=re.findall("route://member/"'([0-9]+)',res['title'])
+        answerer_name=user.name
+        for user_id in tagged_users:
+            user=User.objects.get(id=user_id)
+            if not is_collabcard_already_followed(card,user):
+                send_notification_to_tagged_users.delay(card_id=card_id,answerer_name=answerer_name,answer=res['title'],user_id=user_id)
 
         return JsonResponse({'success':True})
 
