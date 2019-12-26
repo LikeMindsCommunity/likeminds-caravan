@@ -121,7 +121,7 @@ a.article-title:hover {
     <div class="article-metadata" >
 
     </div>
-    <h2><a class="article-title" href="{% url 'update_user'  member.id.id%}">{{ member.id }}</a></h2>
+    <h2><a class="article-title" href="{% url 'update_user'  member.id.id%}">{{ member.id.userinfo.name }}</a></h2>
         {% if member.state != 'Pending' %}
 
       <p class="article-content">{{member.state}}</p>
