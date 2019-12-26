@@ -1992,9 +1992,9 @@ def create_answer(request):
         # tagged_users=re.findall("route://member/"'([0-9]+)',res['title'])
         answerer_name=user.userinfo.name
         for user_id in tagged_users:
-            # user=User.objects.get(id=user_id)
-            # if not is_collabcard_already_followed(card,user):
-            send_notification_to_tagged_users.delay(card_id=card_id,answerer_name=answerer_name,answer=answer_text,user_id=user_id)
+            user=User.objects.get(id=user_id)
+            if not is_collabcard_already_followed(card,user):
+                send_notification_to_tagged_users.delay(card_id=card_id,answerer_name=answerer_name,answer=answer_text,user_id=user_id)
 
         return JsonResponse({'success':True})
 
