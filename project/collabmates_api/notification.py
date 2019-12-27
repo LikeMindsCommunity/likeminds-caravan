@@ -5,7 +5,7 @@ from pyfcm import FCMNotification
 from django.conf import  settings
 import time
 from togther.models import Community_Rank
-
+import re
 # file to store configuration of the system
 
 
@@ -146,7 +146,7 @@ def send_notification(fcm_token,message,is_android):
 
 
 @shared_task
-def send_follow_notification(card_id,user_id,answer,tagged_users_list):
+def send_follow_notification(card_id,user_id,answer):
 
     '''function to send notification to followed members'''
 
@@ -163,9 +163,12 @@ def send_follow_notification(card_id,user_id,answer,tagged_users_list):
         connection.close()
         message={}
 
+        tagged_users_list = re.findall("route://member/"'([0-9]+)', answer)
+        answer_text = re.split('>>', answer)[-1]
+
         message['payload']={
             "title":str(answerer_name[0]) + " responded",
-            "sub_title":answer,
+            "sub_title":answer_text,
             "route":"route://collabcard?collabcard_id="+str(card_id)
         }
         token_list=[]
@@ -175,6 +178,14 @@ def send_follow_notification(card_id,user_id,answer,tagged_users_list):
                 fcm_token = get_token_for_fcm(member[0])
                 token_list.append(fcm_token)
         send_notification_to_multiple_devices(token_list,message)
+
+        for user_id in tagged_users_list:
+            # user=User.objects.get(id=user_id)
+            # if not is_collabcard_already_followed(card,user):
+            send_notification_to_tagged_users(card_id=card_id, answerer_name=answerer_name[0], answer=answer_text,
+                                              user_id=user_id)
+
+
 
     except (Exception, psycopg2.Error) as error:
         print ("Error while connecting to PostgreSQL", error)
