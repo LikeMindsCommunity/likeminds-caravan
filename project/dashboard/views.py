@@ -745,7 +745,7 @@ def delete_members(request,community_id,member_id):
 def add_questions(request,community_id):
 
     '''function to add and edit questions'''
-    questions=Form_data.objects.filter(community_id=community_id)
+    questions=Form_data.objects.filter(community_id=community_id).order_by('id')
     community_name=Community.objects.filter(id=community_id).values('name')
     question_list=[]
     for question in questions:
