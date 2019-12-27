@@ -1984,23 +1984,12 @@ def create_answer(request):
             follow.member_id = user
             follow.save()
 
-        # pool = ThreadPool(processes=2)
-        # answerer_name = user.userinfo.name
-        # pool.apply_async(_send_notification_to_tagged_users, (card_id, answerer_name, res['title'],user_id ))
-
-        answer_text = re.split('>>',res['title'])[-1]
-        tagged_users=re.findall("route://member/"'([0-9]+)',res['title'])
-        send_follow_notification.delay(card_id=card_id,user_id=user_id,answer=answer_text,tagged_users_list=tagged_users)
+        pool = ThreadPool(processes=2)
+        answerer_name = user.userinfo.name
+        pool.apply_async(_send_notification_to_tagged_users, (card_id, answerer_name, res['title'],user_id ))
 
         #calling update_answer_text
         update_answer_text(card_id)
-
-        # tagged_users=re.findall("route://member/"'([0-9]+)',res['title'])
-        answerer_name=user.userinfo.name
-        for user_id in tagged_users:
-            # user=User.objects.get(id=user_id)
-            # if not is_collabcard_already_followed(card,user):
-            send_notification_to_tagged_users.delay(card_id=card_id,answerer_name=answerer_name,answer=answer_text,user_id=user_id)
 
 
         return JsonResponse({'success':True})
