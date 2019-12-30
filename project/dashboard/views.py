@@ -797,16 +797,17 @@ def add_dropdown_responses(request,question_id):
         # dropdown_list=["Ford", "BMW", "Fiat"]
         # form_data.dropdown_list=json.dumps(dropdown_list)
         # form_data.save()
+        dropdown_list=[]
         if form_data.is_dropdown:
             dropdown_list=json.loads(form_data.dropdown_list)
 
-            context={
+        context={
                 'dropdown_list':dropdown_list,
                 'question_id':question_id,
                 'question_name':form_data.data,
                 'length':len(dropdown_list)
-            }
-            return render(request,'dashboard/add_questions_dropdown.html',context)
+        }
+        return render(request,'dashboard/add_questions_dropdown.html',context)
     else:
         option_data=request.POST.get('data')
         option_data=json.loads(option_data)
