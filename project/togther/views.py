@@ -620,7 +620,7 @@ def join_community(request, community_id,ref_id):
         return False, user, similar_communities, community
 
     else:
-        data = Form_data.objects.all().filter(community_id=community_id)
+        data = Form_data.objects.all().filter(community_id=community_id).order_by('-id')
 
         if not data:
             params = {'member_id': member_id, 'community_id': community_id}
@@ -869,7 +869,7 @@ def questions_responses(request):
     member_id=request.GET.get('member_id')
     community_id=request.GET.get('community_id')
     userinfo=Userinfo.objects.get(user_id=member_id)
-    form_response=Form_response.objects.filter(user=member_id,community=community_id)
+    form_response=Form_response.objects.filter(user=member_id,community=community_id).order_by('-id')
     response_list=[]
     for data in form_response:
         response={}

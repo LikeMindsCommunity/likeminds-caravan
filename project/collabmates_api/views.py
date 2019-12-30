@@ -1263,7 +1263,7 @@ def pending_members(request,community_id):
     pending_requests = []
     for i in pend_requests:
         print(i.member_id.id,"  ==  ",type(i))
-        resp = Form_response.objects.filter(community = community_id).filter(user = i.member_id.id)
+        resp = Form_response.objects.filter(community = community_id).filter(user = i.member_id.id).order_by('-id')
         user = Userinfo.objects.get(user_id = i.member_id.id)
         # serilaizing userinfo object
         usr = UserinfoSerializer(user)
@@ -2161,9 +2161,9 @@ def member_activity(request):
         if str(community_id) == '1173':
             introduction_question = community.introduction_text
             form_response=Form_response.objects.filter(user=member.id,community=community.id).order_by('id')
-            introduction_answer = "{}, been jamming {} for last {}. Here for {}".format(form_response[0].response,form_response[1].response,form_response[2].response,form_response[3].response)
+            introduction_answer = "{}, been jamming {} for last {}. Here for {}".format(form_response[3].response,form_response[2].response,form_response[1].response,form_response[0].response)
         else:
-            form_response=Form_response.objects.filter(user=member.id,community=community.id).order_by('id')
+            form_response=Form_response.objects.filter(user=member.id,community=community.id).order_by('-id')
             if form_response.exists():
                 introduction_question=form_response[0].data
                 introduction_answer=form_response[0].response
