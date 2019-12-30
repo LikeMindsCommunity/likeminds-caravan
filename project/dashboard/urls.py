@@ -17,8 +17,11 @@ urlpatterns = [
     path('send_invitation/<int:community_id>', send_invitation, name='send_invitation'),
     path('all_members/<int:community_id>', all_members, name='all_members'),
     path('delete_members/<int:community_id>/<int:member_id>', delete_members, name='delete_members'),
+
     path('add_questions/<int:community_id>', add_questions, name='add_questions'),
     path('delete_questions/<int:question_id>', delete_questions, name='delete_questions'),
+    path('add_dropdown_responses/<int:question_id>', add_dropdown_responses, name='add_dropdown_responses'),
+
     path('analytics', analytics, name='analytics'),
     path('analytics_community/<int:community_id>', analytics_community, name='analytics_community'),
     path('deleted_communities', deleted_communities, name='deleted_communities'),
