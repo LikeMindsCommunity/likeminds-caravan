@@ -146,6 +146,8 @@ class Form_response (models.Model):
     user = models.IntegerField()
     community = models.IntegerField()
     response = models.TextField()
+    is_dropdown=models.IntegerField(default=0)
+    dropdown_list=models.TextField(null=True)
     
 class Collabcard (models.Model):
     title = models.TextField()
