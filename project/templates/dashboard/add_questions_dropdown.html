@@ -1,0 +1,129 @@
+{% load static %}
+<html>
+<head>
+    <!-- Latest compiled and minified CSS -->
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/css/bootstrap.min.css">
+
+<!-- jQuery library -->
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+<!-- Latest compiled JavaScript -->
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/js/bootstrap.min.js"></script>
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+
+</head>
+
+<body>
+<div style="width:800px;  margin-left: 40px;">
+<h1>{{question_name}}</h1>
+
+
+<form id="my_form" onsubmit="return false" >
+
+    {% for dropdown in dropdown_list %}
+
+
+    <div class="form-group">
+        <label >Option:{{ forloop.counter }}</label>
+
+<!--            <input type="hidden" id="id{{forloop.counter}}" value="{{question.id}}"/>-->
+            <input type="text" class="form-control" id="option{{forloop.counter}}" value="{{dropdown}}"/>
+    </div>
+  {% endfor %}
+  <div id="form_field"></div>
+  <button type="submit" class="btn btn-default">Submit</button>
+
+</form>
+<button type="button" class="btn btn-primary" id="add">Add</button>
+<button type="button" class="btn btn-danger" id="delete">Delete</button>
+
+</div>
+</body>
+
+
+</html>
+
+<script>
+
+    $(document).ready(function(){
+    count={{length}}
+
+    $('#add').click(function(){
+    count=count+1
+    var id='option'+count
+     var new_field= " <div class='form-group'> <label for='option'>Option\"" + count + "\"</label> <input type='text' class='form-control' id=\"" + id + "\"></div>"
+      $('#form_field').append(new_field);
+    })
+
+   $('#delete').click(function(){
+   var id='option'+count
+   $('#'+id).parent('div').remove();
+   count=count-1;
+
+   })
+
+
+
+
+    $('#my_form').submit(function(){
+
+    var data=[]
+    update_count={{length}};
+
+    for(var i=1;i<=update_count;i++)
+    {
+        option=$('#option'+i).val()
+        if(typeof option === 'undefined')
+            continue;
+        console.log(option)
+        id=$('#id'+i).val()
+        var update_object={
+        'option':option,
+        'update':true,
+        'id':id
+        }
+
+        data.push(update_object)
+    }
+
+
+    for(var i=update_count+1;i<=count;i++)
+    {
+
+        option=$('#option'+i).val()
+        console.log(option)
+        var create_object={
+        'option':option,
+        'update':false
+        }
+
+        data.push(create_object)
+
+    }
+    option_data={
+    'data':JSON.stringify(data),
+    'csrfmiddlewaretoken':'{{csrf_token}}'
+
+    }
+   // console.log(option_data)
+    //ajax
+
+     $.ajax({
+
+            url:'/admin_dashboard/add_dropdown_responses/'+{{question_id}},
+            data:option_data,
+            type:"POST",
+            dataType:'json',
+            success:function(data){
+              console.log(data)
+              //location.reload(true)
+            }
+
+         })
+
+
+    })
+
+    })
+
+</script>
