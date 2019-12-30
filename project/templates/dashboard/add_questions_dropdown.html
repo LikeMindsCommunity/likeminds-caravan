@@ -100,11 +100,7 @@
         data.push(create_object)
 
     }
-    if(data.length == 0)
-    {
-            alert("Please Enter Some Data")
-            return;
-    }
+
     option_data={
     'data':JSON.stringify(data),
     'csrfmiddlewaretoken':'{{csrf_token}}'
