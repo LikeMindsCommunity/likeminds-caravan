@@ -816,11 +816,15 @@ def add_dropdown_responses(request,question_id):
 
         for option in option_data:
             dropdown_list.append(option['option'])
-
-        dropdown_list=json.dumps(dropdown_list)
-        form_data.dropdown_list=dropdown_list
-        form_data.is_dropdown=1
-        form_data.save()
+        if dropdown_list:
+            dropdown_list=json.dumps(dropdown_list)
+            form_data.dropdown_list=dropdown_list
+            form_data.is_dropdown=1
+            form_data.save()
+        else:
+            form_data.dropdown_list=None
+            form_data.is_dropdown=0
+            form_data.save()
         return JsonResponse({"success":True})
     # print(form_data)
 
