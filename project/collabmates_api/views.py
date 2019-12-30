@@ -2156,11 +2156,17 @@ def member_activity(request):
         return JsonResponse({'state':state,'tutorial_count':tutorial_count})
 
     if state == 0:
-
-       form_response=Form_response.objects.filter(user=member.id,community=community.id).order_by('id')
-       if form_response.exists():
-        introduction_question=form_response[0].data
-        introduction_answer=form_response[0].response
+        introduction_question = ''
+        introduction_answer = ''
+        if str(community_id) == '1173':
+            introduction_question = community.introduction_text
+            form_response=Form_response.objects.filter(user=member.id,community=community.id).order_by('id')
+            introduction_answer = "{}, been jamming {} for last {}. Here for {}".format(form_response[0].response,form_response[1].response,form_response[2].response,form_response[3].response)
+        else:
+            form_response=Form_response.objects.filter(user=member.id,community=community.id).order_by('id')
+            if form_response.exists():
+                introduction_question=form_response[0].data
+                introduction_answer=form_response[0].response
         return JsonResponse({'state':state,'introduction_question':introduction_question,'introduction_answer':introduction_answer,'tutorial_count':tutorial_count})
     return JsonResponse({'state': state})
 
