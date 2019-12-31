@@ -12,6 +12,7 @@ from django.views.decorators.csrf import csrf_exempt
 from datetime import datetime
 from django.db.models import F
 import time
+import requests as rqst
 from .notification import (send_follow_notification, send_notification_to_admins,
                            send_notification_for_join_requests,
                            send_notification_for_new_collabcard_posted,
@@ -1518,6 +1519,7 @@ def request_response(request,req_dict=None):
         members_count = community.members_count+1
         Community.objects.filter(id = community_id).update(members_count=members_count)
 
+
         # inserting data in member engage
         purpose_card = Collabcard.objects.get(id=community.purpose_collabcard)
 
@@ -1546,6 +1548,20 @@ def request_response(request,req_dict=None):
 
         # send notification
         send_notification_for_join_requests.delay(community_id,True,member_id)
+
+        introduction_question,introduction_answer=auto_create_collabcard(user,community)
+        json_body={
+            'communityId':community_id,
+            'title':introduction_answer,
+            'image_count':0,
+            'pdf_count':0
+        }
+        params={
+            'community_id':community_id,
+            'member_id':member_id
+        }
+        link=url+"/api/create_collabcard"
+        rqst.post(link, params=params, json=json_body)
 
         if not req_dict:
             notify_referred_member_after_join(joined_member_id=member_id,
@@ -2178,22 +2194,33 @@ def member_activity(request):
         return JsonResponse({'state':state,'tutorial_count':tutorial_count})
 
     if state == 0:
-        introduction_question = ''
-        introduction_answer = ''
-        if str(community_id)=='13266' or str(community_id) == '1173':  #'2807':
-            introduction_question = community.introduction_text
-            form_response=Form_response.objects.filter(user=member.id,community=community.id).order_by('id')
-            introduction_answer = "{}, been jamming {} for last {}. Here for {}".format(form_response[3].response,form_response[2].response,form_response[1].response,form_response[0].response)
-        else:
-            form_response=Form_response.objects.filter(user=member.id,community=community.id).order_by('-id')
-            if form_response.exists():
-                introduction_question=form_response[0].data
-                introduction_answer=form_response[0].response
-                introduction_answer = 'Hello everyone, ' + introduction_answer + '\nLooking forward to interact with you all'
-
+        introduction_question,introduction_answer=auto_create_collabcard(member,community)
         return JsonResponse({'state':state,'introduction_question':introduction_question,'introduction_answer':introduction_answer,'tutorial_count':tutorial_count})
     return JsonResponse({'state': state})
 
+
+
+def auto_create_collabcard(member,community):
+
+    '''auto create collabcard'''
+    introduction_question=""
+    introduction_answer=""
+    #community_id=community.id
+    # if str(community_id) == '13266' or str(community_id) == '1173':  # '2807':
+    #     introduction_question = community.introduction_text
+    #     form_response = Form_response.objects.filter(user=member.id, community=community.id).order_by('id')
+    #     introduction_answer = "{}, been jamming {} for last {}. Here for {}".format(form_response[3].response,
+    #                                                                                 form_response[2].response,
+    #                                                                                 form_response[1].response,
+    #                                                                                 form_response[0].response)
+    # else:
+    if True:
+        form_response = Form_response.objects.filter(user=member.id, community=community.id).order_by('-id')
+        if form_response.exists():
+            introduction_question = form_response[0].data
+            introduction_answer = form_response[0].response
+            introduction_answer = 'Hello everyone, ' + introduction_answer + '\nLooking forward to interact with you all'
+    return introduction_question,introduction_answer
 
 ############# upload files flow   ##########################
 
