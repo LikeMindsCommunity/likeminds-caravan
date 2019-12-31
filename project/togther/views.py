@@ -620,7 +620,7 @@ def join_community(request, community_id,ref_id):
         return False, user, similar_communities, community
 
     else:
-        questions = Form_data.objects.filter(community_id=community_id)
+        questions = Form_data.objects.filter(community_id=community_id).order_by('-id')
         question_format=[]
 
         for each_question in questions:
@@ -635,7 +635,7 @@ def join_community(request, community_id,ref_id):
                 temp['data'] = each_question.data
             temp['data_type']=each_question.data_type
             question_format.append(temp)
-
+        
         if not question_format:
             params = {'member_id': member_id, 'community_id': community_id}
             rqst.post(join_url, params=params, json={})
@@ -883,7 +883,7 @@ def questions_responses(request):
     member_id=request.GET.get('member_id')
     community_id=request.GET.get('community_id')
     userinfo=Userinfo.objects.get(user_id=member_id)
-    form_response=Form_response.objects.filter(user=member_id,community=community_id)
+    form_response=Form_response.objects.filter(user=member_id,community=community_id).order_by('-id')
     response_list=[]
     for data in form_response:
         response={}
