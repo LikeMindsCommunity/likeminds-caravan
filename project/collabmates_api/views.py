@@ -2180,7 +2180,7 @@ def member_activity(request):
     if state == 0:
         introduction_question = ''
         introduction_answer = ''
-        if str(community_id) == '1173':  #'2807':
+        if str(community_id)=='13266' or str(community_id) == '1173':  #'2807':
             introduction_question = community.introduction_text
             form_response=Form_response.objects.filter(user=member.id,community=community.id).order_by('id')
             introduction_answer = "{}, been jamming {} for last {}. Here for {}".format(form_response[3].response,form_response[2].response,form_response[1].response,form_response[0].response)
@@ -3278,10 +3278,5 @@ def save_geography_and_hometown_tags_of_user_from_onboarding(address_input,user_
             save_tags_for_user_from_onboarding(1, tag_object, user_id)
 
     print("Hometown and city updated successfully")
-
-
-
-
-
 
 
