@@ -22,12 +22,23 @@
                 {% for i in data %}
                 <div class=" required field">
                     {% if i.data_type == 'text' %}
+                        {% if i.is_dropdown == 0 %}
+                            <label>{{i.data}}</label><textarea name ="{{i.data}}" rows="3"> </textarea>
+                        {% else %}
+                             <label>{{i.data}}</label>
+                                <div class="ui selection dropdown" id="test_options">
+                                      <input type="hidden" name="{{i.data}}">
+                                      <i class="dropdown icon"></i>
+                                       <div class="default text">Select</div>
+                                    <div class="menu">
+                                        {% for option in i.dropdown_list %}
 
-                    <label>{{i.data}}</label><textarea name ="{{i.data}}" rows="3"> </textarea>
-                    {% elif i.data_type == 'pdf' %}
-                    <label>{{i.data}}</label><input name = "{{i.data}}" type="text">
-                    {% elif i.data_type == 'textarea' %}
-                    <label>{{i.data}}</label><textarea name ="{{i.data}}" rows="3"></textarea>
+                                                <div class="item" data-value="{{option}}">{{option}}</div>
+                                        {% endfor %}
+                                     </div>
+                                </div>
+
+                        {% endif %}
                     {% endif %}
                 </div>
 
@@ -43,4 +54,10 @@
     </div>
     <br>
 </body>
+
+
+<script>
+       $('.ui.selection.dropdown').dropdown();
+
+</script>
 {% endblock %}

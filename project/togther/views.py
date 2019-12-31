@@ -600,7 +600,7 @@ def join_community(request, community_id,ref_id):
 
         question_data = request.POST.dict()
         response_list = []
-
+       
         for key, value in question_data.items():
             question_dict = {}
             if key == 'csrfmiddlewaretoken':
@@ -620,16 +620,30 @@ def join_community(request, community_id,ref_id):
         return False, user, similar_communities, community
 
     else:
-        data = Form_data.objects.all().filter(community_id=community_id)
+        questions = Form_data.objects.filter(community_id=community_id)
+        question_format=[]
 
-        if not data:
+        for each_question in questions:
+            temp={}
+            if each_question.is_dropdown:
+                temp['is_dropdown']=each_question.is_dropdown
+                temp['dropdown_list']=json.loads(each_question.dropdown_list)
+                temp['data']=each_question.data
+            else:
+                temp['is_dropdown'] = each_question.is_dropdown
+                temp['dropdown_list'] = []
+                temp['data'] = each_question.data
+            temp['data_type']=each_question.data_type
+            question_format.append(temp)
+
+        if not question_format:
             params = {'member_id': member_id, 'community_id': community_id}
             rqst.post(join_url, params=params, json={})
             # return false to show thank you page as there are no questions for this community
             return False, user, similar_communities, community
         else:
             # return true to take the user to questions page
-            return True, user, data, community
+            return True, user, question_format, community
 
 
 def thankyou(request):

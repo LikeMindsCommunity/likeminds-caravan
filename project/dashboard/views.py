@@ -821,11 +821,12 @@ def add_dropdown_responses(request,question_id):
             form_data.dropdown_list=dropdown_list
             form_data.is_dropdown=1
             form_data.save()
+            return JsonResponse({"success": True})
         else:
             form_data.dropdown_list=None
             form_data.is_dropdown=0
             form_data.save()
-        return JsonResponse({"success":True})
+            return JsonResponse({"success":False})
     # print(form_data)
 
 
