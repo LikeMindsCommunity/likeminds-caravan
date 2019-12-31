@@ -15,20 +15,19 @@
 
 <body>
 <div style="width:800px;  margin-left: 40px;">
-<h1 >Questions for {{community_name}}</h1>
+<h1>{{question_name}}</h1>
+
+
 <form id="my_form" onsubmit="return false" >
 
-    {% for question in question_list %}
+    {% for dropdown in dropdown_list %}
 
 
     <div class="form-group">
-        <label >Question:{{ forloop.counter }}</label>
+        <label >Option:{{ forloop.counter }}</label>
 
-            <input type="hidden" id="id{{forloop.counter}}" value="{{question.id}}"/>
-            <a href="{% url 'delete_questions'  question.id %} " style="color:red;"><i class="fa fa-trash" aria-hidden="true"></i></a>
-            &nbsp;&nbsp;<a href="{% url 'add_dropdown_responses'  question.id %} " style="color:blue;margin-left:600px;">Add Dropdown</a>
-
-        <input type="text" class="form-control" id="question{{ forloop.counter }}" value="{{question.data}}"/>
+<!--            <input type="hidden" id="id{{forloop.counter}}" value="{{question.id}}"/>-->
+            <input type="text" class="form-control" id="option{{forloop.counter}}" value="{{dropdown}}"/>
     </div>
   {% endfor %}
   <div id="form_field"></div>
@@ -48,15 +47,16 @@
 
     $(document).ready(function(){
     count={{length}}
+
     $('#add').click(function(){
     count=count+1
-    var id='question'+count
-     var new_field= " <div class='form-group'> <label for='question'>Question\"" + count + "\"</label> <input type='text' class='form-control' id=\"" + id + "\"></div>"
+    var id='option'+count
+     var new_field= " <div class='form-group'> <label for='option'>Option\"" + count + "\"</label> <input type='text' class='form-control' id=\"" + id + "\"></div>"
       $('#form_field').append(new_field);
     })
 
    $('#delete').click(function(){
-   var id='question'+count
+   var id='option'+count
    $('#'+id).parent('div').remove();
    count=count-1;
 
@@ -72,10 +72,13 @@
 
     for(var i=1;i<=update_count;i++)
     {
-        question=$('#question'+i).val()
+        option=$('#option'+i).val()
+        if(typeof option === 'undefined')
+            continue;
+        console.log(option)
         id=$('#id'+i).val()
         var update_object={
-        'question':question,
+        'option':option,
         'update':true,
         'id':id
         }
@@ -87,10 +90,10 @@
     for(var i=update_count+1;i<=count;i++)
     {
 
-        question=$('#question'+i).val()
-
+        option=$('#option'+i).val()
+        console.log(option)
         var create_object={
-        'question':question,
+        'option':option,
         'update':false
         }
 
@@ -98,22 +101,32 @@
 
     }
 
-    var questions = JSON.stringify(data);
-    question_data={
-    'data':questions,
+    option_data={
+    'data':JSON.stringify(data),
+    'csrfmiddlewaretoken':'{{csrf_token}}'
 
     }
+   // console.log(option_data)
     //ajax
 
      $.ajax({
 
-            url:'/admin_dashboard/add_questions/'+{{community_id}},
-            data:question_data,
+            url:'/admin_dashboard/add_dropdown_responses/'+{{question_id}},
+            data:option_data,
+            type:"POST",
             dataType:'json',
             success:function(data){
 
-              console.log(data)
-              location.reload(true)
+             if(data['success']){
+
+                 location.reload(true)
+
+             }else{
+
+                 alert('Please add the dropdown options')
+                 return;
+             }
+
 
             }
 

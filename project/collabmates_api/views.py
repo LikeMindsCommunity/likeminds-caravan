@@ -12,13 +12,15 @@ from django.views.decorators.csrf import csrf_exempt
 from datetime import datetime
 from django.db.models import F
 import time
+import requests as rqst
 from .notification import (send_follow_notification, send_notification_to_admins,
                            send_notification_for_join_requests,
                            send_notification_for_new_collabcard_posted,
                            send_notification_to_proposed_admin,
                            send_notification_to_proposer,
                            send_notification_to_eligible_member,
-                           send_notification_to_all_admins)
+                           send_notification_to_all_admins,
+                           send_notification_to_tagged_users)
 
 from django.db.models import Q
 import dateutil.relativedelta
@@ -46,6 +48,7 @@ from utility.utils import (decode_meta_from_url, update_tag_image,
 from utility.tasks import (mail_triger, new_member_request)
 from utility.firebase import update_last_answer_id,upload_image_to_firebase,upload_community_thumbnail,upload_community_files
 from .raw_queries import compute_rank
+from multiprocessing.pool import ThreadPool
 
 #CACHE_TTL = getattr(settings, 'CACHE_TTL', cache_timeout)
 
@@ -443,13 +446,33 @@ def community(request, community_id):
 
     # form a dictionary of community objects
     new_dict.update(serialized_object)
-
     if community:
-        new_dict['share_text_admin']= """Hi, I am trying to gather %s community on CollabMates. It will be good if you can join it.\n"""%(new_dict['name'])
-        new_dict['share_text_member']="""I recently joined %s community on CollabMates. It will be good if you also join this community.\n"""%(new_dict['name'])
-        new_dict['share_text_anonymous']="""I recently discovered %s community on CollabMates. You can join this community using this link.\n"""%(new_dict['name'])
+        community_type=is_IG_community(community)
+        if not community_type:
+            new_dict['share_text_admin']= """Hi, I am trying to gather %s community on CollabMates. It will be good if you can join it.\n"""%(new_dict['name'])
+            new_dict['share_text_member']="""I recently joined %s community on CollabMates. It will be good if you also join this community.\n"""%(new_dict['name'])
+            new_dict['share_text_anonymous']="""I recently discovered %s community on CollabMates. You can join this community using this link.\n"""%(new_dict['name'])
+        else:
+            new_dict['share_text_admin']= """Hi, I am trying to gather %s community on CollabMates. It will be fun if you can join it.\n"""%(new_dict['name'])
+            new_dict['share_text_member']="""I recently joined %s community on CollabMates. It will be fun if you also join this community.\n"""%(new_dict['name'])
+            new_dict['share_text_anonymous']="""I recently discovered %s community on CollabMates. You can join this community using this link.\n"""%(new_dict['name'])
     new_dict['min_referrer_member'] = eligibility_count
     return JsonResponse({'community': new_dict})
+
+
+def is_IG_community(community):
+
+    '''function to check if the community is IG community or not'''
+
+    communities_interest=Community_Interest.objects.filter(community_id=community)
+
+    for interest in communities_interest:
+        tag_id=interest.tags_id.id
+        if tag_id != 17:
+            return True
+
+    return False
+
 
 
 def similar_community(request, community_id):
@@ -493,8 +516,10 @@ def join_community(request, community_id):
     reqd_info = []
     for i in data:
         ques = {'question':i.data,
-                'data_type':i.data_type,
+                'question_state':i.is_dropdown,
                 }
+        if i.is_dropdown == 1:
+            ques['dropdown_list'] = json.loads(i.dropdown_list)
         reqd_info.append(ques)
     return JsonResponse({'questions': reqd_info})
 
@@ -1261,7 +1286,7 @@ def pending_members(request,community_id):
     pending_requests = []
     for i in pend_requests:
         print(i.member_id.id,"  ==  ",type(i))
-        resp = Form_response.objects.filter(community = community_id).filter(user = i.member_id.id)
+        resp = Form_response.objects.filter(community = community_id).filter(user = i.member_id.id).order_by('-id')
         user = Userinfo.objects.get(user_id = i.member_id.id)
         # serilaizing userinfo object
         usr = UserinfoSerializer(user)
@@ -1494,6 +1519,7 @@ def request_response(request,req_dict=None):
         members_count = community.members_count+1
         Community.objects.filter(id = community_id).update(members_count=members_count)
 
+
         # inserting data in member engage
         purpose_card = Collabcard.objects.get(id=community.purpose_collabcard)
 
@@ -1522,6 +1548,20 @@ def request_response(request,req_dict=None):
 
         # send notification
         send_notification_for_join_requests.delay(community_id,True,member_id)
+
+        introduction_question,introduction_answer=auto_create_collabcard(user,community)
+        json_body={
+            'communityId':community_id,
+            'title':introduction_answer,
+            'image_count':0,
+            'pdf_count':0
+        }
+        params={
+            'community_id':community_id,
+            'member_id':member_id
+        }
+        link=url+"/api/create_collabcard"
+        rqst.post(link, params=params, json=json_body)
 
         if not req_dict:
             notify_referred_member_after_join(joined_member_id=member_id,
@@ -1982,12 +2022,27 @@ def create_answer(request):
             follow.member_id = user
             follow.save()
 
-        send_follow_notification.delay(card_id=card_id,user_id=user_id,answer=res['title'])
+        # pool = ThreadPool(processes=2)
+        # answerer_name = user.userinfo.name
+        # pool.apply_async(_send_notification_to_tagged_users, (card_id, answerer_name, res['title'],user_id ))
+        send_follow_notification.delay(card_id=card_id, user_id=user_id, answer=res['title'])
 
-        #calling update_answer_text 
+        #calling update_answer_text
         update_answer_text(card_id)
 
+
         return JsonResponse({'success':True})
+
+def _send_notification_to_tagged_users(card_id,answerer_name,answer,user_id):
+
+    tagged_users = re.findall("route://member/"'([0-9]+)', answer)
+    answer_text = re.split('>>',answer)[-1]
+    send_follow_notification.delay(card_id=card_id, user_id=user_id, answer=answer,tagged_users_list=tagged_users)
+    for user_id in tagged_users:
+        # user=User.objects.get(id=user_id)
+        # if not is_collabcard_already_followed(card,user):
+        send_notification_to_tagged_users(card_id=card_id, answerer_name=answerer_name, answer=answer_text,
+                                                user_id=user_id)
 
 
 def update_answer_text(card_id):
@@ -2139,14 +2194,33 @@ def member_activity(request):
         return JsonResponse({'state':state,'tutorial_count':tutorial_count})
 
     if state == 0:
-
-       form_response=Form_response.objects.filter(user=member.id,community=community.id).order_by('id')
-       if form_response.exists():
-        introduction_question=form_response[0].data
-        introduction_answer=form_response[0].response
+        introduction_question,introduction_answer=auto_create_collabcard(member,community)
         return JsonResponse({'state':state,'introduction_question':introduction_question,'introduction_answer':introduction_answer,'tutorial_count':tutorial_count})
     return JsonResponse({'state': state})
 
+
+
+def auto_create_collabcard(member,community):
+
+    '''auto create collabcard'''
+    introduction_question=""
+    introduction_answer=""
+    #community_id=community.id
+    # if str(community_id) == '13266' or str(community_id) == '1173':  # '2807':
+    #     introduction_question = community.introduction_text
+    #     form_response = Form_response.objects.filter(user=member.id, community=community.id).order_by('id')
+    #     introduction_answer = "{}, been jamming {} for last {}. Here for {}".format(form_response[3].response,
+    #                                                                                 form_response[2].response,
+    #                                                                                 form_response[1].response,
+    #                                                                                 form_response[0].response)
+    # else:
+    if True:
+        form_response = Form_response.objects.filter(user=member.id, community=community.id).order_by('-id')
+        if form_response.exists():
+            introduction_question = form_response[0].data
+            introduction_answer = form_response[0].response
+            introduction_answer = 'Hello everyone, ' + introduction_answer + '\nLooking forward to interact with you all'
+    return introduction_question,introduction_answer
 
 ############# upload files flow   ##########################
 
@@ -2304,8 +2378,6 @@ def get_request_type(request):
         elif request_agent == "iOS":
             return "iOS"
     return False
-
-
 
 
 @csrf_exempt
@@ -3233,10 +3305,5 @@ def save_geography_and_hometown_tags_of_user_from_onboarding(address_input,user_
             save_tags_for_user_from_onboarding(1, tag_object, user_id)
 
     print("Hometown and city updated successfully")
-
-
-
-
-
 
 

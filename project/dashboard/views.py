@@ -745,7 +745,7 @@ def delete_members(request,community_id,member_id):
 def add_questions(request,community_id):
 
     '''function to add and edit questions'''
-    questions=Form_data.objects.filter(community_id=community_id)
+    questions=Form_data.objects.filter(community_id=community_id).order_by('id')
     community_name=Community.objects.filter(id=community_id).values('name')
     question_list=[]
     for question in questions:
@@ -786,6 +786,50 @@ def delete_questions(request,question_id):
     Form_data.objects.filter(id=question_id).delete()
     url='/admin_dashboard/add_questions/'+str(community_id)
     return redirect(url)
+
+
+def add_dropdown_responses(request,question_id):
+
+    '''adding the dropdown reponses'''
+    form_data = Form_data.objects.get(id=question_id)
+    if request.method == "GET":
+
+        # dropdown_list=["Ford", "BMW", "Fiat"]
+        # form_data.dropdown_list=json.dumps(dropdown_list)
+        # form_data.save()
+        dropdown_list=[]
+        if form_data.is_dropdown:
+            dropdown_list=json.loads(form_data.dropdown_list)
+
+        context={
+                'dropdown_list':dropdown_list,
+                'question_id':question_id,
+                'question_name':form_data.data,
+                'length':len(dropdown_list)
+        }
+        return render(request,'dashboard/add_questions_dropdown.html',context)
+    else:
+        option_data=request.POST.get('data')
+        option_data=json.loads(option_data)
+
+        dropdown_list=[]
+
+        for option in option_data:
+            dropdown_list.append(option['option'])
+        if dropdown_list:
+            dropdown_list=json.dumps(dropdown_list)
+            form_data.dropdown_list=dropdown_list
+            form_data.is_dropdown=1
+            form_data.save()
+            return JsonResponse({"success": True})
+        else:
+            form_data.dropdown_list=None
+            form_data.is_dropdown=0
+            form_data.save()
+            return JsonResponse({"success":False})
+    # print(form_data)
+
+
 
 
 def analytics(request):
@@ -3054,3 +3098,5 @@ def enable_introduction_state(request,community_id):
     state=Community.objects.filter(id=community_id).update(introduction_text_state=0)
 
     return redirect('admin_dashboard')
+
+

@@ -22,7 +22,7 @@ def mail_triger(member_id,request):
     ios = is_request_ios(request)
     pc = is_request_pc(request)
 
-    t = Timer(60.0, onboarding_mail_for_new_users,[member_id,android,ios,pc])
+    t = Timer(600.0, onboarding_mail_for_new_users,[member_id,android,ios,pc])
     t.start()
 
 
@@ -138,6 +138,14 @@ def new_member_request(member_id,commuinity_id,ref_id=None):
             text = str(member_name) + ' has request to join ' + str(
                 commuinity_name) + ' community and is referred by ' + str(ref_name)
 
+    form_response = Form_response.objects.filter(user=member_id, community=commuinity_id)
+
+    result = ""
+
+    for response in form_response:
+        result = result + "Question:" + str(response.data) + "<br/>" + "Answer:" + str(response.response) + "<br/>"
+
+    text=text+"<br/>"+result
     template = get_template("mails/new_member_request.html").render({"member_name": member_name,'ref_name':ref_name,
                                                                   'subject': subject, 'commuinity_name': commuinity_name,
                                                                   'text':text,'community_link':community_link})

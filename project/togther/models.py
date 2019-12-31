@@ -71,6 +71,8 @@ class Form_data (models.Model):
     community_id = models.ForeignKey(Community, on_delete = models.CASCADE)
     data = models.CharField(max_length = 400)
     data_type = models.CharField(max_length = 20, choices = response_choices, default = 'text')
+    is_dropdown = models.IntegerField(default=0)
+    dropdown_list = models.TextField(null=True)
 
     def __str__(self):
         return self.community_id.name
@@ -146,6 +148,7 @@ class Form_response (models.Model):
     user = models.IntegerField()
     community = models.IntegerField()
     response = models.TextField()
+
     
 class Collabcard (models.Model):
     title = models.TextField()
