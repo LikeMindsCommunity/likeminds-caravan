@@ -516,7 +516,10 @@ def join_community(request, community_id):
     for i in data:
         ques = {'question':i.data,
                 'data_type':i.data_type,
+                'question_state':i.is_dropdown,
                 }
+        if i.is_dropdown == 1:
+            ques['dropdown_list'] = i.dropdown_list
         reqd_info.append(ques)
     return JsonResponse({'questions': reqd_info})
 
@@ -2178,7 +2181,7 @@ def member_activity(request):
     if state == 0:
         introduction_question = ''
         introduction_answer = ''
-        if str(community_id) == '1173':
+        if str(community_id) == '1173':  #'2807':
             introduction_question = community.introduction_text
             form_response=Form_response.objects.filter(user=member.id,community=community.id).order_by('id')
             introduction_answer = "{}, been jamming {} for last {}. Here for {}".format(form_response[3].response,form_response[2].response,form_response[1].response,form_response[0].response)
@@ -2187,6 +2190,8 @@ def member_activity(request):
             if form_response.exists():
                 introduction_question=form_response[0].data
                 introduction_answer=form_response[0].response
+                introduction_answer = 'Hello everyone, ' + introduction_answer + '\nLooking forward to interact with you all'
+
         return JsonResponse({'state':state,'introduction_question':introduction_question,'introduction_answer':introduction_answer,'tutorial_count':tutorial_count})
     return JsonResponse({'state': state})
 
@@ -2347,8 +2352,6 @@ def get_request_type(request):
         elif request_agent == "iOS":
             return "iOS"
     return False
-
-
 
 
 @csrf_exempt
