@@ -515,11 +515,10 @@ def join_community(request, community_id):
     reqd_info = []
     for i in data:
         ques = {'question':i.data,
-                'data_type':i.data_type,
                 'question_state':i.is_dropdown,
                 }
         if i.is_dropdown == 1:
-            ques['dropdown_list'] = i.dropdown_list
+            ques['dropdown_list'] = json.loads(i.dropdown_list)
         reqd_info.append(ques)
     return JsonResponse({'questions': reqd_info})
 
