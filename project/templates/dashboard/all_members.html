@@ -128,11 +128,15 @@ a.article-title:hover {
       {% else %}
             <p class="article-content" style="color:red;"> {{member.state}}</p>
       {% endif %}
-    <a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 " href="{%url 'delete_members' member.community_id member.id.id %}">Delete</a>
+    <a class="btn btn-danger btn-sm mt-1 mb-1 mr-4 " href="{%url 'delete_members' member.community_id member.id.id %}">Delete</a>
     {% if member.state == 'Pending' %}
-    <a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 " href="{% url 'aprove_member' member.community_id  member.id.id %} ">Approve</a>
+    <a class="btn btn-primary btn-sm mt-1 mb-1 mr-4 " href="{% url 'aprove_member' member.community_id  member.id.id %} ">Approve</a>
     <a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 " href="{% url 'decline_member' member.community_id  member.id.id %}">Decline</a>
     {% endif %}
+
+   {% if has_questions %}
+        <a class="btn btn-info btn-sm mt-1 mb-1 mr-4 " href="{% url 'show_member_responses' member.community_id  member.id.id %}">Responses</a>
+   {% endif %}
   </div>
         {% endfor %}
         <div class="col-md-8">
