@@ -15,8 +15,10 @@ urlpatterns = [
     path('update_user/<int:user_id>',update_user,name='update_user'),
     path('all_user',all_user,name='all_user'),
     path('send_invitation/<int:community_id>', send_invitation, name='send_invitation'),
+
     path('all_members/<int:community_id>', all_members, name='all_members'),
     path('delete_members/<int:community_id>/<int:member_id>', delete_members, name='delete_members'),
+    path('show_member_responses/<int:community_id>/<int:member_id>', show_member_responses, name='show_member_responses'),
 
     path('add_questions/<int:community_id>', add_questions, name='add_questions'),
     path('delete_questions/<int:question_id>', delete_questions, name='delete_questions'),
