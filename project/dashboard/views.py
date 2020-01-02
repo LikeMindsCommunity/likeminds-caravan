@@ -3,6 +3,7 @@ from django.http import HttpResponse
 from togther.models import *
 from togther.views import update_user_info
 from django.views.generic import *
+from collabmates_api.views import request_response
 from .forms import *
 from django.db.models import Q,Max
 import time
@@ -343,11 +344,14 @@ def show_pending_members(request,community_id):
 
 def aprove_member(request,community_id,member_id):
     '''function to approve member'''
-    community = Community.objects.get(id=community_id)
-    Members.objects.filter(community_id=community,member_id=member_id).update(state=4)
+    req_dict = {
+        'accepted': True,
+        'member_id': member_id,
+        'community_id': community_id
+    }
+    request_response(request, req_dict)
     update_member_count(community_id)
     url='/admin_dashboard/all_members/'+str(community_id)
-    send_notification_for_join_requests.delay(community_id,True,member_id)
     return redirect(url)
 
 
@@ -828,8 +832,6 @@ def add_dropdown_responses(request,question_id):
             form_data.save()
             return JsonResponse({"success":False})
     # print(form_data)
-
-
 
 
 def analytics(request):
