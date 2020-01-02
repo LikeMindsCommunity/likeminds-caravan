@@ -1,0 +1,41 @@
+{% load static %}
+<html>
+<head>
+    <!-- Latest compiled and minified CSS -->
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/css/bootstrap.min.css">
+
+<!-- jQuery library -->
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+<!-- Latest compiled JavaScript -->
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/js/bootstrap.min.js"></script>
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+
+</head>
+
+<body>
+<div style="width:800px;  margin-left: 40px;">
+<h1 >Responses for {{community_name}} by {{user_name}}</h1>
+<form id="my_form" onsubmit="return false" >
+
+    {% for response in response_list %}
+
+
+    <div class="form-group">
+
+            <input type="hidden"  value="{{response.id}}"/>
+        <input type="text" class="form-control"  value="{{response.question}}" disabled />
+        <br/>
+        <input type="text" class="form-control"  value="{{response.answer}}"/>
+    </div>
+    <br/>
+  {% endfor %}
+
+</form>
+
+</div>
+</body>
+
+
+</html>
+
