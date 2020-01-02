@@ -137,8 +137,18 @@
             type:"POST",
             dataType:'json',
             success:function(data){
-              console.log(data)
-              location.reload(true)
+
+             if(data['success']){
+
+                 location.reload(true)
+
+             }else{
+
+                 alert('Please add the dropdown options')
+                 return;
+             }
+
+
             }
 
          })
