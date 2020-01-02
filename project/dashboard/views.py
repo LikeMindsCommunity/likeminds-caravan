@@ -352,7 +352,6 @@ def aprove_member(request,community_id,member_id):
     request_response(request, req_dict)
     update_member_count(community_id)
     url='/admin_dashboard/all_members/'+str(community_id)
-    send_notification_for_join_requests.delay(community_id,True,member_id)
     return redirect(url)
 
 
