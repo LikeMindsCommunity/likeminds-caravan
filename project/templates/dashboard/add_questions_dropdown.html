@@ -10,6 +10,28 @@
 <!-- Latest compiled JavaScript -->
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/js/bootstrap.min.js"></script>
 <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+    <script>
+           function clearcontent(question_no) {
+           console.log(count)
+            $('#div_'+question_no).remove();
+            var question_no = parseInt(question_no);
+            var i;
+            for(i=1;i<=count;i++)
+            {
+            console.log(i)
+                if (question_no != i)
+                {
+                    console.log('#label_'+i)
+                    $('#label_'+i).text = 'Option:asdf';
+                }
+
+            console.log(i)
+            }
+
+
+        }
+
+    </script>
 
 </head>
 
@@ -23,8 +45,9 @@
     {% for dropdown in dropdown_list %}
 
 
-    <div class="form-group">
-        <label >Option:{{ forloop.counter }}</label>
+    <div class="form-group" id="div_{{forloop.counter}}">
+
+        <label id="label_{{forloop.counter}}">Option:{{ forloop.counter }}</label>&nbsp; <a href="#" id="delete_dropdown" onclick="clearcontent('{{forloop.counter}}')" style="color:red;"><i class="fa fa-trash" aria-hidden="true"></i></a>
 
 <!--            <input type="hidden" id="id{{forloop.counter}}" value="{{question.id}}"/>-->
             <input type="text" class="form-control" id="option{{forloop.counter}}" value="{{dropdown}}"/>
@@ -61,8 +84,6 @@
    count=count-1;
 
    })
-
-
 
 
     $('#my_form').submit(function(){
