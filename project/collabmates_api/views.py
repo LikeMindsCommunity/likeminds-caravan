@@ -2225,7 +2225,7 @@ def auto_create_collabcard(member,community):
         if form_response.exists():
             introduction_question = form_response[0].data
             introduction_answer = form_response[0].response
-            introduction_answer = 'Hello everyone, ' + introduction_answer + '\nLooking forward to interact with you all'
+            #introduction_answer = introduction_answer
     return introduction_question,introduction_answer
 
 ############# upload files flow   ##########################
