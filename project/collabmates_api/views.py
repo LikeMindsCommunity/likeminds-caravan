@@ -231,14 +231,21 @@ def update_pending_member_count_in_engage(community):
 
     info_logger.info("Member Engage Pending Count Updated")
 
+@shared_task
+def update_last_unseen_in_engage_on_card_creation(community_id):
+    '''function to update the unseen  collabcard in engage when a new collabcard is posted in community
+       for all members in the community'''
+    community_members = Members.objects.filter(community_id = community_id).filter(Q(state=1)|Q(state=2)|Q(state=4)|Q(state=7))
+
+    for member in community_members:
+        update_last_unseen_in_engage(user=member.member_id.id, community=community_id)
+
 
 def update_last_unseen_in_engage(user='',community='',is_seen=False):
 
     '''function to update the unseen  collabcard in engage'''
-
-    total_collabcards = Collabcard.objects.filter(community=community).values('id').order_by('-id')
-    seen_collabcard = collabcard_seen.objects.filter(community=community, user=user).values('card_id')
-
+    total_collabcards = Collabcard.objects.filter(community=community).values('id').order_by('-id').distinct('id')
+    seen_collabcard = collabcard_seen.objects.filter(community=community, user=user).values('card_id').distinct('card_id')
     unseen_count=total_collabcards.count() - seen_collabcard.count()
     if  unseen_count<= 0:
         # if zero or less than zero , unseen card count = 0
@@ -256,15 +263,15 @@ def update_last_unseen_in_engage(user='',community='',is_seen=False):
 
         else:
             # if no unseen cards , show latest card text
-            card = Collabcard.objects.get(id=total_collabcards[0]['id'])
+            card = Collabcard.objects.get(id=total_collabcards.values('id')[0]['id'])
 
     current_time=time.time()
     Member_Engage.objects.filter(community_id=community,member_id=user).update(last_unseen_count=collabcard_unseen,
                                                                                last_unseen_conversation=card,
                                                                                updated_at=current_time)
 
-    if is_seen == False:
-        Member_Engage.objects.filter(community_id=community).filter(~Q(member_id=user)).update(last_unseen_count=collabcard_unseen,updated_at=current_time)
+    # if is_seen == False:
+    #     Member_Engage.objects.filter(community_id=community).filter(~Q(member_id=user)).update(last_unseen_count=collabcard_unseen,updated_at=current_time)
 
 
 def update_referral_text_in_engage_table(community_object):
@@ -511,7 +518,7 @@ def join_community(request, community_id):
 
     '''function to get questions of community'''
 
-    data = Form_data.objects.all().filter(community_id = community_id)
+    data = Form_data.objects.all().filter(community_id = community_id).order_by("-id")
     reqd_info = []
     for i in data:
         ques = {'question':i.data,
@@ -1066,7 +1073,6 @@ def create_card(request):
     # useer = User.objects.get(id = user_id)
     user = Userinfo.objects.get(user_id = user_id)
     community = Community.objects.get(id = community_id)
-
     if request.method == 'POST':
         res = json.loads(request.body)
         # creating card
@@ -1149,7 +1155,7 @@ def create_card(request):
                     engage.save()
                 update_pending_member_count_in_engage(community)
             else:
-                update_last_unseen_in_engage(user=user.user_id,community=community)
+                update_last_unseen_in_engage_on_card_creation.delay(community_id=community_id)
         else:
             engage = Member_Engage()
             engage.member_id = user.user_id
