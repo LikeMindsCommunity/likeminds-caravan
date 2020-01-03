@@ -2,7 +2,6 @@
 
 {% block content %}
 
-
 {% if validation_error %}
 <div class="container" style=" width: 91%; color: #9F6000; background-color: #FEEFB3; background-image: url('https://i.imgur.com/Z8q7ww7.png'); border: 1px solid;
  margin: 10px 0px; padding: 15px 10px 15px 50px; background-repeat: no-repeat; background-position: 10px center;">
@@ -22,20 +21,16 @@
                     <br>
                     </div>
 
-                {% for answer in filled_answers %}
-                <h1>{{answer}}</h1>
-                {% endfor %}
-
-                {% for question in data %}
+                {% for question,answer in data %}
                 <div class=" required field">
                     {% if question.data_type == 'text' %}
                         {% if question.is_dropdown == 0 %}
                             <label>{{question.data}}</label>
 
                             {% if forloop.counter == 1 %}
-                               <textarea rows="3" cols="4" name ="{{question.data}}" minlength="50" >{{filled_answers.forloop.counter0}}</textarea>
+                               <textarea rows="3" cols="4" name ="{{question.data}}" minlength="50" required>{{answer}}</textarea>
                             {% else %}
-                               <textarea rows="3" cols="4" name ="{{question.data}}" >{{filled_answers.forloop.counter0}}</textarea>
+                               <textarea rows="3" cols="4" name ="{{question.data}}" required>{{answer}}</textarea>
                             {% endif %}
                         {% else %}
                              <label>{{question.data}}</label>
