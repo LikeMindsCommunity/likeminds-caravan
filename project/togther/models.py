@@ -163,6 +163,7 @@ class Collabcard (models.Model):
     og_tags=models.CharField(max_length=2048,default='')
     image_count = models.IntegerField(default=0, null=True)
     pdf_count = models.IntegerField(default=0, null=True)
+    state=models.IntegerField(default=0)    # state=0 (Normal Collabcard);state=1(Introduction Collabcard)
 
 
 
