@@ -154,6 +154,7 @@ def new_member_request(member_id,commuinity_id,ref_id=None):
     
     if url == "https://beta.collabmates.com":
         to_list = ['mahesh61437mahe@gmail.com','rastogi.fresh88@gmail.com']
+
     elif url == "https://www.collabmates.com":
         to_list = ['nipungoyal.iitd@gmail.com','hrshshukl@gmail.com']
     else:
@@ -170,5 +171,5 @@ def new_member_request(member_id,commuinity_id,ref_id=None):
 
     # send_email(subject, template, to=to_list)
 
-
+#new_member_request(223,20686)
 
