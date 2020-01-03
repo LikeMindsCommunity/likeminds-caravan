@@ -351,7 +351,6 @@ def your_communities(request,user_id):
         community=CommunitySerializer(each_community.community_id)
         community['pending_members_count']=each_community.pending_members
         community['updated_at']=get_time_text(each_community.updated_at)
-        community['collabcard_unseen']=each_community.last_unseen_count
         if each_community.last_unseen_conversation:
             collabcard=CollabcardSerializer(each_community.last_unseen_conversation)
             user=each_community.last_unseen_conversation.user
@@ -362,6 +361,10 @@ def your_communities(request,user_id):
             community['member_referral']=each_community.member_referral
         if each_community.member_state:
             community['member_state'] = each_community.member_state
+        if each_community.member_state == 1 or  each_community.member_state == 2 or  each_community.member_state == 4 or each_community.member_state == 7:
+            community['collabcard_unseen'] = each_community.last_unseen_count
+        else:
+            community['collabcard_unseen'] = 0
         my_community.append(community)
 
     return JsonResponse({'your_communities':my_community})
@@ -591,6 +594,7 @@ def join_community_responses(request):
     if 'questions' in res:
         info_logger.info(res['questions'])
         for i in res['questions']:
+            response = Form_response.objects.filter()
             response = Form_response()
             response.data = i['key']
             response.response = i['value']
@@ -1056,8 +1060,6 @@ def create_community(request):
 
 @shared_task
 def save_community_purpose_card(community_id,card_id):
-    print("\n>>>>>>>>>>>>>   card  =====  ", card_id)
-    print("\n>>>>>>>>>>>>>   community  =====  ", community_id)
     time.sleep(2)
     community = Community.objects.get(id=community_id)
     community.purpose_collabcard = card_id
