@@ -142,6 +142,8 @@ def new_member_request(member_id,commuinity_id,ref_id=None):
 
     res = {}
     for response in form_response:
+        print("question =====    ",response.data)
+        print("answer =====    ", response.response)
         res[response.data] = response.response
 
     template = get_template("mails/new_member_request.html").render({"member_name": member_name,'ref_name':ref_name,
