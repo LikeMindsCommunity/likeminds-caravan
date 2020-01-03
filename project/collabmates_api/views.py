@@ -1081,10 +1081,15 @@ def create_card(request):
     if request.method == 'POST':
         res = json.loads(request.body)
         # creating card
+        if 'state' in res:
+            state=res['state'] #if state=0 normal if state =1 intro
+        else:
+            state=0
         card = Collabcard()
         card.title = res['title']
         card.community = community
         card.user = user.user_id
+        card.state=state
         if 'share_link' in res:
             card.share_link=res['share_link']
             og_tags = decode_meta_from_url(res['share_link'])
@@ -1564,7 +1569,8 @@ def request_response(request,req_dict=None):
             'communityId':community_id,
             'title':introduction_answer,
             'image_count':0,
-            'pdf_count':0
+            'pdf_count':0,
+            'state':1   #if state=0 normal if state =1 intro
         }
         params={
             'community_id':community_id,
