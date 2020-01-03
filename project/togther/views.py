@@ -206,10 +206,15 @@ def community(request, community_id):
             member = Members.objects.filter(member_id=request.user, community_id = community)
             member_state = member[0].state if member.exists() else 0
 
-            questions, user, data, community = join_community(request, community_id,ref_id)
+            questions, validation_error,  user, data, community, filled_answers = join_community(request, community_id,ref_id)
             if questions:
+                # if validation_error:
+                #      filled_answers = filled_answers.insert(0,'')
                 if member_state == 0 or member_state == 5:
-                    return render(request, 'response_form.html', {"data": data, 'usr': user, 'community': community,'ref_id':ref_id})
+                    return render(request, 'response_form.html', {"data": data, 'usr': user,
+                                                                  'community': community,'ref_id':ref_id,
+                                                                  'validation_error':validation_error,
+                                                                  'filled_answers':filled_answers})
             else:
 
                 if community.hide_community == '3':
@@ -595,55 +600,78 @@ def join_community(request, community_id,ref_id):
     join_url = api_url + 'join_community'
 
     community = Community.objects.get(id=community_id)
-
+    validation_error = False
+    values_list = []
     if request.method == "POST":
 
         question_data = request.POST.dict()
         response_list = []
+        # del question_data['csrfmiddlewaretoken']
+        # del question_data['ref_id']
        
         for key, value in question_data.items():
+
+
             question_dict = {}
             if key == 'csrfmiddlewaretoken':
                 continue
             elif key == 'ref_id':
                 continue
+
             question_dict['key'] = key
             question_dict['value'] = value
+
+            print("key ==========    ", key)
+            print("value ==========    ", value)
+            values_list.append(value)
+
             response_list.append(question_dict)
+
+            if value == '' or value == None or value == ' ':
+                validation_error = True
+                question_format = get_community_questions(community_id)
+                question_data = question_dict
+                return True, validation_error, user, question_format, community, question_data
 
         json_dict = {}
         json_dict['questions'] = response_list
 
         params = {'member_id': member_id, 'community_id': community_id,'ref_id':ref_id}
-        rqst.post(join_url, params=params, json=json_dict)
+        # rqst.post(join_url, params=params, json=json_dict)
         # return false to show thank you page the user has now answered the questions
-        return False, user, similar_communities, community
+        return False, validation_error, user, similar_communities, community, []
 
     else:
-        questions = Form_data.objects.filter(community_id=community_id).order_by('-id')
-        question_format=[]
-
-        for each_question in questions:
-            temp={}
-            if each_question.is_dropdown:
-                temp['is_dropdown']=each_question.is_dropdown
-                temp['dropdown_list']=json.loads(each_question.dropdown_list)
-                temp['data']=each_question.data
-            else:
-                temp['is_dropdown'] = each_question.is_dropdown
-                temp['dropdown_list'] = []
-                temp['data'] = each_question.data
-            temp['data_type']=each_question.data_type
-            question_format.append(temp)
+        question_format = get_community_questions(community_id)
         
         if not question_format:
             params = {'member_id': member_id, 'community_id': community_id}
             rqst.post(join_url, params=params, json={})
             # return false to show thank you page as there are no questions for this community
-            return False, user, similar_communities, community
+
+            return False, validation_error, user, similar_communities, community, []
         else:
             # return true to take the user to questions page
-            return True, user, question_format, community
+            return True, validation_error, user, question_format, community, []
+
+def get_community_questions(community_id):
+    questions = Form_data.objects.filter(community_id=community_id).order_by('id')
+    question_format = []
+
+    for each_question in questions:
+        temp = {}
+        if each_question.is_dropdown:
+            temp['is_dropdown'] = each_question.is_dropdown
+            temp['dropdown_list'] = json.loads(each_question.dropdown_list)
+            temp['data'] = each_question.data
+        else:
+            temp['is_dropdown'] = each_question.is_dropdown
+            temp['dropdown_list'] = []
+            temp['data'] = each_question.data
+        temp['data_type'] = each_question.data_type
+        question_format.append(temp)
+
+    return question_format
 
 
 def thankyou(request):
