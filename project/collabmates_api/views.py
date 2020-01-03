@@ -519,7 +519,7 @@ def join_community(request, community_id):
 
     '''function to get questions of community'''
 
-    data = Form_data.objects.all().filter(community_id = community_id).order_by("-id")
+    data = Form_data.objects.all().filter(community_id = community_id).order_by("id")
     reqd_info = []
     for i in data:
         ques = {'question':i.data,
@@ -1301,7 +1301,7 @@ def pending_members(request,community_id):
     pending_requests = []
     for i in pend_requests:
         print(i.member_id.id,"  ==  ",type(i))
-        resp = Form_response.objects.filter(community = community_id).filter(user = i.member_id.id).order_by('-id')
+        resp = Form_response.objects.filter(community = community_id).filter(user = i.member_id.id).order_by('id')
         user = Userinfo.objects.get(user_id = i.member_id.id)
         # serilaizing userinfo object
         usr = UserinfoSerializer(user)

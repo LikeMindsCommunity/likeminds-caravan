@@ -30,6 +30,7 @@ from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from user_agents import parse
 import time
 import logging
+import itertools
 url = settings.URL
 
 # uncomment to run it in localhost
@@ -208,8 +209,8 @@ def community(request, community_id):
 
             questions, validation_error,  user, data, community, filled_answers = join_community(request, community_id,ref_id)
             if questions:
-                # if validation_error:
-                #      filled_answers = filled_answers.insert(0,'')
+
+                data = itertools.zip_longest(data,filled_answers,fillvalue='')
                 if member_state == 0 or member_state == 5:
                     return render(request, 'response_form.html', {"data": data, 'usr': user,
                                                                   'community': community,'ref_id':ref_id,
@@ -606,11 +607,8 @@ def join_community(request, community_id,ref_id):
 
         question_data = request.POST.dict()
         response_list = []
-        # del question_data['csrfmiddlewaretoken']
-        # del question_data['ref_id']
        
         for key, value in question_data.items():
-
 
             question_dict = {}
             if key == 'csrfmiddlewaretoken':
@@ -621,8 +619,6 @@ def join_community(request, community_id,ref_id):
             question_dict['key'] = key
             question_dict['value'] = value
 
-            print("key ==========    ", key)
-            print("value ==========    ", value)
             values_list.append(value)
 
             response_list.append(question_dict)
@@ -630,14 +626,13 @@ def join_community(request, community_id,ref_id):
             if value == '' or value == None or value == ' ':
                 validation_error = True
                 question_format = get_community_questions(community_id)
-                question_data = question_dict
-                return True, validation_error, user, question_format, community, question_data
+                return True, validation_error, user, question_format, community, values_list
 
         json_dict = {}
         json_dict['questions'] = response_list
 
         params = {'member_id': member_id, 'community_id': community_id,'ref_id':ref_id}
-        # rqst.post(join_url, params=params, json=json_dict)
+        rqst.post(join_url, params=params, json=json_dict)
         # return false to show thank you page the user has now answered the questions
         return False, validation_error, user, similar_communities, community, []
 
