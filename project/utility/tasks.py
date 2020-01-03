@@ -8,6 +8,7 @@ from django.conf import settings
 from togther.models import *
 from collabmates_api.notification import notification_to_complete_onboarding
 from .utils import is_request_android,is_request_ios,is_request_pc
+import time
 
 url  = settings.URL
 
@@ -95,7 +96,7 @@ def new_user(member_id):
 @shared_task
 def new_member_request(member_id,commuinity_id,ref_id=None):
 
-
+    time.sleep(5)
     member = User.objects.get(pk=member_id)
     if ref_id:
         ref_person = User.objects.get(pk=ref_id)
