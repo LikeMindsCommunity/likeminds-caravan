@@ -510,6 +510,10 @@
                             Hi {{name}},<br>
 <br>
 {{text}}<br>
+                            {% for question,answer in result.items %}
+                            Question : {{question}}<br/>
+                            Answer   : {{answer}}<br/><br/>
+
                             <br>
 
 <!--                            <a href="beta.collabmates.com">Beta</a>-->
