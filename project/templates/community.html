@@ -455,6 +455,30 @@
     </html>
 
 
+<!-- download the app pop-up -->
+    <div class="ui modal" id="download_app_popup">
+        <div class="header">
+            Download The App
+        </div>
+        <div class="image content">
+
+            <div class="description">
+                <div class="ui  form">
+                  <div class="field">
+                    In order to view the Conversation Please Download the App
+                  </div>
+                </div>
+            </div>
+        </div>
+        <div class="actions">
+            <div class="ui positive right labeled icon button" style="background-color:#00897b;" id="Download" onclick="window.location.href = '{{android_app_link}}';">
+                Download
+                <i class="arrow alternate circle down icon"></i>
+
+            </div>
+        </div>
+    </div>
+<!-- -->
     <script>
 
 
@@ -612,6 +636,17 @@ $(document).ready(function() {
   //email_login popup end
 {% endif %}
 
+
+
+
+//download the app popup
+
+
+$('#conv').click(function(){
+    {% if android_app_link %}
+        $('#download_app_popup').modal('show');
+    {% endif %}
+})
 
 
 

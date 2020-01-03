@@ -25,6 +25,8 @@ from user_agents import parse
 # custom_cache=cache
 # cache_timeout=3600
 
+#link to download the android app
+android_app_download_link="https://drive.google.com/open?id=1IQjFXjzxlUcMva7afZF_szwoYYaICdnf"
 
 url=settings.URL
 

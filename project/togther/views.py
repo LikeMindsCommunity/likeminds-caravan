@@ -22,7 +22,7 @@ from django.urls import reverse
 from utility.utils import (get_city_address, update_tag_image,
                            update_user_geography_tags, create_or_categorize_tag,
                            referal, insert_user_home_town_tags,user_onbaord,
-                           is_request_android,is_request_ios,is_request_pc)
+                           is_request_android,is_request_ios,is_request_pc,android_app_download_link)
 from utility.firebase import upload_image_to_firebase
 from urllib.parse import urlencode,quote
 from collabmates_api.tasks import send_email
@@ -304,17 +304,23 @@ def community(request, community_id):
         user = Userinfo.objects.all().filter(user_id=request.user.id)
     else:
         user = []
+    android_app_link=""
+    if is_request_android(request):
+        android_app_link=android_app_download_link
+    context={'usr': user, 'similar_communities': communities,
+             'community': community, 'admins': admin_details,
+             'members': members, 'source': source,
+             'cta': cta, 'Nom_mem_state': member_state,
+             'admin_length': len(admin_details),
+             'members_length': len(members),
+             'similar_community_length':len(communities),
+             'ref_id':ref_id,
+             'request_user_email':request_user_email,
+             'android_app_link':android_app_link
 
+             }
     # user_email = True
-    return render(request, 'community.html', {'usr': user, 'similar_communities': communities,
-                                              'community': community, 'admins': admin_details,
-                                              'members': members, 'source': source,
-                                              'cta': cta, 'Nom_mem_state': member_state,
-                                              'admin_length': len(admin_details),
-                                              'members_length': len(members),
-                                              'similar_community_length':len(communities),
-                                              'ref_id':ref_id,
-                                              'request_user_email':request_user_email})
+    return render(request, 'community.html',context )
 
 
 def refer_members(request,community_id):
