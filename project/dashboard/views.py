@@ -684,6 +684,12 @@ def all_members(request,community_id):
     '''function to show all members of the community'''
 
     members_info=Members.objects.filter(community_id=community_id)
+    form_responses=Form_response.objects.filter(community=community_id)
+    print(form_responses)
+    has_questions=False
+    if form_responses:
+        has_questions=True
+
     members_list=[]
     for i in members_info:
         member={}
@@ -725,7 +731,7 @@ def all_members(request,community_id):
 
         unregitered_users_list.append(member)
 
-    return render(request,'dashboard/all_members.html',{'member_list':members_list,'unregitered_users_list':unregitered_users_list})
+    return render(request,'dashboard/all_members.html',{'member_list':members_list,'unregitered_users_list':unregitered_users_list,'has_questions':has_questions})
 
 
 def delete_members(request,community_id,member_id):
@@ -745,6 +751,26 @@ def delete_members(request,community_id,member_id):
     update_member_count(community_id)
     return redirect('admin_dashboard')
 
+
+def show_member_responses(request,community_id,member_id):
+
+    ''' function to show member responses '''
+    form_responses=Form_response.objects.filter(user=member_id,community=community_id)
+    response_list=[]
+    community_instance=Community.objects.get(id=community_id)
+    user_instance=User.objects.get(id=member_id)
+    for response in form_responses:
+        temp={}
+        temp['question']=response.data
+        temp['answer']=response.response
+        response_list.append(temp)
+    context={
+        'response_list':response_list,
+        'community_name':community_instance.name,
+        'user_name':user_instance.userinfo.name
+    }
+    print(context)
+    return render(request,'dashboard/show_form_response.html',context)
 
 def add_questions(request,community_id):
 
