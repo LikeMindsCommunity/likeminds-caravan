@@ -557,16 +557,13 @@ def join_community_responses(request):
 
     if ref_id :
         #ref_id = res['ref_id']
-        # sending mail to nipun and harsh
-        new_member_request.delay(member_id=user_id, commuinity_id=community_id, ref_id=ref_id)
+
         if community.hide_community == '3' or community.hide_community == '4':
             invited_member = Members.objects.filter(community_id=community,
                                                           member_id=ref_id)
             if invited_member.exists():
                 referal(ref_id=ref_id, community_id=community_id, interested_member_id=user_id)
-    if not ref_id:
-        # sending mail to nipun and harsh
-        new_member_request.delay(member_id=user_id, commuinity_id=community_id, ref_id=None)
+
     # inserting in members table if the member status is pending and inserting it to database with status=3
 
     # If the member is declined from the community and he applied again
@@ -600,6 +597,13 @@ def join_community_responses(request):
             response.user = user.id
             response.community = community.id
             response.save()
+
+    if not ref_id:
+        # sending mail to nipun and harsh
+        new_member_request.delay(member_id=user_id, commuinity_id=community_id, ref_id=None,form_response=res['questions'])
+    else:
+        # sending mail to nipun and harsh
+        new_member_request.delay(member_id=user_id, commuinity_id=community_id, ref_id=ref_id,form_response=res['questions'])
 
     if community.hide_community == '0' or community.hide_community == '1' or community.hide_community =='4':
 
