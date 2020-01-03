@@ -140,25 +140,22 @@ def new_member_request(member_id,commuinity_id,ref_id=None):
 
     form_response = Form_response.objects.filter(user=member_id, community=commuinity_id)
 
-    # result = ""
     res = {}
     for response in form_response:
         res[response.data] = response.response
-        # result = result + "Question:" + str(response.data) + "<br/>" + "Answer:" + str(response.response) + "<br/>"
 
-    # text=text
     template = get_template("mails/new_member_request.html").render({"member_name": member_name,'ref_name':ref_name,
                                                                   'subject': subject, 'commuinity_name': commuinity_name,
                                                                   'text':text,'community_link':community_link,
                                                                      'result':res})
     
     if url == "https://beta.collabmates.com":
-        to_list = ['mahesh61437mahe@gmail.com','rastogi.fresh88@gmail.com']
+        to_list = ['mahesh61437mahe@gmail.com']
 
     elif url == "https://www.collabmates.com":
         to_list = ['nipungoyal.iitd@gmail.com','hrshshukl@gmail.com']
     else:
-        to_list = ['mahesh61437mahe@gmail.com','rastogi.fresh88@gmail.com']
+        to_list = ['mahesh61437mahe@gmail.com']
     msg = EmailMultiAlternatives(subject,
                                  template,
                                  "Collabmates<hello@collabmates.com>",
