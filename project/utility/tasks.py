@@ -8,6 +8,7 @@ from django.conf import settings
 from togther.models import *
 from collabmates_api.notification import notification_to_complete_onboarding
 from .utils import is_request_android,is_request_ios,is_request_pc
+import time
 
 url  = settings.URL
 
@@ -93,9 +94,9 @@ def new_user(member_id):
 
 
 @shared_task
-def new_member_request(member_id,commuinity_id,ref_id=None):
+def new_member_request(member_id,commuinity_id,form_response,ref_id=None,):
 
-
+    # time.sleep(5)
     member = User.objects.get(pk=member_id)
     if ref_id:
         ref_person = User.objects.get(pk=ref_id)
@@ -138,24 +139,27 @@ def new_member_request(member_id,commuinity_id,ref_id=None):
             text = str(member_name) + ' has request to join ' + str(
                 commuinity_name) + ' community and is referred by ' + str(ref_name)
 
-    form_response = Form_response.objects.filter(user=member_id, community=commuinity_id)
+    # form_response = Form_response.objects.filter(user=member_id, community=commuinity_id)
+    print("form_response =====    ", form_response)
 
-    result = ""
-
+    res = {}
     for response in form_response:
-        result = result + "Question:" + str(response.data) + "<br/>" + "Answer:" + str(response.response) + "<br/>"
+        print("question =====    ",response['key'])
+        print("answer =====    ", response['value'])
+        res[response['key']] = response['value']
 
-    text=text+"<br/>"+result
     template = get_template("mails/new_member_request.html").render({"member_name": member_name,'ref_name':ref_name,
                                                                   'subject': subject, 'commuinity_name': commuinity_name,
-                                                                  'text':text,'community_link':community_link})
+                                                                  'text':text,'community_link':community_link,
+                                                                  'result':res})
     
     if url == "https://beta.collabmates.com":
-        to_list = ['mahesh61437mahe@gmail.com']
+        to_list = ['mahesh61437mahe@gmail.com','rastogi.fresh88@gmail.com']
+
     elif url == "https://www.collabmates.com":
         to_list = ['nipungoyal.iitd@gmail.com','hrshshukl@gmail.com']
     else:
-        to_list = ['mahesh61437mahe@gmail.com']
+        to_list = ['mahesh61437mahe@gmail.com','rastogi.fresh88@gmail.com']
     msg = EmailMultiAlternatives(subject,
                                  template,
                                  "Collabmates<hello@collabmates.com>",
@@ -168,5 +172,5 @@ def new_member_request(member_id,commuinity_id,ref_id=None):
 
     # send_email(subject, template, to=to_list)
 
-
+#new_member_request(223,20686)
 

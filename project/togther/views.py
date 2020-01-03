@@ -22,7 +22,7 @@ from django.urls import reverse
 from utility.utils import (get_city_address, update_tag_image,
                            update_user_geography_tags, create_or_categorize_tag,
                            referal, insert_user_home_town_tags,user_onbaord,
-                           is_request_android,is_request_ios,is_request_pc)
+                           is_request_android,is_request_ios,is_request_pc,android_app_download_link)
 from utility.firebase import upload_image_to_firebase
 from urllib.parse import urlencode,quote
 from collabmates_api.tasks import send_email
@@ -30,6 +30,7 @@ from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from user_agents import parse
 import time
 import logging
+import itertools
 url = settings.URL
 
 # uncomment to run it in localhost
@@ -206,10 +207,15 @@ def community(request, community_id):
             member = Members.objects.filter(member_id=request.user, community_id = community)
             member_state = member[0].state if member.exists() else 0
 
-            questions, user, data, community = join_community(request, community_id,ref_id)
+            questions, validation_error,  user, data, community, filled_answers = join_community(request, community_id,ref_id)
             if questions:
+
+                data = itertools.zip_longest(data,filled_answers,fillvalue='')
                 if member_state == 0 or member_state == 5:
-                    return render(request, 'response_form.html', {"data": data, 'usr': user, 'community': community,'ref_id':ref_id})
+                    return render(request, 'response_form.html', {"data": data, 'usr': user,
+                                                                  'community': community,'ref_id':ref_id,
+                                                                  'validation_error':validation_error,
+                                                                  'filled_answers':filled_answers})
             else:
 
                 if community.hide_community == '3':
@@ -298,17 +304,23 @@ def community(request, community_id):
         user = Userinfo.objects.all().filter(user_id=request.user.id)
     else:
         user = []
+    android_app_link=""
+    if is_request_android(request):
+        android_app_link=android_app_download_link
+    context={'usr': user, 'similar_communities': communities,
+             'community': community, 'admins': admin_details,
+             'members': members, 'source': source,
+             'cta': cta, 'Nom_mem_state': member_state,
+             'admin_length': len(admin_details),
+             'members_length': len(members),
+             'similar_community_length':len(communities),
+             'ref_id':ref_id,
+             'request_user_email':request_user_email,
+             'android_app_link':android_app_link
 
+             }
     # user_email = True
-    return render(request, 'community.html', {'usr': user, 'similar_communities': communities,
-                                              'community': community, 'admins': admin_details,
-                                              'members': members, 'source': source,
-                                              'cta': cta, 'Nom_mem_state': member_state,
-                                              'admin_length': len(admin_details),
-                                              'members_length': len(members),
-                                              'similar_community_length':len(communities),
-                                              'ref_id':ref_id,
-                                              'request_user_email':request_user_email})
+    return render(request, 'community.html',context )
 
 
 def refer_members(request,community_id):
@@ -595,21 +607,32 @@ def join_community(request, community_id,ref_id):
     join_url = api_url + 'join_community'
 
     community = Community.objects.get(id=community_id)
-
+    validation_error = False
+    values_list = []
     if request.method == "POST":
 
         question_data = request.POST.dict()
         response_list = []
        
         for key, value in question_data.items():
+
             question_dict = {}
             if key == 'csrfmiddlewaretoken':
                 continue
             elif key == 'ref_id':
                 continue
+
             question_dict['key'] = key
             question_dict['value'] = value
+
+            values_list.append(value)
+
             response_list.append(question_dict)
+
+            if value == '' or value == None or value == ' ':
+                validation_error = True
+                question_format = get_community_questions(community_id)
+                return True, validation_error, user, question_format, community, values_list
 
         json_dict = {}
         json_dict['questions'] = response_list
@@ -617,33 +640,39 @@ def join_community(request, community_id,ref_id):
         params = {'member_id': member_id, 'community_id': community_id,'ref_id':ref_id}
         rqst.post(join_url, params=params, json=json_dict)
         # return false to show thank you page the user has now answered the questions
-        return False, user, similar_communities, community
+        return False, validation_error, user, similar_communities, community, []
 
     else:
-        questions = Form_data.objects.filter(community_id=community_id).order_by('-id')
-        question_format=[]
-
-        for each_question in questions:
-            temp={}
-            if each_question.is_dropdown:
-                temp['is_dropdown']=each_question.is_dropdown
-                temp['dropdown_list']=json.loads(each_question.dropdown_list)
-                temp['data']=each_question.data
-            else:
-                temp['is_dropdown'] = each_question.is_dropdown
-                temp['dropdown_list'] = []
-                temp['data'] = each_question.data
-            temp['data_type']=each_question.data_type
-            question_format.append(temp)
+        question_format = get_community_questions(community_id)
         
         if not question_format:
             params = {'member_id': member_id, 'community_id': community_id}
             rqst.post(join_url, params=params, json={})
             # return false to show thank you page as there are no questions for this community
-            return False, user, similar_communities, community
+
+            return False, validation_error, user, similar_communities, community, []
         else:
             # return true to take the user to questions page
-            return True, user, question_format, community
+            return True, validation_error, user, question_format, community, []
+
+def get_community_questions(community_id):
+    questions = Form_data.objects.filter(community_id=community_id).order_by('id')
+    question_format = []
+
+    for each_question in questions:
+        temp = {}
+        if each_question.is_dropdown:
+            temp['is_dropdown'] = each_question.is_dropdown
+            temp['dropdown_list'] = json.loads(each_question.dropdown_list)
+            temp['data'] = each_question.data
+        else:
+            temp['is_dropdown'] = each_question.is_dropdown
+            temp['dropdown_list'] = []
+            temp['data'] = each_question.data
+        temp['data_type'] = each_question.data_type
+        question_format.append(temp)
+
+    return question_format
 
 
 def thankyou(request):

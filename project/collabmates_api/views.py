@@ -519,7 +519,7 @@ def join_community(request, community_id):
 
     '''function to get questions of community'''
 
-    data = Form_data.objects.all().filter(community_id = community_id).order_by("-id")
+    data = Form_data.objects.all().filter(community_id = community_id).order_by("id")
     reqd_info = []
     for i in data:
         ques = {'question':i.data,
@@ -557,16 +557,13 @@ def join_community_responses(request):
 
     if ref_id :
         #ref_id = res['ref_id']
-        # sending mail to nipun and harsh
-        new_member_request.delay(member_id=user_id, commuinity_id=community_id, ref_id=ref_id)
+
         if community.hide_community == '3' or community.hide_community == '4':
             invited_member = Members.objects.filter(community_id=community,
                                                           member_id=ref_id)
             if invited_member.exists():
                 referal(ref_id=ref_id, community_id=community_id, interested_member_id=user_id)
-    if not ref_id:
-        # sending mail to nipun and harsh
-        new_member_request.delay(member_id=user_id, commuinity_id=community_id, ref_id=None)
+
     # inserting in members table if the member status is pending and inserting it to database with status=3
 
     # If the member is declined from the community and he applied again
@@ -600,6 +597,13 @@ def join_community_responses(request):
             response.user = user.id
             response.community = community.id
             response.save()
+
+    if not ref_id:
+        # sending mail to nipun and harsh
+        new_member_request.delay(member_id=user_id, commuinity_id=community_id, ref_id=None,form_response=res['questions'])
+    else:
+        # sending mail to nipun and harsh
+        new_member_request.delay(member_id=user_id, commuinity_id=community_id, ref_id=ref_id,form_response=res['questions'])
 
     if community.hide_community == '0' or community.hide_community == '1' or community.hide_community =='4':
 
@@ -1077,10 +1081,15 @@ def create_card(request):
     if request.method == 'POST':
         res = json.loads(request.body)
         # creating card
+        if 'state' in res:
+            state=res['state'] #if state=0 normal if state =1 intro
+        else:
+            state=0
         card = Collabcard()
         card.title = res['title']
         card.community = community
         card.user = user.user_id
+        card.state=state
         if 'share_link' in res:
             card.share_link=res['share_link']
             og_tags = decode_meta_from_url(res['share_link'])
@@ -1292,7 +1301,7 @@ def pending_members(request,community_id):
     pending_requests = []
     for i in pend_requests:
         print(i.member_id.id,"  ==  ",type(i))
-        resp = Form_response.objects.filter(community = community_id).filter(user = i.member_id.id).order_by('-id')
+        resp = Form_response.objects.filter(community = community_id).filter(user = i.member_id.id).order_by('id')
         user = Userinfo.objects.get(user_id = i.member_id.id)
         # serilaizing userinfo object
         usr = UserinfoSerializer(user)
@@ -1560,7 +1569,8 @@ def request_response(request,req_dict=None):
             'communityId':community_id,
             'title':introduction_answer,
             'image_count':0,
-            'pdf_count':0
+            'pdf_count':0,
+            'state':1   #if state=0 normal if state =1 intro
         }
         params={
             'community_id':community_id,
@@ -2225,7 +2235,7 @@ def auto_create_collabcard(member,community):
         if form_response.exists():
             introduction_question = form_response[0].data
             introduction_answer = form_response[0].response
-            introduction_answer = 'Hello everyone, ' + introduction_answer + '\nLooking forward to interact with you all'
+            #introduction_answer = introduction_answer
     return introduction_question,introduction_answer
 
 ############# upload files flow   ##########################

@@ -1,13 +1,15 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class=" ui small breadcrumb" style="padding: 0 10px;">
-        <a class="section" href = "{% url 'home' %}">Home</a>
-        <i class="right chevron icon divider"></i>
-        <a class="section" href = "{% url 'comunity' community.id %}">{{data.0.community_id.name}}</a>
-        <i class="right chevron icon divider"></i>
-        <div class="active section"> Join Community</div>
+
+{% if validation_error %}
+<div class="container" style=" width: 91%; color: #9F6000; background-color: #FEEFB3; background-image: url('https://i.imgur.com/Z8q7ww7.png'); border: 1px solid;
+ margin: 10px 0px; padding: 15px 10px 15px 50px; background-repeat: no-repeat; background-position: 10px center;">
+
+    Please fill all the answers
+
 </div>
+{% endif %}
 <body>
     <div class="container">
 
@@ -19,19 +21,25 @@
                     <br>
                     </div>
 
-                {% for i in data %}
+                {% for question,answer in data %}
                 <div class=" required field">
-                    {% if i.data_type == 'text' %}
-                        {% if i.is_dropdown == 0 %}
-                            <label>{{i.data}}</label><textarea name ="{{i.data}}" rows="3" minlength="50" > </textarea>
+                    {% if question.data_type == 'text' %}
+                        {% if question.is_dropdown == 0 %}
+                            <label>{{question.data}}</label>
+
+                            {% if forloop.counter == 1 %}
+                               <textarea rows="3" cols="4" name ="{{question.data}}" minlength="50" required>{{answer}}</textarea>
+                            {% else %}
+                               <textarea rows="3" cols="4" name ="{{question.data}}" required>{{answer}}</textarea>
+                            {% endif %}
                         {% else %}
-                             <label>{{i.data}}</label>
+                             <label>{{question.data}}</label>
                                 <div class="ui selection dropdown" id="test_options">
-                                      <input type="hidden" name="{{i.data}}">
+                                      <input type="hidden" name="{{question.data}}">
                                       <i class="dropdown icon"></i>
                                        <div class="default text">Select</div>
                                     <div class="menu">
-                                        {% for option in i.dropdown_list %}
+                                        {% for option in question.dropdown_list %}
                                                 <div class="item" data-value="{{option}}">{{option}}</div>
                                         {% endfor %}
                                      </div>

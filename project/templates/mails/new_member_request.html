@@ -509,15 +509,22 @@
 
                             Hi {{name}},<br>
 <br>
-{{text}}<br>
+{{text}}<br><br><br>
+                            {% for question,answer in result.items %}
+                            Question : {{question}}<br/>
+                            Answer   : {{answer}}<br/><br/>
+                            {% endfor %}
                             <br>
+
 
 <!--                            <a href="beta.collabmates.com">Beta</a>-->
 <!--                            <br/>-->
 <!--                            <a href="www.collabmates.com">Main</a>-->
 
                         </td>
+
                     </tr>
+
                 </tbody></table>
 				<!--[if mso]>
 				</td>
