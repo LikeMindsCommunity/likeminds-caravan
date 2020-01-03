@@ -1082,7 +1082,7 @@ def create_card(request):
         res = json.loads(request.body)
         # creating card
         if 'state' in res:
-            state=res['state']
+            state=res['state'] #if state=0 normal if state =1 intro
         else:
             state=0
         card = Collabcard()
@@ -1570,7 +1570,7 @@ def request_response(request,req_dict=None):
             'title':introduction_answer,
             'image_count':0,
             'pdf_count':0,
-            'state':1
+            'state':1   #if state=0 normal if state =1 intro
         }
         params={
             'community_id':community_id,
