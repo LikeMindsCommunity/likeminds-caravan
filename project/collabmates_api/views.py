@@ -594,13 +594,14 @@ def join_community_responses(request):
     if 'questions' in res:
         info_logger.info(res['questions'])
         for i in res['questions']:
-            response = Form_response.objects.filter()
-            response = Form_response()
-            response.data = i['key']
-            response.response = i['value']
-            response.user = user.id
-            response.community = community.id
-            response.save()
+            response = Form_response.objects.filter(data=i['key'],user=user.id,community=community.id)
+            if not response.exists():
+                response = Form_response()
+                response.data = i['key']
+                response.response = i['value']
+                response.user = user.id
+                response.community = community.id
+                response.save()
 
     if not ref_id:
         # sending mail to nipun and harsh
