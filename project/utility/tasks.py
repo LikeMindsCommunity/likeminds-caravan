@@ -140,18 +140,18 @@ def new_member_request(member_id,commuinity_id,form_response,ref_id=None,):
                 commuinity_name) + ' community and is referred by ' + str(ref_name)
 
     # form_response = Form_response.objects.filter(user=member_id, community=commuinity_id)
-    print("form_response =====    ", form_response)
+    # print("form_response =====    ", form_response)
 
     # res = {}
-    for response in form_response:
-        print("question =====    ",response['key'])
-        print("answer =====    ", response['value'])
-        # res[response.data] = response.response
+    # for response in form_response:
+    #     print("question =====    ",response['key'])
+    #     print("answer =====    ", response['value'])
+    #     # res[response.data] = response.response
 
     template = get_template("mails/new_member_request.html").render({"member_name": member_name,'ref_name':ref_name,
                                                                   'subject': subject, 'commuinity_name': commuinity_name,
                                                                   'text':text,'community_link':community_link,
-                                                                     'result':form_response})
+                                                                  'result':form_response})
     
     if url == "https://beta.collabmates.com":
         to_list = ['mahesh61437mahe@gmail.com']
