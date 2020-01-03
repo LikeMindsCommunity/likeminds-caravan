@@ -165,20 +165,20 @@ def college_city(legacy_college,geography_city):
                 if 'demonym' in name and name['demonym']:
                     temp['name']=name['demonym'] + " in " + city[0]
                     temp['purpose']="For "+ str(temp['name']) + " to socialise and help each other"
-                    temp['question']="Introduce yourself telling a bit about your time at " + str(college[0])+" and what do you do now?"
+                    temp['question']="Introduce yourself telling a bit about your time at " + str(college[0])+" and what do you do now"
                 elif 'csn' in name and name['csn']:
                     temp['name']=name['csn'] + " Alumni in " + city[0]
                     temp['purpose']="For "+ str(temp['name']) + " to socialise and help each other"
-                    temp['question']="Introduce yourself telling a bit about your time at " + str(name['csn'])+" and what do you do now?"
+                    temp['question']="Introduce yourself telling a bit about your time at " + str(name['csn'])+" and what do you do now"
                 else:
                     temp['name'] = college[0] + " Alumni  in " + city[0]
                     temp['purpose'] = "For " + str(temp['name']) + " to socialise and help each other"
-                    temp['question'] = "Introduce yourself telling a bit about your time at " + str(college[0])+" and what do you do now?"
+                    temp['question'] = "Introduce yourself telling a bit about your time at " + str(college[0])+" and what do you do now"
 
             else:
                 temp['name']=college[0] + " Alumni  in " + city[0]
                 temp['purpose']="For "+ str(temp['name']) + " to socialise and help each other"
-                temp['question']="Introduce yourself telling a bit about your time at " + str(college[0])+" and what do you do now?"
+                temp['question']="Introduce yourself telling a bit about your time at " + str(college[0])+" and what do you do now"
 
             temp['about']="""This community aims to bring together alumni of %s living in %s so that we can socialise with other and stay connected with our alma mater as well. Here we collaborate with each other by sharing knowledge, providing referrals for jobs, accommodation, business, etc. and having meaningful conversations. We also use this space to plan offline meetups.
 
@@ -229,7 +229,7 @@ def hometown_city(legacy_hometown,geography_city):
                         temp['name']="Natives of "+str(home['country'])+" in "+str(city[0])
                 else:
                     temp['name']="Natives of "+str(home['country'])+" in "+str(city[0])
-                temp['question']="""Introduce yourself telling a bit about your time in %s and what brought you to %s and what do you do now?"""%(home['country'],city[0])
+                temp['question']="""Introduce yourself telling a bit about your time in %s and what brought you to %s and what do you do now"""%(home['country'],city[0])
                 temp['about']="""This community aims to bring together %s so that we can socialise with other. Here we collaborate with each other by sharing knowledge, providing referrals (for jobs, accommodation, business, etc.), planning trips to %s, and having meaningful conversations. We also use this space to plan offline meetups.
 
 Anytime if you are looking for a lead or offering some help, simply start a new conversation with relevant details and your ask from the community members. Relevant members can respond by simply chatting with you and each other on your conversation card. Members who want to follow the conversation can press the Follow button to receive notifications about future responses on the card.
@@ -245,7 +245,7 @@ Please try to maintain conversations for each query or discussion on the convers
                         temp['name'] = "Natives of " + str(home['state']) + " in " + str(city[0])
                 else:
                     temp['name'] = "Natives of " + str(home['state']) + " in " + str(city[0])
-                temp['question']="""Introduce yourself telling a bit about your time in %s and what brought you to %s and what do you do now?"""%(home['state'],city[0])
+                temp['question']="""Introduce yourself telling a bit about your time in %s and what brought you to %s and what do you do now"""%(home['state'],city[0])
                 temp['about'] = """This community aims to bring together %s so that we can socialise with other. Here we collaborate with each other by sharing knowledge, providing referrals (for jobs, accommodation, business, etc.), planning trips to %s, and having meaningful conversations. We also use this space to plan offline meetups.
 
 Anytime if you are looking for a lead or offering some help, simply start a new conversation with relevant details and your ask from the community members. Relevant members can respond by simply chatting with you and each other on your conversation card. Members who want to follow the conversation can press the Follow button to receive notifications about future responses on the card.
@@ -265,7 +265,7 @@ Please try to maintain conversations for each query or discussion on the convers
                         temp['name'] = "Natives of " + str(home['city']) + " in " + str(city[0])
                 else:
                     temp['name']="Natives of " + str(home['city']) + " in " + str(city[0])
-                temp['question']="""Introduce yourself telling a bit about your time in %s and what brought you to %s and what do you do now?"""%(home['city'],city[0])
+                temp['question']="""Introduce yourself telling a bit about your time in %s and what brought you to %s and what do you do now"""%(home['city'],city[0])
                 temp['about'] = """This community aims to bring together %s so that we can socialise with other. Here we collaborate with each other by sharing knowledge, providing referrals (for jobs, accommodation, business, etc.), planning trips to %s, and having meaningful conversations. We also use this space to plan offline meetups.
 
 Anytime if you are looking for a lead or offering some help, simply start a new conversation with relevant details and your ask from the community members. Relevant members can respond by simply chatting with you and each other on your conversation card. Members who want to follow the conversation can press the Follow button to receive notifications about future responses on the card.
@@ -287,7 +287,7 @@ Please try to maintain conversations for each query or discussion on the convers
                         data=json.loads(tag_name[1])
                         if data['demonym']:
                             temp['name']=data['demonym'] + " in " + city[0]
-                            temp['question'] = """Introduce yourself telling a bit about your time in %s and what brought you to %s and what do you do now?""" % (
+                            temp['question'] = """Introduce yourself telling a bit about your time in %s and what brought you to %s and what do you do now""" % (
                             home_place, city[0])
                             temp['about'] = """This community aims to bring together %s so that we can socialise with other. Here we collaborate with each other by sharing knowledge, providing referrals (for jobs, accommodation, business, etc.), planning trips to %s, and having meaningful conversations. We also use this space to plan offline meetups.
 
@@ -840,15 +840,15 @@ def insert_pre_create_community(community):
     '''function to insert pre created communities in database'''
     if 'image_url' not in community:
         community['image_url'] = url + "/media/media/community/default.jpeg"
-
+    community['question']=community['question'] + ".Also, mention what are you looking for from the community."
     community['created_at']=time.time()
     community['updated_at']=time.time()
     community['member_count']=0
     today=date.today()
     d=today.strftime("%Y-%m-%d")
     community['active_since']=d
-    print(community['name'])
-    print("\n\n")
+    #print(community['question'])
+    # print("\n\n")
     try:
         conn = get_connection()
         curr = conn.cursor()
@@ -920,8 +920,9 @@ def update_pre_created_community(community_id,community):
         return
     if 'image_url' not in community:
         community['image_url'] = url+"/media/media/community/default.jpeg"
-    print(community['name'])
-    print("\n\n")
+    community['question']=community['question'] + ".Also, mention what are you looking for from the community."
+
+#    print(community['question'])
 
     try:
         conn = get_connection()
@@ -1012,6 +1013,6 @@ def update_image_and_thumbnail_of_community(community_id,image_url):
 
 
 
-# pre_create_communities(tag_id=150)
+#pre_create_communities(tag_id=134)
 
 
