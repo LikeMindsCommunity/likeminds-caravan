@@ -151,7 +151,7 @@ def new_member_request(member_id,commuinity_id,form_response,ref_id=None,):
     template = get_template("mails/new_member_request.html").render({"member_name": member_name,'ref_name':ref_name,
                                                                   'subject': subject, 'commuinity_name': commuinity_name,
                                                                   'text':text,'community_link':community_link,
-                                                                  'result':form_response})
+                                                                  'result':res})
     
     if url == "https://beta.collabmates.com":
         to_list = ['mahesh61437mahe@gmail.com','rastogi.fresh88@gmail.com']
