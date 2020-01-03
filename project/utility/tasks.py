@@ -139,6 +139,7 @@ def new_member_request(member_id,commuinity_id,ref_id=None):
                 commuinity_name) + ' community and is referred by ' + str(ref_name)
 
     form_response = Form_response.objects.filter(user=member_id, community=commuinity_id)
+    print("form_response =====    ", form_response)
 
     res = {}
     for response in form_response:
