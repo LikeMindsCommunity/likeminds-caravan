@@ -48,6 +48,7 @@
 
     $(document).ready(function(){
     count={{length}}
+
     $('#add').click(function(){
     count=count+1
     var id='question'+count
@@ -101,26 +102,30 @@
     var questions = JSON.stringify(data);
     question_data={
     'data':questions,
+    'csrfmiddlewaretoken':'{{csrf_token}}'
 
     }
     //ajax
 
      $.ajax({
-
             url:'/admin_dashboard/add_questions/'+{{community_id}},
             data:question_data,
+            type:"POST",
             dataType:'json',
             success:function(data){
-
               console.log(data)
-              location.reload(true)
+              console.log(data['success'])
+              if(data['success']){
+
+                 location.reload(true)
+
+             }
 
             }
 
          })
-
-
     })
+
 
     })
 

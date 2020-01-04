@@ -781,30 +781,37 @@ def add_questions(request,community_id):
     for question in questions:
         question_list.append(question)
 
-    context={
-        'question_list':question_list,
-        'community_name':community_name[0]['name'],
-        'length':len(question_list),
-        'community_id':community_id
-    }
+    if request.method == "GET":
 
-    question_data=request.GET.get('data',None)
-    if question_data is not None:
-        question_data=json.loads(question_data)
+        context={
+            'question_list':question_list,
+            'community_name':community_name[0]['name'],
+            'length':len(question_list),
+            'community_id':community_id
+        }
+        return render(request,'dashboard/add_questions.html',context)
+    else:
 
-        for question in question_data:
+        question_data=request.POST.get('data',None)
+        if question_data is not None:
+            question_data=json.loads(question_data)
 
-           if len(question['question']) == 0:
-               continue
-           if question['update']:
-               Form_data.objects.filter(id=question['id']).update(data=question['question'])
-           else:
-               form_data=Form_data()
-               form_data.community_id=Community.objects.get(id=community_id)
-               form_data.data=question['question']
-               form_data.save()
+            for question in question_data:
 
-    return render(request,'dashboard/add_questions.html',context)
+               if len(question['question']) == 0:
+                   continue
+               if question['update']:
+                   Form_data.objects.filter(id=question['id']).update(data=question['question'])
+               else:
+                   community = Community.objects.get(id=community_id)
+                   if not Form_data.objects.filter(community_id=community,data=question['question']).exists():
+                       form_data=Form_data()
+                       form_data.community_id=community
+                       form_data.data=question['question']
+                       form_data.save()
+
+            return JsonResponse({"success": True})
+        return JsonResponse({"success": False})
 
 
 def delete_questions(request,question_id):
