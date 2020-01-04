@@ -166,6 +166,8 @@ def send_follow_notification(card_id,user_id,answer):
         tagged_users_list = re.findall("route://member/"'([0-9]+)', answer)
         answer_text = re.split('>>', answer)[-1]
 
+        user_names="@"+' @'.join(re.findall('(?<=\<\<).+?(?=\|)', answer))
+
         message['payload']={
             "title":str(answerer_name[0]) + " responded",
             "sub_title":answer_text,
@@ -180,10 +182,9 @@ def send_follow_notification(card_id,user_id,answer):
         send_notification_to_multiple_devices(token_list,message)
 
         for user_id in tagged_users_list:
-            # user=User.objects.get(id=user_id)
-            # if not is_collabcard_already_followed(card,user):
-            send_notification_to_tagged_users(card_id=card_id, answerer_name=answerer_name[0], answer=answer_text,
-                                              user_id=user_id)
+            send_notification_to_tagged_users(card_id=card_id, answerer_name=answerer_name[0],
+                                              answer=answer_text,
+                                              user_id=user_id, user_names=user_names)
 
 
 
@@ -191,9 +192,9 @@ def send_follow_notification(card_id,user_id,answer):
         print ("Error while connecting to PostgreSQL", error)
 
 @shared_task
-def send_notification_to_tagged_users(card_id,answerer_name,answer,user_id):
+def send_notification_to_tagged_users(card_id,answerer_name,answer,user_id,user_names):
 
-    '''function to send notification to those users who did n't follow the collabcard but tagged in an answer'''
+    '''function to send notification to those users who didn't follow the collabcard but tagged in an answer'''
 
     try:
 
@@ -201,7 +202,7 @@ def send_notification_to_tagged_users(card_id,answerer_name,answer,user_id):
 
         message['payload']={
             "title":str(answerer_name) + " tagged you",
-            "sub_title":answer,
+            "sub_title":str(user_names)+" "+answer,
             "route":"route://collabcard?collabcard_id="+str(card_id)
         }
         token_list=[]
