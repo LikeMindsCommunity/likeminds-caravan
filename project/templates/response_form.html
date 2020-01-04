@@ -17,7 +17,10 @@
             <form class="ui form" action="" method="post">
                 {% csrf_token %}
                 <div class="center aligned content">
+
+                    {% if community.hide_community == '0' or community.hide_community == '1'  %}
                         <p>In order to add relevant members to the community we would like to know few more things about you </p>
+                    {% endif %}
                     <br>
                     </div>
 
@@ -28,9 +31,9 @@
                             <label>{{question.data}}</label>
 
                             {% if forloop.counter == 1 %}
-                               <textarea rows="3" cols="4" name ="{{question.data}}" minlength="50" required>{{answer}}</textarea>
+                               <textarea rows="3" cols="4" name ="{{question.data}}" minlength="50" required placeholder="This will be visible to all the members of the community" oninput="check(this)">{{answer}}</textarea>
                             {% else %}
-                               <textarea rows="3" cols="4" name ="{{question.data}}" required>{{answer}}</textarea>
+                               <textarea rows="3" cols="4" name ="{{question.data}}" required >{{answer}}</textarea>
                             {% endif %}
                         {% else %}
                              <label>{{question.data}}</label>
@@ -65,6 +68,21 @@
 
 <script>
        $('.ui.selection.dropdown').dropdown();
+
+function check(input) {
+   if (input.value.length < '50') {
+
+        input.setCustomValidity('Please write your introduction in bit more detail');
+   }
+
+   else if(input.value.length >= '50')
+   {
+     input.setCustomValidity('');
+   }
+
+
+ }
+
 
 </script>
 {% endblock %}
