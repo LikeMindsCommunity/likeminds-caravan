@@ -45,7 +45,8 @@ from utility.utils import (decode_meta_from_url, update_tag_image,
                            update_user_geography_tags, create_or_categorize_tag,
                            insert_user_home_town_tags,user_onbaord)
 
-from utility.tasks import (mail_triger, new_member_request)
+from utility.tasks import (mail_triger, new_member_request,
+                           member_request_approval_or_denied)
 from utility.firebase import update_last_answer_id,upload_image_to_firebase,upload_community_thumbnail,upload_community_files
 from .raw_queries import compute_rank
 from multiprocessing.pool import ThreadPool
@@ -605,10 +606,10 @@ def join_community_responses(request):
 
     if not ref_id:
         # sending mail to nipun and harsh
-        new_member_request.delay(member_id=user_id, commuinity_id=community_id, ref_id=None,form_response=res['questions'])
+        new_member_request.delay(member_id=user_id, community_id=community_id, ref_id=None,form_response=res['questions'])
     else:
         # sending mail to nipun and harsh
-        new_member_request.delay(member_id=user_id, commuinity_id=community_id, ref_id=ref_id,form_response=res['questions'])
+        new_member_request.delay(member_id=user_id, community_id=community_id, ref_id=ref_id,form_response=res['questions'])
 
     if community.hide_community == '0' or community.hide_community == '1' or community.hide_community =='4':
 
@@ -1586,6 +1587,8 @@ def request_response(request,req_dict=None):
             notify_referred_member_after_join(joined_member_id=member_id,
                                               joined_member_name=user.userinfo.name,
                                               community_name=community.name, community_id=community_id)
+        ## sending email to the user that his request is accepted for this community
+        member_request_approval_or_denied.delay(user_id=member_id,community_id=community_id,approved=True)
 
     else:
         # if rejected , change user state to 5
@@ -1596,6 +1599,11 @@ def request_response(request,req_dict=None):
         Form_response.objects.filter(user=member_id,community=community_id).delete()
         update_pending_member_count_in_engage(community)
         update_referral_text_in_engage_table(community)
+        
+        # uncomment to send
+        ## sending email to the user that his request is rejected for this community
+        # member_request_approval_or_denied.delay(user_id=member_id,community_id=community_id,approved=False)
+
 
 
     return JsonResponse({'success': True})

@@ -7,10 +7,10 @@ from togther.models import *
 from django.conf import settings
 from togther.models import *
 from collabmates_api.notification import notification_to_complete_onboarding
-from .utils import is_request_android,is_request_ios,is_request_pc
+from .utils import is_request_android,is_request_ios,is_request_pc, android_app_download_link
 import time
 
-url  = settings.URL
+url = settings.URL
 
 
 
@@ -89,12 +89,7 @@ def onboarding_mail_for_new_users(member_id,android,ios,pc):
 
 
 @shared_task
-def new_user(member_id):
-    pass
-
-
-@shared_task
-def new_member_request(member_id,commuinity_id,form_response,ref_id=None,):
+def new_member_request(member_id,community_id,form_response,ref_id=None,):
 
     # time.sleep(5)
     member = User.objects.get(pk=member_id)
@@ -104,52 +99,48 @@ def new_member_request(member_id,commuinity_id,form_response,ref_id=None,):
     else:
         ref_name = ''
 
-    commuinity = Community.objects.get(pk=commuinity_id )
-    commuinity_name = commuinity.name
+    community = Community.objects.get(pk=community_id )
+    community_name = community.name
 
     member_name = member.userinfo.name
     fail_silently = True
-    community_link=url+"/community/"+str(commuinity_id)
-    subject = "New Member Request in Community "+ str(commuinity_name)
+    community_link=url+"/community/"+str(community_id)
+    subject = "New Member Request in Community "+ str(community_name)
     if not ref_id:
-        if commuinity.hide_community == '3':
+        if community.hide_community == '3':
 
-            text = str(member_name)+ ' has shown interest in '+str(commuinity_name) + ' community and is not referred by anyone'
-        elif commuinity.hide_community == '0' or commuinity.hide_community == '1' or commuinity.hide_community == '4':
-            if commuinity.hide_community == '1':
-                text = str(member_name)+ ' has request to join '+str(commuinity_name) + ' community (Hidden) and is not referred by anyone'
+            text = str(member_name)+ ' has shown interest in '+str(community_name) + ' community and is not referred by anyone'
+        elif community.hide_community == '0' or community.hide_community == '1' or community.hide_community == '4':
+            if community.hide_community == '1':
+                text = str(member_name)+ ' has request to join '+str(community_name) + ' community (Hidden) and is not referred by anyone'
             else:
-                text = str(member_name)+ ' has request to join '+str(commuinity_name) + ' community and is not referred by anyone'
+                text = str(member_name)+ ' has request to join '+str(community_name) + ' community and is not referred by anyone'
         else:
-            text = str(member_name) + ' has request to join ' + str(commuinity_name) + ' community and is not referred by anyone'
+            text = str(member_name) + ' has request to join ' + str(community_name) + ' community and is not referred by anyone'
 
     else:
-        if commuinity.hide_community == '3':
+        if community.hide_community == '3':
 
             text = str(member_name) + ' has shown interest in ' + str(
-                commuinity_name) + ' community and is referred by ' + str(ref_name)
-        elif commuinity.hide_community == '0' or commuinity.hide_community == '1' or commuinity.hide_community == '4':
-            if commuinity.hide_community == '1':
+                community_name) + ' community and is referred by ' + str(ref_name)
+        elif community.hide_community == '0' or community.hide_community == '1' or community.hide_community == '4':
+            if community.hide_community == '1':
                 text = str(member_name) + ' has request to join ' + str(
-                    commuinity_name) + ' community (Hidden) and is referred by ' + str(ref_name)
+                    community_name) + ' community (Hidden) and is referred by ' + str(ref_name)
             else:
                 text = str(member_name) + ' has request to join ' + str(
-                    commuinity_name) + ' community and is referred by ' + str(ref_name)
+                    community_name) + ' community and is referred by ' + str(ref_name)
         else:
             text = str(member_name) + ' has request to join ' + str(
-                commuinity_name) + ' community and is referred by ' + str(ref_name)
+                community_name) + ' community and is referred by ' + str(ref_name)
 
-    # form_response = Form_response.objects.filter(user=member_id, community=commuinity_id)
-    print("form_response =====    ", form_response)
 
     res = {}
     for response in form_response:
-        print("question =====    ",response['key'])
-        print("answer =====    ", response['value'])
         res[response['key']] = response['value']
 
     template = get_template("mails/new_member_request.html").render({"member_name": member_name,'ref_name':ref_name,
-                                                                  'subject': subject, 'commuinity_name': commuinity_name,
+                                                                  'subject': subject, 'community_name': community_name,
                                                                   'text':text,'community_link':community_link,
                                                                   'result':res})
     
@@ -172,5 +163,39 @@ def new_member_request(member_id,commuinity_id,form_response,ref_id=None,):
 
     # send_email(subject, template, to=to_list)
 
-#new_member_request(223,20686)
+
+@shared_task
+def member_request_approval_or_denied(user_id,community_id,approved):
+
+    user = User.objects.get(pk=user_id)
+    community = Community.objects.get(pk=community_id )
+
+    to = user.email
+    if approved:
+        subject = "Congrats! you are now part of "+community.name+" community"
+    else:
+        subject = "Sorry! your request to join "+community.name+" has been rejected"
+
+    link_text = ''
+    url = settings.URL
+    if user.userinfo.fcm_token:
+        if approved:
+            url = url + "/community/"+str(community_id)
+            link_text = 'Start Engaging'
+        else:
+            link_text = 'Explore Communties'
+    else:
+        url = android_app_download_link
+        link_text = 'Download App'
+
+    template = get_template("mails/member_approval_or_declined.html").render({"user_name": user.userinfo.name,
+                                                                  'community_name':community.name,
+                                                                  'purpose':community.purpose,
+                                                                  'subject': subject, 'url': url,
+                                                                  'link_text':link_text,
+                                                                  'approved':approved
+                                                                  })
+
+    send_email(subject, template, to)
+    return
 
