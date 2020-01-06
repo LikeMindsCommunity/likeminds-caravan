@@ -33,7 +33,6 @@ import os
 import re
 import googlemaps
 import logging
-from PIL import Image
 
 from utility.utils import (decode_meta_from_url, update_tag_image,
                            referal, get_referred_members_of_a_member,
