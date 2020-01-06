@@ -18,7 +18,7 @@ class Community (models.Model):
 
     name = models.CharField(max_length = 200)
     about = models.TextField()
-    purpose = models.CharField(max_length= 300)
+    purpose = models.CharField(max_length= 2048)
     location = models.CharField(max_length = 200)
     image_url = models.ImageField(upload_to="media/community", null=True)
     members_count = models.IntegerField(default = 0)
