@@ -1828,8 +1828,10 @@ def community_cards(request, community_id):
     if size:
         size=int(size)
         cards = Collabcard.objects.filter(community = community_id).order_by('id')[:size]
+        size=Collabcard.objects.filter(community=community_id).count()
     else:
         cards = Collabcard.objects.filter(community = community_id).order_by('id')
+        size=len(cards)
 
     collabcard_url=request.build_absolute_uri()
     # if collabcard_url in custom_cache:
@@ -1861,7 +1863,7 @@ def community_cards(request, community_id):
             card_dict['pdf'] = files[1]
             card_list.append(card_dict)
         #custom_cache.set(collabcard_url,card_list,timeout=CACHE_TTL)
-    return JsonResponse ({'collabcards': card_list})
+    return JsonResponse ({'collabcards': card_list,'size':size})
 
 
 def get_cards_for_demo(community_id,member_id):
