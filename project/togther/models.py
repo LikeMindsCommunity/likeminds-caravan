@@ -513,7 +513,4 @@ class Report_Tags(models.Model):
     tag_name=models.CharField(max_length=512)
     tag_id=models.IntegerField(null=True)
 
-    def save(self, *args, **kwargs):
-        self.tag_id=self.pk
-        self.save()
-        super(Report_Tags, self).save(*args, **kwargs)
+
