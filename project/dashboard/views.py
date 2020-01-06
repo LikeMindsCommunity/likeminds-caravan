@@ -3160,7 +3160,8 @@ def add_report_tags(request):
                     tag = Report_Tags()
                     tag.tag_name = data['tag_name']
                     tag.save()
-
+                    tag.tag_id = tag.id
+                    tag.save()
         return JsonResponse({"success": True})
 
 
