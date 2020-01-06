@@ -3384,14 +3384,12 @@ def push_report(request):
         if 'reason' in request_body:
             reason=request_body['reason']
 
-        is_report_present=Report.objects.filter(collabcard_id=collabcard_instance,tag_id=report_tags_instance,member_id=user_instance)
-        if not is_report_present:
-            report_instance=Report()
-            report_instance.tag_id=report_tags_instance
-            report_instance.collabcard_id=collabcard_instance
-            report_instance.reason=reason
-            report_instance.member_id=user_instance
-            report_instance.save()
+        report_instance=Report()
+        report_instance.tag_id=report_tags_instance
+        report_instance.collabcard_id=collabcard_instance
+        report_instance.reason=reason
+        report_instance.member_id=user_instance
+        report_instance.save()
         info_logger.info("push report api successfull")
         return JsonResponse({'success':True})
     return JsonResponse({'success':False})
