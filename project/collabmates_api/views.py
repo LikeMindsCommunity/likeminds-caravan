@@ -3393,7 +3393,7 @@ def push_report(request):
         info_logger.info("push report api successfull")
         community_url=url+"/community/"+str(collabcard_instance.community.id)
         send_mail_for_report_abuse__on_collabcard.delay(user_instance.userinfo.name,collabcard_instance.title,
-                                                  report_tags_instance.tag_name,collabcard_instance.community,
+                                                  report_tags_instance.tag_name,collabcard_instance.community.name,
                                                   community_url,reason)
         return JsonResponse({'success':True})
     return JsonResponse({'success':False})
