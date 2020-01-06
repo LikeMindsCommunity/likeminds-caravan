@@ -45,7 +45,8 @@ from utility.utils import (decode_meta_from_url, update_tag_image,
                            update_user_geography_tags, create_or_categorize_tag,
                            insert_user_home_town_tags,user_onbaord)
 
-from utility.tasks import (mail_triger, new_member_request)
+from utility.tasks import (mail_triger, new_member_request,
+                           member_request_approval_or_denied)
 from utility.firebase import update_last_answer_id,upload_image_to_firebase,upload_community_thumbnail,upload_community_files
 from .raw_queries import compute_rank
 from multiprocessing.pool import ThreadPool
@@ -351,7 +352,6 @@ def your_communities(request,user_id):
         community=CommunitySerializer(each_community.community_id)
         community['pending_members_count']=each_community.pending_members
         community['updated_at']=get_time_text(each_community.updated_at)
-        community['collabcard_unseen']=each_community.last_unseen_count
         if each_community.last_unseen_conversation:
             collabcard=CollabcardSerializer(each_community.last_unseen_conversation)
             user=each_community.last_unseen_conversation.user
@@ -362,6 +362,10 @@ def your_communities(request,user_id):
             community['member_referral']=each_community.member_referral
         if each_community.member_state:
             community['member_state'] = each_community.member_state
+        if each_community.member_state == 1 or  each_community.member_state == 2 or  each_community.member_state == 4 or each_community.member_state == 7:
+            community['collabcard_unseen'] = each_community.last_unseen_count
+        else:
+            community['collabcard_unseen'] = 0
         my_community.append(community)
 
     return JsonResponse({'your_communities':my_community})
@@ -591,19 +595,21 @@ def join_community_responses(request):
     if 'questions' in res:
         info_logger.info(res['questions'])
         for i in res['questions']:
-            response = Form_response()
-            response.data = i['key']
-            response.response = i['value']
-            response.user = user.id
-            response.community = community.id
-            response.save()
+            response = Form_response.objects.filter(data=i['key'],user=user.id,community=community.id)
+            if not response.exists():
+                response = Form_response()
+                response.data = i['key']
+                response.response = i['value']
+                response.user = user.id
+                response.community = community.id
+                response.save()
 
     if not ref_id:
         # sending mail to nipun and harsh
-        new_member_request.delay(member_id=user_id, commuinity_id=community_id, ref_id=None,form_response=res['questions'])
+        new_member_request.delay(member_id=user_id, community_id=community_id, ref_id=None,form_response=res['questions'])
     else:
         # sending mail to nipun and harsh
-        new_member_request.delay(member_id=user_id, commuinity_id=community_id, ref_id=ref_id,form_response=res['questions'])
+        new_member_request.delay(member_id=user_id, community_id=community_id, ref_id=ref_id,form_response=res['questions'])
 
     if community.hide_community == '0' or community.hide_community == '1' or community.hide_community =='4':
 
@@ -1056,8 +1062,6 @@ def create_community(request):
 
 @shared_task
 def save_community_purpose_card(community_id,card_id):
-    print("\n>>>>>>>>>>>>>   card  =====  ", card_id)
-    print("\n>>>>>>>>>>>>>   community  =====  ", community_id)
     time.sleep(2)
     community = Community.objects.get(id=community_id)
     community.purpose_collabcard = card_id
@@ -1081,8 +1085,8 @@ def create_card(request):
     if request.method == 'POST':
         res = json.loads(request.body)
         # creating card
-        if 'state' in res:
-            state=res['state'] #if state=0 normal if state =1 intro
+        if 'type' in res:
+            state=res['type'] #if state=0 normal if state =1 intro
         else:
             state=0
         card = Collabcard()
@@ -1570,7 +1574,7 @@ def request_response(request,req_dict=None):
             'title':introduction_answer,
             'image_count':0,
             'pdf_count':0,
-            'state':1   #if state=0 normal if state =1 intro
+            'type':1   #if state=0 normal if state =1 intro
         }
         params={
             'community_id':community_id,
@@ -1583,6 +1587,8 @@ def request_response(request,req_dict=None):
             notify_referred_member_after_join(joined_member_id=member_id,
                                               joined_member_name=user.userinfo.name,
                                               community_name=community.name, community_id=community_id)
+        ## sending email to the user that his request is accepted for this community
+        member_request_approval_or_denied.delay(user_id=member_id,community_id=community_id,approved=True)
 
     else:
         # if rejected , change user state to 5
@@ -1593,6 +1599,11 @@ def request_response(request,req_dict=None):
         Form_response.objects.filter(user=member_id,community=community_id).delete()
         update_pending_member_count_in_engage(community)
         update_referral_text_in_engage_table(community)
+        
+        # uncomment to send
+        ## sending email to the user that his request is rejected for this community
+        # member_request_approval_or_denied.delay(user_id=member_id,community_id=community_id,approved=False)
+
 
 
     return JsonResponse({'success': True})

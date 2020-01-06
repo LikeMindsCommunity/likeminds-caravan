@@ -71,7 +71,7 @@ def CollabcardSerializer(card,community=None):
         'share_link': card.share_link,
         'image_count':card.image_count,
         'pdf_count': card.pdf_count,
-        'state':card.state # if state=0 normal if state =1 intro
+        'type':card.state # if state=0 normal if state =1 intro
     }
     if card.og_tags:
         og_tags=json.loads(card.og_tags)
