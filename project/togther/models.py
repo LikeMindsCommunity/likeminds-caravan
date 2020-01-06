@@ -502,3 +502,18 @@ class App_Update_Info(models.Model):
     android_route=models.CharField(max_length=2048,null=True)
     created_at=models.BigIntegerField(null=True)
 
+
+# Collabcard Report Module
+
+
+class Report_Tags(models.Model):
+
+    '''Table containing the report tags '''
+
+    tag_name=models.CharField(max_length=512)
+    tag_id=models.IntegerField(null=True)
+
+    def save(self, *args, **kwargs):
+        self.tag_id=self.pk
+        self.save()
+        super(Report_Tags, self).save(*args, **kwargs)
