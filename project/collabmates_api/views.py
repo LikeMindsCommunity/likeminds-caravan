@@ -1885,6 +1885,7 @@ def get_cards_for_demo(community_id,member_id):
     }
     sample_card['created_at'] = get_time_text(time.time())
     sample_card['answer_text']="Second Promoter & 3 others responded"
+    sample_card['type']=0
     answers=[]
 
     temp={}
@@ -1946,6 +1947,7 @@ def get_cards_for_demo(community_id,member_id):
     }
     purpose_card['created_at'] = "Just Now"
     purpose_card['answer_text'] = "Second Promoter & 3 others responded"
+    purpose_card['type']=0
     answers = []
 
     temp = {}
@@ -1998,6 +2000,7 @@ def get_cards_for_demo(community_id,member_id):
     referal_card['id']="third_conversation"
     referal_card['title'] = """Just discovered this community which is %s""" % (community_purpose)
     referal_card['created_at'] = "Just Now"
+    referal_card['type']=0
     referal_card['share_url']=url+"/community/"+str(community_id)+"?ref_id="+str(member_id)
     card_list.append(referal_card)
     referal_card['answers']=[]
