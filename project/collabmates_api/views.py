@@ -45,7 +45,7 @@ from utility.utils import (decode_meta_from_url, update_tag_image,
                            insert_user_home_town_tags,user_onbaord)
 
 from utility.tasks import (mail_triger, new_member_request,
-                           member_request_approval_or_denied)
+                           member_request_approval_or_denied,send_mail_for_report_abuse__on_collabcard)
 from utility.firebase import update_last_answer_id,upload_image_to_firebase,upload_community_thumbnail,upload_community_files
 from .raw_queries import compute_rank
 from multiprocessing.pool import ThreadPool
@@ -3391,6 +3391,10 @@ def push_report(request):
         report_instance.member_id=user_instance
         report_instance.save()
         info_logger.info("push report api successfull")
+        community_url=url+"/community/"+str(collabcard_instance.community.id)
+        send_mail_for_report_abuse__on_collabcard.delay(user_instance.userinfo.name,collabcard_instance.title,
+                                                  report_tags_instance.tag_name,collabcard_instance.community,
+                                                  community_url,reason)
         return JsonResponse({'success':True})
     return JsonResponse({'success':False})
 
