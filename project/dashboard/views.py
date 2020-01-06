@@ -3117,6 +3117,15 @@ def create_user_update(request):
         return render(request,'dashboard/app_update.html',{'latest_version':latest_version})
 
 
+
+def add_report_tags(request):
+
+    '''function to add report tags'''
+
+    if request.method == 'GET':
+        return HttpResponse("Working fine")
+    return HttpResponse("Not Working")
+
 def disable_introduction_state(request,community_id):
 
     '''function to disable or enable the introduction text'''
@@ -3133,5 +3142,8 @@ def enable_introduction_state(request,community_id):
     state=Community.objects.filter(id=community_id).update(introduction_text_state=0)
 
     return redirect('admin_dashboard')
+
+
+
 
 
