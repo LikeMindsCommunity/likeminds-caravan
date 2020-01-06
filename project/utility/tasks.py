@@ -218,6 +218,6 @@ def send_mail_for_report_abuse__on_collabcard(user_name,collabcard_message,repor
     if not is_beta:
         to="nipun@collabmates.com"
     else:
-        to="rastogi.fresh88@gmail.com"
+        to="mahesh61437mahe@gmail.com"
     send_email(subject, template, to)
     print("Executed")
