@@ -3117,15 +3117,6 @@ def create_user_update(request):
         return render(request,'dashboard/app_update.html',{'latest_version':latest_version})
 
 
-
-def add_report_tags(request):
-
-    '''function to add report tags'''
-
-    if request.method == 'GET':
-        return HttpResponse("Working fine")
-    return HttpResponse("Not Working")
-
 def disable_introduction_state(request,community_id):
 
     '''function to disable or enable the introduction text'''
@@ -3144,6 +3135,39 @@ def enable_introduction_state(request,community_id):
     return redirect('admin_dashboard')
 
 
+def add_report_tags(request):
+
+    '''function to add report tags'''
+
+    if request.method == 'GET':
+
+        report_tags = Report_Tags.objects.all()
+        return render(request, 'dashboard/add_report_tags.html', {'report_tags':report_tags,
+                                                                  'length':report_tags.count()})
+    else:
+        option_data = request.POST.get('data')
+        option_data = json.loads(option_data)
+        print(option_data)
+
+        for data in option_data:
+            if data['update']:
+                tag = Report_Tags.objects.get(pk=data['id'])
+                tag.tag_name = data['tag_name']
+                tag.save()
+            else:
+                tag = Report_Tags.objects.filter(tag_name__iexact=data['tag_name'])
+                if not tag.exists():
+                    tag = Report_Tags()
+                    tag.tag_name = data['tag_name']
+                    tag.save()
+
+        return JsonResponse({"success": True})
 
 
-
+def delete_report_tags(request,tag_id):
+    '''function to delelte the questions'''
+    Report_Tags.objects.filter(id=tag_id).delete()
+    # report_tags = Report_Tags.objects.all()
+    # return render(request, 'dashboard/add_report_tags.html', {'report_tags': report_tags,
+    #                                                           'length': report_tags.count()})
+    return redirect(reverse(add_report_tags))
