@@ -46,4 +46,7 @@ urlpatterns = [
     path('onboarding', api_views.onboarding, name='onboarding'),
     path('push_onboarding', api_views.push_onboarding, name='push_onboarding'),
 
+    path('fetch_report_tags', api_views.fetch_report_tags, name='fetch_report_tags'),
+    path('push_report', api_views.push_report, name='push_report'),
+
 ]

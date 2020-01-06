@@ -2957,9 +2957,14 @@ def get_member_id_from_headers(request):
     '''function to get member id from headers'''
 
     headers = request.META
+
     member_id=0
     if 'HTTP_X_MEMBER_ID' in headers and 'HTTP_X_VERSION_CODE' in headers:
         member_id = headers['HTTP_X_MEMBER_ID']
+    elif 'HTTP_X_MEMBER_ID' in headers:
+        member_id = headers['HTTP_X_MEMBER_ID']
+
+
     return member_id
 
 
@@ -3334,5 +3339,62 @@ def save_geography_and_hometown_tags_of_user_from_onboarding(address_input,user_
             save_tags_for_user_from_onboarding(1, tag_object, user_id)
 
     print("Hometown and city updated successfully")
+
+
+
+# Reporting collabcard functions
+
+def fetch_report_tags(request):
+
+    '''api to send report tags '''
+
+    report_tags_instances=Report_Tags.objects.all()
+
+    report_tags=[]
+
+    for instance in report_tags_instances:
+        temp={}
+        temp['id']=instance.tag_id
+        temp['name']=instance.tag_name
+        report_tags.append(temp)
+    info_logger.info("fetch report tags api successfulll")
+    info_logger.info(report_tags)
+    return JsonResponse({'report_tags':report_tags})
+
+@csrf_exempt
+def push_report(request):
+
+    member_id=get_member_id_from_headers(request)
+    user_instance=User.objects.get(id=member_id)
+    if request.method == 'POST':
+
+        request_body=json.loads(request.body)
+        info_logger.info(request_body)
+        if 'collabcard_id' in request_body:
+            collabcard_id=request_body['collabcard_id']
+            collabcard_instance=Collabcard.objects.get(id=collabcard_id)
+
+        if 'tag_id' in request_body:
+            tag_id=request_body['tag_id']
+            report_tags_instance=Report_Tags.objects.get(id=tag_id)
+
+        reason=None
+        if 'reason' in request_body:
+            reason=request_body['reason']
+
+        is_report_present=Report.objects.filter(collabcard_id=collabcard_instance,tag_id=report_tags_instance,member_id=user_instance)
+        if not is_report_present:
+            report_instance=Report()
+            report_instance.tag_id=report_tags_instance
+            report_instance.collabcard_id=collabcard_instance
+            report_instance.reason=reason
+            report_instance.member_id=user_instance
+            report_instance.save()
+        info_logger.info("push report api successfull")
+        return JsonResponse({'success':True})
+    return JsonResponse({'success':False})
+
+
+
 
 
