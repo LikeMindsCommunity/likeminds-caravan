@@ -206,7 +206,7 @@ def send_mail_for_report_abuse__on_collabcard(user_name,collabcard_message,repor
 
     subject=str(user_name)+" reported "+report_tag
     if report_reason:
-        text=str(user_name)+" reported "+str(report_tag)+" for collabcard:"+str(collabcard_message)+" in community"+str(community_name)+". The feedback given By user is "+str(report_reason)
+        text=str(user_name)+" reported "+str(report_tag)+" for collabcard:"+str(collabcard_message)+" in community "+str(community_name)+". The feedback given By user is "+str(report_reason)
     else:
         text = str(user_name) + " reported " + str(report_tag) + " for collabcard:" + str(collabcard_message)+" in community "+str(community_name)
     context={
