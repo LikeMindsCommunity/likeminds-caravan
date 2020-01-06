@@ -1,10 +1,5 @@
 from django.db import models
 from django.contrib.auth.models import User
-from django.core.files import File
-from urllib.request import urlopen
-from io import BytesIO
-# from PIL import Image
-from django.core.files import File
 
 response_choices = (
     ('text','Text'),
@@ -512,5 +507,14 @@ class Report_Tags(models.Model):
 
     tag_name=models.CharField(max_length=512)
     tag_id=models.IntegerField(null=True)
+
+class Report(models.Model):
+
+    '''Table containing the report data of user'''
+
+    tag_id=models.ForeignKey(Report_Tags, on_delete=models.CASCADE)
+    collabcard_id=models.ForeignKey(Collabcard, on_delete=models.CASCADE)
+    member_id = models.ForeignKey(User, on_delete=models.CASCADE)
+    reason=models.CharField(max_length=2048,null=True)
 
 
