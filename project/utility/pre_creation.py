@@ -854,9 +854,9 @@ def insert_pre_create_community(community):
         curr = conn.cursor()
         hide_community='3'
         # inserting the communities
-        sql="""insert into togther_community(name,about,purpose,location,created_at,updated_at,members_count,active_since,hide_community,introduction_text) values(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id;"""
+        sql="""insert into togther_community(name,about,purpose,location,created_at,updated_at,members_count,active_since,hide_community,introduction_text) values(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id;"""
         parameter_list=[community['name'],community['about'],community['purpose'],community['geography'],community['created_at'],community['updated_at'],community['member_count'],
-                        community['active_since'],hide_community,community['question']]
+                        community['active_since'],hide_community,community['question'],0]
         print(len(parameter_list))
         curr.execute(sql, parameter_list)
         conn.commit()
@@ -868,12 +868,12 @@ def insert_pre_create_community(community):
         #updating community images
         firebase_community_image=upload_community_files(community_id,community['image_url'],url=True)
         firebase_community_thumbnail=upload_community_thumbnail(community_id,community['image_url'])
-        update_image_and_thumbnail_of_community(community_id,firebase_community_image,firebase_community_thumbnail)
+        update_image_and_thumbnail_of_community(community_id,firebase_community_image)
 
 
         # # inserting the questions
-        sql="insert into togther_form_data(data,data_type,community_id_id) values(%s,%s,%s)"
-        parameter_list=[community['question'],'text',community_id]
+        sql="insert into togther_form_data(data,data_type,community_id_id,is_dropdown) values(%s,%s,%s,%s)"
+        parameter_list=[community['question'],'text',community_id,0]
         curr.execute(sql, parameter_list)
         conn.commit()
         count = curr.rowcount
