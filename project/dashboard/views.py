@@ -98,17 +98,17 @@ def dashboard(request):
         community_dic={}
         if i.hide_community == '2':
             continue
-        community_dic['id']=i.id
-        community_dic['name']=i.name
-        community_dic['image_url']=i.image_url
-        community_dic['purpose']=i.purpose
-        pending_members_count=Members.objects.filter(community_id=i,state=3).count()
+        community_dic['id'] = i.id
+        community_dic['name'] = i.name
+        community_dic['image_url'] = i.image_url if i.image_url else None
+        community_dic['purpose'] = i.purpose
+        pending_members_count = Members.objects.filter(community_id=i, state=3).count()
         community_dic['pending_member_count'] = pending_members_count
         members_count = Members.objects.filter(community_id=i).filter(Q(state=1)|Q(state=2)|Q(state=4)|Q(state=7)).count()
         community_dic['members_count'] = members_count
-        community_dic['active_since']=i.active_since
-        community_dic['question_count']=Form_data.objects.filter(community_id=i).count()
-        community_dic['hidden_tags_count']=get_tags_count(i)
+        community_dic['active_since'] = i.active_since
+        community_dic['question_count'] = Form_data.objects.filter(community_id=i).count()
+        community_dic['hidden_tags_count'] = get_tags_count(i)
         community_dic['image_link'] = i.image_link
         dashboard_list.append(community_dic)
 
@@ -344,26 +344,43 @@ def show_pending_members(request,community_id):
 
 def aprove_member(request,community_id,member_id):
     '''function to approve member'''
+
+    status = request.GET.get('status')
+    redirect = request.GET.get('redirect',False)
     req_dict = {
-        'accepted': True,
         'member_id': member_id,
-        'community_id': community_id
+        'community_id': community_id,
     }
+    accepted = ''
+    if status == 'approved':
+        accepted = True
+    else:
+        accepted = False
+        if status == 'delete':
+            req_dict['send_notification'] = False
+
+    req_dict['accepted'] = accepted
+
     request_response(request, req_dict)
     update_member_count(community_id)
-    url='/admin_dashboard/all_members/'+str(community_id)
-    return redirect(url)
 
-
-def decline_member(request,community_id,member_id):
-    '''function to approve member'''
-    community = Community.objects.get(id=community_id)
-
-    Members.objects.filter(community_id=community,member_id=member_id).update(state=5)
-    url='/admin_dashboard/all_members/'+str(community_id)
-    send_notification_for_join_requests.delay(community_id,False,member_id)
+    if not redirect:
+        url='/admin_dashboard/all_members/'+str(community_id)
+    else:
+        url='/community/'+str(community_id)
 
     return redirect(url)
+
+
+# def decline_member(request,community_id,member_id):
+#     '''function to approve member'''
+#     community = Community.objects.get(id=community_id)
+#
+#     Members.objects.filter(community_id=community,member_id=member_id).update(state=5)
+#     url='/admin_dashboard/all_members/'+str(community_id)
+#     send_notification_for_join_requests.delay(community_id,False,member_id)
+#
+#     return redirect(url)
 
 
 def show_tags(request,community_id):
@@ -706,6 +723,10 @@ def all_members(request,community_id):
             member['state']='Nominated Promoter(already a member)'
         elif i.state == 5:
             member['state']='Declined by Promoter'
+        elif i.state == 8:
+            member['state']='Interested Member'
+        elif i.state == 9:
+            member['state']='Eligible Promoter'
 
         userinfo = Userinfo.objects.filter(user_id=i.member_id)
         if not userinfo.exists():
@@ -737,18 +758,16 @@ def all_members(request,community_id):
 def delete_members(request,community_id,member_id):
 
     '''function to delete the members'''
-    promoter=Members.objects.filter(community_id=community_id)
-    promoter_count=0
-    for i in promoter:
-       if i.state == 1 or i.state == 2:
-           promoter_count=promoter_count+1
 
-    state_of_member=Members.objects.filter(community_id=community_id,member_id=member_id).values('state')
-    member_state=state_of_member[0]['state']
-    if promoter_count == 1 and (member_state==1 or member_state==2):
+    promoter_count = Members.objects.filter(community_id=community_id).filter(Q(state=1) | Q(state=2)).count()
+    state_of_member = Members.objects.filter(community_id=community_id, member_id=member_id).values('state')
+    member_state = state_of_member[0]['state']
+
+    if promoter_count == 1 and (member_state == 1 or member_state == 2):
         return HttpResponse("You cannot Delete the promoter.First make a promoter in order to delete")
-    Members.objects.filter(community_id=community_id,member_id=member_id).delete()
+    Members.objects.filter(community_id=community_id, member_id=member_id).delete()
     update_member_count(community_id)
+
     return redirect('admin_dashboard')
 
 
