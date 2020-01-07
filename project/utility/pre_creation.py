@@ -854,7 +854,7 @@ def insert_pre_create_community(community):
         curr = conn.cursor()
         hide_community='3'
         # inserting the communities
-        sql="""insert into togther_community(name,about,purpose,location,created_at,updated_at,members_count,active_since,hide_community,introduction_text) values(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id;"""
+        sql="""insert into togther_community(name,about,purpose,location,created_at,updated_at,members_count,active_since,hide_community,introduction_text,introduction_text_state) values(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id;"""
         parameter_list=[community['name'],community['about'],community['purpose'],community['geography'],community['created_at'],community['updated_at'],community['member_count'],
                         community['active_since'],hide_community,community['question'],0]
         print(len(parameter_list))
