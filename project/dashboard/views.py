@@ -346,7 +346,7 @@ def aprove_member(request,community_id,member_id):
     '''function to approve member'''
 
     status = request.GET.get('status')
-    redirect = request.GET.get('redirect',False)
+    redirect = True if request.GET.get('redirect') == 'true' else False
     req_dict = {
         'member_id': member_id,
         'community_id': community_id,
