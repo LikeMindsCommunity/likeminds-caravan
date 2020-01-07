@@ -361,8 +361,10 @@ def aprove_member(request,community_id,member_id):
 
     req_dict['accepted'] = accepted
 
-    request_response(request, req_dict)
-    update_member_count(community_id)
+    # request_response(request, req_dict)
+    # update_member_count(community_id)
+    print(">>>>>>>>>    ",req_dict)
+    print("redirect  >>>>>>>>>    ", redirect)
 
     if not redirect:
         url='/admin_dashboard/all_members/'+str(community_id)
