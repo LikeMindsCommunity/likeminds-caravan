@@ -2426,72 +2426,146 @@ def login(request):
         json_to_save=json.dumps(dic_form)
         login_type=request.GET.get('type')
         # if user is logging in from facebook
+        created = False
         if login_type == 'facebook':
             email=res['email']
             # converting email to lower case and removing unwanted space
             email=email.lower().strip()
             user =User.objects.filter(email=email)
 
-            if not user:
+            if not user.exists():
                 # creating a user if no user is associated with that email
-                usr = User()
-                usr.username = res['name']
-                usr.email = res['email']
-                usr.save()
+                user = create_user(user_name=res['name'], email=res['email'],id=res['id'])
+
                 # if there is no user then user will not have userinfo too
                 # creating user info
-                userinfo = Userinfo()
-                userinfo.user_id = usr
-                userinfo.email = res['email']
-                userinfo.name = res['name']
-                userinfo.image_link = upload_image_to_firebase(res['picture']['data']['url'],usr.id)
-                if 'link' in res:
-                    userinfo.fb_link = res['link']
-                if 'location' in res:
-                    userinfo.city = res['location']['name']
-                userinfo.login_type='facebook'
-                userinfo.login_json=json_to_save
-                userinfo.created_at = time.time()
-                userinfo.save()
-                mail_triger(str(usr.id),request) # both mail and notification will be sent here
-        else:
+
+                # fb_link = res['link'] if 'link' in res else None
+                if 'picture' in res:
+                    image_link = upload_image_to_firebase(res['picture']['data']['url'], user.id)
+                else:
+                    image_link = 'https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fuser%2F222%2Fimg_user_222?alt=media'
+
+
+                city = res['location']['name'] if 'location' in res else None
+
+                userinfo = create_userinfo(user=user, email=res['email'], user_name=res['name'],
+                                           profile_picture=image_link, login_type=login_type,
+                                           json_to_save=json_to_save,city=city,
+                                           # fb_link=fb_link
+                                           )
+                created = True
+                mail_triger(str(user.id),request) # both mail and notification will be sent here
+
+        elif login_type == 'linkedIn':
             # if user is logging in with linkedIn
             user_name=res['firstName']['localized']['en_US'] + " " + res['lastName']['localized']['en_US']
-            profile_picture=res['profilePicture']['displayImage~']['elements'][2]['identifiers'][0]['identifier']
             email=res['email']['elements'][0]['handle~']['emailAddress']
             userinfo = Userinfo.objects.filter(email=email)
             # create user and userinfo if there is no user with this email
-            if not userinfo:
-                userinfo=Userinfo()
-                usr=User()
-                usr.username=user_name
-                usr.email = email
-                usr.save()
-                userinfo.user_id=usr
-                userinfo.email=email
-                userinfo.name=user_name
-                userinfo.image_link=upload_image_to_firebase(profile_picture,usr.id)
-                userinfo.login_type='linkedIn'
-                userinfo.login_json=json_to_save
-                userinfo.created_at = time.time()
-                userinfo.save()
-                mail_triger(str(usr.id),request) # both mail and notification will be sent here
 
-        userinfo=Userinfo.objects.filter(email=email)
+
+            if not userinfo.exists():
+
+                user = create_user(user_name=user_name, email=email,id=res['id'])
+                if 'profilePicture' in res:
+                    profile_picture = upload_image_to_firebase(
+                        res['profilePicture']['displayImage~']['elements'][2]['identifiers'][0]['identifier'], user.id)
+                else:
+                    profile_picture = 'https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fuser%2F222%2Fimg_user_222?alt=media'
+
+                userinfo = create_userinfo(user=user, email=email, user_name=user_name,
+                                           profile_picture=profile_picture, login_type=login_type,
+                                           json_to_save=json_to_save)
+                created = True
+                mail_triger(str(user.id),request) # both mail and notification will be sent here
+
+
+        else:
+            # if user is logging in with Apple
+            email = res['email']
+            # converting email to lower case and removing unwanted space
+            email = email.lower().strip()
+            user = User.objects.filter(email=email)
+
+            if not user.exists():
+                # creating a user if no user is associated with that email
+                user = create_user(user_name=res['name'], email=res['email'],id=res['id'])
+
+                # fb_link = res['link'] if 'link' in res else None
+                if 'picture' in res:
+                    image_link = upload_image_to_firebase(res['picture']['data']['url'], user.id)
+                else:
+                    image_link = 'https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fuser%2F222%2Fimg_user_222?alt=media'
+
+                city = res['location']['name'] if 'location' in res else None
+                # if there is no user then user will not have userinfo too
+                # create or get user info
+                userinfo = create_userinfo(user=user, email=res['email'], user_name=res['name'],
+                                           profile_picture=image_link, login_type=login_type,
+                                           json_to_save=json_to_save, city=city,
+                                           )
+                created = True
+                mail_triger(str(user.id), request)  # both mail and notification will be sent here
+
+        if not created:
+            userinfo=Userinfo.objects.filter(email=email)[0]
+
         # get serialized user object
-        usr = UserinfoSerializer(userinfo[0])
+
+        usr = UserinfoSerializer(userinfo)
+        # see if user has tags or not
         has_tags=user_onbaord(usr['id'])
-        tags = get_user_lpig_tags(usr['id'])
+
+        # saving the OS type of user (Android,iOS,WEB)
         request_type=get_request_type(request)
         if request_type:
             Userinfo.objects.filter(user_id=usr['id']).update(mobile_os=request_type)
 
-        if tags:
+        # User asscoaited tags if any present
+        if has_tags:
+            tags = get_user_lpig_tags(usr['id'])
             usr['tags']=tags
             return JsonResponse({'user': usr, 'has_tags': has_tags})
         return JsonResponse ({'user': usr,'has_tags':has_tags})
 
     return HttpResponse('Login Api')
+
+
+def create_user(user_name, email,id):
+
+    user = User.objects.filter(email=email)
+    if not user.exists():
+        user_name = user_name+"_"+id
+
+        user = User()
+        user.username = user_name
+        user.email = email
+        user.save()
+    else:
+        user = user[0]
+
+    return user
+
+def create_userinfo(user, email, user_name, profile_picture, login_type, json_to_save, city = None):
+
+    userinfo = Userinfo.objects.filter(email=email)
+    if not userinfo.exists():
+        userinfo = Userinfo()
+        userinfo.user_id = user
+        userinfo.email = email
+        userinfo.name = user_name
+        userinfo.image_link = upload_image_to_firebase(profile_picture, user.id)
+        userinfo.login_type = login_type
+        userinfo.login_json = json_to_save
+        userinfo.created_at = time.time()
+        userinfo.city = city
+        userinfo.save()
+    else:
+        userinfo = userinfo[0]
+
+    return userinfo
+
 
 
 def notify_referred_member_after_join(joined_member_id,joined_member_name,community_name,community_id):
