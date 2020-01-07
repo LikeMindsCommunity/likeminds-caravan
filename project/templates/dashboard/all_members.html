@@ -128,10 +128,12 @@ a.article-title:hover {
       {% else %}
             <p class="article-content" style="color:red;"> {{member.state}}</p>
       {% endif %}
-    <a class="btn btn-danger btn-sm mt-1 mb-1 mr-4 " href="{%url 'delete_members' member.community_id member.id.id %}">Delete</a>
     {% if member.state == 'Pending' %}
-    <a class="btn btn-primary btn-sm mt-1 mb-1 mr-4 " href="{% url 'aprove_member' member.community_id  member.id.id %} ">Approve</a>
-    <a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 " href="{% url 'decline_member' member.community_id  member.id.id %}">Decline</a>
+    <a class="btn btn-danger btn-sm mt-1 mb-1 mr-4 " href="{%url 'aprove_member' member.community_id member.id.id %}?status=delete">Decline Without Notification</a>
+    <a class="btn btn-primary btn-sm mt-1 mb-1 mr-4 " href="{% url 'aprove_member' member.community_id  member.id.id %}?status=approved ">Approve</a>
+    <a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 " href="{% url 'aprove_member' member.community_id  member.id.id %}?status=decline">Decline</a>
+      {% else %}
+       <a class="btn btn-danger btn-sm mt-1 mb-1 mr-4 " href="{%url 'delete_members' member.community_id member.id.id %}">Delete</a>
     {% endif %}
 
    {% if has_questions %}

@@ -1590,11 +1590,16 @@ def request_response(request,req_dict=None):
         member_request_approval_or_denied.delay(user_id=member_id,community_id=community_id,approved=True)
 
     else:
+
+        send_notification = res['send_notification'] if 'send_notification' in res else True
         # if rejected , change user state to 5
         Members.objects.filter(member_id=member_id,community_id=community).update(state=5)  # decline state = 5
         Member_Engage.objects.filter(member_id=member_id, community_id=community).delete()
         # and also send notification
-        send_notification_for_join_requests.delay(community_id, False, member_id)
+
+        if send_notification:
+            send_notification_for_join_requests.delay(community_id, False, member_id)
+
         Form_response.objects.filter(user=member_id,community=community_id).delete()
         update_pending_member_count_in_engage(community)
         update_referral_text_in_engage_table(community)
