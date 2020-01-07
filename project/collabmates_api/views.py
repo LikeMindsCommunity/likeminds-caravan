@@ -2435,13 +2435,18 @@ def login(request):
 
             if not user.exists():
                 # creating a user if no user is associated with that email
-                user = create_user(user_name=res['name'], email=res['email'])
+                user = create_user(user_name=res['name'], email=res['email'],id=res['id'])
 
                 # if there is no user then user will not have userinfo too
                 # creating user info
 
                 # fb_link = res['link'] if 'link' in res else None
-                image_link = upload_image_to_firebase(res['picture']['data']['url'],user.id)
+                if 'picture' in res:
+                    image_link = upload_image_to_firebase(res['picture']['data']['url'], user.id)
+                else:
+                    image_link = 'https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fuser%2F222%2Fimg_user_222?alt=media'
+
+
                 city = res['location']['name'] if 'location' in res else None
 
                 userinfo = create_userinfo(user=user, email=res['email'], user_name=res['name'],
@@ -2455,13 +2460,20 @@ def login(request):
         elif login_type == 'linkedIn':
             # if user is logging in with linkedIn
             user_name=res['firstName']['localized']['en_US'] + " " + res['lastName']['localized']['en_US']
-            profile_picture=res['profilePicture']['displayImage~']['elements'][2]['identifiers'][0]['identifier']
             email=res['email']['elements'][0]['handle~']['emailAddress']
             userinfo = Userinfo.objects.filter(email=email)
             # create user and userinfo if there is no user with this email
+
+
             if not userinfo.exists():
 
-                user = create_user(user_name=user_name, email=email)
+                user = create_user(user_name=user_name, email=email,id=res['id'])
+                if 'profilePicture' in res:
+                    profile_picture = upload_image_to_firebase(
+                        res['profilePicture']['displayImage~']['elements'][2]['identifiers'][0]['identifier'], user.id)
+                else:
+                    profile_picture = 'https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fuser%2F222%2Fimg_user_222?alt=media'
+
                 userinfo = create_userinfo(user, email, user_name, profile_picture, login_type, json_to_save)
                 created = True
                 mail_triger(str(user.id),request) # both mail and notification will be sent here
@@ -2476,7 +2488,7 @@ def login(request):
 
             if not user.exists():
                 # creating a user if no user is associated with that email
-                user = create_user(user_name=res['name'], email=res['email'])
+                user = create_user(user_name=res['name'], email=res['email'],id=res['id'])
 
                 # fb_link = res['link'] if 'link' in res else None
                 if 'picture' in res:
@@ -2518,10 +2530,12 @@ def login(request):
     return HttpResponse('Login Api')
 
 
-def create_user(user_name, email):
+def create_user(user_name, email,id):
 
     user = User.objects.filter(email=email)
     if not user.exists():
+        user_name = user_name+"_"+id
+
         user = User()
         user.username = user_name
         user.email = email
