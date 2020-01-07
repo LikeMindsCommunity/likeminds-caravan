@@ -346,7 +346,7 @@ def aprove_member(request,community_id,member_id):
     '''function to approve member'''
 
     status = request.GET.get('status')
-    redirect = True if request.GET.get('redirect') == 'true' else False
+    redirect_url = True if request.GET.get('redirect') == 'true' else False
     req_dict = {
         'member_id': member_id,
         'community_id': community_id,
@@ -361,12 +361,10 @@ def aprove_member(request,community_id,member_id):
 
     req_dict['accepted'] = accepted
 
-    # request_response(request, req_dict)
-    # update_member_count(community_id)
-    print(">>>>>>>>>    ",req_dict)
-    print("redirect  >>>>>>>>>    ", redirect)
+    request_response(request, req_dict)
+    update_member_count(community_id)
 
-    if not redirect:
+    if not redirect_url:
         url='/admin_dashboard/all_members/'+str(community_id)
     else:
         url='/community/'+str(community_id)
