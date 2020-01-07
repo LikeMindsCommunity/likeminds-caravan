@@ -2474,7 +2474,9 @@ def login(request):
                 else:
                     profile_picture = 'https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fuser%2F222%2Fimg_user_222?alt=media'
 
-                userinfo = create_userinfo(user, email, user_name, profile_picture, login_type, json_to_save)
+                userinfo = create_userinfo(user=user, email=email, user_name=user_name,
+                                           profile_picture=profile_picture, login_type=login_type,
+                                           json_to_save=json_to_save)
                 created = True
                 mail_triger(str(user.id),request) # both mail and notification will be sent here
 
@@ -2545,7 +2547,7 @@ def create_user(user_name, email,id):
 
     return user
 
-def create_userinfo(user, email, user_name, profile_picture, login_type, json_to_save, city,):
+def create_userinfo(user, email, user_name, profile_picture, login_type, json_to_save, city = None):
 
     userinfo = Userinfo.objects.filter(email=email)
     if not userinfo.exists():
