@@ -700,7 +700,7 @@ def all_members(request,community_id):
 
     '''function to show all members of the community'''
 
-    members_info=Members.objects.filter(community_id=community_id)
+    members_info=Members.objects.filter(community_id=community_id).order_by('created_at')
     form_responses=Form_response.objects.filter(community=community_id)
     print(form_responses)
     has_questions=False
@@ -2525,6 +2525,8 @@ def delete_tags_post(request,tag_id):
     elif category_id == 4:
         tag_community = Community_Geography.objects.filter(tags_id = tag)
         user_tags = User_Geography.objects.filter(tags_id = tag)
+    else:
+        pass
 
     # if any community has this tag
     if tag_community.exists():
