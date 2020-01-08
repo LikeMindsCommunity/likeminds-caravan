@@ -512,9 +512,10 @@ class Report(models.Model):
 
     '''Table containing the report data of user'''
 
-    tag_id=models.ForeignKey(Report_Tags, on_delete=models.CASCADE)
-    collabcard_id=models.ForeignKey(Collabcard, on_delete=models.CASCADE)
-    member_id = models.ForeignKey(User, on_delete=models.CASCADE)
+    tag=models.ForeignKey(Report_Tags, on_delete=models.CASCADE)
+    collabcard=models.ForeignKey(Collabcard, on_delete=models.CASCADE)
+    member = models.ForeignKey(User, on_delete=models.CASCADE)
     reason=models.CharField(max_length=2048,null=True)
+    date_epoch=models.BigIntegerField(default=-9223372036854775808)
 
 
