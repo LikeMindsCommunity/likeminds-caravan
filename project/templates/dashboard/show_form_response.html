@@ -24,9 +24,9 @@
     <div class="form-group">
 
             <input type="hidden"  value="{{response.id}}"/>
-        <input type="text" class="form-control"  value="{{response.question}}"  />
+        <textarea rows="3" cols="4" class="form-control"    >{{response.question}}</textarea>
         <br/>
-        <input type="text" class="form-control"  value="{{response.answer}}"/>
+        <textarea  rows="3" cols="4" class="form-control" >{{response.answer}}</textarea>
     </div>
     <br/>
   {% endfor %}

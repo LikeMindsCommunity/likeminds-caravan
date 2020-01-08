@@ -12,7 +12,7 @@ import time
 
 url = settings.URL
 
-
+is_beta=settings.IS_BETA
 
 from threading import Timer
 
@@ -139,13 +139,13 @@ def new_member_request(member_id,community_id,form_response,ref_id=None,):
     for response in form_response:
         res[response['key']] = response['value']
 
-    template = get_template("mails/new_member_request.html").render({"member_name": member_name,'ref_name':ref_name,
-                                                                  'subject': subject, 'community_name': community_name,
+    template = get_template("mails/new_member_request.html").render({"member_name": member_name,"member_id": member_id,'ref_name':ref_name,
+                                                                  'subject': subject, 'community_name': community_name, 'community_id': community_id,
                                                                   'text':text,'community_link':community_link,
-                                                                  'result':res})
+                                                                  'result':res, 'url': url,})
     
     if url == "https://beta.collabmates.com":
-        to_list = ['mahesh61437mahe@gmail.com','rastogi.fresh88@gmail.com']
+        to_list = ['mahesh61437mahe@gmail.com']
 
     elif url == "https://www.collabmates.com":
         to_list = ['nipungoyal.iitd@gmail.com','hrshshukl@gmail.com']
@@ -199,3 +199,25 @@ def member_request_approval_or_denied(user_id,community_id,approved):
     send_email(subject, template, to)
     return
 
+@shared_task
+def send_mail_for_report_abuse__on_collabcard(user_name,collabcard_message,report_tag,community_name,community_url,report_reason=None):
+
+    '''function to send a mail when the user report abuse on collabcard'''
+
+    subject=str(user_name)+" reported "+report_tag
+    if report_reason:
+        text=str(user_name)+" reported "+str(report_tag)+" for collabcard:"+str(collabcard_message)+" in community "+str(community_name)+". The feedback given By user is "+str(report_reason)
+    else:
+        text = str(user_name) + " reported " + str(report_tag) + " for collabcard:" + str(collabcard_message)+" in community "+str(community_name)
+    context={
+        'subject':subject,
+        'text':text,
+        'community_link':community_url
+    }
+    template = get_template("mails/report_abuse.html").render(context)
+    if not is_beta:
+        to="nipun@collabmates.com"
+    else:
+        to="mahesh61437mahe@gmail.com"
+    send_email(subject, template, to)
+    print("Executed")

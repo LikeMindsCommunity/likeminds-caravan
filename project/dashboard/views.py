@@ -98,17 +98,17 @@ def dashboard(request):
         community_dic={}
         if i.hide_community == '2':
             continue
-        community_dic['id']=i.id
-        community_dic['name']=i.name
-        community_dic['image_url']=i.image_url
-        community_dic['purpose']=i.purpose
-        pending_members_count=Members.objects.filter(community_id=i,state=3).count()
+        community_dic['id'] = i.id
+        community_dic['name'] = i.name
+        community_dic['image_url'] = i.image_url if i.image_url else None
+        community_dic['purpose'] = i.purpose
+        pending_members_count = Members.objects.filter(community_id=i, state=3).count()
         community_dic['pending_member_count'] = pending_members_count
         members_count = Members.objects.filter(community_id=i).filter(Q(state=1)|Q(state=2)|Q(state=4)|Q(state=7)).count()
         community_dic['members_count'] = members_count
-        community_dic['active_since']=i.active_since
-        community_dic['question_count']=Form_data.objects.filter(community_id=i).count()
-        community_dic['hidden_tags_count']=get_tags_count(i)
+        community_dic['active_since'] = i.active_since
+        community_dic['question_count'] = Form_data.objects.filter(community_id=i).count()
+        community_dic['hidden_tags_count'] = get_tags_count(i)
         community_dic['image_link'] = i.image_link
         dashboard_list.append(community_dic)
 
@@ -344,26 +344,43 @@ def show_pending_members(request,community_id):
 
 def aprove_member(request,community_id,member_id):
     '''function to approve member'''
+
+    status = request.GET.get('status')
+    redirect_url = True if request.GET.get('redirect') == 'true' else False
     req_dict = {
-        'accepted': True,
         'member_id': member_id,
-        'community_id': community_id
+        'community_id': community_id,
     }
+    accepted = ''
+    if status == 'approved':
+        accepted = True
+    else:
+        accepted = False
+        if status == 'delete':
+            req_dict['send_notification'] = False
+
+    req_dict['accepted'] = accepted
+
     request_response(request, req_dict)
     update_member_count(community_id)
-    url='/admin_dashboard/all_members/'+str(community_id)
-    return redirect(url)
 
-
-def decline_member(request,community_id,member_id):
-    '''function to approve member'''
-    community = Community.objects.get(id=community_id)
-
-    Members.objects.filter(community_id=community,member_id=member_id).update(state=5)
-    url='/admin_dashboard/all_members/'+str(community_id)
-    send_notification_for_join_requests.delay(community_id,False,member_id)
+    if not redirect_url:
+        url='/admin_dashboard/all_members/'+str(community_id)
+    else:
+        url='/community/'+str(community_id)
 
     return redirect(url)
+
+
+# def decline_member(request,community_id,member_id):
+#     '''function to approve member'''
+#     community = Community.objects.get(id=community_id)
+#
+#     Members.objects.filter(community_id=community,member_id=member_id).update(state=5)
+#     url='/admin_dashboard/all_members/'+str(community_id)
+#     send_notification_for_join_requests.delay(community_id,False,member_id)
+#
+#     return redirect(url)
 
 
 def show_tags(request,community_id):
@@ -683,7 +700,7 @@ def all_members(request,community_id):
 
     '''function to show all members of the community'''
 
-    members_info=Members.objects.filter(community_id=community_id)
+    members_info=Members.objects.filter(community_id=community_id).order_by('created_at')
     form_responses=Form_response.objects.filter(community=community_id)
     print(form_responses)
     has_questions=False
@@ -706,6 +723,10 @@ def all_members(request,community_id):
             member['state']='Nominated Promoter(already a member)'
         elif i.state == 5:
             member['state']='Declined by Promoter'
+        elif i.state == 8:
+            member['state']='Interested Member'
+        elif i.state == 9:
+            member['state']='Eligible Promoter'
 
         userinfo = Userinfo.objects.filter(user_id=i.member_id)
         if not userinfo.exists():
@@ -737,18 +758,16 @@ def all_members(request,community_id):
 def delete_members(request,community_id,member_id):
 
     '''function to delete the members'''
-    promoter=Members.objects.filter(community_id=community_id)
-    promoter_count=0
-    for i in promoter:
-       if i.state == 1 or i.state == 2:
-           promoter_count=promoter_count+1
 
-    state_of_member=Members.objects.filter(community_id=community_id,member_id=member_id).values('state')
-    member_state=state_of_member[0]['state']
-    if promoter_count == 1 and (member_state==1 or member_state==2):
+    promoter_count = Members.objects.filter(community_id=community_id).filter(Q(state=1) | Q(state=2)).count()
+    state_of_member = Members.objects.filter(community_id=community_id, member_id=member_id).values('state')
+    member_state = state_of_member[0]['state']
+
+    if promoter_count == 1 and (member_state == 1 or member_state == 2):
         return HttpResponse("You cannot Delete the promoter.First make a promoter in order to delete")
-    Members.objects.filter(community_id=community_id,member_id=member_id).delete()
+    Members.objects.filter(community_id=community_id, member_id=member_id).delete()
     update_member_count(community_id)
+
     return redirect('admin_dashboard')
 
 
@@ -2506,6 +2525,8 @@ def delete_tags_post(request,tag_id):
     elif category_id == 4:
         tag_community = Community_Geography.objects.filter(tags_id = tag)
         user_tags = User_Geography.objects.filter(tags_id = tag)
+    else:
+        pass
 
     # if any community has this tag
     if tag_community.exists():
@@ -3117,15 +3138,6 @@ def create_user_update(request):
         return render(request,'dashboard/app_update.html',{'latest_version':latest_version})
 
 
-
-def add_report_tags(request):
-
-    '''function to add report tags'''
-
-    if request.method == 'GET':
-        return HttpResponse("Working fine")
-    return HttpResponse("Not Working")
-
 def disable_introduction_state(request,community_id):
 
     '''function to disable or enable the introduction text'''
@@ -3144,6 +3156,40 @@ def enable_introduction_state(request,community_id):
     return redirect('admin_dashboard')
 
 
+def add_report_tags(request):
+
+    '''function to add report tags'''
+
+    if request.method == 'GET':
+
+        report_tags = Report_Tags.objects.all()
+        return render(request, 'dashboard/add_report_tags.html', {'report_tags':report_tags,
+                                                                  'length':report_tags.count()})
+    else:
+        option_data = request.POST.get('data')
+        option_data = json.loads(option_data)
+        print(option_data)
+
+        for data in option_data:
+            if data['update']:
+                tag = Report_Tags.objects.get(pk=data['id'])
+                tag.tag_name = data['tag_name']
+                tag.save()
+            else:
+                tag = Report_Tags.objects.filter(tag_name__iexact=data['tag_name'])
+                if not tag.exists():
+                    tag = Report_Tags()
+                    tag.tag_name = data['tag_name']
+                    tag.save()
+                    tag.tag_id = tag.id
+                    tag.save()
+        return JsonResponse({"success": True})
 
 
-
+def delete_report_tags(request,tag_id):
+    '''function to delelte the questions'''
+    Report_Tags.objects.filter(id=tag_id).delete()
+    # report_tags = Report_Tags.objects.all()
+    # return render(request, 'dashboard/add_report_tags.html', {'report_tags': report_tags,
+    #                                                           'length': report_tags.count()})
+    return redirect(reverse(add_report_tags))

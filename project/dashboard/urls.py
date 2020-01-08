@@ -9,7 +9,7 @@ urlpatterns = [
     path('add_dashboard_member/<int:community_id>',add_dashboard_member,name='add_dashboard_member'),
     path('show_pending_member/<int:community_id>',show_pending_members,name='show_pending_member'),
     path('aprove_member/<int:community_id>/<int:member_id>',aprove_member,name='aprove_member'),
-    path('decline_member/<int:community_id>/<int:member_id>', decline_member, name='decline_member'),
+    # path('decline_member/<int:community_id>/<int:member_id>', decline_member, name='decline_member'),
     path('show_tags/<int:community_id>', show_tags, name='show_tags'),
     path('add_tags',add_tags,name='add_tags'),
     path('update_user/<int:user_id>',update_user,name='update_user'),
@@ -63,5 +63,6 @@ urlpatterns = [
     path('add_report_tags', add_report_tags, name='add_report_tags'),
     path('disable_introduction_state/<int:community_id>', disable_introduction_state,name='disable_introduction_state'),
     path('enable_introduction_state/<int:community_id>', enable_introduction_state,name='enable_introduction_state'),
+    path('delete_report_tags/<int:tag_id>', delete_report_tags, name='delete_report_tags'),
 
 ]

@@ -45,7 +45,7 @@ from utility.utils import (decode_meta_from_url, update_tag_image,
                            insert_user_home_town_tags,user_onbaord)
 
 from utility.tasks import (mail_triger, new_member_request,
-                           member_request_approval_or_denied)
+                           member_request_approval_or_denied,send_mail_for_report_abuse__on_collabcard)
 from utility.firebase import update_last_answer_id,upload_image_to_firebase,upload_community_thumbnail,upload_community_files
 from .raw_queries import compute_rank
 from multiprocessing.pool import ThreadPool
@@ -1590,11 +1590,16 @@ def request_response(request,req_dict=None):
         member_request_approval_or_denied.delay(user_id=member_id,community_id=community_id,approved=True)
 
     else:
+
+        send_notification = res['send_notification'] if 'send_notification' in res else True
         # if rejected , change user state to 5
         Members.objects.filter(member_id=member_id,community_id=community).update(state=5)  # decline state = 5
         Member_Engage.objects.filter(member_id=member_id, community_id=community).delete()
         # and also send notification
-        send_notification_for_join_requests.delay(community_id, False, member_id)
+
+        if send_notification:
+            send_notification_for_join_requests.delay(community_id, False, member_id)
+
         Form_response.objects.filter(user=member_id,community=community_id).delete()
         update_pending_member_count_in_engage(community)
         update_referral_text_in_engage_table(community)
@@ -1828,8 +1833,10 @@ def community_cards(request, community_id):
     if size:
         size=int(size)
         cards = Collabcard.objects.filter(community = community_id).order_by('id')[:size]
+        size=Collabcard.objects.filter(community=community_id).count()
     else:
         cards = Collabcard.objects.filter(community = community_id).order_by('id')
+        size=len(cards)
 
     collabcard_url=request.build_absolute_uri()
     # if collabcard_url in custom_cache:
@@ -1861,7 +1868,7 @@ def community_cards(request, community_id):
             card_dict['pdf'] = files[1]
             card_list.append(card_dict)
         #custom_cache.set(collabcard_url,card_list,timeout=CACHE_TTL)
-    return JsonResponse ({'collabcards': card_list})
+    return JsonResponse ({'collabcards': card_list,'size':size})
 
 
 def get_cards_for_demo(community_id,member_id):
@@ -2419,72 +2426,146 @@ def login(request):
         json_to_save=json.dumps(dic_form)
         login_type=request.GET.get('type')
         # if user is logging in from facebook
+        created = False
         if login_type == 'facebook':
             email=res['email']
             # converting email to lower case and removing unwanted space
             email=email.lower().strip()
             user =User.objects.filter(email=email)
 
-            if not user:
+            if not user.exists():
                 # creating a user if no user is associated with that email
-                usr = User()
-                usr.username = res['name']
-                usr.email = res['email']
-                usr.save()
+                user = create_user(user_name=res['name'], email=res['email'],id=res['id'])
+
                 # if there is no user then user will not have userinfo too
                 # creating user info
-                userinfo = Userinfo()
-                userinfo.user_id = usr
-                userinfo.email = res['email']
-                userinfo.name = res['name']
-                userinfo.image_link = upload_image_to_firebase(res['picture']['data']['url'],usr.id)
-                if 'link' in res:
-                    userinfo.fb_link = res['link']
-                if 'location' in res:
-                    userinfo.city = res['location']['name']
-                userinfo.login_type='facebook'
-                userinfo.login_json=json_to_save
-                userinfo.created_at = time.time()
-                userinfo.save()
-                mail_triger(str(usr.id),request) # both mail and notification will be sent here
-        else:
+
+                # fb_link = res['link'] if 'link' in res else None
+                if 'picture' in res:
+                    image_link = upload_image_to_firebase(res['picture']['data']['url'], user.id)
+                else:
+                    image_link = 'https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fuser%2F222%2Fimg_user_222?alt=media'
+
+
+                city = res['location']['name'] if 'location' in res else None
+
+                userinfo = create_userinfo(user=user, email=res['email'], user_name=res['name'],
+                                           profile_picture=image_link, login_type=login_type,
+                                           json_to_save=json_to_save,city=city,
+                                           # fb_link=fb_link
+                                           )
+                created = True
+                mail_triger(str(user.id),request) # both mail and notification will be sent here
+
+        elif login_type == 'linkedIn':
             # if user is logging in with linkedIn
             user_name=res['firstName']['localized']['en_US'] + " " + res['lastName']['localized']['en_US']
-            profile_picture=res['profilePicture']['displayImage~']['elements'][2]['identifiers'][0]['identifier']
             email=res['email']['elements'][0]['handle~']['emailAddress']
             userinfo = Userinfo.objects.filter(email=email)
             # create user and userinfo if there is no user with this email
-            if not userinfo:
-                userinfo=Userinfo()
-                usr=User()
-                usr.username=user_name
-                usr.email = email
-                usr.save()
-                userinfo.user_id=usr
-                userinfo.email=email
-                userinfo.name=user_name
-                userinfo.image_link=upload_image_to_firebase(profile_picture,usr.id)
-                userinfo.login_type='linkedIn'
-                userinfo.login_json=json_to_save
-                userinfo.created_at = time.time()
-                userinfo.save()
-                mail_triger(str(usr.id),request) # both mail and notification will be sent here
 
-        userinfo=Userinfo.objects.filter(email=email)
+
+            if not userinfo.exists():
+
+                user = create_user(user_name=user_name, email=email,id=res['id'])
+                if 'profilePicture' in res:
+                    profile_picture = upload_image_to_firebase(
+                        res['profilePicture']['displayImage~']['elements'][2]['identifiers'][0]['identifier'], user.id)
+                else:
+                    profile_picture = 'https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fuser%2F222%2Fimg_user_222?alt=media'
+
+                userinfo = create_userinfo(user=user, email=email, user_name=user_name,
+                                           profile_picture=profile_picture, login_type=login_type,
+                                           json_to_save=json_to_save)
+                created = True
+                mail_triger(str(user.id),request) # both mail and notification will be sent here
+
+
+        else:
+            # if user is logging in with Apple
+            email = res['email']
+            # converting email to lower case and removing unwanted space
+            email = email.lower().strip()
+            user = User.objects.filter(email=email)
+
+            if not user.exists():
+                # creating a user if no user is associated with that email
+                user = create_user(user_name=res['name'], email=res['email'],id=res['id'])
+
+                # fb_link = res['link'] if 'link' in res else None
+                if 'picture' in res:
+                    image_link = upload_image_to_firebase(res['picture']['data']['url'], user.id)
+                else:
+                    image_link = 'https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fuser%2F222%2Fimg_user_222?alt=media'
+
+                city = res['location']['name'] if 'location' in res else None
+                # if there is no user then user will not have userinfo too
+                # create or get user info
+                userinfo = create_userinfo(user=user, email=res['email'], user_name=res['name'],
+                                           profile_picture=image_link, login_type=login_type,
+                                           json_to_save=json_to_save, city=city,
+                                           )
+                created = True
+                mail_triger(str(user.id), request)  # both mail and notification will be sent here
+
+        if not created:
+            userinfo=Userinfo.objects.filter(email=email)[0]
+
         # get serialized user object
-        usr = UserinfoSerializer(userinfo[0])
+
+        usr = UserinfoSerializer(userinfo)
+        # see if user has tags or not
         has_tags=user_onbaord(usr['id'])
-        tags = get_user_lpig_tags(usr['id'])
+
+        # saving the OS type of user (Android,iOS,WEB)
         request_type=get_request_type(request)
         if request_type:
             Userinfo.objects.filter(user_id=usr['id']).update(mobile_os=request_type)
 
-        if tags:
+        # User asscoaited tags if any present
+        if has_tags:
+            tags = get_user_lpig_tags(usr['id'])
             usr['tags']=tags
             return JsonResponse({'user': usr, 'has_tags': has_tags})
         return JsonResponse ({'user': usr,'has_tags':has_tags})
 
     return HttpResponse('Login Api')
+
+
+def create_user(user_name, email,id):
+
+    user = User.objects.filter(email=email)
+    if not user.exists():
+        user_name = user_name+"_"+id
+
+        user = User()
+        user.username = user_name
+        user.email = email
+        user.save()
+    else:
+        user = user[0]
+
+    return user
+
+def create_userinfo(user, email, user_name, profile_picture, login_type, json_to_save, city = None):
+
+    userinfo = Userinfo.objects.filter(email=email)
+    if not userinfo.exists():
+        userinfo = Userinfo()
+        userinfo.user_id = user
+        userinfo.email = email
+        userinfo.name = user_name
+        userinfo.image_link = upload_image_to_firebase(profile_picture, user.id)
+        userinfo.login_type = login_type
+        userinfo.login_json = json_to_save
+        userinfo.created_at = time.time()
+        userinfo.city = city
+        userinfo.save()
+    else:
+        userinfo = userinfo[0]
+
+    return userinfo
+
 
 
 def notify_referred_member_after_join(joined_member_id,joined_member_name,community_name,community_id):
@@ -2957,9 +3038,14 @@ def get_member_id_from_headers(request):
     '''function to get member id from headers'''
 
     headers = request.META
+
     member_id=0
     if 'HTTP_X_MEMBER_ID' in headers and 'HTTP_X_VERSION_CODE' in headers:
         member_id = headers['HTTP_X_MEMBER_ID']
+    elif 'HTTP_X_MEMBER_ID' in headers:
+        member_id = headers['HTTP_X_MEMBER_ID']
+
+
     return member_id
 
 
@@ -3334,5 +3420,65 @@ def save_geography_and_hometown_tags_of_user_from_onboarding(address_input,user_
             save_tags_for_user_from_onboarding(1, tag_object, user_id)
 
     print("Hometown and city updated successfully")
+
+
+
+# Reporting collabcard functions
+
+def fetch_report_tags(request):
+
+    '''api to send report tags '''
+
+    report_tags_instances=Report_Tags.objects.all()
+
+    report_tags=[]
+
+    for instance in report_tags_instances:
+        temp={}
+        temp['id']=instance.tag_id
+        temp['name']=instance.tag_name
+        report_tags.append(temp)
+    info_logger.info("fetch report tags api successfulll")
+    info_logger.info(report_tags)
+    return JsonResponse({'report_tags':report_tags})
+
+@csrf_exempt
+def push_report(request):
+
+    member_id=get_member_id_from_headers(request)
+    user_instance=User.objects.get(id=member_id)
+    if request.method == 'POST':
+
+        request_body=json.loads(request.body)
+        info_logger.info(request_body)
+        if 'collabcard_id' in request_body:
+            collabcard_id=request_body['collabcard_id']
+            collabcard_instance=Collabcard.objects.get(id=collabcard_id)
+
+        if 'tag_id' in request_body:
+            tag_id=request_body['tag_id']
+            report_tags_instance=Report_Tags.objects.get(id=tag_id)
+
+        reason=None
+        if 'reason' in request_body:
+            reason=request_body['reason']
+
+        report_instance=Report()
+        report_instance.tag=report_tags_instance
+        report_instance.collabcard=collabcard_instance
+        report_instance.reason=reason
+        report_instance.member=user_instance
+        report_instance.date_epoch = time.time()
+        report_instance.save()
+        info_logger.info("push report api successfull")
+        community_url=url+"/community/"+str(collabcard_instance.community.id)
+        send_mail_for_report_abuse__on_collabcard.delay(user_instance.userinfo.name,collabcard_instance.title,
+                                                  report_tags_instance.tag_name,collabcard_instance.community.name,
+                                                  community_url,reason)
+        return JsonResponse({'success':True})
+    return JsonResponse({'success':False})
+
+
+
 
 

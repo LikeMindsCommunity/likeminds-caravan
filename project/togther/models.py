@@ -1,10 +1,5 @@
 from django.db import models
 from django.contrib.auth.models import User
-from django.core.files import File
-from urllib.request import urlopen
-from io import BytesIO
-# from PIL import Image
-from django.core.files import File
 
 response_choices = (
     ('text','Text'),
@@ -23,7 +18,7 @@ class Community (models.Model):
 
     name = models.CharField(max_length = 200)
     about = models.TextField()
-    purpose = models.CharField(max_length= 300)
+    purpose = models.CharField(max_length= 2048)
     location = models.CharField(max_length = 200)
     image_url = models.ImageField(upload_to="media/community", null=True)
     members_count = models.IntegerField(default = 0)
@@ -513,7 +508,14 @@ class Report_Tags(models.Model):
     tag_name=models.CharField(max_length=512)
     tag_id=models.IntegerField(null=True)
 
-    def save(self, *args, **kwargs):
-        self.tag_id=self.pk
-        self.save()
-        super(Report_Tags, self).save(*args, **kwargs)
+class Report(models.Model):
+
+    '''Table containing the report data of user'''
+
+    tag=models.ForeignKey(Report_Tags, on_delete=models.CASCADE)
+    collabcard=models.ForeignKey(Collabcard, on_delete=models.CASCADE)
+    member = models.ForeignKey(User, on_delete=models.CASCADE)
+    reason=models.CharField(max_length=2048,null=True)
+    date_epoch=models.BigIntegerField(default=-9223372036854775808,null=True)
+
+
