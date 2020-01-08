@@ -1007,12 +1007,11 @@ def create_community(request):
                 question.community_id = community
                 question.save()
 
-            collabcard_share_url=url+'/collabcard/'+str(card.id)
 
             # forming card dict
 
-            crd = {'id':card.id , 'title':card.title, 'member':usr,'answer_text': ans_text,'share_url':collabcard_share_url}
-
+            crd = CollabcardSerializer(card)
+            crd['member']=usr
             #inserting in member_engage table
 
             engage=Member_Engage()
