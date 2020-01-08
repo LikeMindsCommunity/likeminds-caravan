@@ -1011,7 +1011,7 @@ def create_community(request):
             # forming card dict
 
             crd = CollabcardSerializer(card)
-
+            crd['member']=usr
             #inserting in member_engage table
 
             engage=Member_Engage()
