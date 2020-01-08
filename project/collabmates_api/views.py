@@ -3464,10 +3464,11 @@ def push_report(request):
             reason=request_body['reason']
 
         report_instance=Report()
-        report_instance.tag_id=report_tags_instance
-        report_instance.collabcard_id=collabcard_instance
+        report_instance.tag=report_tags_instance
+        report_instance.collabcard=collabcard_instance
         report_instance.reason=reason
-        report_instance.member_id=user_instance
+        report_instance.member=user_instance
+        report_instance.date_epoch = time.time()
         report_instance.save()
         info_logger.info("push report api successfull")
         community_url=url+"/community/"+str(collabcard_instance.community.id)
