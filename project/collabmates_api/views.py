@@ -1527,7 +1527,7 @@ def request_response(request,req_dict=None):
         accepted = res['accepted']
     community = Community.objects.get(id = community_id)
     user = User.objects.get(id= member_id)
-    if accepted == True :
+    if accepted or accepted == 'true':
         # if accepted , then make him a member of the community
         #updating the approve state
         join_time=time.time()
