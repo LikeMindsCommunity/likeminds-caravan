@@ -516,6 +516,6 @@ class Report(models.Model):
     collabcard=models.ForeignKey(Collabcard, on_delete=models.CASCADE)
     member = models.ForeignKey(User, on_delete=models.CASCADE)
     reason=models.CharField(max_length=2048,null=True)
-    date_epoch=models.BigIntegerField(default=-9223372036854775808)
+    date_epoch=models.BigIntegerField(default=-9223372036854775808,null=True)
 
 
