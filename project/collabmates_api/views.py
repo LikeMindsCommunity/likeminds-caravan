@@ -1818,56 +1818,58 @@ def community_cards(request, community_id):
     ''' function get all the cards in a community '''
 
     community = Community.objects.get(id = community_id)
-    member_id=request.GET.get('member_id')
-
-
-    #is_tour=request.GET.get('is_tour',False)
-
-    # if the community is pilot community and android tour is given
-    if community.hide_community == '3':
-        card_list=get_cards_for_demo(community_id,member_id)
-        return JsonResponse({'collabcards': card_list})
-
-    size=request.GET.get('size','')
-    if size:
-        size=int(size)
-        cards = Collabcard.objects.filter(community = community_id).order_by('id')[:size]
-        size=Collabcard.objects.filter(community=community_id).count()
-    else:
-        cards = Collabcard.objects.filter(community = community_id).order_by('id')
-        size=len(cards)
-
-    collabcard_url=request.build_absolute_uri()
-    # if collabcard_url in custom_cache:
-    #     card_list=custom_cache.get(collabcard_url)
+    # member_id=request.GET.get('member_id')
+    #
+    #
+    # #is_tour=request.GET.get('is_tour',False)
+    #
+    # # if the community is pilot community and android tour is given
+    # if community.hide_community == '3':
+    #     card_list=get_cards_for_demo(community_id,member_id)
+    #     return JsonResponse({'collabcards': card_list})
+    #
+    # size=request.GET.get('size','')
+    # if size:
+    #     size=int(size)
+    #     cards = Collabcard.objects.filter(community = community_id).order_by('id')[:size]
+    #     size=Collabcard.objects.filter(community=community_id).count()
     # else:
-    if True:
-        card_list = []
-        for card in cards:
-            user = Userinfo.objects.get(user_id = card.user)
-            # serialize user object
-            usr = UserinfoSerializer(user)
-            # get card images --------------------------------------------------------
-            files=get_collabcard_files(card)
-            # -----------------------------------------------------------------------
-            share_url = url+'/collabcard/'+str(card.id)
-
-            # get time stamp
-            if str(card.date_epoch) == "-9223372036854775808":
-                # if there is no time stamp , return nothing
-                time_text=""
-            else:
-                # get time stamp
-                time_text = get_time_text(card.date_epoch)
-            card_dict = CollabcardSerializer(card, card.community)
-            card_dict['state'] = get_status_of_collabcard(member_id,community,card)
-            card_dict['created_at'] = time_text
-            card_dict['member'] = usr
-            card_dict['images'] = files[0]
-            card_dict['pdf'] = files[1]
-            card_list.append(card_dict)
-        #custom_cache.set(collabcard_url,card_list,timeout=CACHE_TTL)
-    return JsonResponse ({'collabcards': card_list,'size':size})
+    #     cards = Collabcard.objects.filter(community = community_id).order_by('id')
+    #     size=len(cards)
+    #
+    # collabcard_url=request.build_absolute_uri()
+    # # if collabcard_url in custom_cache:
+    # #     card_list=custom_cache.get(collabcard_url)
+    # # else:
+    # if True:
+    #     card_list = []
+    #     for card in cards:
+    #         user = Userinfo.objects.get(user_id = card.user)
+    #         # serialize user object
+    #         usr = UserinfoSerializer(user)
+    #         # get card images --------------------------------------------------------
+    #         files=get_collabcard_files(card)
+    #         # -----------------------------------------------------------------------
+    #         share_url = url+'/collabcard/'+str(card.id)
+    #
+    #         # get time stamp
+    #         if str(card.date_epoch) == "-9223372036854775808":
+    #             # if there is no time stamp , return nothing
+    #             time_text=""
+    #         else:
+    #             # get time stamp
+    #             time_text = get_time_text(card.date_epoch)
+    #         card_dict = CollabcardSerializer(card, card.community)
+    #         card_dict['state'] = get_status_of_collabcard(member_id,community,card)
+    #         card_dict['created_at'] = time_text
+    #         card_dict['member'] = usr
+    #         card_dict['images'] = files[0]
+    #         card_dict['pdf'] = files[1]
+    #         card_list.append(card_dict)
+    #     #custom_cache.set(collabcard_url,card_list,timeout=CACHE_TTL)
+    card_list=list(Collabcard.objects.filter(community_id=community).values_list("id",flat=True))
+    print(card_list)
+    return JsonResponse ({'collabcards': card_list,'size':len(card_list)})
 
 
 def get_cards_for_demo(community_id,member_id):
