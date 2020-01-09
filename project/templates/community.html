@@ -429,7 +429,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                 {% elif Nom_mem_state == 8 %}
                 <button class="ui fluid button "
                         style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;"
-                        onclick="referal('{{ref_id}}')"> Invite members
+                        id="#"> Invite members
                 </button>
 
                 {% elif Nom_mem_state == 3 %}
@@ -508,6 +508,15 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         </div>
     </div>
 <!-- -->
+
+  <button class="ui fluid button "
+                        style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;"
+                        id="ref"> Members
+                </button>
+
+
+
+
 </body>
 
     </html>
@@ -572,6 +581,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                     {% endif %}
 
                 }
+
+
+
 
     $(function(){
       $("#test").click(function(){
@@ -682,6 +694,35 @@ $('#conv').click(function(){
         $('#download_app_popup').modal('show');
     {% endif %}
 })
+
+
+
+
+
+
+
+// share pop-up to share community link
+
+
+$('#ref').click(function(e){
+
+if (navigator.share) {
+    navigator.share({
+      title: 'WebShare API Demo',
+      url: 'https://codepen.io/ayoisaiah/pen/YbNazJ'
+    }).then(() => {
+      console.log('Thanks for sharing!');
+    })
+    .catch(console.error);
+  } else {
+    console.log('test')
+    
+  }
+
+})
+
+
+
 
 
 
