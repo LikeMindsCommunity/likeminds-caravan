@@ -681,3 +681,16 @@ def is_request_pc(request):
     return False
 
 
+
+def is_IG_community(community):
+
+    '''function to check if the community is IG community or not'''
+
+    communities_interest=Community_Interest.objects.filter(community_id=community)
+
+    for interest in communities_interest:
+        tag_id=interest.tags_id.id
+        if tag_id != 17:
+            return True
+
+    return False

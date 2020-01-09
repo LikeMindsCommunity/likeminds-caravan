@@ -22,7 +22,8 @@ from django.urls import reverse
 from utility.utils import (get_city_address, update_tag_image,
                            update_user_geography_tags, create_or_categorize_tag,
                            referal, insert_user_home_town_tags,user_onbaord,
-                           is_request_android,is_request_ios,is_request_pc,android_app_download_link)
+                           is_request_android,is_request_ios,
+                           is_request_pc,android_app_download_link,is_IG_community)
 from utility.firebase import upload_image_to_firebase
 from urllib.parse import urlencode,quote
 from collabmates_api.tasks import send_email
@@ -309,7 +310,11 @@ def community(request, community_id):
     android_app_link=""
     if is_request_android(request):
         android_app_link=android_app_download_link
-    share_text="""I recently joined %s community on CollabMates. It will be good if you also join this community"""%(community.name)
+    if not is_IG_community(community):
+        share_text="""I recently joined %s community on CollabMates. It will be good if you also join this community"""%(community.name)
+    else:
+        share_text = """I recently joined %s community on CollabMates. It will be fun if you also join this community""" % (
+            community.name)
     if request.user.is_authenticated:
         share_url = str(settings.URL) + '/community/' + str(community_id) + "?ref_id=" + str(request.user.id)
     else:
