@@ -179,6 +179,8 @@ def get_user_communities(request):
 
 def community(request, community_id):
 
+    base_url=url
+
     if request.user.is_authenticated:
         try:
             user = Userinfo.objects.get(user_id=request.user.id)
@@ -307,6 +309,8 @@ def community(request, community_id):
     android_app_link=""
     if is_request_android(request):
         android_app_link=android_app_download_link
+    share_text="""I recently joined %s community on CollabMates. It will be good if you also join this community.\n"""%(community.name)
+    share_url = base_url + '/community/' + str(community_id) + "?ref_id=" + str(request.user.id)
     context={'usr': user, 'similar_communities': communities,
              'community': community, 'admins': admin_details,
              'members': members, 'source': source,
@@ -316,7 +320,9 @@ def community(request, community_id):
              'similar_community_length':len(communities),
              'ref_id':ref_id,
              'request_user_email':request_user_email,
-             'android_app_link':android_app_link
+             'android_app_link':android_app_link,
+             'share_text':share_text,
+             'share_url':share_url
 
              }
     # user_email = True
