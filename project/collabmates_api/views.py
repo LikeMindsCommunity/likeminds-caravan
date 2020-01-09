@@ -1860,7 +1860,7 @@ def community_cards(request, community_id):
                 # get time stamp
                 time_text = get_time_text(card.date_epoch)
             card_dict = CollabcardSerializer(card, card.community)
-            #card_dict['state'] = get_status_of_collabcard(member_id,community,card)
+            card_dict['state'] = get_status_of_collabcard(member_id,community,card)
             card_dict['created_at'] = time_text
             card_dict['member'] = usr
             card_dict['images'] = files[0]
