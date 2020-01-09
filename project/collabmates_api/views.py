@@ -2411,7 +2411,7 @@ def get_request_type(request):
         request_agent=request.META['HTTP_X_PLATFORM_CODE']
         if request_agent == "an":
             return "Android"
-        elif request_agent == "iOS":
+        elif request_agent == "ios":
             return "iOS"
     return False
 
