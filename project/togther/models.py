@@ -158,7 +158,7 @@ class Collabcard (models.Model):
     og_tags=models.CharField(max_length=2048,default='')
     image_count = models.IntegerField(default=0, null=True)
     pdf_count = models.IntegerField(default=0, null=True)
-    state=models.IntegerField(default=0)    # state=0 (Normal Collabcard);state=1(Introduction Collabcard)
+    type=models.IntegerField(default=0)    # state=0 (Normal Collabcard);state=1(Introduction Collabcard)
 
 
 
@@ -359,8 +359,6 @@ class Community_Profession(models.Model):
 
 
 
-
-
 class Community_Interest(models.Model):
     '''Model to store the communities of interest'''
     community_id = models.ForeignKey(Community, on_delete=models.CASCADE)
@@ -374,8 +372,6 @@ class Community_Interest(models.Model):
             self.save()
 
         super(Community_Interest, self).save(*args, **kwargs)
-
-
 
 
 class Community_Geography(models.Model):
@@ -519,3 +515,9 @@ class Report(models.Model):
     date_epoch=models.BigIntegerField(default=-9223372036854775808,null=True)
 
 
+# class collabcardState(models.Model):
+#
+#     card = models.ForeignKey(Collabcard, on_delete= models.CASCADE)
+#     community = models.ForeignKey(Community, on_delete= models.CASCADE)
+#     user = models.ForeignKey(User, on_delete = models.CASCADE)
+#     state=models.IntegerField(null=True)
