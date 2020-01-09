@@ -42,7 +42,7 @@ from utility.utils import (decode_meta_from_url, update_tag_image,
                            #custom_cache,cache_timeout,
                            get_city_address,
                            update_user_geography_tags, create_or_categorize_tag,
-                           insert_user_home_town_tags,user_onbaord)
+                           insert_user_home_town_tags,user_onbaord,is_IG_community)
 
 from utility.tasks import (mail_triger, new_member_request,
                            member_request_approval_or_denied,send_mail_for_report_abuse__on_collabcard)
@@ -470,18 +470,7 @@ def community(request, community_id):
     return JsonResponse({'community': new_dict})
 
 
-def is_IG_community(community):
 
-    '''function to check if the community is IG community or not'''
-
-    communities_interest=Community_Interest.objects.filter(community_id=community)
-
-    for interest in communities_interest:
-        tag_id=interest.tags_id.id
-        if tag_id != 17:
-            return True
-
-    return False
 
 
 
