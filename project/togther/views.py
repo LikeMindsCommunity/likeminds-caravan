@@ -309,8 +309,11 @@ def community(request, community_id):
     android_app_link=""
     if is_request_android(request):
         android_app_link=android_app_download_link
-    share_text="""I recently joined %s community on CollabMates. It will be good if you also join this community.\n"""%(community.name)
-    share_url = str(settings.URL) + '/community/' + str(community_id) + "?ref_id=" + str(request.user.id)
+    share_text="""I recently joined %s community on CollabMates. It will be good if you also join this community"""%(community.name)
+    if request.user.is_authenticated:
+        share_url = str(settings.URL) + '/community/' + str(community_id) + "?ref_id=" + str(request.user.id)
+    else:
+        share_url = str(settings.URL) + '/community/' + str(community_id)
     context={'usr': user, 'similar_communities': communities,
              'community': community, 'admins': admin_details,
              'members': members, 'source': source,
