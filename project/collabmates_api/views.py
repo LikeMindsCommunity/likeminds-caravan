@@ -1084,14 +1084,14 @@ def create_card(request):
         res = json.loads(request.body)
         # creating card
         if 'type' in res:
-            state=res['type'] #if state=0 normal if state =1 intro
+            type=res['type'] #if type=0 normal if type =1 intro
         else:
-            state=0
+            type=0
         card = Collabcard()
         card.title = res['title']
         card.community = community
         card.user = user.user_id
-        card.state=state
+        card.type=type
         if 'share_link' in res:
             card.share_link=res['share_link']
             og_tags = decode_meta_from_url(res['share_link'])
