@@ -2507,6 +2507,7 @@ def delete_tags_post(request,tag_id):
     print(">>>>>>>>>>",tag)
     tag_community = None
     user_tags = None
+    community_exists =  False
     category_id = tag.category_id.id
     print("cat id",category_id)
 
@@ -2514,22 +2515,41 @@ def delete_tags_post(request,tag_id):
     if category_id == 1:
         tag_community = Community_Legacy.objects.filter(tags_id = tag)
         user_tags = User_Legacy.objects.filter(tags_id = tag)
+        community_exists = True
     elif category_id == 2:
         tag_community = Community_Profession.objects.filter(tags_id = tag)
         user_tags = User_Profession.objects.filter(tags_id = tag)
+        community_exists = True
 
     elif category_id == 3:
         tag_community = Community_Interest.objects.filter(tags_id = tag)
         user_tags = User_Interest.objects.filter(tags_id = tag)
+        community_exists = True
+
 
     elif category_id == 4:
         tag_community = Community_Geography.objects.filter(tags_id = tag)
         user_tags = User_Geography.objects.filter(tags_id = tag)
-    else:
-        pass
+        community_exists = True
+
+    elif category_id == 6:
+        community_exists = True
+        legacy_communities = Community_Legacy.objects.filter(tags_id = tag)
+        profession_community = Community_Profession.objects.filter(tags_id = tag)
+        interest_community = Community_Interest.objects.filter(tags_id = tag)
+        geography_community = Community_Geography.objects.filter(tags_id = tag)
+
+        user_L_tags = User_Legacy.objects.filter(tags_id = tag)
+        user_P_tags = User_Profession.objects.filter(tags_id = tag)
+        user_I_tags = User_Interest.objects.filter(tags_id = tag)
+        user_G_tags = User_Geography.objects.filter(tags_id = tag)
+
+        tag_community = legacy_communities.union(profession_community, interest_community, geography_community)
+
+        user_tags = user_L_tags.union(user_P_tags, user_I_tags, user_G_tags)
 
     # if any community has this tag
-    if tag_community.exists():
+    if community_exists:
         for community in tag_community:
             tag_community_id = community.community_id.id
 
