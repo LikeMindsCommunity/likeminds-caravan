@@ -521,3 +521,5 @@ class collabcardState(models.Model):
     community = models.ForeignKey(Community, on_delete= models.CASCADE)
     user = models.ForeignKey(User, on_delete = models.CASCADE)
     state=models.IntegerField(null=True)
+    created_at=models.BigIntegerField(default=-9223372036854775808,null=True)
+    updated_at=models.BigIntegerField(default=-9223372036854775808,null=True)

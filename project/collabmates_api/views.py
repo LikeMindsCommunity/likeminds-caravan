@@ -1143,6 +1143,8 @@ def create_card(request):
         collabcard_state_instance.user=user.user_id
         collabcard_state_instance.community=community
         collabcard_state_instance.state=collabcard_follow_state         #user has created the card and he is autofollowing
+        collabcard_state_instance.created_at=time.time()
+        collabcard_state_instance.updated_at=time.time()
         collabcard_state_instance.save()
 
         update_last_answer_id(card.id,"")
@@ -2158,9 +2160,11 @@ def collabcard_follow(request):
             collabcard_state_instance.community = community_instance
             collabcard_state_instance.user = user_instance
             collabcard_state_instance.state = collabcard_follow_state
+            collabcard_state_instance.created_at = time.time()
+            collabcard_state_instance.updated_at = time.time()
             collabcard_state_instance.save()
         else:
-            collabcardState.objects.filter(card=collabcard,user=user_instance).update(state=collabcard_follow_state)
+            collabcardState.objects.filter(card=collabcard,user=user_instance).update(state=collabcard_follow_state,updated_at=time.time())
 
 
 
@@ -2168,7 +2172,7 @@ def collabcard_follow(request):
         '''Deleting the collabcard '''
         if status == False:
             follow_collabcard.objects.filter(collabcard_id=collabcard,member_id=user_instance).delete()
-            collabcardState.objects.filter(card=collabcard,user=user_instance).update(state=collabcard_seen_state)
+            collabcardState.objects.filter(card=collabcard,user=user_instance).update(state=collabcard_seen_state,updated_at=time.time())
     # custom_cache.clear()
     return JsonResponse({'success':True})
 
@@ -2222,6 +2226,8 @@ def collabcards_seen(request):
             collabcard_state_instance.community=community
             collabcard_state_instance.user=user_instance
             collabcard_state_instance.state=collabcard_seen_state
+            collabcard_state_instance.created_at = time.time()
+            collabcard_state_instance.updated_at = time.time()
             collabcard_state_instance.save()
 
     update_last_unseen_in_engage(user=user_instance, community=community, is_seen=True)
