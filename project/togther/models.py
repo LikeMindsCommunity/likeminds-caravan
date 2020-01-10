@@ -515,9 +515,9 @@ class Report(models.Model):
     date_epoch=models.BigIntegerField(default=-9223372036854775808,null=True)
 
 
-# class collabcardState(models.Model):
-#
-#     card = models.ForeignKey(Collabcard, on_delete= models.CASCADE)
-#     community = models.ForeignKey(Community, on_delete= models.CASCADE)
-#     user = models.ForeignKey(User, on_delete = models.CASCADE)
-#     state=models.IntegerField(null=True)
+class collabcardState(models.Model):
+
+    card = models.ForeignKey(Collabcard, on_delete= models.CASCADE)
+    community = models.ForeignKey(Community, on_delete= models.CASCADE)
+    user = models.ForeignKey(User, on_delete = models.CASCADE)
+    state=models.IntegerField(null=True)

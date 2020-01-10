@@ -44,6 +44,8 @@ from utility.utils import (decode_meta_from_url, update_tag_image,
                            update_user_geography_tags, create_or_categorize_tag,
                            insert_user_home_town_tags,user_onbaord,is_IG_community)
 
+from utility.states import collabcard_seen_state,collabcard_follow_state
+
 from utility.tasks import (mail_triger, new_member_request,
                            member_request_approval_or_denied,send_mail_for_report_abuse__on_collabcard)
 from utility.firebase import update_last_answer_id,upload_image_to_firebase,upload_community_thumbnail,upload_community_files
@@ -1134,6 +1136,15 @@ def create_card(request):
         follow.member_id=user.user_id
         follow.save()
 
+
+        # #saving the state in collabcardState table instead of follow collabcard
+        collabcard_state_instance=collabcardState()
+        collabcard_state_instance.card=card
+        collabcard_state_instance.user=user.user_id
+        collabcard_state_instance.community=community
+        collabcard_state_instance.state=collabcard_follow_state         #user has created the card and he is autofollowing
+        collabcard_state_instance.save()
+
         update_last_answer_id(card.id,"")
 
         if is_member_engage(community,user.user_id):
@@ -2129,6 +2140,7 @@ def update_answer_text(card_id):
 @csrf_exempt
 def collabcard_follow(request):
     '''Api to follow collabcard by members Post API'''
+
     collabcard_id=request.GET.get('collabcard_id','')
     member_id=request.GET.get('member_id','')
     status=request.GET.get('value','true')
@@ -2139,18 +2151,35 @@ def collabcard_follow(request):
 
 
     collabcard=Collabcard.objects.get(id=collabcard_id)
-    member_id=User.objects.get(id=member_id)
+    community_instance=collabcard.community
+    user_instance=User.objects.get(id=member_id)
     is_present = is_collabcard_already_followed(collabcard, member_id)
 
     if is_present == False:
         follow=follow_collabcard()
         follow.collabcard_id=collabcard
-        follow.member_id=member_id
+        follow.member_id=user_instance
         follow.save()
+
+        #saving the state in collabcard_state table
+        is_present=collabcardState.objects.filter(card=collabcard, user=user_instance)
+        if not is_present:
+            collabcard_state_instance = collabcardState()
+            collabcard_state_instance.card = collabcard
+            collabcard_state_instance.community = community_instance
+            collabcard_state_instance.user = user_instance
+            collabcard_state_instance.state = collabcard_follow_state
+            collabcard_state_instance.save()
+        else:
+            collabcardState.objects.filter(card=collabcard,user=user_instance).update(state=collabcard_follow_state)
+
+
+
     else:
         '''Deleting the collabcard '''
         if status == False:
-            follow_collabcard.objects.filter(collabcard_id=collabcard,member_id=member_id).delete()
+            follow_collabcard.objects.filter(collabcard_id=collabcard,member_id=user_instance).delete()
+            collabcardState.objects.filter(card=collabcard,user=user_instance).update(state=collabcard_seen_state)
     # custom_cache.clear()
     return JsonResponse({'success':True})
 
@@ -2171,7 +2200,11 @@ def is_collabcard_already_followed(collabcard,member_id):
 @csrf_exempt
 def collabcards_seen(request):
     '''This functions stores the details of members who have seen the card'''
+
     params = request.GET
+    community_id=None
+    card_id=None
+    user_id=None
     if 'community_id' in params:
         community_id = params['community_id']
     if 'collabcard_id' in params:
@@ -2179,22 +2212,32 @@ def collabcards_seen(request):
     if 'member_id' in params:
         user_id = params['member_id']
 
-    community = Community.objects.get(id = community_id)
-    user = User.objects.get(id = user_id)
-    card = Collabcard.objects.get(id = card_id)
+    community = Community.objects.get(id=community_id)
+    user_instance = User.objects.get(id=user_id)
+    card_instance = Collabcard.objects.get(id=card_id)
 
-    seen_card = collabcard_seen.objects.filter(community = community,user=user,card=card)
+    seen_card = collabcard_seen.objects.filter(community=community, user=user_instance, card=card_instance)
     if not seen_card:
         # if the card has not yet been seen by the user, update the database
-       collab_seen=collabcard_seen()
-       collab_seen.card=card
-       collab_seen.user=user
-       collab_seen.community=community
-       collab_seen.save()
-    update_last_unseen_in_engage(user=user,community=community,is_seen=True)
+        collab_seen = collabcard_seen()
+        collab_seen.card = card_instance
+        collab_seen.user = user_instance
+        collab_seen.community = community
+        collab_seen.save()
+
+        # saving the state in collabcard state table if it is not present
+        is_present = collabcardState.objects.filter(card=card_instance, user=user_instance)
+        if not is_present:
+            collabcard_state_instance=collabcardState()
+            collabcard_state_instance.card=card_instance
+            collabcard_state_instance.community=community
+            collabcard_state_instance.user=user_instance
+            collabcard_state_instance.state=collabcard_seen_state
+            collabcard_state_instance.save()
+
+    update_last_unseen_in_engage(user=user_instance, community=community, is_seen=True)
     # custom_cache.clear()
     return JsonResponse({'success': True})
-
 
 
 def decode_url(request):
