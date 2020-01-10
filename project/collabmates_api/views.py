@@ -2494,12 +2494,16 @@ def login(request):
 
         else:
             # if user is logging in with Apple
-            email = res['email']
             # converting email to lower case and removing unwanted space
-            email = email.lower().strip()
-            user = User.objects.filter(email=email)
+            email = res['email'].lower().strip() if 'email' in res else False
 
-            if not user.exists():
+            if email:
+                user = User.objects.filter(email=email)
+                user_exists = True if user.exists() else False
+            else:
+                userinfo = Userinfo.objects.filter(apple_id=res['id'])
+                user_exists = True if userinfo.exists() else User.objects.filter(pk=userinfo[0].user_id.id).exists()
+            if not user_exists:
                 # creating a user if no user is associated with that email
                 user = create_user(user_name=res['name'], email=res['email'],id=res['id'])
 
@@ -2519,7 +2523,7 @@ def login(request):
                 created = True
                 mail_triger(str(user.id), request)  # both mail and notification will be sent here
 
-        if not created:
+        if not created and email:
             userinfo=Userinfo.objects.filter(email=email)[0]
 
         # get serialized user object
