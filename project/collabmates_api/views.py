@@ -1822,6 +1822,7 @@ def community_cards(request, community_id):
     community = Community.objects.get(id = community_id)
     member_id=request.GET.get('member_id')
 
+    user_instance=User.objects.get(id=member_id)
 
     #is_tour=request.GET.get('is_tour',False)
 
@@ -1838,6 +1839,7 @@ def community_cards(request, community_id):
     else:
         cards = Collabcard.objects.filter(community = community_id).order_by('id')
         size=len(cards)
+
 
     collabcard_url=request.build_absolute_uri()
     # if collabcard_url in custom_cache:
@@ -2020,7 +2022,11 @@ def get_status_of_collabcard(member_id,community,card):
     '''function to get the state of collabcard'''
     state=0
     member_id=User.objects.get(id=member_id)
+    collabcard_state=collabcardState.objects.filter(card=card,user=member_id)
 
+    if collabcard_state:
+        state=collabcard_state[0].state
+        return state
     seen_status=collabcard_seen.objects.filter(card=card,community=community,user=member_id)
     if seen_status:
         state=1
@@ -2029,6 +2035,8 @@ def get_status_of_collabcard(member_id,community,card):
             state=2
 
     return state
+
+
 
 # /api/create_answer?collabcard_id=&member_id=
 @csrf_exempt
@@ -2296,6 +2304,76 @@ def auto_create_collabcard(member,community):
             introduction_answer = form_response[0].response
             #introduction_answer = introduction_answer
     return introduction_question,introduction_answer
+
+
+def community_collabcard_id(request):
+
+    '''function to send ids of the collabcards'''
+
+    community_id=request.GET.get('community_id')
+    community_instance=Community.objects.get(id=community_id)
+    member_id=get_member_id_from_headers(request)
+    print(member_id)
+    user_instance=User.objects.get(id=member_id)
+
+    collabcard_ids_list = list(Collabcard.objects.filter(community=community_instance).order_by('id').values_list('id',flat=True))
+    collabcard_state_for_member=collabcardState.objects.filter(community=community_instance,user=user_instance).order_by('id')
+
+    collabcard_state_map={}
+
+    for collabcard in collabcard_state_for_member:
+        collabcard_state_map[collabcard.card.id]=collabcard.state
+
+    collabcard_ids=[]
+    for id in collabcard_ids_list:
+        temp={}
+        if id in collabcard_state_map:
+            temp['id']=id
+            temp['state']=collabcard_state_map[id]
+        else:
+            temp['id'] = id
+            temp['state'] = 0
+        collabcard_ids.append(temp)
+
+    return JsonResponse({'collabcard_ids':collabcard_ids})
+
+
+def community_collabcard_meta(request):
+
+    ''' function to get the collabcard details '''
+
+    collabcard_ids=request.GET.get('collabcard_ids',False)
+    collabcard_ids=collabcard_ids.split(",")
+
+    member_id=get_member_id_from_headers(request)
+
+    card_list=[]
+    for card_id in collabcard_ids:
+        card_instance=Collabcard.objects.get(id=card_id)
+        user = Userinfo.objects.get(user_id=card_instance.user)
+        # serialize user object
+        usr = UserinfoSerializer(user)
+        # get card images --------------------------------------------------------
+        files = get_collabcard_files(card_instance)
+        # -----------------------------------------------------------------------
+
+        # get time stamp
+        if str(card_instance.date_epoch) == "-9223372036854775808":
+            # if there is no time stamp , return nothing
+            time_text = ""
+        else:
+            # get time stamp
+            time_text = get_time_text(card_instance.date_epoch)
+        card_dict = CollabcardSerializer(card_instance, card_instance.community)
+        card_dict['state'] = get_status_of_collabcard(member_id, card_instance.community, card_instance)
+        card_dict['created_at'] = time_text
+        card_dict['member'] = usr
+        card_dict['images'] = files[0]
+        card_dict['pdf'] = files[1]
+        card_list.append(card_dict)
+    return JsonResponse({'collabcards': card_list})
+
+
 
 ############# upload files flow   ##########################
 
