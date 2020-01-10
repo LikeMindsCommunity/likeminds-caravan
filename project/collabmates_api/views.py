@@ -2625,7 +2625,8 @@ def login(request):
                 user_exists = False
             if not user_exists:
                 # creating a user if no user is associated with that email
-                user = create_user(user_name=res['name'], email=res['email'],id=res['id'])
+                user = create_user(user_name=res['name'], email=res['email'],
+                                   id=res['id'],apple_id=True)
 
                 # fb_link = res['link'] if 'link' in res else None
                 if 'picture' in res:
@@ -2667,12 +2668,17 @@ def login(request):
     return HttpResponse('Login Api')
 
 
-def create_user(user_name, email,id):
+def create_user(user_name, email,id,apple_id=False):
     ''' function to create Auth-User of a user '''
 
-    user = User.objects.filter(email=email)
+    user_name = user_name + "_" + id
+
+    if not apple_id:
+        user = User.objects.filter(email=email)
+    else:
+        user = User.objects.filter(username=user_name)
+
     if not user.exists():
-        user_name = user_name+"_"+id
 
         user = User()
         user.username = user_name
@@ -2686,7 +2692,11 @@ def create_user(user_name, email,id):
 def create_userinfo(user, email, user_name, profile_picture, login_type, json_to_save, city = None,apple_id=None):
     ''' function to create User-Info of a user '''
 
-    userinfo = Userinfo.objects.filter(email=email)
+    if not apple_id:
+        userinfo = Userinfo.objects.filter(email=email)
+    else:
+        userinfo = Userinfo.objects.filter(apple_id=apple_id)
+
     if not userinfo.exists():
         userinfo = Userinfo()
         userinfo.user_id = user
