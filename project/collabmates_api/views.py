@@ -1555,7 +1555,7 @@ def request_response(request,req_dict=None):
                 engage.member_id = user
                 engage.community_id = community
                 engage.last_unseen_conversation = purpose_card
-                engage.last_unseen_count=unseen_count
+                engage.last_unseen_count = unseen_count
                 engage.updated_at = time.time()
                 engage.save()
                 update_pending_member_count_in_engage(community)
