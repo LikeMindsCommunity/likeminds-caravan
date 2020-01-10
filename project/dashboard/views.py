@@ -125,7 +125,8 @@ def dashboard(request):
              'community':community_list,
               'tags': tags,
               'select_type':select_type,
-             'search_key':search_key}
+             'search_key':search_key,
+             'url':url}
     info_logger.info(context)
     return render(request,'dashboard/dashboard.html',context)
 
