@@ -140,6 +140,7 @@ def update_tag_image(tag_name, tag_id):
 
                 # tag_obj.image_link = file_name
                 tag_obj.image_link = image_link
+                tag_obj.updated_at = time.time()
                 tag_obj.save()
             return
     return
@@ -245,6 +246,7 @@ def create_or_categorize_tag(tag,category,attribute):
                     tag.category_id = category
                     tag.attribute_id = attribute
                     tag.save()
+                    tag.created_at = time.time()
                     tag.tag_id = tag.id
                     tag.save()
 
@@ -263,6 +265,7 @@ def create_or_categorize_tag(tag,category,attribute):
                         print("inside")
                         tag.category_id = category
                         tag.attribute_id = attribute
+                        tag.updated_at = time.time()
                         tag.save()
 
                     if category.name == 'Geography' or attribute.id == 3:
@@ -487,6 +490,7 @@ def insert_user_home_town_tags(user_id,tag):
                 tag.attribute_id = attribute
                 tag.save()
                 tag.tag_id = tag.id
+                tag.created_at = time.time()
                 tag.save()
                 if tag and not tag.image_link:
                     tag_id = tag.id
@@ -500,6 +504,7 @@ def insert_user_home_town_tags(user_id,tag):
         tag.attribute_id = attribute
         tag.save()
         tag.tag_id = tag.id
+        tag.created_at = time.time()
         tag.save()
 
     create_user_hometown_tag_and_related_tags.delay(user_id=user_id, tag_id=tag.id, new_tag=new_tag)
@@ -681,3 +686,16 @@ def is_request_pc(request):
     return False
 
 
+
+def is_IG_community(community):
+
+    '''function to check if the community is IG community or not'''
+
+    communities_interest=Community_Interest.objects.filter(community_id=community)
+
+    for interest in communities_interest:
+        tag_id=interest.tags_id.id
+        if tag_id != 17:
+            return True
+
+    return False

@@ -98,6 +98,8 @@ class Userinfo (models.Model):
     created_at=models.BigIntegerField(default=-9223372036854775808)
     version_code=models.IntegerField(null=True,default=21)
     image_link=models.CharField(max_length=500,null=True)
+    apple_id = models.CharField(max_length=100, null=True)
+
 
 
     def __str__(self):
@@ -158,7 +160,7 @@ class Collabcard (models.Model):
     og_tags=models.CharField(max_length=2048,default='')
     image_count = models.IntegerField(default=0, null=True)
     pdf_count = models.IntegerField(default=0, null=True)
-    state=models.IntegerField(default=0)    # state=0 (Normal Collabcard);state=1(Introduction Collabcard)
+    type=models.IntegerField(default=0)    # state=0 (Normal Collabcard);state=1(Introduction Collabcard)
 
 
 
@@ -304,6 +306,10 @@ class Tags_lpig(models.Model):
     image_link = models.CharField(max_length= 500,null=True)
     tag_rank=models.IntegerField(default=0)
     thumbnail=models.CharField(max_length=500,null=True)
+    created_at=models.BigIntegerField(default=-9223372036854775808,null=True)
+    updated_at=models.BigIntegerField(default=-9223372036854775808,null=True)
+
+
 
 
 
@@ -359,8 +365,6 @@ class Community_Profession(models.Model):
 
 
 
-
-
 class Community_Interest(models.Model):
     '''Model to store the communities of interest'''
     community_id = models.ForeignKey(Community, on_delete=models.CASCADE)
@@ -374,8 +378,6 @@ class Community_Interest(models.Model):
             self.save()
 
         super(Community_Interest, self).save(*args, **kwargs)
-
-
 
 
 class Community_Geography(models.Model):
@@ -519,3 +521,11 @@ class Report(models.Model):
     date_epoch=models.BigIntegerField(default=-9223372036854775808,null=True)
 
 
+class collabcardState(models.Model):
+
+    card = models.ForeignKey(Collabcard, on_delete= models.CASCADE)
+    community = models.ForeignKey(Community, on_delete= models.CASCADE)
+    user = models.ForeignKey(User, on_delete = models.CASCADE)
+    state=models.IntegerField(null=True)
+    created_at=models.BigIntegerField(default=-9223372036854775808,null=True)
+    updated_at=models.BigIntegerField(default=-9223372036854775808,null=True)

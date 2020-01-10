@@ -22,7 +22,8 @@ from django.urls import reverse
 from utility.utils import (get_city_address, update_tag_image,
                            update_user_geography_tags, create_or_categorize_tag,
                            referal, insert_user_home_town_tags,user_onbaord,
-                           is_request_android,is_request_ios,is_request_pc,android_app_download_link)
+                           is_request_android,is_request_ios,
+                           is_request_pc,android_app_download_link,is_IG_community)
 from utility.firebase import upload_image_to_firebase
 from urllib.parse import urlencode,quote
 from collabmates_api.tasks import send_email
@@ -179,6 +180,8 @@ def get_user_communities(request):
 
 def community(request, community_id):
 
+
+
     if request.user.is_authenticated:
         try:
             user = Userinfo.objects.get(user_id=request.user.id)
@@ -307,6 +310,15 @@ def community(request, community_id):
     android_app_link=""
     if is_request_android(request):
         android_app_link=android_app_download_link
+    if not is_IG_community(community):
+        share_text="""I recently joined %s community on CollabMates. It will be good if you also join this community"""%(community.name)
+    else:
+        share_text = """I recently joined %s community on CollabMates. It will be fun if you also join this community""" % (
+            community.name)
+    if request.user.is_authenticated:
+        share_url = str(settings.URL) + '/community/' + str(community_id) + "?ref_id=" + str(request.user.id)
+    else:
+        share_url = str(settings.URL) + '/community/' + str(community_id)
     context={'usr': user, 'similar_communities': communities,
              'community': community, 'admins': admin_details,
              'members': members, 'source': source,
@@ -316,7 +328,9 @@ def community(request, community_id):
              'similar_community_length':len(communities),
              'ref_id':ref_id,
              'request_user_email':request_user_email,
-             'android_app_link':android_app_link
+             'android_app_link':android_app_link,
+             'share_text':share_text,
+             'share_url':share_url
 
              }
     # user_email = True
@@ -955,6 +969,7 @@ def get_or_create_tag(tag_name,tag_type):
             tag.attribute_id = attribute
             tag.save()
             tag.tag_id = tag.id
+            tag.created_at = time.time()
             tag.save()
         return tag.id
 

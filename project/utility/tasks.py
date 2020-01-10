@@ -40,7 +40,7 @@ def send_email(subject,template,to):
 
 @shared_task
 def onboarding_mail_for_new_users(member_id,android,ios,pc):
-    print('member_id === ',member_id)
+    print('member_id ===>>>> ',member_id)
 
     user = User.objects.get(pk = member_id)
     user_legacy = User_Legacy.objects.filter(user_id=user)

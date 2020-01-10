@@ -125,7 +125,8 @@ def dashboard(request):
              'community':community_list,
               'tags': tags,
               'select_type':select_type,
-             'search_key':search_key}
+             'search_key':search_key,
+             'url':url}
     info_logger.info(context)
     return render(request,'dashboard/dashboard.html',context)
 
@@ -1246,13 +1247,14 @@ def create_uncategorized_tag(tag,tag_type):
             tag.name = new_tag
             tag.category_id = category
             tag.attribute_id = attribute
+            tag.created_at = time.time()
             tag.save()
             tag.tag_id = tag.id
             tag.save()
         else:
             tag = tag[0]
         if tag_type == 'Geography':
-            if tag and not tag.tag_image:
+            if tag and not tag.image_link:
                 tag_name, tag_id = new_tag, tag.id
                 error_logger.error(" dashboard update tag image at create or get uncategorized tag")
                 update_tag_image.delay(tag_name=tag_name, tag_id=tag_id)
@@ -1516,6 +1518,7 @@ def get_or_create_sub_tags(new_tag,category,attribute,cluster=False):
             tag = Tags_lpig.objects.get(name__iexact=new_tag)
             tag.attribute_id=attribute
             tag.is_cluster=1
+            tag.updated_at = time.time()
             tag.save()
     except:
 
@@ -1525,13 +1528,14 @@ def get_or_create_sub_tags(new_tag,category,attribute,cluster=False):
         tag.attribute_id = attribute
         tag.save()
         tag.tag_id =tag.id
+        tag.created_at = time.time()
         tag.save()
         if cluster:
             tag.is_cluster=1
             tag.save()
         if not cluster:
             if category.name == 'Geography' or attribute.id == 3:
-                if tag and not tag.tag_image:
+                if tag and not tag.image_link:
                     tag_id,tag_name = tag.id,tag.name
                     update_tag_image(tag_id=tag_id,tag_name=tag_name)
 
@@ -1663,13 +1667,13 @@ def update_uncategorize_tag(uncategorized, category, attribute):
 
     if attribute.id == 3:
         tag_id = tag.id
-        if tag and not tag.tag_image:
+        if tag and not tag.image_link:
             tag_name = tag.name
             update_tag_image(tag_id=tag_id, tag_name=tag_name)
         update_hometown_tags_for_all_users.delay(tag_id)
 
     elif category.name == 'Geography':
-        if tag and not tag.tag_image:
+        if tag and not tag.image_link:
             tag_id = tag.id
             tag_name = tag.name
             update_tag_image.delay(tag_id=tag_id,tag_name=tag_name)
@@ -2045,46 +2049,46 @@ def get_tags_by_attributes(request,attr_id):
     for tag in tags:
         color = 'green'
         tag_dict = {'tag_id':tag.id,'tag_name':tag.name,'color':'green'}
-        print(tag,tag.tag_characterstics,' >> ',tag.tag_image,' >> ',not tag.tag_image)
+        print(tag,tag.tag_characterstics,' >> ',tag.image_link,' >> ',not tag.image_link)
 
         if tag.attribute_id.id == 1 or tag.attribute_id.id == 4 or tag.attribute_id.id == 7 :
             print('\ninside special if\n')
-            if not tag.tag_image:
+            if not tag.image_link:
                 tag_dict['color'] = 'black'
             tags_list.append(tag_dict)
             continue
 
-        elif not tag.tag_characterstics and not tag.tag_image:
+        elif not tag.tag_characterstics and not tag.image_link:
             print("\n here 1\n")
             tag_dict['color'] = 'black'
             tags_list.append(tag_dict)
             continue
 
-        elif tag.tag_characterstics == 'null' and not tag.tag_image:
+        elif tag.tag_characterstics == 'null' and not tag.image_link:
             print("\n here 2\n")
             tag_dict['color'] = 'black'
             tags_list.append(tag_dict)
             continue
 
-        elif not tag.tag_characterstics and tag.tag_image :
+        elif not tag.tag_characterstics and tag.image_link :
             print('\ninside here 1\n')
             tag_dict['color'] = 'red'
             tags_list.append(tag_dict)
             continue
 
-        elif tag.tag_characterstics == 'null' and tag.tag_image:
+        elif tag.tag_characterstics == 'null' and tag.image_link:
             print('\ninside here 2\n')
             tag_dict['color'] = 'red'
             tags_list.append(tag_dict)
             continue
 
-        elif tag.tag_image and not tag.tag_characterstics:
+        elif tag.image_link and not tag.tag_characterstics:
             print('\ninside here 3\n')
             tag_dict['color'] = 'red'
             tags_list.append(tag_dict)
             continue
 
-        elif tag.tag_image and tag.tag_characterstics == 'null':
+        elif tag.image_link and tag.tag_characterstics == 'null':
             print('\ninside here 4\n')
             tag_dict['color'] = 'red'
             tags_list.append(tag_dict)
@@ -2107,11 +2111,11 @@ def get_tags_by_attributes(request,attr_id):
                 count += 1
 
 
-        if count == dict_length and not tag.tag_image:
+        if count == dict_length and not tag.image_link:
             tag_dict['color'] = 'black'
             tags_list.append(tag_dict)
 
-        elif count != dict_length and not tag.tag_image:
+        elif count != dict_length and not tag.image_link:
             tag_dict['color'] = 'red'
             tags_list.append(tag_dict)
 
@@ -2139,6 +2143,7 @@ def tag_update_form(request,tag_id):
             if tag_rank_form.is_valid():
                 tag_rank = tag_rank_form.cleaned_data['tag_rank']
                 tag.tag_rank = tag_rank
+                tag.updated_at = time.time()
                 tag.save()
                 print("rank update")
                 return HttpResponse("Rank Updated")
@@ -2244,6 +2249,7 @@ def tag_update_form(request,tag_id):
             tag.image_link = image_link
 
         tag.tag_characterstics = json.dumps(characteristics)
+        tag.updated_at = time.time()
         tag.save()
 
         base_url = reverse('update_tag')
@@ -2507,6 +2513,7 @@ def delete_tags_post(request,tag_id):
     print(">>>>>>>>>>",tag)
     tag_community = None
     user_tags = None
+    community_exists =  False
     category_id = tag.category_id.id
     print("cat id",category_id)
 
@@ -2514,22 +2521,41 @@ def delete_tags_post(request,tag_id):
     if category_id == 1:
         tag_community = Community_Legacy.objects.filter(tags_id = tag)
         user_tags = User_Legacy.objects.filter(tags_id = tag)
+        community_exists = True
     elif category_id == 2:
         tag_community = Community_Profession.objects.filter(tags_id = tag)
         user_tags = User_Profession.objects.filter(tags_id = tag)
+        community_exists = True
 
     elif category_id == 3:
         tag_community = Community_Interest.objects.filter(tags_id = tag)
         user_tags = User_Interest.objects.filter(tags_id = tag)
+        community_exists = True
+
 
     elif category_id == 4:
         tag_community = Community_Geography.objects.filter(tags_id = tag)
         user_tags = User_Geography.objects.filter(tags_id = tag)
-    else:
-        pass
+        community_exists = True
+
+    elif category_id == 6:
+        community_exists = True
+        legacy_communities = Community_Legacy.objects.filter(tags_id = tag)
+        profession_community = Community_Profession.objects.filter(tags_id = tag)
+        interest_community = Community_Interest.objects.filter(tags_id = tag)
+        geography_community = Community_Geography.objects.filter(tags_id = tag)
+
+        user_L_tags = User_Legacy.objects.filter(tags_id = tag)
+        user_P_tags = User_Profession.objects.filter(tags_id = tag)
+        user_I_tags = User_Interest.objects.filter(tags_id = tag)
+        user_G_tags = User_Geography.objects.filter(tags_id = tag)
+
+        tag_community = legacy_communities.union(profession_community, interest_community, geography_community)
+
+        user_tags = user_L_tags.union(user_P_tags, user_I_tags, user_G_tags)
 
     # if any community has this tag
-    if tag_community.exists():
+    if community_exists:
         for community in tag_community:
             tag_community_id = community.community_id.id
 
@@ -2601,6 +2627,7 @@ def rename_tag(request,tag_id = None):
                 tag = Tags_lpig.objects.get(pk=tag_id)
                 old_name = tag.name
                 tag.name = rename_to
+                tag.updated_at = time.time()
                 tag.save()
                 if tag.attribute_id.id < 17 :
                     correct_tag_id=tag.tag_id
@@ -3059,6 +3086,7 @@ def map_all_tags(request):
         categorized_tag.category_id = mapped_tag.category_id
         categorized_tag.attribute_id = mapped_tag.attribute_id
         categorized_tag.tag_id = mapped_tag.id
+        categorize_tag.updated_at = time.time()
         categorized_tag.save()
 
         category=mapped_tag.category_id.id
