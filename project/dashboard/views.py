@@ -1253,7 +1253,7 @@ def create_uncategorized_tag(tag,tag_type):
         else:
             tag = tag[0]
         if tag_type == 'Geography':
-            if tag and not tag.tag_image:
+            if tag and not tag.image_link:
                 tag_name, tag_id = new_tag, tag.id
                 error_logger.error(" dashboard update tag image at create or get uncategorized tag")
                 update_tag_image.delay(tag_name=tag_name, tag_id=tag_id)
@@ -1532,7 +1532,7 @@ def get_or_create_sub_tags(new_tag,category,attribute,cluster=False):
             tag.save()
         if not cluster:
             if category.name == 'Geography' or attribute.id == 3:
-                if tag and not tag.tag_image:
+                if tag and not tag.image_link:
                     tag_id,tag_name = tag.id,tag.name
                     update_tag_image(tag_id=tag_id,tag_name=tag_name)
 
@@ -1664,13 +1664,13 @@ def update_uncategorize_tag(uncategorized, category, attribute):
 
     if attribute.id == 3:
         tag_id = tag.id
-        if tag and not tag.tag_image:
+        if tag and not tag.image_link:
             tag_name = tag.name
             update_tag_image(tag_id=tag_id, tag_name=tag_name)
         update_hometown_tags_for_all_users.delay(tag_id)
 
     elif category.name == 'Geography':
-        if tag and not tag.tag_image:
+        if tag and not tag.image_link:
             tag_id = tag.id
             tag_name = tag.name
             update_tag_image.delay(tag_id=tag_id,tag_name=tag_name)
@@ -2046,46 +2046,46 @@ def get_tags_by_attributes(request,attr_id):
     for tag in tags:
         color = 'green'
         tag_dict = {'tag_id':tag.id,'tag_name':tag.name,'color':'green'}
-        print(tag,tag.tag_characterstics,' >> ',tag.tag_image,' >> ',not tag.tag_image)
+        print(tag,tag.tag_characterstics,' >> ',tag.image_link,' >> ',not tag.image_link)
 
         if tag.attribute_id.id == 1 or tag.attribute_id.id == 4 or tag.attribute_id.id == 7 :
             print('\ninside special if\n')
-            if not tag.tag_image:
+            if not tag.image_link:
                 tag_dict['color'] = 'black'
             tags_list.append(tag_dict)
             continue
 
-        elif not tag.tag_characterstics and not tag.tag_image:
+        elif not tag.tag_characterstics and not tag.image_link:
             print("\n here 1\n")
             tag_dict['color'] = 'black'
             tags_list.append(tag_dict)
             continue
 
-        elif tag.tag_characterstics == 'null' and not tag.tag_image:
+        elif tag.tag_characterstics == 'null' and not tag.image_link:
             print("\n here 2\n")
             tag_dict['color'] = 'black'
             tags_list.append(tag_dict)
             continue
 
-        elif not tag.tag_characterstics and tag.tag_image :
+        elif not tag.tag_characterstics and tag.image_link :
             print('\ninside here 1\n')
             tag_dict['color'] = 'red'
             tags_list.append(tag_dict)
             continue
 
-        elif tag.tag_characterstics == 'null' and tag.tag_image:
+        elif tag.tag_characterstics == 'null' and tag.image_link:
             print('\ninside here 2\n')
             tag_dict['color'] = 'red'
             tags_list.append(tag_dict)
             continue
 
-        elif tag.tag_image and not tag.tag_characterstics:
+        elif tag.image_link and not tag.tag_characterstics:
             print('\ninside here 3\n')
             tag_dict['color'] = 'red'
             tags_list.append(tag_dict)
             continue
 
-        elif tag.tag_image and tag.tag_characterstics == 'null':
+        elif tag.image_link and tag.tag_characterstics == 'null':
             print('\ninside here 4\n')
             tag_dict['color'] = 'red'
             tags_list.append(tag_dict)
@@ -2108,11 +2108,11 @@ def get_tags_by_attributes(request,attr_id):
                 count += 1
 
 
-        if count == dict_length and not tag.tag_image:
+        if count == dict_length and not tag.image_link:
             tag_dict['color'] = 'black'
             tags_list.append(tag_dict)
 
-        elif count != dict_length and not tag.tag_image:
+        elif count != dict_length and not tag.image_link:
             tag_dict['color'] = 'red'
             tags_list.append(tag_dict)
 
