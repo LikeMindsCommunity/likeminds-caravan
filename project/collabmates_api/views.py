@@ -1518,85 +1518,96 @@ def request_response(request,req_dict=None):
     user = User.objects.get(id= member_id)
     if accepted or accepted == 'true':
         # if accepted , then make him a member of the community
-        #updating the approve state
         join_time=time.time()
-        Members.objects.filter(member_id=member_id,community_id=community).update(state=4,created_at=join_time)  # aprove state = 4
-        community = Community.objects.get(id = community_id)
-        members_count = community.members_count+1
-        Community.objects.filter(id = community_id).update(members_count=members_count)
 
+        # check if member is already accepted to stop duplicate notifications and false member count
+        state = Members.objects.filter(member_id=member_id, community_id=community)[0].state
+        if state != 4:
+            # updating the approve state
+            Members.objects.filter(member_id=member_id, community_id=community).update(state=4,
+                                                                                       created_at=join_time)  # aprove state = 4
+            community = Community.objects.get(id=community_id)
+            members_count = community.members_count + 1
+            Community.objects.filter(id=community_id).update(members_count=members_count)
+            send_notification_for_join_requests.delay(community_id, True, member_id)
 
-        # inserting data in member engage
-        purpose_card = Collabcard.objects.get(id=community.purpose_collabcard)
+            # inserting data in member engage with all neccesary constarints
 
-        unseen_count=Collabcard.objects.filter(community=community).count()
-        count = check_for_member_eligibiity(community_id, member_id)
-        if not is_member_engage(community, user.id):
-            engage = Member_Engage()
-            engage.member_id = user
-            engage.community_id = community
-            engage.last_unseen_conversation = purpose_card
-            engage.last_unseen_count=unseen_count
-            engage.updated_at = time.time()
-            engage.save()
-            update_pending_member_count_in_engage(community)
-            update_referral_text_in_engage_table(community)
-        else:
-            # if the community is created by user than updating the user details
-            if community.hide_community == '0' or community.hide_community == '1' or community.hide_community == '4':
-                engage=Member_Engage.objects.get(community_id = community,member_id = user)
+            # purpose card of community to be shown in your communities card text
+            purpose_card = Collabcard.objects.get(id=community.purpose_collabcard)
+            # unseen cards count for new user
+            unseen_count=Collabcard.objects.filter(community=community).count()
+            count = check_for_member_eligibiity(community_id, member_id)
+            if not is_member_engage(community, user.id):
+                engage = Member_Engage()
+                engage.member_id = user
+                engage.community_id = community
                 engage.last_unseen_conversation = purpose_card
                 engage.last_unseen_count = unseen_count
                 engage.updated_at = time.time()
                 engage.save()
                 update_pending_member_count_in_engage(community)
                 update_referral_text_in_engage_table(community)
+            else:
+                # if the community is created by user than updating the user details
+                if community.hide_community == '0' or community.hide_community == '1' or community.hide_community == '4':
+                    engage=Member_Engage.objects.get(community_id = community,member_id = user)
+                    engage.last_unseen_conversation = purpose_card
+                    engage.last_unseen_count = unseen_count
+                    engage.updated_at = time.time()
+                    engage.save()
+                    update_pending_member_count_in_engage(community)
+                    update_referral_text_in_engage_table(community)
 
-        # send notification
-        send_notification_for_join_requests.delay(community_id,True,member_id)
+            # -----  new user intro card auto create functionality -------
+            introduction_question,introduction_answer=auto_create_collabcard(user,community)
+            json_body={
+                'communityId':community_id,
+                'title':introduction_answer,
+                'image_count':0,
+                'pdf_count':0,
+                'type':1   #if state=0 normal if state =1 intro
+            }
+            params={
+                'community_id':community_id,
+                'member_id':member_id
+            }
 
-        introduction_question,introduction_answer=auto_create_collabcard(user,community)
-        json_body={
-            'communityId':community_id,
-            'title':introduction_answer,
-            'image_count':0,
-            'pdf_count':0,
-            'type':1   #if state=0 normal if state =1 intro
-        }
-        params={
-            'community_id':community_id,
-            'member_id':member_id
-        }
-        link=url+"/api/create_collabcard"
-        rqst.post(link, params=params, json=json_body)
+            # calling create card APi with required credentials
+            link=url+"/api/create_collabcard"
+            rqst.post(link, params=params, json=json_body)
 
-        if not req_dict:
-            notify_referred_member_after_join(joined_member_id=member_id,
-                                              joined_member_name=user.userinfo.name,
-                                              community_name=community.name, community_id=community_id)
-        ## sending email to the user that his request is accepted for this community
-        member_request_approval_or_denied.delay(user_id=member_id,community_id=community_id,approved=True)
+            # notify the referred member if it is a pilot community
+            if not req_dict:
+                notify_referred_member_after_join(joined_member_id=member_id,
+                                                  joined_member_name=user.userinfo.name,
+                                                  community_name=community.name, community_id=community_id)
+            ## sending email to the user that his request is accepted for this community
+            member_request_approval_or_denied.delay(user_id=member_id,community_id=community_id,approved=True)
 
     else:
 
         send_notification = res['send_notification'] if 'send_notification' in res else True
-        # if rejected , change user state to 5
-        Members.objects.filter(member_id=member_id,community_id=community).update(state=5)  # decline state = 5
-        Member_Engage.objects.filter(member_id=member_id, community_id=community).delete()
-        # and also send notification
 
-        if send_notification:
-            send_notification_for_join_requests.delay(community_id, False, member_id)
-
-        Form_response.objects.filter(user=member_id,community=community_id).delete()
-        update_pending_member_count_in_engage(community)
-        update_referral_text_in_engage_table(community)
+        # checking state to stop duplicate notifications and false referal text and pending member count
+        state = Members.objects.filter(member_id=member_id, community_id=community)[0].state
+        if state != 5 :
+            # change user state to 5
+            Members.objects.filter(member_id=member_id,community_id=community).update(state=5)  # decline state = 5
+            # delete the member engage table record for the user
+            Member_Engage.objects.filter(member_id=member_id, community_id=community).delete()
+            # delete the responses of user to community questions, if any
+            Form_response.objects.filter(user=member_id,community=community_id).delete()
+            # update pending members count of community and referal text of user
+            update_pending_member_count_in_engage(community)
+            update_referral_text_in_engage_table(community)
         
-        # uncomment to send
-        ## sending email to the user that his request is rejected for this community
-        # member_request_approval_or_denied.delay(user_id=member_id,community_id=community_id,approved=False)
+            # uncomment to send
+            # sending email to the user that his request is rejected for this community
+            # member_request_approval_or_denied.delay(user_id=member_id,community_id=community_id,approved=False)
 
-
+            if send_notification:
+                send_notification_for_join_requests.delay(community_id, True, member_id)
 
     return JsonResponse({'success': True})
 
