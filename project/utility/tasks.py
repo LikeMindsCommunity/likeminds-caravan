@@ -23,7 +23,7 @@ def mail_triger(member_id,request):
     ios = is_request_ios(request)
     pc = is_request_pc(request)
 
-    t = Timer(600.0, onboarding_mail_for_new_users,[member_id,android,ios,pc])
+    t = Timer(10.0, onboarding_mail_for_new_users,[member_id,android,ios,pc])
     t.start()
 
 
@@ -40,7 +40,7 @@ def send_email(subject,template,to):
 
 @shared_task
 def onboarding_mail_for_new_users(member_id,android,ios,pc):
-    print('member_id === ',member_id)
+    print('member_id ===>>>> ',member_id)
 
     user = User.objects.get(pk = member_id)
     user_legacy = User_Legacy.objects.filter(user_id=user)
