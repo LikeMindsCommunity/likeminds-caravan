@@ -2033,11 +2033,11 @@ def get_status_of_collabcard(member_id,community,card):
     '''function to get the state of collabcard'''
     state=0
     member_id=User.objects.get(id=member_id)
-    # collabcard_state=collabcardState.objects.filter(card=card,user=member_id)
-    #
-    # if collabcard_state:
-    #     state=collabcard_state[0].state
-    #     return state
+    collabcard_state=collabcardState.objects.filter(card=card,user=member_id)
+
+    if collabcard_state:
+        state=collabcard_state[0].state
+        return state
     seen_status=collabcard_seen.objects.filter(card=card,community=community,user=member_id)
     if seen_status:
         state=1
