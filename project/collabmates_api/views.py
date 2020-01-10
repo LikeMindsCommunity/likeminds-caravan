@@ -2518,7 +2518,7 @@ def login(request):
                 # create or get user info
                 userinfo = create_userinfo(user=user, email=res['email'], user_name=res['name'],
                                            profile_picture=image_link, login_type=login_type,
-                                           json_to_save=json_to_save, city=city,
+                                           json_to_save=json_to_save, city=city,apple_id=res['id']
                                            )
                 created = True
                 mail_triger(str(user.id), request)  # both mail and notification will be sent here
@@ -2548,6 +2548,7 @@ def login(request):
 
 
 def create_user(user_name, email,id):
+    ''' function to create Auth-User of a user '''
 
     user = User.objects.filter(email=email)
     if not user.exists():
@@ -2562,8 +2563,9 @@ def create_user(user_name, email,id):
 
     return user
 
-def create_userinfo(user, email, user_name, profile_picture, login_type, json_to_save, city = None):
-
+def create_userinfo(user, email, user_name, profile_picture, login_type, json_to_save, city = None,apple_id=None):
+    ''' function to create User-Info of a user '''
+    
     userinfo = Userinfo.objects.filter(email=email)
     if not userinfo.exists():
         userinfo = Userinfo()
@@ -2575,6 +2577,8 @@ def create_userinfo(user, email, user_name, profile_picture, login_type, json_to
         userinfo.login_json = json_to_save
         userinfo.created_at = time.time()
         userinfo.city = city
+        if apple_id:
+            userinfo.apple_id = apple_id
         userinfo.save()
     else:
         userinfo = userinfo[0]
