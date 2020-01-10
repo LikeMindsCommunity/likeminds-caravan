@@ -2507,6 +2507,9 @@ def login(request):
                 created = True
                 mail_triger(str(user.id),request) # both mail and notification will be sent here
 
+            if not created :
+                userinfo=user[0].userinfo
+
         elif login_type == 'linkedIn':
             # if user is logging in with linkedIn
             user_name=res['firstName']['localized']['en_US'] + " " + res['lastName']['localized']['en_US']
@@ -2530,18 +2533,21 @@ def login(request):
                 created = True
                 mail_triger(str(user.id),request) # both mail and notification will be sent here
 
+            if not created :
+                userinfo=userinfo[0]
+
 
         else:
             # if user is logging in with Apple
             # converting email to lower case and removing unwanted space
-            email = res['email'].lower().strip() if 'email' in res else False
-
-            if email:
-                user = User.objects.filter(email=email)
-                user_exists = True if user.exists() else False
-            else:
-                userinfo = Userinfo.objects.filter(apple_id=res['id'])
-                user_exists = True if userinfo.exists() else User.objects.filter(pk=userinfo[0].user_id.id).exists()
+            # email = res['email'].lower().strip() if 'email' in res else False
+            # 
+            # if email:
+            #     user = User.objects.filter(email=email)
+            #     user_exists = True if user.exists() else False
+            # else:
+            userinfo = Userinfo.objects.filter(apple_id=res['id'])
+            user_exists = True if userinfo.exists() else User.objects.filter(pk=userinfo[0].user_id.id).exists()
             if not user_exists:
                 # creating a user if no user is associated with that email
                 user = create_user(user_name=res['name'], email=res['email'],id=res['id'])
@@ -2557,13 +2563,13 @@ def login(request):
                 # create or get user info
                 userinfo = create_userinfo(user=user, email=res['email'], user_name=res['name'],
                                            profile_picture=image_link, login_type=login_type,
-                                           json_to_save=json_to_save, city=city,
+                                           json_to_save=json_to_save, city=city,apple_id=res['id']
                                            )
                 created = True
                 mail_triger(str(user.id), request)  # both mail and notification will be sent here
 
-        if not created and email:
-            userinfo=Userinfo.objects.filter(email=email)[0]
+            if not created :
+                userinfo=userinfo[0]
 
         # get serialized user object
 
@@ -2587,6 +2593,7 @@ def login(request):
 
 
 def create_user(user_name, email,id):
+    ''' function to create Auth-User of a user '''
 
     user = User.objects.filter(email=email)
     if not user.exists():
@@ -2601,7 +2608,8 @@ def create_user(user_name, email,id):
 
     return user
 
-def create_userinfo(user, email, user_name, profile_picture, login_type, json_to_save, city = None):
+def create_userinfo(user, email, user_name, profile_picture, login_type, json_to_save, city = None,apple_id=None):
+    ''' function to create User-Info of a user '''
 
     userinfo = Userinfo.objects.filter(email=email)
     if not userinfo.exists():
@@ -2614,6 +2622,8 @@ def create_userinfo(user, email, user_name, profile_picture, login_type, json_to
         userinfo.login_json = json_to_save
         userinfo.created_at = time.time()
         userinfo.city = city
+        if apple_id:
+            userinfo.apple_id = apple_id
         userinfo.save()
     else:
         userinfo = userinfo[0]
