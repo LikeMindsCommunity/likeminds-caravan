@@ -2502,13 +2502,16 @@ def login(request):
             # if user is logging in with Apple
             # converting email to lower case and removing unwanted space
             # email = res['email'].lower().strip() if 'email' in res else False
-            # 
+            #
             # if email:
             #     user = User.objects.filter(email=email)
             #     user_exists = True if user.exists() else False
             # else:
             userinfo = Userinfo.objects.filter(apple_id=res['id'])
-            user_exists = True if userinfo.exists() else User.objects.filter(pk=userinfo[0].user_id.id).exists()
+            if userinfo.exists():
+                user_exists = True
+            else:
+                user_exists = False
             if not user_exists:
                 # creating a user if no user is associated with that email
                 user = create_user(user_name=res['name'], email=res['email'],id=res['id'])
