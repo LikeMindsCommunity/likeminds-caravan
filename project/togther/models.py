@@ -304,6 +304,10 @@ class Tags_lpig(models.Model):
     image_link = models.CharField(max_length= 500,null=True)
     tag_rank=models.IntegerField(default=0)
     thumbnail=models.CharField(max_length=500,null=True)
+    created_at=models.BigIntegerField(default=-9223372036854775808,null=True)
+    updated_at=models.BigIntegerField(default=-9223372036854775808,null=True)
+
+
 
 
 

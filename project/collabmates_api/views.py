@@ -1603,7 +1603,7 @@ def request_response(request,req_dict=None):
 
         # checking state to stop duplicate notifications and false referal text and pending member count
         state = Members.objects.filter(member_id=member_id, community_id=community)[0].state
-        if state == 3:
+        if state == 3 :
             # change user state to 5
             Members.objects.filter(member_id=member_id,community_id=community).update(state=5)  # decline state = 5
             # delete the member engage table record for the user
@@ -2863,6 +2863,7 @@ def get_or_create_lpig_tags(tag,category,attr):
         tag.name = new_tag
         tag.category_id = category
         tag.attribute_id = attribute
+        tag.created_at = time.time()
         tag.save()
         tag.tag_id = tag.id
         tag.save()
@@ -3355,6 +3356,7 @@ def push_onboarding(request):
                    tag_object.category_id=uncharacterized_category_id      # uncategorized tag
                    tag_object.save()
                    tag_object.tag_id=tag_object.id
+                   tag_object.created_at = time.time()
                    tag_object.save()
                    save_tags_for_user_from_onboarding(category_id,tag_object,member_id)
 
@@ -3412,6 +3414,7 @@ def save_geography_and_hometown_tags_of_user_from_onboarding(address_input,user_
             tag_object.category_id = category                   # uncategorized tag
             tag_object.save()
             tag_object.tag_id = tag_object.id
+            tag_object.created_at = time.time()
             tag_object.save()
             save_tags_for_user_from_onboarding(4, tag_object, user_id)
 
@@ -3427,6 +3430,7 @@ def save_geography_and_hometown_tags_of_user_from_onboarding(address_input,user_
             tag_object.category_id = category  # uncategorized tag
             tag_object.save()
             tag_object.tag_id = tag_object.id
+            tag_object.created_at = time.time()
             tag_object.save()
             save_tags_for_user_from_onboarding(1, tag_object, user_id)
 

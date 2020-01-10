@@ -220,6 +220,7 @@ def upload_tag_thumbnail(tag_id,image_url):
         image_url = storage.child("files").child("tag").child(tag_id).child(name).get_url(None)
         print(image_url)
         tag.thumbnail=image_url
+        tag.updated_at = time.time()
         tag.save()
     except Exception as e:
         print(e)
