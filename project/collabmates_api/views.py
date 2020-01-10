@@ -1619,7 +1619,7 @@ def request_response(request,req_dict=None):
             # member_request_approval_or_denied.delay(user_id=member_id,community_id=community_id,approved=False)
 
             if send_notification:
-                send_notification_for_join_requests.delay(community_id, True, member_id)
+                send_notification_for_join_requests.delay(community_id, False, member_id)
 
     return JsonResponse({'success': True})
 
