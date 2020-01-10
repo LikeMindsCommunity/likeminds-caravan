@@ -1247,6 +1247,7 @@ def create_uncategorized_tag(tag,tag_type):
             tag.name = new_tag
             tag.category_id = category
             tag.attribute_id = attribute
+            tag.created_at = time.time()
             tag.save()
             tag.tag_id = tag.id
             tag.save()
@@ -1517,6 +1518,7 @@ def get_or_create_sub_tags(new_tag,category,attribute,cluster=False):
             tag = Tags_lpig.objects.get(name__iexact=new_tag)
             tag.attribute_id=attribute
             tag.is_cluster=1
+            tag.updated_at = time.time()
             tag.save()
     except:
 
@@ -1526,6 +1528,7 @@ def get_or_create_sub_tags(new_tag,category,attribute,cluster=False):
         tag.attribute_id = attribute
         tag.save()
         tag.tag_id =tag.id
+        tag.created_at = time.time()
         tag.save()
         if cluster:
             tag.is_cluster=1
@@ -2140,6 +2143,7 @@ def tag_update_form(request,tag_id):
             if tag_rank_form.is_valid():
                 tag_rank = tag_rank_form.cleaned_data['tag_rank']
                 tag.tag_rank = tag_rank
+                tag.updated_at = time.time()
                 tag.save()
                 print("rank update")
                 return HttpResponse("Rank Updated")
@@ -2245,6 +2249,7 @@ def tag_update_form(request,tag_id):
             tag.image_link = image_link
 
         tag.tag_characterstics = json.dumps(characteristics)
+        tag.updated_at = time.time()
         tag.save()
 
         base_url = reverse('update_tag')
@@ -2622,6 +2627,7 @@ def rename_tag(request,tag_id = None):
                 tag = Tags_lpig.objects.get(pk=tag_id)
                 old_name = tag.name
                 tag.name = rename_to
+                tag.updated_at = time.time()
                 tag.save()
                 if tag.attribute_id.id < 17 :
                     correct_tag_id=tag.tag_id
@@ -3080,6 +3086,7 @@ def map_all_tags(request):
         categorized_tag.category_id = mapped_tag.category_id
         categorized_tag.attribute_id = mapped_tag.attribute_id
         categorized_tag.tag_id = mapped_tag.id
+        categorize_tag.updated_at = time.time()
         categorized_tag.save()
 
         category=mapped_tag.category_id.id
