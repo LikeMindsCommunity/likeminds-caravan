@@ -1453,7 +1453,7 @@ def request_response(request,req_dict=None):
 
         # check if member is already accepted to stop duplicate notifications and false member count
         state = Members.objects.filter(member_id=member_id, community_id=community)[0].state
-        if state == 3:
+        if state == 3 or state == 8:
             # updating the approve state
             Members.objects.filter(member_id=member_id, community_id=community).update(state=4,
                                                                                        created_at=join_time)  # aprove state = 4
@@ -1522,7 +1522,7 @@ def request_response(request,req_dict=None):
 
         # checking state to stop duplicate notifications and false referal text and pending member count
         state = Members.objects.filter(member_id=member_id, community_id=community)[0].state
-        if state == 3 :
+        if state == 3 or state == 8:
             # change user state to 5
             Members.objects.filter(member_id=member_id,community_id=community).update(state=5)  # decline state = 5
             # delete the member engage table record for the user
