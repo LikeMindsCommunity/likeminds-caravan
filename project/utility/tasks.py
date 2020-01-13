@@ -221,3 +221,27 @@ def send_mail_for_report_abuse__on_collabcard(user_name,collabcard_message,repor
         to="mahesh61437mahe@gmail.com"
     send_email(subject, template, to)
     print("Executed")
+
+@shared_task
+def send_mail_for_report_abuse__of_user(user_name,collabcard_message,report_tag,community_name,community_url,reported_user_name,report_reason=None):
+
+    '''function to send a mail for user report abuse'''
+
+    subject=str(user_name)+" reported on CollabMates"
+    if report_reason:
+        text=str(user_name)+" reported "+str(report_tag)+" for user: "+str(reported_user_name)+" in community "+str(community_name)+". The feedback given By user is "+str(report_reason)
+    else:
+        text = str(user_name) + " reported " + str(report_tag) + " for user: " + str(reported_user_name)+" in community "+str(community_name)
+    context={
+        'subject':subject,
+        'text':text,
+        'community_link':community_url
+    }
+    template = get_template("mails/report_user_abuse.html").render(context)
+    if not is_beta:
+        to="nipun@collabmates.com"
+    else:
+        to="mahesh61437mahe@gmail.com"
+    send_email(subject, template, to)
+
+    print("Executed")

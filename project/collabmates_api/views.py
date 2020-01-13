@@ -47,7 +47,7 @@ from utility.utils import (decode_meta_from_url, update_tag_image,
 from utility.states import collabcard_seen_state,collabcard_follow_state
 
 from utility.tasks import (mail_triger, new_member_request,
-                           member_request_approval_or_denied,send_mail_for_report_abuse__on_collabcard)
+                           member_request_approval_or_denied,send_mail_for_report_abuse__on_collabcard,send_mail_for_report_abuse__of_user)
 from utility.firebase import update_last_answer_id,upload_image_to_firebase,upload_community_thumbnail,upload_community_files
 from .raw_queries import compute_rank
 from multiprocessing.pool import ThreadPool
@@ -3581,8 +3581,12 @@ def save_geography_and_hometown_tags_of_user_from_onboarding(address_input,user_
 def fetch_report_tags(request):
 
     '''api to send report tags '''
-
-    report_tags_instances=Report_Tags.objects.all()
+    type=request.GET.get('type',0)
+    type=int(type)
+    if not type:
+        report_tags_instances=Report_Tags.objects.filter(type=0)
+    else:
+        report_tags_instances = Report_Tags.objects.filter(type=1)
 
     report_tags=[]
 
@@ -3616,18 +3620,41 @@ def push_report(request):
         if 'reason' in request_body:
             reason=request_body['reason']
 
-        report_instance=Report()
-        report_instance.tag=report_tags_instance
-        report_instance.collabcard=collabcard_instance
-        report_instance.reason=reason
-        report_instance.member=user_instance
-        report_instance.date_epoch = time.time()
-        report_instance.save()
+        if 'reported_member_id' not in request_body:
+
+            report_instance=Report()
+            report_instance.tag=report_tags_instance
+            report_instance.collabcard=collabcard_instance
+            report_instance.reason=reason
+            report_instance.member=user_instance
+            report_instance.date_epoch = time.time()
+            report_instance.save()
+            community_url=url+"/community/"+str(collabcard_instance.community.id)
+            send_mail_for_report_abuse__on_collabcard.delay(user_instance.userinfo.name,collabcard_instance.title,
+                                                      report_tags_instance.tag_name,collabcard_instance.community.name,
+                                                      community_url,reason)
+        else:
+            report_instance = Report()
+            report_instance.tag = report_tags_instance
+            report_instance.collabcard = collabcard_instance
+            report_instance.reason = reason
+            report_instance.member = user_instance
+            report_instance.date_epoch = time.time()
+            report_instance.reported_member_id=int(request_body['reported_member_id'])
+            report_instance.save()
+
+            community_url = url + "/community/" + str(collabcard_instance.community.id)
+            try:
+                reported_user_instance=User.objects.get(pk=request_body['reported_member_id'])
+                reported_user_name=reported_user_instance.userinfo.name
+                send_mail_for_report_abuse__of_user.delay(user_instance.userinfo.name,collabcard_instance.title,
+                                                      report_tags_instance.tag_name,collabcard_instance.community.name,
+                                                      community_url,reported_user_name,reason)
+            except Exception as e:
+                log="""Unmatched object for user_id=%s"""%(request_body['reported_member_id'])
+                info_logger.info(log)
+                info_logger.info(e)
         info_logger.info("push report api successfull")
-        community_url=url+"/community/"+str(collabcard_instance.community.id)
-        send_mail_for_report_abuse__on_collabcard.delay(user_instance.userinfo.name,collabcard_instance.title,
-                                                  report_tags_instance.tag_name,collabcard_instance.community.name,
-                                                  community_url,reason)
         return JsonResponse({'success':True})
     return JsonResponse({'success':False})
 
