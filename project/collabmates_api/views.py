@@ -2309,7 +2309,7 @@ def auto_create_collabcard(member,community):
     #                                                                                 form_response[0].response)
     # else:
     if True:
-        form_response = Form_response.objects.filter(user=member.id, community=community.id).order_by('-id')
+        form_response = Form_response.objects.filter(user=member.id, community=community.id).order_by('id')
         if form_response.exists():
             introduction_question = form_response[0].data
             introduction_answer = form_response[0].response
