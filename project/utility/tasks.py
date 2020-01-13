@@ -139,9 +139,11 @@ def new_member_request(member_id,community_id,form_response,ref_id=None,):
     for response in form_response:
         res[response['key']] = response['value']
 
+    community_state = community.state
+
     template = get_template("mails/new_member_request.html").render({"member_name": member_name,"member_id": member_id,'ref_name':ref_name,
                                                                   'subject': subject, 'community_name': community_name, 'community_id': community_id,
-                                                                  'text':text,'community_link':community_link,
+                                                                  'text':text,'community_link':community_link,"community_state":community_state,
                                                                   'result':res, 'url': url,})
     
     if url == "https://beta.collabmates.com":
