@@ -38,6 +38,16 @@ else:
 # count for a particular community to show tutorial
 tutorial_count=3
 
+def is_member_engage(community,member):
+
+    '''function to check if data is presnt in member engage table or not'''
+
+    is_present=False
+    member_data=Member_Engage.objects.filter(community_id=community,member_id=member)
+    if member_data:
+        is_present=True
+    return is_present
+
 def decode_meta_from_url(url):
 
     '''function to take meta tags from url'''
