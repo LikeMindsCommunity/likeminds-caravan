@@ -1017,6 +1017,23 @@ def create_card(request):
             community.save()
             is_pilot_active=True
 
+            introduction_question, introduction_answer = auto_create_collabcard(user.user_id, community)
+            json_body = {
+                'communityId': community_id,
+                'title': introduction_answer,
+                'image_count': 0,
+                'pdf_count': 0,
+                'type': 1  # if state=0 normal if state =1 intro
+            }
+            params = {
+                'community_id': community_id,
+                'member_id': user.user_id.id
+            }
+
+            # calling create card APi with required credentials
+            link = url + "/api/create_collabcard"
+            rqst.post(link, params=params, json=json_body)
+
 
         # sending notification to the user
         send_notification_for_new_collabcard_posted.delay(community_id,res['title'],user_id,user.name)
@@ -3010,24 +3027,6 @@ def accept_promotership(request):
             Members.objects.filter(community_id=community_id,member_id=member_id).update(state=1,created_at=time.time())
             user = User.objects.get(pk=member_id)
             name = user.userinfo.name
-
-            introduction_question, introduction_answer = auto_create_collabcard(user, community)
-            json_body = {
-                'communityId': community_id,
-                'title': introduction_answer,
-                'image_count': 0,
-                'pdf_count': 0,
-                'type': 1  # if state=0 normal if state =1 intro
-            }
-            params = {
-                'community_id': community_id,
-                'member_id': member_id
-            }
-
-            # calling create card APi with required credentials
-            link = url + "/api/create_collabcard"
-            rqst.post(link, params=params, json=json_body)
-
             send_notification_to_all_admins.delay(community_id, name, member_id)
             return JsonResponse({'success': True})
 
