@@ -109,7 +109,7 @@ def update_communities_in_member_engage_table(member_id):
                 info_logger.info("Communities")
                 info_logger.info(community)
                 c=c+1
-            update_referral_text_in_engage_table(community)
+            update_referral_text_in_engage_table(community.id)
     info_logger.info(c)
 
 
