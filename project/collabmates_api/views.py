@@ -2673,9 +2673,8 @@ def create_user(user_name, email,id,apple_id=False):
 
     user_name = user_name + "_" + id
 
-    if not apple_id:
-        user = User.objects.filter(email=email)
-    else:
+    user = User.objects.filter(email=email)
+    if apple_id and not user.exists():
         user = User.objects.filter(username=user_name)
 
     if not user.exists():
@@ -2692,9 +2691,8 @@ def create_user(user_name, email,id,apple_id=False):
 def create_userinfo(user, email, user_name, profile_picture, login_type, json_to_save, city = None,apple_id=None):
     ''' function to create User-Info of a user '''
 
-    if not apple_id:
-        userinfo = Userinfo.objects.filter(email=email)
-    else:
+    userinfo = Userinfo.objects.filter(email=email)
+    if apple_id and not userinfo.exists():
         userinfo = Userinfo.objects.filter(apple_id=apple_id)
 
     if not userinfo.exists():
