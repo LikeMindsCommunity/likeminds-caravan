@@ -2619,11 +2619,8 @@ def login(request):
             # if user is logging in with Apple
 
             userinfo = Userinfo.objects.filter(apple_id=res['id'])
-            if userinfo.exists():
-                user_exists = True
-            else:
-                user_exists = False
-            if not user_exists:
+
+            if not userinfo.exists():
                 # creating a user if no user is associated with that email
                 user = create_user(user_name=res['name'], email=res['email'],
                                    id=res['id'],apple_id=True)
