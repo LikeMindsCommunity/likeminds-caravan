@@ -20,12 +20,12 @@ error_logger = logging.getLogger("error_logger")
 info_logger = logging.getLogger("info_logger")
 
 @shared_task
-def update_referral_text_in_engage_table(community_object):
+def update_referral_text_in_engage_table(community_id):
 
     '''function to update the referal text in member engage table by taking member engage object'''
     # getting the state of member
-
-    engage_communities=Member_Engage.objects.filter(community_id=community_object)
+    community = Community.objects.get(pk = community_id)
+    engage_communities=Member_Engage.objects.filter(community_id=community)
 
     for each_community in engage_communities:
         community={}
