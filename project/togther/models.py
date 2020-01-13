@@ -509,6 +509,8 @@ class Report_Tags(models.Model):
 
     tag_name=models.CharField(max_length=512)
     tag_id=models.IntegerField(null=True)
+    type=models.IntegerField(default=0)
+
 
 class Report(models.Model):
 
@@ -516,9 +518,14 @@ class Report(models.Model):
 
     tag=models.ForeignKey(Report_Tags, on_delete=models.CASCADE)
     collabcard=models.ForeignKey(Collabcard, on_delete=models.CASCADE)
+    reported_member_id = models.IntegerField(default=0)
     member = models.ForeignKey(User, on_delete=models.CASCADE)
     reason=models.CharField(max_length=2048,null=True)
     date_epoch=models.BigIntegerField(default=-9223372036854775808,null=True)
+
+
+
+
 
 
 class collabcardState(models.Model):
