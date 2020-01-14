@@ -211,8 +211,8 @@ a.article-title:hover {
     <div style="padding-top:20px;">
         <a class="btn btn-primary btn-sm mt-1 mb-1 mr-4" href="{% url 'map_all_tags' %}" role="button">Map all Tags</a>
         <a class="btn btn-primary btn-sm mt-1 mb-1 mr-4" href="{% url 'create_user_update' %}" role="button">App Update</a>
-        <a class="btn btn-primary btn-sm mt-1 mb-1 mr-4" href="{% url 'add_report_tags' %}" role="button">Add Report Tags</a>
-
+        <a class="btn btn-primary btn-sm mt-1 mb-1 mr-4" href="{% url 'add_report_tags' %}?type=0" role="button">Add Conversation Report Tags</a>
+        <a class="btn btn-primary btn-sm mt-1 mb-1 mr-4" href="{% url 'add_report_tags' %}?type=1" role="button">Add User Report Tags</a>
 
     </div>
     <br><br>

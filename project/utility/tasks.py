@@ -139,9 +139,11 @@ def new_member_request(member_id,community_id,form_response,ref_id=None,):
     for response in form_response:
         res[response['key']] = response['value']
 
+    community_state = community.hide_community
+
     template = get_template("mails/new_member_request.html").render({"member_name": member_name,"member_id": member_id,'ref_name':ref_name,
                                                                   'subject': subject, 'community_name': community_name, 'community_id': community_id,
-                                                                  'text':text,'community_link':community_link,
+                                                                  'text':text,'community_link':community_link,"community_state":community_state,
                                                                   'result':res, 'url': url,})
     
     if url == "https://beta.collabmates.com":
@@ -220,4 +222,28 @@ def send_mail_for_report_abuse__on_collabcard(user_name,collabcard_message,repor
     else:
         to="mahesh61437mahe@gmail.com"
     send_email(subject, template, to)
+    print("Executed")
+
+@shared_task
+def send_mail_for_report_abuse__of_user(user_name,collabcard_message,report_tag,community_name,community_url,reported_user_name,report_reason=None):
+
+    '''function to send a mail for user report abuse'''
+
+    subject=str(user_name)+" reported on CollabMates"
+    if report_reason:
+        text=str(user_name)+" reported "+str(report_tag)+" for user: "+str(reported_user_name)+" in community "+str(community_name)+". The feedback given By user is "+str(report_reason)
+    else:
+        text = str(user_name) + " reported " + str(report_tag) + " for user: " + str(reported_user_name)+" in community "+str(community_name)
+    context={
+        'subject':subject,
+        'text':text,
+        'community_link':community_url
+    }
+    template = get_template("mails/report_user_abuse.html").render(context)
+    if not is_beta:
+        to="nipun@collabmates.com"
+    else:
+        to="mahesh61437mahe@gmail.com"
+    send_email(subject, template, to)
+
     print("Executed")

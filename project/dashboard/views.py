@@ -3190,13 +3190,16 @@ def add_report_tags(request):
 
     if request.method == 'GET':
 
-        report_tags = Report_Tags.objects.all()
-        return render(request, 'dashboard/add_report_tags.html', {'report_tags':report_tags,
-                                                                  'length':report_tags.count()})
+        typ = request.GET.get('type',0)
+
+        report_tags = Report_Tags.objects.filter(type=typ).order_by('id')
+        context = {'report_tags':report_tags,
+                   'length':report_tags.count(),
+                   'type':typ}
+        return render(request, 'dashboard/add_report_tags.html', context)
     else:
         option_data = request.POST.get('data')
         option_data = json.loads(option_data)
-        print(option_data)
 
         for data in option_data:
             if data['update']:
@@ -3204,10 +3207,11 @@ def add_report_tags(request):
                 tag.tag_name = data['tag_name']
                 tag.save()
             else:
-                tag = Report_Tags.objects.filter(tag_name__iexact=data['tag_name'])
+                tag = Report_Tags.objects.filter(tag_name__iexact=data['tag_name'],type=data['type'])
                 if not tag.exists():
                     tag = Report_Tags()
                     tag.tag_name = data['tag_name']
+                    tag.type = data['type']
                     tag.save()
                     tag.tag_id = tag.id
                     tag.save()

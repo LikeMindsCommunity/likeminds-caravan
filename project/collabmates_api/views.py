@@ -47,10 +47,18 @@ from utility.utils import (decode_meta_from_url, update_tag_image,
 from utility.states import collabcard_seen_state,collabcard_follow_state
 
 from utility.tasks import (mail_triger, new_member_request,
-                           member_request_approval_or_denied,send_mail_for_report_abuse__on_collabcard)
+                           member_request_approval_or_denied,send_mail_for_report_abuse__on_collabcard,send_mail_for_report_abuse__of_user)
 from utility.firebase import update_last_answer_id,upload_image_to_firebase,upload_community_thumbnail,upload_community_files
 from .raw_queries import compute_rank
 from multiprocessing.pool import ThreadPool
+
+from utility.celery_tasks import (update_referral_text_in_engage_table,
+                                  save_community_purpose_card,
+                                  update_communities_in_member_engage_table,
+                                  update_last_unseen_in_engage_on_card_creation,
+                                  update_last_unseen_in_engage,
+                                  )
+
 
 #CACHE_TTL = getattr(settings, 'CACHE_TTL', cache_timeout)
 
@@ -234,106 +242,6 @@ def update_pending_member_count_in_engage(community):
 
     info_logger.info("Member Engage Pending Count Updated")
 
-@shared_task
-def update_last_unseen_in_engage_on_card_creation(community_id):
-    '''function to update the unseen  collabcard in engage when a new collabcard is posted in community
-       for all members in the community'''
-    community_members = Members.objects.filter(community_id = community_id).filter(Q(state=1)|Q(state=2)|Q(state=4)|Q(state=7))
-
-    for member in community_members:
-        update_last_unseen_in_engage(user=member.member_id.id, community=community_id)
-
-
-def update_last_unseen_in_engage(user='',community='',is_seen=False):
-
-    '''function to update the unseen  collabcard in engage'''
-    total_collabcards = Collabcard.objects.filter(community=community).values('id').order_by('-id').distinct('id')
-    seen_collabcard = collabcard_seen.objects.filter(community=community, user=user).values('card_id').distinct('card_id')
-    unseen_count=total_collabcards.count() - seen_collabcard.count()
-    if  unseen_count<= 0:
-        # if zero or less than zero , unseen card count = 0
-        collabcard_unseen = 0
-    else:
-        collabcard_unseen = (total_collabcards.count() - seen_collabcard.count())
-
-    unseen_list = total_collabcards.difference(seen_collabcard).values('id').order_by('id')
-    if total_collabcards.count() > 0:
-        # if community has atleast one card
-        if unseen_list.count() != 0:
-            # if the unseen cards are present
-            # show the latest unseen cards text
-            card = Collabcard.objects.get(id=unseen_list.values('id')[0]['id'])
-
-        else:
-            # if no unseen cards , show latest card text
-            card = Collabcard.objects.get(id=total_collabcards.values('id')[0]['id'])
-
-    current_time=time.time()
-    Member_Engage.objects.filter(community_id=community,member_id=user).update(last_unseen_count=collabcard_unseen,
-                                                                               last_unseen_conversation=card,
-                                                                               updated_at=current_time)
-
-    # if is_seen == False:
-    #     Member_Engage.objects.filter(community_id=community).filter(~Q(member_id=user)).update(last_unseen_count=collabcard_unseen,updated_at=current_time)
-
-
-def update_referral_text_in_engage_table(community_object):
-
-    '''function to update the referal text in member engage table by taking member engage object'''
-    # getting the state of member
-
-    engage_communities=Member_Engage.objects.filter(community_id=community_object)
-
-    for each_community in engage_communities:
-        community={}
-        community['pending_members_count']=each_community.pending_members
-        community['member_referral']=""
-        member_state = Members.objects.filter(community_id=each_community.community_id.id,
-                                              member_id=each_community.member_id.id)
-        if member_state:
-            state = member_state[0].state
-            community_state = each_community.community_id.hide_community
-            # if the community is pilot community and member has shown interest
-
-            if community_state == '3' and state == 8:
-                diff = eligibility_count - community['pending_members_count']
-                if community['pending_members_count'] < (eligibility_count-2):
-                    community['member_referral']="""[Pilot] Help this community find a promoter"""
-                elif community['pending_members_count'] >= (eligibility_count-2) and  community['pending_members_count'] < (eligibility_count):
-                    community['member_referral'] = """You have successfully referred %s. Refer %s and become promoter of this community."""%(community['pending_members_count'],diff)
-
-            # if the community is pilot community and the member is eligible promoter
-            elif community_state == '3' and state == 9:
-                community['member_referral'] = "You are eligible to become a promoter of this community"
-
-            # if the community is pilot-active and new promoter comes
-            elif community_state == '4' and state == 9:
-                community['member_referral'] = "You are eligible to become a promoter of this community"
-
-            # if the community becomes a pilot-active community and member approval is pending
-            elif (community_state == '4' or community_state == '0' or community_state == '1') and state == 3:
-                community['member_referral'] = "Your request is waiting for approval by promoter"
-
-            # if the community becomes a pilot-active community and member request is approved
-            # elif community_state == '4' and state == 4:
-            #     diff = eligibility_count - community['pending_members_count']
-            #     if community['pending_members_count'] == 1:
-            #         community['member_referral'] = """You have successfully referred %s member. Please refer %s more to become promoter.""" % (
-            #             community['pending_members_count'], diff)
-            #     elif community['pending_members_count']:
-            #         community[
-            #             'member_referral'] = """You have successfully referred %s members. Please refer %s more to become promoter.""" % (
-            #             community['pending_members_count'], diff)
-            elif community_state == '0' and community['pending_members_count']:
-                if community['pending_members_count'] == 1:
-                    community['member_referral'] = str(community['pending_members_count']) + " new member request"
-                elif community['pending_members_count'] > 1:
-                    community['member_referral'] = str(community['pending_members_count']) + " new member requests"
-
-            each_community.member_referral=community['member_referral']
-            each_community.member_state=state
-            each_community.save()
-
 
 # /api/your_communities/member_id?member_id=
 def your_communities(request,user_id):
@@ -470,10 +378,6 @@ def community(request, community_id):
             new_dict['share_text_anonymous']="""I recently discovered %s community on CollabMates. You can join this community using this link.\n"""%(new_dict['name'])
     new_dict['min_referrer_member'] = eligibility_count
     return JsonResponse({'community': new_dict})
-
-
-
-
 
 
 def similar_community(request, community_id):
@@ -650,7 +554,7 @@ def join_community_responses(request):
                 """Members engage table updated  where ref_id=%s and community_id=%s""" % (
                     user_id, community_id))
 
-    update_referral_text_in_engage_table(community)
+    update_referral_text_in_engage_table.delay(community_id)
     log="""Request for community_id=%s is sent from member_id=%s\n"""%(community_id,user_id)
     info_logger.info(log)
     info_logger.info("\n")
@@ -891,7 +795,6 @@ def get_user_lpig_tags(user_id):
 
 
 
-
 ############# functions for  create flow of card,community and members   ##########################
 
 # /api/create_community?member_id=21&is_admin=true
@@ -1049,13 +952,6 @@ def create_community(request):
             return JsonResponse({'success':True, 'community':new_dict})
     return HttpResponse("Create Community Api")
 
-@shared_task
-def save_community_purpose_card(community_id,card_id):
-    time.sleep(2)
-    community = Community.objects.get(id=community_id)
-    community.purpose_collabcard = card_id
-    community.save()
-
 
 # /api/create_collabcard?community_id=&member_id=
 @csrf_exempt
@@ -1116,6 +1012,23 @@ def create_card(request):
             community.save()
             is_pilot_active=True
 
+            introduction_question, introduction_answer = auto_create_collabcard(user.user_id, community)
+            json_body = {
+                'communityId': community_id,
+                'title': introduction_answer,
+                'image_count': 0,
+                'pdf_count': 0,
+                'type': 1  # if state=0 normal if state =1 intro
+            }
+            params = {
+                'community_id': community_id,
+                'member_id': user.user_id.id
+            }
+
+            # calling create card APi with required credentials
+            link = url + "/api/create_collabcard"
+            rqst.post(link, params=params, json=json_body)
+
 
         # sending notification to the user
         send_notification_for_new_collabcard_posted.delay(community_id,res['title'],user_id,user.name)
@@ -1130,11 +1043,21 @@ def create_card(request):
         usr = UserinfoSerializer(user)
         collabcard['member'] = usr
 
+
+        #card creater auto_seen the card
+        collab_seen = collabcard_seen()
+        collab_seen.card = card
+        collab_seen.user = user.user_id
+        collab_seen.community = community
+        collab_seen.save()
+
         # card creator auto follows the card
         follow=follow_collabcard()
         follow.collabcard_id=card
         follow.member_id=user.user_id
         follow.save()
+
+
 
 
         # #saving the state in collabcardState table instead of follow collabcard
@@ -1177,7 +1100,7 @@ def create_card(request):
             engage.last_unseen_conversation = card
             engage.updated_at = time.time()
             engage.save()
-        update_referral_text_in_engage_table(community)
+        update_referral_text_in_engage_table.delay(community_id)
         # custom_cache.clear()
         return JsonResponse({'success':True,'collabcard':collabcard})
     return JsonResponse({'success':False})
@@ -1535,7 +1458,7 @@ def request_response(request,req_dict=None):
 
         # check if member is already accepted to stop duplicate notifications and false member count
         state = Members.objects.filter(member_id=member_id, community_id=community)[0].state
-        if state == 3:
+        if state == 3 or state == 8:
             # updating the approve state
             Members.objects.filter(member_id=member_id, community_id=community).update(state=4,
                                                                                        created_at=join_time)  # aprove state = 4
@@ -1560,7 +1483,7 @@ def request_response(request,req_dict=None):
                 engage.updated_at = time.time()
                 engage.save()
                 update_pending_member_count_in_engage(community)
-                update_referral_text_in_engage_table(community)
+                update_referral_text_in_engage_table.delay(community_id)
             else:
                 # if the community is created by user than updating the user details
                 if community.hide_community == '0' or community.hide_community == '1' or community.hide_community == '4':
@@ -1570,7 +1493,7 @@ def request_response(request,req_dict=None):
                     engage.updated_at = time.time()
                     engage.save()
                     update_pending_member_count_in_engage(community)
-                    update_referral_text_in_engage_table(community)
+                    update_referral_text_in_engage_table.delay(community_id)
 
             # -----  new user intro card auto create functionality -------
             introduction_question,introduction_answer=auto_create_collabcard(user,community)
@@ -1604,7 +1527,7 @@ def request_response(request,req_dict=None):
 
         # checking state to stop duplicate notifications and false referal text and pending member count
         state = Members.objects.filter(member_id=member_id, community_id=community)[0].state
-        if state == 3 :
+        if state == 3 or state == 8:
             # change user state to 5
             Members.objects.filter(member_id=member_id,community_id=community).update(state=5)  # decline state = 5
             # delete the member engage table record for the user
@@ -1613,7 +1536,7 @@ def request_response(request,req_dict=None):
             Form_response.objects.filter(user=member_id,community=community_id).delete()
             # update pending members count of community and referal text of user
             update_pending_member_count_in_engage(community)
-            update_referral_text_in_engage_table(community)
+            update_referral_text_in_engage_table.delay(community_id)
         
             # uncomment to send
             # sending email to the user that his request is rejected for this community
@@ -2033,11 +1956,11 @@ def get_status_of_collabcard(member_id,community,card):
     '''function to get the state of collabcard'''
     state=0
     member_id=User.objects.get(id=member_id)
-    # collabcard_state=collabcardState.objects.filter(card=card,user=member_id)
-    #
-    # if collabcard_state:
-    #     state=collabcard_state[0].state
-    #     return state
+    collabcard_state=collabcardState.objects.filter(card=card,user=member_id)
+
+    if collabcard_state:
+        state=collabcard_state[0].state
+        return state
     seen_status=collabcard_seen.objects.filter(card=card,community=community,user=member_id)
     if seen_status:
         state=1
@@ -2309,7 +2232,7 @@ def auto_create_collabcard(member,community):
     #                                                                                 form_response[0].response)
     # else:
     if True:
-        form_response = Form_response.objects.filter(user=member.id, community=community.id).order_by('-id')
+        form_response = Form_response.objects.filter(user=member.id, community=community.id).order_by('id')
         if form_response.exists():
             introduction_question = form_response[0].data
             introduction_answer = form_response[0].response
@@ -2619,13 +2542,11 @@ def login(request):
             # if user is logging in with Apple
 
             userinfo = Userinfo.objects.filter(apple_id=res['id'])
-            if userinfo.exists():
-                user_exists = True
-            else:
-                user_exists = False
-            if not user_exists:
+
+            if not userinfo.exists():
                 # creating a user if no user is associated with that email
-                user = create_user(user_name=res['name'], email=res['email'],id=res['id'])
+                user = create_user(user_name=res['name'], email=res['email'],
+                                   id=res['id'],apple_id=True)
 
                 # fb_link = res['link'] if 'link' in res else None
                 if 'picture' in res:
@@ -2667,12 +2588,16 @@ def login(request):
     return HttpResponse('Login Api')
 
 
-def create_user(user_name, email,id):
+def create_user(user_name, email,id,apple_id=False):
     ''' function to create Auth-User of a user '''
 
+    user_name = user_name + "_" + id
+
     user = User.objects.filter(email=email)
+    if apple_id and not user.exists():
+        user = User.objects.filter(username=user_name)
+
     if not user.exists():
-        user_name = user_name+"_"+id
 
         user = User()
         user.username = user_name
@@ -2687,6 +2612,9 @@ def create_userinfo(user, email, user_name, profile_picture, login_type, json_to
     ''' function to create User-Info of a user '''
 
     userinfo = Userinfo.objects.filter(email=email)
+    if apple_id and not userinfo.exists():
+        userinfo = Userinfo.objects.filter(apple_id=apple_id)
+
     if not userinfo.exists():
         userinfo = Userinfo()
         userinfo.user_id = user
@@ -2827,31 +2755,7 @@ def config(request):
     else:
         return JsonResponse({'success': True})
 
-@shared_task
-def update_communities_in_member_engage_table(member_id):
 
-    '''function to update the user communities in engage table'''
-
-    all_members=Members.objects.filter(member_id=member_id)
-    c=0
-    for member in all_members:
-        community_id=member.community_id
-        if community_id.hide_community == '3':
-            community =Community.objects.get(id=community_id.id)
-            user=User.objects.get(id=member_id)
-            if not is_member_engage(community,user):
-                engage=Member_Engage()
-                engage.community_id=community
-                engage.member_id=user
-                engage.updated_at=time.time()
-                pending_count= get_referred_members_of_a_member(community.id,member_id)
-                engage.pending_members=len(pending_count)
-                engage.save()
-                info_logger.info("Communities")
-                info_logger.info(community)
-                c=c+1
-            update_referral_text_in_engage_table(community)
-    info_logger.info(c)
 
 
 ############# functions edit community    ##########################
@@ -3127,7 +3031,7 @@ def accept_promotership(request):
         if 'member_ids' not in res or not res['member_ids']:
             Members.objects.filter(community_id=community_id,member_id=member_id).update(state=1,created_at=time.time())
             user = User.objects.get(pk=member_id)
-            name  = user.userinfo.name
+            name = user.userinfo.name
             send_notification_to_all_admins.delay(community_id, name, member_id)
             return JsonResponse({'success': True})
 
@@ -3148,7 +3052,7 @@ def accept_promotership(request):
 
     #update member engage table enteries
     update_pending_member_count_in_engage(community)
-    update_referral_text_in_engage_table(community)
+    update_referral_text_in_engage_table.delay(community_id)
     update_member_count(community_id)
     return JsonResponse({'success':True})
 
@@ -3571,8 +3475,12 @@ def save_geography_and_hometown_tags_of_user_from_onboarding(address_input,user_
 def fetch_report_tags(request):
 
     '''api to send report tags '''
-
-    report_tags_instances=Report_Tags.objects.all()
+    type=request.GET.get('type',0)
+    type=int(type)
+    if not type:
+        report_tags_instances=Report_Tags.objects.filter(type=0)
+    else:
+        report_tags_instances = Report_Tags.objects.filter(type=1)
 
     report_tags=[]
 
@@ -3606,18 +3514,41 @@ def push_report(request):
         if 'reason' in request_body:
             reason=request_body['reason']
 
-        report_instance=Report()
-        report_instance.tag=report_tags_instance
-        report_instance.collabcard=collabcard_instance
-        report_instance.reason=reason
-        report_instance.member=user_instance
-        report_instance.date_epoch = time.time()
-        report_instance.save()
+        if 'reported_member_id' not in request_body:
+
+            report_instance=Report()
+            report_instance.tag=report_tags_instance
+            report_instance.collabcard=collabcard_instance
+            report_instance.reason=reason
+            report_instance.member=user_instance
+            report_instance.date_epoch = time.time()
+            report_instance.save()
+            community_url=url+"/community/"+str(collabcard_instance.community.id)
+            send_mail_for_report_abuse__on_collabcard.delay(user_instance.userinfo.name,collabcard_instance.title,
+                                                      report_tags_instance.tag_name,collabcard_instance.community.name,
+                                                      community_url,reason)
+        else:
+            report_instance = Report()
+            report_instance.tag = report_tags_instance
+            report_instance.collabcard = collabcard_instance
+            report_instance.reason = reason
+            report_instance.member = user_instance
+            report_instance.date_epoch = time.time()
+            report_instance.reported_member_id=int(request_body['reported_member_id'])
+            report_instance.save()
+
+            community_url = url + "/community/" + str(collabcard_instance.community.id)
+            try:
+                reported_user_instance=User.objects.get(pk=request_body['reported_member_id'])
+                reported_user_name=reported_user_instance.userinfo.name
+                send_mail_for_report_abuse__of_user.delay(user_instance.userinfo.name,collabcard_instance.title,
+                                                      report_tags_instance.tag_name,collabcard_instance.community.name,
+                                                      community_url,reported_user_name,reason)
+            except Exception as e:
+                log="""Unmatched object for user_id=%s"""%(request_body['reported_member_id'])
+                info_logger.info(log)
+                info_logger.info(e)
         info_logger.info("push report api successfull")
-        community_url=url+"/community/"+str(collabcard_instance.community.id)
-        send_mail_for_report_abuse__on_collabcard.delay(user_instance.userinfo.name,collabcard_instance.title,
-                                                  report_tags_instance.tag_name,collabcard_instance.community.name,
-                                                  community_url,reason)
         return JsonResponse({'success':True})
     return JsonResponse({'success':False})
 
