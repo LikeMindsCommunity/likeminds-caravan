@@ -380,10 +380,6 @@ def community(request, community_id):
     return JsonResponse({'community': new_dict})
 
 
-
-
-
-
 def similar_community(request, community_id):
     '''function to return similar communitites'''
     body = request.GET
@@ -799,7 +795,6 @@ def get_user_lpig_tags(user_id):
 
 
 
-
 ############# functions for  create flow of card,community and members   ##########################
 
 # /api/create_community?member_id=21&is_admin=true
@@ -1048,11 +1043,21 @@ def create_card(request):
         usr = UserinfoSerializer(user)
         collabcard['member'] = usr
 
+
+        #card creater auto_seen the card
+        collab_seen = collabcard_seen()
+        collab_seen.card = card
+        collab_seen.user = user.user_id
+        collab_seen.community = community
+        collab_seen.save()
+
         # card creator auto follows the card
         follow=follow_collabcard()
         follow.collabcard_id=card
         follow.member_id=user.user_id
         follow.save()
+
+
 
 
         # #saving the state in collabcardState table instead of follow collabcard
