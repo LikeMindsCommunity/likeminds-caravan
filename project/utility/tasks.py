@@ -66,7 +66,7 @@ def onboarding_mail_for_new_users(member_id,android,ios,pc):
                 link = url + "/signup"
             else:
                 if android:
-                    link = "https://drive.google.com/open?id=1IQjFXjzxlUcMva7afZF_szwoYYaICdnf"
+                    link = android_app_download_link
                 elif ios:
                     link = url+"/communities"
                 else:

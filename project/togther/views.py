@@ -390,7 +390,8 @@ def refer_members(request,community_id):
                         'android':android,
                         'ios':ios,
                         'community_id':community_id,
-                        'pc':pc
+                        'pc':pc,
+                        'android_app_download_link':android_app_download_link,
                      }
 
             return  render(request,'referal.html',context)
