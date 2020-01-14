@@ -17,6 +17,8 @@ def update_question_text():
                 form_data_instance=Form_data.objects.get(id=question['id'])
                 form_data_instance.data=community_instance.introduction_text
                 form_data_instance.save()
+                print("Question updated for")
+                print(community_instance)
 
 
 
