@@ -340,7 +340,7 @@ function is_mobile_valid(mobile_no)
 $('#download_app').click(function(e){
 
 {% if android %}
-    window.open("https://drive.google.com/open?id=1IQjFXjzxlUcMva7afZF_szwoYYaICdnf",'_self')
+    window.open("{{android_app_download_link}}",'_self')
 {% endif %}
 
 
