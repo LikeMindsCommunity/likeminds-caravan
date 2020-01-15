@@ -131,8 +131,8 @@ def update_last_unseen_in_engage(user='',community='',is_seen=False):
     total_collabcards = Collabcard.objects.filter(community=community).values('id').order_by('-id').distinct('id')
     seen_collabcard = collabcardState.objects.filter(community=community,
                                                      user=user).values('card').distinct('card')
-    print("total_collabcards                >>>>>>>    ", total_collabcards)
-    print("seen_collabcard                >>>>>>>    ", seen_collabcard)
+    # print("total_collabcards                >>>>>>>    ", total_collabcards)
+    # print("seen_collabcard                >>>>>>>    ", seen_collabcard)
 
     unseen_count=total_collabcards.count() - seen_collabcard.count()
     if unseen_count<= 0:
@@ -142,7 +142,7 @@ def update_last_unseen_in_engage(user='',community='',is_seen=False):
         collabcard_unseen = (total_collabcards.count() - seen_collabcard.count())
 
     unseen_list = total_collabcards.difference(seen_collabcard).values('id').order_by('id')
-    print("unseen_list                >>>>>>>    ", unseen_list)
+    # print("unseen_list                >>>>>>>    ", unseen_list)
 
     if total_collabcards.count() > 0:
         # if community has atleast one card
@@ -154,10 +154,10 @@ def update_last_unseen_in_engage(user='',community='',is_seen=False):
         else:
             # if no unseen cards , show latest card text
             card = Collabcard.objects.get(id=total_collabcards.values('id')[0]['id'])
-        print("card                >>>>>>>    ",card)
+        # print("card                >>>>>>>    ",card)
         current_time=time.time()
-        print("current_time        >>>>>>>    ",current_time)
-        print("collabcard_unseen   >>>>>>>    ",collabcard_unseen)
+        # print("current_time        >>>>>>>    ",current_time)
+        # print("collabcard_unseen   >>>>>>>    ",collabcard_unseen)
 
         # member = Member_Engage.objects.get(community_id=community,member_id=user)
         # member.last_unseen_count=collabcard_unseen
