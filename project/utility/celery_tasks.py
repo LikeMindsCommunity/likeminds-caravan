@@ -159,11 +159,15 @@ def update_last_unseen_in_engage(user='',community='',is_seen=False):
         print("current_time        >>>>>>>    ",current_time)
         print("collabcard_unseen   >>>>>>>    ",collabcard_unseen)
 
-        member = Member_Engage.objects.get(community_id=community,member_id=user)
-        member.last_unseen_count=collabcard_unseen
-        member.last_unseen_conversation=card
-        member.updated_at=current_time
-        member.save()
+        # member = Member_Engage.objects.get(community_id=community,member_id=user)
+        # member.last_unseen_count=collabcard_unseen
+        # member.last_unseen_conversation=card
+        # member.updated_at=current_time
+        # member.save()
+
+        Member_Engage.objects.filter(community_id=community, member_id=user).update(last_unseen_count=collabcard_unseen,
+                                                                                    last_unseen_conversation=card,
+                                                                                    updated_at=current_time)
 
     # if is_seen == False:
     #     Member_Engage.objects.filter(community_id=community).filter(~Q(member_id=user)).update(last_unseen_count=collabcard_unseen,updated_at=current_time)
