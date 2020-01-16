@@ -32,6 +32,8 @@ from utility.utils import (get_city_address, update_tag_image,
 from utility.firebase import (upload_tag_files, upload_user_files,
                               upload_community_files, upload_community_thumbnail,
                               upload_tag_thumbnail)
+from django.contrib.auth import authenticate, login
+
 url = settings.URL
 import logging
 # uncomment to run it in localhost
@@ -39,6 +41,25 @@ import logging
 error_logger=logging.getLogger("error_logger")
 info_logger=logging.getLogger("info_logger")
 api_url = url + '/api/'
+
+
+def admin_login(request):
+
+    if request.method == 'GET':
+        return render(request,'dashboard/login.html',{})
+    else:
+        username = request.POST.get("username",'')
+        passcode = request.POST.get("passcode",'')
+
+        user = authenticate(username=username, password=passcode)
+        login(request, user)
+        print("username =====  ", request.user.is_superuser)
+        print("passcode =====  ", passcode)
+        if request.user.is_superuser:
+            return JsonResponse({'success':False})
+        else :
+            return JsonResponse({'success': False})
+
 
 def dashboard(request):
     '''function to give list of community to edit'''
