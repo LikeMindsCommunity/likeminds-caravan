@@ -53,13 +53,13 @@ def admin_login(request):
 
         user = authenticate(username=username, password=passcode)
         if not user:
-            return JsonResponse({'success': False})
+            return JsonResponse({'success': False,'raise_error':True})
         login(request, user)
         print("username =====  ", request.user.is_superuser)
         if request.user.is_superuser:
             return JsonResponse({'success':True})
         else:
-            return JsonResponse({'success': False})
+            return JsonResponse({'success': False,'raise_error':True})
 
 
 def dashboard(request):
