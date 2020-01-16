@@ -51,6 +51,13 @@
   {% endfor %}
   <div id="form_field"></div>
   <button type="submit" class="btn btn-default">Submit</button>
+    {% if dropdown_status == 1 or dropdown_status == 0 %}
+  &nbsp;&nbsp;&nbsp;&nbsp;<input type="checkbox"   value="1" class="multiple_select"> Multiple Select<br>
+    {% elif dropdown_status == 2 %}
+    &nbsp;&nbsp;&nbsp;&nbsp;<input type="checkbox"   value="2" class="multiple_select" checked> Multiple Select<br>
+
+    {% endif %}
+
 
 </form>
 <button type="button" class="btn btn-primary" id="add">Add</button>
@@ -118,12 +125,23 @@
 
     }
 
+    is_multiple_dropdown=$('.multiple_select').is(':checked');
+    let dropdown_state=0
+    if(is_multiple_dropdown)
+    {
+        dropdown_state=2
+    }else{
+        dropdown_state=1
+    }
+
+
     option_data={
     'data':JSON.stringify(data),
-    'csrfmiddlewaretoken':'{{csrf_token}}'
+    'csrfmiddlewaretoken':'{{csrf_token}}',
+    'dropdown_state':dropdown_state
 
     }
-   // console.log(option_data)
+    console.log(option_data)
     //ajax
 
      $.ajax({

@@ -855,20 +855,23 @@ def add_dropdown_responses(request,question_id):
         # form_data.dropdown_list=json.dumps(dropdown_list)
         # form_data.save()
         dropdown_list=[]
+        dropdown_status=0
         if form_data.is_dropdown:
             dropdown_list=json.loads(form_data.dropdown_list)
+            dropdown_status=form_data.is_dropdown
 
         context={
                 'dropdown_list':dropdown_list,
                 'question_id':question_id,
                 'question_name':form_data.data,
-                'length':len(dropdown_list)
+                'length':len(dropdown_list),
+                'dropdown_status': dropdown_status
         }
         return render(request,'dashboard/add_questions_dropdown.html',context)
     else:
         option_data=request.POST.get('data')
         option_data=json.loads(option_data)
-
+        dropdown_state=request.POST.get('dropdown_state')
         dropdown_list=[]
 
         for option in option_data:
@@ -876,7 +879,7 @@ def add_dropdown_responses(request,question_id):
         if dropdown_list:
             dropdown_list=json.dumps(dropdown_list)
             form_data.dropdown_list=dropdown_list
-            form_data.is_dropdown=1
+            form_data.is_dropdown=dropdown_state
             form_data.save()
             return JsonResponse({"success": True})
         else:
