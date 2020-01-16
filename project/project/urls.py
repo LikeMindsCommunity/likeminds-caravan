@@ -21,8 +21,8 @@ from collabmates_api import views as api_views
 from django.contrib.auth import views as auth_views
 from django.conf import settings
 from django.conf.urls.static import static
-
-
+from dashboard.views import admin_login
+from utility.utils import page_not_found
 
 urlpatterns = [
     #url(r'^login/$', auth_views.LoginView, name='login'),
@@ -34,8 +34,13 @@ urlpatterns = [
     path('api/', include('collabmates_api.urls'),name= 'api'),
     path('admin_dashboard/',include('dashboard.urls'),name='admin_dashboard'),
     path('utils/', include('utility.urls'), name='utils'),
+    path('admin_login', admin_login, name="admin_login"),
+    path('page_not_found', page_not_found, name="page_not_found"),
+
 
 ]
+
+
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
