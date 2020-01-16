@@ -40,7 +40,7 @@ tutorial_count=3
 
 
 def page_not_found(request):
-    return render(request, 'page-not-found.html', {})
+    return render(request, '__404__.html', {})
 
 def is_member_engage(community,member):
 

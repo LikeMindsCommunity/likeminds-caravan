@@ -114,10 +114,6 @@
          var username=$('#username').val()
          var passcode=$('#passcode').val()
 
-
-
-         console.log(username)
-         console.log(passcode)
           temp={
           'username':username,
           'passcode':passcode,
@@ -134,7 +130,6 @@
             dataType:'json',
             success:function(data){
             if(data['success']){
-				console.log(data)
 				location.href="/admin_dashboard"
              }
              else{
