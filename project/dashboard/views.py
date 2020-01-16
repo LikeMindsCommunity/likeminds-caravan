@@ -66,9 +66,7 @@ def dashboard(request):
     '''function to give list of community to edit'''
 
     if request.user.is_authenticated:
-        if request.user.is_superuser:
-            return redirect('admin_dashboard')
-        else:
+        if not request.user.is_superuser:
             return redirect('signup')
     else:
         return redirect('admin_login')
