@@ -52,18 +52,26 @@ def admin_login(request):
         passcode = request.POST.get("passcode",'')
 
         user = authenticate(username=username, password=passcode)
+        if not user:
+            return JsonResponse({'success': False})
         login(request, user)
         print("username =====  ", request.user.is_superuser)
-        print("passcode =====  ", passcode)
         if request.user.is_superuser:
-            return JsonResponse({'success':False})
-        else :
+            return JsonResponse({'success':True})
+        else:
             return JsonResponse({'success': False})
 
 
 def dashboard(request):
     '''function to give list of community to edit'''
 
+    if request.user.is_authenticated:
+        if request.user.is_superuser:
+            return redirect('admin_dashboard')
+        else:
+            return redirect('signup')
+    else:
+        return redirect('admin_login')
 
     select_type=request.GET.get('filter',None)
     dashboard_list=[]
