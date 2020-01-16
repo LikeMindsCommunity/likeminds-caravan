@@ -2,11 +2,11 @@
 {% load static %}
 <html lang="en">
 <head>
-	<title>Login V18</title>
+	<title>Collabmates</title>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 <!--===============================================================================================-->	
-	<link rel="icon" type="image/png" href="{% static 'login/images/icons/favicon.ico' %}"/>
+	<link rel="icon" type="image/png" href="https://beta.collabmates.com/media/media/ic_launcher_round.png"/>
 <!--===============================================================================================-->
 	<link rel="stylesheet" type="text/css" href="{% static 'login/vendor/bootstrap/css/bootstrap.min.css' %}">
 <!--===============================================================================================-->
@@ -124,19 +124,26 @@
 
           $.ajax({
 
-            url:'/admin_dashboard/login',
-            data:temp,
-            type: "POST",
-            dataType:'json',
-            success:function(data){
-            if(data['success']){
-				location.href="/admin_dashboard"
-             }
-             else{
-             	location.href="/page_not_found"
-             }
+				url:'/admin_dashboard/login',
+				data:temp,
+				type: "POST",
+				dataType:'json',
+				success:function(data){
+				if(data['success']){
+					location.href="/admin_dashboard"
+				}
+				else if(data['raise_error']){
+					var input = $('.validate-input .input100');
 
-            }
+					var thisAlert = $(input).parent();
+					$(thisAlert).addClass('alert-validate');
+
+				}
+				else{
+					location.href="/page_not_found"
+				}
+
+				}
 
          })
 
