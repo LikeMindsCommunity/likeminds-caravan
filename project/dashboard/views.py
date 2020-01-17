@@ -63,12 +63,19 @@ def admin_login(request):
         passcode = request.POST.get("passcode",'')
 
         user = authenticate(username=username, password=passcode)
+        # user is not found
         if not user:
             return JsonResponse({'success': False,'raise_error':True})
+        # if user is found , login user
         login(request, user)
-        print("username =====  ", request.user.is_superuser)
+
+        # if super user, redirect to admin dashboard
         if request.user.is_superuser:
-            return JsonResponse({'success':True})
+            return JsonResponse({'success':True,'is_super_user':True})
+        # if not super user, redirect to communities
+        elif not request.user.is_superuser:
+            return JsonResponse({'success':True,'is_super_user':False})
+        # else raise validation error
         else:
             return JsonResponse({'success': False,'raise_error':True})
 
