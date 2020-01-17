@@ -56,7 +56,7 @@
 
             <input type="hidden" id="id{{forloop.counter}}" value="{{question.id}}"/>
             <a href="{% url 'delete_questions'  question.id %} " style="color:red;"><i class="fa fa-trash" aria-hidden="true"></i></a>
-            &nbsp;&nbsp;<a href="{% url 'add_dropdown_responses'  question.id %} " style="color:blue;margin-left:590px;">Add Dropdown</a>
+            &nbsp;&nbsp;<a href="{% url 'add_dropdown_responses'  question.id %} " style="color:blue;margin-left:580px;">Add Dropdown</a>
 
         <input type="text" class="form-control" id="question{{ forloop.counter }}" value="{{question.data}}"/>
     </div>
