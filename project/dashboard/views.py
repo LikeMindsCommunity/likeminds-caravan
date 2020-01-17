@@ -34,6 +34,10 @@ from utility.firebase import (upload_tag_files, upload_user_files,
                               upload_tag_thumbnail)
 from django.contrib.auth import authenticate, login
 
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib.auth import logout
+
 url = settings.URL
 import logging
 # uncomment to run it in localhost
@@ -46,6 +50,13 @@ api_url = url + '/api/'
 def admin_login(request):
 
     if request.method == 'GET':
+
+        if request.user.is_authenticated:
+            if request.user.is_superuser:
+                return redirect('admin_dashboard')
+            else:
+                logout(request)
+
         return render(request,'dashboard/login.html',{})
     else:
         username = request.POST.get("username",'')
@@ -60,6 +71,12 @@ def admin_login(request):
             return JsonResponse({'success':True})
         else:
             return JsonResponse({'success': False,'raise_error':True})
+
+
+@login_required
+def admin_logout(request):
+    logout(request)
+    return redirect('admin_login')
 
 
 def dashboard(request):
