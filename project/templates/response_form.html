@@ -37,8 +37,11 @@
                             {% endif %}
                         {% else %}
                              <label>{{question.data}}</label>
-
-                                <div class="ui fluid multiple search selection dropdown"  id="test_options">
+                                {% if question.is_dropdown == 2 %}
+                                <div class="ui fluid multiple search selection dropdown" >
+                                {% else %}
+                             <div class="ui selection dropdown" >
+                                {% endif %}
                                       <input type="hidden" name="{{question.data}}">
                                       <i class="dropdown icon"></i>
                                        <div class="default text">Select</div>
