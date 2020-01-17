@@ -36,12 +36,16 @@ td {
 
 <body>
 <br/>
-<div style="padding-right:20px; text-align:right;">
-  <a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 pull-right " href="{% url 'admin_dashboard' %}"><i class="fa fa-home"
-                                                                                                     aria-hidden="true"></i>&nbsp;Go
-    to Home</a>
+
+<div style="padding-right:20px; align:right;" >
+        <a class="btn btn-danger mt-1 mb-1 mr-4 pull-right "  href="{% url 'admin_logout' %}"><i class="fa fa-sign-out" aria-hidden="true"></i>&nbsp;Logout</a>
 
 </div>
+        <div style="padding-right:20px; align:right;" >
+        <a class="btn btn-primary  mt-1 mb-1 mr-4 pull-right "  href="{% url 'admin_dashboard' %}"><i class="fa fa-home" aria-hidden="true"></i>&nbsp;Go to Home</a>
+
+</div>
+
 <div align="center">
 <h2 style="">Create Tag</h2>
 </div>

@@ -1,12 +1,42 @@
 <html>
 
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
 
 <body>
 
-<h1>Community Analytics</h1>
 
-<h2>Total Conversations :{{conversations_count}}</h2>
-<h2>Total  Responses:{{answers_count}}</h2>
+<nav class="navbar navbar-expand-lg navbar-dark fixed-top" style="background-color: #075e54;">
+  <div class="container">
+      <img style="height:40px; width:40px;" src="https://beta.collabmates.com/media/media/ic_launcher_round.png">
+      <a class="navbar-brand" href="#">&nbsp;&nbsp;&nbsp;&nbsp;CollabMates</a>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarResponsive" aria-controls="navbarResponsive" aria-expanded="false" aria-label="Toggle navigation">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+    <div class="collapse navbar-collapse" id="navbarResponsive">
+      <ul class="navbar-nav ml-auto">
+        <li class="nav-item active">
+          <a class="nav-link" href="/admin_dashboard">Home
+                <span class="sr-only">(current)</span>
+              </a>
+        </li>
+          <li class="nav-item active" style="padding-right:10px;">
+          <a class="nav-link" href="/admin_dashboard/logout">Logout
+                <span class="sr-only">(current)</span>
+              </a>
+        </li>
+
+
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<br><br><br>
+
+<h1>Community Analytics</h1>
+<br>
+<h4>Total Conversations :{{conversations_count}}</h4>
+<h4>Total  Responses:{{answers_count}}</h4>
 
 
 

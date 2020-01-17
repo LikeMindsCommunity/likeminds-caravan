@@ -1,4 +1,3 @@
-{% extends "base.html" %}
 <html>
 
 <head>
@@ -12,19 +11,45 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.js"></script>
     <script async src="https://www.googletagmanager.com/gtag/js?id=UA-130288684-1"></script>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
 
 
 </head>
 <body>
-{% block content %}
-<br/>
-<br/>
+
+<nav class="navbar navbar-expand-lg navbar-dark fixed-top" style="background-color: #075e54;">
+  <div class="container">
+      <img style="height:40px; width:40px;" src="https://beta.collabmates.com/media/media/ic_launcher_round.png">
+      <a class="navbar-brand" href="#">&nbsp;&nbsp;&nbsp;&nbsp;CollabMates</a>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarResponsive" aria-controls="navbarResponsive" aria-expanded="false" aria-label="Toggle navigation">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+    <div class="collapse navbar-collapse" id="navbarResponsive">
+      <ul class="navbar-nav ml-auto">
+        <li class="nav-item active">
+          <a class="nav-link" href="/admin_dashboard">Home
+                <span class="sr-only">(current)</span>
+              </a>
+        </li>
+          <li class="nav-item active" style="padding-right:10px;">
+          <a class="nav-link" href="/admin_dashboard/logout">Logout
+                <span class="sr-only">(current)</span>
+              </a>
+        </li>
+
+
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<br/><br/>
 <h2 class="ui centered header">
   Analytics
 </h2>
 <br/>
-<br/>
-<div class="ui cards">
+
+<div class="ui cards" style="padding-left:400px;">
 
     <!-- create flow -->
   <div class="card">
@@ -32,12 +57,12 @@
       <div class="header">Create Flow</div>
       <br/>
       <div class="description">
-        <h4>Total Community :{{community_count}}</h4>
-        <h4>Public Communities:{{public_communities}}</h4>
-        <h4>Private Communities:{{private_communities}}</h4>
-          <h4>
+        <h5>Total Community :{{community_count}}</h5>
+        <h5>Public Communities:{{public_communities}}</h5>
+        <h5>Private Communities:{{private_communities}}</h5>
+          <h5>
               Pre Created Communities : {{pre_created_communities}}
-          </h4>
+          </h5>
       </div>
     </div>
   </div>
@@ -48,37 +73,41 @@
     <div class="content">
       <div class="header">Join Flow</div>
       <div class="description">
-        <h4>User :{{user_count}}</h4>
-        <h4>Promoter/Members :{{promoter_member_count}}</h4>
-        <h4>Unique Promoter :{{promoter_count}}</h4>
-        <h4>Unique Member :{{member_count}}</h4>
-        <h4>Total Promoter :{{total_promoter_count}}</h4>
-        <h4>Total Members :{{total_member_count}}</h4>
+        <h5>User :{{user_count}}</h5>
+        <h5>Promoter/Members :{{promoter_member_count}}</h5>
+        <h5>Unique Promoter :{{promoter_count}}</h5>
+        <h5>Unique Member :{{member_count}}</h5>
+        <h5>Total Promoter :{{total_promoter_count}}</h5>
+        <h5>Total Members :{{total_member_count}}</h5>
       </div>
     </div>
   </div>
+</div>
+
+
     <!--Community Metrics -->
+<div class="ui cards" style="padding-left:400px;">
   <div class="card">
     <div class="content">
       <div class="header">Community Metrics</div>
       <div class="description">
-        <h4>Live communities (pre-created) :{{pilot_live}}</h4>
-        <h4>Pilot communities (0 interested) :{{pilot_0_interested}}</h4>
-        <h4>Pilot communities (1 or more interested) :{{pilot_1_interested}}</h4>
-        <h4>User created communities :{{user_created}}</h4>
-        <h4>All communities :{{all_communities}}</h4>
+        <h5>Live communities (pre-created) :{{pilot_live}}</h5>
+        <h5>Pilot communities (0 interested) :{{pilot_0_interested}}</h5>
+        <h5>Pilot communities (1 or more interested) :{{pilot_1_interested}}</h5>
+        <h5>User created communities :{{user_created}}</h5>
+        <h5>All communities :{{all_communities}}</h5>
       </div>
     </div>
   </div>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 
 <!-- Engagement Flow -->
     <div class="card">
         <div class="content">
             <div class="header">Engagement Flow</div>
             <div class="description">
-                <h4>Conversations :{{conversations_count}}</h4>
-                <h4>Responses :{{responses_count}}</h4>
+                <h5>Conversations :{{conversations_count}}</h5>
+                <h5>Responses :{{responses_count}}</h5>
             </div>
         </div>
     </div>
@@ -88,6 +117,5 @@
 
 
 
-{% endblock %}
 </body>
 </html>
