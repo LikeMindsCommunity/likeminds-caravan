@@ -42,9 +42,35 @@ $(window).load(function(){
 </style>
 
 <body>
-<div style="padding-right:20px; text-align:right;" >
-        <a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 pull-right "  href="{% url 'admin_dashboard' %}"><i class="fa fa-home" aria-hidden="true"></i>
-Go to Home</a>
+
+
+<nav class="navbar navbar-expand-lg navbar-dark fixed-top" style="background-color: #075e54;">
+  <div class="container">
+      <img style="height:40px; width:40px;" src="https://beta.collabmates.com/media/media/ic_launcher_round.png">
+      <a class="navbar-brand" href="#">&nbsp;&nbsp;&nbsp;&nbsp;CollabMates</a>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarResponsive" aria-controls="navbarResponsive" aria-expanded="false" aria-label="Toggle navigation">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+    <div class="collapse navbar-collapse" id="navbarResponsive">
+      <ul class="navbar-nav ml-auto">
+        <li class="nav-item active">
+          <a class="nav-link" href="/admin_dashboard">Home
+                <span class="sr-only">(current)</span>
+              </a>
+        </li>
+          <li class="nav-item active" style="padding-right:10px;">
+          <a class="nav-link" href="/admin_dashboard/logout">Logout
+                <span class="sr-only">(current)</span>
+              </a>
+        </li>
+
+
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<br><br>
 
 </div>
 <h2 style="padding-top:20px;padding-left:50px;">Categorize Tag</h2>
