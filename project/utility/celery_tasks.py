@@ -121,6 +121,7 @@ def update_last_unseen_in_engage_on_card_creation(community_id):
                                                                                    Q(state=4)|Q(state=7))
 
     for member in community_members:
+        print("member >>>>>    ",member.member_id.id)
         update_last_unseen_in_engage(user=member.member_id.id, community=community_id)
 
 
@@ -130,6 +131,8 @@ def update_last_unseen_in_engage(user='',community='',is_seen=False):
     total_collabcards = Collabcard.objects.filter(community=community).values('id').order_by('-id').distinct('id')
     seen_collabcard = collabcardState.objects.filter(community=community,
                                                      user=user).values('card').distinct('card')
+    # print("total_collabcards                >>>>>>>    ", total_collabcards)
+    # print("seen_collabcard                >>>>>>>    ", seen_collabcard)
 
     unseen_count=total_collabcards.count() - seen_collabcard.count()
     if unseen_count<= 0:
@@ -139,6 +142,8 @@ def update_last_unseen_in_engage(user='',community='',is_seen=False):
         collabcard_unseen = (total_collabcards.count() - seen_collabcard.count())
 
     unseen_list = total_collabcards.difference(seen_collabcard).values('id').order_by('id')
+    # print("unseen_list                >>>>>>>    ", unseen_list)
+
     if total_collabcards.count() > 0:
         # if community has atleast one card
         if unseen_list.count() != 0:
@@ -149,11 +154,20 @@ def update_last_unseen_in_engage(user='',community='',is_seen=False):
         else:
             # if no unseen cards , show latest card text
             card = Collabcard.objects.get(id=total_collabcards.values('id')[0]['id'])
-
+        # print("card                >>>>>>>    ",card)
         current_time=time.time()
-        Member_Engage.objects.filter(community_id=community,member_id=user).update(last_unseen_count=collabcard_unseen,
-                                                                                   last_unseen_conversation=card,
-                                                                                   updated_at=current_time)
+        # print("current_time        >>>>>>>    ",current_time)
+        # print("collabcard_unseen   >>>>>>>    ",collabcard_unseen)
+
+        # member = Member_Engage.objects.get(community_id=community,member_id=user)
+        # member.last_unseen_count=collabcard_unseen
+        # member.last_unseen_conversation=card
+        # member.updated_at=current_time
+        # member.save()
+
+        Member_Engage.objects.filter(community_id=community, member_id=user).update(last_unseen_count=collabcard_unseen,
+                                                                                    last_unseen_conversation=card,
+                                                                                    updated_at=current_time)
 
     # if is_seen == False:
     #     Member_Engage.objects.filter(community_id=community).filter(~Q(member_id=user)).update(last_unseen_count=collabcard_unseen,updated_at=current_time)

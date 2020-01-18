@@ -1091,8 +1091,7 @@ def create_card(request):
                     engage.updated_at = time.time()
                     engage.save()
                 update_pending_member_count_in_engage(community)
-            else:
-                update_last_unseen_in_engage_on_card_creation.delay(community_id=community_id)
+
         else:
             engage = Member_Engage()
             engage.member_id = user.user_id
@@ -1101,6 +1100,8 @@ def create_card(request):
             engage.updated_at = time.time()
             engage.save()
         update_referral_text_in_engage_table.delay(community_id)
+        update_last_unseen_in_engage_on_card_creation.delay(community_id=community_id)
+
         # custom_cache.clear()
         return JsonResponse({'success':True,'collabcard':collabcard})
     return JsonResponse({'success':False})

@@ -2,7 +2,8 @@
 <html>
 <head>
     <!-- Latest compiled and minified CSS -->
-<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/css/bootstrap.min.css">
+<!--<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/css/bootstrap.min.css">-->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
 
 <!-- jQuery library -->
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
@@ -14,6 +15,35 @@
 </head>
 
 <body>
+
+<nav class="navbar navbar-expand-lg navbar-dark fixed-top" style="background-color: #075e54;">
+  <div class="container">
+      <img style="height:40px; width:40px;" src="https://beta.collabmates.com/media/media/ic_launcher_round.png">
+      <a class="navbar-brand" href="#">&nbsp;&nbsp;&nbsp;&nbsp;CollabMates</a>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarResponsive" aria-controls="navbarResponsive" aria-expanded="false" aria-label="Toggle navigation">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+    <div class="collapse navbar-collapse" id="navbarResponsive">
+      <ul class="navbar-nav ml-auto">
+        <li class="nav-item active">
+          <a class="nav-link" href="/admin_dashboard">Home
+                <span class="sr-only">(current)</span>
+              </a>
+        </li>
+          <li class="nav-item active" style="padding-right:10px;">
+          <a class="nav-link" href="/admin_dashboard/logout">Logout
+                <span class="sr-only">(current)</span>
+              </a>
+        </li>
+
+
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<br/><br/><br/><br/>
+
 <div style="width:800px;  margin-left: 40px;">
 <h1 >Questions for {{community_name}}</h1>
 <form id="my_form" onsubmit="return false" >
@@ -22,17 +52,17 @@
 
 
     <div class="form-group">
-        <label >Question:{{ forloop.counter }}</label>
+        <label ><b>Question:{{ forloop.counter }}</b></label>
 
             <input type="hidden" id="id{{forloop.counter}}" value="{{question.id}}"/>
             <a href="{% url 'delete_questions'  question.id %} " style="color:red;"><i class="fa fa-trash" aria-hidden="true"></i></a>
-            &nbsp;&nbsp;<a href="{% url 'add_dropdown_responses'  question.id %} " style="color:blue;margin-left:600px;">Add Dropdown</a>
+            &nbsp;&nbsp;<a href="{% url 'add_dropdown_responses'  question.id %} " style="color:blue;margin-left:580px;">Add Dropdown</a>
 
         <input type="text" class="form-control" id="question{{ forloop.counter }}" value="{{question.data}}"/>
     </div>
   {% endfor %}
   <div id="form_field"></div>
-  <button type="submit" class="btn btn-default">Submit</button>
+  <button type="submit" class="btn btn-outline-secondary">Submit</button>
 
 </form>
 <button type="button" class="btn btn-primary" id="add">Add</button>

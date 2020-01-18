@@ -26,7 +26,7 @@ from user_agents import parse
 # cache_timeout=3600
 
 #link to download the android app
-android_app_download_link="https://drive.google.com/open?id=1IQjFXjzxlUcMva7afZF_szwoYYaICdnf"
+android_app_download_link="https://play.google.com/apps/testing/com.collabmates"
 
 url=settings.URL
 
@@ -37,6 +37,10 @@ else:
 
 # count for a particular community to show tutorial
 tutorial_count=3
+
+
+def page_not_found(request):
+    return render(request, '__404__.html', {})
 
 def is_member_engage(community,member):
 

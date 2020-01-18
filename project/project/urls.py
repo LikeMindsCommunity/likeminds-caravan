@@ -21,23 +21,38 @@ from collabmates_api import views as api_views
 from django.contrib.auth import views as auth_views
 from django.conf import settings
 from django.conf.urls.static import static
+from dashboard.views import admin_login
+from utility.utils import page_not_found
+from django.shortcuts import render,render_to_response
 
 
+def handler404(request, exception, template_name="__404__.html"):
+    response = render_to_response("__404__.html")
+    response.status_code = 404
+    return response
+
+def handler500(request, exception, template_name="500.html"):
+    response = render_to_response("500.html")
+    response.status_code = 500
+    return response
 
 urlpatterns = [
     #url(r'^login/$', auth_views.LoginView, name='login'),
     url(r'^logout/$', auth_views.LogoutView, name='logout'),
     url(r'^oauth/', include('social_django.urls', namespace='social')),  # <--
-    url(r'^admin/', admin.site.urls),
+    url(r'^collabmates_admin/', admin.site.urls),
     path('', include('togther.urls'),name= 'togther'),
     path('accounts/login/', views.home, name='login'),
     path('api/', include('collabmates_api.urls'),name= 'api'),
     path('admin_dashboard/',include('dashboard.urls'),name='admin_dashboard'),
     path('utils/', include('utility.urls'), name='utils'),
+    path('admin_login', admin_login, name="admin_login"),
+    path('page_not_found', page_not_found, name="page_not_found"),
 
 ]
+
+
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
-
 

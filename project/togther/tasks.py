@@ -10,6 +10,7 @@ from togther.models import *
 from utility.tasks import send_email
 url  = settings.URL
 from collabmates_api.notification import notification_after_compute_rank
+from utility.utils import android_app_download_link
 
 # def send_email(subject,template,to):
 #     fail_silently=True
@@ -56,10 +57,12 @@ def send_mail_after_rank_computation(user_id):
 
     if android:
         subject = 'Access to the first version of CollabMates App'
-        template = get_template("mails/android_apk.html").render({"name":user_name})
+        template = get_template("mails/android_apk.html").render({"name":user_name,
+                                                                  'android_app_download_link':android_app_download_link})
     else:
         subject = 'Access to the first version of CollabMates App'
-        template = get_template("mails/ios_users.html").render({"name":user_name,'url':url})
+        template = get_template("mails/ios_users.html").render({"name":user_name,'url':url,
+                                                                'android_app_download_link':android_app_download_link})
     # msg = EmailMultiAlternatives(subject,
     #                              template,
     #                              "Collabmates<hello@collabmates.com>",

@@ -3,7 +3,7 @@
 {% load static %}
 <html>
 <!-- Latest compiled and minified CSS -->
-<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.4.0/css/bootstrap.min.css">
 
 <!-- jQuery library -->
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
@@ -24,11 +24,39 @@
 </style>
 <body>
 
+<nav class="navbar navbar-expand-lg navbar-dark fixed-top" style="background-color: #075e54;">
+  <div class="container">
+      <img style="height:40px; width:40px;" src="https://beta.collabmates.com/media/media/ic_launcher_round.png">
+      <a class="navbar-brand" href="#">&nbsp;&nbsp;&nbsp;&nbsp;CollabMates</a>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarResponsive" aria-controls="navbarResponsive" aria-expanded="false" aria-label="Toggle navigation">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+    <div class="collapse navbar-collapse" id="navbarResponsive">
+      <ul class="navbar-nav ml-auto">
+        <li class="nav-item active">
+          <a class="nav-link" href="/admin_dashboard">Home
+                <span class="sr-only">(current)</span>
+              </a>
+        </li>
+          <li class="nav-item active" style="padding-right:10px;">
+          <a class="nav-link" href="/admin_dashboard/logout">Logout
+                <span class="sr-only">(current)</span>
+              </a>
+        </li>
+
+
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<br><br>
 <div style="padding-top:25px; padding-left:20px;">
 <a class="btn btn-warning" href="{% url 'create_tag' %}" role="button">Create Tag</a>
 &nbsp &nbsp &nbsp
 <a class="btn btn-primary" href="{% url 'categorize_tag' %}" role="button">Categorize Tag</a>
 </div>
+<br>
 <h2 align="left" style="padding-left:20px">User Hidden Tags : {{user_name}}</h2>
 
 <br>
@@ -80,7 +108,7 @@
 
 
       <div class="center_div">
-        <button type="submit" class="btn btn-default ">Submit</button>
+        <button type="submit" class="btn btn-outline-secondary ">Submit</button>
        </div>
         <br>
 

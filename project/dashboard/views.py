@@ -32,6 +32,12 @@ from utility.utils import (get_city_address, update_tag_image,
 from utility.firebase import (upload_tag_files, upload_user_files,
                               upload_community_files, upload_community_thumbnail,
                               upload_tag_thumbnail)
+from django.contrib.auth import authenticate, login
+
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib.auth import logout
+
 url = settings.URL
 import logging
 # uncomment to run it in localhost
@@ -40,9 +46,54 @@ error_logger=logging.getLogger("error_logger")
 info_logger=logging.getLogger("info_logger")
 api_url = url + '/api/'
 
+
+def admin_login(request):
+
+    if request.method == 'GET':
+
+        if request.user.is_authenticated:
+            if request.user.is_superuser:
+                return redirect('admin_dashboard')
+            else:
+                logout(request)
+
+        return render(request,'dashboard/login.html',{})
+    else:
+        username = request.POST.get("username",'')
+        passcode = request.POST.get("passcode",'')
+
+        user = authenticate(username=username, password=passcode)
+        # user is not found
+        if not user:
+            return JsonResponse({'success': False,'raise_error':True})
+        # if user is found , login user
+        login(request, user)
+
+        # if super user, redirect to admin dashboard
+        if request.user.is_superuser:
+            return JsonResponse({'success':True,'is_super_user':True})
+        # if not super user, redirect to communities
+        elif not request.user.is_superuser:
+            return JsonResponse({'success':True,'is_super_user':False})
+        # else raise validation error
+        else:
+            return JsonResponse({'success': False,'raise_error':True})
+
+
+@login_required
+def admin_logout(request):
+    logout(request)
+    return redirect('admin_login')
+
+
 def dashboard(request):
     '''function to give list of community to edit'''
 
+    if request.user.is_authenticated:
+        if not request.user.is_superuser:
+            return redirect('signup')
+    else:
+        return redirect('admin_login')
 
     select_type=request.GET.get('filter',None)
     dashboard_list=[]
@@ -855,20 +906,23 @@ def add_dropdown_responses(request,question_id):
         # form_data.dropdown_list=json.dumps(dropdown_list)
         # form_data.save()
         dropdown_list=[]
+        dropdown_status=0
         if form_data.is_dropdown:
             dropdown_list=json.loads(form_data.dropdown_list)
+            dropdown_status=form_data.is_dropdown
 
         context={
                 'dropdown_list':dropdown_list,
                 'question_id':question_id,
                 'question_name':form_data.data,
-                'length':len(dropdown_list)
+                'length':len(dropdown_list),
+                'dropdown_status': dropdown_status
         }
         return render(request,'dashboard/add_questions_dropdown.html',context)
     else:
         option_data=request.POST.get('data')
         option_data=json.loads(option_data)
-
+        dropdown_state=request.POST.get('dropdown_state')
         dropdown_list=[]
 
         for option in option_data:
@@ -876,7 +930,7 @@ def add_dropdown_responses(request,question_id):
         if dropdown_list:
             dropdown_list=json.dumps(dropdown_list)
             form_data.dropdown_list=dropdown_list
-            form_data.is_dropdown=1
+            form_data.is_dropdown=dropdown_state
             form_data.save()
             return JsonResponse({"success": True})
         else:
