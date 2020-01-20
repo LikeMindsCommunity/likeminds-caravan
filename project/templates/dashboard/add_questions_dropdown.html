@@ -93,6 +93,7 @@
 </form>
 <button type="button" class="btn btn-primary" id="add">Add</button>
 <button type="button" class="btn btn-danger" id="delete">Delete</button>
+<button type="button" class="btn btn-primary" id="add_multiple">Add Multiple</button>
 
 </div>
 </body>
@@ -112,6 +113,13 @@
       $('#form_field').append(new_field);
     })
 
+     $('#add_multiple').click(function(){
+
+     var new_field= ` <div class='form-group'><input type='text' class='form-control' id="multiple_input"></div> `
+      $('#form_field').append(new_field);
+      $('#add_multiple').css("display","none")
+    })
+
    $('#delete').click(function(){
    var id='option'+count
    $('#'+id).parent('div').remove();
@@ -123,38 +131,63 @@
     $('#my_form').submit(function(){
 
     var data=[]
-    update_count={{length}};
 
-    for(var i=1;i<=update_count;i++)
-    {
-        option=$('#option'+i).val()
-        if(typeof option === 'undefined')
-            continue;
-        console.log(option)
-        id=$('#id'+i).val()
-        var update_object={
-        'option':option,
-        'update':true,
-        'id':id
+    multiple_input=$('#multiple_input').val();
+
+
+
+    if(typeof multiple_input == 'undefined'|| multiple_input == ""){
+        console.log("Normal Case")
+        update_count={{length}};
+
+        for(var i=1;i<=update_count;i++)
+        {
+            option=$('#option'+i).val()
+            if(typeof option === 'undefined')
+                continue;
+            console.log(option)
+            id=$('#id'+i).val()
+            var update_object={
+            'option':option,
+            'update':true,
+            'id':id
+            }
+
+            data.push(update_object)
         }
 
-        data.push(update_object)
-    }
 
+        for(var i=update_count+1;i<=count;i++)
+        {
 
-    for(var i=update_count+1;i<=count;i++)
-    {
+            option=$('#option'+i).val()
+            console.log(option)
+            var create_object={
+            'option':option,
+            'update':false
+            }
 
-        option=$('#option'+i).val()
-        console.log(option)
-        var create_object={
-        'option':option,
-        'update':false
+            data.push(create_object)
+
         }
+    }else{
 
-        data.push(create_object)
+       comma_list=multiple_input.split(",");
+       for(var i=0;i<comma_list.length;i++)
+        {
 
+            option=comma_list[i]
+            console.log(option)
+            var create_object={
+            'option':option,
+            'update':false
+            }
+
+            data.push(create_object)
+
+        }
     }
+
 
     is_multiple_dropdown=$('.multiple_select').is(':checked');
     let dropdown_state=0
@@ -174,7 +207,6 @@
     }
     console.log(option_data)
     //ajax
-
      $.ajax({
 
             url:'/admin_dashboard/add_dropdown_responses/'+{{question_id}},
@@ -198,8 +230,9 @@
 
          })
 
-
     })
+
+
 
     })
 
