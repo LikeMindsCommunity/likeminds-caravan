@@ -101,7 +101,6 @@
             alert("Collabcard ID is required");
          }
          else{
-             console.log(card_id)
              var card_id=$('#card_id').val()
 
               temp={
@@ -120,7 +119,6 @@
                     dataType:'json',
                     success:function(data){
                         if(data['success']){
-                           console.log(data);
                                 if(data['show_card']){
                                     var title = "<h4>Card : "+data['card_text']+"</h4>" + "<h5><b>Community : "+data['community_name']+"</b></h5>"
                                     $("#show_card").html(title);
@@ -134,24 +132,12 @@
 
                         }
                         else if(data['raise_error']){
-
-                           console.log(data);
                            var title = "Collabcard does not exist"
                            $("#show_card").html(title);
-
-
-
-                        }
-
-                        else{
-                            console.log(data);
-
                         }
                     }
-
               })
          }
-
        })
 
 
@@ -165,7 +151,6 @@
             alert("Collabcard ID is required");
          }
          else{
-             console.log(card_id)
              var card_id=$('#card_id').val()
 
               temp={
@@ -184,7 +169,6 @@
                     dataType:'json',
                     success:function(data){
                         if(data['success']){
-                            console.log(data);
                             location.reload(true);
                         }
                         else if(data['raise_error']){
@@ -197,13 +181,7 @@
                            $("#delete_card").hide()
 
                         }
-
-                        else{
-                            console.log(data);
-
-                        }
                     }
-
               })
          }
        })
