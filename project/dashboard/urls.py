@@ -66,5 +66,6 @@ urlpatterns = [
     path('disable_introduction_state/<int:community_id>', disable_introduction_state,name='disable_introduction_state'),
     path('enable_introduction_state/<int:community_id>', enable_introduction_state,name='enable_introduction_state'),
     path('delete_report_tags/<int:tag_id>', delete_report_tags, name='delete_report_tags'),
+    path('delete_collabcard', delete_collabcard, name='delete_collabcard'),
 
 ]

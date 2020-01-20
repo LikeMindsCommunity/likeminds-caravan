@@ -1,6 +1,7 @@
 from django.shortcuts import render,redirect
 from django.http import HttpResponse
 from togther.models import *
+from togther.models import card_answers as CardAnswers
 from togther.views import update_user_info
 from django.views.generic import *
 from collabmates_api.views import request_response
@@ -28,6 +29,7 @@ from utility.utils import (get_city_address, update_tag_image,
                            create_or_categorize_tag, update_user_geography_tags,
                            insert_user_home_town_tags, update_hometown_tags_for_all_users,
                            user_onbaord)
+from utility.celery_tasks import update_last_unseen_in_engage_on_card_creation
 
 from utility.firebase import (upload_tag_files, upload_user_files,
                               upload_community_files, upload_community_thumbnail,
@@ -959,7 +961,7 @@ def analytics(request):
     member_count=Members.objects.filter(state=4).values('member_id').distinct().count()
     total_member_count = Members.objects.filter(state=4).values('member_id').count()
     conversations_count=Collabcard.objects.all().count()
-    responses_count=card_answers.objects.all().count()
+    responses_count=CardAnswers.objects.all().count()
 
     pilot_live = Community.objects.filter(hide_community='4').count()
     pilot_0_interested = Community.objects.filter(hide_community='3').filter(members_count=0).count()
@@ -1001,7 +1003,7 @@ def analytics_community(request,community_id):
 
     for each_collabcard in collabcard:
         collabcard_count=collabcard_count+1
-        answer_count=card_answers.objects.filter(card_id=each_collabcard.id).count()
+        answer_count=CardAnswers.objects.filter(card_id=each_collabcard.id).count()
         collabcard_answer_count=collabcard_answer_count+answer_count
 
     context={
@@ -3279,3 +3281,47 @@ def delete_report_tags(request,tag_id):
     # return render(request, 'dashboard/add_report_tags.html', {'report_tags': report_tags,
     #                                                           'length': report_tags.count()})
     return redirect(reverse(add_report_tags))
+
+
+def delete_collabcard(request):
+    """ function to delete collabcard and related objects """
+    if request.method == 'GET':
+        context = {}
+        return render(request, 'dashboard/delete_collabcard.html', context)
+    else:
+        card_id = request.POST.get('card_id')
+        action = request.POST.get('action')
+
+        card = Collabcard.objects.filter(pk=card_id)
+
+        if not card.exists():
+            return JsonResponse({"success": False, 'raise_error': True})
+
+        elif action == 'show':
+            card = card[0]
+
+            return JsonResponse({"success": True, 'raise_error': False,
+                                    'show_card': True, 'card_text': card.title,
+                                    'community_name': card.community.name,
+                                    })
+
+        else:
+            card = card[0]
+            community_id = card.community.id
+
+            # get all collabcard related objects
+            card_attachments = Card_Attachment.objects.filter(collabcard=card)
+            card_answers = CardAnswers.objects.filter(card=card)
+            card_reports = Report.objects.filter(collabcard=card)
+
+            # deleting all collabcard related objects
+            card_attachments.delete()
+            card_answers.delete()
+            card_reports.delete()
+            # delete collabcard
+            card.delete()
+
+            update_last_unseen_in_engage_on_card_creation.delay(community_id)
+
+
+        return JsonResponse({"success": True, 'raise_error': False})
