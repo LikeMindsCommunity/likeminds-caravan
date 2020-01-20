@@ -112,7 +112,7 @@ def send_email_for_new_collabcard_posted(context):
     to = context['to']
     fail_silently = True
     context['android_app_download_link'] = android_app_download_link
-    context['ios_app_download_link'] = 'ios_app_download_link'
+    context['ios_app_download_link'] = ios_app_download_link
     subject = str(context['collabcard_creater']) + " has started a new Conversation in "+ str(context['community_name'])+ " community"
     template = get_template("mails/collabcard_posted.html").render(context)
     # msg = EmailMultiAlternatives(subject,
