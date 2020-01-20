@@ -22,19 +22,10 @@ from django.contrib.auth import views as auth_views
 from django.conf import settings
 from django.conf.urls.static import static
 from dashboard.views import admin_login
-from utility.utils import page_not_found
-from django.shortcuts import render,render_to_response
 
 
-def handler404(request, exception, template_name="__404__.html"):
-    response = render_to_response("__404__.html")
-    response.status_code = 404
-    return response
-
-def handler500(request, exception, template_name="500.html"):
-    response = render_to_response("500.html")
-    response.status_code = 500
-    return response
+handler404 = 'utility.exceptions.handler404'
+handler500 = 'utility.exceptions.handler500'
 
 urlpatterns = [
     #url(r'^login/$', auth_views.LoginView, name='login'),
@@ -47,7 +38,6 @@ urlpatterns = [
     path('admin_dashboard/',include('dashboard.urls'),name='admin_dashboard'),
     path('utils/', include('utility.urls'), name='utils'),
     path('admin_login', admin_login, name="admin_login"),
-    path('page_not_found', page_not_found, name="page_not_found"),
 
 ]
 

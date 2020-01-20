@@ -44,6 +44,7 @@ def send_email_to_nominated_admin(NominatedAdmin,email,ProposedAdmin,CommunityNa
     msg.attach_alternative(template, "text/html")
     # print("printing mag >>> ",msg.send(fail_silently))
     # return
+    to = [to]
     send_email(subject, template, to)
 
 @shared_task
@@ -60,6 +61,7 @@ def send_email_to_admin_of_community(CommmunityAdminName,CommunityName,email):
     #                              )
     # msg.attach_alternative(template, "text/html")
     # return msg.send(fail_silently)
+    to = [to]
     send_email(subject, template, to)
 
 @shared_task
@@ -76,6 +78,7 @@ def send_email_to_temp_admin_of_community(CommmunityAdminName,CommunityName,emai
     #                              )
     # msg.attach_alternative(template, "text/html")
     # return msg.send(fail_silently)
+    to = [to]
     send_email(subject, template, to)
 
 
@@ -102,6 +105,7 @@ def send_email_to_proposed_admin(NominatedAdmin, email, ProposedAdmin, Community
     #                              )
     # msg.attach_alternative(template, "text/html")
     # return msg.send(fail_silently)
+    to = [to]
     send_email(subject, template, to)
 
 @shared_task
@@ -121,6 +125,7 @@ def send_email_for_new_collabcard_posted(context):
     #                              )
     # msg.attach_alternative(template, "text/html")
     # return msg.send(fail_silently)
+    to = [to]
     send_email(subject, template, to)
 
 
@@ -183,6 +188,7 @@ def pending_members_mail():
                 #                              )
                 # msg.attach_alternative(template, "text/html")
                 # msg.send(fail_silently)
+                to = [to]
                 send_email(subject, template, to)
     return
 
@@ -218,6 +224,7 @@ def send_welcome_mail(user_id):
         #                              )
         # msg.attach_alternative(template, "text/html")
         # return msg.send(fail_silently)
+        to = [to]
         send_email(subject, template, to)
     else:
         return
