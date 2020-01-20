@@ -762,6 +762,8 @@ def all_members(request,community_id):
         has_questions=True
 
     members_list=[]
+
+    fcm_count = 0
     for i in members_info:
         member={}
         member['id']=i.member_id
@@ -785,10 +787,12 @@ def all_members(request,community_id):
         userinfo = Userinfo.objects.filter(user_id=i.member_id)
         if not userinfo.exists():
             user = update_user_info(request=None, member_id=i.member_id.id)
-
-        image_url=Userinfo.objects.filter(user_id=i.member_id).values('image_file')
-        image_url=image_url[0]['image_file']
-        member['image_file']=image_url
+        else:
+            if userinfo[0].fcm_token:
+                fcm_count+=1
+        # image_url=Userinfo.objects.filter(user_id=i.member_id).values('image_file')
+        # image_url=image_url[0]['image_file']
+        # member['image_file']=image_url
         member['community_id']=community_id
         members_list.append(member)
 
@@ -800,13 +804,16 @@ def all_members(request,community_id):
         member['email'] = user.email
         member['contact_number'] = user.contact_number
         member['state'] = 'Unregistred user NOMINATED as promoter'
-        userinfo=Userinfo.objects.filter(email = user.email)
-        if userinfo :
+        userinfo=Userinfo.objects.filter(email=user.email)
+        if userinfo:
             continue
 
         unregitered_users_list.append(member)
 
-    return render(request,'dashboard/all_members.html',{'member_list':members_list,'unregitered_users_list':unregitered_users_list,'has_questions':has_questions})
+    return render(request,'dashboard/all_members.html',{'member_list':members_list,
+                                                        'unregitered_users_list':unregitered_users_list,
+                                                        'has_questions':has_questions,
+                                                        'fcm_count':fcm_count})
 
 
 def delete_members(request,community_id,member_id):
