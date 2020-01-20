@@ -20,6 +20,7 @@ from django.http.response import JsonResponse
 from django.conf import settings
 from user_agents import parse
 
+
 # cache details
 # from django.core.cache import cache
 # custom_cache=cache
@@ -38,9 +39,6 @@ else:
 # count for a particular community to show tutorial
 tutorial_count=3
 
-
-def page_not_found(request):
-    return render(request, '__404__.html', {})
 
 def is_member_engage(community,member):
 

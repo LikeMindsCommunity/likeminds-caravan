@@ -40,6 +40,7 @@ def send_email_to_proposed_admin(NominatedAdmin,email,ProposedAdmin,CommunityNam
     #                                  )
     # msg.attach_alternative(template, "text/html")
     # return msg.send(fail_silently)
+    to = [to]
     send_email(subject, template, to)
 
 
