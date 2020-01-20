@@ -10,7 +10,7 @@ from django.db.models import Q
 from togther.models import *
 from project.celery import app
 from utility.tasks import send_email
-from utility.utils import android_app_download_link
+from utility.utils import android_app_download_link,ios_app_download_link
 
 url  = settings.URL
 
@@ -112,6 +112,7 @@ def send_email_for_new_collabcard_posted(context):
     to = context['to']
     fail_silently = True
     context['android_app_download_link'] = android_app_download_link
+    context['ios_app_download_link'] = 'ios_app_download_link'
     subject = str(context['collabcard_creater']) + " has started a new Conversation in "+ str(context['community_name'])+ " community"
     template = get_template("mails/collabcard_posted.html").render(context)
     # msg = EmailMultiAlternatives(subject,
@@ -159,6 +160,7 @@ def pending_members_mail():
                          'community_id': admin.community_id.id,
                          'url':url,
                          'android_app_download_link':android_app_download_link,
+                         'ios_app_download_link':ios_app_download_link
                          })
                     subject = str(pending_members_in_community[0].member_id.userinfo.name)+" has requested to join "+str(admin.community_id.name)
                 elif pending_count > 1:
@@ -173,6 +175,7 @@ def pending_members_mail():
                          'community_id': admin.community_id.id,
                          'url':url,
                          'android_app_download_link':android_app_download_link,
+                         'ios_app_download_link':ios_app_download_link
                          })
                 print(subject)
                 to = admin.member_id.userinfo.email

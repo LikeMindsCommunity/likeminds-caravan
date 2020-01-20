@@ -28,6 +28,8 @@ from user_agents import parse
 #link to download the android app
 android_app_download_link="https://play.google.com/apps/testing/com.collabmates"
 
+ios_app_download_link="https://apps.apple.com/us/app/collabmates/id1481298195"
+
 url=settings.URL
 
 if settings.IS_BETA:

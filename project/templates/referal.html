@@ -345,7 +345,7 @@ $('#download_app').click(function(e){
 
 
 {% if ios %}
-$('#ios_popup').modal('show')
+    window.open("{{ios_app_download_link}}",'_self')
 {% endif %}
 
 {% if pc %}
