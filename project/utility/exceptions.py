@@ -13,7 +13,10 @@ def handler404(request, exception, template_name="__404__.html"):
                                                                   'subject': subject
                                                                   })
     to_mails_list = ['mahesh61437mahe@gmail.com', 'rastogi.fresh88@gmail.com']
-    send_email.delay(subject, template, to_mails_list)
+
+    if not requested_path[0:6] == 'static':
+        send_email.delay(subject, template, to_mails_list)
+
     response = render_to_response("__404__.html")
     response.status_code = 404
     return response
