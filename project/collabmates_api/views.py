@@ -497,6 +497,8 @@ def join_community_responses(request):
                 response.user = user.id
                 response.community = community.id
                 response.save()
+    else:
+        res['questions'] = [{}]
 
     if not ref_id:
         # sending mail to nipun and harsh
