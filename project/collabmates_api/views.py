@@ -248,13 +248,13 @@ def your_communities(request,user_id):
     '''This function is used to see your communities based on user id'''
 
     member_id=request.GET.get('member_id')
-    page_number = request.GET.get('page','')
+    page_number = request.GET.get('page', '')
     if str(member_id) != str(user_id):
         member_id = user_id
     my_community=[]
     user=User.objects.get(id=member_id)
     communities=Member_Engage.objects.filter(member_id=user).order_by('-updated_at')
-    if page_number:
+    if page_number and not page_number == '':
         communities=pagination(communities,page_number,paginate_by=10)
     for each_community in communities:
 
