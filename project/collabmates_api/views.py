@@ -2894,6 +2894,7 @@ def get_or_create_lpig_tags(tag,category,attr):
         tag.category_id = category
         tag.attribute_id = attribute
         tag.created_at = time.time()
+        tag.updated_at = time.time()
         tag.save()
         tag.tag_id = tag.id
         tag.save()
@@ -3387,6 +3388,7 @@ def push_onboarding(request):
                    tag_object.save()
                    tag_object.tag_id=tag_object.id
                    tag_object.created_at = time.time()
+                   tag_object.updated_at = time.time()
                    tag_object.save()
                    save_tags_for_user_from_onboarding(category_id,tag_object,member_id)
 
@@ -3445,6 +3447,7 @@ def save_geography_and_hometown_tags_of_user_from_onboarding(address_input,user_
             tag_object.save()
             tag_object.tag_id = tag_object.id
             tag_object.created_at = time.time()
+            tag_object.updated_at = time.time()
             tag_object.save()
             save_tags_for_user_from_onboarding(4, tag_object, user_id)
 
@@ -3461,6 +3464,7 @@ def save_geography_and_hometown_tags_of_user_from_onboarding(address_input,user_
             tag_object.save()
             tag_object.tag_id = tag_object.id
             tag_object.created_at = time.time()
+            tag_object.updated_at = time.time()
             tag_object.save()
             save_tags_for_user_from_onboarding(1, tag_object, user_id)
 
