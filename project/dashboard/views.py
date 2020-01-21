@@ -1311,6 +1311,7 @@ def create_uncategorized_tag(tag,tag_type):
             tag.category_id = category
             tag.attribute_id = attribute
             tag.created_at = time.time()
+            tag.updated_at = time.time()
             tag.save()
             tag.tag_id = tag.id
             tag.save()
@@ -1592,6 +1593,7 @@ def get_or_create_sub_tags(new_tag,category,attribute,cluster=False):
         tag.save()
         tag.tag_id =tag.id
         tag.created_at = time.time()
+        tag.updated_at = time.time()
         tag.save()
         if cluster:
             tag.is_cluster=1

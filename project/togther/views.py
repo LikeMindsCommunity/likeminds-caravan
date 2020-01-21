@@ -984,6 +984,7 @@ def get_or_create_tag(tag_name,tag_type):
             tag.save()
             tag.tag_id = tag.id
             tag.created_at = time.time()
+            tag.updated_at = time.time()
             tag.save()
         return tag.id
 
