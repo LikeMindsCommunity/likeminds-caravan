@@ -3308,7 +3308,7 @@ def save_tags_for_user_from_onboarding(category_id,tag_id,member_id):
 
     if category_id == 1:
         if tag_id.attribute_id.id == 3:
-            tag_id =create_user_hometown_tag_and_related_tags.delay(user_id=member_id.id, tag_id=tag_id.id, new_tag=tag_id.name)
+            tag_id =insert_user_home_town_tags(user_id=member_id.id,tag=str(tag_id.tag_id))
         user_tag = User_Legacy.objects.filter(tags_id=tag_id, user_id=member_id)
         if not user_tag.exists():
             user_legacy_object = User_Legacy()
@@ -3363,28 +3363,26 @@ def push_onboarding(request):
         for tag in tags:
 
            if 'id' in tag and tag['id']:
+
               tag_id=Tags_lpig.objects.get(id=tag['id'])
               status=Tags_lpig.objects.filter(id=tag['id']).update(tag_rank=F('tag_rank')+1)
               print(status)
               save_tags_for_user_from_onboarding(category_id,tag_id,member_id)
+
            else:
 
                if data['id'] == 12 or data['id'] == '12':
                    attribute_id = Attributes.objects.get(id=data['id'])
-                   print(data['id'])
-                   print(tag['name'])
-                   print("\n")
+
                    update_status=Userinfo.objects.filter(user_id=user_id).update(address=tag['name'])
                    print(update_status)
                    save_geography_and_hometown_tags_of_user_from_onboarding(tag['name'],member_id,attribute_id,4)
 
-               elif data['id'] == 3 or data['id'] == '13':
+               elif data['id'] == 3 or data['id'] == '3':
                    attribute_id = Attributes.objects.get(id=data['id'])
-                   print(data['id'])
-                   print(tag['name'])
-                   print("\n")
                    save_geography_and_hometown_tags_of_user_from_onboarding(tag['name'],member_id,attribute_id,1)
                else:
+                   print("uncharacterized tag=="+tag['name'])
                    attribute_id=Attributes.objects.get(id=data['id'])
                    uncharacterized_category_id=Category.objects.get(id=6)
 
