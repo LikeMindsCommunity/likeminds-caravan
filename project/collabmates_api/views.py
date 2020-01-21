@@ -3380,14 +3380,18 @@ def push_onboarding(request):
                else:
                    attribute_id=Attributes.objects.get(id=data['id'])
                    uncharacterized_category_id=Category.objects.get(id=6)
-                   tag_object=Tags_lpig()
-                   tag_object.name=tag['name']
-                   tag_object.attribute_id=attribute_id
-                   tag_object.category_id=uncharacterized_category_id      # uncategorized tag
-                   tag_object.save()
-                   tag_object.tag_id=tag_object.id
-                   tag_object.created_at = time.time()
-                   tag_object.save()
+                   is_tag_exists=Tags_lpig.objects.filter(attribute_id=attribute_id,name=tag['name'])
+                   if not is_tag_exists:
+                       tag_object=Tags_lpig()
+                       tag_object.name=tag['name']
+                       tag_object.attribute_id=attribute_id
+                       tag_object.category_id=uncharacterized_category_id      # uncategorized tag
+                       tag_object.save()
+                       tag_object.tag_id=tag_object.id
+                       tag_object.created_at = time.time()
+                       tag_object.save()
+                   else:
+                       tag_object=is_tag_exists[0]
                    save_tags_for_user_from_onboarding(category_id,tag_object,member_id)
 
 
@@ -3438,15 +3442,21 @@ def save_geography_and_hometown_tags_of_user_from_onboarding(address_input,user_
             save_tags_for_user_from_onboarding(4,city_tag[0],user_id)
         else:
             category=Category.objects.get(id=4)
-            tag_object = Tags_lpig()
-            tag_object.name = user_address['city']
-            tag_object.attribute_id = attribute_id
-            tag_object.category_id = category                   # uncategorized tag
-            tag_object.save()
-            tag_object.tag_id = tag_object.id
-            tag_object.created_at = time.time()
-            tag_object.save()
+            is_tag_exists = Tags_lpig.objects.filter(attribute_id=attribute_id, name=user_address['city'])
+            if not is_tag_exists:
+                tag_object = Tags_lpig()
+                tag_object.name = user_address['city']
+                tag_object.attribute_id = attribute_id
+                tag_object.category_id = category                   # uncategorized tag
+                tag_object.save()
+                tag_object.tag_id = tag_object.id
+                tag_object.created_at = time.time()
+                tag_object.save()
+            else:
+                tag_object=is_tag_exists[0]
             save_tags_for_user_from_onboarding(4, tag_object, user_id)
+
+
 
     elif category_id == 1:
         hometown=Tags_lpig.objects.filter(attribute_id=attribute_id,name=city)
@@ -3454,14 +3464,18 @@ def save_geography_and_hometown_tags_of_user_from_onboarding(address_input,user_
             save_tags_for_user_from_onboarding(1, hometown[0], user_id)
         else:
             category = Category.objects.get(id=1)
-            tag_object = Tags_lpig()
-            tag_object.name = user_address['city']
-            tag_object.attribute_id = attribute_id
-            tag_object.category_id = category  # uncategorized tag
-            tag_object.save()
-            tag_object.tag_id = tag_object.id
-            tag_object.created_at = time.time()
-            tag_object.save()
+            is_tag_exists = Tags_lpig.objects.filter(attribute_id=attribute_id, name=user_address['city'])
+            if not is_tag_exists:
+                tag_object = Tags_lpig()
+                tag_object.name = user_address['city']
+                tag_object.attribute_id = attribute_id
+                tag_object.category_id = category  # uncategorized tag
+                tag_object.save()
+                tag_object.tag_id = tag_object.id
+                tag_object.created_at = time.time()
+                tag_object.save()
+            else:
+                tag_object=is_tag_exists[0]
             save_tags_for_user_from_onboarding(1, tag_object, user_id)
 
     print("Hometown and city updated successfully")
