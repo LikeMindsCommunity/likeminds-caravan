@@ -10,7 +10,7 @@ from django.db.models import Q
 from togther.models import *
 from project.celery import app
 from utility.tasks import send_email
-from utility.utils import android_app_download_link
+from utility.utils import android_app_download_link,ios_app_download_link
 
 url  = settings.URL
 
@@ -44,6 +44,7 @@ def send_email_to_nominated_admin(NominatedAdmin,email,ProposedAdmin,CommunityNa
     msg.attach_alternative(template, "text/html")
     # print("printing mag >>> ",msg.send(fail_silently))
     # return
+    to = [to]
     send_email(subject, template, to)
 
 @shared_task
@@ -60,6 +61,7 @@ def send_email_to_admin_of_community(CommmunityAdminName,CommunityName,email):
     #                              )
     # msg.attach_alternative(template, "text/html")
     # return msg.send(fail_silently)
+    to = [to]
     send_email(subject, template, to)
 
 @shared_task
@@ -76,6 +78,7 @@ def send_email_to_temp_admin_of_community(CommmunityAdminName,CommunityName,emai
     #                              )
     # msg.attach_alternative(template, "text/html")
     # return msg.send(fail_silently)
+    to = [to]
     send_email(subject, template, to)
 
 
@@ -102,6 +105,7 @@ def send_email_to_proposed_admin(NominatedAdmin, email, ProposedAdmin, Community
     #                              )
     # msg.attach_alternative(template, "text/html")
     # return msg.send(fail_silently)
+    to = [to]
     send_email(subject, template, to)
 
 @shared_task
@@ -112,6 +116,7 @@ def send_email_for_new_collabcard_posted(context):
     to = context['to']
     fail_silently = True
     context['android_app_download_link'] = android_app_download_link
+    context['ios_app_download_link'] = ios_app_download_link
     subject = str(context['collabcard_creater']) + " has started a new Conversation in "+ str(context['community_name'])+ " community"
     template = get_template("mails/collabcard_posted.html").render(context)
     # msg = EmailMultiAlternatives(subject,
@@ -121,6 +126,7 @@ def send_email_for_new_collabcard_posted(context):
     #                              )
     # msg.attach_alternative(template, "text/html")
     # return msg.send(fail_silently)
+    to = [to]
     send_email(subject, template, to)
 
 
@@ -159,6 +165,7 @@ def pending_members_mail():
                          'community_id': admin.community_id.id,
                          'url':url,
                          'android_app_download_link':android_app_download_link,
+                         'ios_app_download_link':ios_app_download_link
                          })
                     subject = str(pending_members_in_community[0].member_id.userinfo.name)+" has requested to join "+str(admin.community_id.name)
                 elif pending_count > 1:
@@ -173,6 +180,7 @@ def pending_members_mail():
                          'community_id': admin.community_id.id,
                          'url':url,
                          'android_app_download_link':android_app_download_link,
+                         'ios_app_download_link':ios_app_download_link
                          })
                 print(subject)
                 to = admin.member_id.userinfo.email
@@ -183,6 +191,7 @@ def pending_members_mail():
                 #                              )
                 # msg.attach_alternative(template, "text/html")
                 # msg.send(fail_silently)
+                to = [to]
                 send_email(subject, template, to)
     return
 
@@ -218,6 +227,7 @@ def send_welcome_mail(user_id):
         #                              )
         # msg.attach_alternative(template, "text/html")
         # return msg.send(fail_silently)
+        to = [to]
         send_email(subject, template, to)
     else:
         return

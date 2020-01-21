@@ -26,13 +26,13 @@ def mail_triger(member_id,request):
     t = Timer(600.0, onboarding_mail_for_new_users,[member_id,android,ios,pc])
     t.start()
 
-
-def send_email(subject,template,to):
+@shared_task
+def send_email(subject,template,to_mails_list):
     fail_silently=True
     msg = EmailMultiAlternatives(subject,
                                 template,
                                 "Collabmates<hello@collabmates.com>",
-                                [to],)
+                                to_mails_list,)
     msg.attach_alternative(template, "text/html")
     msg.send(fail_silently)
     return
@@ -55,7 +55,7 @@ def onboarding_mail_for_new_users(member_id,android,ios,pc):
         make sure he continues the on-boarding'''
         return
     else:
-        fail_silently=True
+        # fail_silently=True
         if user.email:
 
             if user.userinfo.fcm_token and not pc:
@@ -83,6 +83,7 @@ def onboarding_mail_for_new_users(member_id,android,ios,pc):
             #                                  )
             # msg.attach_alternative(template, "text/html")
             # return msg.send(fail_silently)
+            to = [to]
             send_email(subject, template, to)
             notification_to_complete_onboarding(member_id) # notification to complete onboarding
             return
@@ -153,17 +154,16 @@ def new_member_request(member_id,community_id,form_response,ref_id=None,):
         to_list = ['nipungoyal.iitd@gmail.com','hrshshukl@gmail.com']
     else:
         to_list = ['mahesh61437mahe@gmail.com','rastogi.fresh88@gmail.com']
-    msg = EmailMultiAlternatives(subject,
-                                 template,
-                                 "Collabmates<hello@collabmates.com>",
-
-                                 to_list,
-                                 )
-
-    msg.attach_alternative(template, "text/html")
-    return msg.send(fail_silently)
-
-    # send_email(subject, template, to=to_list)
+    # msg = EmailMultiAlternatives(subject,
+    #                              template,
+    #                              "Collabmates<hello@collabmates.com>",
+    #
+    #                              to_list,
+    #                              )
+    #
+    # msg.attach_alternative(template, "text/html")
+    # return msg.send(fail_silently)
+    send_email(subject, template, to_list)
 
 
 @shared_task
@@ -197,7 +197,7 @@ def member_request_approval_or_denied(user_id,community_id,approved):
                                                                   'link_text':link_text,
                                                                   'approved':approved
                                                                   })
-
+    to = [to]
     send_email(subject, template, to)
     return
 
@@ -221,6 +221,7 @@ def send_mail_for_report_abuse__on_collabcard(user_name,collabcard_message,repor
         to="nipun@collabmates.com"
     else:
         to="mahesh61437mahe@gmail.com"
+    to = [to]
     send_email(subject, template, to)
     print("Executed")
 
@@ -244,6 +245,7 @@ def send_mail_for_report_abuse__of_user(user_name,collabcard_message,report_tag,
         to="nipun@collabmates.com"
     else:
         to="mahesh61437mahe@gmail.com"
+    to = [to]
     send_email(subject, template, to)
 
     print("Executed")

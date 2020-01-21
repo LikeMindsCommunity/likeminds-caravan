@@ -3,18 +3,19 @@
 <html xmlns="http://www.w3.org/1999/html">
 {% if request.user.is_superuser %}
 <head>
-	<meta charset="utf-8">
+    <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
     <!-- Bootstrap CSS -->
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+          integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
 
     <link rel="stylesheet" type="text/css" href="{% static 'notes/main.css' %}">
 
 
-<!-- page to show all members of community -->
+    <!-- page to show all members of community -->
 
-<style type="text/css">
+    <style type="text/css">
 
   body {
   background: #fafafa;
@@ -48,11 +49,11 @@ ul {
 
 .content-section {
   background: #ffffff;
-  padding: 10px 20px;
+  padding: 10px 10px;
   border: 1px solid #dddddd;
   border-radius: 3px;
   margin-bottom: 20px;
-  width:900px;
+  width:300px;
 }
 
 .article-title {
@@ -105,87 +106,112 @@ a.article-title:hover {
 .btn-orange {
  background-color: #f08c35;
 }
-</style>
+
+    </style>
 </head>
 <body>
 
 <nav class="navbar navbar-expand-lg navbar-dark fixed-top" style="background-color: #075e54;">
-  <div class="container">
-      <img style="height:40px; width:40px;" src="https://beta.collabmates.com/media/media/ic_launcher_round.png">
-      <a class="navbar-brand" href="#">&nbsp;&nbsp;&nbsp;&nbsp;CollabMates</a>
-    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarResponsive" aria-controls="navbarResponsive" aria-expanded="false" aria-label="Toggle navigation">
-          <span class="navbar-toggler-icon"></span>
+    <div class="container">
+        <img style="height:40px; width:40px;" src="https://beta.collabmates.com/media/media/ic_launcher_round.png">
+        <a class="navbar-brand" href="#">&nbsp;&nbsp;&nbsp;&nbsp;CollabMates</a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarResponsive"
+                aria-controls="navbarResponsive" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
         </button>
-    <div class="collapse navbar-collapse" id="navbarResponsive">
-      <ul class="navbar-nav ml-auto">
-        <li class="nav-item active">
-          <a class="nav-link" href="/admin_dashboard">Home
-                <span class="sr-only">(current)</span>
-              </a>
-        </li>
-          <li class="nav-item active" style="padding-right:10px;">
-          <a class="nav-link" href="/admin_dashboard/logout">Logout
-                <span class="sr-only">(current)</span>
-              </a>
-        </li>
+        <div class="collapse navbar-collapse" id="navbarResponsive">
+            <ul class="navbar-nav ml-auto">
+                <li class="nav-item active">
+                    <a class="nav-link" href="/admin_dashboard">Home
+                        <span class="sr-only">(current)</span>
+                    </a>
+                </li>
+                <li class="nav-item active" style="padding-right:10px;">
+                    <a class="nav-link" href="/admin_dashboard/logout">Logout
+                        <span class="sr-only">(current)</span>
+                    </a>
+                </li>
 
 
-      </ul>
+            </ul>
+        </div>
     </div>
-  </div>
 </nav>
 
-	<main role="main" class="container" >
-  <div class="row">
-    <div class="col-md-8">
-      {% for member in member_list %}
-<!--    <article class="media content-section" >-->
-<!--      <img class = "rounded-circle article-img" src="#">-->
-  <div class="media-body" >
-    <div class="article-metadata" >
-
-    </div>
-    <h2><a class="article-title" href="{% url 'update_user'  member.id.id%}">{{ member.id.userinfo.name }}</a></h2>
-        {% if member.state != 'Pending' %}
-
-      <p class="article-content">{{member.state}}</p>
-      {% else %}
-            <p class="article-content" style="color:red;"> {{member.state}}</p>
-      {% endif %}
-    {% if member.state == 'Pending' %}
-    <a class="btn btn-danger btn-sm mt-1 mb-1 mr-4 " href="{%url 'aprove_member' member.community_id member.id.id %}?status=delete">Decline Without Notification</a>
-    <a class="btn btn-primary btn-sm mt-1 mb-1 mr-4 " href="{% url 'aprove_member' member.community_id  member.id.id %}?status=approved ">Approve</a>
-    <a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 " href="{% url 'aprove_member' member.community_id  member.id.id %}?status=decline">Decline</a>
-      {% else %}
-       <a class="btn btn-danger btn-sm mt-1 mb-1 mr-4 " href="{%url 'delete_members' member.community_id member.id.id %}">Delete</a>
-    {% endif %}
-
-   {% if has_questions %}
-        <a class="btn btn-info btn-sm mt-1 mb-1 mr-4 " href="{% url 'show_member_responses' member.community_id  member.id.id %}">Responses</a>
-   {% endif %}
-  </div>
-        {% endfor %}
+<main role="main" class="container">
+    <div class="row">
         <div class="col-md-8">
-      {% for user in unregitered_users_list %}
-<!--    <article class="media content-section" >-->
-<!--      <img class = "rounded-circle article-img" src="#">-->
-  <div class="media-body" >
-    <div class="article-metadata" >
+            {% for member in member_list %}
+            <!--    <article class="media content-section" >-->
+            <!--      <img class = "rounded-circle article-img" src="#">-->
+            <div class="media-body">
+                <div class="article-metadata">
 
-    </div>
-    <h2><a class="article-title" href="#">{{ user.name}}</a></h2>
-      <p class="article-content" style="color:green;"> {{user.email}}</p>
-      <p class="article-content" style="color:green;"> {{user.contact_number}}</p>
-            <p class="article-content" style="color:green;"> {{user.state}}</p>
-  </div>
-</article>
+                </div>
+                <h2><a class="article-title" href="{% url 'update_user'  member.id.id%}">{{ member.id.userinfo.name }}</a></h2>
+                {% if member.state != 'Pending' %}
+
+                <p class="article-content">{{member.state}}</p>
+                {% else %}
+                <p class="article-content" style="color:red;"> {{member.state}}</p>
+                {% endif %}
+                {% if member.state == 'Pending' %}
+                <a class="btn btn-danger btn-sm mt-1 mb-1 mr-4 "
+                   href="{%url 'aprove_member' member.community_id member.id.id %}?status=delete">Decline Without
+                    Notification</a>
+                <a class="btn btn-primary btn-sm mt-1 mb-1 mr-4 "
+                   href="{% url 'aprove_member' member.community_id  member.id.id %}?status=approved ">Approve</a>
+                <a class="btn btn-warning btn-sm mt-1 mb-1 mr-4 "
+                   href="{% url 'aprove_member' member.community_id  member.id.id %}?status=decline">Decline</a>
+                {% else %}
+                <a class="btn btn-danger btn-sm mt-1 mb-1 mr-4 "
+                   href="{%url 'delete_members' member.community_id member.id.id %}">Delete</a>
+                {% endif %}
+
+                {% if has_questions %}
+                <a class="btn btn-info btn-sm mt-1 mb-1 mr-4 "
+                   href="{% url 'show_member_responses' member.community_id  member.id.id %}">Responses</a>
+                {% endif %}
+            </div>
             {% endfor %}
+            <div class="col-md-8">
+                {% for user in unregitered_users_list %}
+                <!--    <article class="media content-section" >-->
+                <!--      <img class = "rounded-circle article-img" src="#">-->
+                <div class="media-body">
+                    <div class="article-metadata">
+
+                    </div>
+                    <h2><a class="article-title" href="#">{{ user.name}}</a></h2>
+                    <p class="article-content" style="color:green;"> {{user.email}}</p>
+                    <p class="article-content" style="color:green;"> {{user.contact_number}}</p>
+                    <p class="article-content" style="color:green;"> {{user.state}}</p>
+                </div>
+                </article>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="col-md-4" style="width:300px;">
+            <div class="content-section">
+                <h4>Total Downloads</h4>
+                <h5 >{{fcm_count}}
+                </h5>
+            </div>
+        </div>
     </div>
-  </div>
+
 </main>
-	<script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+
+
+<script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"
+        integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN"
+        crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"
+        integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
+        crossorigin="anonymous"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"
+        integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
+        crossorigin="anonymous"></script>
 
 </body>
 {% endif %}

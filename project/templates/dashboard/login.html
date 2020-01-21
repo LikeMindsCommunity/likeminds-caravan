@@ -134,7 +134,8 @@
 					if(data['is_super_user']){
 						location.href="/admin_dashboard"
 					}
-					location.href="/communities"
+					else{
+					location.href="/communities"}
 				}
 				else if(data['raise_error']){
 					var input = $('.validate-input .input100');

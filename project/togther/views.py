@@ -23,7 +23,7 @@ from utility.utils import (get_city_address, update_tag_image,
                            update_user_geography_tags, create_or_categorize_tag,
                            referal, insert_user_home_town_tags,user_onbaord,
                            is_request_android,is_request_ios,
-                           is_request_pc,android_app_download_link,is_IG_community)
+                           is_request_pc,android_app_download_link,is_IG_community,ios_app_download_link)
 from utility.firebase import upload_image_to_firebase
 from urllib.parse import urlencode,quote
 from collabmates_api.tasks import send_email
@@ -308,8 +308,11 @@ def community(request, community_id):
     else:
         user = []
     android_app_link=""
+    ios_app_download_link=""
     if is_request_android(request):
         android_app_link=android_app_download_link
+    if is_request_ios(request):
+        ios_app_download_link=ios_app_download_link
     if not is_IG_community(community):
         share_text="""I recently joined %s community on CollabMates. It will be good if you also join this community"""%(community.name)
     else:
@@ -319,6 +322,12 @@ def community(request, community_id):
         share_url = str(settings.URL) + '/community/' + str(community_id) + "?ref_id=" + str(request.user.id)
     else:
         share_url = str(settings.URL) + '/community/' + str(community_id)
+    about_1=""
+    about_2=""
+    if community.about:
+        about=community.about
+        about_1=about[0:180]
+        about_2=about[180:]
     context={'usr': user, 'similar_communities': communities,
              'community': community, 'admins': admin_details,
              'members': members, 'source': source,
@@ -330,7 +339,10 @@ def community(request, community_id):
              'request_user_email':request_user_email,
              'android_app_link':android_app_link,
              'share_text':share_text,
-             'share_url':share_url
+             'share_url':share_url,
+             'ios_app_download_link':ios_app_download_link,
+             'about_1':about_1,
+             'about_2':about_2
 
              }
     # user_email = True
@@ -364,7 +376,7 @@ def refer_members(request,community_id):
 
             android=is_request_android(request)
             ios=False
-            if is_request_ios(request) and not user.contact_number:
+            if is_request_ios(request):
                 ios=True
             pc=is_request_pc(request)
             #print(request.META)
@@ -392,6 +404,7 @@ def refer_members(request,community_id):
                         'community_id':community_id,
                         'pc':pc,
                         'android_app_download_link':android_app_download_link,
+                        'ios_app_download_link':ios_app_download_link
                      }
 
             return  render(request,'referal.html',context)
@@ -971,6 +984,7 @@ def get_or_create_tag(tag_name,tag_type):
             tag.save()
             tag.tag_id = tag.id
             tag.created_at = time.time()
+            tag.updated_at = time.time()
             tag.save()
         return tag.id
 

@@ -19,6 +19,7 @@ from .firebase import upload_tag_files
 from django.http.response import JsonResponse
 from django.conf import settings
 from user_agents import parse
+import time
 
 # cache details
 # from django.core.cache import cache
@@ -27,6 +28,8 @@ from user_agents import parse
 
 #link to download the android app
 android_app_download_link="https://play.google.com/apps/testing/com.collabmates"
+
+ios_app_download_link="https://apps.apple.com/us/app/collabmates/id1481298195"
 
 url=settings.URL
 
@@ -38,9 +41,6 @@ else:
 # count for a particular community to show tutorial
 tutorial_count=3
 
-
-def page_not_found(request):
-    return render(request, '__404__.html', {})
 
 def is_member_engage(community,member):
 
@@ -261,6 +261,7 @@ def create_or_categorize_tag(tag,category,attribute):
                     tag.attribute_id = attribute
                     tag.save()
                     tag.created_at = time.time()
+                    tag.updated_at = time.time()
                     tag.tag_id = tag.id
                     tag.save()
 
@@ -505,6 +506,7 @@ def insert_user_home_town_tags(user_id,tag):
                 tag.save()
                 tag.tag_id = tag.id
                 tag.created_at = time.time()
+                tag.updated_at = time.time()
                 tag.save()
                 if tag and not tag.image_link:
                     tag_id = tag.id
@@ -519,6 +521,7 @@ def insert_user_home_town_tags(user_id,tag):
         tag.save()
         tag.tag_id = tag.id
         tag.created_at = time.time()
+        tag.updated_at = time.time()
         tag.save()
 
     create_user_hometown_tag_and_related_tags.delay(user_id=user_id, tag_id=tag.id, new_tag=new_tag)
