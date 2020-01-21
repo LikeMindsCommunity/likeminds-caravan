@@ -48,6 +48,26 @@ def index(request):
     return render(request, 'index.html',{'is_beta':settings.IS_BETA})
 
 
+def download_the_app(request):
+
+    '''function to download the app'''
+
+
+    user_agent = parse(request.META['HTTP_USER_AGENT'])
+    os_type=user_agent.os.family
+    log="""download is clicked for os=%s"""%(str(os_type))
+    info_logger.info(log)
+    if os_type == "Android":
+        return redirect(android_app_download_link)
+    elif os_type == "iOS":
+        return redirect(ios_app_download_link)
+    else:
+        return redirect('signup')
+
+
+
+
+
 def home(request):
     # users = User.objects.all()
     if request.user.is_authenticated:
