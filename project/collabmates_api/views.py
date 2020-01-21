@@ -221,7 +221,7 @@ def is_member_engage(community,member):
 
     is_present=False
     member_data=Member_Engage.objects.filter(community_id=community,member_id=member)
-    if member_data:
+    if member_data.exists():
         is_present=True
     return is_present
 
@@ -248,13 +248,13 @@ def your_communities(request,user_id):
     '''This function is used to see your communities based on user id'''
 
     member_id=request.GET.get('member_id')
-    page_number = request.GET.get('page','')
+    page_number = request.GET.get('page', '')
     if str(member_id) != str(user_id):
         member_id = user_id
     my_community=[]
     user=User.objects.get(id=member_id)
     communities=Member_Engage.objects.filter(member_id=user).order_by('-updated_at')
-    if page_number:
+    if page_number and not page_number == '0' and not page_number == '':
         communities=pagination(communities,page_number,paginate_by=10)
     for each_community in communities:
 
@@ -497,6 +497,8 @@ def join_community_responses(request):
                 response.user = user.id
                 response.community = community.id
                 response.save()
+    else:
+        res['questions'] = [{}]
 
     if not ref_id:
         # sending mail to nipun and harsh
@@ -542,11 +544,12 @@ def join_community_responses(request):
         else:
             #if the user refered by someone
             referer=User.objects.get(id=ref_id)
-            engage = Member_Engage()
-            engage.community_id = community
-            engage.member_id = user
-            engage.updated_at = time.time()
-            engage.save()
+            if not is_member_engage(community, user):
+                engage = Member_Engage()
+                engage.community_id = community
+                engage.member_id = user
+                engage.updated_at = time.time()
+                engage.save()
             info_logger.info("""Data Inserted successfully in members engage table where user_id=%s and community_id=%s""" % (
                 user_id, community_id))
             Member_Engage.objects.filter(community_id=community,member_id=referer).update(pending_members=F('pending_members')+1)
@@ -907,14 +910,15 @@ def create_community(request):
             crd = CollabcardSerializer(card)
             crd['member']=usr
             #inserting in member_engage table
+            if not is_member_engage(community, user):
 
-            engage=Member_Engage()
-            engage.member_id=user
-            engage.community_id=community
-            engage.last_unseen_conversation=card
-            engage.updated_at=time.time()
-            engage.member_state=1
-            engage.save()
+                engage=Member_Engage()
+                engage.member_id=user
+                engage.community_id=community
+                engage.last_unseen_conversation=card
+                engage.updated_at=time.time()
+                engage.member_state=1
+                engage.save()
 
             #send_email_to_admin_of_community.delay(CommmunityAdminName=user.name,CommunityName=res['name'],email=user.email)
             return JsonResponse({'success':True, 'community':new_dict, 'collabcard':crd})
@@ -1340,7 +1344,7 @@ def accept_invitation(request):
         if member_state:
             state=member_state[0]['state']
             if state == 6:
-                if is_member_engage(community,nom_admin[0].user_id) ==  False:
+                if not is_member_engage(community,nom_admin[0].user_id):
                     try:
                         purpose_card = Collabcard.objects.get(id=community.purpose_collabcard)
                     except:

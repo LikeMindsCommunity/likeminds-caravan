@@ -12,7 +12,7 @@ def handler404(request, exception, template_name="__404__.html"):
                                               'requested_path':requested_path,
                                                                   'subject': subject
                                                                   })
-    to_mails_list = ['mahesh61437mahe@gmail.com', 'rastogi.fresh88@gmail.com']
+    to_mails_list = ['mahesh61437mahe@gmail.com']
 
     if not requested_path[0:6] == 'static':
         send_email.delay(subject, template, to_mails_list)
@@ -28,7 +28,7 @@ def handler500(request, exception, template_name="500.html"):
     template = get_template(template).render({"exception": exception,
                                               'subject': subject
                                               })
-    to_mails_list = ['mahesh61437mahe@gmail.com', 'rastogi.fresh88@gmail.com']
+    to_mails_list = ['mahesh61437mahe@gmail.com']
     send_email.delay(subject, template, to_mails_list)
     response = render_to_response("500.html")
     response.status_code = 500
