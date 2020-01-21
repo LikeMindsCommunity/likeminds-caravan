@@ -19,7 +19,7 @@ from .firebase import upload_tag_files
 from django.http.response import JsonResponse
 from django.conf import settings
 from user_agents import parse
-
+import time
 
 # cache details
 # from django.core.cache import cache
