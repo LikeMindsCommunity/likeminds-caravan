@@ -697,7 +697,7 @@ def get_user_lpig_tags(user_id):
             if attribute_id is 1:
                 temp['attribute_name']="Work"
             elif attribute_id is 2:
-                temp['attribute_name'] = "Education"
+                temp['attribute_name'] = "College"
             elif attribute_id is 3:
                 temp['attribute_name'] = "Hometown"
             elif attribute_id is 4:
@@ -1056,9 +1056,6 @@ def create_card(request):
         follow.collabcard_id=card
         follow.member_id=user.user_id
         follow.save()
-
-
-
 
         # #saving the state in collabcardState table instead of follow collabcard
         collabcard_state_instance=collabcardState()
