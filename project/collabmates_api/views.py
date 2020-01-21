@@ -3373,12 +3373,18 @@ def push_onboarding(request):
 
                if data['id'] == 12 or data['id'] == '12':
                    attribute_id = Attributes.objects.get(id=data['id'])
+                   print(data['id'])
+                   print(tag['name'])
+                   print("\n")
                    update_status=Userinfo.objects.filter(user_id=user_id).update(address=tag['name'])
                    print(update_status)
                    save_geography_and_hometown_tags_of_user_from_onboarding(tag['name'],member_id,attribute_id,4)
 
                elif data['id'] == 3 or data['id'] == '13':
                    attribute_id = Attributes.objects.get(id=data['id'])
+                   print(data['id'])
+                   print(tag['name'])
+                   print("\n")
                    save_geography_and_hometown_tags_of_user_from_onboarding(tag['name'],member_id,attribute_id,1)
                else:
                    attribute_id=Attributes.objects.get(id=data['id'])
