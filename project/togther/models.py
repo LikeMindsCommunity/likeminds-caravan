@@ -161,6 +161,8 @@ class Collabcard (models.Model):
     image_count = models.IntegerField(default=0, null=True)
     pdf_count = models.IntegerField(default=0, null=True)
     type=models.IntegerField(default=0)    # state=0 (Normal Collabcard);state=1(Introduction Collabcard)
+    date_time=models.BigIntegerField(default=0)    # for saving event card epooch
+    duration=models.BigIntegerField(default=0)     # for saving duration of event
 
 
 
@@ -522,8 +524,6 @@ class Report(models.Model):
     member = models.ForeignKey(User, on_delete=models.CASCADE)
     reason=models.CharField(max_length=2048,null=True)
     date_epoch=models.BigIntegerField(default=-9223372036854775808,null=True)
-
-
 
 
 
