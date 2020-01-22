@@ -42,9 +42,10 @@ from utility.utils import (decode_meta_from_url, update_tag_image,
                            #custom_cache,cache_timeout,
                            get_city_address,
                            update_user_geography_tags, create_or_categorize_tag,
-                           insert_user_home_town_tags,user_onbaord,is_IG_community,create_user_hometown_tag_and_related_tags)
+                           insert_user_home_town_tags,user_onbaord,is_IG_community,
+                           create_user_hometown_tag_and_related_tags)
 
-from utility.states import collabcard_seen_state,collabcard_follow_state
+from utility.states import *
 
 from utility.tasks import (mail_triger, new_member_request,
                            member_request_approval_or_denied,send_mail_for_report_abuse__on_collabcard,send_mail_for_report_abuse__of_user)
@@ -2004,12 +2005,15 @@ def create_answer(request):
 
 
         #auto following the collabcard if answer is created
-        is_present=is_collabcard_already_followed(card,user)
-        if  is_present == False:
-            follow = follow_collabcard()
-            follow.collabcard_id = card
-            follow.member_id = user
-            follow.save()
+        function_dict={
+            'member_id':user_id,
+            'collabcard_id':card_id,
+            'status':True
+        }
+        collabcard_follow(request,function_dict)
+
+
+
 
         # pool = ThreadPool(processes=2)
         # answerer_name = user.userinfo.name
@@ -2035,7 +2039,9 @@ def _send_notification_to_tagged_users(card_id,answerer_name,answer,user_id):
 
 
 def update_answer_text(card_id):
+
         '''function for updating the answer_text feild in collab card model'''
+
         ans_text=''
         card = Collabcard.objects.get(id = card_id)
         card_ans = card_answers.objects.filter(card = card)
@@ -2078,66 +2084,88 @@ def update_answer_text(card_id):
                 ans_text+= " & "+str(len(user_list)-1) + " others responded"
                 Collabcard.objects.filter(id=card_id).update(answer_text=ans_text)
 
+
+
+
 @csrf_exempt
-def collabcard_follow(request):
+def collabcard_follow(request,function_dict=None):
     '''Api to follow collabcard by members Post API'''
 
-    collabcard_id=request.GET.get('collabcard_id','')
-    member_id=request.GET.get('member_id','')
-    status=request.GET.get('value','true')
+    if not function_dict:
+        collabcard_id=request.GET.get('collabcard_id','')
+        member_id=request.GET.get('member_id','')
+        status=request.GET.get('value','true')
 
-    if status != 'true':
-        status=False
+        if status != 'true':
+            status=False
+        else:
+            status=True
+    else:
+        collabcard_id=function_dict['collabcard_id']
+        member_id=function_dict['member_id']
+        status=function_dict['status']
 
 
 
     collabcard=Collabcard.objects.get(id=collabcard_id)
     community_instance=collabcard.community
     user_instance=User.objects.get(id=member_id)
-    is_present = is_collabcard_already_followed(collabcard, member_id)
 
-    if is_present == False:
-        follow=follow_collabcard()
-        follow.collabcard_id=collabcard
-        follow.member_id=user_instance
-        follow.save()
+    if collabcard.type == 2 and status:            # the collabcard is the event card
 
-        #saving the state in collabcard_state table
-        is_present=collabcardState.objects.filter(card=collabcard, user=user_instance)
-        if not is_present:
-            collabcard_state_instance = collabcardState()
-            collabcard_state_instance.card = collabcard
-            collabcard_state_instance.community = community_instance
-            collabcard_state_instance.user = user_instance
-            collabcard_state_instance.state = collabcard_follow_state
-            collabcard_state_instance.created_at = time.time()
-            collabcard_state_instance.updated_at = time.time()
+        collabcard_state_instance=collabcardState.objects.get(card=collabcard, user=user_instance)
+
+        # when the user is not attending but following the collabcard
+        if collabcard_state_instance.state == 1:
+
+            collabcard_state_instance.state=collabcard_unattend_following
+            collabcard_state_instance.updated_at=time.time()
             collabcard_state_instance.save()
-        else:
-            collabcardState.objects.filter(card=collabcard,user=user_instance).update(state=collabcard_follow_state,updated_at=time.time())
+        # when the user is attending and following the collabcard
+        elif collabcard_state_instance.state == collabcard_attend_unfollow:
 
+            collabcard_state_instance.state = collabcard_attend_following
+            collabcard_state_instance.updated_at=time.time()
+            collabcard_state_instance.save()
+        return JsonResponse({'success':True})
 
+    elif collabcard.type == 2 and not status:
+        collabcard_state_instance=collabcardState.objects.get(card=collabcard, user=user_instance)
+        # when the user is not attending and not follow
+        if collabcard_state_instance.state == collabcard_unattend_following:
+            collabcard_state_instance.state = collabcard_seen_state
+            collabcard_state_instance.updated_at=time.time()
+            collabcard_state_instance.save()
 
+        # when the user is attending and unfollow the collabcard
+        elif collabcard_state_instance.state == collabcard_attend_following:
+
+            collabcard_state_instance.state = collabcard_attend_unfollow
+            collabcard_state_instance.updated_at=time.time()
+            collabcard_state_instance.save()
+        return JsonResponse({'success': True})
+
+    is_present = collabcardState.objects.filter(card=collabcard, user=user_instance)
+    if not is_present:
+        collabcard_state_instance = collabcardState()
+        collabcard_state_instance.card = collabcard
+        collabcard_state_instance.community = community_instance
+        collabcard_state_instance.user = user_instance
+        collabcard_state_instance.state = collabcard_follow_state
+        collabcard_state_instance.created_at = time.time()
+        collabcard_state_instance.updated_at = time.time()
+        collabcard_state_instance.save()
     else:
-        '''Deleting the collabcard '''
-        if status == False:
-            follow_collabcard.objects.filter(collabcard_id=collabcard,member_id=user_instance).delete()
+
+        if status:
+            collabcardState.objects.filter(card=collabcard, user=user_instance).update(state=collabcard_follow_state,
+                                                                                   updated_at=time.time())
+        else:
             collabcardState.objects.filter(card=collabcard,user=user_instance).update(state=collabcard_seen_state,updated_at=time.time())
+
     # custom_cache.clear()
     return JsonResponse({'success':True})
 
-
-def is_collabcard_already_followed(collabcard,member_id):
-
-    '''function to check whether the person already followed the collabcard or not'''
-
-    is_present=False
-    follow_data=follow_collabcard.objects.filter(collabcard_id=collabcard,member_id=member_id)
-
-    if follow_data:
-        is_present=True
-
-    return is_present
 
 
 @csrf_exempt
@@ -2159,30 +2187,110 @@ def collabcards_seen(request):
     user_instance = User.objects.get(id=user_id)
     card_instance = Collabcard.objects.get(id=card_id)
 
-    seen_card = collabcard_seen.objects.filter(community=community, user=user_instance, card=card_instance)
-    if not seen_card:
-        # if the card has not yet been seen by the user, update the database
-        collab_seen = collabcard_seen()
-        collab_seen.card = card_instance
-        collab_seen.user = user_instance
-        collab_seen.community = community
-        collab_seen.save()
-
-        # saving the state in collabcard state table if it is not present
-        is_present = collabcardState.objects.filter(card=card_instance, user=user_instance)
-        if not is_present:
-            collabcard_state_instance=collabcardState()
-            collabcard_state_instance.card=card_instance
-            collabcard_state_instance.community=community
-            collabcard_state_instance.user=user_instance
-            collabcard_state_instance.state=collabcard_seen_state
-            collabcard_state_instance.created_at = time.time()
-            collabcard_state_instance.updated_at = time.time()
-            collabcard_state_instance.save()
+    # saving the state in collabcard state table if it is not present
+    is_present = collabcardState.objects.filter(card=card_instance, user=user_instance)
+    if not is_present:
+        collabcard_state_instance=collabcardState()
+        collabcard_state_instance.card=card_instance
+        collabcard_state_instance.community=community
+        collabcard_state_instance.user=user_instance
+        collabcard_state_instance.state=collabcard_seen_state
+        collabcard_state_instance.created_at = time.time()
+        collabcard_state_instance.updated_at = time.time()
+        collabcard_state_instance.save()
 
     update_last_unseen_in_engage(user=user_instance, community=community, is_seen=True)
     # custom_cache.clear()
     return JsonResponse({'success': True})
+
+
+@csrf_exempt
+def collabcard_attend(request):
+
+    '''attending a event on a event card'''
+
+    member_id=get_member_id_from_headers(request)
+    collabcard_id=request.GET.get('collabcard_id')
+    status = request.GET.get('value', 'true')
+    collabcard_instance=Collabcard.objects.get(id=collabcard_id)
+    user_instance=User.objects.get(id=member_id)
+
+    if status != 'true':
+        status = False
+    else:
+        status = True
+
+    if status:
+
+        # if the user clicks on attend but not following collabcard
+        collabcard_state_instance = collabcardState.objects.get(card=collabcard_instance, user=user_instance)
+        if collabcard_state_instance.state == collabcard_seen_state:
+
+            collabcard_state_instance.state= collabcard_attend_unfollow
+            collabcard_state_instance.updated_at=time.time()
+            collabcard_state_instance.save()
+        # if the user clicks on attend and following collabcard
+        elif collabcard_state_instance.state == collabcard_unattend_following:
+
+            collabcard_state_instance.state= collabcard_attend_following
+            collabcard_state_instance.updated_at=time.time()
+            collabcard_state_instance.save()
+    else:
+        collabcard_state_instance = collabcardState.objects.get(card=collabcard_instance, user=user_instance)
+
+        if collabcard_state_instance.state == collabcard_attend_unfollow:
+
+            collabcard_state_instance.state = collabcard_seen_state
+            collabcard_state_instance.updated_at=time.time()
+            collabcard_state_instance.save()
+        # if the user clicks on attend and following collabcard
+        elif collabcard_state_instance.state == collabcard_attend_following:
+
+            collabcard_state_instance.state = collabcard_unattend_following
+            collabcard_state_instance.updated_at=time.time()
+            collabcard_state_instance.save()
+
+    update_event_answer_text(collabcard_id)  #function to update the text when a user attends an event
+
+
+    return JsonResponse({'success':True})
+
+
+def update_event_answer_text(card_id):
+
+    '''function to update the answer text of card when an event is created'''
+
+    collabcard_instance = Collabcard.objects.get(id=card_id)
+
+    if collabcard_instance.type == 2:
+
+        # getting the number of people interestes in event
+        event_list_members = collabcardState.objects.filter(card=collabcard_instance).filter(
+            Q(state=4) | Q(state=5)).order_by('id')
+        ans_text = ''
+        if len(event_list_members) == 1:
+            # get the name of the user who answered
+            username = Userinfo.objects.get(user_id=event_list_members[0].user_id)
+            # format the answer text string as "username answered"
+            ans_text = username.name + " is attending"
+            # update the answer_text feild in collabcard
+            collabcard_instance.answer_text = ans_text
+            collabcard_instance.save()
+        elif len(event_list_members) == 2:
+            first_member = Userinfo.objects.get(user_id=event_list_members[0].user_id)
+            second_member = Userinfo.objects.get(user_id=event_list_members[0].user_id)
+            ans_text = """%s and %s are attending""" % (str(first_member.name), str(second_member.name))
+            collabcard_instance.answer_text = ans_text
+            collabcard_instance.save()
+        else:
+            first_member = Userinfo.objects.get(user_id=event_list_members[0].user_id)
+            second_member = Userinfo.objects.get(user_id=event_list_members[0].user_id)
+
+            left_count = len(event_list_members) - 2
+
+            ans_text = """%s, %s & %s are attending""" % (str(first_member.name), str(second_member.name), left_count)
+            collabcard_instance.answer_text = ans_text
+            collabcard_instance.save()
 
 
 def decode_url(request):
