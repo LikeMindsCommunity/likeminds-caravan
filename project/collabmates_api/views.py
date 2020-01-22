@@ -2248,7 +2248,7 @@ def update_event_answer_text(card_id):
 
         # getting the number of people interestes in event
         event_list_members = collabcardState.objects.filter(card=collabcard_instance).filter(
-            Q(state=4) | Q(state=5)).order_by('id')
+            Q(state=collabcard_attend_following) | Q(state=collabcard_attend_unfollow)).order_by('id')
         ans_text = ''
         if len(event_list_members) == 1:
             # get the name of the user who answered
