@@ -60,7 +60,7 @@ def UserinfoSerializer(user):
         userinfo['image_url']=user.image_link
     return userinfo
 
-def CollabcardSerializer(card,community=None):
+def CollabcardSerializer(card,user,community=None):
     # function to serialize a community object
     collabcard={
         'id': card.id,
@@ -69,17 +69,54 @@ def CollabcardSerializer(card,community=None):
         'share_url': url + '/collabcard/' + str(card.id),
         'answer_text': card.answer_text,
         'share_link': card.share_link,
-        'image_count':card.image_count,
+        'image_count': card.image_count,
         'pdf_count': card.pdf_count,
-        'type':card.type,
-        'date_time':card.date_time,
-        'duration':card.duration
+        'type': card.type,
+        'date_time': card.date_time,
+        'duration': card.duration
     }
+    if card.type == 3:
+        polls = []
+        cardPolls = CollabcardPolls.objects.filter(card=card)
+        for poll in cardPolls:
+            polls.append(CollabcardPollsSerializer(poll, user, card))
+
+        collabcard['polls'] = polls
+
     if card.og_tags:
-        og_tags=json.loads(card.og_tags)
-        collabcard['og_tags']=og_tags
+        og_tags = json.loads(card.og_tags)
+        collabcard['og_tags'] = og_tags
 
     return collabcard
+
+
+def CollabcardPollsSerializer(poll,user,card):
+     polls = {
+         'id': poll.id,
+         'text': poll.text,
+         'selected': is_poll_selected(poll, user, card),
+         'percentage': int(poll_percentage(card,poll)),
+
+     }
+
+     return polls
+
+
+def is_poll_selected(poll, user, card):
+    """ function to know if user selected a poll or not """
+    MemberPoll = MemberPollVotes.objects.filter(card=card, user=user, poll=poll)
+    return MemberPoll.exists()
+
+
+def poll_percentage(card, poll):
+    """ function to calculate the percentage of particular poll for a card """
+    total_polls = MemberPollVotes.objects.filter(card=card)
+    selected_polls = total_polls.filter(poll=poll).count()
+    total_polls = total_polls.count()
+
+    if total_polls == 0:
+        return 0
+    return selected_polls/total_polls * 100
 
 
 def get_member_count(community):

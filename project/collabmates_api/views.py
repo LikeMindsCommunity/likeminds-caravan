@@ -33,6 +33,7 @@ import os
 import re
 import googlemaps
 import logging
+from django.views.decorators.csrf import ensure_csrf_cookie
 
 from utility.utils import (decode_meta_from_url, update_tag_image,
                            referal, get_referred_members_of_a_member,
@@ -262,7 +263,7 @@ def your_communities(request,user_id):
         community['pending_members_count']=each_community.pending_members
         community['updated_at']=get_time_text(each_community.updated_at)
         if each_community.last_unseen_conversation:
-            collabcard=CollabcardSerializer(each_community.last_unseen_conversation)
+            collabcard=CollabcardSerializer(each_community.last_unseen_conversation, user=member_id)
             user=each_community.last_unseen_conversation.user
             collabcard['member']=UserinfoSerializer(user.userinfo)
             community['collabcard']=collabcard
@@ -337,7 +338,7 @@ def get_community_card_details(each_community,user_id):
             card = Collabcard.objects.get(id=total_collabcards.order_by('id')[0]['id'])
         # show details of the latest card or latest unseen card
         # get json form of card object
-        collabcard = CollabcardSerializer(card,community)
+        collabcard = CollabcardSerializer(card, user_id, community)
 
         new_dict['collabcard'] = collabcard
 
@@ -907,7 +908,7 @@ def create_community(request):
 
             # forming card dict
 
-            crd = CollabcardSerializer(card)
+            crd = CollabcardSerializer(card, user=user_id)
             crd['member']=usr
             #inserting in member_engage table
             if not is_member_engage(community, user):
@@ -983,21 +984,27 @@ def create_card(request):
         card.community = community
         card.user = user.user_id
         card.type=type
-
-        if type == '2':
-            card.date_time=res['date_time']
-            card.duration=res['duration']
+        card.image_count = res['image_count'] if ('image_count' in res) else 0
+        card.pdf_count = res['pdf_count'] if ('pdf_count' in res) else 0
+        card.date_time = res['date_time'] if (str(type) == '2' or str(type) == '3') else 0
+        card.duration = res['duration'] if ('duration' in res) else 0
 
         if 'share_link' in res:
             card.share_link = res['share_link']
             og_tags = decode_meta_from_url(res['share_link'])
             card.og_tags = json.dumps(og_tags)
 
-        card.image_count = res['image_count'] if 'image_count' in res else 0
-        card.pdf_count = res['pdf_count'] if 'pdf_count' in res else 0
-
-        card.date_epoch=time.time()
+        card.date_epoch=time.time() # card creation time
         card.save()
+
+        polls = res['polls'] if 'polls' in res else []
+        for poll in polls:
+            collabcardpolls_instance = CollabcardPolls()
+            collabcardpolls_instance.card = card
+            collabcardpolls_instance.text = poll['text']
+            collabcardpolls_instance.save()
+
+
         # if the community does not have a purpose card then a purpose will be created
         # the first card created for a community is the purpose card
         # if its a pilot community making the user promoter and updating community state to pilot active
@@ -1011,8 +1018,8 @@ def create_card(request):
             # changing community state to 0 (zero) to make it a active community
             community.hide_community = '4'
             community.save()
-            is_pilot_active=True
 
+            is_pilot_active = True
             introduction_question, introduction_answer = auto_create_collabcard(user.user_id, community)
             json_body = {
                 'communityId': community_id,
@@ -1036,7 +1043,7 @@ def create_card(request):
         send_email_for_collabcard(community,user,card)
         Community.objects.filter(id=community_id).update(updated_at=time.time())
 
-        collabcard = CollabcardSerializer(card, community)
+        collabcard = CollabcardSerializer(card, user_id, community)
 
         collabcard['date'] = datetime.today().strftime('%d-%m-%Y')
 
@@ -1594,7 +1601,6 @@ def send_email_for_collabcard(community,user,card):
             send_email_for_new_collabcard_posted.delay(context)
 
 
-
 def collabcard(request, card_id):
     ''' function to get card details, answers and images '''
     # get the card object
@@ -1628,7 +1634,7 @@ def collabcard(request, card_id):
     # get the card image if any
 
     files= get_collabcard_files(card_id)
-    card=CollabcardSerializer(cards,cards.community)
+    card=CollabcardSerializer(cards, user_id, cards.community)
     card['images']=files[0]
     card['member']=usr
     card['pdf']=files[1]
@@ -1748,7 +1754,6 @@ def get_time_text(created_time):
         # if difference is in seconds
         return "Just Now"
 
-
 def community_cards(request, community_id):
     ''' function get all the cards in a community '''
 
@@ -1796,7 +1801,7 @@ def community_cards(request, community_id):
             else:
                 # get time stamp
                 time_text = get_time_text(card.date_epoch)
-            card_dict = CollabcardSerializer(card, card.community)
+            card_dict = CollabcardSerializer(card, member_id, card.community)
             card_dict['state'] = get_status_of_collabcard(member_id,community,card)
             card_dict['created_at'] = time_text
             card_dict['member'] = usr
@@ -2096,8 +2101,6 @@ def collabcard_follow(request):
     if status != 'true':
         status=False
 
-
-
     collabcard=Collabcard.objects.get(id=collabcard_id)
     community_instance=collabcard.community
     user_instance=User.objects.get(id=member_id)
@@ -2313,7 +2316,7 @@ def community_collabcard_meta(request):
         else:
             # get time stamp
             time_text = get_time_text(card_instance.date_epoch)
-        card_dict = CollabcardSerializer(card_instance, card_instance.community)
+        card_dict = CollabcardSerializer(card_instance, member_id, card_instance.community)
         card_dict['state'] = get_status_of_collabcard(member_id, card_instance.community, card_instance)
         card_dict['created_at'] = time_text
         card_dict['member'] = usr
@@ -2481,7 +2484,7 @@ def get_request_type(request):
             return "iOS"
     return False
 
-
+#@ensure_csrf_cookie # with header X-CSRFToken
 @csrf_exempt
 def login(request):
     ''' function to login a user '''
@@ -3595,7 +3598,33 @@ def push_report(request):
         return JsonResponse({'success':True})
     return JsonResponse({'success':False})
 
+@csrf_exempt
+def collabcard_poll(request):
+    """ function to update polls of a card for user """
+    if request.method == 'POST':
+        collabcard_id=request.GET.get('collabcard_id',None)
+        poll_id=request.GET.get('poll_id',None)
+        member_id = get_member_id_from_headers(request)
 
+        if not collabcard_id or not poll_id:
+            return JsonResponse({"success": False})
 
+        card_instance = Collabcard.objects.get(pk=collabcard_id)
+        poll_instance = CollabcardPolls.objects.get(pk=poll_id)
+        user_instance = User.objects.get(pk=member_id)
+
+        memberpolls_instance = MemberPollVotes.objects.filter(card=card_instance, user=user_instance)
+        if not memberpolls_instance.exists():
+            memberpolls_instance = MemberPollVotes()
+            memberpolls_instance.card = card_instance
+            memberpolls_instance.poll = poll_instance
+            memberpolls_instance.user = user_instance
+            memberpolls_instance.save()
+        else:
+            memberpolls_instance.update(poll=poll_instance)
+
+        return JsonResponse({"success": True})
+
+    return JsonResponse({"success": False})
 
 
