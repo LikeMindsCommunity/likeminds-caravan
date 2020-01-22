@@ -2282,13 +2282,16 @@ def update_event_answer_text(card_id):
             ans_text = """%s and %s are attending""" % (str(first_member.name), str(second_member.name))
             collabcard_instance.answer_text = ans_text
             collabcard_instance.save()
-        else:
+        elif len(event_list_members) > 2:
             first_member = Userinfo.objects.get(user_id=event_list_members[0].user_id)
             second_member = Userinfo.objects.get(user_id=event_list_members[0].user_id)
 
             left_count = len(event_list_members) - 2
 
             ans_text = """%s, %s & %s are attending""" % (str(first_member.name), str(second_member.name), left_count)
+            collabcard_instance.answer_text = ans_text
+            collabcard_instance.save()
+        else:
             collabcard_instance.answer_text = ans_text
             collabcard_instance.save()
 
