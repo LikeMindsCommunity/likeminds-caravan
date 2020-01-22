@@ -5,6 +5,7 @@ from pyfcm import FCMNotification
 from django.conf import  settings
 import time
 from togther.models import Community_Rank
+from utility.states import *
 import re
 # file to store configuration of the system
 
@@ -144,7 +145,6 @@ def send_notification(fcm_token,message,is_android):
     print(result)
 
 
-
 @shared_task
 def send_follow_notification(card_id,user_id,answer):
 
@@ -153,8 +153,8 @@ def send_follow_notification(card_id,user_id,answer):
     try:
         connection=get_connection()
         curr=connection.cursor()
-        sql="select member_id_id from togther_follow_collabcard where collabcard_id_id=%s"
-        parameter_list=[card_id]
+        sql="select user_id from togther_collabcardstate where card_id=%s and state=%s"
+        parameter_list=[card_id,collabcard_follow_state]
         curr.execute(sql,parameter_list)
         member_list=curr.fetchall()
         curr.execute("select name from togther_userinfo where user_id_id=%s",[user_id])
