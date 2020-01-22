@@ -2040,18 +2040,13 @@ def update_answer_text(card_id):
             # get the name of the user who answered
             username = Userinfo.objects.get(user_id = card_ans[0].user_id)
             #format the answer text string as "username answered"
-            if card.type == 2:
-                ans_text += " is attending"
-            elif card.type == 3:
-                ans_text += " voted on this poll"
-            else:
-                ans_text = username.name + " responded"
+            ans_text = username.name + " responded"
             # update the answer_text feild in collabcard
-            Collabcard.objects.filter(id=card_id).update(answer_text=ans_text) 
+            Collabcard.objects.filter(id=card_id).update(answer_text=ans_text)
         # if there is more than one answer
         else:
             #get the user id's of the users who have answered
-            user_list = []
+            user_list =[]
             for ans in card_ans:
                 # save it in a list without duplicates
                 if ans.user_id not in user_list:
@@ -2059,19 +2054,14 @@ def update_answer_text(card_id):
             count = 1
             #check if only two different users have answered
             #not more than two different users should have answered
-            if len(user_list) == 2:
+            if len(user_list)==2:
                 for ID in user_list:
                     username = Userinfo.objects.get(user_id = ID)
                     ans_text += username.name
-                    if count != 0:
+                    if count !=0:
                         ans_text += " and "
-                        count -= 1
-                if card.type == 2:
-                    ans_text += " are attending"
-                elif card.type == 3:
-                    ans_text += " voted on this poll"
-                else:
-                    ans_text += " responded"
+                        count-=1
+                ans_text+=" responded"
                 Collabcard.objects.filter(id=card_id).update(answer_text=ans_text)
 
             # if more than two different users have answered
@@ -2081,13 +2071,7 @@ def update_answer_text(card_id):
                     ans_text += username.name
                     break
 
-                ans_text += " & " + str(len(user_list) - 1)
-                if card.type == 2:
-                    ans_text += " others are attending"
-                elif card.type == 3:
-                    ans_text += " others voted on this poll"
-                else:
-                    ans_text += " others responded"
+                ans_text+= " & "+str(len(user_list)-1) + " others responded"
                 Collabcard.objects.filter(id=card_id).update(answer_text=ans_text)
 
 @csrf_exempt
