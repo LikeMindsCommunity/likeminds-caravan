@@ -94,7 +94,7 @@ def CollabcardPollsSerializer(poll,user,card):
      polls = {
          'id': poll.id,
          'text': poll.text,
-         'selected': is_poll_selected(poll, user, card),
+         'isSelected': is_poll_selected(poll, user, card),
          'percentage': int(poll_percentage(card,poll)),
 
      }
