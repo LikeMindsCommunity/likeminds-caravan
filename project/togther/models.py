@@ -161,6 +161,8 @@ class Collabcard (models.Model):
     image_count = models.IntegerField(default=0, null=True)
     pdf_count = models.IntegerField(default=0, null=True)
     type=models.IntegerField(default=0)    # state=0 (Normal Collabcard);state=1(Introduction Collabcard)
+    date_time=models.BigIntegerField(default=0)    # for saving event card epooch
+    duration=models.BigIntegerField(default=0)     # for saving duration of event
 
 
 
