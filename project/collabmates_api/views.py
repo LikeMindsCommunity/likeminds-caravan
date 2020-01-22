@@ -2040,45 +2040,33 @@ def update_answer_text(card_id):
 
         ans_text=''
         card = Collabcard.objects.get(id = card_id)
-        card_ans = card_answers.objects.filter(card = card)
+        card_ans = card_answers.objects.filter(card = card).distinct('user_id')
         # if only one answer is present fro a collab card
-        if len(card_ans) == 1:
+        card_ans_count = card_ans.count()
+        if card_ans_count == 0:
+            return
+
+        if card_ans_count == 1:
             # get the name of the user who answered
-            username = Userinfo.objects.get(user_id = card_ans[0].user_id)
-            #format the answer text string as "username answered"
-            ans_text = username.name + " responded"
-            # update the answer_text feild in collabcard
+            username = card_ans[0].user.userinfo.name
+            ans_text = username + " responded"
+            # update the answer_text field in collabcard
             Collabcard.objects.filter(id=card_id).update(answer_text=ans_text)
-        # if there is more than one answer
-        else:
-            #get the user id's of the users who have answered
-            user_list =[]
-            for ans in card_ans:
-                # save it in a list without duplicates
-                if ans.user_id not in user_list:
-                    user_list.append(ans.user_id)
-            count = 1
-            #check if only two different users have answered
-            #not more than two different users should have answered
-            if len(user_list)==2:
-                for ID in user_list:
-                    username = Userinfo.objects.get(user_id = ID)
-                    ans_text += username.name
-                    if count !=0:
-                        ans_text += " and "
-                        count-=1
-                ans_text+=" responded"
-                Collabcard.objects.filter(id=card_id).update(answer_text=ans_text)
+            return
+        elif card_ans_count==2:
+            # if there is more than one answer
+            ans_text += card_ans[0].user.userinfo.name + " and " +card_ans[1].user.userinfo.name
+            ans_text += " responded"
+            Collabcard.objects.filter(id=card_id).update(answer_text=ans_text)
+            return
 
             # if more than two different users have answered
-            if len(user_list) >= 3:
-                for ID in user_list:
-                    username = Userinfo.objects.get(user_id = ID)
-                    ans_text += username.name
-                    break
+        elif card_ans_count > 2:
 
-                ans_text+= " & "+str(len(user_list)-1) + " others responded"
-                Collabcard.objects.filter(id=card_id).update(answer_text=ans_text)
+            ans_text += card_ans[0].user.userinfo.name
+            ans_text+= " & "+str(card_ans_count-1) + " others responded"
+            Collabcard.objects.filter(id=card_id).update(answer_text=ans_text)
+        return
 
 
 
