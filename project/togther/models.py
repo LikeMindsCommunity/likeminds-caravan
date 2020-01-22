@@ -1,6 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
-
+import time
 response_choices = (
     ('text','Text'),
     ('textarea','Textarea'),
@@ -524,10 +524,6 @@ class Report(models.Model):
     date_epoch=models.BigIntegerField(default=-9223372036854775808,null=True)
 
 
-
-
-
-
 class collabcardState(models.Model):
 
     card = models.ForeignKey(Collabcard, on_delete= models.CASCADE)
@@ -536,3 +532,35 @@ class collabcardState(models.Model):
     state=models.IntegerField(null=True)
     created_at=models.BigIntegerField(default=-9223372036854775808,null=True)
     updated_at=models.BigIntegerField(default=-9223372036854775808,null=True)
+
+
+class CollabcardPolls(models.Model):
+    card = models.ForeignKey(Collabcard, on_delete= models.CASCADE)
+    text = models.CharField(max_length=2048, null=True)
+    created_at = models.BigIntegerField(default=-9223372036854775808, null=True)
+    updated_at = models.BigIntegerField(default=-9223372036854775808, null=True)
+
+    def save(self, *args, **kwargs):
+        self.created_at = time.time()
+        self.updated_at = time.time()
+        self.save()
+        super(CollabcardPolls, self).save(*args, **kwargs)
+
+    def get_card_polls(self,card_id):
+        pass
+
+
+class MemberPollVotes(models.Model):
+    poll = models.ForeignKey(CollabcardPolls, on_delete=models.CASCADE)
+    card = models.ForeignKey(Collabcard, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete = models.CASCADE)
+    created_at = models.BigIntegerField(default=-9223372036854775808, null=True)
+    updated_at = models.BigIntegerField(default=-9223372036854775808, null=True)
+
+    def save(self, *args, **kwargs):
+        self.created_at = time.time()
+        self.updated_at = time.time()
+        self.save()
+        super(MemberPollVotes, self).save(*args, **kwargs)
+
+

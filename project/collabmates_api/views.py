@@ -975,37 +975,26 @@ def create_card(request):
         res = json.loads(request.body)
         print(res)
         # creating card
-        event_card=False
-        if 'type' in res:
-            type=res['type'] #if type=0 normal if type =1 intro
-            if type == '2':
-                event_card=True
-        else:
-            type=0
+        # type=0 normal card, type =1 intro card, type 2 is event card and type 3 is poll card
+        type = res['type'] if 'type' in res else 0
+
         card = Collabcard()
         card.title = res['title']
         card.community = community
         card.user = user.user_id
         card.type=type
-        print(event_card)
-        if event_card:
+
+        if type == '2':
             card.date_time=res['date_time']
             card.duration=res['duration']
-        if 'share_link' in res:
-            card.share_link=res['share_link']
-            og_tags = decode_meta_from_url(res['share_link'])
-            card.og_tags=json.dumps(og_tags)
-        if 'image_count' in res:
-            image_count = res['image_count']
-        else:
-            image_count = 0
-        card.image_count = image_count
 
-        if 'pdf_count' in res:
-            pdf_count = res['pdf_count']
-        else:
-            pdf_count = 0
-        card.pdf_count = pdf_count
+        if 'share_link' in res:
+            card.share_link = res['share_link']
+            og_tags = decode_meta_from_url(res['share_link'])
+            card.og_tags = json.dumps(og_tags)
+
+        card.image_count = res['image_count'] if 'image_count' in res else 0
+        card.pdf_count = res['pdf_count'] if 'pdf_count' in res else 0
 
         card.date_epoch=time.time()
         card.save()
@@ -2046,13 +2035,18 @@ def update_answer_text(card_id):
             # get the name of the user who answered
             username = Userinfo.objects.get(user_id = card_ans[0].user_id)
             #format the answer text string as "username answered"
-            ans_text = username.name + " responded"
+            if card.type == 2:
+                ans_text += " is attending"
+            elif card.type == 3:
+                ans_text += " voted on this poll"
+            else:
+                ans_text = username.name + " responded"
             # update the answer_text feild in collabcard
             Collabcard.objects.filter(id=card_id).update(answer_text=ans_text) 
         # if there is more than one answer
         else:
             #get the user id's of the users who have answered
-            user_list =[]
+            user_list = []
             for ans in card_ans:
                 # save it in a list without duplicates
                 if ans.user_id not in user_list:
@@ -2060,14 +2054,19 @@ def update_answer_text(card_id):
             count = 1
             #check if only two different users have answered
             #not more than two different users should have answered
-            if len(user_list)==2:
+            if len(user_list) == 2:
                 for ID in user_list:
                     username = Userinfo.objects.get(user_id = ID)
                     ans_text += username.name
-                    if count !=0:
+                    if count != 0:
                         ans_text += " and "
-                        count-=1
-                ans_text+=" responded"
+                        count -= 1
+                if card.type == 2:
+                    ans_text += " are attending"
+                elif card.type == 3:
+                    ans_text += " voted on this poll"
+                else:
+                    ans_text += " responded"
                 Collabcard.objects.filter(id=card_id).update(answer_text=ans_text)
 
             # if more than two different users have answered
@@ -2077,7 +2076,13 @@ def update_answer_text(card_id):
                     ans_text += username.name
                     break
 
-                ans_text+= " & "+str(len(user_list)-1) + " others responded"
+                ans_text += " & " + str(len(user_list) - 1)
+                if card.type == 2:
+                    ans_text += " others are attending"
+                elif card.type == 3:
+                    ans_text += " others voted on this poll"
+                else:
+                    ans_text += " others responded"
                 Collabcard.objects.filter(id=card_id).update(answer_text=ans_text)
 
 @csrf_exempt
