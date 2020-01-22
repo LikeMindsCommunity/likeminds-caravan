@@ -971,9 +971,13 @@ def create_card(request):
     community = Community.objects.get(id = community_id)
     if request.method == 'POST':
         res = json.loads(request.body)
+        print(res)
         # creating card
+        event_card=False
         if 'type' in res:
             type=res['type'] #if type=0 normal if type =1 intro
+            if type == '2':
+                event_card=True
         else:
             type=0
         card = Collabcard()
@@ -981,6 +985,10 @@ def create_card(request):
         card.community = community
         card.user = user.user_id
         card.type=type
+        print(event_card)
+        if event_card:
+            card.date_time=res['date_time']
+            card.duration=res['duration']
         if 'share_link' in res:
             card.share_link=res['share_link']
             og_tags = decode_meta_from_url(res['share_link'])
@@ -1046,18 +1054,18 @@ def create_card(request):
         collabcard['member'] = usr
 
 
-        #card creater auto_seen the card
-        collab_seen = collabcard_seen()
-        collab_seen.card = card
-        collab_seen.user = user.user_id
-        collab_seen.community = community
-        collab_seen.save()
-
-        # card creator auto follows the card
-        follow=follow_collabcard()
-        follow.collabcard_id=card
-        follow.member_id=user.user_id
-        follow.save()
+        # #card creater auto_seen the card
+        # collab_seen = collabcard_seen()
+        # collab_seen.card = card
+        # collab_seen.user = user.user_id
+        # collab_seen.community = community
+        # collab_seen.save()
+        #
+        # # card creator auto follows the card
+        # follow=follow_collabcard()
+        # follow.collabcard_id=card
+        # follow.member_id=user.user_id
+        # follow.save()
 
         # #saving the state in collabcardState table instead of follow collabcard
         collabcard_state_instance=collabcardState()

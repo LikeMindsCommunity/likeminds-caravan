@@ -71,7 +71,9 @@ def CollabcardSerializer(card,community=None):
         'share_link': card.share_link,
         'image_count':card.image_count,
         'pdf_count': card.pdf_count,
-        'type':card.type
+        'type':card.type,
+        'date_time':card.date_time,
+        'duration':card.duration
     }
     if card.og_tags:
         og_tags=json.loads(card.og_tags)
