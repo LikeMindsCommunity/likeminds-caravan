@@ -1,6 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
-
+import time
 response_choices = (
     ('text','Text'),
     ('textarea','Textarea'),
@@ -161,7 +161,7 @@ class Collabcard (models.Model):
     image_count = models.IntegerField(default=0, null=True)
     pdf_count = models.IntegerField(default=0, null=True)
     type=models.IntegerField(default=0)    # state=0 (Normal Collabcard);state=1(Introduction Collabcard)
-    date_time=models.BigIntegerField(default=0)    # for saving event card epooch
+    date_time=models.BigIntegerField(default=0)    # for saving date of event and due date for polling
     duration=models.BigIntegerField(default=0)     # for saving duration of event
 
 
@@ -434,9 +434,6 @@ class User_Profession(models.Model):
         super(User_Profession, self).save(*args, **kwargs)
 
 
-
-
-
 class User_Interest(models.Model):
     '''Model to store the user of interest'''
     user_id = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -526,13 +523,43 @@ class Report(models.Model):
     date_epoch=models.BigIntegerField(default=-9223372036854775808,null=True)
 
 
-
-
 class collabcardState(models.Model):
 
-    card = models.ForeignKey(Collabcard, on_delete= models.CASCADE)
-    community = models.ForeignKey(Community, on_delete= models.CASCADE)
-    user = models.ForeignKey(User, on_delete = models.CASCADE)
+    card = models.ForeignKey(Collabcard, on_delete=models.CASCADE)
+    community = models.ForeignKey(Community, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
     state=models.IntegerField(null=True)
     created_at=models.BigIntegerField(default=-9223372036854775808,null=True)
     updated_at=models.BigIntegerField(default=-9223372036854775808,null=True)
+
+
+class CollabcardPolls(models.Model):
+    card = models.ForeignKey(Collabcard, on_delete=models.CASCADE)
+    text = models.CharField(max_length=2048, null=True)
+    created_at = models.BigIntegerField(default=0, null=True)
+    updated_at = models.BigIntegerField(default=0, null=True)
+
+    def save(self, *args, **kwargs):
+        if self.created_at == 0:
+            self.created_at = time.time()
+        self.updated_at = time.time()
+        super(CollabcardPolls, self).save(*args, **kwargs)
+
+    def get_card_polls(self,card_id):
+        pass
+
+
+class MemberPollVotes(models.Model):
+    poll = models.ForeignKey(CollabcardPolls, on_delete=models.CASCADE)
+    card = models.ForeignKey(Collabcard, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    created_at = models.BigIntegerField(default=0, null=True)
+    updated_at = models.BigIntegerField(default=0, null=True)
+
+    def save(self, *args, **kwargs):
+        if self.created_at == 0:
+            self.created_at = time.time()
+        self.updated_at = time.time()
+        super(MemberPollVotes, self).save(*args, **kwargs)
+
+

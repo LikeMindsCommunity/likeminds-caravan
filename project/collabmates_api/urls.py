@@ -51,5 +51,6 @@ urlpatterns = [
 
     path('community_collabcard_id', api_views.community_collabcard_id, name='community_collabcard_id'),
     path('community_collabcard_meta', api_views.community_collabcard_meta, name='community_collabcard_meta'),
+    path('collabcard_poll', api_views.collabcard_poll, name='collabcard_poll'),
 
 ]
