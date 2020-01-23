@@ -303,19 +303,18 @@ def similar_community(request, community_id):
     user_id = body['member_id']
     user_tag = 0
     # getting communities based on user hidden tags
-    queryset = get_communities_by_tags(user_tag=user_tag,user_id=user_id)[:11]
+    queryset = get_user_communities_by_rank(user_id=user_id)[:11]
     community = []
     for comm in queryset:
 
-        
         try:
-            comm_object = Community.objects.get(id=comm)
-        except:
             # if the queryset is of type dictionary
             comm_object = Community.objects.get(id=comm['community_id'])
-        # check if the community is hidden or not
+        except:
+            comm_object = comm
 
-        if comm_object.hide_community == '0' or comm_object.hide_community =='4' and comm_object.id != community_id:
+        # check if the community is hidden or not
+        if comm_object.hide_community == '0' or comm_object.hide_community =='4' or comm_object.hide_community =='3' and comm_object.id != community_id:
             # if not hidden , pass the community object to serializer
             serialized_object = CommunitySerializer(comm_object)
             new_dict = {}
@@ -895,19 +894,21 @@ def create_card(request):
         # type=0 normal card, type =1 intro card, type 2 is event card and type 3 is poll card
         type = res['type'] if 'type' in res else 0
 
-        # check if a card is already posted with type = 1
-        card = Collabcard.objects.filter(community=community, user=user.user_id, type=1)
 
-        if not card.exists():
-            card = Collabcard()
-            card.title = res['title']
-            card.community = community
-            card.user = user.user_id
-            card.type = type
-            card.image_count = res['image_count'] if ('image_count' in res) else 0
-            card.pdf_count = res['pdf_count'] if ('pdf_count' in res) else 0
-            card.date_time = res['date_time'] if (str(type) == '2' or str(type) == '3') else 0
-            card.duration = res['duration'] if ('duration' in res) else 0
+        card = Collabcard.objects.filter(community=community, user=user.user_id,type=1)
+        if card.exists():
+            # if welcome card for user is already existing
+            return  JsonResponse({'success':True})
+
+        card = Collabcard()
+        card.title = res['title']
+        card.community = community
+        card.user = user.user_id
+        card.type = type
+        card.image_count = res['image_count'] if ('image_count' in res) else 0
+        card.pdf_count = res['pdf_count'] if ('pdf_count' in res) else 0
+        card.date_time = res['date_time'] if (str(type) == '2' or str(type) == '3') else 0
+        card.duration = res['duration'] if ('duration' in res) else 0
 
         if 'share_link' in res:
             card.share_link = res['share_link']
