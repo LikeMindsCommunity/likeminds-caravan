@@ -76,142 +76,57 @@ def communities(request):
 
     ''' function to get all the communities '''
 
-    communities_url=request.build_absolute_uri()
     if request.method == 'GET':
-        info_logger.info("added")
-        request = request.GET.dict()
-        if 'member_id' in request:
-            # get member id and members hidden tag
-            user_id = request['member_id']
-            user_tag = 0
-        if 'page' in request:
-            # if page number is in request
-            page_number = request['page']
-        else:
-            # set default page number
-            page_number = 1
-        if 'category_id' in request:
-            if request['category_id'] != '':
-                # if communites are filtered by category
-                category = request['category_id']
-                # get category id'''
-                category = int(category)
-                # get the related communities according to category asked and user hidden tag
-                community = get_communities_by_tags(category_tag=category, user_tag=user_tag,page_number = page_number,user_id=user_id)
-                # serialize the communities objects recieved from above function
-                community = serialize_community(queryset =community)
-                # send communities JSON response '''
-                return JsonResponse({'communities': community})
-            else:
-                # if category is not provided, get categories according to the user tag if user has one
-                #custom_cache.clear()
-                #print(custom_cache.keys('*'))
-                # cache_key=communities_url
-                #
-                # if cache_key in custom_cache:
-                #     community=custom_cache.get(cache_key)
-                # else:
-                queryset = get_communities_by_tags(user_tag=user_tag,page_number = page_number,user_id=user_id)
-                community = serialize_community(queryset=queryset)
-                #custom_cache.set(cache_key,community,timeout=CACHE_TTL)
-                info_logger.info(community)
-                #custom_cache.clear()
-                return JsonResponse({'communities': community})
+        info_logger.info("communities APi : added")
+        req = request.GET.dict()
 
-def get_communities_by_tags(user_tag=0, category_tag=0,page_number=1,user_id=None):
-    ''' fetching communities based on category tag and user hidden tag '''
+        # if page number is in request
+        page_number = req['page'] if 'page' in req else 1
+        user_id = get_member_id_from_headers(request)
+
+        queryset, state = get_user_communities_by_rank(page_number=page_number, user_id=user_id)
+
+        serializer = CommunitySerializer
+        community = [serializer(Community.objects.get(pk=community['community_id']) if state else community) for community in queryset]
+
+        #custom_cache.set(cache_key,community,timeout=CACHE_TTL)
+        info_logger.info(community)
+        #custom_cache.clear()
+
+        state = 1 if state else 0
+        return JsonResponse({'communities': community,'state':state})
+    else:
+        return JsonResponse({'success': False})
+
+def get_user_communities_by_rank(page_number=1, user_id=None):
+    ''' fetching communities based on user Community Rank data '''
 
     is_user_tags = Community_Rank.objects.filter(member_id=user_id)
+    if not user_id:
+        return [], False
 
-    if is_user_tags:
-        if user_id:
-
-            user_tag = Community_Rank.objects.filter(member_id=user_id).values('community_id').order_by(
-                    "-weight").distinct()
-            queryset = pagination(user_tag, page_number)
-            return queryset
-
-    if category_tag != 0 and user_tag != 0:
-        ''' if category tag and user tag ,bith are provided
-            get communities ,which are the intersection of given category and user hidden tag '''
-
-        # get communities based on category tag
-        category_tag = Community_tags.objects.filter(tags_id=category_tag).values('community_id')
-        # get communities based on user hidden tag
-        user_tag = Community_tags.objects.filter(tags_id=user_tag).values('community_id')
-        #intersect both of the querysets
-        res = category_tag.intersection(user_tag).order_by("-community_id").distinct()
-        #paginating the resultant queryset
-        queryset = pagination(res, page_number)
-        #return result
-        return queryset
+    elif is_user_tags.exists():
+        communities = Community_Rank.objects.filter(member_id=user_id).values('community_id').order_by(
+                "-weight").distinct()
+    else:
+        ''' if no communities are present in Community_Rank send all communities in DESC order of ID  '''
+        # get all communities except hidden
+        communities = Community.objects.filter(Q(hide_community='0') | Q(hide_community='3') |
+                                               Q(hide_community='4')).order_by('-id')
+    #paginating the resultant queryset
+    queryset = pagination(communities, page_number)
+    #return result
+    return queryset, is_user_tags.exists()
 
 
-
-    if category_tag == 0 and user_tag == 0:
-        # if there is not category tag and user does not have a hidden tag too
-        # just return him all the communites
-        community =  Community_tags.objects.values('community_id').order_by("-community_id").distinct()
-        # paginating the communities
-        queryset = pagination(community, page_number)
-        return queryset
-
-
-
-    if category_tag == 0 and user_tag != 0:
-        # if there is no category tag , then return communites based on user hidden tag
-        user_tag = Community_Rank.objects.values('community_id').order_by("-weight").distinct()
-        queryset = pagination(user_tag, page_number)
-        return queryset
-
-    if user_tag == 0 and category_tag != 0:
-        # if there is no user hidden tag , then return communites based on category tag
-        category_tag = Community_tags.objects.filter(tags_id=category_tag).values('community_id').order_by("-community_id").distinct()
-        queryset = pagination(category_tag, page_number)
-        return queryset
-
-def serialize_community(queryset):
-    ''' this function gives us a dictionary of community/communities objects based on given queryset '''
-    communities = []
-    for community in queryset:
-
-        try:
-            # if the queryset is of type dictionary
-            comm = Community.objects.get(id=community['community_id'])
-        except:
-            # if the queryset if a lazy community object
-            try:
-                comm = Community.objects.get(id=community.id)
-            except:
-                comm=Community.objects.get(id=community)
-        # check if the community is hidden or not
-
-        if comm.hide_community == '0' or comm.hide_community == '3' or comm.hide_community =='4':
-            # if not hidden , pass the community object to serializer or pre-created
-            serialized_object = CommunitySerializer(comm)
-            new_dict = {}
-            # form a dictionary of community objects
-            new_dict.update(serialized_object)
-
-            communities.append(new_dict)
-        elif comm.hide_community == '1':
-
-            pass
-
-    return communities
-
-
-def pagination(queryset,page_number,paginate_by=20):
+def pagination(queryset, page_number, paginate_by=10):
 
     '''function to create pagination and return a query set for page number'''
     paginator = Paginator(queryset, paginate_by)
     max_page=len(paginator.page_range)
 
-    if max_page < int(page_number):
-        return []
-    queryset = paginator.get_page(page_number)
+    return [] if (max_page < int(page_number) or not queryset.exists()) else paginator.get_page(page_number)
 
-    return queryset
 
 
 
@@ -3183,7 +3098,6 @@ def get_profile(request):
 def get_member_id_from_headers(request):
 
     '''function to get member id from headers'''
-
     headers = request.META
 
     member_id=0
