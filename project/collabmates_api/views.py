@@ -101,11 +101,11 @@ def communities(request):
 def get_user_communities_by_rank(page_number=1, user_id=None):
     ''' fetching communities based on user Community Rank data '''
 
-    is_user_tags = Community_Rank.objects.filter(member_id=user_id)
+    is_user_communities = Community_Rank.objects.filter(member_id=user_id)
     if not user_id:
         return [], False
 
-    elif is_user_tags.exists():
+    elif is_user_communities.exists():
         communities = Community_Rank.objects.filter(member_id=user_id).values('community_id').order_by(
                 "-weight").distinct()
     else:
@@ -116,7 +116,7 @@ def get_user_communities_by_rank(page_number=1, user_id=None):
     #paginating the resultant queryset
     queryset = pagination(communities, page_number)
     #return result
-    return queryset, is_user_tags.exists()
+    return queryset, is_user_communities.exists()
 
 
 def pagination(queryset, page_number, paginate_by=10):
@@ -303,7 +303,7 @@ def similar_community(request, community_id):
     user_id = body['member_id']
     user_tag = 0
     # getting communities based on user hidden tags
-    queryset = get_user_communities_by_rank(user_id=user_id)[:11]
+    queryset, state = get_user_communities_by_rank(user_id=user_id)[:11]
     community = []
     for comm in queryset:
 
@@ -312,7 +312,6 @@ def similar_community(request, community_id):
             comm_object = Community.objects.get(id=comm['community_id'])
         except:
             comm_object = comm
-
         # check if the community is hidden or not
         if comm_object.hide_community == '0' or comm_object.hide_community =='4' or comm_object.hide_community =='3' and comm_object.id != community_id:
             # if not hidden , pass the community object to serializer
