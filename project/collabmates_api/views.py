@@ -876,7 +876,6 @@ def create_community(request):
 @csrf_exempt
 def create_card(request):
     ''' function to create a card '''
-
     user_id = request.GET.get('member_id')
     community_id = request.GET.get('community_id')
     # image_count = request.GET.get('image_count',0)
@@ -888,16 +887,14 @@ def create_card(request):
     community = Community.objects.get(id = community_id)
     if request.method == 'POST':
         res = json.loads(request.body)
-        print(res)
         # creating card
         # type=0 normal card, type =1 intro card, type 2 is event card and type 3 is poll card
         type = res['type'] if 'type' in res else 0
 
-
-        card = Collabcard.objects.filter(community=community, user=user.user_id,type=1)
-        if card.exists():
+        card = Collabcard.objects.filter(community=community, user=user.user_id, type=1)
+        if card.exists() and type == 1:
             # if welcome card for user is already existing
-            return  JsonResponse({'success':True})
+            return JsonResponse({'success':True})
 
         card = Collabcard()
         card.title = res['title']
