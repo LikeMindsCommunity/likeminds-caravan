@@ -2017,7 +2017,8 @@ def create_answer(request):
         send_follow_notification.delay(card_id=card_id, user_id=user_id, answer=res['title'])
 
         #calling update_answer_text
-        update_answer_text(card_id)
+        if card.type == 0 or card.type == 1:
+            update_answer_text(card_id)
 
 
         return JsonResponse({'success':True})
