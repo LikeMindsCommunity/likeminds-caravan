@@ -894,7 +894,7 @@ def create_card(request):
         card = Collabcard.objects.filter(community=community, user=user.user_id, type=1)
         if card.exists() and type == 1:
             # if welcome card for user is already existing
-            return JsonResponse({'success':True})
+            return JsonResponse({'success':False})
 
         card = Collabcard()
         card.title = res['title']
