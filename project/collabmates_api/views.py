@@ -895,15 +895,19 @@ def create_card(request):
         # type=0 normal card, type =1 intro card, type 2 is event card and type 3 is poll card
         type = res['type'] if 'type' in res else 0
 
-        card = Collabcard()
-        card.title = res['title']
-        card.community = community
-        card.user = user.user_id
-        card.type=type
-        card.image_count = res['image_count'] if ('image_count' in res) else 0
-        card.pdf_count = res['pdf_count'] if ('pdf_count' in res) else 0
-        card.date_time = res['date_time'] if (str(type) == '2' or str(type) == '3') else 0
-        card.duration = res['duration'] if ('duration' in res) else 0
+        # check if a card is already posted with type = 1
+        card = Collabcard.objects.filter(community=community, user=user.user_id, type=1)
+
+        if not card.exists():
+            card = Collabcard()
+            card.title = res['title']
+            card.community = community
+            card.user = user.user_id
+            card.type = type
+            card.image_count = res['image_count'] if ('image_count' in res) else 0
+            card.pdf_count = res['pdf_count'] if ('pdf_count' in res) else 0
+            card.date_time = res['date_time'] if (str(type) == '2' or str(type) == '3') else 0
+            card.duration = res['duration'] if ('duration' in res) else 0
 
         if 'share_link' in res:
             card.share_link = res['share_link']
@@ -3511,7 +3515,6 @@ def save_geography_and_hometown_tags_of_user_from_onboarding(address_input,user_
             save_tags_for_user_from_onboarding(1, tag_object, user_id)
 
     print("Hometown and city updated successfully")
-
 
 
 # Reporting collabcard functions
