@@ -60,8 +60,8 @@ from utility.celery_tasks import (update_referral_text_in_engage_table,
                                   update_last_unseen_in_engage_on_card_creation,
                                   update_last_unseen_in_engage,
                                   )
-
-
+from project.celery import app
+from celery.schedules import crontab
 #CACHE_TTL = getattr(settings, 'CACHE_TTL', cache_timeout)
 
 
@@ -983,14 +983,9 @@ def create_card(request):
         # follow.save()
 
         # #saving the state in collabcardState table instead of follow collabcard
-        collabcard_state_instance=collabcardState()
-        collabcard_state_instance.card=card
-        collabcard_state_instance.user=user.user_id
-        collabcard_state_instance.community=community
-        collabcard_state_instance.state=collabcard_follow_state         #user has created the card and he is autofollowing
-        collabcard_state_instance.created_at=time.time()
-        collabcard_state_instance.updated_at=time.time()
-        collabcard_state_instance.save()
+        create_collabcard_state_for_user(card=card, user=user.user_id,
+                                         state=collabcard_follow_state,
+                                         community=community)
 
         update_last_answer_id(card.id,"")
 
@@ -1027,6 +1022,21 @@ def create_card(request):
         # custom_cache.clear()
         return JsonResponse({'success':True,'collabcard':collabcard})
     return JsonResponse({'success':False})
+
+
+
+def create_collabcard_state_for_user(card,user,state,community):
+    """ create collabcard state for a member for a card """
+
+    collabcard_state_instance = collabcardState()
+    collabcard_state_instance.card = card
+    collabcard_state_instance.user = user
+    collabcard_state_instance.community = community
+    collabcard_state_instance.state = state  # user has created the card and he is autofollowing
+    collabcard_state_instance.created_at = time.time()
+    collabcard_state_instance.updated_at = time.time()
+    collabcard_state_instance.save()
+
 
 # /api/add_admin/community_id
 @csrf_exempt
@@ -3071,7 +3081,7 @@ def accept_promotership(request):
             if str(member.member_id.id) == str(member_id):
                 print("inside first if block")
                 continue
-            if str(member.member_id.id) in refered_id:
+            if str(member.member_id.id) in refered_id or int(member.member_id.id) in refered_id:
                 print("inside sec if block")
 
                 req_dict={
@@ -3677,4 +3687,8 @@ def update_poll_card_text(card_id):
     card.answer_text = poll_text
     card.save()
 
+
+@shared_task
+def print_message():
+    print("\n hello \n bro\n yo")
 
