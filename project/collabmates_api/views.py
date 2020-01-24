@@ -60,8 +60,7 @@ from utility.celery_tasks import (update_referral_text_in_engage_table,
                                   update_last_unseen_in_engage_on_card_creation,
                                   update_last_unseen_in_engage,
                                   )
-from project.celery import app
-from celery.schedules import crontab
+
 #CACHE_TTL = getattr(settings, 'CACHE_TTL', cache_timeout)
 
 
