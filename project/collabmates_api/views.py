@@ -3062,9 +3062,15 @@ def accept_promotership(request):
         print("member ids  ======   ",refered_id)
         for member in all_members:
             print(" member.member_id.id  ======  ",member.member_id.id,str(member.member_id.id) in refered_id)
+            print(" check  ======  ",str(member.member_id.id) in refered_id)
+            print(" refered_id  ======  ",type(refered_id[0]))
+
             if str(member.member_id.id) == str(member_id):
+                print("inside first if block")
                 continue
             if str(member.member_id.id) in refered_id:
+                print("inside sec if block")
+
                 req_dict={
                     'accepted':True,
                     'member_id':member.member_id.id,
@@ -3072,6 +3078,7 @@ def accept_promotership(request):
                 }
                 request_response(request,req_dict)
             else:
+                print("inside else -- block")
                 Members.objects.filter(community_id=community_id,member_id=member.member_id.id).update(state=3)
 
 
