@@ -56,6 +56,14 @@ def decode_meta_from_url(url):
 
     '''function to take meta tags from url'''
 
+
+    is_valid_https=url.find("https://")
+
+    if is_valid_https == -1:
+        url="https://"+url
+
+
+
     r = requests.get(url)
 
     soup = BeautifulSoup(r.text,'html.parser')
@@ -80,7 +88,6 @@ def decode_meta_from_url(url):
         pass
     og_tags['url']=url
     return og_tags
-
 
 def get_nominated_admin_details(community_id,email):
     '''fetching nominated promoter details from temp admin table'''
