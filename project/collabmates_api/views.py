@@ -1381,6 +1381,8 @@ def request_response(request,req_dict=None):
 
         # check if member is already accepted to stop duplicate notifications and false member count
         state = Members.objects.filter(member_id=member_id, community_id=community)[0].state
+        print("member_id =======   ", member_id)
+        print("state =======   ",state,"\n")
         if state == 3 or state == 8:
             # updating the approve state
             Members.objects.filter(member_id=member_id, community_id=community).update(state=4,
@@ -1409,6 +1411,7 @@ def request_response(request,req_dict=None):
                 update_referral_text_in_engage_table.delay(community_id)
             else:
                 # if the community is created by user than updating the user details
+                print("community state =====  ",community.hide_community)
                 if community.hide_community == '0' or community.hide_community == '1' or community.hide_community == '4':
                     engage=Member_Engage.objects.get(community_id = community,member_id = user)
                     engage.last_unseen_conversation = purpose_card
@@ -3045,7 +3048,8 @@ def accept_promotership(request):
     value=res['value']
     all_members=Members.objects.filter(community_id=community_id)
     community = Community.objects.get(id=community_id)
-    if value:
+    print("res ======= ",res)
+    if value == 'true' or value:
 
         if 'member_ids' not in res or not res['member_ids']:
             Members.objects.filter(community_id=community_id,member_id=member_id).update(state=1,created_at=time.time())
@@ -3055,7 +3059,9 @@ def accept_promotership(request):
             return JsonResponse({'success': True})
 
         refered_id=res['member_ids']
+        print("member ids  ======   ",refered_id)
         for member in all_members:
+            print(" member.member_id.id  ======  ",member.member_id.id,str(member.member_id.id) in refered_id)
             if str(member.member_id.id) == str(member_id):
                 continue
             if str(member.member_id.id) in refered_id:
