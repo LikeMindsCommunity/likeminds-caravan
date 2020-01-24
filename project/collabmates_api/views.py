@@ -2704,10 +2704,12 @@ def members_state(request):
         card = Collabcard.objects.get(pk = collabcard_id)
         community_id = card.community.id
     state=0
+    tool_state=0
     query_set=Members.objects.filter(member_id=member_id,community_id=community_id)
     for data in query_set:
-        if data.state != None:
-            state=data.state
+        state=data.state
+        tool_state=data.tool_state
+
     if state == 0:
         '''checking if user DETAILS EXIST in temp admin table in case he is a newly registered user'''
         user = Userinfo.objects.get(user_id = member_id)
@@ -2726,7 +2728,7 @@ def members_state(request):
         else:
             state = 0
 
-    return JsonResponse({'state':state})
+    return JsonResponse({'state':state,'tool_state':tool_state})
 
 
 @csrf_exempt

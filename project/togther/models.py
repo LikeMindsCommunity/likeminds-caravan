@@ -42,7 +42,7 @@ class Members (models.Model):
     community_id = models.ForeignKey(Community, on_delete = models.CASCADE)
     state=models.IntegerField(null=True)
     created_at=models.BigIntegerField(default=-9223372036854775808)
-
+    tool_state=models.IntegerField(default=0)
     def __str__(self):
         return self.community_id.name
 
