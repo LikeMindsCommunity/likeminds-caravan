@@ -61,8 +61,7 @@ from utility.celery_tasks import (update_referral_text_in_engage_table,
                                   update_last_unseen_in_engage_on_card_creation,
                                   update_last_unseen_in_engage,
                                   )
-from project.celery import app
-from celery.schedules import crontab
+
 #CACHE_TTL = getattr(settings, 'CACHE_TTL', cache_timeout)
 
 
@@ -1403,8 +1402,6 @@ def request_response(request,req_dict=None):
 
         # check if member is already accepted to stop duplicate notifications and false member count
         state = Members.objects.filter(member_id=member_id, community_id=community)[0].state
-        print("member_id =======   ", member_id)
-        print("state =======   ",state,"\n")
         if state == 3 or state == 8:
             # updating the approve state
             Members.objects.filter(member_id=member_id, community_id=community).update(state=4,
@@ -1433,7 +1430,6 @@ def request_response(request,req_dict=None):
                 update_referral_text_in_engage_table.delay(community_id)
             else:
                 # if the community is created by user than updating the user details
-                print("community state =====  ",community.hide_community)
                 if community.hide_community == '0' or community.hide_community == '1' or community.hide_community == '4':
                     engage=Member_Engage.objects.get(community_id = community,member_id = user)
                     engage.last_unseen_conversation = purpose_card
@@ -3068,15 +3064,12 @@ def accept_promotership(request):
 
     '''function to accept the promotership'''
 
-    print("inside accept_promotership")
-
     res=json.loads(request.body)
     community_id=res['community_id']
     member_id=res['member_id']
     value=res['value']
     all_members=Members.objects.filter(community_id=community_id)
     community = Community.objects.get(id=community_id)
-    print("res ====>>>>>=== ",res)
     if value == 'true' or value:
 
         if 'member_ids' not in res or not res['member_ids']:
@@ -3087,18 +3080,12 @@ def accept_promotership(request):
             return JsonResponse({'success': True})
 
         refered_id=res['member_ids']
-        print("member ids  ======   ",refered_id)
         for member in all_members:
-            print(" member.member_id.id  ======  ",member.member_id.id,str(member.member_id.id) in refered_id)
-            print(" check  ======  ",str(member.member_id.id) in refered_id)
-            print(" refered_id  ======  ",type(refered_id[0]))
 
             if str(member.member_id.id) == str(member_id):
-                print("inside first if block")
                 continue
-            if str(member.member_id.id) in refered_id or int(member.member_id.id) in refered_id:
-                print("inside sec if block")
 
+            elif (str(member.member_id.id) in refered_id) or (int(member.member_id.id) in refered_id):
                 req_dict={
                     'accepted':True,
                     'member_id':member.member_id.id,
@@ -3106,7 +3093,6 @@ def accept_promotership(request):
                 }
                 request_response(request,req_dict)
             else:
-                print("inside else -- block")
                 Members.objects.filter(community_id=community_id,member_id=member.member_id.id).update(state=3)
 
 
@@ -3703,7 +3689,4 @@ def update_poll_card_text(card_id):
     card.save()
 
 
-@shared_task
-def print_message():
-    print("\n hello \n bro\n yo")
 
