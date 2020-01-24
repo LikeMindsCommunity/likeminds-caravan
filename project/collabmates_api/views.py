@@ -2708,7 +2708,7 @@ def members_state(request):
     query_set=Members.objects.filter(member_id=member_id,community_id=community_id)
     for data in query_set:
         state=data.state
-        tool_state=data.state
+        tool_state=data.tool_state
 
     if state == 0:
         '''checking if user DETAILS EXIST in temp admin table in case he is a newly registered user'''
