@@ -621,6 +621,8 @@ def get_user_lpig_tags(user_id):
                 temp['attribute_name'] = "Hometown"
             elif attribute_id is 4:
                 temp['attribute_name'] = "Lifestyle"
+            else:
+                continue
 
             # if each.tags_id.is_cluster:
             #     cluster=list(Tags_lpig.objects.filter(cluster_tag_id=each.tags_id.id).values_list('id',flat=True))

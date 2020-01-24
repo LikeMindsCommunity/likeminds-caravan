@@ -289,9 +289,9 @@ def send_notification_for_new_collabcard_posted(community_id,collabcard_title,po
         message={}
 
         if type == 2:
-            sub_title="posted an event: "+str(collabcard_title)
+            sub_title="Posted an event: "+str(collabcard_title)
         elif type == 3:
-            sub_title="posted a poll: "+ str(collabcard_title)
+            sub_title="Posted a poll: "+ str(collabcard_title)
         else:
             sub_title= str(collabcard_title)
 
