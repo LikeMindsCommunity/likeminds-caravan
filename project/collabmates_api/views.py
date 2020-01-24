@@ -588,8 +588,7 @@ def admins(request, community_id):
 def get_user_lpig_tags(user_id):
 
     '''function to get user lpig tags'''
-    if not user_onbaord(user_id):
-        return False
+   
     legacy=User_Legacy.objects.filter(user_id=user_id)
     profession=User_Profession.objects.filter(user_id=user_id)
     interest=User_Interest.objects.filter(user_id=user_id)
