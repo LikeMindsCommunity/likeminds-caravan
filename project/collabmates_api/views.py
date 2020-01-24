@@ -20,7 +20,8 @@ from .notification import (send_follow_notification, send_notification_to_admins
                            send_notification_to_proposer,
                            send_notification_to_eligible_member,
                            send_notification_to_all_admins,
-                           send_notification_to_tagged_users)
+                           send_notification_to_tagged_users,
+                           )
 
 from django.db.models import Q
 import dateutil.relativedelta
@@ -33,6 +34,7 @@ import os
 import re
 import googlemaps
 import logging
+from django.views.decorators.csrf import ensure_csrf_cookie
 
 from utility.utils import (decode_meta_from_url, update_tag_image,
                            referal, get_referred_members_of_a_member,
@@ -42,9 +44,10 @@ from utility.utils import (decode_meta_from_url, update_tag_image,
                            #custom_cache,cache_timeout,
                            get_city_address,
                            update_user_geography_tags, create_or_categorize_tag,
-                           insert_user_home_town_tags,user_onbaord,is_IG_community,create_user_hometown_tag_and_related_tags)
+                           insert_user_home_town_tags,user_onbaord,is_IG_community,
+                           create_user_hometown_tag_and_related_tags)
 
-from utility.states import collabcard_seen_state,collabcard_follow_state
+from utility.states import *
 
 from utility.tasks import (mail_triger, new_member_request,
                            member_request_approval_or_denied,send_mail_for_report_abuse__on_collabcard,send_mail_for_report_abuse__of_user)
@@ -58,7 +61,6 @@ from utility.celery_tasks import (update_referral_text_in_engage_table,
                                   update_last_unseen_in_engage_on_card_creation,
                                   update_last_unseen_in_engage,
                                   )
-
 
 #CACHE_TTL = getattr(settings, 'CACHE_TTL', cache_timeout)
 
@@ -74,142 +76,57 @@ def communities(request):
 
     ''' function to get all the communities '''
 
-    communities_url=request.build_absolute_uri()
     if request.method == 'GET':
-        info_logger.info("added")
-        request = request.GET.dict()
-        if 'member_id' in request:
-            # get member id and members hidden tag
-            user_id = request['member_id']
-            user_tag = 0
-        if 'page' in request:
-            # if page number is in request
-            page_number = request['page']
-        else:
-            # set default page number
-            page_number = 1
-        if 'category_id' in request:
-            if request['category_id'] != '':
-                # if communites are filtered by category
-                category = request['category_id']
-                # get category id'''
-                category = int(category)
-                # get the related communities according to category asked and user hidden tag
-                community = get_communities_by_tags(category_tag=category, user_tag=user_tag,page_number = page_number,user_id=user_id)
-                # serialize the communities objects recieved from above function
-                community = serialize_community(queryset =community)
-                # send communities JSON response '''
-                return JsonResponse({'communities': community})
-            else:
-                # if category is not provided, get categories according to the user tag if user has one
-                #custom_cache.clear()
-                #print(custom_cache.keys('*'))
-                # cache_key=communities_url
-                #
-                # if cache_key in custom_cache:
-                #     community=custom_cache.get(cache_key)
-                # else:
-                queryset = get_communities_by_tags(user_tag=user_tag,page_number = page_number,user_id=user_id)
-                community = serialize_community(queryset=queryset)
-                #custom_cache.set(cache_key,community,timeout=CACHE_TTL)
-                info_logger.info(community)
-                #custom_cache.clear()
-                return JsonResponse({'communities': community})
+        info_logger.info("communities APi : added")
+        req = request.GET.dict()
 
-def get_communities_by_tags(user_tag=0, category_tag=0,page_number=1,user_id=None):
-    ''' fetching communities based on category tag and user hidden tag '''
+        # if page number is in request
+        page_number = req['page'] if 'page' in req else 1
+        user_id = get_member_id_from_headers(request)
 
-    is_user_tags = Community_Rank.objects.filter(member_id=user_id)
+        queryset, state = get_user_communities_by_rank(page_number=page_number, user_id=user_id)
 
-    if is_user_tags:
-        if user_id:
+        serializer = CommunitySerializer
+        community = [serializer(Community.objects.get(pk=community['community_id']) if state else community) for community in queryset]
 
-            user_tag = Community_Rank.objects.filter(member_id=user_id).values('community_id').order_by(
-                    "-weight").distinct()
-            queryset = pagination(user_tag, page_number)
-            return queryset
+        #custom_cache.set(cache_key,community,timeout=CACHE_TTL)
+        info_logger.info(community)
+        #custom_cache.clear()
 
-    if category_tag != 0 and user_tag != 0:
-        ''' if category tag and user tag ,bith are provided
-            get communities ,which are the intersection of given category and user hidden tag '''
+        state = 1 if state else 0
+        return JsonResponse({'communities': community,'state':state})
+    else:
+        return JsonResponse({'success': False})
 
-        # get communities based on category tag
-        category_tag = Community_tags.objects.filter(tags_id=category_tag).values('community_id')
-        # get communities based on user hidden tag
-        user_tag = Community_tags.objects.filter(tags_id=user_tag).values('community_id')
-        #intersect both of the querysets
-        res = category_tag.intersection(user_tag).order_by("-community_id").distinct()
-        #paginating the resultant queryset
-        queryset = pagination(res, page_number)
-        #return result
-        return queryset
+def get_user_communities_by_rank(page_number=1, user_id=None):
+    ''' fetching communities based on user Community Rank data '''
+
+    is_user_communities = Community_Rank.objects.filter(member_id=user_id)
+    if not user_id:
+        return [], False
+
+    elif is_user_communities.exists():
+        communities = Community_Rank.objects.filter(member_id=user_id).values('community_id').order_by(
+                "-weight").distinct()
+    else:
+        ''' if no communities are present in Community_Rank send all communities in DESC order of ID  '''
+        # get all communities except hidden
+        communities = Community.objects.filter(Q(hide_community='0') | Q(hide_community='3') |
+                                               Q(hide_community='4')).order_by('-id')
+    #paginating the resultant queryset
+    queryset = pagination(communities, page_number)
+    #return result
+    return queryset, is_user_communities.exists()
 
 
-
-    if category_tag == 0 and user_tag == 0:
-        # if there is not category tag and user does not have a hidden tag too
-        # just return him all the communites
-        community =  Community_tags.objects.values('community_id').order_by("-community_id").distinct()
-        # paginating the communities
-        queryset = pagination(community, page_number)
-        return queryset
-
-
-
-    if category_tag == 0 and user_tag != 0:
-        # if there is no category tag , then return communites based on user hidden tag
-        user_tag = Community_Rank.objects.values('community_id').order_by("-weight").distinct()
-        queryset = pagination(user_tag, page_number)
-        return queryset
-
-    if user_tag == 0 and category_tag != 0:
-        # if there is no user hidden tag , then return communites based on category tag
-        category_tag = Community_tags.objects.filter(tags_id=category_tag).values('community_id').order_by("-community_id").distinct()
-        queryset = pagination(category_tag, page_number)
-        return queryset
-
-def serialize_community(queryset):
-    ''' this function gives us a dictionary of community/communities objects based on given queryset '''
-    communities = []
-    for community in queryset:
-
-        try:
-            # if the queryset is of type dictionary
-            comm = Community.objects.get(id=community['community_id'])
-        except:
-            # if the queryset if a lazy community object
-            try:
-                comm = Community.objects.get(id=community.id)
-            except:
-                comm=Community.objects.get(id=community)
-        # check if the community is hidden or not
-
-        if comm.hide_community == '0' or comm.hide_community == '3' or comm.hide_community =='4':
-            # if not hidden , pass the community object to serializer or pre-created
-            serialized_object = CommunitySerializer(comm)
-            new_dict = {}
-            # form a dictionary of community objects
-            new_dict.update(serialized_object)
-
-            communities.append(new_dict)
-        elif comm.hide_community == '1':
-
-            pass
-
-    return communities
-
-
-def pagination(queryset,page_number,paginate_by=20):
+def pagination(queryset, page_number, paginate_by=10):
 
     '''function to create pagination and return a query set for page number'''
     paginator = Paginator(queryset, paginate_by)
     max_page=len(paginator.page_range)
 
-    if max_page < int(page_number):
-        return []
-    queryset = paginator.get_page(page_number)
+    return [] if (max_page < int(page_number) or not queryset.exists()) else paginator.get_page(page_number)
 
-    return queryset
 
 
 
@@ -262,7 +179,7 @@ def your_communities(request,user_id):
         community['pending_members_count']=each_community.pending_members
         community['updated_at']=get_time_text(each_community.updated_at)
         if each_community.last_unseen_conversation:
-            collabcard=CollabcardSerializer(each_community.last_unseen_conversation)
+            collabcard=CollabcardSerializer(each_community.last_unseen_conversation, user=member_id)
             user=each_community.last_unseen_conversation.user
             collabcard['member']=UserinfoSerializer(user.userinfo)
             community['collabcard']=collabcard
@@ -337,7 +254,7 @@ def get_community_card_details(each_community,user_id):
             card = Collabcard.objects.get(id=total_collabcards.order_by('id')[0]['id'])
         # show details of the latest card or latest unseen card
         # get json form of card object
-        collabcard = CollabcardSerializer(card,community)
+        collabcard = CollabcardSerializer(card, user_id, community)
 
         new_dict['collabcard'] = collabcard
 
@@ -386,19 +303,17 @@ def similar_community(request, community_id):
     user_id = body['member_id']
     user_tag = 0
     # getting communities based on user hidden tags
-    queryset = get_communities_by_tags(user_tag=user_tag,user_id=user_id)[:11]
+    queryset, state = get_user_communities_by_rank(user_id=user_id)[:11]
     community = []
     for comm in queryset:
 
-        
         try:
-            comm_object = Community.objects.get(id=comm)
-        except:
             # if the queryset is of type dictionary
             comm_object = Community.objects.get(id=comm['community_id'])
+        except:
+            comm_object = comm
         # check if the community is hidden or not
-
-        if comm_object.hide_community == '0' or comm_object.hide_community =='4' and comm_object.id != community_id:
+        if comm_object.hide_community == '0' or comm_object.hide_community =='4' or comm_object.hide_community =='3' and comm_object.id != community_id:
             # if not hidden , pass the community object to serializer
             serialized_object = CommunitySerializer(comm_object)
             new_dict = {}
@@ -705,6 +620,8 @@ def get_user_lpig_tags(user_id):
                 temp['attribute_name'] = "Hometown"
             elif attribute_id is 4:
                 temp['attribute_name'] = "Lifestyle"
+            else:
+                continue
 
             # if each.tags_id.is_cluster:
             #     cluster=list(Tags_lpig.objects.filter(cluster_tag_id=each.tags_id.id).values_list('id',flat=True))
@@ -907,7 +824,7 @@ def create_community(request):
 
             # forming card dict
 
-            crd = CollabcardSerializer(card)
+            crd = CollabcardSerializer(card, user=user_id)
             crd['member']=usr
             #inserting in member_engage table
             if not is_member_engage(community, user):
@@ -961,7 +878,6 @@ def create_community(request):
 @csrf_exempt
 def create_card(request):
     ''' function to create a card '''
-
     user_id = request.GET.get('member_id')
     community_id = request.GET.get('community_id')
     # image_count = request.GET.get('image_count',0)
@@ -974,33 +890,40 @@ def create_card(request):
     if request.method == 'POST':
         res = json.loads(request.body)
         # creating card
-        if 'type' in res:
-            type=res['type'] #if type=0 normal if type =1 intro
-        else:
-            type=0
+        # type=0 normal card, type =1 intro card, type 2 is event card and type 3 is poll card
+        type = int(res['type']) if 'type' in res else 0
+
+        card = Collabcard.objects.filter(community=community, user=user.user_id, type=1)
+        if card.exists() and type == 1:
+            # if welcome card for user is already existing
+            return JsonResponse({'success':False})
+
         card = Collabcard()
         card.title = res['title']
         card.community = community
         card.user = user.user_id
-        card.type=type
+        card.type = type
+        card.image_count = res['image_count'] if ('image_count' in res) else 0
+        card.pdf_count = res['pdf_count'] if ('pdf_count' in res) else 0
+        card.date_time = res['date_time'] if (str(type) == '2' or str(type) == '3') else 0
+        card.duration = res['duration'] if ('duration' in res) else 0
+
         if 'share_link' in res:
-            card.share_link=res['share_link']
+            card.share_link = res['share_link']
             og_tags = decode_meta_from_url(res['share_link'])
-            card.og_tags=json.dumps(og_tags)
-        if 'image_count' in res:
-            image_count = res['image_count']
-        else:
-            image_count = 0
-        card.image_count = image_count
+            card.og_tags = json.dumps(og_tags)
 
-        if 'pdf_count' in res:
-            pdf_count = res['pdf_count']
-        else:
-            pdf_count = 0
-        card.pdf_count = pdf_count
-
-        card.date_epoch=time.time()
+        card.date_epoch=time.time() # card creation time
         card.save()
+
+        polls = res['polls'] if 'polls' in res else []
+        for poll in polls:
+            collabcardpolls_instance = CollabcardPolls()
+            collabcardpolls_instance.card = card
+            collabcardpolls_instance.text = poll['text']
+            collabcardpolls_instance.save()
+
+
         # if the community does not have a purpose card then a purpose will be created
         # the first card created for a community is the purpose card
         # if its a pilot community making the user promoter and updating community state to pilot active
@@ -1014,8 +937,8 @@ def create_card(request):
             # changing community state to 0 (zero) to make it a active community
             community.hide_community = '4'
             community.save()
-            is_pilot_active=True
 
+            is_pilot_active = True
             introduction_question, introduction_answer = auto_create_collabcard(user.user_id, community)
             json_body = {
                 'communityId': community_id,
@@ -1034,12 +957,9 @@ def create_card(request):
             rqst.post(link, params=params, json=json_body)
 
 
-        # sending notification to the user
-        send_notification_for_new_collabcard_posted.delay(community_id,res['title'],user_id,user.name)
-        send_email_for_collabcard(community,user,card)
         Community.objects.filter(id=community_id).update(updated_at=time.time())
 
-        collabcard = CollabcardSerializer(card, community)
+        collabcard = CollabcardSerializer(card, user_id, community)
 
         collabcard['date'] = datetime.today().strftime('%d-%m-%Y')
 
@@ -1048,28 +968,23 @@ def create_card(request):
         collabcard['member'] = usr
 
 
-        #card creater auto_seen the card
-        collab_seen = collabcard_seen()
-        collab_seen.card = card
-        collab_seen.user = user.user_id
-        collab_seen.community = community
-        collab_seen.save()
-
-        # card creator auto follows the card
-        follow=follow_collabcard()
-        follow.collabcard_id=card
-        follow.member_id=user.user_id
-        follow.save()
+        # #card creater auto_seen the card
+        # collab_seen = collabcard_seen()
+        # collab_seen.card = card
+        # collab_seen.user = user.user_id
+        # collab_seen.community = community
+        # collab_seen.save()
+        #
+        # # card creator auto follows the card
+        # follow=follow_collabcard()
+        # follow.collabcard_id=card
+        # follow.member_id=user.user_id
+        # follow.save()
 
         # #saving the state in collabcardState table instead of follow collabcard
-        collabcard_state_instance=collabcardState()
-        collabcard_state_instance.card=card
-        collabcard_state_instance.user=user.user_id
-        collabcard_state_instance.community=community
-        collabcard_state_instance.state=collabcard_follow_state         #user has created the card and he is autofollowing
-        collabcard_state_instance.created_at=time.time()
-        collabcard_state_instance.updated_at=time.time()
-        collabcard_state_instance.save()
+        create_collabcard_state_for_user(card=card, user=user.user_id,
+                                         state=collabcard_follow_state,
+                                         community=community)
 
         update_last_answer_id(card.id,"")
 
@@ -1104,8 +1019,35 @@ def create_card(request):
         update_last_unseen_in_engage_on_card_creation.delay(community_id=community_id)
 
         # custom_cache.clear()
+
+
+
+        # sending notification to the user
+
+        send_notification_for_new_collabcard_posted.delay(community_id, res['title'], user_id, user.name,type)
+
+        if type != 1:                         # stopping mail for introduction cards
+            send_email_for_collabcard(community, user, card,type)
+
+
+
         return JsonResponse({'success':True,'collabcard':collabcard})
     return JsonResponse({'success':False})
+
+
+
+def create_collabcard_state_for_user(card,user,state,community):
+    """ create collabcard state for a member for a card """
+
+    collabcard_state_instance = collabcardState()
+    collabcard_state_instance.card = card
+    collabcard_state_instance.user = user
+    collabcard_state_instance.community = community
+    collabcard_state_instance.state = state  # user has created the card and he is autofollowing
+    collabcard_state_instance.created_at = time.time()
+    collabcard_state_instance.updated_at = time.time()
+    collabcard_state_instance.save()
+
 
 # /api/add_admin/community_id
 @csrf_exempt
@@ -1554,19 +1496,12 @@ def request_response(request,req_dict=None):
 ############# functions for  collabcard flow   ##########################
 
 
-def send_email_for_collabcard(community,user,card):
+def send_email_for_collabcard(community,user,card,type):
 
     '''function to make the format of email to send when a new collabcard is posted'''
 
 
     members=Members.objects.filter(community_id=community)
-    college_tag=Community_tags.objects.filter(community_id=community).filter(Q(tags_id=41)|Q(tags_id=42))
-    form_link=url
-    for tag in college_tag:
-        if tag.tags_id == 41:
-            form_link='https://docs.google.com/forms/d/e/1FAIpQLSes87js8cTiGg0x-Vw9DYrnY1BCZTolba0B1WBvcVSYZSGAwg/viewform'
-        elif tag.tags_id == 42:
-            form_link='https://docs.google.com/forms/d/e/1FAIpQLSfqN2z1wg6CCJ4ZKH1lxQQgJ8iUWEbtTT0R9NT64zg5f13_ig/viewform'
 
     for member in members:
         if not user.image_link:
@@ -1579,7 +1514,7 @@ def send_email_for_collabcard(community,user,card):
             'collabcard_creater_image':collabcard_card_image,
             'creater_header': user.headline,
             'url':  url + '/collabcard/' + str(card.id),
-            'form_link':form_link
+            'form_link':""
         }
 
         if member.member_id.id == user.user_id.id:
@@ -1594,8 +1529,17 @@ def send_email_for_collabcard(community,user,card):
             context['reciever_image']=reciever_image
             context['to']=userinfo.email
             #print(context)
-            send_email_for_new_collabcard_posted.delay(context)
 
+            if type == 2:
+                context['subject'] = str(context['collabcard_creater']) + " has created an event in " + str(
+                    context['community_name']) + " community"
+            elif type == 3:
+                context['subject'] = str(context['collabcard_creater']) + " has created a poll in " + str(
+                    context['community_name']) + " community"
+            else:
+                context['subject']=str(context['collabcard_creater']) + " has started a new Conversation in " + str(
+                context['community_name']) + " community"
+            send_email_for_new_collabcard_posted.delay(context)
 
 
 def collabcard(request, card_id):
@@ -1631,7 +1575,7 @@ def collabcard(request, card_id):
     # get the card image if any
 
     files= get_collabcard_files(card_id)
-    card=CollabcardSerializer(cards,cards.community)
+    card=CollabcardSerializer(cards, user_id, cards.community)
     card['images']=files[0]
     card['member']=usr
     card['pdf']=files[1]
@@ -1751,7 +1695,6 @@ def get_time_text(created_time):
         # if difference is in seconds
         return "Just Now"
 
-
 def community_cards(request, community_id):
     ''' function get all the cards in a community '''
 
@@ -1799,7 +1742,7 @@ def community_cards(request, community_id):
             else:
                 # get time stamp
                 time_text = get_time_text(card.date_epoch)
-            card_dict = CollabcardSerializer(card, card.community)
+            card_dict = CollabcardSerializer(card, member_id, card.community)
             card_dict['state'] = get_status_of_collabcard(member_id,community,card)
             card_dict['created_at'] = time_text
             card_dict['member'] = usr
@@ -1998,12 +1941,15 @@ def create_answer(request):
 
 
         #auto following the collabcard if answer is created
-        is_present=is_collabcard_already_followed(card,user)
-        if  is_present == False:
-            follow = follow_collabcard()
-            follow.collabcard_id = card
-            follow.member_id = user
-            follow.save()
+        function_dict={
+            'member_id':user_id,
+            'collabcard_id':card_id,
+            'status':True
+        }
+        collabcard_follow(request,function_dict)
+
+
+
 
         # pool = ThreadPool(processes=2)
         # answerer_name = user.userinfo.name
@@ -2011,7 +1957,8 @@ def create_answer(request):
         send_follow_notification.delay(card_id=card_id, user_id=user_id, answer=res['title'])
 
         #calling update_answer_text
-        update_answer_text(card_id)
+        if card.type == 0 or card.type == 1:
+            update_answer_text(card_id)
 
 
         return JsonResponse({'success':True})
@@ -2029,109 +1976,119 @@ def _send_notification_to_tagged_users(card_id,answerer_name,answer,user_id):
 
 
 def update_answer_text(card_id):
+
         '''function for updating the answer_text feild in collab card model'''
+
         ans_text=''
         card = Collabcard.objects.get(id = card_id)
-        card_ans = card_answers.objects.filter(card = card)
+        card_ans = card_answers.objects.filter(card = card).distinct('user_id')
         # if only one answer is present fro a collab card
-        if len(card_ans) == 1:
+        card_ans_count = card_ans.count()
+        if card_ans_count == 0:
+            return
+
+        if card_ans_count == 1:
             # get the name of the user who answered
-            username = Userinfo.objects.get(user_id = card_ans[0].user_id)
-            #format the answer text string as "username answered"
-            ans_text = username.name + " responded"
-            # update the answer_text feild in collabcard
-            Collabcard.objects.filter(id=card_id).update(answer_text=ans_text) 
-        # if there is more than one answer
-        else:
-            #get the user id's of the users who have answered
-            user_list =[]
-            for ans in card_ans:
-                # save it in a list without duplicates
-                if ans.user_id not in user_list:
-                    user_list.append(ans.user_id)
-            count = 1
-            #check if only two different users have answered
-            #not more than two different users should have answered
-            if len(user_list)==2:
-                for ID in user_list:
-                    username = Userinfo.objects.get(user_id = ID)
-                    ans_text += username.name
-                    if count !=0:
-                        ans_text += " and "
-                        count-=1
-                ans_text+=" responded"
-                Collabcard.objects.filter(id=card_id).update(answer_text=ans_text)
+            username = card_ans[0].user.userinfo.name
+            ans_text = username + " responded"
+            # update the answer_text field in collabcard
+            Collabcard.objects.filter(id=card_id).update(answer_text=ans_text)
+            return
+        elif card_ans_count==2:
+            # if there is more than one answer
+            ans_text += card_ans[0].user.userinfo.name + " and " +card_ans[1].user.userinfo.name
+            ans_text += " responded"
+            Collabcard.objects.filter(id=card_id).update(answer_text=ans_text)
+            return
 
             # if more than two different users have answered
-            if len(user_list) >= 3:
-                for ID in user_list:
-                    username = Userinfo.objects.get(user_id = ID)
-                    ans_text += username.name
-                    break
+        elif card_ans_count > 2:
 
-                ans_text+= " & "+str(len(user_list)-1) + " others responded"
-                Collabcard.objects.filter(id=card_id).update(answer_text=ans_text)
+            ans_text += card_ans[0].user.userinfo.name
+            ans_text+= " & "+str(card_ans_count-1) + " others responded"
+            Collabcard.objects.filter(id=card_id).update(answer_text=ans_text)
+        return
+
+
+
 
 @csrf_exempt
-def collabcard_follow(request):
+def collabcard_follow(request,function_dict=None):
     '''Api to follow collabcard by members Post API'''
 
-    collabcard_id=request.GET.get('collabcard_id','')
-    member_id=request.GET.get('member_id','')
-    status=request.GET.get('value','true')
+    if not function_dict:
+        collabcard_id=request.GET.get('collabcard_id','')
+        member_id=request.GET.get('member_id','')
+        status=request.GET.get('value','true')
 
-    if status != 'true':
-        status=False
-
-
+        if status != 'true':
+            status=False
+        else:
+            status=True
+    else:
+        collabcard_id=function_dict['collabcard_id']
+        member_id=function_dict['member_id']
+        status=function_dict['status']
 
     collabcard=Collabcard.objects.get(id=collabcard_id)
     community_instance=collabcard.community
     user_instance=User.objects.get(id=member_id)
-    is_present = is_collabcard_already_followed(collabcard, member_id)
 
-    if is_present == False:
-        follow=follow_collabcard()
-        follow.collabcard_id=collabcard
-        follow.member_id=user_instance
-        follow.save()
+    if collabcard.type == 2 and status:            # the collabcard is the event card
 
-        #saving the state in collabcard_state table
-        is_present=collabcardState.objects.filter(card=collabcard, user=user_instance)
-        if not is_present:
-            collabcard_state_instance = collabcardState()
-            collabcard_state_instance.card = collabcard
-            collabcard_state_instance.community = community_instance
-            collabcard_state_instance.user = user_instance
-            collabcard_state_instance.state = collabcard_follow_state
-            collabcard_state_instance.created_at = time.time()
-            collabcard_state_instance.updated_at = time.time()
+        collabcard_state_instance=collabcardState.objects.get(card=collabcard, user=user_instance)
+
+        # when the user is not attending but following the collabcard
+        if collabcard_state_instance.state == 1:
+
+            collabcard_state_instance.state=collabcard_unattend_following
+            collabcard_state_instance.updated_at=time.time()
             collabcard_state_instance.save()
-        else:
-            collabcardState.objects.filter(card=collabcard,user=user_instance).update(state=collabcard_follow_state,updated_at=time.time())
+        # when the user is attending and following the collabcard
+        elif collabcard_state_instance.state == collabcard_attend_unfollow:
 
+            collabcard_state_instance.state = collabcard_attend_following
+            collabcard_state_instance.updated_at=time.time()
+            collabcard_state_instance.save()
+        return JsonResponse({'success':True})
 
+    elif collabcard.type == 2 and not status:
+        collabcard_state_instance=collabcardState.objects.get(card=collabcard, user=user_instance)
+        # when the user is not attending and not follow
+        if collabcard_state_instance.state == collabcard_unattend_following:
+            collabcard_state_instance.state = collabcard_seen_state
+            collabcard_state_instance.updated_at=time.time()
+            collabcard_state_instance.save()
 
+        # when the user is attending and unfollow the collabcard
+        elif collabcard_state_instance.state == collabcard_attend_following:
+
+            collabcard_state_instance.state = collabcard_attend_unfollow
+            collabcard_state_instance.updated_at=time.time()
+            collabcard_state_instance.save()
+        return JsonResponse({'success': True})
+
+    is_present = collabcardState.objects.filter(card=collabcard, user=user_instance)
+    if not is_present:
+        collabcard_state_instance = collabcardState()
+        collabcard_state_instance.card = collabcard
+        collabcard_state_instance.community = community_instance
+        collabcard_state_instance.user = user_instance
+        collabcard_state_instance.state = collabcard_follow_state
+        collabcard_state_instance.created_at = time.time()
+        collabcard_state_instance.updated_at = time.time()
+        collabcard_state_instance.save()
     else:
-        '''Deleting the collabcard '''
-        if status == False:
-            follow_collabcard.objects.filter(collabcard_id=collabcard,member_id=user_instance).delete()
+
+        if status:
+            collabcardState.objects.filter(card=collabcard, user=user_instance).update(state=collabcard_follow_state,
+                                                                                   updated_at=time.time())
+        else:
             collabcardState.objects.filter(card=collabcard,user=user_instance).update(state=collabcard_seen_state,updated_at=time.time())
+
     # custom_cache.clear()
     return JsonResponse({'success':True})
 
-
-def is_collabcard_already_followed(collabcard,member_id):
-
-    '''function to check whether the person already followed the collabcard or not'''
-
-    is_present=False
-    follow_data=follow_collabcard.objects.filter(collabcard_id=collabcard,member_id=member_id)
-
-    if follow_data:
-        is_present=True
-
-    return is_present
 
 
 @csrf_exempt
@@ -2153,30 +2110,113 @@ def collabcards_seen(request):
     user_instance = User.objects.get(id=user_id)
     card_instance = Collabcard.objects.get(id=card_id)
 
-    seen_card = collabcard_seen.objects.filter(community=community, user=user_instance, card=card_instance)
-    if not seen_card:
-        # if the card has not yet been seen by the user, update the database
-        collab_seen = collabcard_seen()
-        collab_seen.card = card_instance
-        collab_seen.user = user_instance
-        collab_seen.community = community
-        collab_seen.save()
-
-        # saving the state in collabcard state table if it is not present
-        is_present = collabcardState.objects.filter(card=card_instance, user=user_instance)
-        if not is_present:
-            collabcard_state_instance=collabcardState()
-            collabcard_state_instance.card=card_instance
-            collabcard_state_instance.community=community
-            collabcard_state_instance.user=user_instance
-            collabcard_state_instance.state=collabcard_seen_state
-            collabcard_state_instance.created_at = time.time()
-            collabcard_state_instance.updated_at = time.time()
-            collabcard_state_instance.save()
+    # saving the state in collabcard state table if it is not present
+    is_present = collabcardState.objects.filter(card=card_instance, user=user_instance)
+    if not is_present:
+        collabcard_state_instance=collabcardState()
+        collabcard_state_instance.card=card_instance
+        collabcard_state_instance.community=community
+        collabcard_state_instance.user=user_instance
+        collabcard_state_instance.state=collabcard_seen_state
+        collabcard_state_instance.created_at = time.time()
+        collabcard_state_instance.updated_at = time.time()
+        collabcard_state_instance.save()
 
     update_last_unseen_in_engage(user=user_instance, community=community, is_seen=True)
     # custom_cache.clear()
     return JsonResponse({'success': True})
+
+
+@csrf_exempt
+def collabcard_attend(request):
+
+    '''attending a event on a event card'''
+
+    member_id=get_member_id_from_headers(request)
+    collabcard_id=request.GET.get('collabcard_id')
+    status = request.GET.get('value', 'true')
+    collabcard_instance=Collabcard.objects.get(id=collabcard_id)
+    user_instance=User.objects.get(id=member_id)
+
+    if status != 'true':
+        status = False
+    else:
+        status = True
+
+    if status:
+
+        # if the user clicks on attend but not following collabcard
+        collabcard_state_instance = collabcardState.objects.get(card=collabcard_instance, user=user_instance)
+        if collabcard_state_instance.state == collabcard_seen_state:
+
+            collabcard_state_instance.state= collabcard_attend_unfollow
+            collabcard_state_instance.updated_at=time.time()
+            collabcard_state_instance.save()
+        # if the user clicks on attend and following collabcard
+        elif collabcard_state_instance.state == collabcard_unattend_following:
+
+            collabcard_state_instance.state= collabcard_attend_following
+            collabcard_state_instance.updated_at=time.time()
+            collabcard_state_instance.save()
+    else:
+        collabcard_state_instance = collabcardState.objects.get(card=collabcard_instance, user=user_instance)
+
+        if collabcard_state_instance.state == collabcard_attend_unfollow:
+
+            collabcard_state_instance.state = collabcard_seen_state
+            collabcard_state_instance.updated_at=time.time()
+            collabcard_state_instance.save()
+        # if the user clicks on attend and following collabcard
+        elif collabcard_state_instance.state == collabcard_attend_following:
+
+            collabcard_state_instance.state = collabcard_unattend_following
+            collabcard_state_instance.updated_at=time.time()
+            collabcard_state_instance.save()
+
+    update_event_answer_text(collabcard_id)  #function to update the text when a user attends an event
+
+
+    return JsonResponse({'success':True})
+
+
+def update_event_answer_text(card_id):
+
+    '''function to update the answer text of card when an event is created'''
+
+    collabcard_instance = Collabcard.objects.get(id=card_id)
+
+    if collabcard_instance.type == 2:
+
+        # getting the number of people interestes in event
+        event_list_members = collabcardState.objects.filter(card=collabcard_instance).filter(
+            Q(state=collabcard_attend_following) | Q(state=collabcard_attend_unfollow)).order_by('id')
+        ans_text = ''
+        if len(event_list_members) == 1:
+            # get the name of the user who answered
+            username = Userinfo.objects.get(user_id=event_list_members[0].user_id)
+            # format the answer text string as "username answered"
+            ans_text = username.name + " is attending"
+            # update the answer_text feild in collabcard
+            collabcard_instance.answer_text = ans_text
+            collabcard_instance.save()
+        elif len(event_list_members) == 2:
+            first_member = Userinfo.objects.get(user_id=event_list_members[0].user_id)
+            second_member = Userinfo.objects.get(user_id=event_list_members[0].user_id)
+            ans_text = """%s and %s are attending""" % (str(first_member.name), str(second_member.name))
+            collabcard_instance.answer_text = ans_text
+            collabcard_instance.save()
+        elif len(event_list_members) > 2:
+            first_member = Userinfo.objects.get(user_id=event_list_members[0].user_id)
+            second_member = Userinfo.objects.get(user_id=event_list_members[0].user_id)
+
+            left_count = len(event_list_members) - 2
+
+            ans_text = """%s, %s & %s are attending""" % (str(first_member.name), str(second_member.name), left_count)
+            collabcard_instance.answer_text = ans_text
+            collabcard_instance.save()
+        else:
+            collabcard_instance.answer_text = ans_text
+            collabcard_instance.save()
 
 
 def decode_url(request):
@@ -2300,7 +2340,7 @@ def community_collabcard_meta(request):
         else:
             # get time stamp
             time_text = get_time_text(card_instance.date_epoch)
-        card_dict = CollabcardSerializer(card_instance, card_instance.community)
+        card_dict = CollabcardSerializer(card_instance, member_id, card_instance.community)
         card_dict['state'] = get_status_of_collabcard(member_id, card_instance.community, card_instance)
         card_dict['created_at'] = time_text
         card_dict['member'] = usr
@@ -2468,7 +2508,7 @@ def get_request_type(request):
             return "iOS"
     return False
 
-
+#@ensure_csrf_cookie # with header X-CSRFToken
 @csrf_exempt
 def login(request):
     ''' function to login a user '''
@@ -3023,13 +3063,14 @@ def invite_members(request):
 def accept_promotership(request):
 
     '''function to accept the promotership'''
+
     res=json.loads(request.body)
     community_id=res['community_id']
     member_id=res['member_id']
     value=res['value']
     all_members=Members.objects.filter(community_id=community_id)
     community = Community.objects.get(id=community_id)
-    if value:
+    if value == 'true' or value:
 
         if 'member_ids' not in res or not res['member_ids']:
             Members.objects.filter(community_id=community_id,member_id=member_id).update(state=1,created_at=time.time())
@@ -3040,9 +3081,11 @@ def accept_promotership(request):
 
         refered_id=res['member_ids']
         for member in all_members:
+
             if str(member.member_id.id) == str(member_id):
                 continue
-            if str(member.member_id.id) in refered_id:
+
+            elif (str(member.member_id.id) in refered_id) or (int(member.member_id.id) in refered_id):
                 req_dict={
                     'accepted':True,
                     'member_id':member.member_id.id,
@@ -3083,7 +3126,6 @@ def get_profile(request):
 def get_member_id_from_headers(request):
 
     '''function to get member id from headers'''
-
     headers = request.META
 
     member_id=0
@@ -3499,7 +3541,6 @@ def save_geography_and_hometown_tags_of_user_from_onboarding(address_input,user_
     print("Hometown and city updated successfully")
 
 
-
 # Reporting collabcard functions
 
 def fetch_report_tags(request):
@@ -3582,7 +3623,70 @@ def push_report(request):
         return JsonResponse({'success':True})
     return JsonResponse({'success':False})
 
+@csrf_exempt
+def collabcard_poll(request):
+    """ function to update polls of a card for user """
+    if request.method == 'POST':
+        collabcard_id=request.GET.get('collabcard_id',None)
+        poll_id=request.GET.get('poll_id',None)
+        member_id = get_member_id_from_headers(request)
 
+        if not collabcard_id or not poll_id:
+            return JsonResponse({"success": False})
+
+        card_instance = Collabcard.objects.get(pk=collabcard_id)
+        poll_instance = CollabcardPolls.objects.get(pk=poll_id)
+        user_instance = User.objects.get(pk=member_id)
+        # check if user has already voted for the card or not
+        memberpolls_instance = MemberPollVotes.objects.filter(card=card_instance, user=user_instance)
+
+        if not memberpolls_instance.exists():
+            # if not voted, create new row for user and card with opted poll by user
+            memberpolls_instance = MemberPollVotes()
+            memberpolls_instance.card = card_instance
+            memberpolls_instance.poll = poll_instance
+            memberpolls_instance.user = user_instance
+            memberpolls_instance.save()
+        else:
+            # if voted, update the poll if user optes different poll than previous
+            if str(memberpolls_instance[0].poll.id)== poll_id:
+                # if same poll is opted again
+                return JsonResponse({"success": True})
+            # if user changes the poll
+            memberpolls_instance.update(poll=poll_instance)
+        # update the card answer text according to no of polls
+        update_poll_card_text(collabcard_id)
+        return JsonResponse({"success": True})
+
+    return JsonResponse({"success": False})
+
+
+def update_poll_card_text(card_id):
+    """ function to update the answer text of card when someone polls in the card """
+
+    total_polls = MemberPollVotes.objects.filter(card=card_id).order_by('-id')
+    card = Collabcard.objects.get(pk=card_id)
+    poll_text = ''
+    total_polls_count = total_polls.count()
+
+    if total_polls_count <= 0:
+        card.answer_text = poll_text
+        card.save()
+        return
+
+    elif total_polls_count == 1:
+        user_names = total_polls[0].user.userinfo.name
+
+    elif total_polls_count == 2:
+        user_names = total_polls[0].user.userinfo.name + " and " + total_polls[1].user.userinfo.name
+
+    else:
+        user_names = total_polls[0].user.userinfo.name + ", " + total_polls[1].user.userinfo.name +" & "+ str(total_polls_count -2) +" others"
+
+    poll_text += user_names + " voted on this poll"
+
+    card.answer_text = poll_text
+    card.save()
 
 
 

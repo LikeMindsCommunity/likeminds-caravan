@@ -5,6 +5,7 @@ from pyfcm import FCMNotification
 from django.conf import  settings
 import time
 from togther.models import Community_Rank
+from utility.states import *
 import re
 # file to store configuration of the system
 
@@ -144,7 +145,6 @@ def send_notification(fcm_token,message,is_android):
     print(result)
 
 
-
 @shared_task
 def send_follow_notification(card_id,user_id,answer):
 
@@ -153,8 +153,8 @@ def send_follow_notification(card_id,user_id,answer):
     try:
         connection=get_connection()
         curr=connection.cursor()
-        sql="select member_id_id from togther_follow_collabcard where collabcard_id_id=%s"
-        parameter_list=[card_id]
+        sql="select user_id from togther_collabcardstate where card_id=%s and state=%s"
+        parameter_list=[card_id,collabcard_follow_state]
         curr.execute(sql,parameter_list)
         member_list=curr.fetchall()
         curr.execute("select name from togther_userinfo where user_id_id=%s",[user_id])
@@ -266,8 +266,12 @@ def send_notification_for_join_requests(community_id,flag,member_id):
 
     send_notification_to_multiple_devices(token_list,message)
 
+
+
+# notifications for new collabcards
+
 @shared_task
-def send_notification_for_new_collabcard_posted(community_id,collabcard_title,poster_id,poster_name):
+def send_notification_for_new_collabcard_posted(community_id,collabcard_title,poster_id,poster_name,type):
     '''function to send notification to all members when new collabcard is posted'''
     try:
         connection=get_connection()
@@ -283,9 +287,18 @@ def send_notification_for_new_collabcard_posted(community_id,collabcard_title,po
             token_list.append(token)
         community_name=get_community_name(community_id)
         message={}
+
+        if type == 2:
+            sub_title="Posted an event: "+str(collabcard_title)
+        elif type == 3:
+            sub_title="Posted a poll: "+ str(collabcard_title)
+        else:
+            sub_title= str(collabcard_title)
+
+
         message['payload']={
             'title':str(poster_name) + " @ "+str(community_name),
-            'sub_title':str(collabcard_title),
+            'sub_title':sub_title,
             'route':'route://community_collabcard?community_id=' + str(community_id) + '&community_name='+ str(community_name)
         }
 
@@ -295,6 +308,7 @@ def send_notification_for_new_collabcard_posted(community_id,collabcard_title,po
     except (Exception, psycopg2.Error) as error:
 
         print ("Error while connecting to PostgreSQL", error)
+
 
 
 @shared_task
