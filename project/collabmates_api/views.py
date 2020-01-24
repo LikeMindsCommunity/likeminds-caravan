@@ -3042,13 +3042,16 @@ def invite_members(request):
 def accept_promotership(request):
 
     '''function to accept the promotership'''
+
+    print("inside accept_promotership")
+
     res=json.loads(request.body)
     community_id=res['community_id']
     member_id=res['member_id']
     value=res['value']
     all_members=Members.objects.filter(community_id=community_id)
     community = Community.objects.get(id=community_id)
-    print("res ======= ",res)
+    print("res ====>>>>>=== ",res)
     if value == 'true' or value:
 
         if 'member_ids' not in res or not res['member_ids']:
