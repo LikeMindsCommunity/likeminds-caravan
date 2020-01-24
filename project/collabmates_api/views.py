@@ -20,7 +20,8 @@ from .notification import (send_follow_notification, send_notification_to_admins
                            send_notification_to_proposer,
                            send_notification_to_eligible_member,
                            send_notification_to_all_admins,
-                           send_notification_to_tagged_users)
+                           send_notification_to_tagged_users,
+                           )
 
 from django.db.models import Q
 import dateutil.relativedelta
@@ -889,7 +890,7 @@ def create_card(request):
         res = json.loads(request.body)
         # creating card
         # type=0 normal card, type =1 intro card, type 2 is event card and type 3 is poll card
-        type = res['type'] if 'type' in res else 0
+        type = int(res['type']) if 'type' in res else 0
 
         card = Collabcard.objects.filter(community=community, user=user.user_id, type=1)
         if card.exists() and type == 1:
@@ -955,9 +956,6 @@ def create_card(request):
             rqst.post(link, params=params, json=json_body)
 
 
-        # sending notification to the user
-        send_notification_for_new_collabcard_posted.delay(community_id,res['title'],user_id,user.name)
-        send_email_for_collabcard(community,user,card)
         Community.objects.filter(id=community_id).update(updated_at=time.time())
 
         collabcard = CollabcardSerializer(card, user_id, community)
@@ -1020,6 +1018,18 @@ def create_card(request):
         update_last_unseen_in_engage_on_card_creation.delay(community_id=community_id)
 
         # custom_cache.clear()
+
+
+
+        # sending notification to the user
+
+        send_notification_for_new_collabcard_posted.delay(community_id, res['title'], user_id, user.name,type)
+
+        if type != 1:                         # stopping mail for introduction cards
+            send_email_for_collabcard(community, user, card,type)
+
+
+
         return JsonResponse({'success':True,'collabcard':collabcard})
     return JsonResponse({'success':False})
 
@@ -1488,19 +1498,12 @@ def request_response(request,req_dict=None):
 ############# functions for  collabcard flow   ##########################
 
 
-def send_email_for_collabcard(community,user,card):
+def send_email_for_collabcard(community,user,card,type):
 
     '''function to make the format of email to send when a new collabcard is posted'''
 
 
     members=Members.objects.filter(community_id=community)
-    college_tag=Community_tags.objects.filter(community_id=community).filter(Q(tags_id=41)|Q(tags_id=42))
-    form_link=url
-    for tag in college_tag:
-        if tag.tags_id == 41:
-            form_link='https://docs.google.com/forms/d/e/1FAIpQLSes87js8cTiGg0x-Vw9DYrnY1BCZTolba0B1WBvcVSYZSGAwg/viewform'
-        elif tag.tags_id == 42:
-            form_link='https://docs.google.com/forms/d/e/1FAIpQLSfqN2z1wg6CCJ4ZKH1lxQQgJ8iUWEbtTT0R9NT64zg5f13_ig/viewform'
 
     for member in members:
         if not user.image_link:
@@ -1513,7 +1516,7 @@ def send_email_for_collabcard(community,user,card):
             'collabcard_creater_image':collabcard_card_image,
             'creater_header': user.headline,
             'url':  url + '/collabcard/' + str(card.id),
-            'form_link':form_link
+            'form_link':""
         }
 
         if member.member_id.id == user.user_id.id:
@@ -1528,6 +1531,16 @@ def send_email_for_collabcard(community,user,card):
             context['reciever_image']=reciever_image
             context['to']=userinfo.email
             #print(context)
+
+            if type == 2:
+                context['subject'] = str(context['collabcard_creater']) + " has created an event in " + str(
+                    context['community_name']) + " community"
+            elif type == 3:
+                context['subject'] = str(context['collabcard_creater']) + " has created a poll in " + str(
+                    context['community_name']) + " community"
+            else:
+                context['subject']=str(context['collabcard_creater']) + " has started a new Conversation in " + str(
+                context['community_name']) + " community"
             send_email_for_new_collabcard_posted.delay(context)
 
 
