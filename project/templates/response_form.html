@@ -1,46 +1,157 @@
-{% extends 'base.html' %}
+<html>
+ <head>
 
-{% block content %}
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+        <link rel="shortcut icon" href="https://beta.collabmates.com/media/media/favicon.ico">
+
+        <meta name="author" content="colorlib">
+
+
+        <meta name="keywords" content="">
+
+        <meta charset="UTF-8">
+
+        <title>Collabmates-Your virtual Neighbourhood</title>
+        <meta name="description"
+              content="Relevant Communities. Structured Conversations. Meaningful Relationships."/>
+        <meta property="og:image" content='http://www.collabmates.com/cover.png'/>
+        <meta property="og:title" content="Collabmates-Your virtual Neighbourhood"/>
+        <meta property="og:description"
+              content="Collabmates-Your virtual Neighbourhood"/>
+
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+<!--         <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/css/bootstrap.min.css">-->
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.css"/>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.js"></script>
+        <script async src="https://www.googletagmanager.com/gtag/js?id=UA-130288684-1"></script>
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+        <link href="https://fonts.googleapis.com/css?family=Roboto:400,500,500i,700&display=swap" rel="stylesheet">
+
+
+
+<style>
+
+
+
+
+
+/* font styling in css */
+
+.Roboto{font-family:'Roboto';font-weight:400;}
+
+.RobotoLight{font-familiy:'Roboto';font-weight:300;}
+
+.RobotoMedium{font-family:'Roboto';font-weight:500;font-size:13px;}
+
+.RobotoBold{font-family:'Roboto';font-weight:700;}
+
+
+
+
+#sub_header{
+    padding-left:250px;padding-bottom:0px;color:white;line-height:20px;font-family:'Roboto';font-weight:400;
+    font-size:1.15rem;
+}
+
+.ui.segment:after{
+
+ content: '';
+    position: absolute !important ;
+    top: 95% !important;
+    background-image: url('{{request.user.userinfo.image_link}}');
+    background-size: cover !important;
+    background-repeat: no-repeat !important;
+    transform: translate(-50%, -50%) !important;
+    border-top: inherit !important;
+    border-top-color: transparent !important;
+    border-radius:50% !important;width:95px !important;height:95px !important;display: inline-block !important;left:50% !important;
+
+
+}
+
+
+
+
+
+@media screen and (max-width: 768px){
+
+
+#sub_header{
+    padding-left:45px;padding-bottom:0px;color:white;line-height:20px;font-family:'Roboto';font-weight:400;
+    font-size:1.0rem;
+}
+
+}
+
+
+
+</style>
+
+
+    </head>
+
+
 
 {% if validation_error %}
 <div class="container" style=" width: 91%; color: #9F6000; background-color: #FEEFB3; background-image: url('https://i.imgur.com/Z8q7ww7.png'); border: 1px solid;
- margin: 10px 0px; padding: 15px 10px 15px 50px; background-repeat: no-repeat; background-position: 10px center;">
+ margin: 10px 0px; padding: 15px 10px 15px 50px;">
 
     Please fill all the answers
-
 </div>
 {% endif %}
-<body>
+
+<body style="margin:0 auto; max-width:786px;background-color:#f2f2f2;">
+
+<!---webkit-clip-path: polygon(0 0, 100% 0, 100% 84%, 50% 100%, 0 84%, 0 0);-->
+
+<div class="ui segment" style="background-color:#07b890;margin:0 auto; opacity:0.8;">
+
+
+    <div style="margin-bottom:80px;">
+          <div style="float:left;margin-top:5px;" >
+                          <i class="arrow left icon" style="font-size:24px;color:white;" id="back_button"></i>
+          </div>
+
+         <h2 class="ui center aligned header" style="margin-top:0px;color:white;font-size:1.60rem;font-family:'Roboto';font-weight:700;">
+              Welcome to Collabmates!
+         </h2>
+
+        <div id="sub_header" >
+            <p style="margin:0;!important;">You are interested in joining this community:</p>
+            <p style="margin-left:60px;margin-top:0px;">{{community.name}}</p>
+
+        </div>
+    </div>
+
+</div>
+<br/>
+<br/>
+
     <div class="container">
 
-            <div class="ui raised padded text container segment" style="margin: 8px 8px !important;">
+            <div class="" style="margin: 14px 14px !important;">
             <form class="ui form" action="" method="post">
                 {% csrf_token %}
-                <div class="center aligned content">
-
-                    {% if community.hide_community == '0' or community.hide_community == '1'  %}
-                        <p>In order to add relevant members to the community we would like to know few more things about you </p>
-                    {% endif %}
-                    <br>
-                    </div>
 
                 {% for question,answer in data %}
                 <div class=" required field">
                     {% if question.data_type == 'text' %}
                         {% if question.is_dropdown == 0 %}
-                            <label>{{question.data}}</label>
+                            <label class="Roboto" style="font-size:13px;margin-left:7px;">{{question.data}}</label>
 
                             {% if forloop.counter == 1 %}
-                               <textarea rows="3" cols="4" name ="{{question.data}}" minlength="50" required placeholder="This will be visible to all the members of the community" oninput="check(this)">{{answer}}</textarea>
+                               <textarea rows="3" cols="4" style="border-radius: 10px;" name ="{{question.data}}" minlength="50" required placeholder="Your community relevant information" oninput="check(this)">{{answer}}</textarea>
                             {% else %}
-                               <textarea rows="3" cols="4" name ="{{question.data}}" required >{{answer}}</textarea>
+                               <textarea rows="3" cols="4" style="border-radius: 10px;" name ="{{question.data}}" required >{{answer}}</textarea>
                             {% endif %}
                         {% else %}
-                             <label>{{question.data}}</label>
+                             <label class="Roboto" style="font-size:13px;margin-left:7px;" >{{question.data}}</label>
                                 {% if question.is_dropdown == 2 %}
-                                <div class="ui fluid multiple search selection dropdown" >
+                                <div class="ui fluid multiple search selection dropdown"  style="border-radius: 10px;">
                                 {% else %}
-                             <div class="ui selection dropdown" >
+                             <div class="ui selection dropdown" style="border-radius: 10px;">
                                 {% endif %}
                                       <input type="hidden" name="{{question.data}}">
                                       <i class="dropdown icon"></i>
@@ -59,16 +170,19 @@
                 {% endfor %}
                 <input type="hidden" name="ref_id" value="{{ref_id}}"/>
                 <br>
-                <button class="ui fluid button" type="submit" style="background-color: #1ebea5; color:white;">Submit</button>
-                
+
+<div align="center" >
+                    <button class="ui  button" type="submit" style="background-color: #00897b; color:white;position:relative;">Submit</button>
+
+</div>
             </form>
             </div>
-              
-                
+
+
     </div>
     <br>
 </body>
-
+</html>
 
 <script>
        $('.ui.selection.dropdown').dropdown();
@@ -87,6 +201,12 @@ function check(input) {
 
  }
 
+ $('#back_button').click(function(e){
+
+window.history.back();
+})
+
+
 
 </script>
-{% endblock %}
+
