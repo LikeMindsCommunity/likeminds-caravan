@@ -1985,39 +1985,38 @@ def _send_notification_to_tagged_users(card_id,answerer_name,answer,user_id):
 
 def update_answer_text(card_id):
 
-        '''function for updating the answer_text feild in collab card model'''
+    '''function for updating the answer_text feild in collab card model'''
 
-        ans_text=''
-        card = Collabcard.objects.get(id = card_id)
-        card_ans = card_answers.objects.filter(card = card).distinct('user_id')
-        # if only one answer is present fro a collab card
-        card_ans_count = card_ans.count()
-        if card_ans_count == 0:
-            return
-
-        if card_ans_count == 1:
-            # get the name of the user who answered
-            username = card_ans[0].user.userinfo.name
-            ans_text = username + " responded"
-            # update the answer_text field in collabcard
-            Collabcard.objects.filter(id=card_id).update(answer_text=ans_text)
-
-        elif card_ans_count==2:
-            # if there is more than one answer
-            ans_text += card_ans[0].user.userinfo.name + " and " +card_ans[1].user.userinfo.name
-            ans_text += " responded"
-            Collabcard.objects.filter(id=card_id).update(answer_text=ans_text)
-
-            # if more than two different users have answered
-        elif card_ans_count > 2:
-
-            ans_text += card_ans[0].user.userinfo.name
-            ans_text+= " & "+str(card_ans_count-1) + " others responded"
-            Collabcard.objects.filter(id=card_id).update(answer_text=ans_text)
-
-        card.answers_count = card_ans_count
-        card.save()
+    ans_text=''
+    card = Collabcard.objects.get(id = card_id)
+    card_ans = card_answers.objects.filter(card = card).distinct('user_id')
+    # if only one answer is present fro a collab card
+    card_ans_count = card_ans.count()
+    if card_ans_count == 0:
         return
+
+    if card_ans_count == 1:
+        # get the name of the user who answered
+        username = card_ans[0].user.userinfo.name
+        ans_text = username + " responded"
+        # update the answer_text field in collabcard
+        Collabcard.objects.filter(id=card_id).update(answer_text=ans_text)
+
+    elif card_ans_count==2:
+        # if there is more than one answer
+        ans_text += card_ans[0].user.userinfo.name + " and " +card_ans[1].user.userinfo.name
+        ans_text += " responded"
+        Collabcard.objects.filter(id=card_id).update(answer_text=ans_text)
+
+    elif card_ans_count > 2:
+        # if more than two different users have answered
+        ans_text += card_ans[0].user.userinfo.name
+        ans_text+= " & "+str(card_ans_count-1) + " others responded"
+        Collabcard.objects.filter(id=card_id).update(answer_text=ans_text)
+
+    card.answers_count = card_ans_count
+    card.save()
+    return
 
 
 
@@ -2214,17 +2213,17 @@ def update_event_answer_text(card_id):
             second_member = event_list_members[1].user.userinfo.name
 
             if members_count == 2:
-                ans_text = """%s and %s are attending""" % (str(first_member.name), str(second_member.name))
+                ans_text = """%s and %s are attending""" % (str(first_member), str(second_member))
 
             else:
                 left_count = members_count - 2
-                ans_text = """%s, %s & %s others are attending""" % (str(first_member.name), str(second_member.name), left_count)
+                ans_text = """%s, %s & %s others are attending""" % (str(first_member), str(second_member), left_count)
             collabcard_instance.answer_text = ans_text
 
         else:
             collabcard_instance.answer_text = ans_text
 
-        # collabcard_instance.attending_count = members_count
+        collabcard_instance.attending_count = members_count
         collabcard_instance.save()
 
 
