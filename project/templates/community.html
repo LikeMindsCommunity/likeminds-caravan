@@ -62,6 +62,125 @@
         <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
 
         <link rel="stylesheet" href="{% static 'css/community.css' %}">
+        <link href="https://fonts.googleapis.com/css?family=Roboto:400,500,500i,700&display=swap" rel="stylesheet">
+
+
+<style>
+
+    .ui.button.join_button{
+
+    z-index:2; background-color: #00897b; border-radius:20px; color:white;
+
+
+    }
+
+
+    .ui.button.bottom_button{
+
+    z-index:2; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;width:40%; left:30%;white-space: nowrap;
+
+    }
+
+    .top-left {
+    position: absolute;
+    top: 10px;
+    left: 16px;
+}
+
+
+.web_display{
+
+margin-left:100px;
+
+}
+
+@media screen and (max-width: 600px){
+
+
+
+.web_display{
+
+   margin-left:70px;
+
+}
+
+}
+
+/* font styling in css */
+
+.Roboto{font-family:'Roboto';font-weight:400;}
+
+.RobotoLight{font-familiy:'Roboto';font-weight:300;}
+
+.RobotoMedium{font-family:'Roboto';font-weight:500;font-size:13px;}
+
+.RobotoBold{font-family:'Roboto';font-weight:700;font-size:16px;}
+
+
+p{
+color:#666666;
+}
+
+
+
+
+.wrapper {
+  width: 600px;
+  margin: auto;
+  border: 1px solid #333;
+}
+.horizontal-scroll {
+  background-color: #f9f9f9;
+  overflow: hidden;
+  overflow-x: scroll;
+  overflow-y: hidden;
+  white-space: nowrap;
+  padding: 30px 0;
+}
+.promoter_item {
+  border: 1px solid white;
+  display: inline-block;
+  width: 90%;
+  background-color: #F5F5F5;
+  text-align: center;
+  padding: 50px 30px;
+  font-size: 16px;
+  margin: 0 10px;
+  white-space: pre-line;
+  opacity:0.9;background:linear-gradient(#00897b 1%, white 40%);
+  font-family:Roboto;
+  font-color:#666666;
+  position:relative;
+
+}
+footer {
+  color: #F5F5F5;
+  text-align: center;
+  background-color: #008080;
+  padding: 20px;
+
+}
+
+
+
+ .promoter_item img{
+    position: absolute ;
+    top: 7% ;
+    background-size: cover !important;
+    background-repeat: no-repeat ;
+    transform: translate(-50%, -50%) ;
+    border-top: inherit ;
+    border-top-color: transparent !important;
+    border-radius:50% ;width:95px !important;height:95px !important;display: inline-block !important;left:50% !important;
+    opacity:5;
+}
+
+
+
+</style>
+
+
+
 
     </head>
 
@@ -126,17 +245,17 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
 
 
-    <div style="margin:0 auto; max-width:786px;">
+    <div style="margin:0 auto; max-width:786px;background-color:#f0f5f5;">
 
-        <div class="ui small inverted menu"
-             style="  background-color:#075e54; margin:0 0 0 0 !important;display: flex;align-items: center;justify-content: center;  padding-left: 20px;">
-            <a href="#" id="back_click"><i style="color:white;" class="big angle left icon"></i></a>
-            <div class="ui center aligned grid container" style=" color:white; margin: 4%;">
+<!--        <div class="ui small inverted menu"-->
+<!--             style="  background-color:#075e54; margin:0 0 0 0 !important;display: flex;align-items: center;justify-content: center;  padding-left: 20px;">-->
+<!--            <a href="#" id="back_click"><i style="color:white;" class="big angle left icon"></i></a>-->
+<!--            <div class="ui center aligned grid container" style=" color:white; margin: 4%;">-->
 
-                <h2 style="margin-left:-10px; padding-left: 5px;"> {{community.name}} </h2>
+<!--                <h2 style="margin-left:-10px; padding-left: 5px;"> {{community.name}} </h2>-->
 
-            </div>
-        </div>
+<!--            </div>-->
+<!--        </div>-->
 
         {% block content %}
 
@@ -257,102 +376,184 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             </div>
         </div>
 
-        <div class="fixed top" id="menu">
-            <ul>
-                <li><a href="#purpose">PURPOSE</a></li>
-                {% if members_length > 0 %}
-                    {% if community.hide_community == '3' %}
-                    <li><a href="#about">ABOUT</a></li>
-                    <li><a href="#members">WAIT LIST</a></li>
-                    {% else %}
-                    <li><a href="#about">ABOUT</a></li>
-                    <li><a href="#members">MEMBERS</a></li>
-                    {% endif %}
-                {% else %}
-                <div style="padding-left:100px;">
-                <li><a href="#about" >ABOUT</a></li>
-                </div>
-                <li><a href="#members"></a></li>
-
-                {% endif %}
-                <li><a  id="conv">CONVERSATIONS</a></li>
-            </ul>
-        </div>
 
 
-        <div class="ui fluid card" id="purpose" style="margin-top:0px;">
+        <div class="ui fluid card" id="image_card" style="margin-top:0px;margin-bottom:8px;">
             <div class="ui fluid image">
+                  <div class="top-left">
+                      <i class="arrow left icon" style="font-size:18px;" id="back_click"></i>
+                  </div>
+
+
                 {% if not community.image_link %}
                 <img src='/media/{{community.image_url}}'>
                 {% else %}
                  <img src='{{community.image_link}}'>
                 {% endif %}
             </div>
+
+<!--              <h3 style="padding-left: 15px;"> {{community.name}} </h3>-->
+<!--              <p style="padding-left:15px;">{{members_length}} Members</p>-->
             <div class="summary left aligned">
-                <p style="font-weight:100; padding:10px; color:#666666;">{{community.purpose}}</p>
+                <p style="padding-left:10px;padding-right:10px;padding-top:10px;font-weight:bold;font-size:19px;">{{community.name}}</p>
             </div>
-            {% comment %}
-            <div class="content">
-                <a class="center aligned header">{{ community.name }}</a>
-                <span class="left floated text" style="width:50%;"><i class="map marker alternate icon"></i>{{community.location}}</span>
-                <span class="right floated text"><a href="#" style="color:#1cb39b;">{{community.members_count}} Members </a></span>
+
+            {% if members_length %}
+                <div class="summary left aligned">
+                    <p style="padding-left:10px;padding-right:10px;padding-top:10px;">{{members_length}} Members</p>
+                </div>
+            {% endif %}
+
+            <div class="summary left aligned" style="padding-left:10px;padding-right:10px;padding-top:10px;">
+                 {{Non_mem_state}}
+                {% if Nom_mem_state == 6 %}
+                <button class="ui  button "
+
+                        onclick="accept_admin('{{cta}}','{{community.id}}','{{Nom_mem_state}}');"> Respond to invitation
+                </button>
+
+                {% elif Nom_mem_state == 7 %}
+                <button class="ui  button "
+                        onclick="accept_admin('{{cta}}','{{community.id}}','{{Nom_mem_state}}');"> Respond to invitation
+                </button>
+
+                {% elif Nom_mem_state == 8 %}
+                <button class="ui  button "
+                        id="ref"> Invite members
+                </button>
+
+                {% elif Nom_mem_state == 3 %}
+                <button class="ui  button "
+                        disabled> Pending Approval
+                </button>
+
+                {% elif Nom_mem_state == 1%}
+                <button class="ui  button "
+                        disabled>You are a promoter
+                </button>
+
+                {% elif Nom_mem_state == 2 %}
+                <button class="ui  button "
+                        disabled>You are a promoter
+                </button>
+
+                {% elif Nom_mem_state == 4 %}
+                <button class="ui  button join_button"
+                        disabled>Already a Member
+                </button>
+
+                {% elif Nom_mem_state == 5 %}
+                <button class="ui  button join_button"
+                        onclick="join('{{community.id}}')"> Join Community(Declined)
+                </button>
+
+                {% elif source == 'email' %}
+                <button class="ui  button join_button"
+                        onclick="accept_admin();">Respond to invitation
+                </button>
+
+                {% elif Nom_mem_state == 0 %}
+                <button class="ui  button join_button"
+                        onclick="join('{{community.id}}')"> Join Community
+                </button>
+
+                {% endif %}
+
             </div>
-            {% endcomment %}
+
+            <div class="fixed top" id="menu" style="padding-top:10px;">
+            <ul>
+                <li><a href="#purpose" class="RobotoMedium">PURPOSE</a></li>
+                {% if members_length > 0 %}
+                    {% if community.hide_community == '3' %}
+                    <li><a href="#about" class="RobotoMedium" >ABOUT</a></li>
+                    <li><a href="#members" class="RobotoMedium" >WAIT LIST</a></li>
+                    {% else %}
+                    <li><a href="#about" class="RobotoMedium" >ABOUT</a></li>
+                    <li><a href="#members" class="RobotoMedium" >MEMBERS</a></li>
+                    {% endif %}
+                {% else %}
+                <li><a href="#about" class="web_display RobotoMedium" >ABOUT</a></li>
+                <li><a href="#members"></a></li>
+
+                {% endif %}
+                <li><a  id="conv" class="RobotoMedium" >CONVERSATIONS</a></li>
+            </ul>
+        </div>
+
+        </div>
+
+        <div style="margin-top:0px;margin-bottom:8px;">
+             <div class="ui fluid card" id="purpose">
+                    <h5 style="padding-left:10px;padding-top:10px;margin-bottom:5px;" class="RobotoBold">Purpose</h5>
+                    <p style="padding:10px;color:#666666;" class="Roboto">{{community.purpose}}</p>
+            </div>
+        </div>
+
+
 
             <!-- rendering multiple admins -->
             {% if admin_length > 0 %}
-            <div class="content">
+
+        <div class="ui fluid card" id="promter_card" style="margin-top:0px;margin-bottom:8px;">
                 {% if admin_length == 1 %}
-                <h4>Promoter</h4>
+                <h4 class="RobotoBold" style="padding-left:10px;padding-top:10px;margin-bottom:5px;" >Promoter</h4>
                 {% else %}
-                <h4>Promoters</h4>
+                <h4 class="RobotoBold" style="padding-left:10px;padding-top:10px;margin-bottom:5px;" >Promoters</h4>
                 {% endif %}
 
-                <div class="ui container" style=" overflow-y:auto;white-space:nowrap;">
-                    <div class="ui big horizontal  list">
 
-                        {% for admin in admins%}
-                        {% for i in admin %}
-                        <div class="item">
-                            {% if not i.image_link %}
-                            <img class="ui tiny circular image" src="{{i.image_file.url}}" style="border-radius:50%;width:80px;height:80px;">
-                            {% else %}
-                           <img class="ui tiny circular image" src="{{i.image_link}}" style="border-radius:50%;width:80px;height:80px;">
+    <section class="horizontal-scroll">
 
-                            {% endif %}
-                            <p></p>
-                            <p style="font-size:65%;">{{i.name}}</p>
-                            <div class="content">
-                                <br>
 
-                            </div>
+    {% for admin in admins %}
+      <div class="promoter_item">
+          <img src="{{admin.image_link}}" alt="No Image"/>
+          <p style="line-height:22px;font-size:1.1rem;font-family:roboto;sans-serif;">{{admin.name}}</p>
+          <p style="line-height:22px;font-size:1.1rem;font-family:roboto;sans-serif;">{{admin.introduction_answer}}</p>
+      </div>
+    {% endfor %}
 
-                        </div>
-                        {% endfor %}
-                        {% endfor %}
-                        <br/>
-                    </div>
-                </div>
-            </div>
+
+    </section>
+
+
+        </div>
             {% endif %}
 
+
+        <div class="ui fluid card" style="margin-top:0px;margin-bottom:8px;">
             <!-- printing community about -->
             {% if community.about != '' %}
-            <div class="content ui fluid" id="about" style="background-color:#f0f5f5; ">
+            <div class="content ui fluid" id="about_card">
 
-                <h4> About Community </h4>
-                <p style="font-weight:50px;" id="more">{{community.about |linebreaks}}</p>
+                <div class="content" id="about">
+                 <h4 class="RobotoBold" style="font-size:16px;">   About Community  </h4>
+                    <p  id="more" class="Roboto">{{about_1}}&nbsp;<spam style="border:solid;color:#00897b
+
+;background-color:#00897b
+
+;"><i class="ellipsis horizontal icon" id="show_more" style="color:white;"></i></spam></p>
+
+
+            </div>
+
             </div>
             {% endif %}
+        </div>
 
-            {% if members_length > 0 %}
+
+<!-- members rendering -->
+        {% if members_length > 0 %}
+        <div class="ui fluid card" style="margin-top:0px;margin-bottom:8px;">
+
             <div class="content" id="members">
                 {% if community.hide_community == '3' %}
-                <h4 style="display: inline;">Interested </h4>
+                <h4 style="display: inline;" class="RobotoBold">Interested </h4>
                 <h6 style="display: inline;">&nbsp;&nbsp;&nbsp;&nbsp;{{members_length}} members</h6>
                 {% else  %}
-                <h4 style="display: inline;">Members</h4>
-                <h6 style="display: inline;">&nbsp;&nbsp;&nbsp;&nbsp;{{members_length}} members</h6>
+                <h4 style="display: inline;" class="RobotoBold">Members</h4>
+                <h6 style="display: inline;" class="RobotoBold">&nbsp;&nbsp;&nbsp;&nbsp;{{members_length}} members</h6>
                 {% endif %}
                 <div class="ui container" style=" overflow-y:auto;white-space:nowrap;padding-top:12px;">
                     <div class="ui big horizontal  list">
@@ -368,7 +569,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                             <p></p>
                             <!-- <a href="../../profile/{{i.user_id.id}}">-->
 
-                            <p style="font-size:65%;">{{i.name}}</p>
+                            <p style="font-size:65%;" class="RobotoMedium">{{i.name}}</p>
                             <div class="content">
 
                             </div>
@@ -383,6 +584,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             {% endif %}
                 <br>
                 <div >
+        </div>
 <!--                <div class="content ui fluid" style="background-color:#f0f5f5;">-->
 <!--                    <h4 style="margin-left:12px;padding-top:10px;">Similar Communities-->
 <!--                        &lt;!&ndash;                                <a class="right floated" style=" color:#1cb39b; font-weight:100; " href="{% url 'similar_community' 273 %}"> See all</a>&ndash;&gt;-->
@@ -413,68 +615,61 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 <br/>
 
 
-
+<!-- Displaying Buttons -->
                 {% if Nom_mem_state == 6 %}
-                <button class="ui fluid button "
-                        style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;"
+                <button class="ui  button bottom_button"
+
                         onclick="accept_admin('{{cta}}','{{community.id}}','{{Nom_mem_state}}');"> Respond to invitation
                 </button>
 
                 {% elif Nom_mem_state == 7 %}
-                <button class="ui fluid button "
-                        style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;"
+                <button class="ui  button bottom_button"
                         onclick="accept_admin('{{cta}}','{{community.id}}','{{Nom_mem_state}}');"> Respond to invitation
                 </button>
 
                 {% elif Nom_mem_state == 8 %}
-                <button class="ui fluid button "
-                        style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;"
-                        id="ref"> Invite members
+                <button class="ui  button bottom_button"
+                      id="down_ref"  > Invite members
                 </button>
 
                 {% elif Nom_mem_state == 3 %}
-                <button class="ui fluid button "
-                        style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;"
+                <button class="ui  button bottom_button"
                         disabled> Pending Approval
                 </button>
 
                 {% elif Nom_mem_state == 1%}
-                <button class="ui fluid button "
-                        style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;"
+                <button class="ui  button bottom_button"
                         disabled>You are a promoter
                 </button>
 
                 {% elif Nom_mem_state == 2 %}
-                <button class="ui fluid button "
-                        style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;"
+                <button class="ui  button bottom_button"
                         disabled>You are a promoter
                 </button>
 
                 {% elif Nom_mem_state == 4 %}
-                <button class="ui fluid button "
-                        style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;"
+                <button class="ui  button bottom_button"
                         disabled>Already a Member
                 </button>
 
                 {% elif Nom_mem_state == 5 %}
-                <button class="ui fluid button "
-                        style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;"
+                <button class="ui  button bottom_button"
                         onclick="join('{{community.id}}')"> Join Community(Declined)
                 </button>
 
                 {% elif source == 'email' %}
-                <button class="ui fluid button "
-                        style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;"
+                <button class="ui  button bottom_button"
                         onclick="accept_admin();">Respond to invitation
                 </button>
 
                 {% elif Nom_mem_state == 0 %}
-                <button class="ui fluid button "
-                        style=" z-index:2;width:40%; left:30%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;"
+                <button class="ui  button bottom_button"
                         onclick="join('{{community.id}}')"> Join Community
                 </button>
 
                 {% endif %}
+
+
 
                 <br/>
 <br/>
@@ -482,7 +677,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
             </div>
         </div>
-    </div>
+
 
 <!-- download the app pop-up -->
     <div class="ui modal" id="download_app_popup">
@@ -721,7 +916,37 @@ if (navigator.share) {
 })
 
 
+$('#down_ref').click(function(e){
 
+if (navigator.share) {
+    navigator.share({
+
+     title: '{{community.name}}',
+      text:'{{share_text}}',
+      url: '{{share_url}}'
+
+    }).then(() => {
+      console.log('Thanks for sharing!');
+    })
+    .catch(console.error);
+  } else {
+    console.log('test')
+
+  }
+
+})
+
+// about show more
+
+$('#show_more').click(function(){
+
+$('#show_more').css("display","none")
+
+display=`{{community.about|linebreaks}}`
+
+$('#more').html(display)
+
+})
 
 
 
