@@ -415,6 +415,26 @@ def refer_members(request,community_id):
             # elif not member.exists():
             #     share_text = 'Hi, I have added '+ str(community.name) +' community on CollabMates. It will be good if you can join this community'
 
+            form_responses=Form_response.objects.filter(community=community_id,user=36).order_by('id')
+            form_answers_list=[]
+
+            is_introduction=False
+
+            for form in form_responses:
+
+                temp={}
+
+                if not is_introduction:
+                    temp['is_introduction']=True
+                    temp['answer']=form.response
+                    is_introduction=True
+                else:
+                    temp['is_introduction'] = False
+                    temp['answer']=form.data + " : " + form.response
+
+                form_answers_list.append(temp)
+
+
             context={   'share_url':share_url,
                         'community':community,
                         'copy_url':copy_url,
@@ -424,7 +444,9 @@ def refer_members(request,community_id):
                         'community_id':community_id,
                         'pc':pc,
                         'android_app_download_link':android_app_download_link,
-                        'ios_app_download_link':ios_app_download_link
+                        'ios_app_download_link':ios_app_download_link,
+                        'form_answer_list':form_answers_list,
+                        'form_answers_list_length':len(form_answers_list)
                      }
 
             return  render(request,'referal.html',context)
