@@ -142,7 +142,7 @@
                             <label class="Roboto" style="font-size:13px;margin-left:7px;">{{question.data}}</label>
 
                             {% if forloop.counter == 1 %}
-                               <textarea rows="3" cols="4" style="border-radius: 10px;" name ="{{question.data}}" minlength="50" required placeholder="Your community relevant information" oninput="check(this)">{{answer}}</textarea>
+                               <textarea rows="3" cols="4" style="border-radius: 10px;" name ="{{question.data}}" minlength="50" required placeholder="This will be visible to all the members of the community" oninput="check(this)">{{answer}}</textarea>
                             {% else %}
                                <textarea rows="3" cols="4" style="border-radius: 10px;" name ="{{question.data}}" required >{{answer}}</textarea>
                             {% endif %}
