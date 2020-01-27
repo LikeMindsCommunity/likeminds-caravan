@@ -13,7 +13,7 @@ class CeleryBeatTask:
     def get_or_create_new_beat_task(self,*args,**kwargs):
 
         # result = time.localtime(time.time()+300)
-        result = time.localtime(int(kwargs['date_time'])-86400)
+        result = time.localtime(int(kwargs['date_time']))
 
         print("result:", result)
         print("\nyear:", result.tm_year)
