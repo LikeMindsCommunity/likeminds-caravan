@@ -348,6 +348,9 @@ def community(request, community_id):
         about=community.about
         about_1=about[0:180]
         about_2=about[180:]
+
+    admin_details=get_admins_details(community)
+
     context={'usr': user, 'similar_communities': communities,
              'community': community, 'admins': admin_details,
              'members': members, 'source': source,
@@ -474,6 +477,42 @@ def refer_members(request,community_id):
                 print("Error in user info")
 
             return JsonResponse({'success':True})
+
+
+def get_admins_details(community):
+
+    '''function to get details of admins'''
+
+    admin_list=Members.objects.filter(community_id=community.id).filter(Q(state=1)|Q(state=2))
+    admins=[]
+    for admin in admin_list:
+        temp={}
+        temp['name']=admin.member_id.userinfo.name
+        temp['image_link']=admin.member_id.userinfo.image_link
+        form_response=Form_response.objects.filter(user=admin.member_id.id,community=community.id).order_by('id')
+        if form_response:
+            temp['introduction_answer']=form_response.response
+
+        admins.append(temp)
+
+
+    admins=[]
+    temp={}
+    temp['name']="Priyanshu Rastogi"
+    temp['image_link']="https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fuser%2F241?alt=media"
+    temp['introduction_answer']="Hello I am just testing the image flow whether its working or not but I am testing"
+    admins.append(temp)
+
+
+    temp={}
+    temp['name']="Raghuram Rajan"
+    temp['image_link']="https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fuser%2F36%2Fimg_user_36?alt=media"
+    temp['introduction_answer']="Hello I am just testing the image flow whether its working or not but I am testing"
+    admins.append(temp)
+    return admins
+
+
+
 
 
 def get_members_of_community(request,community):
