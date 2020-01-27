@@ -314,9 +314,13 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title,
             if task_name and task_path:
                 args = [community_name, community_id]
                 celerybeatask = CeleryBeatTask()
+                date_time = int(kwargs['date_time']/1000) if isinstance(kwargs['date_time'], int)\
+                                else kwargs['date_time'][:10] if isinstance(kwargs['date_time'],str)\
+                                else int(str(kwargs['date_time'])[:10])
+                
                 celerybeatask.get_or_create_new_beat_task(card_creater_id=card_creater_id, card_creater_name=card_creater_name,
                                             args=args, task_name=task_name, task_path=task_path,
-                                            date_time=kwargs['date_time'], interval=False, crontab=True,
+                                            date_time=date_time, interval=False, crontab=True,
                                             collabcard_title=collabcard_title)
 
 
