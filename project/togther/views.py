@@ -491,7 +491,7 @@ def get_admins_details(community):
         temp['image_link']=admin.member_id.userinfo.image_link
         form_response=Form_response.objects.filter(user=admin.member_id.id,community=community.id).order_by('id')
         if form_response:
-            temp['introduction_answer']=form_response.response
+            temp['introduction_answer']=form_response[0].response
 
         admins.append(temp)
 
