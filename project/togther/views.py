@@ -418,7 +418,7 @@ def refer_members(request,community_id):
             # elif not member.exists():
             #     share_text = 'Hi, I have added '+ str(community.name) +' community on CollabMates. It will be good if you can join this community'
 
-            form_responses=Form_response.objects.filter(community=community_id,user=36).order_by('id')
+            form_responses=Form_response.objects.filter(community=community_id,user=request.user.id).order_by('id')
             form_answers_list=[]
 
             is_introduction=False
