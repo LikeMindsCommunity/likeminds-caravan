@@ -3,13 +3,13 @@ certifi==2019.3.9
 chardet==3.0.4
 defusedxml==0.6.0
 diff-match-patch==20181111
-Django==2.1
+Django
 django-appconf==1.0.3
 django-cors-headers==3.0.2
 django-import-export==1.2.0
-django-restframework-apiview==1.3.4
-django-select2==7.0.3
-djangorestframework==3.9.4
+django-restframework-apiview
+django-select2
+djangorestframework
 et-xmlfile==1.0.1
 idna==2.8
 jdcal==1.4.1
@@ -43,3 +43,4 @@ user-agents==2.0
 ua-parser==0.8.0
 django-redis==4.10.0
 redis==3.3.11
+django-celery-beat

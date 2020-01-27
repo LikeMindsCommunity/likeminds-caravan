@@ -61,7 +61,7 @@ from utility.celery_tasks import (update_referral_text_in_engage_table,
                                   update_last_unseen_in_engage_on_card_creation,
                                   update_last_unseen_in_engage,
                                   )
-
+from utility.celery_beat_tasks import CeleryBeatTask
 #CACHE_TTL = getattr(settings, 'CACHE_TTL', cache_timeout)
 
 
@@ -94,8 +94,13 @@ def communities(request):
         #custom_cache.clear()
 
         state = 1 if state else 0
+        # testing purpose
+        # BeatTask = CeleryBeatTask()
+        # BeatTask.get_or_create_new_beat_task(191, 9, interval=False, crontab=True, task_name='testing94', task_path='collabmates_api.views.print_sum')
+
         return JsonResponse({'communities': community,'state':state})
     else:
+
         return JsonResponse({'success': False})
 
 def get_user_communities_by_rank(page_number=1, user_id=None):
@@ -896,6 +901,7 @@ def create_card(request):
         if card.exists() and type == 1:
             # if welcome card for user is already existing
             return JsonResponse({'success':False})
+        date_time = res['date_time'] if (str(type) == '2' or str(type) == '3') else 0
 
         card = Collabcard()
         card.title = res['title']
@@ -904,7 +910,7 @@ def create_card(request):
         card.type = type
         card.image_count = res['image_count'] if ('image_count' in res) else 0
         card.pdf_count = res['pdf_count'] if ('pdf_count' in res) else 0
-        card.date_time = res['date_time'] if (str(type) == '2' or str(type) == '3') else 0
+        card.date_time = date_time
         card.duration = res['duration'] if ('duration' in res) else 0
 
         if 'share_link' in res:
@@ -1023,7 +1029,10 @@ def create_card(request):
 
         # sending notification to the user
 
-        send_notification_for_new_collabcard_posted.delay(community_id, res['title'], user_id, user.name,type)
+        send_notification_for_new_collabcard_posted.delay(community_id, res['title'],
+                                                          user_id, user.name,
+                                                          type=type, date_time=date_time,
+                                                          card_id=card.id)
 
         if type != 1:                         # stopping mail for introduction cards
             send_email_for_collabcard(community, user, card,type)
@@ -1992,13 +2001,12 @@ def update_answer_text(card_id):
             ans_text = username + " responded"
             # update the answer_text field in collabcard
             Collabcard.objects.filter(id=card_id).update(answer_text=ans_text)
-            return
+
         elif card_ans_count==2:
             # if there is more than one answer
             ans_text += card_ans[0].user.userinfo.name + " and " +card_ans[1].user.userinfo.name
             ans_text += " responded"
             Collabcard.objects.filter(id=card_id).update(answer_text=ans_text)
-            return
 
             # if more than two different users have answered
         elif card_ans_count > 2:
@@ -2006,6 +2014,9 @@ def update_answer_text(card_id):
             ans_text += card_ans[0].user.userinfo.name
             ans_text+= " & "+str(card_ans_count-1) + " others responded"
             Collabcard.objects.filter(id=card_id).update(answer_text=ans_text)
+
+        card.answers_count = card_ans_count
+        card.save()
         return
 
 
@@ -2189,33 +2200,32 @@ def update_event_answer_text(card_id):
         # getting the number of people interestes in event
         event_list_members = collabcardState.objects.filter(card=collabcard_instance).filter(
             Q(state=collabcard_attend_following) | Q(state=collabcard_attend_unfollow)).order_by('id')
+        members_count = event_list_members.count()
         ans_text = ''
-        if len(event_list_members) == 1:
-            # get the name of the user who answered
-            username = Userinfo.objects.get(user_id=event_list_members[0].user_id)
-            # format the answer text string as "username answered"
-            ans_text = username.name + " is attending"
-            # update the answer_text feild in collabcard
-            collabcard_instance.answer_text = ans_text
-            collabcard_instance.save()
-        elif len(event_list_members) == 2:
-            first_member = Userinfo.objects.get(user_id=event_list_members[0].user_id)
-            second_member = Userinfo.objects.get(user_id=event_list_members[0].user_id)
-            ans_text = """%s and %s are attending""" % (str(first_member.name), str(second_member.name))
-            collabcard_instance.answer_text = ans_text
-            collabcard_instance.save()
-        elif len(event_list_members) > 2:
-            first_member = Userinfo.objects.get(user_id=event_list_members[0].user_id)
-            second_member = Userinfo.objects.get(user_id=event_list_members[0].user_id)
 
-            left_count = len(event_list_members) - 2
-
-            ans_text = """%s, %s & %s are attending""" % (str(first_member.name), str(second_member.name), left_count)
+        if members_count == 1:
+            # get the name of the user who is attending
+            username = event_list_members[0].user.userinfo.name
+            ans_text = username + " is attending"
             collabcard_instance.answer_text = ans_text
-            collabcard_instance.save()
+
+        elif members_count >= 2:
+            first_member = event_list_members[0].user.userinfo.name
+            second_member = event_list_members[1].user.userinfo.name
+
+            if members_count == 2:
+                ans_text = """%s and %s are attending""" % (str(first_member.name), str(second_member.name))
+
+            else:
+                left_count = members_count - 2
+                ans_text = """%s, %s & %s others are attending""" % (str(first_member.name), str(second_member.name), left_count)
+            collabcard_instance.answer_text = ans_text
+
         else:
             collabcard_instance.answer_text = ans_text
-            collabcard_instance.save()
+
+        # collabcard_instance.attending_count = members_count
+        collabcard_instance.save()
 
 
 def decode_url(request):
@@ -3687,7 +3697,6 @@ def update_poll_card_text(card_id):
     poll_text += user_names + " voted on this poll"
 
     card.answer_text = poll_text
+    card.polls_count = total_polls_count
     card.save()
-
-
 

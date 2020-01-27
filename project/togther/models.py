@@ -1,6 +1,8 @@
 from django.db import models
 from django.contrib.auth.models import User
 import time
+
+
 response_choices = (
     ('text','Text'),
     ('textarea','Textarea'),
@@ -151,18 +153,20 @@ class Collabcard (models.Model):
     title = models.TextField()
     community = models.ForeignKey(Community, on_delete=models.CASCADE)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    likes_count =  models.IntegerField(default = 0)
-    share_count =  models.IntegerField(default = 0)
+    likes_count =  models.IntegerField(default=0)
+    share_count = models.IntegerField(default=0)
     answers_count = models.IntegerField(default=0)
-    date_epoch=models.BigIntegerField(default=-9223372036854775808)
-    answer_text = models.CharField(max_length = 100, default = '')
-    share_link=models.CharField(max_length=2048,default='')
-    og_tags=models.CharField(max_length=2048,default='')
+    date_epoch = models.BigIntegerField(default=-9223372036854775808)
+    answer_text = models.CharField(max_length=100, default='')
+    share_link = models.CharField(max_length=2048, default='')
+    og_tags = models.CharField(max_length=2048,default='')
     image_count = models.IntegerField(default=0, null=True)
     pdf_count = models.IntegerField(default=0, null=True)
-    type=models.IntegerField(default=0)    # state=0 (Normal Collabcard);state=1(Introduction Collabcard)
-    date_time=models.BigIntegerField(default=0)    # for saving date of event and due date for polling
-    duration=models.BigIntegerField(default=0)     # for saving duration of event
+    type = models.IntegerField(default=0)    # state=0 (Normal Collabcard);state=1(Introduction Collabcard)
+    date_time = models.BigIntegerField(default=0)    # for saving date of event and due date for polling
+    duration = models.BigIntegerField(default=0)     # for saving duration of event
+    polls_count = models.IntegerField(default=0)
+    attending_count = models.IntegerField(default=0)
 
 
 
