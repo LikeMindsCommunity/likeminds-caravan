@@ -73,7 +73,10 @@ def CollabcardSerializer(card,user,community=None):
         'pdf_count': card.pdf_count,
         'type': card.type,
         'date_time': card.date_time,
-        'duration': card.duration
+        'duration': card.duration,
+        'answers_count':card.answers_count,
+        'attending_count': card.answers_count,
+        'polls_count': card.answers_count
     }
     if card.type == 3:
         polls = []
