@@ -1966,6 +1966,7 @@ def create_answer(request):
 
         #calling update_answer_text
         if card.type == 0 or card.type == 1:
+            print("type === ",card.type)
             update_answer_text(card_id)
 
 
@@ -2000,22 +2001,25 @@ def update_answer_text(card_id):
         username = card_ans[0].user.userinfo.name
         ans_text = username + " responded"
         # update the answer_text field in collabcard
-        Collabcard.objects.filter(id=card_id).update(answer_text=ans_text)
+        # Collabcard.objects.filter(id=card_id).update(answer_text=ans_text)
 
     elif card_ans_count==2:
         # if there is more than one answer
         ans_text += card_ans[0].user.userinfo.name + " and " +card_ans[1].user.userinfo.name
         ans_text += " responded"
-        Collabcard.objects.filter(id=card_id).update(answer_text=ans_text)
+        # Collabcard.objects.filter(id=card_id).update(answer_text=ans_text)
 
     elif card_ans_count > 2:
         # if more than two different users have answered
         ans_text += card_ans[0].user.userinfo.name
         ans_text+= " & "+str(card_ans_count-1) + " others responded"
-        Collabcard.objects.filter(id=card_id).update(answer_text=ans_text)
-
+        # Collabcard.objects.filter(id=card_id).update(answer_text=ans_text)
+    card.answer_text = ans_text
     card.answers_count = card_ans_count
     card.save()
+    print("card answers count ====   ",card_ans_count)
+    print("card answers text ====   ",ans_text)
+
     return
 
 
