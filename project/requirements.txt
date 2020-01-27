@@ -3,7 +3,7 @@ certifi
 chardet
 defusedxml
 diff-match-patch
-Django
+
 django-appconf
 django-cors-headers
 django-import-export
