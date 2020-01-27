@@ -495,20 +495,6 @@ def get_admins_details(community):
 
         admins.append(temp)
 
-
-    admins=[]
-    temp={}
-    temp['name']="Priyanshu Rastogi"
-    temp['image_link']="https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fuser%2F241?alt=media"
-    temp['introduction_answer']="Hello I am just testing the image flow whether its working or not but I am testing"
-    admins.append(temp)
-
-
-    temp={}
-    temp['name']="Raghuram Rajan"
-    temp['image_link']="https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fuser%2F36%2Fimg_user_36?alt=media"
-    temp['introduction_answer']="Hello I am just testing the image flow whether its working or not but I am testing"
-    admins.append(temp)
     return admins
 
 
