@@ -317,7 +317,8 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title,
                 date_time = int(kwargs['date_time']/1000) if isinstance(kwargs['date_time'], int)\
                                 else kwargs['date_time'][:10] if isinstance(kwargs['date_time'],str)\
                                 else int(str(kwargs['date_time'])[:10])
-                
+                date_time = (date_time-1800) if typ == 2 else date_time
+
                 celerybeatask.get_or_create_new_beat_task(card_creater_id=card_creater_id, card_creater_name=card_creater_name,
                                             args=args, task_name=task_name, task_path=task_path,
                                             date_time=date_time, interval=False, crontab=True,
@@ -551,11 +552,10 @@ def poll_expiry_remainder_notification(community_name, community_id, **kwargs):
         community_name = community_name
         message = {}
 
-        sub_title = str(kwargs['collabcard_title'])
-
+        # sub_title = str(kwargs['collabcard_title'])
         message['payload']={
-            'title': str(kwargs['card_creater_name']) + " @ "+str(community_name),
-            'sub_title': sub_title,
+            'title': str(community_name),
+            'sub_title': 'your poll ended. Tap to see results',
             'route': 'route://community_collabcard?community_id=' + str(community_id) + '&community_name='+ str(community_name)
         }
 
@@ -586,11 +586,11 @@ def event_remainder_notification(community_name, community_id, **kwargs):
         community_name = community_name
         message = {}
 
-        sub_title = str(kwargs['collabcard_title'])
+        # sub_title = str(kwargs['collabcard_title'])
 
         message['payload']={
-            'title': str(kwargs['card_creater_name']) + " @ "+str(community_name),
-            'sub_title': sub_title,
+            'title': str(community_name),
+            'sub_title': 'your event is starting in 30 minutes',
             'route': 'route://community_collabcard?community_id=' + str(community_id) + '&community_name='+ str(community_name)
         }
 
