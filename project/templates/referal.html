@@ -134,37 +134,7 @@
 <!--<a href="/communities" style="color:#00897b;">Explore other communities</a>-->
 </div>
 
-<!-- ios popup -->
 
-<div class="ui modal" id="ios_popup">
-  <i class="close icon"></i>
-
-  <div class="image content">
-
-    <div class="description">
-      <div class="ui header">Thanks for signing up.</div>
-      <p> We are in the process of building our iOS app and will notify you when it is released.</p>
-      <p>Provide us your mobile number to get notified</p>
-    <div class="ui  form" onsubmit="return false">
-   <div class="form_field">Mobile Number</div>
-        {% csrf_token %}
-    <div class="field">
-        <input type="text" name="mobile" placeholder="We will not spam you or give this to anyone" id="mobile_no_ios"  minlength="10">
-    </div>
-
-</div>
-
-    </div>
-  </div>
-  <div class="actions">
-     <button class="ui positive right labeled icon button" id="notify_me" style="background-color:#00897b;">
-       Notify Me
-      <i class="checkmark icon"></i>
-    </button>
-  </div>
-</div>
-
-<!---ios popup closes-->
 
 
 <!-- web popup -->
