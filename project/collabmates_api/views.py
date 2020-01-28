@@ -2217,7 +2217,7 @@ def collabcard_attend(request):
             collabcard_state_instance.save()
 
     update_event_answer_text(collabcard_id)  #function to update the text when a user attends an event
-    if not str(member_id) == str(collabcard_instance.user.id):
+    if not str(member_id) == str(collabcard_instance.user.id) and status:
         send_poll_or_event_notification.delay(card_id=collabcard_id, user_id=member_id)
 
     return JsonResponse({'success': True})
