@@ -1482,7 +1482,8 @@ def request_response(request,req_dict=None):
             rqst.post(link, params=params, json=json_body)
 
             # notify the referred member if it is a pilot community
-            if not req_dict:
+            send_notification = res['send_notification'] if 'send_notification' in res else True
+            if send_notification or send_notification == 'true':
                 notify_referred_member_after_join(joined_member_id=member_id,
                                                   joined_member_name=user.userinfo.name,
                                                   community_name=community.name, community_id=community_id)
@@ -1510,7 +1511,7 @@ def request_response(request,req_dict=None):
             # sending email to the user that his request is rejected for this community
             # member_request_approval_or_denied.delay(user_id=member_id,community_id=community_id,approved=False)
 
-            if send_notification:
+            if send_notification or send_notification == 'true':
                 send_notification_for_join_requests.delay(community_id, False, member_id)
 
     return JsonResponse({'success': True})
@@ -2714,7 +2715,6 @@ def notify_referred_member_after_join(joined_member_id,joined_member_name,commun
 
         referred_member_id = refer[0].member.id
 
-
         notify_referred_member.delay(referred_member_id=referred_member_id,
                                  joined_member_name=joined_member_name,
                                  community_name=community_name,
@@ -3119,7 +3119,8 @@ def accept_promotership(request):
                 req_dict={
                     'accepted':True,
                     'member_id':member.member_id.id,
-                    'community_id':community_id
+                    'community_id':community_id,
+                    'send_notification': False,
                 }
                 request_response(request,req_dict)
             else:
