@@ -83,15 +83,12 @@ def notification_meta(notification_list,message):
 
     if token_list_android:
         send_notification_for_android(token_list_android,message)
-    elif token_list_ios:
+
+    if token_list_ios:
         send_notification_for_ios(token_list_ios,message)
 
     print("Notification sent")
     print("\n")
-
-
-
-
 
 
 
@@ -399,6 +396,7 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title,
             'route': 'route://community_collabcard?community_id=' + str(community_id) + '&community_name='+ str(community_name)
         }
 
+        
         notification_meta(notification_list,message)
 
         if typ == 2 or typ == 3:
@@ -425,6 +423,8 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title,
     except (Exception, psycopg2.Error) as error:
 
         print("Error while connecting to PostgreSQL", error)
+
+
 
 
 
