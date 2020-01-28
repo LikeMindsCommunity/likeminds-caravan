@@ -340,12 +340,26 @@ def join_community(request, community_id):
 
     data = Form_data.objects.all().filter(community_id = community_id).order_by("id")
     reqd_info = []
+    first_question=False
     for i in data:
-        ques = {'question':i.data,
-                'question_state':i.is_dropdown,
-                }
-        if i.is_dropdown == 1:
-            ques['dropdown_list'] = json.loads(i.dropdown_list)
+        if not first_question:
+            ques = {'question':i.data,
+                    'question_state':i.is_dropdown,
+                    }
+            if i.is_dropdown == 1:
+                ques['dropdown_list'] = json.loads(i.dropdown_list)
+            first_question=True
+        else:
+
+            ques = {'question': i.data,
+                    'question_state': i.is_dropdown,
+                    }
+            if i.is_dropdown == 1:
+                ques['dropdown_list'] = json.loads(i.dropdown_list)
+            elif i.is_dropdown == 0:
+                ques['question_state']=2
+
+
         reqd_info.append(ques)
     return JsonResponse({'questions': reqd_info})
 
