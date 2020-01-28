@@ -3,6 +3,7 @@ from rest_framework import serializers
 from togther.models import *
 from django.conf import settings
 from django.db.models import Q
+from utility.utils import is_IG_community
 import  json
 url  = settings.URL
 
@@ -38,6 +39,7 @@ def CommunitySerializer(community):
     new_dict['date'] = community.active_since
     new_dict['members_count'] = get_member_count(community)
     new_dict['state']=int(community.hide_community)
+    new_dict['auto_approval']=is_IG_community(community)
     return new_dict
 
 def UserinfoSerializer(user):
