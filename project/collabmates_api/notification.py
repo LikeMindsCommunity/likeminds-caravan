@@ -290,9 +290,15 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title,
         member_list=curr.fetchall()
 
         token_list=[]
+        notification_test=[]
         for member in member_list:
+            temp={}
+            temp['id']=member[0]
             token=get_token_for_fcm(member[0])
+            temp['tokens']=token
+            notification_test.append(temp)
             token_list.append(token)
+        print(notification_test)
         community_name=get_community_name(community_id)
         message={}
         typ = kwargs['type'] if 'type' in kwargs else 0
