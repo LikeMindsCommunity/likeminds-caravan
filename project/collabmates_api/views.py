@@ -21,6 +21,7 @@ from .notification import (send_follow_notification, send_notification_to_admins
                            send_notification_to_eligible_member,
                            send_notification_to_all_admins,
                            send_notification_to_tagged_users,
+                           send_poll_or_event_notification,
                            )
 
 from django.db.models import Q
@@ -2161,35 +2162,34 @@ def collabcard_attend(request):
         # if the user clicks on attend but not following collabcard
         collabcard_state_instance = collabcardState.objects.get(card=collabcard_instance, user=user_instance)
         if collabcard_state_instance.state == collabcard_seen_state:
-
-            collabcard_state_instance.state= collabcard_attend_unfollow
-            collabcard_state_instance.updated_at=time.time()
+            collabcard_state_instance.state = collabcard_attend_unfollow
+            collabcard_state_instance.updated_at = time.time()
             collabcard_state_instance.save()
-        # if the user clicks on attend and following collabcard
-        elif collabcard_state_instance.state == collabcard_unattend_following:
 
+        elif collabcard_state_instance.state == collabcard_unattend_following:
+            # if the user clicks on attend and following collabcard
             collabcard_state_instance.state= collabcard_attend_following
-            collabcard_state_instance.updated_at=time.time()
+            collabcard_state_instance.updated_at = time.time()
             collabcard_state_instance.save()
     else:
         collabcard_state_instance = collabcardState.objects.get(card=collabcard_instance, user=user_instance)
 
         if collabcard_state_instance.state == collabcard_attend_unfollow:
-
             collabcard_state_instance.state = collabcard_seen_state
-            collabcard_state_instance.updated_at=time.time()
+            collabcard_state_instance.updated_at = time.time()
             collabcard_state_instance.save()
-        # if the user clicks on attend and following collabcard
+
         elif collabcard_state_instance.state == collabcard_attend_following:
+            # if the user clicks on attend and following collabcard
 
             collabcard_state_instance.state = collabcard_unattend_following
-            collabcard_state_instance.updated_at=time.time()
+            collabcard_state_instance.updated_at = time.time()
             collabcard_state_instance.save()
 
     update_event_answer_text(collabcard_id)  #function to update the text when a user attends an event
+    send_poll_or_event_notification.delay(card_id=collabcard_id, user_id=member_id)
 
-
-    return JsonResponse({'success':True})
+    return JsonResponse({'success': True})
 
 
 def update_event_answer_text(card_id):
@@ -3670,6 +3670,7 @@ def collabcard_poll(request):
             memberpolls_instance.update(poll=poll_instance)
         # update the card answer text according to no of polls
         update_poll_card_text(collabcard_id)
+        send_poll_or_event_notification.delay(card_id=collabcard_id, user_id=member_id)
         return JsonResponse({"success": True})
 
     return JsonResponse({"success": False})
