@@ -34,6 +34,68 @@ else:
 
 
 
+#notifications for different mobile os versions
+
+def send_notification_for_android(token_list,message):
+
+    '''function to send notification to android'''
+
+
+
+    result=""
+    push_service = FCMNotification(api_key=server_key)
+    result = push_service.notify_multiple_devices(registration_ids=token_list,
+                                                  data_message=message['payload'])
+
+    print(result)
+
+
+def send_notification_for_ios(token_list, message):
+
+    '''function to send notification to android'''
+
+
+
+    result = ""
+    push_service = FCMNotification(api_key=server_key)
+    result = push_service.notify_multiple_devices(registration_ids=token_list,
+                                                  message_title=message['payload']['title'],
+                                                  message_body=message['payload']['sub_title'],
+                                                  data_message=message['payload'])
+
+    print(result)
+
+
+def notification_meta(notification_list,message):
+
+    '''function to process notification to send'''
+    print(notification_list)
+
+    token_list_android=[]
+    token_list_ios=[]
+
+    for data in notification_list:
+
+        if data['mobile_os'] == "Android":
+            token_list_android.append(data['fcm_token'])
+        else:
+            token_list_ios.append(data['fcm_token'])
+
+    if token_list_android:
+        send_notification_for_android(token_list_android,message)
+    elif token_list_ios:
+        send_notification_for_ios(token_list_ios,message)
+
+    print("Notification sent")
+    print("\n")
+
+
+
+
+
+
+
+
 def get_connection():
     '''function to create a postgres connection'''
     try:
@@ -48,17 +110,30 @@ def get_connection():
         print ("Error while connecting  to PostgreSQL", error)
 
 
-def get_token_for_fcm(member_id):
+def get_token_for_fcm(member_id,flag=None):
 
     '''function to get token from user'''
     try:
         conn = get_connection()
         curr = conn.cursor()
+        if not flag:
+            curr.execute("select fcm_token from togther_userinfo where user_id_id=" + str(member_id))
+            fcm_token = curr.fetchone()
+            if fcm_token:
+                return fcm_token[0]
+        else:
+            curr.execute("select fcm_token,mobile_os from togther_userinfo where user_id_id=" + str(member_id))
 
-        curr.execute("select fcm_token from togther_userinfo where user_id_id=" + str(member_id))
-        fcm_token = curr.fetchone()
-        if fcm_token:
-            return fcm_token[0]
+            notification_details=curr.fetchone()
+            if notification_details:
+                fcm_token=notification_details[0]
+                if  notification_details[1]:
+                    mobile_os=notification_details[1]
+                else:
+                    mobile_os="Android"
+                return (fcm_token,mobile_os)
+
+        return None
 
     except (Exception, psycopg2.Error) as error:
         print ("Error while connecting to PostgreSQL  ", error)
@@ -149,6 +224,12 @@ def send_notification(fcm_token,message,is_android):
         result = push_service.notify_multiple_devices(registration_ids=token_list,
                                                       data_message=message['payload'])
     print(result)
+
+
+
+
+
+
 
 
 @shared_task
@@ -275,6 +356,8 @@ def send_notification_for_join_requests(community_id,flag,member_id):
 
 
 
+
+
 # notifications for new collabcards
 
 @shared_task
@@ -290,9 +373,15 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title,
         member_list=curr.fetchall()
 
         token_list=[]
+        notification_list=[]
         for member in member_list:
-            token=get_token_for_fcm(member[0])
-            token_list.append(token)
+            temp={}
+            temp['user_id']=member[0]
+            notification_details=get_token_for_fcm(member[0],True)
+            temp['fcm_token']=notification_details[0]
+            temp['mobile_os']=notification_details[1]
+            notification_list.append(temp)
+
         community_name=get_community_name(community_id)
         message={}
         typ = kwargs['type'] if 'type' in kwargs else 0
@@ -310,7 +399,7 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title,
             'route': 'route://community_collabcard?community_id=' + str(community_id) + '&community_name='+ str(community_name)
         }
 
-        send_notification_to_multiple_devices(token_list,message)
+        notification_meta(notification_list,message)
 
         if typ == 2 or typ == 3:
             task_name = 'poll_with_id_' + str(kwargs['card_id']) if typ == 3 else 'event_with_id_' + str(kwargs['card_id'])
@@ -324,7 +413,7 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title,
                                 else kwargs['date_time'][:10] if isinstance(kwargs['date_time'], str)\
                                 else int(str(kwargs['date_time'])[:10])
 
-                date_time = (date_time-1800) if typ == 2 else date_time
+                date_time = (date_time-1800) if typ == 2 else date_time + 19800 if not settings.DEBUG else 0
                 celerybeatask.get_or_create_new_beat_task(card_creater_id=card_creater_id,
                                                           card_creater_name=card_creater_name,
                                                           args=args, task_name=task_name, task_path=task_path,
@@ -612,3 +701,4 @@ def poll_expiry_or_event_remainder_notification(community_name, community_id, ty
     except:
 
         print("Error while connecting to PostgreSQL")
+
