@@ -2700,7 +2700,6 @@ def notify_referred_member_after_join(joined_member_id,joined_member_name,commun
 
         referred_member_id = refer[0].member.id
 
-
         notify_referred_member.delay(referred_member_id=referred_member_id,
                                  joined_member_name=joined_member_name,
                                  community_name=community_name,
