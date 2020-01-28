@@ -188,16 +188,17 @@ def member_request_approval_or_denied(user_id,community_id,approved):
         else:
             link_text = 'Explore Communties'
     else:
-        url = android_app_download_link
-        link_text = 'Download App'
+        url = url + "/download_the_app"
+        link_text = 'Start Engaging'
 
-    template = get_template("mails/member_approval_or_declined.html").render({"user_name": user.userinfo.name,
-                                                                  'community_name':community.name,
-                                                                  'purpose':community.purpose,
-                                                                  'subject': subject, 'url': url,
-                                                                  'link_text':link_text,
-                                                                  'approved':approved
-                                                                  })
+    template = get_template("mails/member_approval_or_declined.html").render(
+                                                                        {"user_name": user.userinfo.name,
+                                                                        'community_name': community.name,
+                                                                        'purpose': community.purpose,
+                                                                        'subject': subject, 'url': url,
+                                                                        'link_text': link_text,
+                                                                        'approved': approved
+                                                                        })
     to = [to]
     send_email(subject, template, to)
     return
