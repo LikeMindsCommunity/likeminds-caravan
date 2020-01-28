@@ -4,9 +4,14 @@ import psycopg2
 from pyfcm import FCMNotification
 from django.conf import  settings
 import time
-from togther.models import Community_Rank
+from togther.models import (Community_Rank, collabcardState,
+                            MemberPollVotes, Collabcard,
+                            )
+from django.contrib.auth.models import User
+
 from utility.states import *
 import re
+from django.db.models import Q
 from utility.celery_beat_tasks import CeleryBeatTask
 # file to store configuration of the system
 
@@ -324,7 +329,8 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title,
                                                           card_creater_name=card_creater_name,
                                                           args=args, task_name=task_name, task_path=task_path,
                                                           date_time=date_time, interval=False, crontab=True,
-                                                          collabcard_title=collabcard_title)
+                                                          collabcard_title=collabcard_title,
+                                                          card_id=kwargs['card_id'])
 
 
     except (Exception, psycopg2.Error) as error:
@@ -571,17 +577,18 @@ def poll_expiry_or_event_remainder_notification(community_name, community_id, ty
     """ function to send notification to all members when event/poll is going to start/end """
     try:
 
-        connection = get_connection()
-        curr = connection.cursor()
-        sql = "select member_id_id from togther_members where community_id_id=%s and member_id_id !=%s and (state=1 or state=2 or state=4 or state=7)"
-        parameter_list = [community_id, kwargs['card_creater_id']]
-        curr.execute(sql, parameter_list)
-        member_list = curr.fetchall()
+        if typ == 2:
+            token_list = list(collabcardState.objects.filter(card=kwargs['card_id']).filter(
+                                 Q(state=3) |
+                                 Q(state=4)).values_list('user__userinfo__fcm_token', flat=True))
 
-        token_list = []
-        for member in member_list:
-            token = get_token_for_fcm(member[0])
-            token_list.append(token)
+        else:
+            token_list = list(MemberPollVotes.objects.filter(card=kwargs[
+                                                                'card_id']).order_by('-id').values_list(
+                                                                'user__userinfo__fcm_token', flat=True))
+            print("token list ===== ", token_list)
+
+
         community_name = community_name
 
         if typ == 3:
