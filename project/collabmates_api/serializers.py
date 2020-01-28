@@ -104,7 +104,7 @@ def CollabcardPollsSerializer(poll,user,card):
          'id': poll.id,
          'text': poll.text,
          'is_selected': is_poll_selected(poll, user, card),
-         'percentage': int(poll_percentage(card,poll))  if card.date_time//1000 > time.time() else '',
+         'percentage': int(poll_percentage(card,poll)) if card.date_time//1000 <= time.time() else '',
 
      }
 
