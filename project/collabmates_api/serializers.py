@@ -39,7 +39,10 @@ def CommunitySerializer(community):
     new_dict['date'] = community.active_since
     new_dict['members_count'] = get_member_count(community)
     new_dict['state']=int(community.hide_community)
-    new_dict['auto_approval']=is_IG_community(community)
+    if new_dict['state'] == 4:
+        new_dict['auto_approval']=is_IG_community(community)
+    else:
+        new_dict['auto_approval'] = False
     return new_dict
 
 def UserinfoSerializer(user):
