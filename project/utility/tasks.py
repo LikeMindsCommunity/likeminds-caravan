@@ -138,6 +138,7 @@ def new_member_request(member_id,community_id,form_response,ref_id=None,):
 
     res = {}
     for response in form_response:
+        print("response =====   ",response)
         res[response['key']] = response['value']
 
     community_state = community.hide_community
