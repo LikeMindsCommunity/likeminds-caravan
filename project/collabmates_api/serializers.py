@@ -4,8 +4,9 @@ from togther.models import *
 from django.conf import settings
 from django.db.models import Q
 from utility.utils import is_IG_community
-import  json
-url  = settings.URL
+import json
+import time
+url = settings.URL
 
 #
 # class CommunitySerializer(serializers.HyperlinkedModelSerializer):
@@ -103,7 +104,7 @@ def CollabcardPollsSerializer(poll,user,card):
          'id': poll.id,
          'text': poll.text,
          'is_selected': is_poll_selected(poll, user, card),
-         'percentage': int(poll_percentage(card,poll)),
+         'percentage': int(poll_percentage(card,poll))  if card.date_time//1000 > time.time() else '',
 
      }
 

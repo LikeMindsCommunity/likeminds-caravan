@@ -553,7 +553,7 @@ def send_poll_or_event_notification(card_id, user_id):
     member_name = member.userinfo.name
 
     if card.type == 2:
-        sub_title = member_name + " is attending you event"
+        sub_title = member_name + " is attending your event"
         time.sleep(60)
         attending_state = collabcardState.objects.filter(card=card, user=member).filter(Q(state=3) | Q(state=4))
         if not attending_state.exists():
