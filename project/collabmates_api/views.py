@@ -359,6 +359,12 @@ def join_community_responses(request):
     community_id = request.GET.get('community_id')
 
     community = Community.objects.get(id=community_id)
+
+    is_ig_pilot_active=False
+
+    if community.hide_community == '4' and is_IG_community(community):
+        is_ig_pilot_active=True
+
     user = User.objects.get(id=user_id)
 
     if 'ref_id' in res:
@@ -445,7 +451,8 @@ def join_community_responses(request):
         update_pending_member_count_in_engage(community)
         # sending notification to admins of the community
         name = user.userinfo.name
-        send_notification_to_admins.delay(community_id,name)
+        if not is_ig_pilot_active:
+            send_notification_to_admins.delay(community_id,name)
 
     # if the community is the pilot community then filling the engage table
     if community.hide_community == '3':
@@ -481,6 +488,14 @@ def join_community_responses(request):
     log="""Request for community_id=%s is sent from member_id=%s\n"""%(community_id,user_id)
     info_logger.info(log)
     info_logger.info("\n")
+
+    if is_ig_pilot_active:
+        req_dict = {
+            'accepted': True,
+            'member_id': user_id,
+            'community_id': community_id
+        }
+        request_response(request, req_dict)
     return JsonResponse({'success':True})
 
 
