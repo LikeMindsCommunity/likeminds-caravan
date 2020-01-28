@@ -99,16 +99,19 @@ def CollabcardSerializer(card,user,community=None):
     return collabcard
 
 
-def CollabcardPollsSerializer(poll,user,card):
-     polls = {
-         'id': poll.id,
-         'text': poll.text,
-         'is_selected': is_poll_selected(poll, user, card),
-         'percentage': int(poll_percentage(card,poll)) if card.date_time//1000 <= time.time() else '',
+def CollabcardPollsSerializer(poll, user, card):
+    """ Poll serializer """
+    
+    polls = {
+        'id': poll.id,
+        'text': poll.text,
+        'is_selected': is_poll_selected(poll, user, card),
+    }
 
-     }
+    if card.date_time // 1000 <= time.time():
+        polls['percentage'] = int(poll_percentage(card, poll))
 
-     return polls
+    return polls
 
 
 def is_poll_selected(poll, user, card):
