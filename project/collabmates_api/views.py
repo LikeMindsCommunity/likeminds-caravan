@@ -2202,7 +2202,8 @@ def collabcard_attend(request):
             collabcard_state_instance.save()
 
     update_event_answer_text(collabcard_id)  #function to update the text when a user attends an event
-    send_poll_or_event_notification.delay(card_id=collabcard_id, user_id=member_id)
+    if not str(member_id) == str(collabcard_instance.user.id):
+        send_poll_or_event_notification.delay(card_id=collabcard_id, user_id=member_id)
 
     return JsonResponse({'success': True})
 
@@ -3685,7 +3686,10 @@ def collabcard_poll(request):
             memberpolls_instance.update(poll=poll_instance)
         # update the card answer text according to no of polls
         update_poll_card_text(collabcard_id)
-        send_poll_or_event_notification.delay(card_id=collabcard_id, user_id=member_id)
+
+        if not str(member_id) == str(card_instance.user.id):
+            send_poll_or_event_notification.delay(card_id=collabcard_id, user_id=member_id)
+
         return JsonResponse({"success": True})
 
     return JsonResponse({"success": False})
@@ -3695,6 +3699,7 @@ def update_poll_card_text(card_id):
     """ function to update the answer text of card when someone polls in the card """
 
     total_polls = MemberPollVotes.objects.filter(card=card_id).order_by('-id')
+
     card = Collabcard.objects.get(pk=card_id)
     poll_text = ''
     total_polls_count = total_polls.count()
