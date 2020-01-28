@@ -1571,44 +1571,44 @@ def collabcard(request, card_id):
     # get the card object
 
     cards = Collabcard.objects.get(id = card_id)
-    page=request.GET.get('page',1)
+    page = request.GET.get('page',1)
 
 
     # coverting current time into epoch time for getting time stamp of answers and card
 
     # get all the answers of the card
-    answer = card_answers.objects.filter(card = cards)
+    answer = card_answers.objects.filter(card=cards).order_by('id')
     # answer=pagination(answer,page,paginate_by=10)
 
-    answer_id=request.GET.get('answer_id','')
+    answer_id=request.GET.get('answer_id', '')
     user_id = request.GET.get('member_id', '')
 
     if answer_id:
-        answer_id=int(answer_id)
+        answer_id = int(answer_id)
 
-        answer=card_answers.objects.filter(card=cards,id__gte=answer_id).filter(~Q(user__id = user_id))
+        answer=card_answers.objects.filter(card=cards, id__gte=answer_id).filter(~Q(user__id=user_id))
         # answer = pagination(answer, page, paginate_by=10)
-        answers=get_answer_data(answer)
+        answers = get_answer_data(answer)
         return JsonResponse({'answers': answers})
     else:
-        answers=get_answer_data(answer)
+        answers = get_answer_data(answer)
 
-    user = Userinfo.objects.get(user_id = cards.user.id)
+    user = Userinfo.objects.get(user_id=cards.user.id)
     # serializing user object
     usr = UserinfoSerializer(user)
     # get the card image if any
 
     files= get_collabcard_files(card_id)
     card=CollabcardSerializer(cards, user_id, cards.community)
-    card['images']=files[0]
-    card['member']=usr
-    card['pdf']=files[1]
+    card['images'] = files[0]
+    card['member'] = usr
+    card['pdf'] = files[1]
     if user_id:
-        card['state']= get_status_of_collabcard(member_id = user_id,community = cards.community,card = cards )
+        card['state'] = get_status_of_collabcard(member_id=user_id, community=cards.community, card=cards )
     # get tine stamp for card
     time_text = get_time_text(cards.date_epoch)
     card['created_at'] = time_text
-    return JsonResponse({"collabcard": card, 'answers':answers})
+    return JsonResponse({"collabcard": card, 'answers': answers})
   
 
 def get_answer_data(answer):
@@ -1628,7 +1628,7 @@ def get_answer_data(answer):
         attachements = get_answer_files(ans.id)
 
         answers.append({'id': ans.id, 'answer': ans.answer, 'created_at': time_text, 'member': usr,
-                        'images':attachements[0], 'pdf':attachements[1]})
+                        'images': attachements[0], 'pdf': attachements[1]})
     return answers
 
 
@@ -1637,8 +1637,8 @@ def get_collabcard_files(card_id):
     '''function to return pdf and image files of a collabcard'''
 
     files = Card_Attachment.objects.filter(collabcard=card_id)
-    img_list=[]
-    pdf=[]
+    img_list = []
+    pdf = []
     for file in files:
         if file.type == 'image':
             if file.file_url:
@@ -1652,7 +1652,7 @@ def get_collabcard_files(card_id):
             else:
                 pdf_url = {'pdf_file': url + file.attachment.url}
             pdf.append(pdf_url)
-    return (img_list,pdf)
+    return (img_list, pdf)
 
 
 def get_answer_files(answer_id):
