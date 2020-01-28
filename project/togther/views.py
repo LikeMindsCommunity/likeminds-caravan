@@ -348,6 +348,9 @@ def community(request, community_id):
         about=community.about
         about_1=about[0:180]
         about_2=about[180:]
+
+    admin_details=get_admins_details(community)
+
     context={'usr': user, 'similar_communities': communities,
              'community': community, 'admins': admin_details,
              'members': members, 'source': source,
@@ -415,6 +418,26 @@ def refer_members(request,community_id):
             # elif not member.exists():
             #     share_text = 'Hi, I have added '+ str(community.name) +' community on CollabMates. It will be good if you can join this community'
 
+            form_responses=Form_response.objects.filter(community=community_id,user=request.user.id).order_by('id')
+            form_answers_list=[]
+
+            is_introduction=False
+
+            for form in form_responses:
+
+                temp={}
+
+                if not is_introduction:
+                    temp['is_introduction']=True
+                    temp['answer']=form.response
+                    is_introduction=True
+                else:
+                    temp['is_introduction'] = False
+                    temp['answer']=form.data + " : " + form.response
+
+                form_answers_list.append(temp)
+
+
             context={   'share_url':share_url,
                         'community':community,
                         'copy_url':copy_url,
@@ -424,7 +447,9 @@ def refer_members(request,community_id):
                         'community_id':community_id,
                         'pc':pc,
                         'android_app_download_link':android_app_download_link,
-                        'ios_app_download_link':ios_app_download_link
+                        'ios_app_download_link':ios_app_download_link,
+                        'form_answer_list':form_answers_list,
+                        'form_answers_list_length':len(form_answers_list)
                      }
 
             return  render(request,'referal.html',context)
@@ -452,6 +477,28 @@ def refer_members(request,community_id):
                 print("Error in user info")
 
             return JsonResponse({'success':True})
+
+
+def get_admins_details(community):
+
+    '''function to get details of admins'''
+
+    admin_list=Members.objects.filter(community_id=community.id).filter(Q(state=1)|Q(state=2))
+    admins=[]
+    for admin in admin_list:
+        temp={}
+        temp['name']=admin.member_id.userinfo.name
+        temp['image_link']=admin.member_id.userinfo.image_link
+        form_response=Form_response.objects.filter(user=admin.member_id.id,community=community.id).order_by('id')
+        if form_response:
+            temp['introduction_answer']=form_response[0].response
+
+        admins.append(temp)
+
+    return admins
+
+
+
 
 
 def get_members_of_community(request,community):

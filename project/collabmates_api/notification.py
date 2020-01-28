@@ -4,9 +4,15 @@ import psycopg2
 from pyfcm import FCMNotification
 from django.conf import  settings
 import time
-from togther.models import Community_Rank
+from togther.models import (Community_Rank, collabcardState,
+                            MemberPollVotes, Collabcard,
+                            )
+from django.contrib.auth.models import User
+
 from utility.states import *
 import re
+from django.db.models import Q
+from utility.celery_beat_tasks import CeleryBeatTask
 # file to store configuration of the system
 
 
@@ -154,7 +160,7 @@ def send_follow_notification(card_id,user_id,answer):
         connection=get_connection()
         curr=connection.cursor()
         sql="select user_id from togther_collabcardstate where card_id=%s and state=%s"
-        parameter_list=[card_id,collabcard_follow_state]
+        parameter_list=[card_id, collabcard_follow_state]
         curr.execute(sql,parameter_list)
         member_list=curr.fetchall()
         curr.execute("select name from togther_userinfo where user_id_id=%s",[user_id])
@@ -181,10 +187,11 @@ def send_follow_notification(card_id,user_id,answer):
                 token_list.append(fcm_token)
         send_notification_to_multiple_devices(token_list,message)
 
-        for user_id in tagged_users_list:
-            send_notification_to_tagged_users(card_id=card_id, answerer_name=answerer_name[0],
-                                              answer=answer_text,
-                                              user_id=user_id, user_names=user_names)
+        for member_id in tagged_users_list:
+            if not str(member_id) == str(user_id):
+                send_notification_to_tagged_users(card_id=card_id, answerer_name=answerer_name[0],
+                                                  answer=answer_text,
+                                                  user_id=member_id, user_names=user_names)
 
 
 
@@ -271,13 +278,14 @@ def send_notification_for_join_requests(community_id,flag,member_id):
 # notifications for new collabcards
 
 @shared_task
-def send_notification_for_new_collabcard_posted(community_id,collabcard_title,poster_id,poster_name,type):
+def send_notification_for_new_collabcard_posted(community_id, collabcard_title,
+                                                card_creater_id, card_creater_name, **kwargs):
     '''function to send notification to all members when new collabcard is posted'''
     try:
         connection=get_connection()
         curr=connection.cursor()
-        sql="select member_id_id from togther_members where community_id_id=%s and member_id_id !=%s and (state=1 or state=2 or state=4)"
-        parameter_list=[community_id,poster_id]
+        sql="select member_id_id from togther_members where community_id_id=%s and member_id_id !=%s and (state=1 or state=2 or state=4 or state=7)"
+        parameter_list=[community_id,card_creater_id]
         curr.execute(sql,parameter_list)
         member_list=curr.fetchall()
 
@@ -287,27 +295,47 @@ def send_notification_for_new_collabcard_posted(community_id,collabcard_title,po
             token_list.append(token)
         community_name=get_community_name(community_id)
         message={}
-
-        if type == 2:
-            sub_title="Posted an event: "+str(collabcard_title)
-        elif type == 3:
-            sub_title="Posted a poll: "+ str(collabcard_title)
+        typ = kwargs['type'] if 'type' in kwargs else 0
+        if typ == 2:
+            sub_title = "Posted an event: "+str(collabcard_title)
+        elif typ == 3:
+            sub_title = "Posted a poll: "+ str(collabcard_title)
         else:
-            sub_title= str(collabcard_title)
+            sub_title = str(collabcard_title)
 
 
         message['payload']={
-            'title':str(poster_name) + " @ "+str(community_name),
-            'sub_title':sub_title,
-            'route':'route://community_collabcard?community_id=' + str(community_id) + '&community_name='+ str(community_name)
+            'title': str(card_creater_name) + " @ "+str(community_name),
+            'sub_title': sub_title,
+            'route': 'route://community_collabcard?community_id=' + str(community_id) + '&community_name='+ str(community_name)
         }
 
         send_notification_to_multiple_devices(token_list,message)
 
+        if typ == 2 or typ == 3:
+            task_name = 'poll_with_id_' + str(kwargs['card_id']) if typ == 3 else 'event_with_id_' + str(kwargs['card_id'])
+            task_path = 'collabmates_api.notification.poll_expiry_or_event_remainder_notification'
+            task_name, task_path = task_name, task_path
+            if task_name and task_path:
+                celerybeatask = CeleryBeatTask()
+                args = [community_name, community_id, typ]
+
+                date_time = int(kwargs['date_time']//1000) if isinstance(kwargs['date_time'], int)\
+                                else kwargs['date_time'][:10] if isinstance(kwargs['date_time'], str)\
+                                else int(str(kwargs['date_time'])[:10])
+
+                date_time = (date_time-1800) if typ == 2 else date_time
+                celerybeatask.get_or_create_new_beat_task(card_creater_id=card_creater_id,
+                                                          card_creater_name=card_creater_name,
+                                                          args=args, task_name=task_name, task_path=task_path,
+                                                          date_time=date_time, interval=False, crontab=True,
+                                                          collabcard_title=collabcard_title,
+                                                          card_id=kwargs['card_id'])
+
 
     except (Exception, psycopg2.Error) as error:
 
-        print ("Error while connecting to PostgreSQL", error)
+        print("Error while connecting to PostgreSQL", error)
 
 
 
@@ -512,7 +540,75 @@ def notification_to_complete_onboarding(user_id):
         send_notification_to_multiple_devices(token_list,message)
         print("notification send when user has not completed onbaording in 5 minutes")
 
+@shared_task
+def send_poll_or_event_notification(card_id, user_id):
+    """ send poll/event notification to poll/event card created person, when some one votes/attending """
+    card = Collabcard.objects.get(pk=card_id)
+    card_creator_fcm_token = card.user.userinfo.fcm_token
+
+    community_name = card.community.name
+    community_id = card.community.id
+
+    member = User.objects.get(pk=user_id)
+    member_name = member.userinfo.name
+
+    if card.type == 2:
+        sub_title = member_name + " is attending your event"
+        time.sleep(60)
+        attending_state = collabcardState.objects.filter(card=card, user=member).filter(Q(state=3) | Q(state=4))
+        if not attending_state.exists():
+            return
+    else:
+        sub_title = member_name + " voted on your poll"
+    message = {}
+    message['payload'] = {
+        'title': str(community_name),
+        'sub_title': sub_title,
+        'route': 'route://community_collabcard?community_id=' + str(community_id) + '&community_name=' + str(
+            community_name)
+    }
+
+    token_list = [card_creator_fcm_token]
+
+    send_notification_to_multiple_devices(token_list, message)
 
 
 
+@shared_task
+def poll_expiry_or_event_remainder_notification(community_name, community_id, typ, **kwargs):
 
+    """ function to send notification to all members when event/poll is going to start/end """
+    try:
+
+        if typ == 2:
+            token_list = list(collabcardState.objects.filter(card=kwargs['card_id']).filter(
+                                 Q(state=3) |
+                                 Q(state=4)).values_list('user__userinfo__fcm_token', flat=True))
+
+        else:
+            token_list = list(MemberPollVotes.objects.filter(card=kwargs[
+                                                                'card_id']).order_by('-id').values_list(
+                                                                'user__userinfo__fcm_token', flat=True))
+            print("token list ===== ", token_list)
+
+
+        community_name = community_name
+
+        if typ == 3:
+            sub_title = 'your poll ended. Tap to see results'
+        else:
+            sub_title = 'your event is starting in 30 minutes'
+
+        message = {}
+        message['payload'] = {
+            'title': str(community_name),
+            'sub_title': sub_title,
+            'route': 'route://community_collabcard?community_id=' + str(
+                      community_id) + '&community_name=' + str(community_name),
+        }
+
+        send_notification_to_multiple_devices(token_list, message)
+
+    except:
+
+        print("Error while connecting to PostgreSQL")

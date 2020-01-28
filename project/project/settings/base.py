@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     'dashboard',
     'crispy_forms',
     'utility',
+    'django_celery_beat',
 ]
 
 MIDDLEWARE = [

@@ -3,8 +3,10 @@ from rest_framework import serializers
 from togther.models import *
 from django.conf import settings
 from django.db.models import Q
-import  json
-url  = settings.URL
+from utility.utils import is_IG_community
+import json
+import time
+url = settings.URL
 
 #
 # class CommunitySerializer(serializers.HyperlinkedModelSerializer):
@@ -38,6 +40,10 @@ def CommunitySerializer(community):
     new_dict['date'] = community.active_since
     new_dict['members_count'] = get_member_count(community)
     new_dict['state']=int(community.hide_community)
+    if new_dict['state'] == 4:
+        new_dict['auto_approval']=is_IG_community(community)
+    else:
+        new_dict['auto_approval'] = False
     return new_dict
 
 def UserinfoSerializer(user):
@@ -73,7 +79,10 @@ def CollabcardSerializer(card,user,community=None):
         'pdf_count': card.pdf_count,
         'type': card.type,
         'date_time': card.date_time,
-        'duration': card.duration
+        'duration': card.duration,
+        'answers_count':card.answers_count,
+        'attending_count': card.attending_count,
+        'polls_count': card.polls_count
     }
     if card.type == 3:
         polls = []
@@ -90,16 +99,19 @@ def CollabcardSerializer(card,user,community=None):
     return collabcard
 
 
-def CollabcardPollsSerializer(poll,user,card):
-     polls = {
-         'id': poll.id,
-         'text': poll.text,
-         'is_selected': is_poll_selected(poll, user, card),
-         'percentage': int(poll_percentage(card,poll)),
+def CollabcardPollsSerializer(poll, user, card):
+    """ Poll serializer """
+    
+    polls = {
+        'id': poll.id,
+        'text': poll.text,
+        'is_selected': is_poll_selected(poll, user, card),
+    }
 
-     }
+    if card.date_time // 1000 <= time.time():
+        polls['percentage'] = int(poll_percentage(card, poll))
 
-     return polls
+    return polls
 
 
 def is_poll_selected(poll, user, card):
