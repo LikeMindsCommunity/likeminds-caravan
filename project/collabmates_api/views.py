@@ -1598,7 +1598,7 @@ def collabcard(request, card_id):
     # serializing user object
     usr = UserinfoSerializer(user)
     # user form response serialzer
-    form_response = FormResponseSerilaizer(cards.community.id, user_id)
+    form_response = FormResponseSerilaizer(cards.community.id, cards.user.id)
     if form_response:
         usr['responses'] = form_response
     # get the card image if any
