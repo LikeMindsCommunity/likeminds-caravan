@@ -563,7 +563,7 @@ def members(request, community_id):
         usr['member_state'] = mem.state
         form_response = FormResponseSerilaizer(community_id, mem.member_id.id)
         if form_response:
-            usr['responses'] = form_response
+            usr['response'] = form_response
         members.append(usr)
 
     return JsonResponse({'members': members})
@@ -1603,7 +1603,7 @@ def collabcard(request, card_id):
     # user form response serialzer
     form_response = FormResponseSerilaizer(cards.community.id, cards.user.id)
     if form_response:
-        usr['responses'] = form_response
+        usr['response'] = form_response
     # get the card image if any
     files = get_collabcard_files(card_id)
     card['images'] = files[0]
@@ -1762,7 +1762,7 @@ def community_cards(request, community_id):
             # form responses of user
             form_response = FormResponseSerilaizer(card.community.id, card.user.id)
             if form_response:
-                usr['responses'] = form_response
+                usr['response'] = form_response
             # get card images --------------------------------------------------------
             files = get_collabcard_files(card)
             # -----------------------------------------------------------------------
@@ -2363,7 +2363,7 @@ def community_collabcard_meta(request):
         # user form response serialzer
         form_response = FormResponseSerilaizer(card_instance.community.id, card_instance.user.id)
         if form_response:
-            usr['responses'] = form_response
+            usr['response'] = form_response
         # get card images --------------------------------------------------------
         files = get_collabcard_files(card_instance)
         # -----------------------------------------------------------------------
