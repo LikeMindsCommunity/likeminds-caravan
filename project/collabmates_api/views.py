@@ -626,7 +626,7 @@ def admins(request, community_id):
 def get_user_lpig_tags(user_id):
 
     '''function to get user lpig tags'''
-   
+
     legacy=User_Legacy.objects.filter(user_id=user_id)
     profession=User_Profession.objects.filter(user_id=user_id)
     interest=User_Interest.objects.filter(user_id=user_id)
@@ -836,10 +836,7 @@ def create_community(request):
             save_community_purpose_card.delay(community_id, card_id)
             print("updated card id >>>>>>>   \n",card.id,"\n")
             # created card will be auto followed by the creator if the card
-            follow=follow_collabcard()
-            follow.collabcard_id=card
-            follow.member_id=user
-            follow.save()
+            create_collabcard_state_for_user(card=card, user=user, state=collabcard_follow_state, community=community)
             #getting details of the user who is creating the community
             userinfo = Userinfo.objects.get(user_id = user.id)
 
@@ -1077,7 +1074,7 @@ def create_card(request):
 
 
 
-def create_collabcard_state_for_user(card,user,state,community):
+def create_collabcard_state_for_user(card, user, state, community):
     """ create collabcard state for a member for a card """
 
     collabcard_state_instance = collabcardState()
@@ -1208,13 +1205,13 @@ def check_member(email,community_id,member_id,res):
 
 def pending_members(request,community_id):
     ''' function to get members requested to join in a community '''
-    community = Community.objects.get(id = community_id)
-    pend_requests=Members.objects.filter(community_id=community).filter(state = 3)
+    community = Community.objects.get(id=community_id)
+    pend_requests = Members.objects.filter(community_id=community).filter(state=3)
     pending_requests = []
     for i in pend_requests:
-        print(i.member_id.id,"  ==  ",type(i))
-        resp = Form_response.objects.filter(community = community_id).filter(user = i.member_id.id).order_by('id')
-        user = Userinfo.objects.get(user_id = i.member_id.id)
+
+        resp = Form_response.objects.filter(community=community_id).filter(user=i.member_id.id).order_by('id')
+        user = Userinfo.objects.get(user_id=i.member_id.id)
         # serilaizing userinfo object
         usr = UserinfoSerializer(user)
         user_response = []
@@ -1523,7 +1520,7 @@ def request_response(request,req_dict=None):
             # update pending members count of community and referal text of user
             update_pending_member_count_in_engage(community)
             update_referral_text_in_engage_table.delay(community_id)
-        
+
             # uncomment to send
             # sending email to the user that his request is rejected for this community
             # member_request_approval_or_denied.delay(user_id=member_id,community_id=community_id,approved=False)
@@ -1588,8 +1585,8 @@ def collabcard(request, card_id):
     ''' function to get card details, answers and images '''
     # get the card object
 
-    cards = Collabcard.objects.get(id = card_id)
-    page = request.GET.get('page',1)
+    cards = Collabcard.objects.get(id=card_id)
+    page = request.GET.get('page', 1)
 
 
     # coverting current time into epoch time for getting time stamp of answers and card
@@ -1611,23 +1608,28 @@ def collabcard(request, card_id):
     else:
         answers = get_answer_data(answer)
 
+    # serializing Collabcard
+    card = CollabcardSerializer(cards, user_id, cards.community)
+
     user = Userinfo.objects.get(user_id=cards.user.id)
     # serializing user object
     usr = UserinfoSerializer(user)
+    # user form response serialzer
+    form_response = FormResponseSerilaizer(cards.community.id, user_id)
+    if form_response:
+        usr['responses'] = form_response
     # get the card image if any
-
-    files= get_collabcard_files(card_id)
-    card=CollabcardSerializer(cards, user_id, cards.community)
+    files = get_collabcard_files(card_id)
     card['images'] = files[0]
     card['member'] = usr
     card['pdf'] = files[1]
     if user_id:
-        card['state'] = get_status_of_collabcard(member_id=user_id, community=cards.community, card=cards )
+        card['state'] = get_status_of_collabcard(member_id=user_id, community=cards.community, card=cards)
     # get tine stamp for card
     time_text = get_time_text(cards.date_epoch)
     card['created_at'] = time_text
     return JsonResponse({"collabcard": card, 'answers': answers})
-  
+
 
 def get_answer_data(answer):
 
@@ -1743,49 +1745,46 @@ def community_cards(request, community_id):
     community = Community.objects.get(id = community_id)
     member_id=request.GET.get('member_id')
 
-    user_instance=User.objects.get(id=member_id)
+    # user_instance=User.objects.get(id=member_id)
 
     #is_tour=request.GET.get('is_tour',False)
 
     # if the community is pilot community and android tour is given
     if community.hide_community == '3':
-        card_list=get_cards_for_demo(community_id,member_id)
+        card_list = get_cards_for_demo(community_id,member_id)
         return JsonResponse({'collabcards': card_list})
 
-    size=request.GET.get('size','')
+    size = request.GET.get('size', '')
     if size:
-        size=int(size)
-        cards = Collabcard.objects.filter(community = community_id).order_by('id')[:size]
-        size=Collabcard.objects.filter(community=community_id).count()
+        size = int(size)
+        cards = Collabcard.objects.filter(community=community_id).order_by('id')[:size]
+        size = Collabcard.objects.filter(community=community_id).count()
     else:
-        cards = Collabcard.objects.filter(community = community_id).order_by('id')
-        size=len(cards)
+        cards = Collabcard.objects.filter(community=community_id).order_by('id')
+        size = cards.count()
 
-
-    collabcard_url=request.build_absolute_uri()
+    # collabcard_url=request.build_absolute_uri()
     # if collabcard_url in custom_cache:
     #     card_list=custom_cache.get(collabcard_url)
     # else:
     if True:
         card_list = []
         for card in cards:
-            user = Userinfo.objects.get(user_id = card.user)
+            user = Userinfo.objects.get(user_id=card.user)
             # serialize user object
             usr = UserinfoSerializer(user)
+            # form responses of user
+            form_response = FormResponseSerilaizer(card.community.id, card.user.id)
+            if form_response:
+                usr['responses'] = form_response
             # get card images --------------------------------------------------------
-            files=get_collabcard_files(card)
+            files = get_collabcard_files(card)
             # -----------------------------------------------------------------------
-            share_url = url+'/collabcard/'+str(card.id)
+            # share_url = url+'/collabcard/'+str(card.id)
 
-            # get time stamp
-            if str(card.date_epoch) == "-9223372036854775808":
-                # if there is no time stamp , return nothing
-                time_text=""
-            else:
-                # get time stamp
-                time_text = get_time_text(card.date_epoch)
+            time_text = '' if str(card.date_epoch) == "-9223372036854775808" else get_time_text(card.date_epoch)
             card_dict = CollabcardSerializer(card, member_id, card.community)
-            card_dict['state'] = get_status_of_collabcard(member_id,community,card)
+            card_dict['state'] = get_status_of_collabcard(member_id, community, card)
             card_dict['created_at'] = time_text
             card_dict['member'] = usr
             card_dict['images'] = files[0]
@@ -2364,8 +2363,8 @@ def community_collabcard_meta(request):
 
     ''' function to get the collabcard details '''
 
-    collabcard_ids=request.GET.get('collabcard_ids',False)
-    collabcard_ids=collabcard_ids.split(",")
+    collabcard_ids = request.GET.get('collabcard_ids', False)
+    collabcard_ids = collabcard_ids.split(",")
 
     member_id=get_member_id_from_headers(request)
 
@@ -2375,6 +2374,10 @@ def community_collabcard_meta(request):
         user = Userinfo.objects.get(user_id=card_instance.user)
         # serialize user object
         usr = UserinfoSerializer(user)
+        # user form response serialzer
+        form_response = FormResponseSerilaizer(card_instance.community.id, card_instance.user.id)
+        if form_response:
+            usr['responses'] = form_response
         # get card images --------------------------------------------------------
         files = get_collabcard_files(card_instance)
         # -----------------------------------------------------------------------
@@ -2856,9 +2859,9 @@ def edit_community(request):
 
     community_id=request.GET.get('community_id')
 
-    json_body=json.loads(request.body)
+    json_body = json.loads(request.body)
 
-    key=json_body['key']
+    key = json_body['key']
 
     if key == 'purpose':
         value = json_body['value']
