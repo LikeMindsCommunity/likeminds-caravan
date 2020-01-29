@@ -45,7 +45,15 @@ info_logger=logging.getLogger("info_logger")
 
 def index(request):
     '''function to show promotion page'''
-    return render(request, 'index.html',{'is_beta':settings.IS_BETA})
+    user_agent = parse(request.META['HTTP_USER_AGENT'])
+    os_type = user_agent.os.family
+
+    if os_type == "Android":
+        return render(request, 'mobile.html',{'is_beta':settings.IS_BETA})
+    elif os_type == "iOS":
+        return render(request, 'mobile.html',{'is_beta':settings.IS_BETA})
+    else:
+         return render(request, 'index.html',{'is_beta':settings.IS_BETA})
 
 
 def download_the_app(request):
@@ -773,6 +781,7 @@ def get_community_questions(community_id):
 def thankyou(request):
     email = request.GET.get("mail")
     print("email = = ", email)
+
     if email:
         mail = get_notified()
         mail.email = email
