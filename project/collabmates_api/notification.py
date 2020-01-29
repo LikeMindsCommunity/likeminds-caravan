@@ -83,15 +83,12 @@ def notification_meta(notification_list,message):
 
     if token_list_android:
         send_notification_for_android(token_list_android,message)
-    elif token_list_ios:
+
+    if token_list_ios:
         send_notification_for_ios(token_list_ios,message)
 
     print("Notification sent")
     print("\n")
-
-
-
-
 
 
 
@@ -261,13 +258,21 @@ def send_follow_notification(card_id,user_id,answer):
             "route":"route://collabcard?collabcard_id="+str(card_id)
         }
         token_list=[]
-
+        notification_list=[]
         for member in member_list:
             if str(member[0]) != user_id and str(member[0]) not in tagged_users_list:
-                fcm_token = get_token_for_fcm(member[0])
-                token_list.append(fcm_token)
-        send_notification_to_multiple_devices(token_list,message)
+                temp={}
+                notification_details = get_token_for_fcm(member[0],True)
+                temp['id']=member[0]
+                temp['fcm_token']=notification_details[0]
+                temp['mobile_os']=notification_details[1]
+                notification_list.append(temp)
 
+        notification_meta(notification_list,message)
+
+
+
+        #functionality to send notification to tagged users
         for member_id in tagged_users_list:
             if not str(member_id) == str(user_id):
                 send_notification_to_tagged_users(card_id=card_id, answerer_name=answerer_name[0],
@@ -399,6 +404,7 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title,
             'route': 'route://community_collabcard?community_id=' + str(community_id) + '&community_name='+ str(community_name)
         }
 
+
         notification_meta(notification_list,message)
 
         if typ == 2 or typ == 3:
@@ -425,6 +431,8 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title,
     except (Exception, psycopg2.Error) as error:
 
         print("Error while connecting to PostgreSQL", error)
+
+
 
 
 
