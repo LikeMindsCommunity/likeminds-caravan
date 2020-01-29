@@ -566,21 +566,24 @@ def user(request, user_id):
 
 def members(request, community_id):
     ''' function to get all the mebers of a community including admins and nominated members '''
-    community = get_object_or_404(Community, pk = community_id)
+    community = get_object_or_404(Community, pk=community_id)
     # get members of the community
-    member = Members.objects.filter(community_id = community).filter(Q(state=1)|Q(state=2)|Q(state=4)|Q(state=7)|Q(state=8)|Q(state=9))
+    member = Members.objects.filter(community_id=community).filter(Q(state=1) | Q(state=2) |
+                                                                   Q(state=4) | Q(state=7) |
+                                                                   Q(state=8) | Q(state=9))
     members = []
     for mem in member:
-        user = Userinfo.objects.filter(user_id = mem.member_id)
-        if user:
-            user = user[0]
-            # get user json
-            usr = UserinfoSerializer(user)
-            usr['member_state'] = mem.state
-            members.append(usr)
-        else:
+
+        if not mem.member_id.userinfo:
             continue
-    return JsonResponse ({'members': members})
+        usr = UserinfoSerializer(mem.member_id.userinfo)
+        usr['member_state'] = mem.state
+        form_response = FormResponseSerilaizer(community_id, mem.member_id.id)
+        if form_response:
+            usr['responses'] = form_response
+        members.append(usr)
+
+    return JsonResponse({'members': members})
 
 
 def admins(request, community_id):
