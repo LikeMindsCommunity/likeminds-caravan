@@ -697,6 +697,9 @@ def poll_expiry_or_event_remainder_notification(community_name, community_id, ty
         }
 
         send_notification_to_multiple_devices(token_list, message)
+        # disable the task , to prevent it from trigerring in future
+        beat_task = CeleryBeatTask()
+        beat_task.stop_task(task_name=kwargs['task_name'])
 
     except:
 
