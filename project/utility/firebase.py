@@ -227,3 +227,20 @@ def upload_tag_thumbnail(tag_id,image_url):
         return None
     finally:
         os.remove(file_name)
+
+
+
+def upload_main_website_images_to_firebase(file):
+
+    '''saving main website images in firebase'''
+    
+    name="third_section"
+    storage.child("files").child("main_website").child(name).put(file)
+    time.sleep(.200)
+
+    image_url = storage.child("files").child("main_website").child(name).get_url(None)
+
+    print(image_url)
+
+
+#upload_main_website_images_to_firebase("media/main_website/last.png")
