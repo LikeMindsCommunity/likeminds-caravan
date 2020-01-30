@@ -915,14 +915,19 @@ def create_community(request):
 @csrf_exempt
 def create_card(request):
     ''' function to create a card '''
+    res_dict = request.GET.dict()
+    print("res dict ======   ",res_dict)
     user_id = request.GET.get('member_id')
     community_id = request.GET.get('community_id')
+
+    # member_id=get_member_id_from_headers(request)
+    # print("member if ===== ",member_id)
     # image_count = request.GET.get('image_count',0)
     # pdf_count = request.GET.get('pdf_count',0)
 
-
+    print("user instance id =====   ",user_id)
     user_instance = User.objects.get(id = user_id)
-    user = user_instance.userinfo
+    userinfo_instance = user_instance.userinfo
     community = Community.objects.get(id = community_id)
     if request.method == 'POST':
         res = json.loads(request.body,strict=False)
@@ -967,7 +972,9 @@ def create_card(request):
         # if its a pilot community making the user promoter and updating community state to pilot active
         info_logger.info(community.purpose_collabcard)
         is_pilot_active=False
+        print("is pilot =====   ",is_pilot_active)
         if not community.purpose_collabcard and community.hide_community == '3':
+            print("inside here babe =====   ")
             community.purpose_collabcard=card.id
             community.save()
             join_time = time.time()
@@ -977,6 +984,8 @@ def create_card(request):
             community.save()
 
             is_pilot_active = True
+            print("is pilot =====   ", is_pilot_active)
+
             introduction_question, introduction_answer = auto_create_collabcard(user_instance, community)
             json_body = {
                 'communityId': community_id,
@@ -990,20 +999,27 @@ def create_card(request):
                 'member_id': user_id
             }
 
+            print("json body =====   ", json_body)
+            print("params =======   ", params)
+
             # calling create card APi with required credentials
             link = url + "/api/create_collabcard"
-            rqst.post(link, params=params, json=json_body)
+            post_response = rqst.post(link, params=params, json=json_body)
+            print("post response ====  ",post_response)
 
-
-        Community.objects.filter(id=community_id).update(updated_at=time.time())
+        community.updated_at=time.time()
+        community.save()
 
         collabcard = CollabcardSerializer(card, user_id, community)
+        print("collabcard serailiazer  =======   ",collabcard)
+
 
         collabcard['date'] = datetime.today().strftime('%d-%m-%Y')
 
         # get user object's serialized json
-        usr = UserinfoSerializer(user)
-        collabcard['member'] = usr
+        user_info_serializer = UserinfoSerializer(userinfo_instance)
+        collabcard['member'] = user_info_serializer
+        print(" mnember serailiazer =======   ",user_info_serializer)
 
 
         # #card creater auto_seen the card
@@ -1030,7 +1046,7 @@ def create_card(request):
             if is_pilot_active:
                 # updating the last unseen card for community and member who become promoter
                 engage=Member_Engage.objects.get(community_id=community,
-                                          member_id=user_instanced)
+                                          member_id=user_instance)
                 engage.last_unseen_conversation=card
                 engage.updated_at = time.time()
                 engage.save()
@@ -1062,13 +1078,13 @@ def create_card(request):
 
         # sending notification to the user
 
-        send_notification_for_new_collabcard_posted.delay(community_id, res['title'],
-                                                          user_id, user.name,
-                                                          type=type, date_time=date_time,
-                                                          card_id=card.id)
-
-        if type != 1:                         # stopping mail for introduction cards
-            send_email_for_collabcard(community, user, card,type)
+        # send_notification_for_new_collabcard_posted.delay(community_id, res['title'],
+        #                                                   user_id, userinfo_instance.name,
+        #                                                   type=type, date_time=date_time,
+        #                                                   card_id=card.id)
+        #
+        # if type != 1:                         # stopping mail for introduction cards
+        #     send_email_for_collabcard(community, userinfo_instance, card,type)
 
 
 
