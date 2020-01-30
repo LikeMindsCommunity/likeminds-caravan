@@ -925,7 +925,7 @@ def create_card(request):
     user = Userinfo.objects.get(user_id = user_id)
     community = Community.objects.get(id = community_id)
     if request.method == 'POST':
-        res = json.loads(request.body)
+        res = json.loads(request.body,strict=False)
         # creating card
         # type=0 normal card, type =1 intro card, type 2 is event card and type 3 is poll card
         type = int(res['type']) if 'type' in res else 0
