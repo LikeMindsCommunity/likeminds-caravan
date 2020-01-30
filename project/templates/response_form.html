@@ -250,7 +250,6 @@
                 var values = $('#response_form').serialize();
                 var community_id='{{community.id}}'
                 url="/community/"+community_id+"?cta=join";
-                console.log(values)
 
                   var test=$('#length_check').val()
                     if(test.length >= 50)
@@ -259,6 +258,9 @@
                         $('#simple_button').hide();
                         $('#loading_button').show();
 
+                    }else{
+                        alert("Please Right your Introduction in bit more detail")
+                        return;
                     }
 
                    $.ajax({
