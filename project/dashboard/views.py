@@ -925,13 +925,17 @@ def add_dropdown_responses(request,question_id):
                 'question_id':question_id,
                 'question_name':form_data.data,
                 'length':len(dropdown_list),
-                'dropdown_status': dropdown_status
+                'dropdown_status': dropdown_status,
+                'dropdown_selection_limit':form_data.dropdown_selection_limit
         }
         return render(request,'dashboard/add_questions_dropdown.html',context)
     else:
         option_data=request.POST.get('data')
         option_data=json.loads(option_data)
         dropdown_state=request.POST.get('dropdown_state')
+        dropdown_limit=request.POST.get('dropdown_selection_limit')
+
+
         dropdown_list=[]
 
         for option in option_data:
@@ -940,6 +944,7 @@ def add_dropdown_responses(request,question_id):
             dropdown_list=json.dumps(dropdown_list)
             form_data.dropdown_list=dropdown_list
             form_data.question_state=dropdown_state
+            form_data.dropdown_selection_limit=dropdown_limit if dropdown_limit else None
             form_data.save()
             return JsonResponse({"success": True})
         else:
