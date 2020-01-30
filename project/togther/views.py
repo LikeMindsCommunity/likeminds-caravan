@@ -32,6 +32,7 @@ from user_agents import parse
 import time
 import logging
 import itertools
+import re
 url = settings.URL
 
 # uncomment to run it in localhost
@@ -241,7 +242,7 @@ def community(request, community_id):
             questions, validation_error,  user, data, community, filled_answers = join_community(request, community_id,ref_id)
             if questions:
 
-                data = itertools.zip_longest(data,filled_answers,fillvalue='')
+                #data = itertools.zip_longest(data,filled_answers,fillvalue='')
                 if member_state == 0 or member_state == 5:
                     return render(request, 'response_form.html', {"data": data, 'usr': user,
                                                                   'community': community,'ref_id':ref_id,
@@ -250,12 +251,14 @@ def community(request, community_id):
             else:
 
                 if community.hide_community == '3':
-                    if ref_id != '':
-                        base_url = reverse('refer_members', kwargs={'community_id': community_id})
-                        query_string = urlencode({'ref_id': ref_id})
-                        url = '{}?{}'.format(base_url, query_string)
-                        return redirect(url)
-                    return redirect('refer_members',community_id=community.id)
+                    # if ref_id != '':
+                    #     base_url = reverse('refer_members', kwargs={'community_id': community_id})
+                    #     query_string = urlencode({'ref_id': ref_id})
+                    #     url = '{}?{}'.format(base_url, query_string)
+                    #     return redirect(url)
+                    #return redirect('refer_members',community_id=community.id)
+                    JsonResponse({'success':True})
+
 
                 # onboard = False
                 # user_legacy = User_Legacy.objects.filter(user_id = request.user)
@@ -266,7 +269,7 @@ def community(request, community_id):
                 # if user_legacy.exists() and user_profession.exists() and user_interests.exists() and user_geography.exists():
                 #     onboard = True
 
-                return redirect('refer_members',community_id=community.id)
+                return JsonResponse({'success':True})
         elif cta == 'share':
             cta = 'join'
 
@@ -726,16 +729,18 @@ def join_community(request, community_id,ref_id):
                 continue
 
             question_dict['key'] = key
-            question_dict['value'] = value
+            question_dict['value'] = re.sub(r'(?<=[.,])(?=[^\s])', r' ', value)
+
 
             values_list.append(value)
 
             response_list.append(question_dict)
 
-            if value == '' or value == None or value == ' ':
-                validation_error = True
-                question_format = get_community_questions(community_id)
-                return True, validation_error, user, question_format, community, values_list
+
+        # if value == '' or value == None or value == ' ':
+        #         validation_error = True
+        #         question_format = get_community_questions(community_id)
+        #         return True, validation_error, user, question_format, community, values_list
 
         json_dict = {}
         json_dict['questions'] = response_list
@@ -747,7 +752,7 @@ def join_community(request, community_id,ref_id):
 
     else:
         question_format = get_community_questions(community_id)
-        
+
         if not question_format:
             params = {'member_id': member_id, 'community_id': community_id}
             rqst.post(join_url, params=params, json={})
@@ -764,15 +769,18 @@ def get_community_questions(community_id):
 
     for each_question in questions:
         temp = {}
-        if each_question.is_dropdown:
-            temp['is_dropdown'] = each_question.is_dropdown
+        if each_question.question_state:
+            temp['question_state'] = each_question.question_state
             temp['dropdown_list'] = json.loads(each_question.dropdown_list)
             temp['data'] = each_question.data
         else:
-            temp['is_dropdown'] = each_question.is_dropdown
+            temp['question_state'] = each_question.question_state
             temp['dropdown_list'] = []
             temp['data'] = each_question.data
         temp['data_type'] = each_question.data_type
+        temp['id']=each_question.id
+        if each_question.dropdown_selection_limit:
+            temp['max_selections']=each_question.dropdown_selection_limit
         question_format.append(temp)
 
     return question_format

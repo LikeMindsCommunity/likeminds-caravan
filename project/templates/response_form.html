@@ -94,13 +94,7 @@
 
 
 
-{% if validation_error %}
-<div class="container" style=" width: 91%; color: #9F6000; background-color: #FEEFB3;  border: 1px solid;
- margin: 10px 0px; padding: 15px 10px 15px 50px;">
 
-    Please fill all the answers
-</div>
-{% endif %}
 
 <body style="margin:0 auto; max-width:786px;background-color:#f2f2f2;">
 
@@ -132,27 +126,48 @@
     <div class="container">
 
             <div class="" style="margin: 14px 14px !important;">
-            <form class="ui form" action="" method="post"  >
+            <form class="ui form"   onsubmit="return false" id="response_form">
                 {% csrf_token %}
 
-                {% for question,answer in data %}
+                {% for question in data %}
                 <div class=" required field">
                     {% if question.data_type == 'text' %}
-                        {% if question.is_dropdown == 0 %}
+                        {% if question.question_state == 0 %}
                             <label class="Roboto" style="font-size:13px;margin-left:7px;">{{question.data}}</label>
 
                             {% if forloop.counter == 1 %}
-                               <textarea rows="3" cols="4" style="border-radius: 10px;" name ="{{question.data}}" minlength="50" required placeholder="This will be visible to all the members of the community" oninput="check(this)" id="length_check">{{answer}}</textarea>
+                               <textarea rows="3" cols="4" style="border-radius: 10px;" name ="{{question.data}}" minlength="50" required placeholder="This will be visible to all the members of the community" oninput="check(this)" id="length_check"></textarea>
                             {% else %}
-                               <textarea rows="3" cols="4" style="border-radius: 10px;" name ="{{question.data}}" required >{{answer}}</textarea>
+                               <textarea rows="3" cols="4" style="border-radius: 10px;" name ="{{question.data}}" required ></textarea>
                             {% endif %}
                         {% else %}
                              <label class="Roboto" style="font-size:13px;margin-left:7px;" >{{question.data}}</label>
-                                {% if question.is_dropdown == 2 %}
-                                <div class="ui fluid multiple search selection dropdown"  style="border-radius: 10px;" >
+                                {% if question.question_state == 2 %}
+<!--                                     <input type="hidden" name="{{question.data}}">-->
+
+<!--                                           <select name="{{question.data}}" multiple="" class="ui search fluid dropdown multiple_select" id="multiple_select" >-->
+<!--                                          <option value="">Enter your choice or select from dropdown</option>-->
+<!--                                           {% for option in question.dropdown_list %}-->
+<!--                                                <option value="{{option}}">{{option}}</option>-->
+<!--                                           {% endfor %}-->
+<!--                                        </select>-->
+
+                      <div class="ui fluid multiple search selection dropdown {{question.id}}"  style="border-radius: 10px;" >
+
+                                      <input type="hidden" name="{{question.data}}">
+                                      <i class="dropdown icon"></i>
+                                       <div class="default text">Select {{question.max_selections}}</div>
+                                    <div class="menu">
+                                        {% for option in question.dropdown_list %}
+                                                <div class="item" data-value="{{option}}">{{option}}</div>
+                                        {% endfor %}
+                                     </div>
+                                </div>
+
+
                                 {% else %}
-                             <div class="ui selection dropdown" style="border-radius: 10px;" >
-                                {% endif %}
+                             <div class="ui selection dropdown single_select" style="border-radius: 10px;" >
+
                                       <input type="hidden" name="{{question.data}}">
                                       <i class="dropdown icon"></i>
                                        <div class="default text">Select</div>
@@ -162,6 +177,7 @@
                                         {% endfor %}
                                      </div>
                                 </div>
+                                {% endif %}
 
                         {% endif %}
                     {% endif %}
@@ -171,13 +187,15 @@
                 <input type="hidden" name="ref_id" value="{{ref_id}}"/>
                 <br>
 
-<div align="center" >
+
+            </form>
+
+                <div align="center" >
                  <button class="ui  button " id="simple_button" type="submit" style="background-color: #00897b; color:white;position:relative;display:block">Submit</button>
                  <button class="ui loading button " id="loading_button" type="submit" style="background-color: #00897b; color:white;position:relative;display:none">Submit</button>
 
 
 </div>
-            </form>
             </div>
 
 
@@ -187,39 +205,82 @@
 </html>
 
 <script>
-       $('.ui.selection.dropdown').dropdown();
-
-function check(input) {
-   if (input.value.length < '50') {
-
-        input.setCustomValidity('Please write your introduction in bit more detail');
-   }
-
-   else if(input.value.length >= '50')
-   {
-     input.setCustomValidity('');
-   }
 
 
- }
-
- $('#back_button').click(function(e){
-
-window.history.back();
-})
+       $('.ui.selection.dropdown.single_select').dropdown();
 
 
-$('#simple_button').click(function(e){
+        {% for question in data %}
+            $('.ui.dropdown.{{question.id}}')
+                  .dropdown({
+                    allowAdditions: true,
+                    maxSelections: '{{question.max_selections}}'
 
-var test=$('#length_check').val()
-if(test.length >= 50)
-{
+                  })
+                ;
+            {% endfor %}
 
-    $('#simple_button').hide();
-    $('#loading_button').show();
 
-}
-})
+
+        function check(input) {
+           if (input.value.length < '50') {
+
+                input.setCustomValidity('Please write your introduction in bit more detail');
+           }
+
+           else if(input.value.length >= '50')
+           {
+             input.setCustomValidity('');
+           }
+
+
+         }
+
+
+
+         $('#back_button').click(function(e){
+
+        window.history.back();
+        })
+
+
+
+        $('#simple_button').click(function(e){
+
+                var values = $('#response_form').serialize();
+                var community_id='{{community.id}}'
+                url="/community/"+community_id+"?cta=join";
+
+                  var test=$('#length_check').val()
+                    if(test.length >= 50)
+                    {
+
+                        $('#simple_button').hide();
+                        $('#loading_button').show();
+
+                    }else{
+                        alert("Please Right your Introduction in bit more detail")
+                        return;
+                    }
+
+                   $.ajax({
+
+
+                        url:url,
+                        type:"POST",
+                        data:values,
+                        success:function(data){
+                            console.log(data)
+                            location.href="/refer_members/"+'{{community.id}}'
+
+
+                        }
+
+
+                    })
+
+
+        })
 
 
 

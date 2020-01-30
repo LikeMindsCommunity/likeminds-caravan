@@ -344,21 +344,21 @@ def join_community(request, community_id):
     for i in data:
         if not first_question:
             ques = {'question':i.data,
-                    'question_state':i.is_dropdown,
+                    'question_state':i.question_state,
                     }
-            if i.is_dropdown == 1:
+            if i.question_state == 1:
                 ques['dropdown_list'] = json.loads(i.dropdown_list)
             first_question=True
         else:
 
             ques = {'question': i.data}
-            if i.is_dropdown == 1:
+            if i.question_state == 1:
                 ques['dropdown_list'] = json.loads(i.dropdown_list)
                 ques['question_state']=1
-            elif i.is_dropdown == 2:
+            elif i.question_state == 2:
                 ques['dropdown_list'] = json.loads(i.dropdown_list)
                 ques['question_state'] = 3                            # multiselect for android only
-            elif i.is_dropdown == 0:
+            elif i.question_state == 0:
                 ques['question_state'] = 2                           # no limit on answer condition for android
 
 
