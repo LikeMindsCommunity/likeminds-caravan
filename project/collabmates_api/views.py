@@ -921,8 +921,8 @@ def create_card(request):
     # pdf_count = request.GET.get('pdf_count',0)
 
 
-    # useer = User.objects.get(id = user_id)
-    user = Userinfo.objects.get(user_id = user_id)
+    user_instance = User.objects.get(id = user_id)
+    user = user_instance.userinfo
     community = Community.objects.get(id = community_id)
     if request.method == 'POST':
         res = json.loads(request.body,strict=False)
@@ -930,7 +930,7 @@ def create_card(request):
         # type=0 normal card, type =1 intro card, type 2 is event card and type 3 is poll card
         type = int(res['type']) if 'type' in res else 0
 
-        card = Collabcard.objects.filter(community=community, user=user.user_id, type=1)
+        card = Collabcard.objects.filter(community=community, user=user_instance, type=1)
         if card.exists() and type == 1:
             # if welcome card for user is already existing
             return JsonResponse({'success':False})
@@ -939,7 +939,7 @@ def create_card(request):
         card = Collabcard()
         card.title = res['title']
         card.community = community
-        card.user = user.user_id
+        card.user = user_instance
         card.type = type
         card.image_count = res['image_count'] if ('image_count' in res) else 0
         card.pdf_count = res['pdf_count'] if ('pdf_count' in res) else 0
@@ -971,13 +971,13 @@ def create_card(request):
             community.purpose_collabcard=card.id
             community.save()
             join_time = time.time()
-            Members.objects.filter(community_id=community, member_id=user.user_id).update(state=1, created_at=join_time)
+            Members.objects.filter(community_id=community, member_id=user_instance).update(state=1, created_at=join_time)
             # changing community state to 0 (zero) to make it a active community
             community.hide_community = '4'
             community.save()
 
             is_pilot_active = True
-            introduction_question, introduction_answer = auto_create_collabcard(user.user_id, community)
+            introduction_question, introduction_answer = auto_create_collabcard(user_instance, community)
             json_body = {
                 'communityId': community_id,
                 'title': introduction_answer,
@@ -987,7 +987,7 @@ def create_card(request):
             }
             params = {
                 'community_id': community_id,
-                'member_id': user.user_id.id
+                'member_id': user_id
             }
 
             # calling create card APi with required credentials
@@ -1020,17 +1020,17 @@ def create_card(request):
         # follow.save()
 
         # #saving the state in collabcardState table instead of follow collabcard
-        create_collabcard_state_for_user(card=card, user=user.user_id,
+        create_collabcard_state_for_user(card=card, user=user_instance,
                                          state=collabcard_follow_state,
                                          community=community)
 
         update_last_answer_id(card.id,"")
 
-        if is_member_engage(community,user.user_id):
+        if is_member_engage(community,user_instance):
             if is_pilot_active:
                 # updating the last unseen card for community and member who become promoter
                 engage=Member_Engage.objects.get(community_id=community,
-                                          member_id=user.user_id)
+                                          member_id=user_instanced)
                 engage.last_unseen_conversation=card
                 engage.updated_at = time.time()
                 engage.save()
@@ -1038,8 +1038,8 @@ def create_card(request):
                 #updating the members engage for members who is refered by user
                 refered_members=get_referred_members_of_a_member(community_id,user_id)
                 for member in refered_members:
-                    user_id=User.objects.get(id=member)
-                    engage=Member_Engage.objects.get(community_id=community,member_id=user_id)
+                    refered_members_user_instance=User.objects.get(id=member)
+                    engage=Member_Engage.objects.get(community_id=community,member_id=refered_members_user_instance)
                     engage.last_unseen_conversation=card
                     engage.last_unseen_count=1
                     engage.updated_at = time.time()
@@ -1048,7 +1048,7 @@ def create_card(request):
 
         else:
             engage = Member_Engage()
-            engage.member_id = user.user_id
+            engage.member_id = user_instance
             engage.community_id = community
             engage.last_unseen_conversation = card
             engage.updated_at = time.time()
