@@ -872,7 +872,7 @@ def insert_pre_create_community(community):
 
 
         # # inserting the questions
-        sql="insert into togther_form_data(data,data_type,community_id_id,is_dropdown) values(%s,%s,%s,%s)"
+        sql="insert into togther_form_data(data,data_type,community_id_id,question_state) values(%s,%s,%s,%s)"
         parameter_list=[community['question'],'text',community_id,0]
         curr.execute(sql, parameter_list)
         conn.commit()

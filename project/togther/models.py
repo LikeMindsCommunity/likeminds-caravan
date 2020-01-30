@@ -68,8 +68,9 @@ class Form_data (models.Model):
     community_id = models.ForeignKey(Community, on_delete = models.CASCADE)
     data = models.CharField(max_length = 400)
     data_type = models.CharField(max_length = 20, choices = response_choices, default = 'text')
-    is_dropdown = models.IntegerField(default=0)
+    question_state = models.IntegerField(default=0)
     dropdown_list = models.TextField(null=True)
+    dropdown_selection_limit=models.IntegerField(null=True)
 
     def __str__(self):
         return self.community_id.name
