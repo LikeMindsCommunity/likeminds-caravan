@@ -51,8 +51,9 @@ from utility.utils import (decode_meta_from_url, update_tag_image,
 from utility.states import collabcard_states, card_types, member_states
 
 from utility.tasks import (mail_triger, new_member_request,
-                           member_request_approval_or_denied, send_mail_for_report_abuse,
-                           send_mail_for_report_abuse__of_user)
+                           member_request_approval_or_denied,
+                           send_mail_for_report_abuse,
+                           )
 from utility.firebase import update_last_answer_id, upload_image_to_firebase, upload_community_thumbnail, upload_community_files
 from .raw_queries import compute_rank
 from multiprocessing.pool import ThreadPool
