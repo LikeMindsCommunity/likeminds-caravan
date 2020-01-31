@@ -71,7 +71,7 @@ margin-right:10px;
  content: '';
     position: absolute !important ;
     top: 57% !important;
-    background-image: url('https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fuser%2F204%2Fimg_user_204?alt=media&token=39ea5ef6-ce56-46a1-9c1e-f5ee9893f532');
+    background-image: url('{{request.user.userinfo.image_link}}');
     background-size: cover !important;
     background-repeat: no-repeat !important;
     transform: translate(-50%, -50%) !important;
