@@ -51,7 +51,7 @@ from utility.utils import (decode_meta_from_url, update_tag_image,
 from utility.states import collabcard_states, card_types, member_states
 
 from utility.tasks import (mail_triger, new_member_request,
-                           member_request_approval_or_denied, send_mail_for_report_abuse__on_collabcard,
+                           member_request_approval_or_denied, send_mail_for_report_abuse,
                            send_mail_for_report_abuse__of_user)
 from utility.firebase import update_last_answer_id, upload_image_to_firebase, upload_community_thumbnail, upload_community_files
 from .raw_queries import compute_rank
@@ -3597,7 +3597,7 @@ def push_report(request):
                 reported_user_name = reported_user_instance.userinfo.name
             else:
                 reported_user_name = None
-            send_mail_for_report_abuse__on_collabcard.delay(user_instance.userinfo.name, collabcard_instance.title,
+            send_mail_for_report_abuse.delay(user_instance.userinfo.name, collabcard_instance.title,
                                                             report_tags_instance.tag_name,
                                                             collabcard_instance.community.name,
                                                             community_url, reported_user_name, reason)
