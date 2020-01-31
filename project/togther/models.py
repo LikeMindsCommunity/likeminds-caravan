@@ -2,51 +2,61 @@ from django.db import models
 from django.contrib.auth.models import User
 import time
 
-
 response_choices = (
-    ('text','Text'),
-    ('textarea','Textarea'),
-    ('pdf','PDF'),
+    ('text', 'Text'),
+    ('textarea', 'Textarea'),
+    ('pdf', 'PDF'),
 )
 
 card_action = (
-    ('like','Like'),
-    ('share','Share'),
+    ('like', 'Like'),
+    ('share', 'Share'),
 )
 
 
-
-class Community (models.Model):
-
-    name = models.CharField(max_length = 200)
+class Community(models.Model):
+    name = models.CharField(max_length=200)
     about = models.TextField()
-    purpose = models.CharField(max_length= 2048)
-    location = models.CharField(max_length = 200)
+    purpose = models.CharField(max_length=2048)
+    location = models.CharField(max_length=200)
     image_url = models.ImageField(upload_to="media/community", null=True)
-    members_count = models.IntegerField(default = 0)
-    active_since = models.DateField(auto_now_add = True)
-    whatsapp_group_link = models.CharField(max_length = 400, null=True)
-    created_at=models.BigIntegerField(default=-9223372036854775808)
-    updated_at=models.BigIntegerField(default=-9223372036854775808)
-    purpose_collabcard=models.IntegerField(null=True)
-    hide_community=models.CharField(default=0,max_length=1)
-    introduction_text=models.CharField(max_length= 2048,null=True)
-    image_link=models.CharField(max_length= 500,null=True)
-    thumbnail=models.CharField(max_length=500,null=True)
-    introduction_text_state=models.IntegerField(default=0)
-
+    members_count = models.IntegerField(default=0)
+    active_since = models.DateField(auto_now_add=True)
+    whatsapp_group_link = models.CharField(max_length=400, null=True)
+    created_at = models.BigIntegerField(default=-9223372036854775808)
+    updated_at = models.BigIntegerField(default=-9223372036854775808)
+    purpose_collabcard = models.IntegerField(null=True)
+    hide_community = models.CharField(default=0, max_length=1)
+    introduction_text = models.CharField(max_length=2048, null=True)
+    image_link = models.CharField(max_length=500, null=True)
+    thumbnail = models.CharField(max_length=500, null=True)
+    introduction_text_state = models.IntegerField(default=0)
 
     def __str__(self):
         return self.name
 
-class Members (models.Model):
+    def save(self, *args, **kwargs):
+        if self.created_at <= 0:
+            self.created_at = time.time()
+        self.updated_at = time.time()
+        super(Community, self).save(*args, **kwargs)
+
+
+class Members(models.Model):
     member_id = models.ForeignKey(User, on_delete=models.CASCADE)
-    community_id = models.ForeignKey(Community, on_delete = models.CASCADE)
-    state=models.IntegerField(null=True)
-    created_at=models.BigIntegerField(default=-9223372036854775808)
-    tool_state=models.IntegerField(default=0)
+    community_id = models.ForeignKey(Community, on_delete=models.CASCADE)
+    state = models.IntegerField(null=True)
+    created_at = models.BigIntegerField(default=-9223372036854775808)
+    tool_state = models.IntegerField(default=0)
+
     def __str__(self):
         return self.community_id.name
+
+    def save(self, *args, **kwargs):
+        if self.created_at <= 0:
+            self.created_at = time.time()
+        super(Members, self).save(*args, **kwargs)
+
 
 # class Admins (models.Model):
 #     admin_id = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -55,189 +65,198 @@ class Members (models.Model):
 #     def __str__(self):
 #         return self.community_id.name
 
-class Community_tags (models.Model):
-    community_id = models.ForeignKey(Community, on_delete = models.CASCADE)
-    category = models.CharField(max_length = 200,null=True)
-    tags_id=models.IntegerField(default=0,null=True)
-    state=models.CharField(max_length=40,null=True)
+class Community_tags(models.Model):
+    community_id = models.ForeignKey(Community, on_delete=models.CASCADE)
+    category = models.CharField(max_length=200, null=True)
+    tags_id = models.IntegerField(default=0, null=True)
+    state = models.CharField(max_length=40, null=True)
 
     def __str__(self):
         return self.category
 
-class Form_data (models.Model):
-    community_id = models.ForeignKey(Community, on_delete = models.CASCADE)
-    data = models.CharField(max_length = 400)
-    data_type = models.CharField(max_length = 20, choices = response_choices, default = 'text')
-    is_dropdown = models.IntegerField(default=0)
+
+class Form_data(models.Model):
+    community_id = models.ForeignKey(Community, on_delete=models.CASCADE)
+    data = models.CharField(max_length=400)
+    data_type = models.CharField(max_length=20, choices=response_choices, default='text')
+    question_state = models.IntegerField(default=0)
     dropdown_list = models.TextField(null=True)
+    dropdown_selection_limit = models.IntegerField(null=True)
 
     def __str__(self):
         return self.community_id.name
 
-class Userinfo (models.Model):
 
+class Userinfo(models.Model):
     user_id = models.OneToOneField(User, on_delete=models.CASCADE)
-    name = models.CharField(max_length = 200)
-    email = models.CharField(max_length = 200)
-    city = models.CharField(max_length = 100, null = True)
-    latitude = models.FloatField(null = True)
+    name = models.CharField(max_length=200)
+    email = models.CharField(max_length=200)
+    city = models.CharField(max_length=100, null=True)
+    latitude = models.FloatField(null=True)
     longitude = models.FloatField(null=True)
-    address = models.CharField(max_length = 1024, null= True)
-    headline = models.CharField(max_length = 200, null= True)
-    contact_number = models.BigIntegerField(null=True,default=0)
-    gender = models.IntegerField(null = True)
-    image_url = models.CharField(max_length = 500, null = True)
-    image_file = models.ImageField(upload_to='media/profile_pics/',null =True)
-    interests = models.CharField(max_length = 400,null = True)
-    about = models.CharField(max_length = 400, null = True)
-    fb_link = models.CharField(max_length = 400, null = True)
-    linkedin_link = models.CharField(max_length = 400, null = True)
-    fcm_token=models.CharField(max_length=1024,null=True)
-    login_type=models.CharField(max_length=50,null=True)
-    login_json=models.TextField(null=True)
-    secondary_email=models.CharField(max_length = 200,null=True)
-    mobile_os=models.CharField(max_length = 200,null=True)
-    created_at=models.BigIntegerField(default=-9223372036854775808)
-    version_code=models.IntegerField(null=True,default=21)
-    image_link=models.CharField(max_length=500,null=True)
+    address = models.CharField(max_length=1024, null=True)
+    headline = models.CharField(max_length=200, null=True)
+    contact_number = models.BigIntegerField(null=True, default=0)
+    gender = models.IntegerField(null=True)
+    image_url = models.CharField(max_length=500, null=True)
+    image_file = models.ImageField(upload_to='media/profile_pics/', null=True)
+    interests = models.CharField(max_length=400, null=True)
+    about = models.CharField(max_length=400, null=True)
+    fb_link = models.CharField(max_length=400, null=True)
+    linkedin_link = models.CharField(max_length=400, null=True)
+    fcm_token = models.CharField(max_length=1024, null=True)
+    login_type = models.CharField(max_length=50, null=True)
+    login_json = models.TextField(null=True)
+    secondary_email = models.CharField(max_length=200, null=True)
+    mobile_os = models.CharField(max_length=200, null=True)
+    created_at = models.BigIntegerField(default=-9223372036854775808)
+    version_code = models.IntegerField(null=True, default=21)
+    image_link = models.CharField(max_length=500, null=True)
     apple_id = models.CharField(max_length=100, null=True)
-
-
 
     def __str__(self):
         return self.name
 
-    # def save(self, *args, **kwargs):
-    #     if self.image_url and not self.image_file:
-    #
-    #         response = urlopen(self.image_url)
-    #         img = BytesIO(response.read())
-    #         self.image_file.save("profile_pic_"+self.name+".jpeg", File(img))
-    #
-    #     super(Userinfo, self).save(*args, **kwargs)
+    def save(self, *args, **kwargs):
+        self.created_at = time.time()
+        super(Userinfo, self).save(*args, **kwargs)
 
 
-class Experience (models.Model):
-    user_id = models.ForeignKey(Userinfo,default =6 ,on_delete= models.CASCADE)
-    title = models.CharField(max_length = 200, null= True)
-    company = models.CharField(max_length = 200, null = True)
-    location = models.CharField(max_length = 200, null=True)
-    from_year = models.CharField(max_length = 4,null = True)
-    to_year = models.CharField(max_length = 4,null = True)
-    description = models.TextField(null = True)
-    
+class Experience(models.Model):
+    user_id = models.ForeignKey(Userinfo, default=6, on_delete=models.CASCADE)
+    title = models.CharField(max_length=200, null=True)
+    company = models.CharField(max_length=200, null=True)
+    location = models.CharField(max_length=200, null=True)
+    from_year = models.CharField(max_length=4, null=True)
+    to_year = models.CharField(max_length=4, null=True)
+    description = models.TextField(null=True)
 
-class Education (models.Model):
-    user_id = models.ForeignKey(Userinfo, default= 6, on_delete= models.CASCADE)
-    instituion = models.CharField(max_length = 200, null= True)
-    degree = models.CharField(max_length = 200, null= True)
-    field_of_study = models.CharField(max_length = 200, null= True)
-    from_year = models.CharField(max_length = 4,null = True)
-    to_year = models.CharField(max_length = 4,null = True)
-    description = models.TextField(null = True)
 
-class Requests (models.Model):
+class Education(models.Model):
+    user_id = models.ForeignKey(Userinfo, default=6, on_delete=models.CASCADE)
+    instituion = models.CharField(max_length=200, null=True)
+    degree = models.CharField(max_length=200, null=True)
+    field_of_study = models.CharField(max_length=200, null=True)
+    from_year = models.CharField(max_length=4, null=True)
+    to_year = models.CharField(max_length=4, null=True)
+    description = models.TextField(null=True)
+
+
+class Requests(models.Model):
     user_id = models.ForeignKey(User, on_delete=models.CASCADE)
     user_info = models.ForeignKey(Userinfo, on_delete=models.CASCADE)
     community = models.ForeignKey(Community, on_delete=models.CASCADE)
-    status = models.IntegerField(default = 0)
+    status = models.IntegerField(default=0)
 
-class Form_response (models.Model):
+
+class Form_response(models.Model):
     data = models.TextField()
     user = models.IntegerField()
     community = models.IntegerField()
     response = models.TextField()
 
-    
-class Collabcard (models.Model):
+
+class Collabcard(models.Model):
     title = models.TextField()
     community = models.ForeignKey(Community, on_delete=models.CASCADE)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    likes_count =  models.IntegerField(default=0)
+    likes_count = models.IntegerField(default=0)
     share_count = models.IntegerField(default=0)
     answers_count = models.IntegerField(default=0)
     date_epoch = models.BigIntegerField(default=-9223372036854775808)
     answer_text = models.CharField(max_length=100, default='')
     share_link = models.CharField(max_length=2048, default='')
-    og_tags = models.CharField(max_length=2048,default='')
+    og_tags = models.CharField(max_length=2048, default='')
     image_count = models.IntegerField(default=0, null=True)
     pdf_count = models.IntegerField(default=0, null=True)
-    type = models.IntegerField(default=0)    # state=0 (Normal Collabcard);state=1(Introduction Collabcard)
-    date_time = models.BigIntegerField(default=0)    # for saving date of event and due date for polling
-    duration = models.BigIntegerField(default=0)     # for saving duration of event
+    type = models.IntegerField(default=0)  # state=0 (Normal Collabcard);state=1(Introduction Collabcard)
+    date_time = models.BigIntegerField(default=0)  # for saving date of event and due date for polling
+    duration = models.BigIntegerField(default=0)  # for saving duration of event
     polls_count = models.IntegerField(default=0)
     attending_count = models.IntegerField(default=0)
 
+    def save(self, *args, **kwargs):
+        self.date_epoch = time.time()
+        super(Collabcard, self).save(*args, **kwargs)
 
 
-class Comments (models.Model):
-    comment =  models.CharField(max_length = 1000)
+
+
+class Comments(models.Model):
+    comment = models.CharField(max_length=1000)
     card = models.ForeignKey(Collabcard, on_delete=models.CASCADE)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
 
-class Cardaction (models.Model):
-    action =  models.CharField(max_length=100 ,choices = response_choices)
+
+class Cardaction(models.Model):
+    action = models.CharField(max_length=100, choices=response_choices)
     card = models.ForeignKey(Collabcard, on_delete=models.CASCADE)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    #date = models.DateField(auto_now_add = True)
+    # date = models.DateField(auto_now_add = True)
 
-class card_answers (models.Model):
+
+class card_answers(models.Model):
     answer = models.TextField()
-    card = models.ForeignKey(Collabcard, on_delete = models.CASCADE)
-    user = models.ForeignKey(User,on_delete = models.CASCADE)
-    date_epoch=models.BigIntegerField(default=-9223372036854775808)
+    card = models.ForeignKey(Collabcard, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    date_epoch = models.BigIntegerField(default=-9223372036854775808)
+
+    def save(self, *args, **kwargs):
+        self.date_epoch = time.time()
+        super(card_answers, self).save(*args, **kwargs)
 
 
-class temp_admin (models.Model):
-    name = models.CharField(max_length = 200)
-    contact_number = models.CharField(max_length = 200, null=True)
-    email = models.CharField(max_length = 200, null = True)
-    community = models.ForeignKey(Community, on_delete = models.CASCADE) 
+class temp_admin(models.Model):
+    name = models.CharField(max_length=200)
+    contact_number = models.CharField(max_length=200, null=True)
+    email = models.CharField(max_length=200, null=True)
+    community = models.ForeignKey(Community, on_delete=models.CASCADE)
     member_id = models.IntegerField(default=0)
-    #member_id = models.ForeignKey(User, on_delete = models.CASCADE)
+    # member_id = models.ForeignKey(User, on_delete = models.CASCADE)
 
-class Card_Attachment (models.Model):
 
+class Card_Attachment(models.Model):
     '''model to save files of collabcard'''
 
-    collabcard = models.ForeignKey(Collabcard, on_delete = models.CASCADE)
-    attachment = models.FileField(upload_to="media/collabcard_files",default='')
-    file_url=models.CharField(max_length=500,null=True)
-    type=models.CharField(max_length=50,default='')
+    collabcard = models.ForeignKey(Collabcard, on_delete=models.CASCADE)
+    attachment = models.FileField(upload_to="media/collabcard_files", default='')
+    file_url = models.CharField(max_length=500, null=True)
+    type = models.CharField(max_length=50, default='')
 
-class Answer_Attachment (models.Model):
 
+class Answer_Attachment(models.Model):
     '''model to save files of collabcard'''
 
-    answer = models.ForeignKey(card_answers, on_delete = models.CASCADE)
+    answer = models.ForeignKey(card_answers, on_delete=models.CASCADE)
     # attachment = models.FileField(upload_to="media/collabcard_files",default='')
-    file_url=models.CharField(max_length=500,null=True)
-    type=models.CharField(max_length=50,default='')
+    file_url = models.CharField(max_length=500, null=True)
+    type = models.CharField(max_length=50, default='')
 
 
 class collabcard_seen(models.Model):
-    card = models.ForeignKey(Collabcard, on_delete= models.CASCADE)
-    community = models.ForeignKey(Community, on_delete= models.CASCADE)
-    user = models.ForeignKey(User, on_delete = models.CASCADE)
+    card = models.ForeignKey(Collabcard, on_delete=models.CASCADE)
+    community = models.ForeignKey(Community, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
 
 
 class follow_collabcard(models.Model):
     '''Model to store the follow requests of members'''
-    collabcard_id=models.ForeignKey(Collabcard,on_delete=models.CASCADE)
+    collabcard_id = models.ForeignKey(Collabcard, on_delete=models.CASCADE)
     member_id = models.ForeignKey(User, on_delete=models.CASCADE)
+
 
 class get_notified(models.Model):
     email = models.EmailField()
 
 
 class Tags(models.Model):
-
     '''Model to show tags from database'''
 
-    category_id=models.CharField(max_length=10,null=True)
-    category_name=models.CharField(max_length=50,unique=True)
-    state=models.IntegerField(null=True)
-    type=models.CharField(null=True,max_length=100)
+    category_id = models.CharField(max_length=10, null=True)
+    category_name = models.CharField(max_length=50, unique=True)
+    state = models.IntegerField(null=True)
+    type = models.CharField(null=True, max_length=100)
+
 
 class userinfo_tags(models.Model):
     ''' Model to give user hidden tags '''
@@ -246,29 +265,29 @@ class userinfo_tags(models.Model):
     user_id = models.IntegerField(null=True)
 
 
-
 class User_LPIG(models.Model):
     ''' Model to store user LPIG tags '''
     member_id = models.OneToOneField(User, on_delete=models.CASCADE)
-    legacy = models.CharField(max_length=1024,null=True)
-    profession = models.CharField(max_length=1024,null=True)
-    interests = models.CharField(max_length=1024,null=True)
-    geography = models.CharField(max_length=1024,null=True)
+    legacy = models.CharField(max_length=1024, null=True)
+    profession = models.CharField(max_length=1024, null=True)
+    interests = models.CharField(max_length=1024, null=True)
+    geography = models.CharField(max_length=1024, null=True)
 
     def __str__(self):
         return str(self.member_id.id)
 
-class Community_LPIG(models.Model):
 
+class Community_LPIG(models.Model):
     ''' Model to store community LPIG tags '''
     community_id = models.OneToOneField(Community, on_delete=models.CASCADE)
-    legacy = models.CharField(max_length=1024,null=True)
-    profession = models.CharField(max_length=1024,null=True)
-    interests = models.CharField(max_length=1024,null=True)
-    geography = models.CharField(max_length=1024,null=True)
+    legacy = models.CharField(max_length=1024, null=True)
+    profession = models.CharField(max_length=1024, null=True)
+    interests = models.CharField(max_length=1024, null=True)
+    geography = models.CharField(max_length=1024, null=True)
 
     def __str__(self):
         return self.community_id.name
+
 
 class Community_Rank(models.Model):
     ''' Model for giving community rank acrroding to user relevance '''
@@ -278,78 +297,79 @@ class Community_Rank(models.Model):
 
 
 class Category(models.Model):
-
     '''Model to store the categories '''
-    name=models.CharField(max_length=512,null=True,unique=True)
+    name = models.CharField(max_length=512, null=True, unique=True)
 
     def __str__(self):
         return self.name
 
 
 class Attributes(models.Model):
-
     '''Model to store the attributes of category'''
 
-    attribute_name=models.CharField(max_length=512,null=True,unique=True)
-    category_id=models.ForeignKey(Category,on_delete=models.CASCADE)
+    attribute_name = models.CharField(max_length=512, null=True, unique=True)
+    category_id = models.ForeignKey(Category, on_delete=models.CASCADE)
 
     def __str__(self):
         return self.attribute_name
 
 
 class Tags_lpig(models.Model):
-
     '''Model to store the lpig tags in attributes'''
 
     name = models.CharField(max_length=512, null=True)
-    attribute_id=models.ForeignKey(Attributes,on_delete=models.CASCADE)
-    category_id=models.ForeignKey(Category,on_delete=models.CASCADE)
-    tag_id=models.IntegerField(null=True)
-    tag_characterstics=models.CharField(max_length=1024,null=True)
-    tag_image = models.ImageField(upload_to="media/tags_images", default = '')
-    is_cluster=models.IntegerField(default=0)
-    cluster_tag_id=models.IntegerField(null=True)
-    image_link = models.CharField(max_length= 500,null=True)
-    tag_rank=models.IntegerField(default=0)
-    thumbnail=models.CharField(max_length=500,null=True)
-    created_at=models.BigIntegerField(default=-9223372036854775808,null=True)
-    updated_at=models.BigIntegerField(default=-9223372036854775808,null=True)
-
-
-
-
+    attribute_id = models.ForeignKey(Attributes, on_delete=models.CASCADE)
+    category_id = models.ForeignKey(Category, on_delete=models.CASCADE)
+    tag_id = models.IntegerField(null=True)
+    tag_characterstics = models.CharField(max_length=1024, null=True)
+    tag_image = models.ImageField(upload_to="media/tags_images", default='')
+    is_cluster = models.IntegerField(default=0)
+    cluster_tag_id = models.IntegerField(null=True)
+    image_link = models.CharField(max_length=500, null=True)
+    tag_rank = models.IntegerField(default=0)
+    thumbnail = models.CharField(max_length=500, null=True)
+    created_at = models.BigIntegerField(default=-9223372036854775808, null=True)
+    updated_at = models.BigIntegerField(default=-9223372036854775808, null=True)
 
     def __str__(self):
         return self.name
 
+    def save(self, *args, **kwargs):
+        if self.created_at <= 0:
+            self.created_at = time.time()
+        self.updated_at = time.time()
+        super(Tags_lpig, self).save(*args, **kwargs)
+
 
 class Member_Engage(models.Model):
-
     '''Model to store the communities of a particular user'''
 
-    member_id=models.ForeignKey(User, on_delete=models.CASCADE)
-    community_id=models.ForeignKey(Community, on_delete=models.CASCADE)
-    last_unseen_conversation=models.ForeignKey(Collabcard, on_delete=models.SET_NULL,null=True)
-    last_unseen_count=models.IntegerField(default=0,null=True)
-    pending_members=models.IntegerField(default=0,null=True)
-    updated_at=models.BigIntegerField(default=0,null=True)
-    member_referral=models.CharField(default='',max_length=1024)
-    member_state=models.IntegerField(null=True)
+    member_id = models.ForeignKey(User, on_delete=models.CASCADE)
+    community_id = models.ForeignKey(Community, on_delete=models.CASCADE)
+    last_unseen_conversation = models.ForeignKey(Collabcard, on_delete=models.SET_NULL, null=True)
+    last_unseen_count = models.IntegerField(default=0, null=True)
+    pending_members = models.IntegerField(default=0, null=True)
+    updated_at = models.BigIntegerField(default=0, null=True)
+    member_referral = models.CharField(default='', max_length=1024)
+    member_state = models.IntegerField(null=True)
+
+    def save(self, *args, **kwargs):
+        self.updated_at = time.time()
+        super(Member_Engage, self).save(*args, **kwargs)
 
 
 # community lpig
 
 class Community_Legacy(models.Model):
-
     '''Model to store the communities of legacy'''
-    community_id=models.ForeignKey(Community, on_delete=models.CASCADE)
-    tags_id=models.ForeignKey(Tags_lpig,on_delete=models.CASCADE)
-    correct_tag_id=models.IntegerField(null=True)
+    community_id = models.ForeignKey(Community, on_delete=models.CASCADE)
+    tags_id = models.ForeignKey(Tags_lpig, on_delete=models.CASCADE)
+    correct_tag_id = models.IntegerField(null=True)
 
     def save(self, *args, **kwargs):
         if self.tags_id and not self.correct_tag_id:
-            correct_id=self.tags_id.tag_id
-            self.correct_tag_id=correct_id
+            correct_id = self.tags_id.tag_id
+            self.correct_tag_id = correct_id
             self.save()
 
         super(Community_Legacy, self).save(*args, **kwargs)
@@ -359,28 +379,27 @@ class Community_Profession(models.Model):
     '''Model to store the communities of profession'''
     community_id = models.ForeignKey(Community, on_delete=models.CASCADE)
     tags_id = models.ForeignKey(Tags_lpig, on_delete=models.CASCADE)
-    correct_tag_id=models.IntegerField(null=True)
+    correct_tag_id = models.IntegerField(null=True)
 
     def save(self, *args, **kwargs):
         if self.tags_id and not self.correct_tag_id:
-            correct_id=self.tags_id.tag_id
-            self.correct_tag_id=correct_id
+            correct_id = self.tags_id.tag_id
+            self.correct_tag_id = correct_id
             self.save()
 
         super(Community_Profession, self).save(*args, **kwargs)
-
 
 
 class Community_Interest(models.Model):
     '''Model to store the communities of interest'''
     community_id = models.ForeignKey(Community, on_delete=models.CASCADE)
     tags_id = models.ForeignKey(Tags_lpig, on_delete=models.CASCADE)
-    correct_tag_id=models.IntegerField(null=True)
+    correct_tag_id = models.IntegerField(null=True)
 
     def save(self, *args, **kwargs):
         if self.tags_id and not self.correct_tag_id:
-            correct_id=self.tags_id.tag_id
-            self.correct_tag_id=correct_id
+            correct_id = self.tags_id.tag_id
+            self.correct_tag_id = correct_id
             self.save()
 
         super(Community_Interest, self).save(*args, **kwargs)
@@ -390,19 +409,15 @@ class Community_Geography(models.Model):
     '''Model to store the communities of geography'''
     community_id = models.ForeignKey(Community, on_delete=models.CASCADE)
     tags_id = models.ForeignKey(Tags_lpig, on_delete=models.CASCADE)
-    correct_tag_id=models.IntegerField(null=True)
+    correct_tag_id = models.IntegerField(null=True)
 
     def save(self, *args, **kwargs):
         if self.tags_id and not self.correct_tag_id:
-            correct_id=self.tags_id.tag_id
-            self.correct_tag_id=correct_id
+            correct_id = self.tags_id.tag_id
+            self.correct_tag_id = correct_id
             self.save()
 
         super(Community_Geography, self).save(*args, **kwargs)
-
-
-
-
 
 
 # user lpig
@@ -411,7 +426,7 @@ class User_Legacy(models.Model):
     '''Model to store the user of legacy'''
     user_id = models.ForeignKey(User, on_delete=models.CASCADE)
     tags_id = models.ForeignKey(Tags_lpig, on_delete=models.CASCADE)
-    correct_tag_id=models.IntegerField(null=True)
+    correct_tag_id = models.IntegerField(null=True)
 
     def save(self, *args, **kwargs):
         if self.tags_id and not self.correct_tag_id:
@@ -422,12 +437,11 @@ class User_Legacy(models.Model):
         super(User_Legacy, self).save(*args, **kwargs)
 
 
-
 class User_Profession(models.Model):
     '''Model to store the user of profession'''
     user_id = models.ForeignKey(User, on_delete=models.CASCADE)
     tags_id = models.ForeignKey(Tags_lpig, on_delete=models.CASCADE)
-    correct_tag_id=models.IntegerField(null=True)
+    correct_tag_id = models.IntegerField(null=True)
 
     def save(self, *args, **kwargs):
         if self.tags_id and not self.correct_tag_id:
@@ -442,7 +456,7 @@ class User_Interest(models.Model):
     '''Model to store the user of interest'''
     user_id = models.ForeignKey(User, on_delete=models.CASCADE)
     tags_id = models.ForeignKey(Tags_lpig, on_delete=models.CASCADE)
-    correct_tag_id=models.IntegerField(null=True)
+    correct_tag_id = models.IntegerField(null=True)
 
     def save(self, *args, **kwargs):
         if self.tags_id and not self.correct_tag_id:
@@ -453,12 +467,11 @@ class User_Interest(models.Model):
         super(User_Interest, self).save(*args, **kwargs)
 
 
-
 class User_Geography(models.Model):
     '''Model to store the user of geography'''
     user_id = models.ForeignKey(User, on_delete=models.CASCADE)
     tags_id = models.ForeignKey(Tags_lpig, on_delete=models.CASCADE)
-    correct_tag_id=models.IntegerField(null=True)
+    correct_tag_id = models.IntegerField(null=True)
 
     def save(self, *args, **kwargs):
         if self.tags_id and not self.correct_tag_id:
@@ -469,72 +482,81 @@ class User_Geography(models.Model):
         super(User_Geography, self).save(*args, **kwargs)
 
 
-
-
 class Referal(models.Model):
     """ Model for reference module """
-    member = models.ForeignKey(User, on_delete=models.CASCADE,related_name='member')
-    invited_member = models.ForeignKey(User, on_delete=models.CASCADE,related_name='invited_member')
+    member = models.ForeignKey(User, on_delete=models.CASCADE, related_name='member')
+    invited_member = models.ForeignKey(User, on_delete=models.CASCADE, related_name='invited_member')
     community = models.ForeignKey(Community, on_delete=models.CASCADE)
-
 
 
 class Location_Info(models.Model):
     """ saving location details of a geography tag """
 
     # tag = models.ForeignKey(Tags_lpig, on_delete=models.PROTECT)
-    tag_name = models.CharField(max_length=512,null=True,unique=True)
-    city = models.CharField(max_length=512,null=True,default='')
-    district = models.CharField(max_length=512,null=True,default='')
-    state = models.CharField(max_length=512,null=True,default='')
-    country = models.CharField(max_length=512,null=True,default='')
-    pincode = models.CharField(max_length=512,null=True,default='')
+    tag_name = models.CharField(max_length=512, null=True, unique=True)
+    city = models.CharField(max_length=512, null=True, default='')
+    district = models.CharField(max_length=512, null=True, default='')
+    state = models.CharField(max_length=512, null=True, default='')
+    country = models.CharField(max_length=512, null=True, default='')
+    pincode = models.CharField(max_length=512, null=True, default='')
 
     def __str__(self):
         return self.tag_name
 
 
 class App_Update_Info(models.Model):
-
     """Table containing all app update Informations for android"""
 
-    version_code=models.IntegerField(null=True)
-    android_route=models.CharField(max_length=2048,null=True)
-    created_at=models.BigIntegerField(null=True)
+    version_code = models.IntegerField(null=True)
+    android_route = models.CharField(max_length=2048, null=True)
+    created_at = models.BigIntegerField(default=-9223372036854775808, null=True)
+
+    def save(self, *args, **kwargs):
+        if self.created_at <= 0:
+            self.created_at = time.time()
+        super(App_Update_Info, self).save(*args, **kwargs)
 
 
 # Collabcard Report Module
 
 
 class Report_Tags(models.Model):
-
     '''Table containing the report tags '''
 
-    tag_name=models.CharField(max_length=512)
-    tag_id=models.IntegerField(null=True)
-    type=models.IntegerField(default=0)
+    tag_name = models.CharField(max_length=512)
+    tag_id = models.IntegerField(null=True)
+    type = models.IntegerField(default=0)
 
 
 class Report(models.Model):
-
     '''Table containing the report data of user'''
 
-    tag=models.ForeignKey(Report_Tags, on_delete=models.CASCADE)
-    collabcard=models.ForeignKey(Collabcard, on_delete=models.CASCADE)
+    tag = models.ForeignKey(Report_Tags, on_delete=models.CASCADE)
+    collabcard = models.ForeignKey(Collabcard, on_delete=models.CASCADE)
     reported_member_id = models.IntegerField(default=0)
     member = models.ForeignKey(User, on_delete=models.CASCADE)
-    reason=models.CharField(max_length=2048,null=True)
-    date_epoch=models.BigIntegerField(default=-9223372036854775808,null=True)
+    reason = models.CharField(max_length=2048, null=True)
+    date_epoch = models.BigIntegerField(default=-9223372036854775808, null=True)
+
+    def save(self, *args, **kwargs):
+        if self.date_epoch <= 0:
+            self.date_epoch = time.time()
+        super(Report, self).save(*args, **kwargs)
 
 
 class collabcardState(models.Model):
-
     card = models.ForeignKey(Collabcard, on_delete=models.CASCADE)
     community = models.ForeignKey(Community, on_delete=models.CASCADE)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    state=models.IntegerField(null=True)
-    created_at=models.BigIntegerField(default=-9223372036854775808,null=True)
-    updated_at=models.BigIntegerField(default=-9223372036854775808,null=True)
+    state = models.IntegerField(null=True)
+    created_at = models.BigIntegerField(default=-9223372036854775808, null=True)
+    updated_at = models.BigIntegerField(default=-9223372036854775808, null=True)
+
+    def save(self, *args, **kwargs):
+        if self.created_at <= 0:
+            self.created_at = time.time()
+        self.updated_at = time.time()
+        super(collabcardState, self).save(*args, **kwargs)
 
 
 class CollabcardPolls(models.Model):
@@ -549,7 +571,7 @@ class CollabcardPolls(models.Model):
         self.updated_at = time.time()
         super(CollabcardPolls, self).save(*args, **kwargs)
 
-    def get_card_polls(self,card_id):
+    def get_card_polls(self, card_id):
         pass
 
 
@@ -565,5 +587,3 @@ class MemberPollVotes(models.Model):
             self.created_at = time.time()
         self.updated_at = time.time()
         super(MemberPollVotes, self).save(*args, **kwargs)
-
-

@@ -55,11 +55,22 @@
     font-size:1.15rem;
 }
 
-.ui.segment:after{
+
+
+.image_container{
+
+margin-left:10px;
+margin-right:10px;
+
+
+}
+
+
+.image_container:after{
 
  content: '';
     position: absolute !important ;
-    top: 95% !important;
+    top: 57% !important;
     background-image: url('{{request.user.userinfo.image_link}}');
     background-size: cover !important;
     background-repeat: no-repeat !important;
@@ -73,6 +84,67 @@
 
 
 
+.header_image{
+
+width:100%;
+height:60%;
+
+}
+
+.top-left {
+  position: absolute;
+  top: 32px;
+  left: 276px;
+  color:white;
+
+}
+
+
+
+.top-middle {
+  position: absolute;
+  top: 32px;
+  left: 500px;
+  color:white;
+  font-size:24px;font-family:'Roboto';font-weight:700;
+
+}
+
+.subheader1{
+
+  position: absolute;
+  top: 100px;
+  left: 450px;
+  color:white;
+  font-size:19px;
+  font-family:Roboto;
+  line-height:24px;
+  font-weight:400;
+  opacity:80%;
+
+
+
+}
+
+.subheader2{
+
+ position: absolute;
+  top: 130px;
+  left: 500px;
+  right:500px;
+  color:white;
+  font-size:19px;
+  font-family:Roboto;
+  line-height:24px;
+  font-weight:400;
+  text-align:center;
+  opacity:80%;
+
+
+
+
+}
+
 
 
 @media screen and (max-width: 768px){
@@ -82,6 +154,93 @@
     padding-left:45px;padding-bottom:0px;color:white;line-height:20px;font-family:'Roboto';font-weight:400;
     font-size:1.0rem;
 }
+
+
+.image_container{
+
+margin-left:0px;
+margin-right:0px;
+
+}
+
+.header_image{
+
+width:100%;
+height:35%;
+
+}
+
+.image_container:after{
+
+ content: '';
+    position: relative  ;
+    top: 34% !important;
+    background-image: url('{{request.user.userinfo.image_link}}');
+    background-size: cover !important;
+    background-repeat: no-repeat !important;
+    transform: translate(-50%, -50%) !important;
+    border-top: inherit !important;
+    border-top-color: transparent !important;
+    border-radius:50% !important;width:95px !important;height:95px !important;display: inline-block !important;left:50% !important;
+
+}
+
+
+.top-left {
+  position: absolute;
+  top: 32px;
+  left: 16px;
+  color:white;
+
+}
+
+
+
+.top-middle {
+  position: absolute;
+  top: 32px;
+  left: 72px;
+  color:white;
+  font-size:22px;font-family:'Roboto';font-weight:700;
+
+}
+
+.subheader1{
+
+  position: absolute;
+  top: 80px;
+  left: 10%;
+  color:white;
+  font-size:16px;
+  font-family:Roboto;
+  line-height:24px;
+  font-weight:400;
+  opacity:80%;
+
+
+
+
+}
+
+.subheader2{
+
+ position: absolute;
+  top: 105px;
+  left: 15%;
+  right: 70px;
+  color:white;
+  font-size:16px;
+  font-family:Roboto;
+  line-height:24px;
+  font-weight:400;
+  opacity:80%;
+
+
+
+
+
+}
+
 
 }
 
@@ -94,36 +253,50 @@
 
 
 
-{% if validation_error %}
-<div class="container" style=" width: 91%; color: #9F6000; background-color: #FEEFB3;  border: 1px solid;
- margin: 10px 0px; padding: 15px 10px 15px 50px;">
 
-    Please fill all the answers
-</div>
-{% endif %}
 
 <body style="margin:0 auto; max-width:786px;background-color:#f2f2f2;">
 
 <!---webkit-clip-path: polygon(0 0, 100% 0, 100% 84%, 50% 100%, 0 84%, 0 0);-->
 
-<div class="ui segment" style="background-color:#07b890;margin:0 auto; opacity:0.8;">
+<div style="margin-top:0px;">
+    <div class="image_container">
+         <img src="https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Fresponse_header?alt=media" class="header_image" />
 
+        <div class="top-left">
+            <i class="arrow left icon " style="font-size:24px;color:white;" id="back_button"></i>
+        </div>
 
-    <div style="margin-bottom:80px;">
-          <div style="float:left;margin-top:5px;" >
-                          <i class="arrow left icon" style="font-size:24px;color:white;" id="back_button"></i>
-          </div>
+        <div class="top-middle">
+            Welcome to Collabmates!
+        </div>
 
-         <h2 class="ui center aligned header" style="margin-top:0px;color:white;font-size:1.60rem;font-family:'Roboto';font-weight:700;">
-              Welcome to Collabmates!
-         </h2>
+        <div class="subheader1">
+            You are interested in joining this community:
+        </div>
 
-        <div class="ui center aligned header" style="font-size:1.12rem;color:white;font-family:Roboto ;sans-serif;">
-            <p>You are interested in joining this community:</p>
-            <p>{{community.name}}</p>
+        <div class="subheader2">
+
+           {{community.name}}
 
         </div>
+
     </div>
+<!--    <div style="margin-bottom:80px;">-->
+<!--          <div style="float:left;margin-top:5px;" >-->
+<!--                          <i class="arrow left icon" style="font-size:24px;color:white;" id="back_button"></i>-->
+<!--          </div>-->
+
+<!--         <h2 class="ui center aligned header" style="margin-top:0px;color:white;font-size:1.60rem;font-family:'Roboto';font-weight:700;">-->
+<!--              Welcome to Collabmates!-->
+<!--         </h2>-->
+
+<!--        <div class="ui center aligned header" style="font-size:1.12rem;color:white;font-family:Roboto ;sans-serif;">-->
+<!--            <p>You are interested in joining this community:</p>-->
+<!--            <p>{{community.name}}</p>-->
+
+<!--        </div>-->
+<!--    </div>-->
 
 </div>
 <br/>
@@ -132,27 +305,48 @@
     <div class="container">
 
             <div class="" style="margin: 14px 14px !important;">
-            <form class="ui form" action="" method="post"  >
+            <form class="ui form"   onsubmit="return false" id="response_form">
                 {% csrf_token %}
 
-                {% for question,answer in data %}
+                {% for question in data %}
                 <div class=" required field">
                     {% if question.data_type == 'text' %}
-                        {% if question.is_dropdown == 0 %}
+                        {% if question.question_state == 0 %}
                             <label class="Roboto" style="font-size:13px;margin-left:7px;">{{question.data}}</label>
 
                             {% if forloop.counter == 1 %}
-                               <textarea rows="3" cols="4" style="border-radius: 10px;" name ="{{question.data}}" minlength="50" required placeholder="This will be visible to all the members of the community" oninput="check(this)" id="length_check">{{answer}}</textarea>
+                               <textarea rows="3" cols="4" style="border-radius: 10px;" name ="{{question.data}}" minlength="50" required placeholder="This will be visible to all the members of the community" oninput="check(this)" id="length_check"></textarea>
                             {% else %}
-                               <textarea rows="3" cols="4" style="border-radius: 10px;" name ="{{question.data}}" required >{{answer}}</textarea>
+                               <textarea rows="3" cols="4" style="border-radius: 10px;" name ="{{question.data}}" required ></textarea>
                             {% endif %}
                         {% else %}
                              <label class="Roboto" style="font-size:13px;margin-left:7px;" >{{question.data}}</label>
-                                {% if question.is_dropdown == 2 %}
-                                <div class="ui fluid multiple search selection dropdown"  style="border-radius: 10px;" >
+                                {% if question.question_state == 2 %}
+<!--                                     <input type="hidden" name="{{question.data}}">-->
+
+<!--                                           <select name="{{question.data}}" multiple="" class="ui search fluid dropdown multiple_select" id="multiple_select" >-->
+<!--                                          <option value="">Enter your choice or select from dropdown</option>-->
+<!--                                           {% for option in question.dropdown_list %}-->
+<!--                                                <option value="{{option}}">{{option}}</option>-->
+<!--                                           {% endfor %}-->
+<!--                                        </select>-->
+
+                      <div class="ui fluid multiple search selection dropdown {{question.id}}"  style="border-radius: 10px;" >
+
+                                      <input type="hidden" name="{{question.data}}">
+                                      <i class="dropdown icon"></i>
+                                       <div class="default text">Select {{question.max_selections}}</div>
+                                    <div class="menu">
+                                        {% for option in question.dropdown_list %}
+                                                <div class="item" data-value="{{option}}">{{option}}</div>
+                                        {% endfor %}
+                                     </div>
+                                </div>
+
+
                                 {% else %}
-                             <div class="ui selection dropdown" style="border-radius: 10px;" >
-                                {% endif %}
+                             <div class="ui selection dropdown single_select" style="border-radius: 10px;" >
+
                                       <input type="hidden" name="{{question.data}}">
                                       <i class="dropdown icon"></i>
                                        <div class="default text">Select</div>
@@ -162,6 +356,7 @@
                                         {% endfor %}
                                      </div>
                                 </div>
+                                {% endif %}
 
                         {% endif %}
                     {% endif %}
@@ -171,13 +366,15 @@
                 <input type="hidden" name="ref_id" value="{{ref_id}}"/>
                 <br>
 
-<div align="center" >
+
+            </form>
+
+                <div align="center" >
                  <button class="ui  button " id="simple_button" type="submit" style="background-color: #00897b; color:white;position:relative;display:block">Submit</button>
                  <button class="ui loading button " id="loading_button" type="submit" style="background-color: #00897b; color:white;position:relative;display:none">Submit</button>
 
 
 </div>
-            </form>
             </div>
 
 
@@ -187,39 +384,82 @@
 </html>
 
 <script>
-       $('.ui.selection.dropdown').dropdown();
-
-function check(input) {
-   if (input.value.length < '50') {
-
-        input.setCustomValidity('Please write your introduction in bit more detail');
-   }
-
-   else if(input.value.length >= '50')
-   {
-     input.setCustomValidity('');
-   }
 
 
- }
-
- $('#back_button').click(function(e){
-
-window.history.back();
-})
+       $('.ui.selection.dropdown.single_select').dropdown();
 
 
-$('#simple_button').click(function(e){
+        {% for question in data %}
+            $('.ui.dropdown.{{question.id}}')
+                  .dropdown({
+                    allowAdditions: true,
+                    maxSelections: '{{question.max_selections}}'
 
-var test=$('#length_check').val()
-if(test.length >= 50)
-{
+                  })
+                ;
+            {% endfor %}
 
-    $('#simple_button').hide();
-    $('#loading_button').show();
 
-}
-})
+
+        function check(input) {
+           if (input.value.length < '50') {
+
+                input.setCustomValidity('Please write your introduction in bit more detail');
+           }
+
+           else if(input.value.length >= '50')
+           {
+             input.setCustomValidity('');
+           }
+
+
+         }
+
+
+
+         $('#back_button').click(function(e){
+
+        window.history.back();
+        })
+
+
+
+        $('#simple_button').click(function(e){
+
+                var values = $('#response_form').serialize();
+                var community_id='{{community.id}}'
+                url="/community/"+community_id+"?cta=join";
+
+                  var test=$('#length_check').val()
+                    if(test.length >= 50)
+                    {
+
+                        $('#simple_button').hide();
+                        $('#loading_button').show();
+
+                    }else{
+                        alert("Please Right your Introduction in bit more detail")
+                        return;
+                    }
+
+                   $.ajax({
+
+
+                        url:url,
+                        type:"POST",
+                        data:values,
+                        success:function(data){
+                            console.log(data)
+                            location.href="/refer_members/"+'{{community.id}}'
+
+
+                        }
+
+
+                    })
+
+
+        })
 
 
 

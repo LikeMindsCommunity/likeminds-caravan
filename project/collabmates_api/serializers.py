@@ -47,7 +47,7 @@ def CommunitySerializer(community):
     return new_dict
 
 def UserinfoSerializer(user):
-    # function to serialize a community object
+    # function to serialize a userinfo object
     userinfo= {
         'id': user.user_id.id,
         "name": user.name,
@@ -101,7 +101,7 @@ def CollabcardSerializer(card,user,community=None):
 
 def CollabcardPollsSerializer(poll, user, card):
     """ Poll serializer """
-    
+
     polls = {
         'id': poll.id,
         'text': poll.text,
@@ -134,5 +134,21 @@ def poll_percentage(card, poll):
 def get_member_count(community):
     return Members.objects.filter(community_id=community).filter(
         Q(state=1) | Q(state=2) | Q(state=4) | Q(state=7) | Q(state = 8)).count()
+
+
+def FormResponseSerilaizer(community_id, user_id):
+    responses = Form_response.objects.filter(community=community_id).filter(user=user_id).order_by('id')
+    if not responses.exists():
+        return None
+    user_response = []
+    for response in responses:
+        # getting the answers of the users who requested to join
+        # for the questions that have been asked while requestiong to join in a community
+        response_object = {}
+        response_object['key'] = response.data
+        response_object['value'] = response.response
+        user_response.append(response_object)
+
+    return user_response
 
 

@@ -79,7 +79,9 @@
             <input type="text" class="form-control" id="option{{forloop.counter}}" value="{{dropdown}}"/>
     </div>
   {% endfor %}
-  <div id="form_field"></div>
+  <div id="form_field">
+
+  </div>
 
   <button type="submit" class="btn btn-outline-secondary">Submit</button>
     {% if dropdown_status == 1 or dropdown_status == 0 %}
@@ -91,9 +93,22 @@
 
 
 </form>
+
+
+    <!-- dropdown limit select -->
+        {% if dropdown_selection_limit %}
+            <input type="text" class="form-control dropdown_limit"  placeholder="Enter the limit for dropdown or leave empty for infinite" style="display:None" value="{{dropdown_selection_limit}}"/>
+        {% else %}
+                <input type="text" class="form-control dropdown_limit"  placeholder="Enter the limit for dropdown or leave empty for infinite" style="display:None"/>
+        {% endif %}
+    <!-- -->
+<br/>
+
 <button type="button" class="btn btn-primary" id="add">Add</button>
-<button type="button" class="btn btn-danger" id="delete">Delete</button>
-<button type="button" class="btn btn-primary" id="add_multiple">Add Multiple</button>
+&nbsp;&nbsp;&nbsp;&nbsp;<button type="button" class="btn btn-danger" id="delete">Delete</button>
+&nbsp;&nbsp;&nbsp;&nbsp;<button type="button" class="btn btn-primary" id="add_multiple">Add Multiple</button>
+&nbsp;&nbsp;&nbsp;&nbsp;<button type="button" class="btn btn-primary" id="add_dropdown_limit">Add Dropdown Limit</button>
+
 
 </div>
 </body>
@@ -126,6 +141,16 @@
    count=count-1;
 
    })
+
+   $('#add_dropdown_limit').click(function(e){
+
+        $('.dropdown_limit').css("display","block");
+
+   })
+
+
+
+
 
 
     $('#my_form').submit(function(){
@@ -191,18 +216,35 @@
 
     is_multiple_dropdown=$('.multiple_select').is(':checked');
     let dropdown_state=0
+    let dropdown_limit=0
     if(is_multiple_dropdown)
     {
+
         dropdown_state=2
+
+        var limit=$('.dropdown_limit').val();
+        if(limit > data.length){
+            alert("Please Enter the valid limit");
+            return;
+
+        }
+
+
+        dropdown_limit=limit
+
+
     }else{
         dropdown_state=1
     }
 
 
+
+
     option_data={
     'data':JSON.stringify(data),
     'csrfmiddlewaretoken':'{{csrf_token}}',
-    'dropdown_state':dropdown_state
+    'dropdown_state':dropdown_state,
+    'dropdown_selection_limit':dropdown_limit
 
     }
     console.log(option_data)
