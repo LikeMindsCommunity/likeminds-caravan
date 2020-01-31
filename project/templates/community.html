@@ -62,162 +62,10 @@
         <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
 
         <link rel="stylesheet" href="{% static 'css/community.css' %}">
+        <link rel="stylesheet" href="{% static 'css/main_css/community.css' %}">
         <link href="https://fonts.googleapis.com/css?family=Roboto:400,500,500i,700&display=swap" rel="stylesheet">
 
 
-<style>
-
-    .ui.button.join_button{
-
-    z-index:2; background-color: #00897b; border-radius:20px; color:white;
-
-
-    }
-
-
-    .ui.button.bottom_button{
-
-    z-index:2; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;width:40%; left:30%;white-space: nowrap;
-
-    }
-
-    .top-left {
-    position: absolute;
-    top: 10px;
-    left: 16px;
-}
-
-
-.web_display{
-
-margin-left:100px;
-
-}
-
-@media screen and (max-width: 600px){
-
-
-
-.web_display{
-
-   margin-left:70px;
-
-}
-
-}
-
-/* font styling in css */
-
-.Roboto{font-family:'Roboto';font-weight:400;}
-
-.RobotoLight{font-familiy:'Roboto';font-weight:300;}
-
-.RobotoMedium{font-family:'Roboto';font-weight:500;font-size:13px;}
-
-.RobotoBold{font-family:'Roboto';font-weight:700;font-size:16px;}
-
-
-p{
-color:#666666;
-}
-
-
-
-
-.wrapper {
-  width: 600px;
-  margin: auto;
-  border: 1px solid #333;
-}
-.horizontal-scroll {
-  background-color: #f9f9f9;
-  overflow: hidden;
-  overflow-x: scroll;
-  overflow-y: hidden;
-  white-space: nowrap;
-  padding: 30px 0;
-}
-
-
-.promoter_item {
-  border: 1px solid white;
-  display: inline-block;
-  width: 90%;
-  text-align: center;
-//  font-size: 16px;
-  margin: 0 10px;
-//  white-space: pre-line;
-//  font-family:Roboto;
- // font-color:#666666;
-  position:relative;
-
-}
-footer {
-  color: #F5F5F5;
-  text-align: center;
-  background-color: #008080;
-  padding: 20px;
-
-}
-
-
-
- .profile_image{
-    position: absolute ;
-    top: 18% ;
-    background-size: cover !important;
-    background-repeat: no-repeat ;
-    transform: translate(-50%, -50%) ;
-    border-top: inherit ;
-    border-top-color: transparent !important;
-    border-radius:50% ;width:95px !important;height:95px !important;display: inline-block !important;left:50% !important;
-    opacity:5;
-}
-
-
-.image_container{
-
-margin-left:20px;margin-right:20px;
-box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);
-transition: 0.3s;
-border-radius: 5px; /* 5px rounded corners */
-}
-
-
-
-.promoter_item_multiple {
-  border: 1px solid white;
-  display: inline-block;
-  width: 90%;
-  background-color: #F5F5F5;
-  text-align: center;
-  padding: 50px 30px;
-  font-size: 16px;
-  margin: 0 10px;
-  white-space: pre-line;
-  opacity:0.9;background:linear-gradient(#00897b 1%, white 40%);
-  font-family:Roboto;
-  font-color:#666666;
-  position:relative;
-
-}
-
-.promoter_item_multiple img{
-         position: absolute ;
-    top: 7% ;
-    background-size: cover !important;
-    background-repeat: no-repeat ;
-    transform: translate(-50%, -50%) ;
-    border-top: inherit ;
-    border-top-color: transparent !important;
-    border-radius:50% ;width:95px !important;height:95px !important;display: inline-block !important;left:50% !important;
-    opacity:5;
-}
-
-
-
-
-</style>
 
 
 
@@ -540,31 +388,13 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                 <h4 class="RobotoBold" style="padding-left:10px;padding-top:10px;margin-bottom:5px;" >Promoter</h4>
 <br/><br/>
             <div class="image_container" style="">
+
             {% for admin in admins %}
-
-                 <img class="profile_image" src="{{admin.image_link}}">
-
-
-                 <img src="https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Fprofile_header?alt=media" style="width:100%;height:70%;">
-
-<!--                   <div class="profile_name">-->
-<!--                       <p align="center" style="font-family:Roboto;sans-serif;font-weight:600px;color:black;font-size:17px;line-height:22px;">{{admin.name}}</p>-->
-
-<!--                   </div>-->
-
-<!--                    <div style="margin-top:5%;margin-left:16px;margin-right:16px;">-->
-<!--                        {{admin.introduction_answer}}-->
-<!--                      </div>-->
-                <div class="promoter_item">
-
-                      <p style="font-size:17px;font-family:roboto;sans-serif;font-weight:500">{{admin.name}}</p>
-                      <div style="margin-left:10px;margin-right:10px;">
-                        <p style="line-height:28px;font-size:15px;font-family:roboto;sans-serif;font-color:#666666;text-align:left;">{{admin.introduction_answer}}</p>
-                      </div>
-
-                </div>
-
-                <br/><br/>
+              <div class="promoter_item_single">
+                  <img src="{{admin.image_link}}" alt="No Image"/>
+                  <p style="line-height:22px;font-size:1.1rem;font-family:roboto;sans-serif;">{{admin.name}}</p>
+                  <p style="line-height:22px;font-size:1.1rem;font-family:roboto;sans-serif;">{{admin.introduction_answer}}</p>
+              </div>
             {% endfor %}
 
             </div>
