@@ -3592,8 +3592,11 @@ def push_report(request):
 
         community_url = url + "/community/" + str(collabcard_instance.community.id)
         try:
-            reported_user_instance = User.objects.get(pk=request_body['reported_member_id'])
-            reported_user_name = reported_user_instance.userinfo.name
+            if reported_member_id:
+                reported_user_instance = User.objects.get(pk=reported_member_id)
+                reported_user_name = reported_user_instance.userinfo.name
+            else:
+                reported_user_name = None
             send_mail_for_report_abuse__on_collabcard.delay(user_instance.userinfo.name, collabcard_instance.title,
                                                             report_tags_instance.tag_name,
                                                             collabcard_instance.community.name,
