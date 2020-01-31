@@ -63,6 +63,7 @@
 
         <link rel="stylesheet" href="{% static 'css/community.css' %}">
         <link rel="stylesheet" href="{% static 'css/main_css/community.css' %}">
+
         <link href="https://fonts.googleapis.com/css?family=Roboto:400,500,500i,700&display=swap" rel="stylesheet">
 
 
@@ -388,13 +389,31 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                 <h4 class="RobotoBold" style="padding-left:10px;padding-top:10px;margin-bottom:5px;" >Promoter</h4>
 <br/><br/>
             <div class="image_container" style="">
-
             {% for admin in admins %}
-              <div class="promoter_item_single">
-                  <img src="{{admin.image_link}}" alt="No Image"/>
-                  <p style="line-height:22px;font-size:1.1rem;font-family:roboto;sans-serif;">{{admin.name}}</p>
-                  <p style="line-height:22px;font-size:1.1rem;font-family:roboto;sans-serif;">{{admin.introduction_answer}}</p>
-              </div>
+
+                 <img class="profile_image" src="{{admin.image_link}}">
+
+
+                 <img src="https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Fprofile_header?alt=media" style="width:100%;height:70%;">
+
+<!--                   <div class="profile_name">-->
+<!--                       <p align="center" style="font-family:Roboto;sans-serif;font-weight:600px;color:black;font-size:17px;line-height:22px;">{{admin.name}}</p>-->
+
+<!--                   </div>-->
+
+<!--                    <div style="margin-top:5%;margin-left:16px;margin-right:16px;">-->
+<!--                        {{admin.introduction_answer}}-->
+<!--                      </div>-->
+                <div class="promoter_item">
+
+                      <p style="font-size:17px;font-family:roboto;sans-serif;font-weight:500">{{admin.name}}</p>
+                      <div style="margin-left:10px;margin-right:10px;">
+                        <p style="line-height:28px;font-size:15px;font-family:roboto;sans-serif;font-color:#666666;text-align:left;">{{admin.introduction_answer}}</p>
+                      </div>
+
+                </div>
+
+                <br/><br/>
             {% endfor %}
 
             </div>
@@ -435,9 +454,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                 <div class="content" id="about">
                  <h4 class="RobotoBold" style="font-size:16px;">   About Community  </h4>
                     <p  id="more" class="Roboto">{{about_1}}&nbsp;<spam style="border:solid;color:#00897b
-
 ;background-color:#00897b
-
 ;"><i class="ellipsis horizontal icon" id="show_more" style="color:white;"></i></spam></p>
 
 
