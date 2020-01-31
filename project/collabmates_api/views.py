@@ -833,7 +833,7 @@ def create_community(request):
             save_community_purpose_card.delay(community_id, card_id)
             print("updated card id >>>>>>>   \n", card.id, "\n")
             # created card will be auto followed by the creator if the card
-            create_collabcard_state_for_user(card=card, user=user, state=collabcard_follow_state, community=community)
+            create_collabcard_state_for_user(card=card, user=user, state=collabcard_states.COLLABCARD_STATE_FOLLOW, community=community)
             # getting details of the user who is creating the community
             userinfo = Userinfo.objects.get(user_id=user.id)
 
@@ -993,7 +993,7 @@ def create_card(request):
 
         # #saving the state in collabcardState table instead of follow collabcard
         create_collabcard_state_for_user(card=card, user=user_instance,
-                                         state=collabcard_follow_state,
+                                         state=collabcard_states.COLLABCARD_STATE_FOLLOW,
                                          community=community)
 
         update_last_answer_id(card.id, "")
@@ -2108,10 +2108,10 @@ def collabcard_follow(request, function_dict=None):
     else:
 
         if status:
-            collabcardState.objects.filter(card=collabcard, user=user_instance).update(state=collabcard_follow_state,
+            collabcardState.objects.filter(card=collabcard, user=user_instance).update(state=collabcard_states.COLLABCARD_STATE_FOLLOW,
                                                                                        updated_at=time.time())
         else:
-            collabcardState.objects.filter(card=collabcard, user=user_instance).update(state=collabcard_seen_state,
+            collabcardState.objects.filter(card=collabcard, user=user_instance).update(state=collabcard_states.COLLABCARD_STATE_SEEN,
                                                                                        updated_at=time.time())
 
     # custom_cache.clear()
@@ -2144,7 +2144,7 @@ def collabcards_seen(request):
         collabcard_state_instance.card = card_instance
         collabcard_state_instance.community = community
         collabcard_state_instance.user = user_instance
-        collabcard_state_instance.state = collabcard_seen_state
+        collabcard_state_instance.state = collabcard_states.COLLABCARD_STATE_SEEN
         collabcard_state_instance.created_at = time.time()
         collabcard_state_instance.updated_at = time.time()
         collabcard_state_instance.save()
@@ -2173,7 +2173,7 @@ def collabcard_attend(request):
 
         # if the user clicks on attend but not following collabcard
         collabcard_state_instance = collabcardState.objects.get(card=collabcard_instance, user=user_instance)
-        if collabcard_state_instance.state == collabcard_seen_state:
+        if collabcard_state_instance.state == collabcard_states.COLLABCARD_STATE_SEEN:
             collabcard_state_instance.state = collabcard_states.COLLABCARD_STATE_ATTEND_UNFOLLOWING
             collabcard_state_instance.updated_at = time.time()
             collabcard_state_instance.save()
@@ -2187,7 +2187,7 @@ def collabcard_attend(request):
         collabcard_state_instance = collabcardState.objects.get(card=collabcard_instance, user=user_instance)
 
         if collabcard_state_instance.state == collabcard_states.COLLABCARD_STATE_ATTEND_UNFOLLOWING:
-            collabcard_state_instance.state = collabcard_seen_state
+            collabcard_state_instance.state = collabcard_states.COLLABCARD_STATE_SEEN
             collabcard_state_instance.updated_at = time.time()
             collabcard_state_instance.save()
 
