@@ -1,0 +1,232 @@
+    .ui.button.join_button{
+
+    z-index:2; background-color: #00897b; border-radius:20px; color:white;
+
+
+    }
+
+
+    .ui.button.bottom_button{
+
+    z-index:2; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;width:40%; left:30%;white-space: nowrap;
+
+    }
+
+    .top-left {
+    position: absolute;
+    top: 10px;
+    left: 16px;
+}
+
+
+.web_display{
+
+margin-left:100px;
+
+}
+
+/* font styling in css */
+
+.Roboto{font-family:'Roboto';font-weight:400;}
+
+.RobotoLight{font-familiy:'Roboto';font-weight:300;}
+
+.RobotoMedium{font-family:'Roboto';font-weight:500;font-size:13px;}
+
+.RobotoBold{font-family:'Roboto';font-weight:700;font-size:16px;}
+
+
+p{
+color:#666666;
+}
+
+
+
+
+.wrapper {
+  width: 600px;
+  margin: auto;
+  border: 1px solid #333;
+}
+.horizontal-scroll {
+  background-color: #f9f9f9;
+  overflow: hidden;
+  overflow-x: scroll;
+  overflow-y: hidden;
+  white-space: nowrap;
+  padding: 50px 0;
+}
+
+
+.promoter_item_single {
+	//border: 1px solid black;
+	box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);
+
+	display: inline-block;
+	width: 70%;
+	//background-color: #F5F5F5;
+	text-align: center;
+	padding: 50px 30px;
+	font-size: 16px;
+	margin: 0 10px;
+	white-space: pre-line;
+	opacity:0.9;
+	background-image: url("https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Fprofile_header?alt=media&token=fa838851-244c-4cbc-81da-3d2125536e18");
+	font-family:Roboto;
+	font-color:#666666;
+	position:relative;
+	background-size:100% 25%;
+	background-repeat: no-repeat;
+}
+
+
+.promoter_item_single img{
+         position: absolute ;
+    top: 3% ;
+    background-size: cover !important;
+    background-repeat: no-repeat ;
+    transform: translate(-50%, -50%) ;
+    border-top: inherit ;
+    border-top-color: transparent !important;
+    border-radius:50% ;width:95px !important;height:95px !important;display: inline-block !important;left:50% !important;
+    opacity:5;
+}
+
+
+
+
+footer {
+  color: #F5F5F5;
+  text-align: center;
+  background-color: #008080;
+  padding: 20px;
+
+}
+
+
+
+ .profile_image{
+    position: absolute ;
+    top: 18% ;
+    background-size: cover !important;
+    background-repeat: no-repeat ;
+    transform: translate(-50%, -50%) ;
+    border-top: inherit ;
+    border-top-color: transparent !important;
+    border-radius:50% ;width:95px !important;height:95px !important;display: inline-block !important;left:50% !important;
+    opacity:5;
+}
+
+
+.image_container{
+
+margin-left:25%;
+
+}
+
+
+.promoter_item_multiple {
+	//border: 1px solid black;
+	box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);
+
+	display: inline-block;
+	width: 40%;
+	//background-color: #F5F5F5;
+	text-align: center;
+	padding: 50px 30px;
+	font-size: 16px;
+	margin: 0 10px;
+	white-space: pre-line;
+	opacity:0.9;
+	background-image: url("https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Fprofile_header?alt=media&token=fa838851-244c-4cbc-81da-3d2125536e18");
+	font-family:Roboto;
+	font-color:#666666;
+	position:relative;
+	background-size:100% 25%;
+	background-repeat: no-repeat;
+}
+
+
+.promoter_item_multiple img{
+         position: absolute ;
+    top: 3% ;
+    background-size: cover !important;
+    background-repeat: no-repeat ;
+    transform: translate(-50%, -50%) ;
+    border-top: inherit ;
+    border-top-color: transparent !important;
+    border-radius:50% ;width:95px !important;height:95px !important;display: inline-block !important;left:50% !important;
+    opacity:5;
+}
+
+
+
+
+
+
+
+
+
+//media properties for mobile
+@media screen and (max-width: 600px){
+
+
+
+.web_display{
+
+   margin-left:70px;
+
+}
+
+
+.promoter_item_multiple {
+	//border: 1px solid black;
+	box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);
+
+	display: inline-block;
+	width: 90%;
+	//background-color: #F5F5F5;
+	text-align: center;
+	padding: 50px 30px;
+	font-size: 16px;
+	margin: 0 10px;
+	white-space: pre-line;
+	opacity:0.9;
+	background-image: url("https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Fprofile_header?alt=media&token=fa838851-244c-4cbc-81da-3d2125536e18");
+	font-family:Roboto;
+	font-color:#666666;
+	position:relative;
+	background-size:100% 25%;
+	background-repeat: no-repeat;
+}
+
+
+.promoter_item_single {
+	//border: 1px solid black;
+	box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);
+
+	display: inline-block;
+	width: 90%;
+	//background-color: #F5F5F5;
+	text-align: center;
+	padding: 50px 30px;
+	font-size: 16px;
+	margin: 0 10px;
+	white-space: pre-line;
+	opacity:0.9;
+	background-image: url("https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Fprofile_header?alt=media&token=fa838851-244c-4cbc-81da-3d2125536e18");
+	font-family:Roboto;
+	font-color:#666666;
+	position:relative;
+	background-size:100% 25%;
+	background-repeat: no-repeat;
+}
+
+.image_container{
+
+margin-left:25px;margin-right:10px;
+
+}
+
+
+}
