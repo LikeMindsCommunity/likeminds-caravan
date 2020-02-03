@@ -35,11 +35,11 @@ class Community(models.Model):
     def __str__(self):
         return self.name
 
-    def save(self, *args, **kwargs):
-        if self.created_at <= 0:
-            self.created_at = time.time()
-        self.updated_at = time.time()
-        super(Community, self).save(*args, **kwargs)
+    # def save(self, *args, **kwargs):
+    #     if self.created_at <= 0:
+    #         self.created_at = time.time()
+    #     self.updated_at = time.time()
+    #     super(Community, self).save(*args, **kwargs)
 
 
 class Members(models.Model):
@@ -52,10 +52,10 @@ class Members(models.Model):
     def __str__(self):
         return self.community_id.name
 
-    def save(self, *args, **kwargs):
-        if self.created_at <= 0:
-            self.created_at = time.time()
-        super(Members, self).save(*args, **kwargs)
+    # def save(self, *args, **kwargs):
+    #     if self.created_at <= 0:
+    #         self.created_at = time.time()
+    #     super(Members, self).save(*args, **kwargs)
 
 
 # class Admins (models.Model):
@@ -117,9 +117,9 @@ class Userinfo(models.Model):
     def __str__(self):
         return self.name
 
-    def save(self, *args, **kwargs):
-        self.created_at = time.time()
-        super(Userinfo, self).save(*args, **kwargs)
+    # def save(self, *args, **kwargs):
+    #     self.created_at = time.time()
+    #     super(Userinfo, self).save(*args, **kwargs)
 
 
 class Experience(models.Model):
@@ -175,9 +175,9 @@ class Collabcard(models.Model):
     polls_count = models.IntegerField(default=0)
     attending_count = models.IntegerField(default=0)
 
-    def save(self, *args, **kwargs):
-        self.date_epoch = time.time()
-        super(Collabcard, self).save(*args, **kwargs)
+    # def save(self, *args, **kwargs):
+    #     self.date_epoch = time.time()
+    #     super(Collabcard, self).save(*args, **kwargs)
 
 
 
@@ -333,12 +333,12 @@ class Tags_lpig(models.Model):
 
     def __str__(self):
         return self.name
-
-    def save(self, *args, **kwargs):
-        if self.created_at <= 0:
-            self.created_at = time.time()
-        self.updated_at = time.time()
-        super(Tags_lpig, self).save(*args, **kwargs)
+    #
+    # def save(self, *args, **kwargs):
+    #     if self.created_at <= 0:
+    #         self.created_at = time.time()
+    #     self.updated_at = time.time()
+    #     super(Tags_lpig, self).save(*args, **kwargs)
 
 
 class Member_Engage(models.Model):
@@ -507,10 +507,10 @@ class App_Update_Info(models.Model):
     android_route = models.CharField(max_length=2048, null=True)
     created_at = models.BigIntegerField(default=-9223372036854775808, null=True)
 
-    def save(self, *args, **kwargs):
-        if self.created_at <= 0:
-            self.created_at = time.time()
-        super(App_Update_Info, self).save(*args, **kwargs)
+    # def save(self, *args, **kwargs):
+    #     if self.created_at <= 0:
+    #         self.created_at = time.time()
+    #     super(App_Update_Info, self).save(*args, **kwargs)
 
 
 # Collabcard Report Module
@@ -534,10 +534,10 @@ class Report(models.Model):
     reason = models.CharField(max_length=2048, null=True)
     date_epoch = models.BigIntegerField(default=-9223372036854775808, null=True)
 
-    def save(self, *args, **kwargs):
-        if self.date_epoch <= 0:
-            self.date_epoch = time.time()
-        super(Report, self).save(*args, **kwargs)
+    # def save(self, *args, **kwargs):
+    #     if self.date_epoch <= 0:
+    #         self.date_epoch = time.time()
+    #     super(Report, self).save(*args, **kwargs)
 
 
 class collabcardState(models.Model):
@@ -547,12 +547,12 @@ class collabcardState(models.Model):
     state = models.IntegerField(null=True)
     created_at = models.BigIntegerField(default=-9223372036854775808, null=True)
     updated_at = models.BigIntegerField(default=-9223372036854775808, null=True)
-
-    def save(self, *args, **kwargs):
-        if self.created_at <= 0:
-            self.created_at = time.time()
-        self.updated_at = time.time()
-        super(collabcardState, self).save(*args, **kwargs)
+    #
+    # def save(self, *args, **kwargs):
+    #     if self.created_at <= 0:
+    #         self.created_at = time.time()
+    #     self.updated_at = time.time()
+    #     super(collabcardState, self).save(*args, **kwargs)
 
 
 class CollabcardPolls(models.Model):

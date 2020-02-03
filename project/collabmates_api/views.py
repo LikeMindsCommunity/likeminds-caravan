@@ -812,6 +812,7 @@ def create_community(request):
             member.member_id = user
             member.community_id = community
             member.state = 1  # admin state
+            member.created_at = time.time()
             member.save()
 
             # creating a card while a comunity is created
@@ -822,6 +823,7 @@ def create_community(request):
                 card.title = "Listed our community on CollabMates. This will help us to know each other, have organised discussions and network efficiently."
             card.community = community
             card.user = user
+            card.date_epoch = time.time()
             card.save()
             # saving details in firebase
             update_last_answer_id(card.id, "")
@@ -1970,6 +1972,7 @@ def create_answer(request):
         ans.answer = res['title']
         ans.card = card
         ans.user = user
+        ans.date_epoch = time.time()
         ans.save()
         update_last_answer_id(card_id, ans.id)
 
@@ -3589,6 +3592,7 @@ def push_report(request):
 
         if reported_member_id:
             report_instance.reported_member_id = reported_member_id
+            report_instance.date_epoch = time.time()
         report_instance.save()
 
         community_url = url + "/community/" + str(collabcard_instance.community.id)
