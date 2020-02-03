@@ -2582,6 +2582,8 @@ def login(request):
                 userinfo = user[0].userinfo
 
         elif login_type == 'linkedIn':
+            
+            print("res ==== ",res)
             # if user is logging in with linkedIn
             user_name = res['firstName']['localized']['en_US'] + " " + res['lastName']['localized']['en_US']
             email = res['email']['elements'][0]['handle~']['emailAddress']
