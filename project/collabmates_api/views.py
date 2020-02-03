@@ -2153,7 +2153,7 @@ def collabcards_seen(request):
         collabcard_state_instance.updated_at = time.time()
         collabcard_state_instance.save()
 
-    update_last_unseen_in_engage(user=user_instance, community=community)
+    update_last_unseen_in_engage(user=user_instance, community=community,is_seen=False)
     # custom_cache.clear()
     return JsonResponse({'success': True})
 

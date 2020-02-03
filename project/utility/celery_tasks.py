@@ -164,6 +164,8 @@ def update_last_unseen_in_engage(user='',community='',is_seen=True):
         # member.last_unseen_conversation=card
         # member.updated_at=current_time
         # member.save()
+
+        #when a new card is created updating time for all members
         if not is_seen:
             Member_Engage.objects.filter(community_id=community, member_id=user).update(last_unseen_count=collabcard_unseen,
                                                                                     last_unseen_conversation=card,

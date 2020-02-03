@@ -201,9 +201,6 @@ class card_answers(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     date_epoch = models.BigIntegerField(default=-9223372036854775808)
 
-    # def save(self, *args, **kwargs):
-    #     self.date_epoch = time.time()
-    #     super(card_answers, self).save(*args, **kwargs)
 
 
 class temp_admin(models.Model):
