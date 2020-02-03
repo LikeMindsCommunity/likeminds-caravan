@@ -2153,7 +2153,7 @@ def collabcards_seen(request):
         collabcard_state_instance.updated_at = time.time()
         collabcard_state_instance.save()
 
-    update_last_unseen_in_engage(user=user_instance, community=community, is_seen=True)
+    update_last_unseen_in_engage(user=user_instance, community=community,is_seen=False)
     # custom_cache.clear()
     return JsonResponse({'success': True})
 
@@ -2582,6 +2582,8 @@ def login(request):
                 userinfo = user[0].userinfo
 
         elif login_type == 'linkedIn':
+            
+            print("res ==== ",res)
             # if user is logging in with linkedIn
             user_name = res['firstName']['localized']['en_US'] + " " + res['lastName']['localized']['en_US']
             email = res['email']['elements'][0]['handle~']['emailAddress']
