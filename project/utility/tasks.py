@@ -215,7 +215,7 @@ def send_mail_for_report_abuse(user_name, collabcard_message, report_tag, commun
 
     subject = str(user_name) + " reported " + report_tag
 
-    help_text = " for collabcard:"" for collabcard: " if not reported_user_name else " for user: "
+    help_text = " for collabcard: " if not reported_user_name else " for user: "
     reported_on = str(collabcard_message) if not reported_user_name else str(
             reported_user_name)
     if report_reason:

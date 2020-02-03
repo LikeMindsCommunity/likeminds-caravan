@@ -353,10 +353,6 @@ class Member_Engage(models.Model):
     member_referral = models.CharField(default='', max_length=1024)
     member_state = models.IntegerField(null=True)
 
-    def save(self, *args, **kwargs):
-        self.updated_at = time.time()
-        super(Member_Engage, self).save(*args, **kwargs)
-
 
 # community lpig
 
