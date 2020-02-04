@@ -35,8 +35,10 @@ url=settings.URL
 
 if settings.IS_BETA:
     eligibility_count = 2
+    ig_members_count=3
 else:
     eligibility_count = 5
+    ig_members_count = 4
 
 # count for a particular community to show tutorial
 tutorial_count=3
