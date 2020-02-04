@@ -2350,7 +2350,7 @@ def community_collabcard_meta(request):
     collabcard_ids = collabcard_ids.split(",")
 
     member_id = get_member_id_from_headers(request)
-
+    community_instance = None
     card_list = []
     for card_id in collabcard_ids:
         card_instance = Collabcard.objects.get(id=card_id)
@@ -2372,6 +2372,7 @@ def community_collabcard_meta(request):
         else:
             # get time stamp
             time_text = get_time_text(card_instance.date_epoch)
+        community_instance=card_instance.community
         card_dict = CollabcardSerializer(card_instance, member_id, card_instance.community)
         card_dict['state'] = get_status_of_collabcard(member_id, card_instance.community, card_instance)
         card_dict['created_at'] = time_text
@@ -2379,6 +2380,11 @@ def community_collabcard_meta(request):
         card_dict['images'] = files[0]
         card_dict['pdf'] = files[1]
         card_list.append(card_dict)
+
+    if community_instance:
+        community=CommunitySerializer(community_instance)
+        return JsonResponse({'collabcards': card_list,'community':community})
+
     return JsonResponse({'collabcards': card_list})
 
 
