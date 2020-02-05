@@ -45,7 +45,8 @@ from utility.utils import (decode_meta_from_url, update_tag_image,
                            update_community_tags_to_user, tutorial_count,
     # custom_cache,cache_timeout,
                            get_city_address,
-                           update_user_geography_tags, insert_user_home_town_tags, user_onbaord, is_IG_community,ig_members_count)
+                           update_user_geography_tags, insert_user_home_town_tags, user_onbaord, is_IG_community,
+                           ig_members_count)
 
 from .notification import (send_follow_notification, send_notification_to_admins,
                            send_notification_for_join_requests,
@@ -57,7 +58,7 @@ from .notification import (send_follow_notification, send_notification_to_admins
                            send_notification_to_tagged_users,
                            send_poll_or_event_notification,
                            )
-from .raw_queries import compute_rank,update_community_purpose_card
+from .raw_queries import compute_rank, update_community_purpose_card
 from .tasks import send_email_to_nominated_admin, send_email_for_new_collabcard_posted, send_welcome_mail
 
 # CACHE_TTL = getattr(settings, 'CACHE_TTL', cache_timeout)
@@ -367,9 +368,8 @@ def join_community_responses(request):
 
     is_ig_pilot_active = False
     is_ig=is_IG_community(community)
-
     if community.hide_community == '4' and is_ig:
-        is_ig_pilot_active = True
+            is_ig_pilot_active = True
 
     user = User.objects.get(id=user_id)
 
@@ -380,9 +380,33 @@ def join_community_responses(request):
 
 
 
-    if  is_ig and community.hide_community == '3':
+    if  is_ig :
         print("Inside IG")
-        join_ig_communities(res,community,user,ref_id)
+        join_ig_communities(request,res,community,user,ref_id)
+        if ref_id:
+            referer_instance = User.objects.get(pk=ref_id)
+            refer = Referal.objects.filter(member=referer_instance,
+                                           invited_member=user,
+                                           community=community)
+            if not refer.exists():
+                refer = Referal(member=referer_instance,
+                                invited_member=user,
+                                community=community)
+                refer.save()
+
+            total_referals = Referal.objects.filter(member=referer_instance,
+                                                    community=community)
+            if total_referals.count() < ig_members_count:
+                notify_referred_member.delay(referred_member_id=ref_id,
+                                             joined_member_name=user.userinfo.name,
+                                             community_name=community.name,
+                                             community_id=community_id)
+
+            if total_referals.count() >= ig_members_count:
+                admin = Members.objects.filter(community_id=community, member_id=referer_instance)
+
+                if admin.exists():
+                    Members.objects.filter(community_id=community, member_id=referer_instance).update(state=1)
 
         if not ref_id:
             # sending mail to nipun and harsh
@@ -392,9 +416,8 @@ def join_community_responses(request):
             # sending mail to nipun and harsh
             new_member_request.delay(member_id=user_id, community_id=community_id, ref_id=ref_id,
                                      form_response=res['questions'])
-        return JsonResponse({'success': True})
 
-
+        return JsonResponse({'success':True})
 
     info_logger.info("\n")
     info_logger.info("Join Community api")
@@ -403,7 +426,7 @@ def join_community_responses(request):
     info_logger.info("""ref_id=%s""", str(ref_id))
     info_logger.info("""Community State=%s""" % str(community.hide_community))
 
-    if ref_id:
+    if ref_id :
         # ref_id = res['ref_id']
 
         if community.hide_community == '3' or community.hide_community == '4':
@@ -531,7 +554,7 @@ def join_community_responses(request):
 
 
 
-def join_ig_communities(res,community,user,ref_id):
+def join_ig_communities(request,res,community,user,ref_id):
 
     '''join api for ig communities'''
 
@@ -565,50 +588,17 @@ def join_ig_communities(res,community,user,ref_id):
         member_id =user.id
         introduction_question, introduction_answer = auto_create_collabcard(user, community)
         print(introduction_answer)
-        json_body = {
-            'communityId': community_id,
-            'title': introduction_answer,
-            'image_count': 0,
-            'pdf_count': 0,
-            'type': 1,     # if state=0 normal if state =1 intro
-            'is_ig': True  # if the community is ig community
-        }
-        #print(json_body)
+        req_dict={
 
-        params = {
-            'community_id': community_id,
-            'member_id': member_id
+            'member_id':member_id,
+            'community_id':community_id,
+            'title':introduction_answer,
+            'type':1,
+            'is_ig':1
         }
-        #print(params)
-        # calling create card APi with required credentials
-        link = url + "/api/create_collabcard"
-        response=rqst.post(link, params=params, json=json_body)
-        #print(response)
+        create_card(request,req_dict=req_dict)
         #saving the referal detail and sending notifications for refered members
-        if ref_id:
-            referer_instance=User.objects.get(pk=ref_id)
-            refer = Referal.objects.filter(member=referer_instance,
-                                           invited_member=user,
-                                           community=community)
-            if not refer.exists():
-                refer = Referal(member=referer_instance,
-                                               invited_member=user,
-                                               community=community)
-                refer.save()
 
-            total_referals = Referal.objects.filter(member=referer_instance,
-                                                    community=community)
-            if total_referals.count() < ig_members_count:
-                notify_referred_member.delay(referred_member_id=ref_id,
-                                             joined_member_name=user.userinfo.name,
-                                             community_name=community.name,
-                                             community_id=community_id)
-
-            if total_referals.count() >= ig_members_count:
-                admin = Members.objects.filter(community_id=community, member_id=referer_instance)
-
-                if admin.exists():
-                    Members.objects.filter(community_id=community, member_id=referer_instance).update(state=1)
         community.updated_at=time.time()
         community.members_count=community.members_count + 1
         community.save()
@@ -616,7 +606,7 @@ def join_ig_communities(res,community,user,ref_id):
         if community.members_count == ig_members_count:
             community.hide_community='4'
             community.save()
-
+        send_notification_for_join_requests.delay(community_id, True, member_id)
         log="""Community joined for community_id=%s and member_id=%s"""%(community.id,user.id)
         print(log)
 
@@ -1013,17 +1003,29 @@ def create_community(request):
 
 # /api/create_collabcard?community_id=&member_id=
 @csrf_exempt
-def create_card(request):
+def create_card(request,req_dict=None):
     ''' function to create a card '''
-    user_id = request.GET.get('member_id')
-    community_id = request.GET.get('community_id')
+
+    if not req_dict:
+        user_id = request.GET.get('member_id')
+        community_id = request.GET.get('community_id')
+    else:
+
+        user_id=req_dict['member_id']
+        community_id=req_dict['community_id']
+
+    print(request.method)
 
     #member_id = get_member_id_from_headers(request)
     user_instance = User.objects.get(id=user_id)
     userinfo_instance = user_instance.userinfo
     community = Community.objects.get(id=community_id)
     if request.method == 'POST':
-        res = json.loads(request.body)
+        if not req_dict:
+            res = json.loads(request.body)
+        else:
+            res=req_dict
+
         # creating card
         # type=0 normal card, type =1 intro card, type 2 is event card and type 3 is poll card
         typ = int(res['type']) if 'type' in res else 0
@@ -1032,7 +1034,11 @@ def create_card(request):
         if card.exists() and typ == 1:
             # if welcome card for user is already existing
             return JsonResponse({'success': False})
-        date_time = res['date_time'] if (str(typ) == '2' or str(typ) == '3') else 0
+
+        if 'date_time' in res:
+            date_time = res['date_time'] if (str(typ) == '2' or str(typ) == '3') else 0
+        else:
+            date_time=0
 
         #if the community is a ig community
         is_ig=False
@@ -1153,13 +1159,13 @@ def create_card(request):
 
         send_notification_for_new_collabcard_posted.delay(community_id, res['title'],
                                                           user_id, userinfo_instance.name,
-                                                          type=type, date_time=date_time,
+                                                          type=typ, date_time=date_time,
                                                           card_id=card.id)
 
-        if type != 1:  # stopping mail for introduction cards
+        if typ != 1:  # stopping mail for introduction cards
             send_email_for_collabcard(community, userinfo_instance, card, typ)
 
-
+        print(collabcard)
         return JsonResponse({'success': True, 'collabcard': collabcard})
     return JsonResponse({'success': False})
 
