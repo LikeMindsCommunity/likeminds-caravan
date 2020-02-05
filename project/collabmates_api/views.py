@@ -698,7 +698,7 @@ def admins(request, community_id):
         usr = UserinfoSerializer(user[0])
         form_response = FormResponseSerilaizer(community_id, admin.member_id.id)
         ref_members = get_referred_members_of_a_member(community_id, admin.member_id.id)
-        usr['referred_members_count']=ref_members
+        usr['referred_members_count']=len(ref_members)
         if form_response:
             usr['response'] = form_response
 
