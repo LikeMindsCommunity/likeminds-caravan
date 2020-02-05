@@ -57,6 +57,7 @@ from .notification import (send_follow_notification, send_notification_to_admins
                            send_notification_to_all_admins,
                            send_notification_to_tagged_users,
                            send_poll_or_event_notification,
+                           send_notification_to_promoter_of_ig_community
                            )
 from .raw_queries import compute_rank, update_community_purpose_card
 from .tasks import send_email_to_nominated_admin, send_email_for_new_collabcard_posted, send_welcome_mail
@@ -396,17 +397,23 @@ def join_community_responses(request):
 
             total_referals = Referal.objects.filter(member=referer_instance,
                                                     community=community)
-            if total_referals.count() < ig_members_count:
-                notify_referred_member.delay(referred_member_id=ref_id,
-                                             joined_member_name=user.userinfo.name,
-                                             community_name=community.name,
-                                             community_id=community_id)
+            total_referal_count=total_referals.count()
+            if total_referal_count < ig_members_count:
+                pass
+                # notify_referred_member.delay(referred_member_id=ref_id,
+                #                              joined_member_name=user.userinfo.name,
+                #                              community_name=community.name,
+                #                              community_id=community_id)
 
-            if total_referals.count() >= ig_members_count:
+            if total_referal_count >= ig_members_count:
                 admin = Members.objects.filter(community_id=community, member_id=referer_instance)
 
                 if admin.exists():
                     Members.objects.filter(community_id=community, member_id=referer_instance).update(state=1)
+                    send_notification_to_promoter_of_ig_community.delay(community_id=community.id,
+                                                                  community_name=community.name,member_id=ref_id)
+
+
 
         if not ref_id:
             # sending mail to nipun and harsh
