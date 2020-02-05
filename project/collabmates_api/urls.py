@@ -18,7 +18,10 @@ urlpatterns = [
     path('members/<int:community_id>', api_views.members, name="members"),
     path('create_collabcard', api_views.create_card, name="create_card"),
     path('collabcard/<int:card_id>', api_views.collabcard, name="collabcard"),
+
     path('community_collabcard/<int:community_id>', api_views.community_cards, name="community_cards"),
+    path('v1/community_collabcard/<int:community_id>', api_views.community_cards_version_1, name="community_cards_version_1"),
+
     path('create_answer', api_views.create_answer, name="create_answer"),
     path('login',api_views.login,name = 'login'),
     path('image_upload',api_views.image_upload,name = 'image'),
