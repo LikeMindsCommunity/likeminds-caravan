@@ -1,18 +1,20 @@
 from __future__ import absolute_import, unicode_literals
-from celery import shared_task
-import psycopg2
-from pyfcm import FCMNotification
-from django.conf import  settings
+
+import re
 import time
+
+import psycopg2
+from celery import shared_task
+from django.conf import settings
+from django.contrib.auth.models import User
+from django.db.models import Q
+from pyfcm import FCMNotification
 from togther.models import (Community_Rank, collabcardState,
                             MemberPollVotes, Collabcard,
                             )
-from django.contrib.auth.models import User
-
-from utility.states import *
-import re
-from django.db.models import Q
 from utility.celery_beat_tasks import CeleryBeatTask
+from utility.states import *
+
 # file to store configuration of the system
 
 
@@ -224,11 +226,6 @@ def send_notification(fcm_token,message,is_android):
 
 
 
-
-
-
-
-
 @shared_task
 def send_follow_notification(card_id,user_id,answer):
 
@@ -366,8 +363,7 @@ def send_notification_for_join_requests(community_id,flag,member_id):
 # notifications for new collabcards
 
 @shared_task
-def send_notification_for_new_collabcard_posted(community_id, collabcard_title,
-                                                card_creater_id, card_creater_name, **kwargs):
+def send_notification_for_new_collabcard_posted(community_id, collabcard_title,card_creater_id, card_creater_name, **kwargs):
     '''function to send notification to all members when new collabcard is posted'''
     try:
         connection=get_connection()
@@ -580,6 +576,33 @@ def send_notification_to_all_admins(community_id,name,current_promoter_id):
 
         print ("Error while connecting to PostgreSQL", error)
 
+
+@shared_task
+def send_notification_to_promoter_of_ig_community(community_id,community_name,member_id):
+
+   '''function to send notification for the promoter of IG communities'''
+
+   notification_list = []
+
+   temp = {}
+   temp['user_id'] = member_id
+   notification_details = get_token_for_fcm(member_id, True)
+   temp['fcm_token'] = notification_details[0]
+   temp['mobile_os'] = notification_details[1]
+
+   notification_list.append(temp)
+
+   message = {}
+   message['payload'] = {
+       'title': str(community_name),
+       'sub_title': "You are now promoter of this community.",
+       'route': 'route://community?community_id=' + str(community_id)
+   }
+
+
+   notification_meta(notification_list, message)
+
+
 @shared_task
 def notification_after_compute_rank(user_id):
 
@@ -712,4 +735,6 @@ def poll_expiry_or_event_remainder_notification(community_name, community_id, ty
     except:
 
         print("Error while connecting to PostgreSQL")
+
+
 
