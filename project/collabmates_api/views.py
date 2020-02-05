@@ -691,11 +691,20 @@ def admins(request, community_id):
     member_id = request.GET.get('member_id', None)
     admins = Members.objects.filter(community_id=community_id).filter(Q(state=1) | Q(state=2))
     users = []
+
     for admin in admins:
         user = Userinfo.objects.filter(user_id=admin.member_id.id)
         # get user serialized
         usr = UserinfoSerializer(user[0])
+        form_response = FormResponseSerilaizer(community_id, admin.member_id.id)
+        ref_members = get_referred_members_of_a_member(community_id, admin.member_id.id)
+        usr['referred_members_count']=ref_members
+        if form_response:
+            usr['response'] = form_response
+
         users.append(usr)
+
+
     community = Community.objects.get(pk=community_id)
     referred_members_count = 0
     if member_id and community.hide_community == '3':
