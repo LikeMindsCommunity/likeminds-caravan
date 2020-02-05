@@ -16,6 +16,30 @@ except:
     from scripts.connection import get_connection
     from project.celery import app
 
+@shared_task
+def update_community_purpose_card(community_id,card_id):
+
+    '''function to update community pupose collabcard'''
+
+    try:
+        conn = get_connection()
+        curr = conn.cursor()
+        print(card_id)
+        print(community_id)
+        sql="""update togther_community set purpose_collabcard=%s where id=%s"""%(card_id,community_id)
+        print(sql)
+        curr.execute(sql)
+        conn.commit()
+        print("purpose updated successfully")
+        curr.close()
+        conn.close()
+
+
+    except (Exception, psycopg2.Error) as error:
+        print("Error while connecting to PostgreSQL  ", error)
+
+
+
 
 def get_all_data(sql):
     '''function to get all data based on a sql query'''
