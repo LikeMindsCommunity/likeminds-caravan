@@ -398,12 +398,15 @@ def join_community_responses(request):
 
             total_referals = Referal.objects.filter(member=referer_instance,
                                                     community=community)
+
             total_referal_count=total_referals.count()
+
+            send_notification_for_tool_unlocked.delay(referer_id=ref_id,
+                                                      joined_member_name=user.userinfo.name,
+                                                      referal_count=total_referal_count, community_id=community.id,
+                                                      community_name=community.name)
             if total_referal_count < ig_members_count:
-                send_notification_for_tool_unlocked.delay(referer_id=ref_id,
-                                                    joined_member_name=user.userinfo.name,
-                                                    referal_count=total_referal_count,community_id=community.id,
-                                                    community_name=community.name)
+                pass
 
             if total_referal_count >= ig_members_count:
                 admin = Members.objects.filter(community_id=community, member_id=referer_instance)
@@ -412,6 +415,8 @@ def join_community_responses(request):
                     Members.objects.filter(community_id=community, member_id=referer_instance).update(state=1)
                     send_notification_to_promoter_of_ig_community.delay(community_id=community.id,
                                                                   community_name=community.name,member_id=ref_id)
+
+
 
 
 
@@ -1935,6 +1940,7 @@ def community_collabcard_invite(request,community_id):
     member_id = request.GET.get('member_id')
 
     is_ig=is_IG_community(community)
+
 
     if is_ig:
 

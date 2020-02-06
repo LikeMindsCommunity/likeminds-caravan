@@ -71,7 +71,12 @@ def send_notification_for_ios(token_list, message):
 def notification_meta(notification_list,message):
 
     '''function to process notification to send'''
+
+    print("Notification Info--")
     print(notification_list)
+
+    print("Message--")
+    print(message)
 
     token_list_android=[]
     token_list_ios=[]
@@ -89,8 +94,6 @@ def notification_meta(notification_list,message):
     if token_list_ios:
         send_notification_for_ios(token_list_ios,message)
 
-    print("Notification sent")
-    print("\n")
 
 
 
@@ -161,15 +164,15 @@ def is_mobile_os_android(fcm_token):
         curr = conn.cursor()
         sql="select mobile_os from togther_userinfo where fcm_token='"+fcm_token+"'"
         curr.execute(sql)
-        print(sql)
+        #print(sql)
         mobile_os = curr.fetchone()
         if mobile_os:
-            print(mobile_os[0])
+            #print(mobile_os[0])
             if mobile_os[0] == "Android":
-                print("Android")
+                #print("Android")
                 return True
             elif mobile_os[0] == "iOS":
-                print("iOS")
+                #print("iOS")
                 return False
         else:
             return True
@@ -337,9 +340,15 @@ def send_notification_to_admins(community_id,name):
 def send_notification_for_join_requests(community_id,flag,member_id):
     '''function to send notification for approval or denial'''
     community_name=get_community_name(community_id)
-    fcm_token=get_token_for_fcm(member_id)
-    token_list=[]
-    token_list.append(fcm_token)
+    temp = {}
+    notification_list=[]
+    temp['user_id'] = member_id
+    notification_details = get_token_for_fcm(member_id, True)
+    temp['fcm_token'] = notification_details[0]
+    temp['mobile_os'] = notification_details[1]
+
+    notification_list.append(temp)
+
     message={}
     if flag:
         message['payload']={
@@ -354,8 +363,7 @@ def send_notification_for_join_requests(community_id,flag,member_id):
             'route': 'route://member_declined?community_id=' + str(community_id)
         }
 
-    send_notification_to_multiple_devices(token_list,message)
-
+    notification_meta(notification_list,message)
 
 
 
@@ -642,8 +650,7 @@ def send_notification_for_tool_unlocked(referer_id,joined_member_name,referal_co
         'sub_title':sub_title,
         'route':route
     }
-    print("message---",message)
-    print("notification_list----",notification_list)
+
 
     notification_meta(notification_list, message)
 
