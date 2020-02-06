@@ -34,8 +34,8 @@ ios_app_download_link="https://apps.apple.com/us/app/collabmates/id1481298195"
 url=settings.URL
 
 if settings.IS_BETA:
-    eligibility_count = 3
-    ig_members_count=2
+    eligibility_count = 5
+    ig_members_count=4
 else:
     eligibility_count = 5
     ig_members_count = 4
