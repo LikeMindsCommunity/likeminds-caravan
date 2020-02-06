@@ -2030,16 +2030,34 @@ def community_collabcard_invite(request,community_id):
 
 
 
+        #prompt for invite now
 
+        unlock_title="Invite members"
+        if members_left == 1:
+            unlock_sub_title=" To start a conversation, invite %s more member to this community and make this community live."%(members_left)
+            community_live_title="more member required"
+        else:
+            unlock_sub_title=" To start a conversation, invite %s more members to this community and make this community live."%(members_left)
+            community_live_title="more members required"
+
+        unlock_action_title="OK, INVITE NOW"
+        unlock_action="""route://community?community_id=%s&share=true"""
 
         if members_left > 0:
 
             community_live={
                 'members_left':members_left,
-                'title':"more members required",
-                'sub_title':community_live_subtitle,
+                'title':community_live_title,
+                'sub_title':"Every community needs its members to make purposeful conversations. Invite 3 or more members to start conversations.",
                 'action_title':"Invite Friends",
-                'action':"""route://community?community_id=%s&share=true""" % (community_id)
+                'action':"""route://community?community_id=%s&share=true""" % (community_id),
+
+
+                unlock_title:unlock_title,
+                unlock_sub_title:unlock_sub_title,
+                unlock_action_title:unlock_action_title,
+                unlock_action:unlock_action
+
             }
 
             json_response={
@@ -3142,13 +3160,42 @@ def members_state(request):
             state = 6
         else:
             state = 0
-    json_response={'state': state,
-                   'tool_state': tool_state,
-                   'referred_members_count':len(ref_members),
-                   'tool_title':"""Invite friends to unlock features.If you invite %s friends, You will be highlighted as a promoter of this community."""%(eligibility_count),
+    referred_members_count=len(ref_members)
+    tool_unlock_sub_title=""
+    if referred_members_count == 0:
+        tool_unlock_sub_title="Some features might be available only for active members of the community. Invite a new member and unlock a tool"
+    elif referred_members_count == 1:
+        tool_unlock_sub_title="Some features might be available only for active members of the community. Invite 2 more members and unlock this tool"
+    elif referred_members_count == 2:
+        tool_unlock_sub_title="Some features might be available only for active members of the community. Invite 1 more member and unlock this tool"
 
+
+
+    diff=eligibility_count-referred_members_count
+    if diff <=0:
+        json_response = {'state': state,
+                         'tool_state': tool_state,
+                         'referred_members_count': referred_members_count,
+                         'tool_unlock_title': "Unlock Feature",
+                         'tool_unlock_sub_title': tool_unlock_sub_title,
+                         'tool_unlock_action_title': "OK, INVITE NOW",
+                         'tool_unlock_action': """route://community?community_id=%s&share=true""" % (community_id)
+                         }
+    else:
+
+        if diff == 1:
+            tool_title = """Invite friends to unlock features.If you invite %s friend, You will be highlighted as a promoter of this community.""" % (
+            diff)
+        else:
+            tool_title = """Invite friends to unlock features.If you invite %s friends, You will be highlighted as a promoter of this community.""" % (
+                diff)
+
+        json_response={'state': state,
+                   'tool_state': tool_state,
+                   'referred_members_count':referred_members_count,
+                   'tool_title':tool_title,
                    'tool_unlock_title':"Unlock Feature",
-                   'tool_unlock_sub_title':"Some features might be available only for promoters of the group. Invite your friends, become a promoter of the group and unlock these features.",
+                   'tool_unlock_sub_title':tool_unlock_sub_title,
                    'tool_unlock_action_title':"OK, INVITE NOW",
                    'tool_unlock_action':"""route://community?community_id=%s&share=true""" % (community_id)
                    }
