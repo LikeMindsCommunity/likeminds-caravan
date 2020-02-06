@@ -602,11 +602,11 @@ def send_notification_to_promoter_of_ig_community(community_id,community_name,me
 
    notification_meta(notification_list, message)
 
-
+@shared_task
 def send_notification_for_tool_unlocked(referer_id,joined_member_name,referal_count,community_id,community_name):
 
     '''function to send notification for tool unlocked'''
-   
+
     if referal_count == 1:
         sub_title="""%s joined. New tool unlocked!"""%(joined_member_name)
         route= """route://community_collabcard?community_id=%s&tour_unlocked=true"""
@@ -635,6 +635,7 @@ def send_notification_for_tool_unlocked(referer_id,joined_member_name,referal_co
     temp['mobile_os'] = notification_details[1]
 
     notification_list.append(temp)
+    print(notification_list)
     message={}
     message['payload']={
         'title':community_name,
