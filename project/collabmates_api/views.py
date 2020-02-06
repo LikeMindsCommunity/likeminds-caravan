@@ -1962,17 +1962,22 @@ def community_collabcard_invite(request,community_id):
             community_live_subtitle = """Awesome, you have taken the first step! Be the spark to ignite this community by inviting other %s from your network."""%(member_types)
         elif number_of_members == 2:
 
-            member_list=Members.objects.filter(~Q(member_id=member_id)|Q(community_id=community_id))
+            member_list=Members.objects.filter(member_id=member_id,community_id=community_id)
+            print(member_list)
             member_name=""
             for member in member_list:
+                if member_id == member.member_id.id:
+                    continue
                 member_name=member.member_id.userinfo.name
             community_live_subtitle="""Superb, you and %s are now together for your shared interest! Invite 2 other %s and let them join you in this community."""%(member_name,member_types)
 
         elif number_of_members == 3:
 
-            member_list = Members.objects.filter(~Q(member_id=member_id) | Q(community_id=community_id)).order_by('-id')
+            member_list = Members.objects.filter(member_id=member_id,community_id=community_id).order_by('-id')
             other_member_list=[]
             for member in member_list:
+                if member_id == member.member_id.id:
+                    continue
                 member_name = member.member_id.userinfo.name
                 other_member_list.append(member_name)
             if other_member_list:
