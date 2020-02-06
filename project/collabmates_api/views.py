@@ -400,7 +400,7 @@ def join_community_responses(request):
                                                     community=community)
             total_referal_count=total_referals.count()
             if total_referal_count < ig_members_count:
-                send_notification_for_tool_unlocked(referer_id=ref_id,
+                send_notification_for_tool_unlocked.delay(referer_id=ref_id,
                                                     joined_member_name=user.userinfo.name,
                                                     referal_count=total_referal_count,community_id=community.id,
                                                     community_name=community.name)
