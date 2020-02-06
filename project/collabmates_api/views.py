@@ -3148,7 +3148,7 @@ def members_state(request):
                    'tool_title':"""Invite friends to unlock features.If you invite %s friends, You will be highlighted as a promoter of this community."""%(eligibility_count),
 
                    'tool_unlock_title':"Unlock Feature",
-                   'tool_unlock_sub_title':"",
+                   'tool_unlock_sub_title':"Some features might be available only for promoters of the group. Invite your friends, become a promoter of the group and unlock these features.",
                    'tool_unlock_action_title':"OK, INVITE NOW",
                    'tool_unlock_action':"""route://community?community_id=%s&share=true""" % (community_id)
                    }
