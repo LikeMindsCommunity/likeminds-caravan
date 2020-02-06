@@ -725,3 +725,33 @@ def is_IG_community(community):
             return True
 
     return False
+
+
+def is_LG_or_LP_community(community_id):
+
+    '''function to check if the community is LG community or not and excluding hometown communities'''
+    community=Community.objects.get(id=community_id)
+    communities_legacy=Community_Legacy.objects.filter(community_id=community)
+
+    is_hometown=is_legacy_home_town(communities_legacy)
+
+    if not is_hometown:
+
+        for legacy in communities_legacy:
+            tag_id = legacy.tags_id.id
+            if tag_id != 15:
+                return True
+
+        return False
+    return False
+
+def is_legacy_home_town(communities_legacy):
+
+    '''function to check whether the community is legacy hometown or not'''
+
+    for legacy in communities_legacy:
+        attribute_id=legacy.tags_id.attribute_id.id
+        if attribute_id == 3 or attribute_id == 13 or attribute_id == 14 :
+            return True
+    return False
+
