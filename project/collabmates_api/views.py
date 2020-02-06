@@ -57,7 +57,8 @@ from .notification import (send_follow_notification, send_notification_to_admins
                            send_notification_to_all_admins,
                            send_notification_to_tagged_users,
                            send_poll_or_event_notification,
-                           send_notification_to_promoter_of_ig_community
+                           send_notification_to_promoter_of_ig_community,
+                           send_notification_for_tool_unlocked
                            )
 from .raw_queries import compute_rank, update_community_purpose_card
 from .tasks import send_email_to_nominated_admin, send_email_for_new_collabcard_posted, send_welcome_mail
@@ -399,11 +400,10 @@ def join_community_responses(request):
                                                     community=community)
             total_referal_count=total_referals.count()
             if total_referal_count < ig_members_count:
-                pass
-                # notify_referred_member.delay(referred_member_id=ref_id,
-                #                              joined_member_name=user.userinfo.name,
-                #                              community_name=community.name,
-                #                              community_id=community_id)
+                send_notification_for_tool_unlocked(referer_id=ref_id,
+                                                    joined_member_name=user.userinfo.name,
+                                                    referal_count=total_referal_count,community_id=community.id,
+                                                    community_name=community.name)
 
             if total_referal_count >= ig_members_count:
                 admin = Members.objects.filter(community_id=community, member_id=referer_instance)

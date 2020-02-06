@@ -603,6 +603,48 @@ def send_notification_to_promoter_of_ig_community(community_id,community_name,me
    notification_meta(notification_list, message)
 
 
+def send_notification_for_tool_unlocked(referer_id,joined_member_name,referal_count,community_id,community_name):
+
+    '''function to send notification for tool unlocked'''
+   
+    if referal_count == 1:
+        sub_title="""%s joined. New tool unlocked!"""%(joined_member_name)
+        route= """route://community_collabcard?community_id=%s&tour_unlocked=true"""
+    elif referal_count == 2:
+        sub_title="""%s joined. You have referred %s members to the community". Refer 1 more member to unlock a new tool."""%(joined_member_name,referal_count)
+        route= """route://community_collabcard?community_id=%s&community_name=%s"""%(community_id,community_name)
+
+    elif referal_count == 3:
+        sub_title="""%s joined. Another tool unlocked!"""%(joined_member_name)
+        route= """route://community_collabcard?community_id=%s&tour_unlocked=true"""
+
+    elif referal_count == 4:
+        sub_title=""""%s joined. You have referred %s members to the community". Refer 1 more member to become promoter of the community"""%(joined_member_name,referal_count)
+        route= """route://community_collabcard?community_id=%s&community_name=%s"""%(community_id,community_name)
+
+    else:
+        sub_title="""%s joined. You have become a promoter of this community!!"""%(joined_member_name)
+        route="""'route://community?community_id=%s"""%(community_id)
+
+    notification_list = []
+
+    temp = {}
+    temp['user_id'] = referer_id
+    notification_details = get_token_for_fcm(referer_id, True)
+    temp['fcm_token'] = notification_details[0]
+    temp['mobile_os'] = notification_details[1]
+
+    notification_list.append(temp)
+    message={}
+    message['payload']={
+        'title':community_name,
+        'sub_title':sub_title,
+        'route':route
+    }
+
+    notification_meta(notification_list, message)
+
+
 @shared_task
 def notification_after_compute_rank(user_id):
 
