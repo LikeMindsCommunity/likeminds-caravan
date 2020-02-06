@@ -401,10 +401,10 @@ def join_community_responses(request):
 
             total_referal_count=total_referals.count()
 
-            send_notification_for_tool_unlocked.delay(referer_id=ref_id,
-                                                      joined_member_name=user.userinfo.name,
-                                                      referal_count=total_referal_count, community_id=community.id,
-                                                      community_name=community.name)
+            # send_notification_for_tool_unlocked.delay(referer_id=ref_id,
+            #                                           joined_member_name=user.userinfo.name,
+            #                                           referal_count=total_referal_count, community_id=community.id,
+            #                                           community_name=community.name)
             if total_referal_count < ig_members_count:
                 pass
 
@@ -3109,13 +3109,18 @@ def members_state(request):
     if collabcard_id and not community_id:
         card = Collabcard.objects.get(pk=collabcard_id)
         community_id = card.community.id
+
     state = 0
     tool_state = 0
     query_set = Members.objects.filter(member_id=member_id, community_id=community_id)
+    community_instance=Community.objects.get(id=community_id)
+    is_pilot_active=False
+    if community_instance.hide_community == '4':
+        is_pilot_active=True
     ref_members=[]
     for data in query_set:
         state = data.state
-        tool_state = 1                                   #tool state unlocked for ig community
+        tool_state = 1 if is_pilot_active else 0                     #tool state unlocked for ig community
         ref_members = get_referred_members_of_a_member(community_id, member_id)
 
 
@@ -3140,7 +3145,12 @@ def members_state(request):
     json_response={'state': state,
                    'tool_state': tool_state,
                    'referred_members_count':len(ref_members),
-                   'min_referrer_member':eligibility_count
+                   'tool_title':"""Invite friends to unlock features.If you invite %s friends, You will be highlighted as a promoter of this community."""%(eligibility_count),
+
+                   'tool_unlock_title':"Unlock Feature",
+                   'tool_unlock_sub_title':"Some features might be available only for promoters of the group. Invite your friends, become a promoter of the group and unlock these features.",
+                   'tool_unlock_action_title':"OK, INVITE NOW",
+                   'tool_unlock_action':"""route://community?community_id=%s&share=true""" % (community_id)
                    }
     return JsonResponse(json_response)
 
