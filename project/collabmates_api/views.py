@@ -1973,7 +1973,7 @@ def community_collabcard_invite(request,community_id):
 
         elif number_of_members == 3:
 
-            member_list = Members.objects.filter(member_id=member_id,community_id=community_id).order_by('-id')
+            member_list = Members.objects.filter(community_id=community_id).order_by('-id')
             other_member_list=[]
             for member in member_list:
                 if member_id == member.member_id.id:
