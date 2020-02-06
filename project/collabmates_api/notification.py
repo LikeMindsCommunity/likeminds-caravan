@@ -635,13 +635,15 @@ def send_notification_for_tool_unlocked(referer_id,joined_member_name,referal_co
     temp['mobile_os'] = notification_details[1]
 
     notification_list.append(temp)
-    print(notification_list)
+
     message={}
     message['payload']={
         'title':community_name,
         'sub_title':sub_title,
         'route':route
     }
+    print("message---",message)
+    print("notification_list----",notification_list)
 
     notification_meta(notification_list, message)
 
