@@ -1927,9 +1927,9 @@ def community_cards(request, community_id):
 
 
 
-def community_cards_version_1(request,community_id):
+def community_collabcard_invite(request,community_id):
 
-    '''Version 1 community cards for ig communities'''
+    '''api to send collabcard invite footer'''
 
     community = Community.objects.get(id=community_id)
     member_id = request.GET.get('member_id')
@@ -1938,111 +1938,115 @@ def community_cards_version_1(request,community_id):
 
     if is_ig:
 
-        size = request.GET.get('size', '')
-        if size:
-            size = int(size)
-            collabcard_instance_list = Collabcard.objects.filter(community=community_id).order_by('id')[:size]
-            size = Collabcard.objects.filter(community=community_id).count()
-        else:
-            collabcard_instance_list = Collabcard.objects.filter(community=community_id).order_by('id')
-            size = collabcard_instance_list.count()
-        card_list = []
-
-        for card_instance in collabcard_instance_list:
-
-            user = Userinfo.objects.get(user_id=card_instance.user)
-            # serialize user object
-            usr = UserinfoSerializer(user)
-            # form responses of user
-            form_response = FormResponseSerilaizer(card_instance.community.id, card_instance.user.id)
-            if form_response:
-                usr['response'] = form_response
-            # get card images --------------------------------------------------------
-            files = get_collabcard_files(card_instance)
-            # -----------------------------------------------------------------------
-            # share_url = url+'/collabcard/'+str(card.id)
-
-            time_text = '' if str(card_instance.date_epoch) == "-9223372036854775808" else get_time_text(card_instance.date_epoch)
-            card_dict = CollabcardSerializer(card_instance, member_id, card_instance.community)
-            card_dict['state'] = get_status_of_collabcard(member_id, community, card_instance)
-            card_dict['created_at'] = time_text
-            card_dict['member'] = usr
-            card_dict['images'] = files[0]
-            card_dict['pdf'] = files[1]
-            card_list.append(card_dict)
         community_serializer_instance=CommunitySerializer(community)
 
         number_of_members=community.members_count
         members_left=ig_members_count-number_of_members
+
+
+
+
+        community_name=community.name
+        member_types=community_name.split("of")[0].strip()
+        member_type=member_types
+        if member_types[-1] == "s":
+            member_type=member_types[0:-1]
+
+        member_types=member_types.lower()
+        member_type=member_type.lower()
+
+        #community live sub_title logic
+
+        community_live_subtitle = """Every community needs its members to make purposeful conversations. Invite %s or more members to start conversations."""%(members_left)
+        if number_of_members == 1:
+            community_live_subtitle = """Awesome, you have taken the first step! Be the spark to ignite this community by inviting other %s from your network."""%(member_types)
+        elif number_of_members == 2:
+
+            member_list=Members.objects.filter(~Q(member_id=member_id)|Q(community_id=community_id))
+            member_name=""
+            for member in member_list:
+                member_name=member.member_id.userinfo.name
+            community_live_subtitle="""Superb, you and %s are now together for your shared interest! Invite 2 other %s and let them join you in this community."""%(member_name,member_types)
+
+        elif number_of_members == 3:
+
+            member_list = Members.objects.filter(~Q(member_id=member_id) | Q(community_id=community_id)).order_by('-id')
+            other_member_list=[]
+            for member in member_list:
+                member_name = member.member_id.userinfo.name
+                other_member_list.append(member_name)
+            if other_member_list:
+                community_live_subtitle="""You, %s  and %s  make a great group! Make it a community by inviting 1 more %s."""%(other_member_list[0],other_member_list[1],member_type)
+
+
+
+        #invite prompt logic
+        invite_prompt={}
+
+        ref_members = get_referred_members_of_a_member(community_id, member_id)
+        ref_members_count=len(ref_members)
+
+        if ref_members_count == 0:
+            invite_prompt['title']="""Know a %s?"""%(member_type)
+            invite_prompt['sub_title']="""Invite a new member here and unlock a tool"""
+            invite_prompt['action_title']="""Invite"""
+            invite_prompt['action']="""route://community?community_id=%s"""%(community_id)
+        elif ref_members_count == 1:
+            invite_prompt['title'] = """Unlock a new tool"""
+            invite_prompt['sub_title'] = """By inviting 2 more members to this community"""
+            invite_prompt['action_title'] = """Invite"""
+            invite_prompt['action'] = """route://community?community_id=%s""" % (community_id)
+        elif ref_members_count == 2:
+            invite_prompt['title'] = """Unlock a new tool"""
+            invite_prompt['sub_title'] = """By inviting 1 more member to this community"""
+            invite_prompt['action_title'] = """Invite"""
+            invite_prompt['action'] = """route://community?community_id=%s""" % (community_id)
+        elif ref_members_count == 3:
+            invite_prompt['title'] = """Become a promoter"""
+            invite_prompt['sub_title'] = """Get recognised by inviting 2 more members"""
+            invite_prompt['action_title'] = """Invite"""
+            invite_prompt['action'] = """route://community?community_id=%s""" % (community_id)
+        elif ref_members_count == 4:
+            invite_prompt['title'] = """Become a promoter"""
+            invite_prompt['sub_title'] = """Get recognised by inviting 1 more member"""
+            invite_prompt['action_title'] = """Invite"""
+            invite_prompt['action'] = """route://community?community_id=%s""" % (community_id)
+        else:
+            invite_prompt['title'] = """Promote your community"""
+            invite_prompt['sub_title'] = """Let other %s discover this community"""%(member_types)
+            invite_prompt['action_title'] = """Invite"""
+            invite_prompt['action'] = """route://community?community_id=%s&share=true""" % (community_id)
+
+
+
+
 
         if members_left > 0:
 
             community_live={
                 'members_left':members_left,
                 'title':"more members required",
-                'sub_title':"""Every community needs its members to make purposeful conversations. Invite %s or more members to start conversations."""%(members_left)
+                'sub_title':community_live_subtitle,
+                'action_title':"Invite Friends",
+                'action':"""route://community?community_id=%s&share=true""" % (community_id)
             }
 
             json_response={
-                'collabcards': card_list,
-                'size': size,
-                'community':community_serializer_instance,
-                'community_live':community_live
+
+                'community': community_serializer_instance,
+                'community_live':community_live,
+                'invite_prompt':invite_prompt
             }
         else:
             json_response = {
-                'collabcards': card_list,
-                'size': size,
-                'community': community_serializer_instance
+
+                'community': community_serializer_instance,
+                'invite_prompt':invite_prompt
             }
         return JsonResponse(json_response)
+    return JsonResponse({'success':False})
 
 
-
-    if community.hide_community == '3':
-        card_list = get_cards_for_demo(community_id, member_id)
-        return JsonResponse({'collabcards': card_list})
-
-    size = request.GET.get('size', '')
-    if size:
-        size = int(size)
-        cards = Collabcard.objects.filter(community=community_id).order_by('id')[:size]
-        size = Collabcard.objects.filter(community=community_id).count()
-    else:
-        cards = Collabcard.objects.filter(community=community_id).order_by('id')
-        size = cards.count()
-
-    # collabcard_url=request.build_absolute_uri()
-    # if collabcard_url in custom_cache:
-    #     card_list=custom_cache.get(collabcard_url)
-    # else:
-    if True:
-        card_list = []
-        for card in cards:
-            user = Userinfo.objects.get(user_id=card.user)
-            # serialize user object
-            usr = UserinfoSerializer(user)
-            # form responses of user
-            form_response = FormResponseSerilaizer(card.community.id, card.user.id)
-            if form_response:
-                usr['response'] = form_response
-            # get card images --------------------------------------------------------
-            files = get_collabcard_files(card)
-            # -----------------------------------------------------------------------
-            # share_url = url+'/collabcard/'+str(card.id)
-
-            time_text = '' if str(card.date_epoch) == "-9223372036854775808" else get_time_text(card.date_epoch)
-            card_dict = CollabcardSerializer(card, member_id, card.community)
-            card_dict['state'] = get_status_of_collabcard(member_id, community, card)
-            card_dict['created_at'] = time_text
-            card_dict['member'] = usr
-            card_dict['images'] = files[0]
-            card_dict['pdf'] = files[1]
-            card_list.append(card_dict)
-        # custom_cache.set(collabcard_url,card_list,timeout=CACHE_TTL)
-    # card_list=list(Collabcard.objects.filter(community_id=community).values_list("id",flat=True))
-    # print(card_list)
-    return JsonResponse({'collabcards': card_list, 'size': size})
 
 
 
@@ -2998,9 +3002,13 @@ def members_state(request):
     state = 0
     tool_state = 0
     query_set = Members.objects.filter(member_id=member_id, community_id=community_id)
+    ref_members=[]
     for data in query_set:
         state = data.state
-        tool_state = data.tool_state
+        tool_state = 1                                   #tool state unlocked for ig community
+        ref_members = get_referred_members_of_a_member(community_id, member_id)
+
+
 
     if state == 0:
         '''checking if user DETAILS EXIST in temp admin table in case he is a newly registered user'''
@@ -3020,7 +3028,7 @@ def members_state(request):
         else:
             state = 0
 
-    return JsonResponse({'state': state, 'tool_state': tool_state})
+    return JsonResponse({'state': state, 'tool_state': tool_state,'referred_members_count':len(ref_members)})
 
 
 @csrf_exempt

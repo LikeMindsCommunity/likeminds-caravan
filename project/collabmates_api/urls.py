@@ -20,7 +20,7 @@ urlpatterns = [
     path('collabcard/<int:card_id>', api_views.collabcard, name="collabcard"),
 
     path('community_collabcard/<int:community_id>', api_views.community_cards, name="community_cards"),
-    path('v1/community_collabcard/<int:community_id>', api_views.community_cards_version_1, name="community_cards_version_1"),
+    path('community_collabcard_invite/<int:community_id>', api_views.community_collabcard_invite, name="community_collabcard_invite"),
 
     path('create_answer', api_views.create_answer, name="create_answer"),
     path('login',api_views.login,name = 'login'),
