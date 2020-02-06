@@ -3032,8 +3032,12 @@ def members_state(request):
             state = 6
         else:
             state = 0
-
-    return JsonResponse({'state': state, 'tool_state': tool_state,'referred_members_count':len(ref_members)})
+    json_response={'state': state,
+                   'tool_state': tool_state,
+                   'referred_members_count':len(ref_members),
+                   'min_referrer_member':eligibility_count
+                   }
+    return JsonResponse(json_response)
 
 
 @csrf_exempt
