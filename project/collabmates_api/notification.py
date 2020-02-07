@@ -371,66 +371,66 @@ def send_notification_for_join_requests(community_id,flag,member_id):
 # notifications for new collabcards
 
 @shared_task
-def send_notification_for_new_collabcard_posted(community_id, collabcard_title,card_creater_id, card_creater_name, **kwargs):
+def send_notification_for_new_collabcard_posted(community_id, collabcard_title, card_creater_id, card_creater_name,
+                                                **kwargs):
     '''function to send notification to all members when new collabcard is posted'''
     try:
-        connection=get_connection()
-        curr=connection.cursor()
-        sql="select member_id_id from togther_members where community_id_id=%s and member_id_id !=%s and (state=1 or state=2 or state=4 or state=7)"
-        parameter_list=[community_id,card_creater_id]
-        curr.execute(sql,parameter_list)
-        member_list=curr.fetchall()
+        connection = get_connection()
+        curr = connection.cursor()
+        sql = "select member_id_id from togther_members where community_id_id=%s and member_id_id !=%s and (state=1 or state=2 or state=4 or state=7)"
+        parameter_list = [community_id, card_creater_id]
+        curr.execute(sql, parameter_list)
+        member_list = curr.fetchall()
 
-        token_list=[]
-        notification_list=[]
+        notification_list = []
         for member in member_list:
-            temp={}
-            temp['user_id']=member[0]
-            notification_details=get_token_for_fcm(member[0],True)
-            temp['fcm_token']=notification_details[0]
-            temp['mobile_os']=notification_details[1]
+            temp = {}
+            temp['user_id'] = member[0]
+            notification_details = get_token_for_fcm(member[0], True)
+            temp['fcm_token'] = notification_details[0]
+            temp['mobile_os'] = notification_details[1]
             notification_list.append(temp)
 
-        community_name=get_community_name(community_id)
-        message={}
+        community_name = kwargs['community_name']
+        message = {}
         typ = kwargs['type'] if 'type' in kwargs else 0
         if typ == 2:
-            sub_title = "Posted an event: "+str(collabcard_title)
+            sub_title = "Posted an event: " + str(collabcard_title)
         elif typ == 3:
-            sub_title = "Posted a poll: "+ str(collabcard_title)
+            sub_title = "Posted a poll: " + str(collabcard_title)
         else:
             sub_title = str(collabcard_title)
 
-
-        message['payload']={
-            'title': str(card_creater_name) + " @ "+str(community_name),
+        message['payload'] = {
+            'title': str(card_creater_name) + " @ " + str(community_name),
             'sub_title': sub_title,
-            'route': 'route://community_collabcard?community_id=' + str(community_id) + '&community_name='+ str(community_name)
+            'route': 'route://community_collabcard?community_id=' + str(community_id) + '&community_name=' + str(
+                community_name) + '&community_state=' + str(kwargs['community_state'])
         }
 
-
-        notification_meta(notification_list,message)
+        notification_meta(notification_list, message)
 
         if typ == 2 or typ == 3:
-            task_name = 'poll_with_id_' + str(kwargs['card_id']) if typ == 3 else 'event_with_id_' + str(kwargs['card_id'])
+            task_name = 'poll_with_id_' + str(kwargs['card_id']) if typ == 3 else 'event_with_id_' + str(
+                kwargs['card_id'])
             task_path = 'collabmates_api.notification.poll_expiry_or_event_remainder_notification'
             task_name, task_path = task_name, task_path
             if task_name and task_path:
                 celerybeatask = CeleryBeatTask()
                 args = [community_name, community_id, typ]
 
-                date_time = int(kwargs['date_time']//1000) if isinstance(kwargs['date_time'], int)\
-                                else kwargs['date_time'][:10] if isinstance(kwargs['date_time'], str)\
-                                else int(str(kwargs['date_time'])[:10])
+                date_time = int(kwargs['date_time'] // 1000) if isinstance(kwargs['date_time'], int) \
+                               else kwargs['date_time'][:10] if isinstance(kwargs['date_time'], str) \
+                               else int(str(kwargs['date_time'])[:10])
 
-                date_time = (date_time-1800) if typ == 2 else date_time + 19800 if not settings.DEBUG else 0
+                date_time = (date_time - 1800) if typ == 2 else date_time + 19800 if not settings.DEBUG else 0
                 celerybeatask.get_or_create_new_beat_task(card_creater_id=card_creater_id,
                                                           card_creater_name=card_creater_name,
                                                           args=args, task_name=task_name, task_path=task_path,
                                                           date_time=date_time, interval=False, crontab=True,
                                                           collabcard_title=collabcard_title,
-                                                          card_id=kwargs['card_id'])
-
+                                                          card_id=kwargs['card_id'],
+                                                          community_state=kwargs['community_state'])
 
     except (Exception, psycopg2.Error) as error:
 
@@ -737,7 +737,7 @@ def send_poll_or_event_notification(card_id, user_id):
         'title': str(community_name),
         'sub_title': sub_title,
         'route': 'route://community_collabcard?community_id=' + str(community_id) + '&community_name=' + str(
-            community_name)
+            community_name) + '&community_state=' + str(card.community.hide_community)
     }
 
     token_list = [card_creator_fcm_token]
@@ -763,9 +763,6 @@ def poll_expiry_or_event_remainder_notification(community_name, community_id, ty
                                                                 'user__userinfo__fcm_token', flat=True))
             print("token list ===== ", token_list)
 
-
-        community_name = community_name
-
         if typ == 3:
             sub_title = 'your poll ended. Tap to see results'
         else:
@@ -776,7 +773,7 @@ def poll_expiry_or_event_remainder_notification(community_name, community_id, ty
             'title': str(community_name),
             'sub_title': sub_title,
             'route': 'route://community_collabcard?community_id=' + str(
-                      community_id) + '&community_name=' + str(community_name),
+                      community_id) + '&community_name=' + str(community_name) + '&community_state=' + str(kwargs['community_state']),
         }
 
         send_notification_to_multiple_devices(token_list, message)
