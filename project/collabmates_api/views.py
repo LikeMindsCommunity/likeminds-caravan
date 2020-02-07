@@ -1800,7 +1800,7 @@ def approve_or_decline_lg_community(request,req_dict):
                referal_list=get_referred_members_of_a_member(community_id=community_id,member_id=referer_instance.id)
                total_referal_count=len(referal_list)
 
-               if total_referal_count >= eligibility_count:
+               if total_referal_count == eligibility_count:
                    admin = Members.objects.filter(community_id=community, member_id=referer_instance)
 
                    if admin.exists():
