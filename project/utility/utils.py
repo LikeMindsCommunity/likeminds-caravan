@@ -473,7 +473,11 @@ def get_referred_members_of_a_member(community_id,member_id):
 
     if total_referals.exists():
         for interested_member in total_referals:
-            member_list.append(interested_member.invited_member.id)
+            mem_id=interested_member.invited_member.id
+            member = Members.objects.filter(member_id=mem_id, community_id=community_id)
+            if member.exists():
+                if member[0].state == 4:
+                    member_list.append(member[0].member_id.id)
 
     return member_list
 
@@ -727,10 +731,10 @@ def is_IG_community(community):
     return False
 
 
-def is_LG_or_LP_community(community_id):
+def is_LG_or_LP_community(community):
 
     '''function to check if the community is LG community or not and excluding hometown communities'''
-    community=Community.objects.get(id=community_id)
+
     communities_legacy=Community_Legacy.objects.filter(community_id=community)
 
     is_hometown=is_legacy_home_town(communities_legacy)
