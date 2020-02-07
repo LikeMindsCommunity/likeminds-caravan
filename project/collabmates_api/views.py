@@ -425,14 +425,14 @@ def join_community_responses(request):
 
 
 
-        # if not ref_id:
-        #     # sending mail to nipun and harsh
-        #     new_member_request.delay(member_id=user_id, community_id=community_id, ref_id=None,
-        #                              form_response=res['questions'])
-        # else:
-        #     # sending mail to nipun and harsh
-        #     new_member_request.delay(member_id=user_id, community_id=community_id, ref_id=ref_id,
-        #                              form_response=res['questions'])
+        if not ref_id:
+            # sending mail to nipun and harsh
+            new_member_request.delay(member_id=user_id, community_id=community_id, ref_id=None,
+                                     form_response=res['questions'])
+        else:
+            # sending mail to nipun and harsh
+            new_member_request.delay(member_id=user_id, community_id=community_id, ref_id=ref_id,
+                                     form_response=res['questions'])
 
         return JsonResponse({'success':True})
     elif is_lg:
