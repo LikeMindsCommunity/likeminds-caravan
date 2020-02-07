@@ -1809,6 +1809,7 @@ def approve_or_decline_lg_community(request,req_dict):
                        send_notification_to_promoter_of_ig_community.delay(community_id=community.id,
                                                                            community_name=community.name,
                                                                            member_id=referer_instance.id)
+            update_last_unseen_in_engage.delay(user=user,community=community)
 
 
 
