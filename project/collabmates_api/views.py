@@ -2187,11 +2187,11 @@ def community_collabcard_invite(request,community_id):
 
     unlock_title = "Invite members"
     if members_left == 1:
-        unlock_sub_title = " To start a conversation, invite %s more member to this community and make this community live." % (
+        unlock_sub_title = "To start a conversation, invite %s more member to this community and make this community live." % (
             members_left)
         community_live_title = "more member required"
     else:
-        unlock_sub_title = " To start a conversation, invite %s more members to this community and make this community live." % (
+        unlock_sub_title = "To start a conversation, invite %s more members to this community and make this community live." % (
             members_left)
         community_live_title = "more members required"
 
