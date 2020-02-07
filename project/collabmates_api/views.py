@@ -1041,6 +1041,8 @@ def create_card(request,req_dict=None):
     user_instance = User.objects.get(id=user_id)
     userinfo_instance = user_instance.userinfo
     community = Community.objects.get(id=community_id)
+    community_name = community.name
+    community_state = community.hide_community
     if request.method == 'POST':
         if not req_dict:
             res = json.loads(request.body)
@@ -1181,7 +1183,9 @@ def create_card(request,req_dict=None):
         send_notification_for_new_collabcard_posted.delay(community_id, res['title'],
                                                           user_id, userinfo_instance.name,
                                                           type=typ, date_time=date_time,
-                                                          card_id=card.id)
+                                                          card_id=card.id,
+                                                          community_name=community_name,
+                                                          community_state=community_state)
 
         if typ != 1:  # stopping mail for introduction cards
             send_email_for_collabcard(community, userinfo_instance, card, typ)
