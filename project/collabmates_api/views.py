@@ -2127,7 +2127,8 @@ def community_collabcard_invite(request,community_id):
         for member in member_list:
             if member_id == str(member.member_id.id):
                 continue
-            member_name = member.member_id.userinfo.name
+            if member.state == 4:
+                member_name = member.member_id.userinfo.name
         community_live_subtitle = """Superb, you and %s are now together for your shared interest! Invite 2 other %s and let them join you in this community.""" % (
         member_name, member_types)
 
@@ -2139,7 +2140,8 @@ def community_collabcard_invite(request,community_id):
             if member_id == str(member.member_id.id):
                 continue
             member_name = member.member_id.userinfo.name
-            other_member_list.append(member_name)
+            if member.state == 4:
+                other_member_list.append(member_name)
         if other_member_list:
             community_live_subtitle = """You, %s  and %s  make a great group! Make it a community by inviting 1 more %s.""" % (
             other_member_list[0], other_member_list[1], member_type)
