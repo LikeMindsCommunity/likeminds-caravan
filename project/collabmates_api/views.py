@@ -2200,10 +2200,10 @@ def community_collabcard_invite(request,community_id):
             'action_title': "Invite Friends",
             'action': """route://community?community_id=%s&share=true""" % (community_id),
 
-            unlock_title: unlock_title,
-            unlock_sub_title: unlock_sub_title,
-            unlock_action_title: unlock_action_title,
-            unlock_action: unlock_action
+            'unlock_title': unlock_title,
+            'unlock_sub_title': unlock_sub_title,
+            'unlock_action_title': unlock_action_title,
+            'unlock_action': unlock_action
 
         }
 
