@@ -2125,7 +2125,7 @@ def community_collabcard_invite(request,community_id):
         print(member_list)
         member_name = ""
         for member in member_list:
-            if member_id == member.member_id.id:
+            if member_id == str(member.member_id.id):
                 continue
             member_name = member.member_id.userinfo.name
         community_live_subtitle = """Superb, you and %s are now together for your shared interest! Invite 2 other %s and let them join you in this community.""" % (
@@ -2136,7 +2136,7 @@ def community_collabcard_invite(request,community_id):
         member_list = Members.objects.filter(community_id=community_id).order_by('-id')
         other_member_list = []
         for member in member_list:
-            if member_id == member.member_id.id:
+            if member_id == str(member.member_id.id):
                 continue
             member_name = member.member_id.userinfo.name
             other_member_list.append(member_name)
