@@ -7,7 +7,7 @@ from togther.models import *
 from django.conf import settings
 from togther.models import *
 from collabmates_api.notification import notification_to_complete_onboarding
-from .utils import is_request_android, is_request_ios, is_request_pc, android_app_download_link
+from .utils import is_request_android, is_request_ios, is_request_pc, android_app_download_link, is_IG_community
 import time
 
 url = settings.URL
@@ -147,11 +147,13 @@ def new_member_request(member_id, community_id, form_response, ref_id=None, ):
 
     community_state = community.hide_community
 
+    is_IG = is_IG_community(community)
+
     template = get_template("mails/new_member_request.html").render(
         {"member_name": member_name, "member_id": member_id, 'ref_name': ref_name,
          'subject': subject, 'community_name': community_name, 'community_id': community_id,
          'text': text, 'community_link': community_link, "community_state": community_state,
-         'result': res, 'url': url, })
+         'result': res, 'url': url, 'is_IG':is_IG })
 
     if url == "https://beta.collabmates.com":
         to_list = ['mahesh61437mahe@gmail.com']
