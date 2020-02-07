@@ -1,16 +1,14 @@
 from __future__ import absolute_import, unicode_literals
-
+from celery import shared_task
 import json
 import logging
 import os
 import re
 import time
 from datetime import datetime
-
 import dateutil.relativedelta
 import googlemaps
 import requests as rqst
-from celery import shared_task
 from collabmates_api.serializers import *
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -46,7 +44,7 @@ from utility.utils import (decode_meta_from_url, update_tag_image,
     # custom_cache,cache_timeout,
                            get_city_address,
                            update_user_geography_tags, insert_user_home_town_tags, user_onbaord, is_IG_community,
-                           ig_members_count)
+                           ig_members_count, is_LG_or_LP_community)
 
 from .notification import (send_follow_notification, send_notification_to_admins,
                            send_notification_for_join_requests,
@@ -57,8 +55,7 @@ from .notification import (send_follow_notification, send_notification_to_admins
                            send_notification_to_all_admins,
                            send_notification_to_tagged_users,
                            send_poll_or_event_notification,
-                           send_notification_to_promoter_of_ig_community,
-                           send_notification_for_tool_unlocked
+                           send_notification_to_promoter_of_ig_community
                            )
 from .raw_queries import compute_rank, update_community_purpose_card
 from .tasks import send_email_to_nominated_admin, send_email_for_new_collabcard_posted, send_welcome_mail
@@ -369,7 +366,12 @@ def join_community_responses(request):
     community = Community.objects.get(id=community_id)
 
     is_ig_pilot_active = False
+
     is_ig=is_IG_community(community)
+    is_lg=is_LG_or_LP_community(community)
+
+
+
     if community.hide_community == '4' and is_ig:
             is_ig_pilot_active = True
 
@@ -382,7 +384,7 @@ def join_community_responses(request):
 
 
 
-    if  is_ig :
+    if  is_ig or is_lg == None:                                 #if the community is ig community or is_lg hometown community
         print("Inside IG")
         join_ig_communities(request,res,community,user,ref_id)
         if ref_id:
@@ -408,16 +410,46 @@ def join_community_responses(request):
             if total_referal_count < ig_members_count:
                 pass
 
-            if total_referal_count >= ig_members_count:
+            if total_referal_count == eligibility_count:
                 admin = Members.objects.filter(community_id=community, member_id=referer_instance)
 
                 if admin.exists():
-                    Members.objects.filter(community_id=community, member_id=referer_instance).update(state=1)
+                    Members.objects.filter(community_id=community, member_id=referer_instance).update(state=member_states.PROMOTER)
+                    Member_Engage.objects.filter(member_id=referer_instance, community_id=community).update(
+                        member_state=member_states.PROMOTER)
+
                     send_notification_to_promoter_of_ig_community.delay(community_id=community.id,
                                                                   community_name=community.name,member_id=ref_id)
 
 
 
+
+
+        # if not ref_id:
+        #     # sending mail to nipun and harsh
+        #     new_member_request.delay(member_id=user_id, community_id=community_id, ref_id=None,
+        #                              form_response=res['questions'])
+        # else:
+        #     # sending mail to nipun and harsh
+        #     new_member_request.delay(member_id=user_id, community_id=community_id, ref_id=ref_id,
+        #                              form_response=res['questions'])
+
+        return JsonResponse({'success':True})
+    elif is_lg:
+        print("LG community")
+        join_lg_communities(request,res,community,user)
+
+        #saving referal in referal table
+        if ref_id:
+            referer_instance = User.objects.get(pk=ref_id)
+            refer = Referal.objects.filter(member=referer_instance,
+                                           invited_member=user,
+                                           community=community)
+            if not refer.exists():
+                refer = Referal(member=referer_instance,
+                                invited_member=user,
+                                community=community)
+                refer.save()
 
 
         if not ref_id:
@@ -428,8 +460,7 @@ def join_community_responses(request):
             # sending mail to nipun and harsh
             new_member_request.delay(member_id=user_id, community_id=community_id, ref_id=ref_id,
                                      form_response=res['questions'])
-
-        return JsonResponse({'success':True})
+        return JsonResponse({'success': True})
 
     info_logger.info("\n")
     info_logger.info("Join Community api")
@@ -623,6 +654,38 @@ def join_ig_communities(request,res,community,user,ref_id):
         print(log)
 
 
+def join_lg_communities(request,res,community,user):
+
+    '''function to join lg communities'''
+
+    member_instance = Members.objects.filter(member_id=user, community_id=community)
+    if not member_instance:
+        # making a member instance
+        member = Members()
+        member.member_id = user
+        member.community_id = community
+        member.state = member_states.PENDING_MEMBER
+        member.created_at = time.time()
+        member.save()
+
+        # saving questions
+        if 'questions' in res:
+            info_logger.info(res['questions'])
+            for i in res['questions']:
+                response = Form_response.objects.filter(data=i['key'], user=user.id, community=community.id)
+                if not response.exists():
+                    response = Form_response()
+                    response.data = i['key']
+                    response.response = i['value']
+                    response.user = user.id
+                    response.community = community.id
+                    response.save()
+        else:
+            res['questions'] = [{}]
+
+        log = """Request in LG community where community_id=%s and member_id=%s""" % (community.id, user.id)
+        print(log)
+
 
 def category_filter(request, category):
     categories = Community_tags.objects.all()
@@ -714,28 +777,25 @@ def admins(request, community_id):
     referred_members_count = 0
     if member_id and community.hide_community == '3':
         ref_members = get_referred_members_of_a_member(community_id, member_id)
-        if len(ref_members):
-            referred_members_count = len(ref_members)
-            return JsonResponse({'members': users, 'referred_members_count': referred_members_count})
-        else:
-            return JsonResponse({'members': users, 'referred_members_count': referred_members_count})
+        referred_members_count = len(ref_members)
+        return JsonResponse({'members': users, 'referred_members_count': referred_members_count})
     elif member_id:
 
-        print(">>>>>>>>>>> ", member_id)
+        #print(">>>>>>>>>>> ", member_id)
         referals = get_referred_members_of_a_member(community_id=community_id, member_id=member_id)
         referal_count = len(referals)
-        print(referals)
-        count = 0
-        print("referal count === ", referal_count)
+        # print(referals)
+        # count = 0
+        # print("referal count === ", referal_count)
+        #
+        # for mem_id in referals:
+        #     member = Members.objects.filter(member_id=mem_id, community_id=community_id)
+        #     if member.exists():
+        #
+        #         if member[0].state == 4:
+        #             count += 1
 
-        for mem_id in referals:
-            member = Members.objects.filter(member_id=mem_id, community_id=community_id)
-            if member.exists():
-
-                if member[0].state == 4:
-                    count += 1
-
-        return JsonResponse({'members': users, 'referred_members_count': count})
+        return JsonResponse({'members': users, 'referred_members_count': referal_count})
     else:
         return JsonResponse({'members': users})
 
@@ -1575,6 +1635,14 @@ def request_response(request, req_dict=None):
         accepted = res['accepted']
     community = Community.objects.get(id=community_id)
     user = User.objects.get(id=member_id)
+
+    is_lg=is_LG_or_LP_community(community)
+
+    if is_lg:
+
+        approve_or_decline_lg_community(request,req_dict)
+        return JsonResponse({'success': True})
+
     if accepted or accepted == 'true':
         # if accepted , then make him a member of the community
         join_time = time.time()
@@ -1670,6 +1738,92 @@ def request_response(request, req_dict=None):
                 send_notification_for_join_requests.delay(community_id, False, member_id)
 
     return JsonResponse({'success': True})
+
+
+def approve_or_decline_lg_community(request,req_dict):
+
+    '''function to approve and decline request in lg community'''
+
+    if req_dict:
+        print(req_dict)
+        community_id = req_dict['community_id']
+        member_id = req_dict['member_id']
+        community = Community.objects.get(id=community_id)
+        user=User.objects.get(id=member_id)
+        if req_dict['accepted']:
+
+            #if the request is accepted from dashboard
+
+
+            join_time=time.time()
+            Members.objects.filter(member_id=member_id, community_id=community).update(state=member_states.MEMBER,
+                                                                                       created_at=join_time)  # aprove state = 4
+
+
+
+            #creating a collabcard
+            introduction_question, introduction_answer = auto_create_collabcard(user, community)
+            print(introduction_answer)
+            req_dict = {
+
+                'member_id': member_id,
+                'community_id': community_id,
+                'title': introduction_answer,
+                'type': 1,
+                'is_ig': 1
+            }
+
+            request.method="POST"
+            create_card(request,req_dict=req_dict)
+            # saving the referal detail and sending notifications for refered members
+
+            community.updated_at = time.time()
+            community.members_count = community.members_count + 1
+            community.save()
+
+            if community.members_count == ig_members_count:
+                community.hide_community = '4'
+                community.save()
+            send_notification_for_join_requests.delay(community_id, True, member_id)
+
+
+            #making the referer promoter if his referal count becomes equal to eligibility count
+            referal_list=Referal.objects.filter(invited_member=member_id,community=community)
+
+            if referal_list.exists():
+
+               referer_instance=referal_list[0].member
+               referal_list=get_referred_members_of_a_member(community_id=community_id,member_id=referer_instance.id)
+               total_referal_count=len(referal_list)
+
+               if total_referal_count == eligibility_count:
+                   admin = Members.objects.filter(community_id=community, member_id=referer_instance)
+
+                   if admin.exists():
+                       Members.objects.filter(community_id=community, member_id=referer_instance).update(state=member_states.PROMOTER)
+                       Member_Engage.objects.filter(member_id=member_id, community_id=community).update(member_state=member_states.PROMOTER)
+                       send_notification_to_promoter_of_ig_community.delay(community_id=community.id,
+                                                                           community_name=community.name,
+                                                                           member_id=referer_instance.id)
+
+
+
+
+        else:
+            # change user state to 5
+            Members.objects.filter(member_id=member_id, community_id=community).update(state=5)  # decline state = 5
+            # delete the member engage table record for the user
+            Member_Engage.objects.filter(member_id=member_id, community_id=community).delete()
+            # delete the responses of user to community questions, if any
+            Form_response.objects.filter(user=member_id, community=community_id).delete()
+            # update pending members count of community and referal text of user
+            update_pending_member_count_in_engage(community)
+            update_referral_text_in_engage_table.delay(community_id)
+
+
+
+
+
 
 
 ############# functions for  collabcard flow   ##########################
@@ -1939,141 +2093,135 @@ def community_collabcard_invite(request,community_id):
     community = Community.objects.get(id=community_id)
     member_id = request.GET.get('member_id')
 
-    is_ig=is_IG_community(community)
+    community_serializer_instance = CommunitySerializer(community)
+
+    number_of_members = community.members_count
+    members_left = ig_members_count - number_of_members
+
+    community_name = community.name
+    member_types = community_name.split("of")[0].strip()
+    member_type = member_types
+    if member_types[-1] == "s":
+        member_type = member_types[0:-1]
+
+    member_types = member_types.lower()
+    member_type = member_type.lower()
+
+    # community live sub_title logic
+
+    community_live_subtitle = """Every community needs its members to make purposeful conversations. Invite %s or more members to start conversations.""" % (
+        members_left)
+    if number_of_members == 1:
+        community_live_subtitle = """Awesome, you have taken the first step! Be the spark to ignite this community by inviting other %s from your network.""" % (
+            member_types)
+    elif number_of_members == 2:
+
+        member_list = Members.objects.filter(member_id=member_id, community_id=community_id)
+        print(member_list)
+        member_name = ""
+        for member in member_list:
+            if member_id == member.member_id.id:
+                continue
+            member_name = member.member_id.userinfo.name
+        community_live_subtitle = """Superb, you and %s are now together for your shared interest! Invite 2 other %s and let them join you in this community.""" % (
+        member_name, member_types)
+
+    elif number_of_members == 3:
+
+        member_list = Members.objects.filter(community_id=community_id).order_by('-id')
+        other_member_list = []
+        for member in member_list:
+            if member_id == member.member_id.id:
+                continue
+            member_name = member.member_id.userinfo.name
+            other_member_list.append(member_name)
+        if other_member_list:
+            community_live_subtitle = """You, %s  and %s  make a great group! Make it a community by inviting 1 more %s.""" % (
+            other_member_list[0], other_member_list[1], member_type)
+
+    # invite prompt logic
+    invite_prompt = {}
+
+    ref_members = get_referred_members_of_a_member(community_id, member_id)
+    ref_members_count = len(ref_members)
+
+    if ref_members_count == 0:
+        invite_prompt['title'] = """Know a %s?""" % (member_type)
+        invite_prompt['sub_title'] = """Invite a new member here and unlock a tool"""
+        invite_prompt['action_title'] = """Invite"""
+        invite_prompt['action'] = """route://community?community_id=%s""" % (community_id)
+    elif ref_members_count == 1:
+        invite_prompt['title'] = """Unlock a new tool"""
+        invite_prompt['sub_title'] = """By inviting 2 more members to this community"""
+        invite_prompt['action_title'] = """Invite"""
+        invite_prompt['action'] = """route://community?community_id=%s""" % (community_id)
+    elif ref_members_count == 2:
+        invite_prompt['title'] = """Unlock a new tool"""
+        invite_prompt['sub_title'] = """By inviting 1 more member to this community"""
+        invite_prompt['action_title'] = """Invite"""
+        invite_prompt['action'] = """route://community?community_id=%s""" % (community_id)
+    elif ref_members_count == 3:
+        invite_prompt['title'] = """Become a promoter"""
+        invite_prompt['sub_title'] = """Get recognised by inviting 2 more members"""
+        invite_prompt['action_title'] = """Invite"""
+        invite_prompt['action'] = """route://community?community_id=%s""" % (community_id)
+    elif ref_members_count == 4:
+        invite_prompt['title'] = """Become a promoter"""
+        invite_prompt['sub_title'] = """Get recognised by inviting 1 more member"""
+        invite_prompt['action_title'] = """Invite"""
+        invite_prompt['action'] = """route://community?community_id=%s""" % (community_id)
+    else:
+        invite_prompt['title'] = """Promote your community"""
+        invite_prompt['sub_title'] = """Let other %s discover this community""" % (member_types)
+        invite_prompt['action_title'] = """Invite"""
+        invite_prompt['action'] = """route://community?community_id=%s&share=true""" % (community_id)
+
+    # prompt for invite now
+
+    unlock_title = "Invite members"
+    if members_left == 1:
+        unlock_sub_title = " To start a conversation, invite %s more member to this community and make this community live." % (
+            members_left)
+        community_live_title = "more member required"
+    else:
+        unlock_sub_title = " To start a conversation, invite %s more members to this community and make this community live." % (
+            members_left)
+        community_live_title = "more members required"
+
+    unlock_action_title = "OK, INVITE NOW"
+    unlock_action = """route://community?community_id=%s&share=true"""
+
+    if members_left > 0:
+
+        community_live = {
+            'members_left': members_left,
+            'title': community_live_title,
+            'sub_title': community_live_subtitle,
+            'action_title': "Invite Friends",
+            'action': """route://community?community_id=%s&share=true""" % (community_id),
+
+            unlock_title: unlock_title,
+            unlock_sub_title: unlock_sub_title,
+            unlock_action_title: unlock_action_title,
+            unlock_action: unlock_action
+
+        }
+
+        json_response = {
+
+            'community': community_serializer_instance,
+            'community_live': community_live,
+            'invite_prompt': invite_prompt
+        }
+    else:
+        json_response = {
+
+            'community': community_serializer_instance,
+            'invite_prompt': invite_prompt
+        }
+    return JsonResponse(json_response)
 
 
-    if is_ig:
-
-        community_serializer_instance=CommunitySerializer(community)
-
-        number_of_members=community.members_count
-        members_left=ig_members_count-number_of_members
-
-
-
-
-        community_name=community.name
-        member_types=community_name.split("of")[0].strip()
-        member_type=member_types
-        if member_types[-1] == "s":
-            member_type=member_types[0:-1]
-
-        member_types=member_types.lower()
-        member_type=member_type.lower()
-
-        #community live sub_title logic
-
-        community_live_subtitle = """Every community needs its members to make purposeful conversations. Invite %s or more members to start conversations."""%(members_left)
-        if number_of_members == 1:
-            community_live_subtitle = """Awesome, you have taken the first step! Be the spark to ignite this community by inviting other %s from your network."""%(member_types)
-        elif number_of_members == 2:
-
-            member_list=Members.objects.filter(member_id=member_id,community_id=community_id)
-            print(member_list)
-            member_name=""
-            for member in member_list:
-                if member_id == member.member_id.id:
-                    continue
-                member_name=member.member_id.userinfo.name
-            community_live_subtitle="""Superb, you and %s are now together for your shared interest! Invite 2 other %s and let them join you in this community."""%(member_name,member_types)
-
-        elif number_of_members == 3:
-
-            member_list = Members.objects.filter(community_id=community_id).order_by('-id')
-            other_member_list=[]
-            for member in member_list:
-                if member_id == member.member_id.id:
-                    continue
-                member_name = member.member_id.userinfo.name
-                other_member_list.append(member_name)
-            if other_member_list:
-                community_live_subtitle="""You, %s  and %s  make a great group! Make it a community by inviting 1 more %s."""%(other_member_list[0],other_member_list[1],member_type)
-
-
-
-        #invite prompt logic
-        invite_prompt={}
-
-        ref_members = get_referred_members_of_a_member(community_id, member_id)
-        ref_members_count=len(ref_members)
-
-        if ref_members_count == 0:
-            invite_prompt['title']="""Know a %s?"""%(member_type)
-            invite_prompt['sub_title']="""Invite a new member here and unlock a tool"""
-            invite_prompt['action_title']="""Invite"""
-            invite_prompt['action']="""route://community?community_id=%s"""%(community_id)
-        elif ref_members_count == 1:
-            invite_prompt['title'] = """Unlock a new tool"""
-            invite_prompt['sub_title'] = """By inviting 2 more members to this community"""
-            invite_prompt['action_title'] = """Invite"""
-            invite_prompt['action'] = """route://community?community_id=%s""" % (community_id)
-        elif ref_members_count == 2:
-            invite_prompt['title'] = """Unlock a new tool"""
-            invite_prompt['sub_title'] = """By inviting 1 more member to this community"""
-            invite_prompt['action_title'] = """Invite"""
-            invite_prompt['action'] = """route://community?community_id=%s""" % (community_id)
-        elif ref_members_count == 3:
-            invite_prompt['title'] = """Become a promoter"""
-            invite_prompt['sub_title'] = """Get recognised by inviting 2 more members"""
-            invite_prompt['action_title'] = """Invite"""
-            invite_prompt['action'] = """route://community?community_id=%s""" % (community_id)
-        elif ref_members_count == 4:
-            invite_prompt['title'] = """Become a promoter"""
-            invite_prompt['sub_title'] = """Get recognised by inviting 1 more member"""
-            invite_prompt['action_title'] = """Invite"""
-            invite_prompt['action'] = """route://community?community_id=%s""" % (community_id)
-        else:
-            invite_prompt['title'] = """Promote your community"""
-            invite_prompt['sub_title'] = """Let other %s discover this community"""%(member_types)
-            invite_prompt['action_title'] = """Invite"""
-            invite_prompt['action'] = """route://community?community_id=%s&share=true""" % (community_id)
-
-
-
-        #prompt for invite now
-
-        unlock_title="Invite members"
-        if members_left == 1:
-            unlock_sub_title=" To start a conversation, invite %s more member to this community and make this community live."%(members_left)
-            community_live_title="more member required"
-        else:
-            unlock_sub_title=" To start a conversation, invite %s more members to this community and make this community live."%(members_left)
-            community_live_title="more members required"
-
-        unlock_action_title="OK, INVITE NOW"
-        unlock_action="""route://community?community_id=%s&share=true"""
-
-        if members_left > 0:
-
-            community_live={
-                'members_left':members_left,
-                'title':community_live_title,
-                'sub_title':"Every community needs its members to make purposeful conversations. Invite 3 or more members to start conversations.",
-                'action_title':"Invite Friends",
-                'action':"""route://community?community_id=%s&share=true""" % (community_id),
-
-
-                unlock_title:unlock_title,
-                unlock_sub_title:unlock_sub_title,
-                unlock_action_title:unlock_action_title,
-                unlock_action:unlock_action
-
-            }
-
-            json_response={
-
-                'community': community_serializer_instance,
-                'community_live':community_live,
-                'invite_prompt':invite_prompt
-            }
-        else:
-            json_response = {
-
-                'community': community_serializer_instance,
-                'invite_prompt':invite_prompt
-            }
-        return JsonResponse(json_response)
-    return JsonResponse({'success':False})
 
 
 def community_cards_version_1(request,community_id):
@@ -2083,98 +2231,49 @@ def community_cards_version_1(request,community_id):
     community = Community.objects.get(id=community_id)
     member_id = request.GET.get('member_id')
 
-    is_ig=is_IG_community(community)
-
-    if is_ig:
-
-        size = request.GET.get('size', '')
-        if size:
-            size = int(size)
-            collabcard_instance_list = Collabcard.objects.filter(community=community_id).order_by('id')[:size]
-            size = Collabcard.objects.filter(community=community_id).count()
-        else:
-            collabcard_instance_list = Collabcard.objects.filter(community=community_id).order_by('id')
-            size = collabcard_instance_list.count()
-        card_list = []
-
-        for card_instance in collabcard_instance_list:
-
-            user = Userinfo.objects.get(user_id=card_instance.user)
-            # serialize user object
-            usr = UserinfoSerializer(user)
-            # form responses of user
-            form_response = FormResponseSerilaizer(card_instance.community.id, card_instance.user.id)
-            if form_response:
-                usr['response'] = form_response
-            # get card images --------------------------------------------------------
-            files = get_collabcard_files(card_instance)
-            # -----------------------------------------------------------------------
-            # share_url = url+'/collabcard/'+str(card.id)
-
-            time_text = '' if str(card_instance.date_epoch) == "-9223372036854775808" else get_time_text(card_instance.date_epoch)
-            card_dict = CollabcardSerializer(card_instance, member_id, card_instance.community)
-            card_dict['state'] = get_status_of_collabcard(member_id, community, card_instance)
-            card_dict['created_at'] = time_text
-            card_dict['member'] = usr
-            card_dict['images'] = files[0]
-            card_dict['pdf'] = files[1]
-            card_list.append(card_dict)
-
-
-
-
-        json_response = {
-                'collabcards': card_list,
-                'size': size,
-        }
-        return JsonResponse(json_response)
-
-
-
-    if community.hide_community == '3':
-        card_list = get_cards_for_demo(community_id, member_id)
-        return JsonResponse({'collabcards': card_list})
-
     size = request.GET.get('size', '')
     if size:
         size = int(size)
-        cards = Collabcard.objects.filter(community=community_id).order_by('id')[:size]
+        collabcard_instance_list = Collabcard.objects.filter(community=community_id).order_by('id')[:size]
         size = Collabcard.objects.filter(community=community_id).count()
     else:
-        cards = Collabcard.objects.filter(community=community_id).order_by('id')
-        size = cards.count()
+        collabcard_instance_list = Collabcard.objects.filter(community=community_id).order_by('id')
+        size = collabcard_instance_list.count()
+    card_list = []
 
-    # collabcard_url=request.build_absolute_uri()
-    # if collabcard_url in custom_cache:
-    #     card_list=custom_cache.get(collabcard_url)
-    # else:
-    if True:
-        card_list = []
-        for card in cards:
-            user = Userinfo.objects.get(user_id=card.user)
-            # serialize user object
-            usr = UserinfoSerializer(user)
-            # form responses of user
-            form_response = FormResponseSerilaizer(card.community.id, card.user.id)
-            if form_response:
-                usr['response'] = form_response
-            # get card images --------------------------------------------------------
-            files = get_collabcard_files(card)
-            # -----------------------------------------------------------------------
-            # share_url = url+'/collabcard/'+str(card.id)
+    for card_instance in collabcard_instance_list:
 
-            time_text = '' if str(card.date_epoch) == "-9223372036854775808" else get_time_text(card.date_epoch)
-            card_dict = CollabcardSerializer(card, member_id, card.community)
-            card_dict['state'] = get_status_of_collabcard(member_id, community, card)
-            card_dict['created_at'] = time_text
-            card_dict['member'] = usr
-            card_dict['images'] = files[0]
-            card_dict['pdf'] = files[1]
-            card_list.append(card_dict)
-        # custom_cache.set(collabcard_url,card_list,timeout=CACHE_TTL)
-    # card_list=list(Collabcard.objects.filter(community_id=community).values_list("id",flat=True))
-    # print(card_list)
-    return JsonResponse({'collabcards': card_list, 'size': size})
+        user = Userinfo.objects.get(user_id=card_instance.user)
+        # serialize user object
+        usr = UserinfoSerializer(user)
+        # form responses of user
+        form_response = FormResponseSerilaizer(card_instance.community.id, card_instance.user.id)
+        if form_response:
+            usr['response'] = form_response
+        # get card images --------------------------------------------------------
+        files = get_collabcard_files(card_instance)
+        # -----------------------------------------------------------------------
+        # share_url = url+'/collabcard/'+str(card.id)
+
+        time_text = '' if str(card_instance.date_epoch) == "-9223372036854775808" else get_time_text(
+            card_instance.date_epoch)
+        card_dict = CollabcardSerializer(card_instance, member_id, card_instance.community)
+        card_dict['state'] = get_status_of_collabcard(member_id, community, card_instance)
+        card_dict['created_at'] = time_text
+        card_dict['member'] = usr
+        card_dict['images'] = files[0]
+        card_dict['pdf'] = files[1]
+        card_list.append(card_dict)
+
+    json_response = {
+        'collabcards': card_list,
+        'size': size,
+    }
+    return JsonResponse(json_response)
+
+
+
+
 
 
 
