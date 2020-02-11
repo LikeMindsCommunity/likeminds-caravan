@@ -1138,7 +1138,7 @@ def create_card(request,req_dict=None):
             is_ig=True
 
         is_feedback=False
-        if community_id == feedback_community_id:
+        if int(community_id) == int(feedback_community_id):
             typ=4
             is_feedback=True
         card = Collabcard()
