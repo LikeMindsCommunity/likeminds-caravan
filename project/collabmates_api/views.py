@@ -44,7 +44,7 @@ from utility.utils import (decode_meta_from_url, update_tag_image,
     # custom_cache,cache_timeout,
                            get_city_address,
                            update_user_geography_tags, insert_user_home_town_tags, user_onbaord, is_IG_community,
-                           ig_members_count, is_LG_or_LP_community)
+                           ig_members_count, is_LG_or_LP_community,feedback_community_id,feedback_collabcard_id)
 
 from .notification import (send_follow_notification, send_notification_to_admins,
                            send_notification_for_join_requests,
@@ -3157,7 +3157,9 @@ def login(request):
             tags = get_user_lpig_tags(usr['id'])
             usr['tags'] = tags
             return JsonResponse({'user': usr, 'has_tags': has_tags})
-        return JsonResponse({'user': usr, 'has_tags': has_tags})
+        else:
+            create_member_for_feedback_community(userinfo.user_id)
+            return JsonResponse({'user': usr, 'has_tags': has_tags})
 
     return HttpResponse('Login Api')
 
@@ -3207,6 +3209,47 @@ def create_userinfo(user, email, user_name, profile_picture, login_type, json_to
         userinfo = userinfo[0]
 
     return userinfo
+
+
+def create_member_for_feedback_community(user_instance):
+
+    '''function to make user directly a member of feedback community'''
+
+    is_member=Members.objects.filter(community_id=feedback_community_id,member_id=user_instance)
+
+    community_instance = Community.objects.get(id=feedback_community_id)
+
+    if not is_member.exists():                                                #not is_member.exists()
+        member_instance=Member()
+        member_instance.member_id=user_instance
+        member_instance.community_id=community_instance
+        member_instance.state=member_states.MEMBER
+        member_instance.created_at=time.time()
+        member_instance.save()
+
+
+    if not is_member_engage(community_instance,user_instance):          #not is_member_engage(community_instance,user_instance)
+
+        card_instance=Collabcard.objects.get(id=feedback_collabcard_id)
+        engage = Member_Engage()
+        engage.member_id = user_instance
+        engage.community_id = community_instance
+        engage.last_unseen_conversation = card_instance
+        engage.updated_at = time.time()
+        engage.member_state = member_states.MEMBER
+        engage.save()
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 def notify_referred_member_after_join(joined_member_id, joined_member_name, community_name, community_id):
