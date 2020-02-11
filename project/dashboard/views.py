@@ -16,9 +16,7 @@ from collabmates_api.notification import send_notification_for_join_requests, se
 from django.conf import settings
 import json
 from django.http.response import JsonResponse
-import requests as rqst
-import os
-import re
+from utility.states import collabcard_states, member_states
 from django.views.decorators.csrf import csrf_exempt
 from collabmates_api.raw_queries import compute_rank
 from utility.pre_creation import pre_create_communities
@@ -3339,3 +3337,35 @@ def delete_collabcard(request):
 
 
         return JsonResponse({"success": True, 'raise_error': False})
+
+
+def approve_collabcard_for_feedback_community(request,card_id):
+
+    '''function to approve the collabcard for feedback community'''
+
+    card_instance=Collabcard.objects.get(id=card_id)
+    community_instance=Community.objects.get(id=card_instance.community_id)
+    user_instance=User.objects.get(id=card_instance.user_id)
+
+    #saving state for card creater
+    is_state=collabcardState.objects.filter(card=card_instance,user=user_instance)
+    if not is_state.exists():
+        collabcard_state_instance = collabcardState()
+        collabcard_state_instance.card = card_instance
+        collabcard_state_instance.user = user_instance
+        collabcard_state_instance.community = community_instance
+        collabcard_state_instance.state = collabcard_states.COLLABCARD_STATE_FOLLOW  # user has created the card and he is autofollowing
+        collabcard_state_instance.created_at = time.time()
+        collabcard_state_instance.updated_at = time.time()
+        collabcard_state_instance.save()
+
+    card_instance.type=0                #posted state
+    card_instance.save()
+
+    update_last_unseen_in_engage_on_card_creation(community_instance.id)
+
+    return HttpResponse("Collabcard Posted")
+
+
+
+

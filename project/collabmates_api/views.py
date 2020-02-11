@@ -35,6 +35,7 @@ from utility.states import collabcard_states, member_states
 from utility.tasks import (mail_triger, new_member_request,
                            member_request_approval_or_denied,
                            send_mail_for_report_abuse,
+                           send_mail_for_query_and_feedback
                            )
 from utility.utils import (decode_meta_from_url, update_tag_image,
                            referal, get_referred_members_of_a_member,
@@ -736,6 +737,13 @@ def members(request, community_id):
     ''' function to get all the mebers of a community including admins and nominated members '''
     community = get_object_or_404(Community, pk=community_id)
     # get members of the community
+
+
+    if community_id == feedback_community_id:
+        # if the community is feedback community sending empty list
+        return  JsonResponse({'members': []})
+
+
     member = Members.objects.filter(community_id=community).filter(Q(state=1) | Q(state=2) |
                                                                    Q(state=4) | Q(state=7) |
                                                                    Q(state=8) | Q(state=9))
@@ -1113,6 +1121,7 @@ def create_card(request,req_dict=None):
         # type=0 normal card, type =1 intro card, type 2 is event card and type 3 is poll card
         typ = int(res['type']) if 'type' in res else 0
 
+
         card = Collabcard.objects.filter(community=community, user=user_instance, type=1)
         if card.exists() and typ == 1:
             # if welcome card for user is already existing
@@ -1127,6 +1136,11 @@ def create_card(request,req_dict=None):
         is_ig=False
         if 'is_ig' in res:
             is_ig=True
+
+        is_feedback=False
+        if community_id == feedback_community_id:
+            typ=4
+            is_feedback=True
         card = Collabcard()
         card.title = res['title']
         card.community = community
@@ -1157,6 +1171,8 @@ def create_card(request,req_dict=None):
         # if its a pilot community making the user promoter and updating community state to pilot active
 
         is_pilot_active = False
+
+
         if not community.purpose_collabcard and community.hide_community == '3' and not is_ig:
             community.purpose_collabcard = card.id
             join_time = time.time()
@@ -1193,12 +1209,27 @@ def create_card(request,req_dict=None):
         user_info_serializer = UserinfoSerializer(userinfo_instance)
         collabcard['member'] = user_info_serializer
 
+        if is_feedback:                                      #if the collabcard created in feedback community
+
+            mail_dict={}
+            mail_dict['user_name']=user_info_serializer['name']
+            mail_dict['email']=user_info_serializer['email']
+            mail_dict['collabcard_link']=collabcard['share_url']
+            mail_dict['content']=collabcard['title']
+            mail_dict['collabcard_id']=collabcard['id']
+
+            send_mail_for_query_and_feedback(mail_dict)          #sending mail to collabmates for posting
+            return JsonResponse({'success': True, 'collabcard': collabcard})
+
+
         # #saving the state in collabcardState table instead of follow collabcard
         create_collabcard_state_for_user(card=card, user=user_instance,
                                          state=collabcard_states.COLLABCARD_STATE_FOLLOW,
                                          community=community)
 
         update_last_answer_id(card.id, "")
+
+
 
         if is_member_engage(community, user_instance):
             if is_pilot_active:
@@ -2280,10 +2311,6 @@ def community_cards_version_1(request,community_id):
 
 
 
-
-
-
-
 def get_cards_for_demo(community_id, member_id):
     '''function to get demo cards for pilot community'''
     card_list = []
@@ -2441,13 +2468,6 @@ def get_status_of_collabcard(member_id, community, card):
     if collabcard_state:
         state = collabcard_state[0].state
         return state
-    seen_status = collabcard_seen.objects.filter(card=card, community=community, user=member_id)
-    if seen_status:
-        state = 1
-        follow = follow_collabcard.objects.filter(collabcard_id=card, member_id=member_id)
-        if follow:
-            state = 2
-
     return state
 
 
@@ -2817,7 +2837,7 @@ def community_collabcard_id(request):
     user_instance = User.objects.get(id=member_id)
 
     collabcard_ids_list = list(
-        Collabcard.objects.filter(community=community_instance).order_by('id').values_list('id', flat=True))
+        Collabcard.objects.filter(community=community_instance).filter(~Q(type=4)).order_by('id').values_list('id', flat=True))
     collabcard_state_for_member = collabcardState.objects.filter(community=community_instance,
                                                                  user=user_instance).order_by('id')
 

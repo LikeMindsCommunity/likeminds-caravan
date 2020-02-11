@@ -1,14 +1,14 @@
 from __future__ import absolute_import, unicode_literals
+
 from celery import shared_task
-from django.template.loader import get_template
-from django.shortcuts import render
-from django.core.mail import EmailMultiAlternatives
-from togther.models import *
-from django.conf import settings
-from togther.models import *
 from collabmates_api.notification import notification_to_complete_onboarding
+from django.conf import settings
+from django.core.mail import EmailMultiAlternatives
+from django.template.loader import get_template
+from togther.models import *
+from togther.models import *
+
 from .utils import is_request_android, is_request_ios, is_request_pc, android_app_download_link, is_IG_community
-import time
 
 url = settings.URL
 
@@ -240,3 +240,31 @@ def send_mail_for_report_abuse(user_name, collabcard_message, report_tag, commun
     to = [to]
     send_email(subject, template, to)
     print("Executed")
+
+
+
+def send_mail_for_query_and_feedback(mail_dict):
+
+    '''function to send the mail to collabmates regarding a query or feedback'''
+
+    subject="New Collabcard Posted in Collabmates Queries and Feedback Community"
+    context=mail_dict
+    template = get_template("mails/community_feedback.html").render(context)
+    if not is_beta:
+        to_list = ['nipungoyal.iitd@gmail.com', 'hrshshukl@gmail.com']
+    else:
+        to_list = ['rastogi.fresh88@gmail.com']
+
+    send_email(subject, template, to_list)
+
+
+
+
+# mail_dict={}
+# mail_dict['user_name'] = "Mahesh Royals"
+# mail_dict['email'] = "test@gmail.com"
+# mail_dict['collabcard_link'] ="www.google.com"
+# mail_dict['content'] = "What is this about I don't know anything about it and I don't want to know either"
+# mail_dict['collabcard_id'] = 181
+
+#send_mail_for_query_and_feedback(mail_dict)
