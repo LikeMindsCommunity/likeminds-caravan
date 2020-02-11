@@ -1217,6 +1217,7 @@ def create_card(request,req_dict=None):
             mail_dict['collabcard_link']=collabcard['share_url']
             mail_dict['content']=collabcard['title']
             mail_dict['collabcard_id']=collabcard['id']
+            mail_dict['url']=url
 
             send_mail_for_query_and_feedback(mail_dict)          #sending mail to collabmates for posting
             return JsonResponse({'success': True, 'collabcard': collabcard})
