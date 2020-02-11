@@ -2311,10 +2311,6 @@ def community_cards_version_1(request,community_id):
 
 
 
-
-
-
-
 def get_cards_for_demo(community_id, member_id):
     '''function to get demo cards for pilot community'''
     card_list = []
@@ -2472,13 +2468,6 @@ def get_status_of_collabcard(member_id, community, card):
     if collabcard_state:
         state = collabcard_state[0].state
         return state
-    seen_status = collabcard_seen.objects.filter(card=card, community=community, user=member_id)
-    if seen_status:
-        state = 1
-        follow = follow_collabcard.objects.filter(collabcard_id=card, member_id=member_id)
-        if follow:
-            state = 2
-
     return state
 
 
@@ -2848,7 +2837,7 @@ def community_collabcard_id(request):
     user_instance = User.objects.get(id=member_id)
 
     collabcard_ids_list = list(
-        Collabcard.objects.filter(community=community_instance).order_by('id').values_list('id', flat=True))
+        Collabcard.objects.filter(community=community_instance).filter(~Q(type=4)).order_by('id').values_list('id', flat=True))
     collabcard_state_for_member = collabcardState.objects.filter(community=community_instance,
                                                                  user=user_instance).order_by('id')
 
