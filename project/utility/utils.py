@@ -34,14 +34,21 @@ ios_app_download_link="https://apps.apple.com/us/app/collabmates/id1481298195"
 url=settings.URL
 
 if settings.IS_BETA:
+
     eligibility_count = 5
     ig_members_count=4
+
+    feedback_community_id = 20739
+    feedback_collabcard_id = 1025
+
 else:
     eligibility_count = 5
     ig_members_count = 4
 
 # count for a particular community to show tutorial
 tutorial_count=3
+
+
 
 
 def is_member_engage(community,member):
