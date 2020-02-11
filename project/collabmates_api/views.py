@@ -3220,7 +3220,7 @@ def create_member_for_feedback_community(user_instance):
     community_instance = Community.objects.get(id=feedback_community_id)
 
     if not is_member.exists():                                                #not is_member.exists()
-        member_instance=Member()
+        member_instance=Members()
         member_instance.member_id=user_instance
         member_instance.community_id=community_instance
         member_instance.state=member_states.MEMBER
