@@ -128,7 +128,7 @@ def update_last_unseen_in_engage_on_card_creation(community_id):
 def update_last_unseen_in_engage(user='',community='',is_seen=False):
 
     '''function to update the unseen  collabcard in engage'''
-    total_collabcards = Collabcard.objects.filter(community=community).values('id').order_by('-id').distinct('id')
+    total_collabcards = Collabcard.objects.filter(community=community).filter(~Q(type=4)).values('id').order_by('-id').distinct('id')
     seen_collabcard = collabcardState.objects.filter(community=community,
                                                      user=user).values('card').distinct('card')
     # print("total_collabcards                >>>>>>>    ", total_collabcards)
