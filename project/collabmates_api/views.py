@@ -1946,10 +1946,10 @@ def collabcard(request, card_id):
 
         answer = card_answers.objects.filter(card=cards, id__gte=answer_id).filter(~Q(user__id=user_id))
         # answer = pagination(answer, page, paginate_by=10)
-        answers = get_answer_data(answer,feedback=True)         #if the feedback is true don't send id in userinfo
+        answers = get_answer_data(answer,feedback)         #if the feedback is true don't send id in userinfo
         return JsonResponse({'answers': answers})
     else:
-        answers = get_answer_data(answer)
+        answers = get_answer_data(answer,feedback)
 
     # serializing Collabcard
     card = CollabcardSerializer(cards, user_id, cards.community)
