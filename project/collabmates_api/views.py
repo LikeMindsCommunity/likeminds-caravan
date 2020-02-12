@@ -1928,6 +1928,10 @@ def collabcard(request, card_id):
     cards = Collabcard.objects.get(id=card_id)
     page = request.GET.get('page', 1)
 
+    feedback=False
+    if cards.community.id == feedback_community_id:
+        feedback = True
+
     # coverting current time into epoch time for getting time stamp of answers and card
 
     # get all the answers of the card
@@ -1952,7 +1956,7 @@ def collabcard(request, card_id):
 
     user = Userinfo.objects.get(user_id=cards.user.id)
     # serializing user object
-    usr = UserinfoSerializer(user)
+    usr = UserinfoSerializer(user,feedback)
     # user form response serialzer
     form_response = FormResponseSerilaizer(cards.community.id, cards.user.id)
     if form_response:
