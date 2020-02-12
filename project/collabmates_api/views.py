@@ -1956,7 +1956,8 @@ def collabcard(request, card_id):
 
     user = Userinfo.objects.get(user_id=cards.user.id)
     # serializing user object
-    usr = UserinfoSerializer(user,feedback)
+    usr = UserinfoSerializer(user)
+    usr['is_clickable']=feedback
     # user form response serialzer
     form_response = FormResponseSerilaizer(cards.community.id, cards.user.id)
     if form_response:
@@ -1980,7 +1981,8 @@ def get_answer_data(answer,feedback=False):
 
     for ans in answer:
         user = Userinfo.objects.filter(user_id=ans.user.id)
-        usr = UserinfoSerializer(user[0],feedback)
+        usr = UserinfoSerializer(user[0])
+        usr['is_clickable']=feedback
         # coverting current time into epoch time
 
         if str(ans.date_epoch) == "-9223372036854775808":
@@ -2902,7 +2904,8 @@ def community_collabcard_meta(request):
         # serialize user object
         if card_instance.community.id == feedback_community_id:
             feed_back=True
-        usr = UserinfoSerializer(user,feed_back)
+        usr = UserinfoSerializer(user)
+        usr['is_clickable']=feed_back
         # user form response serialzer
         form_response = FormResponseSerilaizer(card_instance.community.id, card_instance.user.id)
         if form_response:
