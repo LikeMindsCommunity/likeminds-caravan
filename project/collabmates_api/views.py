@@ -1928,9 +1928,9 @@ def collabcard(request, card_id):
     cards = Collabcard.objects.get(id=card_id)
     page = request.GET.get('page', 1)
 
-    feedback=False
+    feedback=True
     if cards.community.id == feedback_community_id:
-        feedback = True
+        feedback = False
 
     # coverting current time into epoch time for getting time stamp of answers and card
 
@@ -2896,14 +2896,14 @@ def community_collabcard_meta(request):
 
     member_id = get_member_id_from_headers(request)
     community_instance = None
-    feed_back=False
+    feed_back=True
     card_list = []
     for card_id in collabcard_ids:
         card_instance = Collabcard.objects.get(id=card_id)
         user = Userinfo.objects.get(user_id=card_instance.user)
         # serialize user object
         if card_instance.community.id == feedback_community_id:
-            feed_back=True
+            feed_back=False
         usr = UserinfoSerializer(user)
         usr['is_clickable']=feed_back
         # user form response serialzer
