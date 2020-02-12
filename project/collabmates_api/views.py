@@ -1220,7 +1220,18 @@ def create_card(request,req_dict=None):
             mail_dict['url']=url
 
             send_mail_for_query_and_feedback(mail_dict)          #sending mail to collabmates for posting
-            return JsonResponse({'success': True, 'collabcard': collabcard})
+
+            #sending text for pop-up:
+
+            collabcard_feedback_popup={
+
+                'title':"Thanks for writing to us",
+                'sub_title':" We may reply privately to your query/feedback via email or feature it in this community depending on its utility for everyone.",
+                'action_title:':"OK",
+                'action':'route://community_collabcard?community_id=' + str(community.id) + '&community_name=' + str(
+            community.name) + '&community_state=' + str(community.hide_community)
+            }
+            return JsonResponse({'success': True, 'collabcard': collabcard,'collabcard_feedback_popup':collabcard_feedback_popup})
 
 
         # #saving the state in collabcardState table instead of follow collabcard
