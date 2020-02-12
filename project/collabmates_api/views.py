@@ -1946,10 +1946,10 @@ def collabcard(request, card_id):
 
         answer = card_answers.objects.filter(card=cards, id__gte=answer_id).filter(~Q(user__id=user_id))
         # answer = pagination(answer, page, paginate_by=10)
-        answers = get_answer_data(answer,feedback)         #if the feedback is true don't send id in userinfo
+        answers = get_answer_data(answer,feedback,cards.community.id)         #if the feedback is true don't send id in userinfo
         return JsonResponse({'answers': answers})
     else:
-        answers = get_answer_data(answer,feedback)
+        answers = get_answer_data(answer,feedback,cards.community.id)
 
     # serializing Collabcard
     card = CollabcardSerializer(cards, user_id, cards.community)
@@ -1975,7 +1975,7 @@ def collabcard(request, card_id):
     return JsonResponse({"collabcard": card, 'answers': answers})
 
 
-def get_answer_data(answer,feedback=False):
+def get_answer_data(answer,feedback,community_id):
     '''function to get answer for a particular collabcard from database database'''
     answers = []
 
@@ -1983,6 +1983,9 @@ def get_answer_data(answer,feedback=False):
         user = Userinfo.objects.filter(user_id=ans.user.id)
         usr = UserinfoSerializer(user[0])
         usr['is_clickable']=feedback
+        form_response = FormResponseSerilaizer(community_id, ans.user.id)
+        if form_response:
+            usr['response'] = form_response
         # coverting current time into epoch time
 
         if str(ans.date_epoch) == "-9223372036854775808":
