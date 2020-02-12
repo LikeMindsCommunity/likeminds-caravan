@@ -2132,6 +2132,15 @@ def community_collabcard_invite(request,community_id):
 
     community_serializer_instance = CommunitySerializer(community)
 
+    #if the community is a user-created community
+    if community_serializer_instance['state'] == 0 or community_serializer_instance['state'] == 1:
+        json_response = {
+
+            'community': community_serializer_instance,
+
+        }
+        return JsonResponse(json_response)
+
     number_of_members = community.members_count
     members_left = ig_members_count - number_of_members
 
