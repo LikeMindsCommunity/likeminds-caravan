@@ -1226,8 +1226,8 @@ def create_card(request,req_dict=None):
             collabcard_feedback_popup={
 
                 'title':"Thanks for writing to us",
-                'sub_title':" We may reply privately to your query/feedback via email or feature it in this community depending on its utility for everyone.",
-                'action_title:':"OK",
+                'sub_title':"We may reply privately to your query/feedback via email or feature it in this community depending on its utility for everyone.",
+                'action_title':"OK",
                 'action':'route://community_collabcard?community_id=' + str(community.id) + '&community_name=' + str(
             community.name) + '&community_state=' + str(community.hide_community)
             }
@@ -2889,12 +2889,15 @@ def community_collabcard_meta(request):
 
     member_id = get_member_id_from_headers(request)
     community_instance = None
+    feed_back=False
     card_list = []
     for card_id in collabcard_ids:
         card_instance = Collabcard.objects.get(id=card_id)
         user = Userinfo.objects.get(user_id=card_instance.user)
         # serialize user object
-        usr = UserinfoSerializer(user)
+        if card_instance.community.id == feedback_community_id:
+            feed_back=True
+        usr = UserinfoSerializer(user,feed_back)
         # user form response serialzer
         form_response = FormResponseSerilaizer(card_instance.community.id, card_instance.user.id)
         if form_response:
