@@ -46,24 +46,41 @@ def CommunitySerializer(community):
         new_dict['auto_approval'] = False
     return new_dict
 
-def UserinfoSerializer(user):
+def UserinfoSerializer(user,feed_back=False):
     # function to serialize a userinfo object
-    userinfo= {
-        'id': user.user_id.id,
-        "name": user.name,
-        "email": user.email,
-        "city": user.city,
-        "headline": user.headline,
-        "contact_number": user.contact_number,
-        "about": user.about,
-        "fb_link": user.fb_link,
-        "linkedin_link": user.linkedin_link,
-    }
+    if not feed_back:                           #if the community is not feedback community
+        userinfo= {
+            'id': user.user_id.id,
+            "name": user.name,
+            "email": user.email,
+            "city": user.city,
+            "headline": user.headline,
+            "contact_number": user.contact_number,
+            "about": user.about,
+            "fb_link": user.fb_link,
+            "linkedin_link": user.linkedin_link,
+        }
 
-    if not user.image_link:
-        userinfo['image_url'] = url + user.image_file.url
-    else:
-        userinfo['image_url']=user.image_link
+        if not user.image_link:
+            userinfo['image_url'] = url + user.image_file.url
+        else:
+            userinfo['image_url']=user.image_link
+    else:                                      #if the community is feedback community  not sending id
+        userinfo = {
+            "name": user.name,
+            "email": user.email,
+            "city": user.city,
+            "headline": user.headline,
+            "contact_number": user.contact_number,
+            "about": user.about,
+            "fb_link": user.fb_link,
+            "linkedin_link": user.linkedin_link,
+        }
+
+        if not user.image_link:
+            userinfo['image_url'] = url + user.image_file.url
+        else:
+            userinfo['image_url'] = user.image_link
     return userinfo
 
 def CollabcardSerializer(card,user,community=None):
