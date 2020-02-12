@@ -12,7 +12,7 @@ import csv
 from django.template.loader import get_template
 from django.shortcuts import render
 from django.core.mail import EmailMultiAlternatives
-from collabmates_api.notification import send_notification_for_join_requests, send_notification_to_proposed_admin
+from collabmates_api.notification import send_notification_for_join_requests, send_notification_to_proposed_admin,send_notification_for_new_collabcard_posted
 from django.conf import settings
 import json
 from django.http.response import JsonResponse
@@ -37,7 +37,7 @@ from django.contrib.auth import authenticate, login
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth import logout
-
+from collabmates_api.views import send_email_for_collabcard
 url = settings.URL
 import logging
 # uncomment to run it in localhost
@@ -3346,7 +3346,6 @@ def approve_collabcard_for_feedback_community(request,card_id):
     card_instance=Collabcard.objects.get(id=card_id)
     community_instance=Community.objects.get(id=card_instance.community_id)
     user_instance=User.objects.get(id=card_instance.user_id)
-
     #saving state for card creater
     is_state=collabcardState.objects.filter(card=card_instance,user=user_instance)
     if not is_state.exists():
@@ -3363,6 +3362,20 @@ def approve_collabcard_for_feedback_community(request,card_id):
     card_instance.save()
 
     update_last_unseen_in_engage_on_card_creation(community_instance.id)
+
+    typ=0
+
+
+
+    send_notification_for_new_collabcard_posted.delay(community_instance.id, card_instance.title,
+                                                      user_instance.id, user_instance.userinfo.name,
+                                                      type=typ, date_time=card_instance.date_time,
+                                                      card_id=card_instance.id,
+                                                      community_name=community_instance.name,
+                                                      community_state=community_instance.hide_community)
+
+
+    send_email_for_collabcard(community_instance, user_instance.userinfo, card_instance, typ)
 
     return HttpResponse("Collabcard Posted")
 
