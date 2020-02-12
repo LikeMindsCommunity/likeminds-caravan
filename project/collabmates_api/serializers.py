@@ -1,9 +1,9 @@
-from togther.models import *
 import json
 import time
 
 from django.conf import settings
 from django.db.models import Q
+from togther.models import *
 from togther.models import *
 from utility.utils import is_IG_community
 
@@ -49,39 +49,24 @@ def CommunitySerializer(community):
 
 def UserinfoSerializer(user):
     # function to serialize a userinfo object
-    if not feed_back:                           #if the community is not feedback community
-        userinfo= {
-            'id': user.user_id.id,
-            "name": user.name,
-            "email": user.email,
-            "city": user.city,
-            "headline": user.headline,
-            "contact_number": user.contact_number,
-            "about": user.about,
-            "fb_link": user.fb_link,
-            "linkedin_link": user.linkedin_link,
-        }
+            #if the community is not feedback community
+    userinfo = {
+        'id': user.user_id.id,
+        "name": user.name,
+        "email": user.email,
+        "city": user.city,
+        "headline": user.headline,
+        "contact_number": user.contact_number,
+        "about": user.about,
+        "fb_link": user.fb_link,
+        "linkedin_link": user.linkedin_link,
+    }
 
-        if not user.image_link:
-            userinfo['image_url'] = url + user.image_file.url
-        else:
-            userinfo['image_url']=user.image_link
-    else:                                      #if the community is feedback community  not sending id
-        userinfo = {
-            "name": user.name,
-            "email": user.email,
-            "city": user.city,
-            "headline": user.headline,
-            "contact_number": user.contact_number,
-            "about": user.about,
-            "fb_link": user.fb_link,
-            "linkedin_link": user.linkedin_link,
-        }
+    if not user.image_link:
+        userinfo['image_url'] = url + user.image_file.url
+    else:
+        userinfo['image_url'] = user.image_link
 
-        if not user.image_link:
-            userinfo['image_url'] = url + user.image_file.url
-        else:
-            userinfo['image_url'] = user.image_link
     return userinfo
 
 def CollabcardSerializer(card,user,community=None):
