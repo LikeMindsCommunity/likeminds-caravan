@@ -217,6 +217,8 @@ SOCIAL_AUTH_PIPELINE = (
 
 )
 
+ADMINS = [('mahesh', 'mahesh61437mahe@gmail.com')]
+
 SENDGRID_API_KEY = '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'
 EMAIL_HOST = 'smtp.sendgrid.net'
 EMAIL_HOST_USER = 'collabmates1'
@@ -273,6 +275,11 @@ LOGGING = {
             'backupCount': 5,
             'formatter':'tiny',
         },
+        'mail_admins': {
+            'level': 'ERROR',
+            'class': 'django.utils.log.AdminEmailHandler',
+            'include_html': True,
+        },
 
     },
     'loggers': {
@@ -287,7 +294,7 @@ LOGGING = {
             'propagate': False,
         },
         'django': {
-            'handlers': ['console'],
+            'handlers': ['console', 'mail_admins'],
             'level': os.getenv('DJANGO_LOG_LEVEL', 'INFO'),
         },
 
