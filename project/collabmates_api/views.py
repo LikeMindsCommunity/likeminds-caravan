@@ -2539,7 +2539,9 @@ def create_answer(request):
             print("type === ", card.type)
             update_answer_text(card_id)
 
-        return JsonResponse({'success': True})
+        return JsonResponse({'success': True,'id':ans.id})
+
+    return JsonResponse({'success': False})
 
 
 def _send_notification_to_tagged_users(card_id, answerer_name, answer, user_id):
@@ -3293,18 +3295,6 @@ def create_member_for_feedback_community(user_instance):
         engage.updated_at = time.time()
         engage.member_state = member_states.MEMBER
         engage.save()
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 def notify_referred_member_after_join(joined_member_id, joined_member_name, community_name, community_id):
