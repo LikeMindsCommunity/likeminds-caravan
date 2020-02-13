@@ -2218,32 +2218,32 @@ def community_collabcard_invite(request,community_id):
         invite_prompt['title'] = """Know a %s?""" % (member_type)
         invite_prompt['sub_title'] = """Invite a new member here and unlock a tool"""
         invite_prompt['action_title'] = """Invite"""
-        invite_prompt['action'] = """route://community?community_id=%s""" % (community_id)
+        invite_prompt['action'] = """route://community?community_id=%s&source=invite_prompt""" % (community_id)
     elif ref_members_count == 1:
         invite_prompt['title'] = """Unlock a new tool"""
         invite_prompt['sub_title'] = """By inviting 2 more members to this community"""
         invite_prompt['action_title'] = """Invite"""
-        invite_prompt['action'] = """route://community?community_id=%s""" % (community_id)
+        invite_prompt['action'] = """route://community?community_id=%s&source=invite_prompt""" % (community_id)
     elif ref_members_count == 2:
         invite_prompt['title'] = """Unlock a new tool"""
         invite_prompt['sub_title'] = """By inviting 1 more member to this community"""
         invite_prompt['action_title'] = """Invite"""
-        invite_prompt['action'] = """route://community?community_id=%s""" % (community_id)
+        invite_prompt['action'] = """route://community?community_id=%s&source=invite_prompt""" % (community_id)
     elif ref_members_count == 3:
         invite_prompt['title'] = """Become a promoter"""
         invite_prompt['sub_title'] = """Get recognised by inviting 2 more members"""
         invite_prompt['action_title'] = """Invite"""
-        invite_prompt['action'] = """route://community?community_id=%s""" % (community_id)
+        invite_prompt['action'] = """route://community?community_id=%s&source=invite_prompt""" % (community_id)
     elif ref_members_count == 4:
         invite_prompt['title'] = """Become a promoter"""
         invite_prompt['sub_title'] = """Get recognised by inviting 1 more member"""
         invite_prompt['action_title'] = """Invite"""
-        invite_prompt['action'] = """route://community?community_id=%s""" % (community_id)
+        invite_prompt['action'] = """route://community?community_id=%s&source=invite_prompt""" % (community_id)
     else:
         invite_prompt['title'] = """Promote your community"""
         invite_prompt['sub_title'] = """Let other %s discover this community""" % (member_types)
         invite_prompt['action_title'] = """Invite"""
-        invite_prompt['action'] = """route://community?community_id=%s&share=true""" % (community_id)
+        invite_prompt['action'] = """route://community?community_id=%s&share=true&source=invite_prompt""" % (community_id)
 
     # prompt for invite now
 
@@ -2258,7 +2258,7 @@ def community_collabcard_invite(request,community_id):
         community_live_title = "more members required"
 
     unlock_action_title = "OK, INVITE NOW"
-    unlock_action = """route://community?community_id=%s&share=true"""
+    unlock_action = """route://community?community_id=%s&share=true&source=community_live_unlock"""
 
     if members_left > 0:
 
@@ -2267,7 +2267,7 @@ def community_collabcard_invite(request,community_id):
             'title': community_live_title,
             'sub_title': community_live_subtitle,
             'action_title': "Invite Friends",
-            'action': """route://community?community_id=%s&share=true""" % (community_id),
+            'action': """route://community?community_id=%s&share=true&source=community_live""" % (community_id),
 
             'unlock_title': unlock_title,
             'unlock_sub_title': unlock_sub_title,
@@ -3383,7 +3383,7 @@ def members_state(request):
                          'tool_unlock_title': "Unlock Feature",
                          'tool_unlock_sub_title': tool_unlock_sub_title,
                          'tool_unlock_action_title': "OK, INVITE NOW",
-                         'tool_unlock_action': """route://community?community_id=%s&share=true""" % (community_id)
+                         'tool_unlock_action': """route://community?community_id=%s&share=true&source=tool_unlock""" % (community_id)
                          }
     else:
 
