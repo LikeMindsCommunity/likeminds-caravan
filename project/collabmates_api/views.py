@@ -3401,7 +3401,7 @@ def members_state(request):
                    'tool_unlock_title':"Unlock Feature",
                    'tool_unlock_sub_title':tool_unlock_sub_title,
                    'tool_unlock_action_title':"OK, INVITE NOW",
-                   'tool_unlock_action':"""route://community?community_id=%s&share=true""" % (community_id)
+                   'tool_unlock_action':"""route://community?community_id=%s&share=true&source=tool_unlock""" % (community_id)
                    }
     return JsonResponse(json_response)
 
