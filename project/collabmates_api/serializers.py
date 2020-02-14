@@ -5,7 +5,7 @@ from django.conf import settings
 from django.db.models import Q
 from togther.models import *
 from togther.models import *
-from utility.utils import is_IG_community
+from utility.utils import is_IG_community,is_LG_or_LP_community
 
 url = settings.URL
 
@@ -41,10 +41,18 @@ def CommunitySerializer(community):
     new_dict['date'] = community.active_since
     new_dict['members_count'] = get_member_count(community)
     new_dict['state']=int(community.hide_community)
-    if new_dict['state'] == 4:
-        new_dict['auto_approval']=is_IG_community(community)
-    else:
-        new_dict['auto_approval'] = False
+
+
+    if is_IG_community(community):
+        community_type=0
+        new_dict['community_type'] = community_type
+    elif is_LG_or_LP_community(community):
+        community_type=1
+        new_dict['community_type'] = community_type
+
+
+
+
     return new_dict
 
 def UserinfoSerializer(user):

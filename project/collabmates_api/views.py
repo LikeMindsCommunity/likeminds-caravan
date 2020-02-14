@@ -329,7 +329,8 @@ def similar_community(request, community_id):
 def join_community(request, community_id):
     '''function to get questions of community'''
 
-    data = Form_data.objects.all().filter(community_id=community_id).order_by("id")
+    data = Form_data.objects.filter(community_id=community_id).order_by("id")
+    community_instance=Community.objects.get(id=community_id)
     reqd_info = []
     first_question = False
     for i in data:
@@ -353,7 +354,9 @@ def join_community(request, community_id):
                 ques['question_state'] = 2  # no limit on answer condition for android
 
         reqd_info.append(ques)
-    return JsonResponse({'questions': reqd_info})
+
+    community=CommunitySerializer(community_instance)
+    return JsonResponse({'questions': reqd_info,'community':community})
 
 
 # /api/join_community?member_id=&community_id=
@@ -686,6 +689,8 @@ def join_lg_communities(request,res,community,user):
 
         log = """Request in LG community where community_id=%s and member_id=%s""" % (community.id, user.id)
         print(log)
+    else:
+        member_instance.update(state=member_states.PENDING_MEMBER)
 
 
 def category_filter(request, category):
@@ -931,6 +936,37 @@ def get_user_lpig_tags(user_id):
 
     # print(tags)
     return tags
+
+@csrf_exempt
+def ask_approval(request):
+
+    '''function to ask for approval in LG communities for member to member verification'''
+
+    member_id=get_member_id_from_headers(request)
+    ask_member_id=request.GET.get('ask_member_id')
+    community_id=request.GET.get('community_id')
+
+    member_instance=Members.objects.get(member_id=member_id,community_id=community_id)
+    member_engage_instance=Member_Engage.objects.get(community_id=community_id,member_id=ask_member_id)
+
+    if member_instance.ask_member_id:                       #if the member ask someone else already for verification
+
+        member_engage_ask_instance=Member_Engage.objects.get(community_id=community_id,member_id=member_instance.ask_member_id)
+        if member_engage_ask_instance.pending_members:
+            member_engage_ask_instance.pending_members= member_engage_ask_instance.pending_members - 1
+            member_engage_ask_instance.save()
+
+    member_instance.ask_member_id=ask_member_id
+    member_instance.save()
+
+    member_engage_instance.pending_members=member_engage_instance.pending_members + 1
+    member_engage_instance.save()
+
+
+
+
+
+    return JsonResponse({'success':True})
 
 
 ############# functions for  create flow of card,community and members   ##########################
@@ -1678,6 +1714,7 @@ def request_response(request, req_dict=None):
         member_id = res['member_id']
     if 'community_id' in res:
         community_id = res['community_id']
+
     if 'accepted' in res:
         accepted = res['accepted']
     community = Community.objects.get(id=community_id)
@@ -1686,8 +1723,15 @@ def request_response(request, req_dict=None):
     is_lg=is_LG_or_LP_community(community)
 
     if is_lg:
-
-        approve_or_decline_lg_community(request,req_dict)
+        member_verification=False
+        if not req_dict:
+            member_verification=True
+            req_dict = {
+                'member_id': member_id,
+                'community_id': community_id,
+                'accepted':accepted
+            }
+        approve_or_decline_lg_community(request,req_dict,member_verification)
         return JsonResponse({'success': True})
 
     if accepted or accepted == 'true':
@@ -1787,7 +1831,7 @@ def request_response(request, req_dict=None):
     return JsonResponse({'success': True})
 
 
-def approve_or_decline_lg_community(request,req_dict):
+def approve_or_decline_lg_community(request,req_dict,member_verification):
 
     '''function to approve and decline request in lg community'''
 
@@ -1854,7 +1898,10 @@ def approve_or_decline_lg_community(request,req_dict):
                                                                            member_id=referer_instance.id)
             update_last_unseen_in_engage(user=user,community=community)
 
-
+            if member_verification:
+                header_member_id=get_member_id_from_headers(request)
+                Members.objects.filter(member_id=member_id, community_id=community).update(approved_member_id=header_member_id)
+                Member_Engage.objects.filter(member_id=header_member_id, community_id=community).update(pending_members=F('pending_members')-1)
 
 
         else:
@@ -1864,9 +1911,13 @@ def approve_or_decline_lg_community(request,req_dict):
             Member_Engage.objects.filter(member_id=member_id, community_id=community).delete()
             # delete the responses of user to community questions, if any
             Form_response.objects.filter(user=member_id, community=community_id).delete()
+            if member_verification:
+                header_member_id = get_member_id_from_headers(request)
+                Member_Engage.objects.filter(member_id=header_member_id, community_id=community).update(
+                    pending_members=F('pending_members') - 1)
             # update pending members count of community and referal text of user
-            update_pending_member_count_in_engage(community)
-            update_referral_text_in_engage_table.delay(community_id)
+            # update_pending_member_count_in_engage(community)
+            # update_referral_text_in_engage_table.delay(community_id)
 
 
 
@@ -3668,24 +3719,28 @@ def get_user_location(request, user_id, type=None):
 
 
 def all_members(request):
-    '''function to send all user data '''
-    page = request.GET.get('page')
+
+    '''function to send all members of community '''
+    page = request.GET.get('page',1)
     community_id = request.GET.get('community_id')
-    query_set = Userinfo.objects.all().order_by("name")
-    user_data = []
-    for user in query_set:
 
-        user_object = UserinfoSerializer(user)
-        state = Members.objects.filter(community_id=community_id, member_id_id=user.user_id).values('state')
-        if state:
-            state = state[0]['state']
-        else:
-            state = 0
-        user_object['state'] = state
-        user_data.append(user_object)
-    user_data = sorted(user_data, key=lambda i: i['state'], reverse=True)
+    members=[]
 
-    return JsonResponse({'members': user_data[20 * (int(page) - 1):20 * int(page)]})
+    member_list=Members.objects.filter(community_id=community_id).filter(Q(state=1)|Q(state=4)|Q(state=7))
+    member_list=pagination(member_list,page,paginate_by=20)
+
+    for member in member_list:
+
+        userinfo_serialized_object = UserinfoSerializer(member.member_id.userinfo)
+        userinfo_serialized_object['state']=member.state
+
+        form_response = FormResponseSerilaizer(community_id, member.member_id.id)
+
+        if form_response:
+            userinfo_serialized_object['response']=form_response
+        members.append(userinfo_serialized_object)
+
+    return JsonResponse({'members':members})
 
 
 def invite_members(request):
