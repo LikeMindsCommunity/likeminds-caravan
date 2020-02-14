@@ -2296,7 +2296,7 @@ def community_collabcard_invite(request,community_id):
         invite_prompt['action_title'] = """Invite"""
         invite_prompt['action'] = """route://community?community_id=%s&share=true&source=invite_prompt""" % (community_id)
 
-    # prompt for invite now
+    # prompt for invite  for ig community
 
     unlock_title = "Invite members"
     if members_left == 1:
@@ -2310,6 +2310,10 @@ def community_collabcard_invite(request,community_id):
 
     unlock_action_title = "OK, INVITE NOW"
     unlock_action = """route://community?community_id=%s&share=true&source=community_live_unlock"""
+
+
+
+
 
     if members_left > 0:
 
@@ -3388,6 +3392,8 @@ def members_state(request):
 
 
 
+
+
     if state == 0:
         '''checking if user DETAILS EXIST in temp admin table in case he is a newly registered user'''
         user = Userinfo.objects.get(user_id=member_id)
@@ -3417,6 +3423,14 @@ def members_state(request):
 
 
     diff=eligibility_count-referred_members_count
+
+    #sending pop-up for lg community
+    community_instance=Community.objects.get(id=community_id)
+    unlock_title="Can’t Post Yet"
+    unlock_sub_title="Your verification for joining this closed group is still pending. Posting is not open for non verified members. Verify your credentials."
+    unlock_action_title="REQUEST COMMUNITY MEMBERS"
+    unlock_action="""route://member_ask?community_id=%s&community_name=%s"""%(community_instance.id,community_instance.name)
+
     if diff <=0:
         json_response = {'state': state,
                          'tool_state': tool_state,
@@ -3424,7 +3438,11 @@ def members_state(request):
                          'tool_unlock_title': "Unlock Feature",
                          'tool_unlock_sub_title': tool_unlock_sub_title,
                          'tool_unlock_action_title': "OK, INVITE NOW",
-                         'tool_unlock_action': """route://community?community_id=%s&share=true&source=tool_unlock""" % (community_id)
+                         'tool_unlock_action': """route://community?community_id=%s&share=true&source=tool_unlock""" % (community_id),
+                         'unlock_title':unlock_title,
+                         'unlock_sub_title':unlock_sub_title,
+                         'unlock_action_title':unlock_action_title,
+                         'unlock_action':unlock_action
                          }
     else:
 
@@ -3442,10 +3460,17 @@ def members_state(request):
                    'tool_unlock_title':"Unlock Feature",
                    'tool_unlock_sub_title':tool_unlock_sub_title,
                    'tool_unlock_action_title':"OK, INVITE NOW",
-                   'tool_unlock_action':"""route://community?community_id=%s&share=true&source=tool_unlock""" % (community_id)
+                   'tool_unlock_action':"""route://community?community_id=%s&share=true&source=tool_unlock""" % (community_id),
+                   'unlock_title': unlock_title,
+                   'unlock_sub_title': unlock_sub_title,
+                   'unlock_action_title': unlock_action_title,
+                   'unlock_action': unlock_action
+
                    }
     return JsonResponse(json_response)
 
+
+#
 
 @csrf_exempt
 def push(request):
