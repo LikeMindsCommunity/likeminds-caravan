@@ -441,19 +441,20 @@ def join_community_responses(request):
         return JsonResponse({'success':True})
     elif is_lg:
         print("LG community")
-        join_lg_communities(request,res,community,user)
+        join_lg_communities(request,res,community,user,ref_id)
 
+        #removing referal- count to save in referal table
         #saving referal in referal table
-        if ref_id:
-            referer_instance = User.objects.get(pk=ref_id)
-            refer = Referal.objects.filter(member=referer_instance,
-                                           invited_member=user,
-                                           community=community)
-            if not refer.exists():
-                refer = Referal(member=referer_instance,
-                                invited_member=user,
-                                community=community)
-                refer.save()
+        # if ref_id:
+        #     referer_instance = User.objects.get(pk=ref_id)
+        #     refer = Referal.objects.filter(member=referer_instance,
+        #                                    invited_member=user,
+        #                                    community=community)
+        #     if not refer.exists():
+        #         refer = Referal(member=referer_instance,
+        #                         invited_member=user,
+        #                         community=community)
+        #         refer.save()
 
 
         if not ref_id:
@@ -658,7 +659,7 @@ def join_ig_communities(request,res,community,user,ref_id):
         print(log)
 
 
-def join_lg_communities(request,res,community,user):
+def join_lg_communities(request,res,community,user,ref_id):
 
     '''function to join lg communities'''
 
@@ -669,9 +670,12 @@ def join_lg_communities(request,res,community,user):
         member.member_id = user
         member.community_id = community
         member.state = member_states.PENDING_MEMBER
+        if ref_id:
+            member.ask_member_id=ref_id
         member.created_at = time.time()
         member.save()
 
+        introduction_answer=""
         # saving questions
         if 'questions' in res:
             info_logger.info(res['questions'])
@@ -684,13 +688,76 @@ def join_lg_communities(request,res,community,user):
                     response.user = user.id
                     response.community = community.id
                     response.save()
+
+                if not introduction_answer:
+                    introduction_answer=i['value']
         else:
             res['questions'] = [{}]
+
+        creating_collabcard_for_lg_communities(community, user, introduction_answer, ref_id=ref_id)
+
+
+       #creating members engage
+
+        engage = Member_Engage()
+        engage.member_id = user
+        engage.community_id = community
+        engage.updated_at = time.time()
+        engage.member_state = member_states.PENDING_MEMBER
+        engage.member_referral="Your request is waiting for approval by promoter"
+        engage.save()
 
         log = """Request in LG community where community_id=%s and member_id=%s""" % (community.id, user.id)
         print(log)
     else:
         member_instance.update(state=member_states.PENDING_MEMBER)
+
+
+
+
+
+def creating_collabcard_for_lg_communities(community,user,introduction_answer,ref_id=None):
+
+    '''function to create collabcard for lg community'''
+
+    if ref_id:
+        is_present=collabcardTemp.objects.filter(community=community,member=user)
+        if not is_present:
+
+            #creating for user
+            collabcard_temp_instance=collabcardTemp()
+            collabcard_temp_instance.member=user
+            collabcard_temp_instance.community=community
+            collabcard_temp_instance.title=introduction_answer
+            collabcard_temp_instance.show_member=user
+            collabcard_temp_instance.created_at=time.time()
+            collabcard_temp_instance.save()
+
+
+            #creating for the person who has refered
+            referer_instance=User.objects.get(pk=ref_id)
+            collabcard_temp_instance = collabcardTemp()
+            collabcard_temp_instance.member = user
+            collabcard_temp_instance.community = community
+            collabcard_temp_instance.title = introduction_answer
+            collabcard_temp_instance.show_member = referer_instance
+            collabcard_temp_instance.created_at = time.time()
+            collabcard_temp_instance.save()
+    else:
+
+        # if ref_id is not present then creating for user
+        is_present = collabcardTemp.objects.filter(community=community, member=user)
+        if not is_present:
+            collabcard_temp_instance = collabcardTemp()
+            collabcard_temp_instance.member = user
+            collabcard_temp_instance.community = community
+            collabcard_temp_instance.title = introduction_answer
+            collabcard_temp_instance.show_member = user
+            collabcard_temp_instance.created_at = time.time()
+            collabcard_temp_instance.save()
+
+
+
 
 
 def category_filter(request, category):
@@ -1280,24 +1347,32 @@ def create_card(request,req_dict=None):
 
 
         if is_member_engage(community, user_instance):
-            if is_pilot_active:
-                # updating the last unseen card for community and member who become promoter
-                engage = Member_Engage.objects.get(community_id=community,
-                                                   member_id=user_instance)
-                engage.last_unseen_conversation = card
-                engage.updated_at = time.time()
-                engage.save()
 
-                # updating the members engage for members who is refered by user
-                refered_members = get_referred_members_of_a_member(community_id, user_id)
-                for member in refered_members:
-                    refered_members_user_instance = User.objects.get(id=member)
-                    engage = Member_Engage.objects.get(community_id=community, member_id=refered_members_user_instance)
-                    engage.last_unseen_conversation = card
-                    engage.last_unseen_count = 1
-                    engage.updated_at = time.time()
-                    engage.save()
-                update_pending_member_count_in_engage(community)
+            if is_ig:
+                Member_Engage.objects.filter(community=community,member_id=user_instance).update(
+                    member_state=member_states.MEMBER,
+                    last_unseen_conversation=card,
+                    member_referral=""
+                )
+
+            # if is_pilot_active:
+            #     # updating the last unseen card for community and member who become promoter
+            #     engage = Member_Engage.objects.get(community_id=community,
+            #                                        member_id=user_instance)
+            #     engage.last_unseen_conversation = card
+            #     engage.updated_at = time.time()
+            #     engage.save()
+            #
+            #     # updating the members engage for members who is refered by user
+            #     refered_members = get_referred_members_of_a_member(community_id, user_id)
+            #     for member in refered_members:
+            #         refered_members_user_instance = User.objects.get(id=member)
+            #         engage = Member_Engage.objects.get(community_id=community, member_id=refered_members_user_instance)
+            #         engage.last_unseen_conversation = card
+            #         engage.last_unseen_count = 1
+            #         engage.updated_at = time.time()
+            #         engage.save()
+            #     update_pending_member_count_in_engage(community)
 
         else:
             engage = Member_Engage()
@@ -1308,7 +1383,7 @@ def create_card(request,req_dict=None):
             if is_ig:
                 engage.member_state=member_states.MEMBER
             engage.save()
-        update_referral_text_in_engage_table.delay(community_id)
+        #update_referral_text_in_engage_table.delay(community_id)
         update_last_unseen_in_engage_on_card_creation.delay(community_id=community_id)
 
         print("condition----",is_ig and not community.purpose_collabcard)
@@ -1476,26 +1551,30 @@ def check_member(email, community_id, member_id, res):
 
 
 def pending_members(request, community_id):
+
     ''' function to get members requested to join in a community '''
+
     community = Community.objects.get(id=community_id)
     pend_requests = Members.objects.filter(community_id=community).filter(state=3)
+    member_id=get_member_id_from_headers(request)
     pending_requests = []
     for i in pend_requests:
 
-        resp = Form_response.objects.filter(community=community_id).filter(user=i.member_id.id).order_by('id')
-        user = Userinfo.objects.get(user_id=i.member_id.id)
-        # serilaizing userinfo object
-        usr = UserinfoSerializer(user)
-        user_response = []
-        for j in resp:
-            # getting the answers of the users who requested to join
-            # for the questions that have been asked while requestiong to join in a community
-            response_object = {}
-            response_object['key'] = j.data
-            response_object['value'] = j.response
-            user_response.append(response_object)
-        usr['response'] = user_response
-        pending_requests.append(usr)
+        if i.ask_member_id == member_id:
+            resp = Form_response.objects.filter(community=community_id).filter(user=i.member_id.id).order_by('id')
+            user = Userinfo.objects.get(user_id=i.member_id.id)
+            # serilaizing userinfo object
+            usr = UserinfoSerializer(user)
+            user_response = []
+            for j in resp:
+                # getting the answers of the users who requested to join
+                # for the questions that have been asked while requestiong to join in a community
+                response_object = {}
+                response_object['key'] = j.data
+                response_object['value'] = j.response
+                user_response.append(response_object)
+            usr['response'] = user_response
+            pending_requests.append(usr)
     return JsonResponse({'pending_members': pending_requests})
 
 
@@ -1878,30 +1957,43 @@ def approve_or_decline_lg_community(request,req_dict,member_verification):
             send_notification_for_join_requests.delay(community_id, True, member_id)
 
 
-            #making the referer promoter if his referal count becomes equal to eligibility count
-            referal_list=Referal.objects.filter(invited_member=member_id,community=community)
 
-            if referal_list.exists():
-
-               referer_instance=referal_list[0].member
-               referal_list=get_referred_members_of_a_member(community_id=community_id,member_id=referer_instance.id)
-               total_referal_count=len(referal_list)
-
-               if total_referal_count == eligibility_count:
-                   admin = Members.objects.filter(community_id=community, member_id=referer_instance)
-
-                   if admin.exists():
-                       Members.objects.filter(community_id=community, member_id=referer_instance).update(state=member_states.ADMIN)
-                       Member_Engage.objects.filter(member_id=member_id, community_id=community).update(member_state=member_states.ADMIN)
-                       send_notification_to_promoter_of_ig_community.delay(community_id=community.id,
-                                                                           community_name=community.name,
-                                                                           member_id=referer_instance.id)
             update_last_unseen_in_engage(user=user,community=community)
 
+            #deleting the data from collabcard temp
+            collabcardTemp.objects.filter(member=member_id,community=community).delete()
             if member_verification:
                 header_member_id=get_member_id_from_headers(request)
                 Members.objects.filter(member_id=member_id, community_id=community).update(approved_member_id=header_member_id)
                 Member_Engage.objects.filter(member_id=header_member_id, community_id=community).update(pending_members=F('pending_members')-1)
+
+
+
+                # making the referer promoter if his referal count becomes equal to eligibility count
+                header_member_instance=User.objects.get(id=header_member_id)
+                referal_instance=Referal(community=community,invited_member=user,member=header_member_instance)
+                referal_instance.save()
+
+                referal_list = Referal.objects.filter(member=header_member_instance, community=community)
+
+                if referal_list.exists():
+
+                    referer_instance = referal_list[0].member
+                    referal_list = get_referred_members_of_a_member(community_id=community_id,
+                                                                    member_id=referer_instance.id)
+                    total_referal_count = len(referal_list)
+
+                    if total_referal_count == eligibility_count:
+                        admin = Members.objects.filter(community_id=community, member_id=referer_instance)
+
+                        if admin.exists():
+                            Members.objects.filter(community_id=community, member_id=referer_instance).update(
+                                state=member_states.ADMIN)
+                            Member_Engage.objects.filter(member_id=member_id, community_id=community).update(
+                                member_state=member_states.ADMIN)
+                            send_notification_to_promoter_of_ig_community.delay(community_id=community.id,
+                                                                                community_name=community.name,
+                                                                                member_id=referer_instance.id)
 
 
         else:
@@ -1915,6 +2007,7 @@ def approve_or_decline_lg_community(request,req_dict,member_verification):
                 header_member_id = get_member_id_from_headers(request)
                 Member_Engage.objects.filter(member_id=header_member_id, community_id=community).update(
                     pending_members=F('pending_members') - 1)
+                Referal.objects.filter(member=header_member_id, community=community).delete()
             # update pending members count of community and referal text of user
             # update_pending_member_count_in_engage(community)
             # update_referral_text_in_engage_table.delay(community_id)
@@ -2311,8 +2404,28 @@ def community_collabcard_invite(request,community_id):
     unlock_action_title = "OK, INVITE NOW"
     unlock_action = """route://community?community_id=%s&share=true&source=community_live_unlock"""
 
+    card_list = []
+    if community_serializer_instance['community_type'] == 1:
+        #community is a lg community
 
+        user_instance=User.objects.get(id=member_id)
 
+        collabcardTemp_instance_list=collabcardTemp.objects.filter(show_member=user_instance)
+
+        for instance in collabcardTemp_instance_list:
+
+            card_dict={}
+            card_dict['id']=instance.id
+            card_dict['title']=instance.title
+            user = Userinfo.objects.get(user_id=instance.member)
+            # serialize user object
+            usr = UserinfoSerializer(user)
+            card_dict['created_at'] = get_time_text(instance.created_at)
+            card_dict['member'] = usr
+            card_dict['images'] = []
+            card_dict['pdf'] = []
+            card_dict['state'] = 0
+            card_list.append(card_dict)
 
 
     if members_left > 0:
@@ -2335,13 +2448,15 @@ def community_collabcard_invite(request,community_id):
 
             'community': community_serializer_instance,
             'community_live': community_live,
-            'invite_prompt': invite_prompt
+            'invite_prompt': invite_prompt,
+            'intro_collabcard':card_list
         }
     else:
         json_response = {
 
             'community': community_serializer_instance,
-            'invite_prompt': invite_prompt
+            'invite_prompt': invite_prompt,
+            'intro_collabcard': card_list
         }
     return JsonResponse(json_response)
 
