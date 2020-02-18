@@ -1595,10 +1595,30 @@ def pending_members(request, community_id):
     community = Community.objects.get(id=community_id)
     pend_requests = Members.objects.filter(community_id=community).filter(state=3)
     member_id=get_member_id_from_headers(request)
+    is_admin=False
+    is_member_admin=Members.objects.filter(community_id=community,member_id=member_id,state=1)
+    if is_member_admin:
+        is_admin=True
     pending_requests = []
+    is_lg=is_LG_or_LP_community(community)
     for i in pend_requests:
-
-        if i.ask_member_id == member_id:
+        if is_lg:
+            if i.ask_member_id == member_id:
+                resp = Form_response.objects.filter(community=community_id).filter(user=i.member_id.id).order_by('id')
+                user = Userinfo.objects.get(user_id=i.member_id.id)
+                # serilaizing userinfo object
+                usr = UserinfoSerializer(user)
+                user_response = []
+                for j in resp:
+                    # getting the answers of the users who requested to join
+                    # for the questions that have been asked while requestiong to join in a community
+                    response_object = {}
+                    response_object['key'] = j.data
+                    response_object['value'] = j.response
+                    user_response.append(response_object)
+                usr['response'] = user_response
+                pending_requests.append(usr)
+        elif is_admin:
             resp = Form_response.objects.filter(community=community_id).filter(user=i.member_id.id).order_by('id')
             user = Userinfo.objects.get(user_id=i.member_id.id)
             # serilaizing userinfo object
