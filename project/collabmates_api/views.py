@@ -2415,7 +2415,7 @@ def community_collabcard_invite(request,community_id):
         for instance in collabcardTemp_instance_list:
 
             card_dict={}
-            card_dict['id']=instance.id
+            card_dict['id']="collabcard_unverified"
             card_dict['title']=instance.title
             user = Userinfo.objects.get(user_id=instance.member)
             # serialize user object
