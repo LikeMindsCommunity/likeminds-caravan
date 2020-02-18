@@ -2534,7 +2534,7 @@ def community_collabcard_invite(request,community_id):
             'community': community_serializer_instance,
             'community_live': community_live,
             'invite_prompt': invite_prompt,
-            'intro_collabcard':card_list
+            'intro_collabcards':card_list
         }
 
     else:
@@ -2542,7 +2542,7 @@ def community_collabcard_invite(request,community_id):
 
             'community': community_serializer_instance,
             'invite_prompt': invite_prompt,
-            'intro_collabcard': card_list
+            'intro_collabcards': card_list
         }
     return JsonResponse(json_response)
 
@@ -3799,7 +3799,7 @@ def members_state(request):
     unlock_action_title="REQUEST COMMUNITY MEMBERS"
     unlock_action="""route://member_ask?community_id=%s&community_name=%s"""%(community_instance.id,community_instance.name)
 
-    if diff <=0:
+    if diff <= 0:
         json_response = {'state': state,
                          'tool_state': tool_state,
                          'referred_members_count': referred_members_count,
@@ -3809,7 +3809,6 @@ def members_state(request):
                          'tool_unlock_action': """route://community?community_id=%s&share=true&source=tool_unlock""" % (community_id),
                          'unlock_title':unlock_title,
                          'unlock_sub_title':unlock_sub_title,
-                         'unlock_action_title':unlock_action_title,
                          'unlock_action':unlock_action
                          }
     else:
@@ -3831,10 +3830,13 @@ def members_state(request):
                    'tool_unlock_action':"""route://community?community_id=%s&share=true&source=tool_unlock""" % (community_id),
                    'unlock_title': unlock_title,
                    'unlock_sub_title': unlock_sub_title,
-                   'unlock_action_title': unlock_action_title,
                    'unlock_action': unlock_action
 
                    }
+    community_members = Members.objects.filter(community_id=community_id)
+    if community_members.exists():
+        if community_members.count() > 1:
+            json_response['unlock_action_title'] = unlock_action_title
     return JsonResponse(json_response)
 
 
