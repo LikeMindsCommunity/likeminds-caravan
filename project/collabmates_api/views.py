@@ -704,7 +704,7 @@ def join_lg_communities(request,res,community,user,ref_id):
         engage.community_id = community
         engage.updated_at = time.time()
         engage.member_state = member_states.PENDING_MEMBER
-        engage.member_referral="Your request is waiting for approval by promoter"
+        engage.member_referral="Your profile is being verified"
         engage.save()
 
         log = """Request in LG community where community_id=%s and member_id=%s""" % (community.id, user.id)
@@ -2325,90 +2325,19 @@ def community_collabcard_invite(request,community_id):
         }
         return JsonResponse(json_response)
 
+    #initializing variables
+
+
+    community_live_subtitle=""
+    invite_prompt={}
+
+
+
     number_of_members = community.members_count
     members_left = ig_members_count - number_of_members
+    card_list = []
 
-    community_name = community.name
-    member_types = community_name.split("of")[0].strip()
-    member_type = member_types
-    if member_types[-1] == "s":
-        member_type = member_types[0:-1]
-
-    member_types = member_types.lower()
-    member_type = member_type.lower()
-
-    # community live sub_title logic
-
-    community_live_subtitle = """Every community needs its members to make purposeful conversations. Invite %s or more members to start conversations.""" % (
-        members_left)
-    if number_of_members == 1:
-        community_live_subtitle = """Awesome, you have taken the first step! Be the spark to ignite this community by inviting other %s from your network.""" % (
-            member_types)
-    elif number_of_members == 2:
-
-        member_list = Members.objects.filter(member_id=member_id, community_id=community_id)
-        print(member_list)
-        member_name = ""
-        for member in member_list:
-            if member_id == str(member.member_id.id):
-                continue
-            if member.state == 4:
-                member_name = member.member_id.userinfo.name
-        community_live_subtitle = """Superb, you and %s are now together for your shared interest! Invite 2 other %s and let them join you in this community.""" % (
-        member_name, member_types)
-
-    elif number_of_members == 3:
-
-        member_list = Members.objects.filter(community_id=community_id).order_by('-id')
-        other_member_list = []
-        for member in member_list:
-            if member_id == str(member.member_id.id):
-                continue
-            member_name = member.member_id.userinfo.name
-            if member.state == 4:
-                other_member_list.append(member_name)
-        if other_member_list:
-            community_live_subtitle = """You, %s  and %s  make a great group! Make it a community by inviting 1 more %s.""" % (
-            other_member_list[0], other_member_list[1], member_type)
-
-    # invite prompt logic
-    invite_prompt = {}
-
-    ref_members = get_referred_members_of_a_member(community_id, member_id)
-    ref_members_count = len(ref_members)
-
-    if ref_members_count == 0:
-        invite_prompt['title'] = """Know a %s?""" % (member_type)
-        invite_prompt['sub_title'] = """Invite a new member here and unlock a tool"""
-        invite_prompt['action_title'] = """Invite"""
-        invite_prompt['action'] = """route://community?community_id=%s&share=true&source=invite_prompt""" % (community_id)
-    elif ref_members_count == 1:
-        invite_prompt['title'] = """Unlock a new tool"""
-        invite_prompt['sub_title'] = """By inviting 2 more members to this community"""
-        invite_prompt['action_title'] = """Invite"""
-        invite_prompt['action'] = """route://community?community_id=%s&share=true&source=invite_prompt""" % (community_id)
-    elif ref_members_count == 2:
-        invite_prompt['title'] = """Unlock a new tool"""
-        invite_prompt['sub_title'] = """By inviting 1 more member to this community"""
-        invite_prompt['action_title'] = """Invite"""
-        invite_prompt['action'] = """route://community?community_id=%s&share=true&source=invite_prompt""" % (community_id)
-    elif ref_members_count == 3:
-        invite_prompt['title'] = """Become a promoter"""
-        invite_prompt['sub_title'] = """Get recognised by inviting 2 more members"""
-        invite_prompt['action_title'] = """Invite"""
-        invite_prompt['action'] = """route://community?community_id=%s&share=true&source=invite_prompt""" % (community_id)
-    elif ref_members_count == 4:
-        invite_prompt['title'] = """Become a promoter"""
-        invite_prompt['sub_title'] = """Get recognised by inviting 1 more member"""
-        invite_prompt['action_title'] = """Invite"""
-        invite_prompt['action'] = """route://community?community_id=%s&share=true&source=invite_prompt""" % (community_id)
-    else:
-        invite_prompt['title'] = """Promote your community"""
-        invite_prompt['sub_title'] = """Let other %s discover this community""" % (member_types)
-        invite_prompt['action_title'] = """Invite"""
-        invite_prompt['action'] = """route://community?community_id=%s&share=true&source=invite_prompt""" % (community_id)
-
-    # prompt for invite  for ig community
+    # prompt for invite  for ig and lg community
 
     unlock_title = "Invite members"
     if members_left == 1:
@@ -2423,9 +2352,94 @@ def community_collabcard_invite(request,community_id):
     unlock_action_title = "OK, INVITE NOW"
     unlock_action = """route://community?community_id=%s&share=true&source=community_live_unlock"""
 
-    card_list = []
-    if community_serializer_instance['community_type'] == 1:
-        #community is a lg community
+
+    # community live for ig communities
+    if community_serializer_instance['community_type'] == 0:
+        community_name = community.name
+        member_types = community_name.split("of")[0].strip()
+        member_type = member_types
+        if member_types[-1] == "s":
+            member_type = member_types[0:-1]
+
+        member_types = member_types.lower()
+        member_type = member_type.lower()
+
+        # community live sub_title logic
+
+        community_live_subtitle = """Every community needs its members to make purposeful conversations. Invite %s or more members to start conversations.""" % (
+            members_left)
+        if number_of_members == 1:
+            community_live_subtitle = """Awesome, you have taken the first step! Be the spark to ignite this community by inviting other %s from your network.""" % (
+                member_types)
+        elif number_of_members == 2:
+
+            member_list = Members.objects.filter(member_id=member_id, community_id=community_id)
+            print(member_list)
+            member_name = ""
+            for member in member_list:
+                if member_id == str(member.member_id.id):
+                    continue
+                if member.state == 4:
+                    member_name = member.member_id.userinfo.name
+            community_live_subtitle = """Superb, you and %s are now together for your shared interest! Invite 2 other %s and let them join you in this community.""" % (
+            member_name, member_types)
+
+        elif number_of_members == 3:
+
+            member_list = Members.objects.filter(community_id=community_id).order_by('-id')
+            other_member_list = []
+            for member in member_list:
+                if member_id == str(member.member_id.id):
+                    continue
+                member_name = member.member_id.userinfo.name
+                if member.state == 4:
+                    other_member_list.append(member_name)
+            if other_member_list:
+                community_live_subtitle = """You, %s  and %s  make a great group! Make it a community by inviting 1 more %s.""" % (
+                other_member_list[0], other_member_list[1], member_type)
+
+        # invite prompt logic
+        invite_prompt = {}
+
+        ref_members = get_referred_members_of_a_member(community_id, member_id)
+        ref_members_count = len(ref_members)
+
+        if ref_members_count == 0:
+            invite_prompt['title'] = """Know a %s?""" % (member_type)
+            invite_prompt['sub_title'] = """Invite a new member here and unlock a tool"""
+            invite_prompt['action_title'] = """Invite"""
+            invite_prompt['action'] = """route://community?community_id=%s&share=true&source=invite_prompt""" % (community_id)
+        elif ref_members_count == 1:
+            invite_prompt['title'] = """Unlock a new tool"""
+            invite_prompt['sub_title'] = """By inviting 2 more members to this community"""
+            invite_prompt['action_title'] = """Invite"""
+            invite_prompt['action'] = """route://community?community_id=%s&share=true&source=invite_prompt""" % (community_id)
+        elif ref_members_count == 2:
+            invite_prompt['title'] = """Unlock a new tool"""
+            invite_prompt['sub_title'] = """By inviting 1 more member to this community"""
+            invite_prompt['action_title'] = """Invite"""
+            invite_prompt['action'] = """route://community?community_id=%s&share=true&source=invite_prompt""" % (community_id)
+        elif ref_members_count == 3:
+            invite_prompt['title'] = """Become a promoter"""
+            invite_prompt['sub_title'] = """Get recognised by inviting 2 more members"""
+            invite_prompt['action_title'] = """Invite"""
+            invite_prompt['action'] = """route://community?community_id=%s&share=true&source=invite_prompt""" % (community_id)
+        elif ref_members_count == 4:
+            invite_prompt['title'] = """Become a promoter"""
+            invite_prompt['sub_title'] = """Get recognised by inviting 1 more member"""
+            invite_prompt['action_title'] = """Invite"""
+            invite_prompt['action'] = """route://community?community_id=%s&share=true&source=invite_prompt""" % (community_id)
+        else:
+            invite_prompt['title'] = """Promote your community"""
+            invite_prompt['sub_title'] = """Let other %s discover this community""" % (member_types)
+            invite_prompt['action_title'] = """Invite"""
+            invite_prompt['action'] = """route://community?community_id=%s&share=true&source=invite_prompt""" % (community_id)
+
+
+
+    #community live for lg communities
+    elif community_serializer_instance['community_type'] == 1:
+
 
         user_instance=User.objects.get(id=member_id)
 
@@ -2445,6 +2459,58 @@ def community_collabcard_invite(request,community_id):
             card_dict['pdf'] = []
             card_dict['state'] = 0
             card_list.append(card_dict)
+
+        count_of_verified_members=Collabcard.objects.filter(community_id=community_serializer_instance['id']).count()
+        collabcard_temp_count=len(collabcardTemp_instance_list)
+        total_count=count_of_verified_members + collabcard_temp_count
+
+
+        community_live_subtitle= compute_community_live_subtitle_for_lg(total_count,count_of_verified_members,user_instance,community)
+
+        # invite prompt logic for lg
+        member_type=""
+        invite_prompt = {}
+
+        ref_members = get_referred_members_of_a_member(community_id, member_id)
+        ref_members_count = len(ref_members)
+
+        if ref_members_count == 0:
+            invite_prompt['title'] = """Know a %s?""" % (member_type)
+            invite_prompt['sub_title'] = """Invite a new member here and unlock a tool"""
+            invite_prompt['action_title'] = """Invite"""
+            invite_prompt['action'] = """route://community?community_id=%s&share=true&source=invite_prompt""" % (
+                community_id)
+        elif ref_members_count == 1:
+            invite_prompt['title'] = """Unlock a new tool"""
+            invite_prompt['sub_title'] = """By inviting 2 more members to this community"""
+            invite_prompt['action_title'] = """Invite"""
+            invite_prompt['action'] = """route://community?community_id=%s&share=true&source=invite_prompt""" % (
+                community_id)
+        elif ref_members_count == 2:
+            invite_prompt['title'] = """Unlock a new tool"""
+            invite_prompt['sub_title'] = """By inviting 1 more member to this community"""
+            invite_prompt['action_title'] = """Invite"""
+            invite_prompt['action'] = """route://community?community_id=%s&share=true&source=invite_prompt""" % (
+                community_id)
+        elif ref_members_count == 3:
+            invite_prompt['title'] = """Become a promoter"""
+            invite_prompt['sub_title'] = """Get recognised by inviting 2 more members"""
+            invite_prompt['action_title'] = """Invite"""
+            invite_prompt['action'] = """route://community?community_id=%s&share=true&source=invite_prompt""" % (
+                community_id)
+        elif ref_members_count == 4:
+            invite_prompt['title'] = """Become a promoter"""
+            invite_prompt['sub_title'] = """Get recognised by inviting 1 more member"""
+            invite_prompt['action_title'] = """Invite"""
+            invite_prompt['action'] = """route://community?community_id=%s&share=true&source=invite_prompt""" % (
+                community_id)
+        else:
+            invite_prompt['title'] = """Promote your community"""
+            invite_prompt['sub_title'] = """Let other %s discover this community""" % (member_types)
+            invite_prompt['action_title'] = """Invite"""
+            invite_prompt['action'] = """route://community?community_id=%s&share=true&source=invite_prompt""" % (
+                community_id)
+
 
 
     if members_left > 0:
@@ -2481,6 +2547,166 @@ def community_collabcard_invite(request,community_id):
     return JsonResponse(json_response)
 
 
+def compute_community_live_subtitle_for_lg(total_count,count_of_verified_members,user_instance,community):
+
+    verfied_status=is_member_verified(community,user_instance)
+    member_id=user_instance
+    community_id=community.id
+    member_type="Member type"
+    member_types="Member_types"
+
+    community_live_subtitle=""
+    if verfied_status:
+
+        if total_count == 1:
+           community_live_subtitle="""Awesome, you have taken the first step! Be the spark to ignite this community by inviting other %s from your network."""%(member_types)
+        elif total_count == 2:
+            member_list = Members.objects.filter(member_id=member_id, community_id=community_id)
+            print(member_list)
+            member_name = ""
+            for member in member_list:
+                if member_id == str(member.member_id.id):
+                    continue
+                if member.state == 4:
+                    member_name = member.member_id.userinfo.name
+            community_live_subtitle = """Superb, you and %s are now together for your shared interest! Invite 2 other %s and let them join you in this community.""" % (
+                member_name, member_types)
+        elif total_count == 3:
+            member_list = Members.objects.filter(community_id=community_id).order_by('-id')
+            other_member_list = []
+            for member in member_list:
+                if member_id == str(member.member_id.id):
+                    continue
+                member_name = member.member_id.userinfo.name
+                if member.state == 4:
+                    other_member_list.append(member_name)
+            if other_member_list:
+                community_live_subtitle = """You, %s  and %s  make a great group! Make it a community by inviting 1 more %s.""" % (
+                    other_member_list[0], other_member_list[1], member_type)
+        elif total_count == 4 and count_of_verified_members == 1:
+            member_list = Members.objects.filter(community_id=community_id).order_by('-id')
+            other_member_list = []
+            for member in member_list:
+                if member_id == str(member.member_id.id):
+                    continue
+                member_name = member.member_id.userinfo.name
+                if member.state == 3:
+                    other_member_list.append(member_name)
+            if other_member_list:
+                community_live_subtitle = """1 last step pending! Since this is an exclusive community, you need to verify %s, %s and %s  to initiate the community""" % (
+                    other_member_list[0], other_member_list[1],other_member_list[2])
+        elif total_count == 4 and count_of_verified_members == 2:
+            member_list = Members.objects.filter(community_id=community_id).order_by('-id')
+            other_member_list = []
+            for member in member_list:
+                if member_id == str(member.member_id.id):
+                    continue
+                member_name = member.member_id.userinfo.name
+                if member.state == 3:
+                    other_member_list.append(member_name)
+            if other_member_list:
+                community_live_subtitle = """1 last step pending! Since this is an exclusive community, you need to verify %s and %s  to initiate the community""" % (
+                    other_member_list[0], other_member_list[1])
+        elif total_count == 4 and count_of_verified_members == 3:
+            member_list = Members.objects.filter(community_id=community_id).order_by('-id')
+            other_member_list = []
+            for member in member_list:
+                if member_id == str(member.member_id.id):
+                    continue
+                member_name = member.member_id.userinfo.name
+                if member.state == 3:
+                    other_member_list.append(member_name)
+            if other_member_list:
+                community_live_subtitle = """1 last step pending! Since this is an exclusive community, you need to verify %s  to initiate the community""" % (
+                    other_member_list[0])
+        elif total_count > 4 and count_of_verified_members == 1:
+            community_live_subtitle="1 last step pending! Since this is an exclusive community, you need to verify atleast 3 other members to initiate the community"
+        elif total_count > 4 and count_of_verified_members == 2:
+            community_live_subtitle="1 last step pending! Since this is an exclusive community, you need to verify atleast 2 other members to initiate the community"
+        elif total_count > 4 and count_of_verified_members == 3:
+            community_live_subtitle = "1 last step pending! Since this is an exclusive community, you need to verify atleast 1 member to initiate the community"
+    else:
+        # member is not verified
+        if total_count == 1:
+           community_live_subtitle="""Awesome, you have taken the first step! Be the spark to ignite this community by inviting other %s from your network."""%(member_types)
+        elif total_count == 2:
+            member_list = Members.objects.filter(member_id=member_id, community_id=community_id)
+            print(member_list)
+            member_name = ""
+            for member in member_list:
+                if member_id == str(member.member_id.id):
+                    continue
+                if member.state == 3:
+                    member_name = member.member_id.userinfo.name
+            community_live_subtitle = """Superb, you and %s are now together for your shared interest! Invite 2 other %s and let them join you in this community.""" % (
+                member_name, member_types)
+        elif total_count == 3:
+            member_list = Members.objects.filter(community_id=community_id).order_by('-id')
+            other_member_list = []
+            for member in member_list:
+                if member_id == str(member.member_id.id):
+                    continue
+                member_name = member.member_id.userinfo.name
+                if member.state == 3:
+                    other_member_list.append(member_name)
+            if other_member_list:
+                community_live_subtitle = """You, %s  and %s  make a great group! Make it a community by inviting 1 more %s.""" % (
+                    other_member_list[0], other_member_list[1], member_type)
+        elif total_count == 4 and count_of_verified_members == 1:
+            community_live_subtitle = """Your profile isn't verified yet. Since this is an exclusive community, your profile needs to be verified in order to initiate the community"""
+        elif total_count == 4 and count_of_verified_members == 2:
+            community_live_subtitle = """Your profile isn't verified yet. Since this is an exclusive community, your profile needs to be verified in order to initiate the community"""
+        elif total_count == 4 and count_of_verified_members == 3:
+            member_list = Members.objects.filter(community_id=community_id).order_by('-id')
+            other_member_list = []
+            for member in member_list:
+                if member_id == str(member.member_id.id):
+                    continue
+                member_name = member.member_id.userinfo.name
+                if member.state == 4:
+                    other_member_list.append(member_name)
+            if other_member_list:
+                community_live_subtitle = """1 last step pending! %s, %s are %s are already verified members of this community. The community will be initiated as soon your profile is verified.""" % (
+                    other_member_list[0],other_member_list[1],other_member_list[2])
+        elif total_count > 4 and count_of_verified_members == 1:
+            community_live_subtitle="Your profile isn't verified yet. Since this is an exclusive community, your profile needs to be verified in order to initiate the community"
+        elif total_count > 4 and count_of_verified_members == 2:
+            community_live_subtitle="Your profile isn't verified yet. Since this is an exclusive community, your profile needs to be verified in order to initiate the community"
+        elif total_count > 4 and count_of_verified_members == 3:
+            member_list = Members.objects.filter(community_id=community_id).order_by('-id')
+            other_member_list = []
+            for member in member_list:
+                if member_id == str(member.member_id.id):
+                    continue
+                member_name = member.member_id.userinfo.name
+                if member.state == 4:
+                    other_member_list.append(member_name)
+            if other_member_list:
+                community_live_subtitle = """1 last step pending! %s, %s are %s are already verified members of this community. The community will be initiated as soon your profile is verified.""" % (
+                    other_member_list[0], other_member_list[1], other_member_list[2])
+
+        elif total_count == 4 and count_of_verified_members == 0:
+           community_live_subtitle="Your profile isn't verified yet. Since this is an exclusive community, your profile needs to be verified in order to initiate the community"
+        elif total_count > 0  and count_of_verified_members == 0:
+            community_live_subtitle="Your profile isn't verified yet. Since this is an exclusive community, your profile needs to be verified in order to initiate the community"
+    return community_live_subtitle
+
+
+
+
+
+
+
+
+def is_member_verified(community,user_instance):
+
+    '''function to check whether the member is verified or not'''
+
+    is_verified=Members.objects.filter(community_id=community,member_id=user_instance,state=4)
+
+    if is_verified:
+        return True
+    return False
 
 
 def community_cards_version_1(request,community_id):
