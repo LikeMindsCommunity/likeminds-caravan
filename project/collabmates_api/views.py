@@ -336,7 +336,7 @@ def join_community(request, community_id):
     for i in data:
         if not first_question:
             ques = {'question': i.data,
-                    'question_state': i.question_state,
+                    'question_state': 3,
                     }
             if i.question_state == 1:
                 ques['dropdown_list'] = json.loads(i.dropdown_list)
@@ -349,9 +349,9 @@ def join_community(request, community_id):
                 ques['question_state'] = 1
             elif i.question_state == 2:
                 ques['dropdown_list'] = json.loads(i.dropdown_list)
-                ques['question_state'] = 3  # multiselect for android only
+                ques['question_state'] = 2  # multiselect for android only
             elif i.question_state == 0:
-                ques['question_state'] = 2  # no limit on answer condition for android
+                ques['question_state'] = 0  # no limit on answer condition for android
 
         reqd_info.append(ques)
 
