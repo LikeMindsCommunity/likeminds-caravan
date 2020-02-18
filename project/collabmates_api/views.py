@@ -728,10 +728,12 @@ def creating_collabcard_for_lg_communities(community,user,introduction_answer,re
 
             # creating card for current logged in user with refferred user's data
             collabcard_temp_instance = collabcardTemp.objects.filter(Q(member=referer_instance),
-                                                                     Q(show_member=referer_instance))
+                                                                     Q(show_member=referer_instance),
+                                                                     Q(community=community))
             if collabcard_temp_instance.exists():
                 collabcard_temp_instance = collabcard_temp_instance.first()
                 title = collabcard_temp_instance.title
+
                 collabcard_temp_instance = collabcardTemp()
                 collabcard_temp_instance.member = referer_instance
                 collabcard_temp_instance.community = community
