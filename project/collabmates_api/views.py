@@ -2458,6 +2458,7 @@ def community_collabcard_invite(request,community_id):
             card_dict['images'] = []
             card_dict['pdf'] = []
             card_dict['state'] = 0
+            card_dict['type'] = 5
             card_list.append(card_dict)
 
         count_of_verified_members=Collabcard.objects.filter(community_id=community_serializer_instance['id']).count()
