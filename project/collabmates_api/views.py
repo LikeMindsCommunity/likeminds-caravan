@@ -3496,18 +3496,25 @@ def members_state(request):
     tool_state = 0
     query_set = Members.objects.filter(member_id=member_id, community_id=community_id)
     community_instance=Community.objects.get(id=community_id)
-    is_pilot_active=False
+    is_pilot_active = False
     if community_instance.hide_community == '4':
-        is_pilot_active=True
+        is_pilot_active = True
+
     ref_members=[]
     for data in query_set:
+        is_member = False
+        tool_state = 0
         state = data.state
-        tool_state = 1 if is_pilot_active else 0                     #tool state unlocked for ig community
+
+        if state == 1 or state == 2 or state == 4 or state == 7:
+            is_member = True
+
+        if is_IG_community(community_instance) and is_pilot_active:
+            tool_state = 1                                          #tool state unlocked for ig community
+        elif is_LG_or_LP_community(community_instance) and is_member and is_pilot_active:
+            tool_state = 1
+
         ref_members = get_referred_members_of_a_member(community_id, member_id)
-
-
-
-
 
     if state == 0:
         '''checking if user DETAILS EXIST in temp admin table in case he is a newly registered user'''
