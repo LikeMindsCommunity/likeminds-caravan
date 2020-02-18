@@ -1029,8 +1029,16 @@ def ask_approval(request):
     '''function to ask for approval in LG communities for member to member verification'''
 
     member_id=get_member_id_from_headers(request)
-    ask_member_id=request.GET.get('ask_member_id')
+    ask_member_id=request.GET.get('ask_member_id',None)
+
+
     community_id=request.GET.get('community_id')
+
+    if not ask_member_id:
+        contact_number=request.GET.get('contact_number')
+        user_instance=User.objects.get(id=member_id)
+        Userinfo.objects.filter(user_id=user_instance).update(contact_number=contact_number)
+        return JsonResponse({'success': True})
 
     member_instance=Members.objects.get(member_id=member_id,community_id=community_id)
     member_engage_instance=Member_Engage.objects.get(community_id=community_id,member_id=ask_member_id)
@@ -1048,7 +1056,18 @@ def ask_approval(request):
     member_engage_instance.pending_members=member_engage_instance.pending_members + 1
     member_engage_instance.save()
 
+    card_temp_list=collabcardTemp.objects.filter(show_member=member_id,member_id=member_id,community_id=community_id)
 
+    if card_temp_list.exists():
+        ask_user_instance=User.objects.get(id=ask_member_id)
+
+        card_temp_instance=collabcardTemp()
+        card_temp_instance.show_member=ask_user_instance
+        card_temp_instance.member=card_temp_list[0].member
+        card_temp_instance.community=card_temp_list[0].community
+        card_temp_instance.title = card_temp_list[0].title
+        card_temp_instance.created_at = card_temp_list[0].created_at
+        card_temp_instance.save()
 
 
 
