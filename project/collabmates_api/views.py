@@ -1349,7 +1349,7 @@ def create_card(request,req_dict=None):
         if is_member_engage(community, user_instance):
 
             if is_ig:
-                Member_Engage.objects.filter(community=community,member_id=user_instance).update(
+                Member_Engage.objects.filter(community_id=community,member_id=user_instance).update(
                     member_state=member_states.MEMBER,
                     last_unseen_conversation=card,
                     member_referral=""
