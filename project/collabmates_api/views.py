@@ -336,7 +336,7 @@ def join_community(request, community_id):
     for i in data:
         if not first_question:
             ques = {'question': i.data,
-                    'question_state': i.question_state,
+                    'question_state': 3,
                     }
             if i.question_state == 1:
                 ques['dropdown_list'] = json.loads(i.dropdown_list)
@@ -349,9 +349,9 @@ def join_community(request, community_id):
                 ques['question_state'] = 1
             elif i.question_state == 2:
                 ques['dropdown_list'] = json.loads(i.dropdown_list)
-                ques['question_state'] = 3  # multiselect for android only
+                ques['question_state'] = 2  # multiselect for android only
             elif i.question_state == 0:
-                ques['question_state'] = 2  # no limit on answer condition for android
+                ques['question_state'] = 0  # no limit on answer condition for android
 
         reqd_info.append(ques)
 
@@ -724,6 +724,24 @@ def creating_collabcard_for_lg_communities(community,user,introduction_answer,re
         is_present=collabcardTemp.objects.filter(community=community,member=user)
         if not is_present:
 
+            referer_instance = User.objects.get(pk=ref_id)
+
+            # creating card for current logged in user with refferred user's data
+            collabcard_temp_instance = collabcardTemp.objects.filter(Q(member=referer_instance),
+                                                                     Q(show_member=referer_instance),
+                                                                     Q(community=community))
+            if collabcard_temp_instance.exists():
+                collabcard_temp_instance = collabcard_temp_instance.first()
+                title = collabcard_temp_instance.title
+
+                collabcard_temp_instance = collabcardTemp()
+                collabcard_temp_instance.member = referer_instance
+                collabcard_temp_instance.community = community
+                collabcard_temp_instance.title = title
+                collabcard_temp_instance.show_member = user
+                collabcard_temp_instance.created_at = time.time()
+                collabcard_temp_instance.save()
+
             #creating for user
             collabcard_temp_instance=collabcardTemp()
             collabcard_temp_instance.member=user
@@ -735,7 +753,6 @@ def creating_collabcard_for_lg_communities(community,user,introduction_answer,re
 
 
             #creating for the person who has refered
-            referer_instance=User.objects.get(pk=ref_id)
             collabcard_temp_instance = collabcardTemp()
             collabcard_temp_instance.member = user
             collabcard_temp_instance.community = community
@@ -743,6 +760,8 @@ def creating_collabcard_for_lg_communities(community,user,introduction_answer,re
             collabcard_temp_instance.show_member = referer_instance
             collabcard_temp_instance.created_at = time.time()
             collabcard_temp_instance.save()
+
+
     else:
 
         # if ref_id is not present then creating for user
@@ -2451,6 +2470,7 @@ def community_collabcard_invite(request,community_id):
             'invite_prompt': invite_prompt,
             'intro_collabcard':card_list
         }
+
     else:
         json_response = {
 
