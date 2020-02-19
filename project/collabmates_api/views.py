@@ -2678,7 +2678,7 @@ def compute_community_live_subtitle_for_lg(total_count,count_of_verified_members
                 if data == user_instance.userinfo.name:
                     continue
                 ans_list.append(data)
-                
+
             if ans_list:
                 community_live_subtitle = """You, %s  and %s  make a great group! Make it a community by inviting 1 more %s.""" % (
                     ans_list[0], ans_list[1], member_type)
@@ -2741,44 +2741,39 @@ def compute_community_live_subtitle_for_lg(total_count,count_of_verified_members
 
 
         elif total_count == 2:
-            member_list = collabcardTemp.objects.filter(show_member=user_instance,community_id=community_id)
-            member_name=""
-            if member_list.count() == total_count:
-                for member in member_list:
-                    if member.member.id == user_instance.id:
-                        continue
-                    member_name=member.member.userinfo.name
-            else:
-                member_list=Members.objects.filter(community_id=community_id).filter(Q(state=4)|Q(state=1))
-                if member_list.exists():
-                    member_name=member_list[0].member_id.userinfo.name
-            community_live_subtitle = """Superb, you and %s are now together for your shared interest! Invite 2 other %s and let them join you in this community.""" % (
-                member_name, member_types)
+            intro_collabcard_list = collabcardTemp.objects.filter(show_member=user_instance, community_id=community_id)
+            verified_members_list = Members.objects.filter(member_id=member_id, community_id=community_id)
 
+            total_list = text_for_community_live_subtitile(total_count, intro_collabcard_list, verified_members_list)
 
+            ans_list = []
+
+            for data in total_list:
+
+                if data == user_instance.userinfo.name:
+                    continue
+                ans_list.append(data)
+            if ans_list:
+                community_live_subtitle = """Superb, you and %s are now together for your shared interest! Invite 2 other %s and let them join you in this community.""" % (
+                    ans_list[0], member_types)
 
         elif total_count == 3:
-            member_list = collabcardTemp.objects.filter(show_member=user_instance,community_id=community_id)
-            other_member_list=[]
+            intro_collabcard_list = collabcardTemp.objects.filter(show_member=user_instance, community_id=community_id)
+            verified_members_list = Members.objects.filter(member_id=member_id, community_id=community_id)
 
-            if member_list.count() == total_count:
-                for member in member_list:
-                    if member.member.id == user_instance.id:
-                        continue
-                    member_name = member.member.userinfo.name
-                    other_member_list.append(member_name)
-                if other_member_list:
-                    community_live_subtitle = """You, %s  and %s  make a great group! Make it a community by inviting 1 more %s.""" % (
-                        other_member_list[0], other_member_list[1], member_type)
-            else:
-                member_list = Members.objects.filter(community_id=community_id).filter(Q(state=4) | Q(state=1))
+            total_list = text_for_community_live_subtitile(total_count, intro_collabcard_list, verified_members_list)
 
-                for member in member_list:
+            ans_list = []
 
-                    other_member_list.append(member.member_id.userinfo.name)
-                if other_member_list:
-                    community_live_subtitle = """You, %s  and %s  make a great group! Make it a community by inviting 1 more %s.""" % (
-                        other_member_list[0], other_member_list[1], member_type)
+            for data in total_list:
+
+                if data == user_instance.userinfo.name:
+                    continue
+                ans_list.append(data)
+
+            if ans_list:
+                community_live_subtitle = """You, %s  and %s  make a great group! Make it a community by inviting 1 more %s.""" % (
+                    ans_list[0], ans_list[1], member_type)
 
 
         elif total_count == 4 and count_of_verified_members == 1:
