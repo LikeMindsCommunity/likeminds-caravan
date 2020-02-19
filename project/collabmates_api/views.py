@@ -1040,7 +1040,7 @@ def ask_approval(request):
         user_instance=User.objects.get(id=member_id)
         Userinfo.objects.filter(user_id=user_instance).update(contact_number=contact_number)
         new_member_request.delay(member_id=member_id, community_id=community_id, ref_id=None,
-                                 form_response=None)
+                                 form_response=None, ph_no=contact_number)
         return JsonResponse({'success': True})
 
     member_instance=Members.objects.get(member_id=member_id,community_id=community_id)
