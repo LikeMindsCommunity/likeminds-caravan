@@ -2489,7 +2489,7 @@ def community_collabcard_invite(request,community_id):
 
         user_instance=User.objects.get(id=member_id)
 
-        collabcardTemp_instance_list=collabcardTemp.objects.filter(show_member=user_instance).order_by('id')
+        collabcardTemp_instance_list=collabcardTemp.objects.filter(show_member=user_instance,community_id=community_serializer_instance['id']).order_by('id')
 
         for instance in collabcardTemp_instance_list:
 
@@ -2507,8 +2507,8 @@ def community_collabcard_invite(request,community_id):
             card_dict['type'] = 5           #for unverified
             card_list.append(card_dict)
 
-        count_of_verified_members=Collabcard.objects.filter(community_id=community_serializer_instance['id']).count()
-        collabcard_temp_count=len(collabcardTemp_instance_list)
+        count_of_verified_members=Members.objects.filter(community_id=community_serializer_instance['id']).filter(Q(state=4)|Q(state=1)).count()
+        collabcard_temp_count=collabcardTemp_instance_list.count()
         total_count=count_of_verified_members + collabcard_temp_count
 
 
@@ -2594,6 +2594,43 @@ def community_collabcard_invite(request,community_id):
     return JsonResponse(json_response)
 
 
+def text_for_community_live_subtitile(total_count,intro_collabcard_list,verified_members_list):
+
+    '''function to return intro collabcard and verified list'''
+
+    diff = total_count - len(intro_collabcard_list)
+
+    if diff > 0:
+        intro_name_list=[]
+        members_list=[]
+        for instance in intro_collabcard_list:
+
+            intro_name_list.append(instance.member.userinfo.name)
+
+        verified_member_name_list=[]
+
+        for member in verified_members_list:
+            verified_member_name_list.append(member.member_id.userinfo.name)
+
+
+        for num in range(diff):
+            members_list.append(verified_member_name_list[num])
+
+        total_list=intro_name_list+members_list
+
+        return total_list
+    else:
+
+        intro_name_list = []
+        members_list = []
+        for instance in intro_collabcard_list:
+            intro_name_list.append(instance.member.userinfo.name)
+        return intro_name_list
+
+
+
+
+
 def compute_community_live_subtitle_for_lg(total_count,count_of_verified_members,user_instance,community):
 
     verfied_status=is_member_verified(community,user_instance)
@@ -2604,32 +2641,48 @@ def compute_community_live_subtitle_for_lg(total_count,count_of_verified_members
 
     community_live_subtitle=""
     if verfied_status:
-
+        #if member is verified
         if total_count == 1:
            community_live_subtitle="""Awesome, you have taken the first step! Be the spark to ignite this community by inviting other %s from your network."""%(member_types)
+
         elif total_count == 2:
-            member_list = collabcardTemp.objects.filter(show_member=user_instance)
-            member_name = ""
-            for member in member_list:
 
-                if member.member.id == user_instance.id:
+
+            intro_collabcard_list=collabcardTemp.objects.filter(show_member=user_instance,community_id=community_id)
+            verified_members_list=Members.objects.filter(member_id=member_id,community_id=community_id)
+
+            total_list=text_for_community_live_subtitile(total_count,intro_collabcard_list,verified_members_list)
+
+            ans_list=[]
+
+            for data in total_list:
+
+                if data == user_instance.userinfo.name:
                     continue
-                member_name = member.member.userinfo.name
+                ans_list.append(data)
+            if ans_list:
+                community_live_subtitle = """Superb, you and %s are now together for your shared interest! Invite 2 other %s and let them join you in this community.""" % (
+                ans_list[0], member_types)
 
-            community_live_subtitle = """Superb, you and %s are now together for your shared interest! Invite 2 other %s and let them join you in this community.""" % (
-                member_name, member_types)
+
         elif total_count == 3:
-            member_list = Members.objects.filter(community_id=community_id).order_by('-id')
-            other_member_list = []
-            for member in member_list:
-                if member_id == str(member.member_id.id):
+            intro_collabcard_list = collabcardTemp.objects.filter(show_member=user_instance, community_id=community_id)
+            verified_members_list = Members.objects.filter(member_id=member_id, community_id=community_id)
+
+            total_list = text_for_community_live_subtitile(total_count, intro_collabcard_list, verified_members_list)
+
+            ans_list = []
+
+            for data in total_list:
+
+                if data == user_instance.userinfo.name:
                     continue
-                member_name = member.member_id.userinfo.name
-                if member.state == 4:
-                    other_member_list.append(member_name)
-            if other_member_list:
+                ans_list.append(data)
+                
+            if ans_list:
                 community_live_subtitle = """You, %s  and %s  make a great group! Make it a community by inviting 1 more %s.""" % (
-                    other_member_list[0], other_member_list[1], member_type)
+                    ans_list[0], ans_list[1], member_type)
+
         elif total_count == 4 and count_of_verified_members == 1:
             member_list = Members.objects.filter(community_id=community_id).order_by('-id')
             other_member_list = []
@@ -2642,6 +2695,7 @@ def compute_community_live_subtitle_for_lg(total_count,count_of_verified_members
             if other_member_list:
                 community_live_subtitle = """1 last step pending! Since this is an exclusive community, you need to verify %s, %s and %s  to initiate the community""" % (
                     other_member_list[0], other_member_list[1],other_member_list[2])
+
         elif total_count == 4 and count_of_verified_members == 2:
             member_list = Members.objects.filter(community_id=community_id).order_by('-id')
             other_member_list = []
@@ -2654,6 +2708,7 @@ def compute_community_live_subtitle_for_lg(total_count,count_of_verified_members
             if other_member_list:
                 community_live_subtitle = """1 last step pending! Since this is an exclusive community, you need to verify %s and %s  to initiate the community""" % (
                     other_member_list[0], other_member_list[1])
+
         elif total_count == 4 and count_of_verified_members == 3:
             member_list = Members.objects.filter(community_id=community_id).order_by('-id')
             other_member_list = []
@@ -2666,74 +2721,104 @@ def compute_community_live_subtitle_for_lg(total_count,count_of_verified_members
             if other_member_list:
                 community_live_subtitle = """1 last step pending! Since this is an exclusive community, you need to verify %s  to initiate the community""" % (
                     other_member_list[0])
+
         elif total_count > 4 and count_of_verified_members == 1:
             community_live_subtitle="1 last step pending! Since this is an exclusive community, you need to verify atleast 3 other members to initiate the community"
+
         elif total_count > 4 and count_of_verified_members == 2:
             community_live_subtitle="1 last step pending! Since this is an exclusive community, you need to verify atleast 2 other members to initiate the community"
+
         elif total_count > 4 and count_of_verified_members == 3:
             community_live_subtitle = "1 last step pending! Since this is an exclusive community, you need to verify atleast 1 member to initiate the community"
+
+
+
+
     else:
         # member is not verified
         if total_count == 1:
            community_live_subtitle="""Awesome, you have taken the first step! Be the spark to ignite this community by inviting other %s from your network."""%(member_types)
+
+
         elif total_count == 2:
-            member_list = collabcardTemp.objects.filter(show_member=user_instance)
+            member_list = collabcardTemp.objects.filter(show_member=user_instance,community_id=community_id)
             member_name=""
-            for member in member_list:
-
-                if member.member.id == user_instance.id:
-                    continue
-                member_name=member.member.userinfo.name
-
+            if member_list.count() == total_count:
+                for member in member_list:
+                    if member.member.id == user_instance.id:
+                        continue
+                    member_name=member.member.userinfo.name
+            else:
+                member_list=Members.objects.filter(community_id=community_id).filter(Q(state=4)|Q(state=1))
+                if member_list.exists():
+                    member_name=member_list[0].member_id.userinfo.name
             community_live_subtitle = """Superb, you and %s are now together for your shared interest! Invite 2 other %s and let them join you in this community.""" % (
                 member_name, member_types)
-        elif total_count == 3:
-            member_list = collabcardTemp.objects.filter(show_member=user_instance)
-            other_member_list=[]
-            for member in member_list:
 
-                if member.member.id == user_instance.id:
-                    continue
-                member_name = member.member.userinfo.name
-                other_member_list.append(member_name)
-            if other_member_list:
-                community_live_subtitle = """You, %s  and %s  make a great group! Make it a community by inviting 1 more %s.""" % (
-                    other_member_list[0], other_member_list[1], member_type)
+
+
+        elif total_count == 3:
+            member_list = collabcardTemp.objects.filter(show_member=user_instance,community_id=community_id)
+            other_member_list=[]
+
+            if member_list.count() == total_count:
+                for member in member_list:
+                    if member.member.id == user_instance.id:
+                        continue
+                    member_name = member.member.userinfo.name
+                    other_member_list.append(member_name)
+                if other_member_list:
+                    community_live_subtitle = """You, %s  and %s  make a great group! Make it a community by inviting 1 more %s.""" % (
+                        other_member_list[0], other_member_list[1], member_type)
+            else:
+                member_list = Members.objects.filter(community_id=community_id).filter(Q(state=4) | Q(state=1))
+
+                for member in member_list:
+
+                    other_member_list.append(member.member_id.userinfo.name)
+                if other_member_list:
+                    community_live_subtitle = """You, %s  and %s  make a great group! Make it a community by inviting 1 more %s.""" % (
+                        other_member_list[0], other_member_list[1], member_type)
+
+
         elif total_count == 4 and count_of_verified_members == 1:
             community_live_subtitle = """Your profile isn't verified yet. Since this is an exclusive community, your profile needs to be verified in order to initiate the community"""
         elif total_count == 4 and count_of_verified_members == 2:
             community_live_subtitle = """Your profile isn't verified yet. Since this is an exclusive community, your profile needs to be verified in order to initiate the community"""
         elif total_count == 4 and count_of_verified_members == 3:
-            member_list = collabcardTemp.objects.filter(show_member=user_instance)
+
+            member_list = Members.objects.filter(community_id=community_id).filter(Q(state=4) | Q(state=1))
             other_member_list = []
             for member in member_list:
-
-                if member.member.id == user_instance.id:
-                    continue
-                member_name = member.member.userinfo.name
+                member_name = member.member_id.userinfo.name
                 other_member_list.append(member_name)
             if other_member_list:
                 community_live_subtitle = """1 last step pending! %s, %s are %s are already verified members of this community. The community will be initiated as soon your profile is verified.""" % (
                     other_member_list[0],other_member_list[1],other_member_list[2])
+
+
         elif total_count > 4 and count_of_verified_members == 1:
             community_live_subtitle="Your profile isn't verified yet. Since this is an exclusive community, your profile needs to be verified in order to initiate the community"
         elif total_count > 4 and count_of_verified_members == 2:
             community_live_subtitle="Your profile isn't verified yet. Since this is an exclusive community, your profile needs to be verified in order to initiate the community"
         elif total_count > 4 and count_of_verified_members == 3:
-            member_list = collabcardTemp.objects.filter(show_member=user_instance)
+
+            member_list = Members.objects.filter(community_id=community_id).filter(Q(state=4) | Q(state=1))
             other_member_list = []
             for member in member_list:
-
-                if member.member.id == user_instance.id:
-                    continue
-                member_name = member.member.userinfo.name
+                member_name = member.member_id.userinfo.name
                 other_member_list.append(member_name)
+
+
             if other_member_list:
                 community_live_subtitle = """1 last step pending! %s, %s are %s are already verified members of this community. The community will be initiated as soon your profile is verified.""" % (
                     other_member_list[0], other_member_list[1], other_member_list[2])
 
+
         elif total_count == 4 and count_of_verified_members == 0:
            community_live_subtitle="Your profile isn't verified yet. Since this is an exclusive community, your profile needs to be verified in order to initiate the community"
+
+
         elif total_count > 0  and count_of_verified_members == 0:
             community_live_subtitle="Your profile isn't verified yet. Since this is an exclusive community, your profile needs to be verified in order to initiate the community"
     return community_live_subtitle
