@@ -1610,7 +1610,7 @@ def pending_members(request, community_id):
     is_lg=is_LG_or_LP_community(community)
     for i in pend_requests:
         if is_lg:
-            if i.ask_member_id == member_id:
+            if str(i.ask_member_id) == str(member_id):
                 resp = Form_response.objects.filter(community=community_id).filter(user=i.member_id.id).order_by('id')
                 user = Userinfo.objects.get(user_id=i.member_id.id)
                 # serilaizing userinfo object
@@ -2022,7 +2022,7 @@ def approve_or_decline_lg_community(request,req_dict,member_verification):
             send_notification_for_join_requests.delay(community_id, True, member_id)
 
 
-            
+
             update_last_unseen_in_engage(user=user,community=community)
 
             #deleting the data from collabcard temp
@@ -2792,7 +2792,7 @@ def compute_community_live_subtitle_for_lg(total_count,count_of_verified_members
                 member_name = member.member_id.userinfo.name
                 other_member_list.append(member_name)
             if other_member_list:
-                community_live_subtitle = """1 last step pending! %s, %s are %s are already verified members of this community. The community will be initiated as soon your profile is verified.""" % (
+                community_live_subtitle = """1 last step pending! %s, %s and %s are already verified members of this community. The community will be initiated as soon your profile is verified.""" % (
                     other_member_list[0],other_member_list[1],other_member_list[2])
 
 
