@@ -920,6 +920,7 @@ def get_user_lpig_tags(user_id):
             temp['name'] = each.tags_id.name
             if each.tags_id.image_link:
                 temp['image_url'] = each.tags_id.image_link
+
             elif each.tags_id.tag_image:
                 temp['image_url'] = url + each.tags_id.tag_image.url
             attribute_id = each.tags_id.attribute_id.id
@@ -1038,17 +1039,21 @@ def ask_approval(request):
         contact_number=request.GET.get('contact_number')
         user_instance=User.objects.get(id=member_id)
         Userinfo.objects.filter(user_id=user_instance).update(contact_number=contact_number)
+
         return JsonResponse({'success': True})
 
     member_instance=Members.objects.get(member_id=member_id,community_id=community_id)
     member_engage_instance=Member_Engage.objects.get(community_id=community_id,member_id=ask_member_id)
 
     if member_instance.ask_member_id:                       #if the member ask someone else already for verification
-
+        previous_asked_member=member_instance.ask_member_id
         member_engage_ask_instance=Member_Engage.objects.get(community_id=community_id,member_id=member_instance.ask_member_id)
         if member_engage_ask_instance.pending_members:
             member_engage_ask_instance.pending_members= member_engage_ask_instance.pending_members - 1
             member_engage_ask_instance.save()
+
+        collabcardTemp.objects.filter(show_member=previous_asked_member,member=member_id,community=community_id).delete()
+        collabcardTemp.objects.filter(show_member=member_id,member=previous_asked_member,community=community_id).delete()
 
     member_instance.ask_member_id=ask_member_id
     member_instance.save()
