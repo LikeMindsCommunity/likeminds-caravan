@@ -3152,7 +3152,7 @@ def collabcards_seen(request):
     if 'collabcard_type' in params:
         collabcard_type=params['collabcard_type']
 
-    if collabcard_type == 5:                        #unverifeid collabcard
+    if str(collabcard_type) == str(5):                        #unverifeid collabcard
         collabcardTemp.objects.filter(id=card_id).update(state=1)
         return JsonResponse({'success': True})
 
