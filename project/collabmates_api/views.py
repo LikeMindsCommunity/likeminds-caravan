@@ -742,6 +742,15 @@ def creating_collabcard_for_lg_communities(community,user,introduction_answer,re
                 collabcard_temp_instance.created_at = time.time()
                 collabcard_temp_instance.save()
 
+            # creating for the person who has refered
+            collabcard_temp_instance = collabcardTemp()
+            collabcard_temp_instance.member = user
+            collabcard_temp_instance.community = community
+            collabcard_temp_instance.title = introduction_answer
+            collabcard_temp_instance.show_member = referer_instance
+            collabcard_temp_instance.created_at = time.time()
+            collabcard_temp_instance.save()
+
             #creating for user
             collabcard_temp_instance=collabcardTemp()
             collabcard_temp_instance.member=user
@@ -752,14 +761,6 @@ def creating_collabcard_for_lg_communities(community,user,introduction_answer,re
             collabcard_temp_instance.save()
 
 
-            #creating for the person who has refered
-            collabcard_temp_instance = collabcardTemp()
-            collabcard_temp_instance.member = user
-            collabcard_temp_instance.community = community
-            collabcard_temp_instance.title = introduction_answer
-            collabcard_temp_instance.show_member = referer_instance
-            collabcard_temp_instance.created_at = time.time()
-            collabcard_temp_instance.save()
 
 
     else:
@@ -2418,7 +2419,7 @@ def community_collabcard_invite(request,community_id):
                 member_types)
         elif number_of_members == 2:
 
-            member_list = Members.objects.filter(member_id=member_id, community_id=community_id)
+            member_list = Members.objects.filter(community_id=community_id)
             print(member_list)
             member_name = ""
             for member in member_list:
@@ -2488,7 +2489,7 @@ def community_collabcard_invite(request,community_id):
 
         user_instance=User.objects.get(id=member_id)
 
-        collabcardTemp_instance_list=collabcardTemp.objects.filter(show_member=user_instance)
+        collabcardTemp_instance_list=collabcardTemp.objects.filter(show_member=user_instance).order_by('id')
 
         for instance in collabcardTemp_instance_list:
 
@@ -2607,7 +2608,7 @@ def compute_community_live_subtitle_for_lg(total_count,count_of_verified_members
         if total_count == 1:
            community_live_subtitle="""Awesome, you have taken the first step! Be the spark to ignite this community by inviting other %s from your network."""%(member_types)
         elif total_count == 2:
-            member_list = Members.objects.filter(member_id=member_id, community_id=community_id)
+            member_list = Members.objects.filter(community_id=community_id)
             print(member_list)
             member_name = ""
             for member in member_list:
@@ -2676,7 +2677,7 @@ def compute_community_live_subtitle_for_lg(total_count,count_of_verified_members
         if total_count == 1:
            community_live_subtitle="""Awesome, you have taken the first step! Be the spark to ignite this community by inviting other %s from your network."""%(member_types)
         elif total_count == 2:
-            member_list = Members.objects.filter(member_id=member_id, community_id=community_id)
+            member_list = Members.objects.filter(community_id=community_id)
             print(member_list)
             member_name = ""
             for member in member_list:
