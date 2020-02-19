@@ -2493,7 +2493,7 @@ def community_collabcard_invite(request,community_id):
         for instance in collabcardTemp_instance_list:
 
             card_dict={}
-            card_dict['id']="collabcard_unverified"
+            card_dict['id']=instance.id
             card_dict['title']=instance.title
             user = Userinfo.objects.get(user_id=instance.member)
             # serialize user object
@@ -2502,8 +2502,8 @@ def community_collabcard_invite(request,community_id):
             card_dict['member'] = usr
             card_dict['images'] = []
             card_dict['pdf'] = []
-            card_dict['state'] = 0
-            card_dict['type'] = 5
+            card_dict['state'] = instance.state
+            card_dict['type'] = 5           #for unverified
             card_list.append(card_dict)
 
         count_of_verified_members=Collabcard.objects.filter(community_id=community_serializer_instance['id']).count()
@@ -3141,6 +3141,7 @@ def collabcards_seen(request):
     params = request.GET
     community_id = None
     card_id = None
+    collabcard_type=None
     user_id = None
     if 'community_id' in params:
         community_id = params['community_id']
@@ -3148,6 +3149,13 @@ def collabcards_seen(request):
         card_id = params['collabcard_id']
     if 'member_id' in params:
         user_id = params['member_id']
+    if 'collabcard_type' in params:
+        collabcard_type=params['collabcard_type']
+
+    if collabcard_type == 5:                        #unverifeid collabcard
+        collabcardTemp.objects.filter(id=collabcard_type).update(state=1)
+        return JsonResponse({'success': True})
+
 
     community = Community.objects.get(id=community_id)
     user_instance = User.objects.get(id=user_id)
@@ -3866,7 +3874,7 @@ def members_state(request):
             tool_title = """Invite friends to unlock features.If you invite %s friends, You will be highlighted as a promoter of this community.""" % (
                 diff)
 
-    json_response={'state': state,
+        json_response={'state': state,
                    'tool_state': tool_state,
                    'referred_members_count':referred_members_count,
                    'tool_title':tool_title,
