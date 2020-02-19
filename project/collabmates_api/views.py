@@ -3866,7 +3866,7 @@ def members_state(request):
             tool_title = """Invite friends to unlock features.If you invite %s friends, You will be highlighted as a promoter of this community.""" % (
                 diff)
 
-        json_response={'state': state,
+    json_response={'state': state,
                    'tool_state': tool_state,
                    'referred_members_count':referred_members_count,
                    'tool_title':tool_title,
@@ -3876,13 +3876,12 @@ def members_state(request):
                    'tool_unlock_action':"""route://community?community_id=%s&share=true&source=tool_unlock""" % (community_id),
                    'unlock_title': unlock_title,
                    'unlock_sub_title': unlock_sub_title,
-                   'unlock_action': unlock_action
+                   'unlock_action': unlock_action,
+                   'unlock_action_title':unlock_action_title
 
                    }
-    community_members = Members.objects.filter(community_id=community_id)
-    if community_members.exists():
-        if community_members.count() > 1:
-            json_response['unlock_action_title'] = unlock_action_title
+
+
     return JsonResponse(json_response)
 
 
