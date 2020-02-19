@@ -2446,7 +2446,7 @@ def community_collabcard_invite(request,community_id):
         ref_members_count = len(ref_members)
 
         if ref_members_count == 0:
-            invite_prompt['title'] = """Know a %s?""" % (member_type)
+            invite_prompt['title'] = """Know any %s?""" % (member_type)
             invite_prompt['sub_title'] = """Invite a new member here and unlock a tool"""
             invite_prompt['action_title'] = """Invite"""
             invite_prompt['action'] = """route://community?community_id=%s&share=true&source=invite_prompt""" % (community_id)
@@ -2510,14 +2510,14 @@ def community_collabcard_invite(request,community_id):
         community_live_subtitle= compute_community_live_subtitle_for_lg(total_count,count_of_verified_members,user_instance,community)
 
         # invite prompt logic for lg
-        member_type=""
+        member_type="relevant alumnus"
         invite_prompt = {}
 
         ref_members = get_referred_members_of_a_member(community_id, member_id)
         ref_members_count = len(ref_members)
 
         if ref_members_count == 0:
-            invite_prompt['title'] = """Know a %s?""" % (member_type)
+            invite_prompt['title'] = """Know any %s?""" % (member_type)
             invite_prompt['sub_title'] = """Invite a new member here and unlock a tool"""
             invite_prompt['action_title'] = """Invite"""
             invite_prompt['action'] = """route://community?community_id=%s&share=true&source=invite_prompt""" % (
@@ -2594,8 +2594,8 @@ def compute_community_live_subtitle_for_lg(total_count,count_of_verified_members
     verfied_status=is_member_verified(community,user_instance)
     member_id=user_instance
     community_id=community.id
-    member_type="Member type"
-    member_types="Member_types"
+    member_type="relevant alumnus"
+    member_types="relevant alumni"
 
     community_live_subtitle=""
     if verfied_status:
