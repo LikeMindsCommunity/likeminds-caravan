@@ -2022,11 +2022,15 @@ def approve_or_decline_lg_community(request,req_dict,member_verification):
             send_notification_for_join_requests.delay(community_id, True, member_id)
 
 
-
+            
             update_last_unseen_in_engage(user=user,community=community)
 
             #deleting the data from collabcard temp
+            member_instance=Members.objects.get(member_id=user,community_id=community)
+            if member_instance.ask_member_id:
+                collabcardTemp.objects.filter(member=member_instance.ask_member_id, community=community,show_member=user).delete()
             collabcardTemp.objects.filter(member=member_id,community=community).delete()
+
             if member_verification:
                 header_member_id=get_member_id_from_headers(request)
                 Members.objects.filter(member_id=member_id, community_id=community).update(approved_member_id=header_member_id)
@@ -2680,7 +2684,7 @@ def compute_community_live_subtitle_for_lg(total_count,count_of_verified_members
                 ans_list.append(data)
 
             if ans_list:
-                community_live_subtitle = """You, %s  and %s  make a great group! Make it a community by inviting 1 more %s.""" % (
+                community_live_subtitle = """You, %s and %s  make a great group! Make it a community by inviting 1 more %s.""" % (
                     ans_list[0], ans_list[1], member_type)
 
         elif total_count == 4 and count_of_verified_members == 1:
@@ -2772,7 +2776,7 @@ def compute_community_live_subtitle_for_lg(total_count,count_of_verified_members
                 ans_list.append(data)
 
             if ans_list:
-                community_live_subtitle = """You, %s  and %s  make a great group! Make it a community by inviting 1 more %s.""" % (
+                community_live_subtitle = """You, %s and %s  make a great group! Make it a community by inviting 1 more %s.""" % (
                     ans_list[0], ans_list[1], member_type)
 
 
