@@ -2649,7 +2649,7 @@ def compute_community_live_subtitle_for_lg(total_count,count_of_verified_members
 
 
             intro_collabcard_list=collabcardTemp.objects.filter(show_member=user_instance,community_id=community_id)
-            verified_members_list=Members.objects.filter(member_id=member_id,community_id=community_id)
+            verified_members_list = Members.objects.filter(community_id=community_id).filter(Q(state=1)|Q(state=4))
 
             total_list=text_for_community_live_subtitile(total_count,intro_collabcard_list,verified_members_list)
 
@@ -2667,7 +2667,7 @@ def compute_community_live_subtitle_for_lg(total_count,count_of_verified_members
 
         elif total_count == 3:
             intro_collabcard_list = collabcardTemp.objects.filter(show_member=user_instance, community_id=community_id)
-            verified_members_list = Members.objects.filter(member_id=member_id, community_id=community_id)
+            verified_members_list = Members.objects.filter(community_id=community_id).filter(Q(state=1)|Q(state=4))
 
             total_list = text_for_community_live_subtitile(total_count, intro_collabcard_list, verified_members_list)
 
@@ -2742,7 +2742,7 @@ def compute_community_live_subtitle_for_lg(total_count,count_of_verified_members
 
         elif total_count == 2:
             intro_collabcard_list = collabcardTemp.objects.filter(show_member=user_instance, community_id=community_id)
-            verified_members_list = Members.objects.filter(member_id=member_id, community_id=community_id)
+            verified_members_list = Members.objects.filter(community_id=community_id).filter(Q(state=1)|Q(state=4))
 
             total_list = text_for_community_live_subtitile(total_count, intro_collabcard_list, verified_members_list)
 
@@ -2759,7 +2759,7 @@ def compute_community_live_subtitle_for_lg(total_count,count_of_verified_members
 
         elif total_count == 3:
             intro_collabcard_list = collabcardTemp.objects.filter(show_member=user_instance, community_id=community_id)
-            verified_members_list = Members.objects.filter(member_id=member_id, community_id=community_id)
+            verified_members_list = Members.objects.filter(community_id=community_id).filter(Q(state=1)|Q(state=4))
 
             total_list = text_for_community_live_subtitile(total_count, intro_collabcard_list, verified_members_list)
 
