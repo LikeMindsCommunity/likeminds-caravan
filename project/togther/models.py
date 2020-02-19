@@ -43,15 +43,11 @@ class Community(models.Model):
 
 
 class Members(models.Model):
-
     member_id = models.ForeignKey(User, on_delete=models.CASCADE)
     community_id = models.ForeignKey(Community, on_delete=models.CASCADE)
     state = models.IntegerField(null=True)
     created_at = models.BigIntegerField(default=-9223372036854775808)
     tool_state = models.IntegerField(default=0)
-
-    ask_member_id=models.IntegerField(null=True)
-    approved_member_id=models.IntegerField(null=True)
 
     def __str__(self):
         return self.community_id.name
@@ -586,12 +582,3 @@ class MemberPollVotes(models.Model):
         super(MemberPollVotes, self).save(*args, **kwargs)
 
 
-class collabcardTemp(models.Model):
-
-    '''model to save the data for new collabcard created by user'''
-
-    title = models.TextField()
-    community = models.ForeignKey(Community, on_delete=models.CASCADE)
-    member = models.ForeignKey(User, on_delete=models.CASCADE,related_name='collabcardTemp_member')
-    created_at = models.BigIntegerField(default=0, null=True)
-    show_member=models.ForeignKey(User, on_delete=models.CASCADE,related_name='show_member_id')
