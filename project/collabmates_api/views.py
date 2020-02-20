@@ -369,15 +369,13 @@ def join_community_responses(request):
 
     community = Community.objects.get(id=community_id)
 
-    is_ig_pilot_active = False
+    is_private=False
+    if community.hide_community == '0' or community.hide_community == '1':
+        is_private=True
 
     is_ig=is_IG_community(community)
     is_lg=is_LG_or_LP_community(community)
 
-
-
-    if community.hide_community == '4' and is_ig:
-            is_ig_pilot_active = True
 
     user = User.objects.get(id=user_id)
 
@@ -439,22 +437,10 @@ def join_community_responses(request):
                                      form_response=res['questions'])
 
         return JsonResponse({'success':True})
+
     elif is_lg:
         print("LG community")
         join_lg_communities(request,res,community,user,ref_id)
-
-        #removing referal- count to save in referal table
-        #saving referal in referal table
-        # if ref_id:
-        #     referer_instance = User.objects.get(pk=ref_id)
-        #     refer = Referal.objects.filter(member=referer_instance,
-        #                                    invited_member=user,
-        #                                    community=community)
-        #     if not refer.exists():
-        #         refer = Referal(member=referer_instance,
-        #                         invited_member=user,
-        #                         community=community)
-        #         refer.save()
 
 
         if not ref_id:
@@ -466,138 +452,11 @@ def join_community_responses(request):
             new_member_request.delay(member_id=user_id, community_id=community_id, ref_id=ref_id,
                                      form_response=res['questions'])
         return JsonResponse({'success': True})
-
-    info_logger.info("\n")
-    info_logger.info("Join Community api")
-    info_logger.info("""Community Id=%s""" % (community_id))
-    info_logger.info("""Member Id=%s""" % (user_id))
-    info_logger.info("""ref_id=%s""", str(ref_id))
-    info_logger.info("""Community State=%s""" % str(community.hide_community))
-
-    if ref_id :
-        # ref_id = res['ref_id']
-
-        if community.hide_community == '3' or community.hide_community == '4':
-            invited_member = Members.objects.filter(community_id=community,
-                                                    member_id=ref_id)
-            if invited_member.exists():
-                referal(ref_id=ref_id, community_id=community_id, interested_member_id=user_id)
-
-    # inserting in members table if the member status is pending and inserting it to database with status=3
-
-    # If the member is declined from the community and he applied again
-    try:
-        current_state = Members.objects.filter(member_id=user, community_id=community).values('state')
-        if current_state[0]['state'] == 5:
-            Members.objects.filter(member_id=user, community_id=community).update(state=3)
-
-    except:
-        # if not
-        member = Members.objects.filter(member_id=user, community_id=community)
-        if not member.exists():
-            member = Members()
-            member.member_id = user
-            member.community_id = community
-            if community.hide_community == '0' or community.hide_community == '1' or community.hide_community == '4':
-                member.state = 3  # pending members
-                member.save()
-            elif community.hide_community == '3':
-                member.state = 8
-                member.save()
-                update_member_count(community_id)
-            update_community_tags_to_user(community_id=community_id, user_id=user.id)
-
-    if 'questions' in res:
-        info_logger.info(res['questions'])
-        for i in res['questions']:
-            response = Form_response.objects.filter(data=i['key'], user=user.id, community=community.id)
-            if not response.exists():
-                response = Form_response()
-                response.data = i['key']
-                response.response = i['value']
-                response.user = user.id
-                response.community = community.id
-                response.save()
-    else:
-        res['questions'] = [{}]
-
-    if not ref_id:
-        # sending mail to nipun and harsh
-        new_member_request.delay(member_id=user_id, community_id=community_id, ref_id=None,
-                                 form_response=res['questions'])
-    else:
-        # sending mail to nipun and harsh
+    elif is_private:
+        join_promoter_created_community(res,community,user)
         new_member_request.delay(member_id=user_id, community_id=community_id, ref_id=ref_id,
                                  form_response=res['questions'])
 
-    if community.hide_community == '0' or community.hide_community == '1' or community.hide_community == '4':
-
-        # updating updated time of community and pending member count for admins of commnity
-        Community.objects.filter(id=community_id).update(updated_at=time.time())
-
-        # if the member is not present in engage table
-        if not is_member_engage(community, user):
-            engage = Member_Engage()
-            engage.community_id = community
-            engage.member_id = user
-            engage.updated_at = time.time()
-            engage.save()
-            info_logger.info(
-                """Data Inserted successfully in members engage table where user_id=%s and community_id=%s""" % (
-                    user_id, community_id))
-
-        update_pending_member_count_in_engage(community)
-        # sending notification to admins of the community
-        name = user.userinfo.name
-        if not is_ig_pilot_active:
-            send_notification_to_admins.delay(community_id, name)
-
-    # if the community is the pilot community then filling the engage table
-    if community.hide_community == '3':
-        # if the user is not refered by anyone
-        if not ref_id:
-            # if the user data is already there in members engage
-            if not is_member_engage(community, user):
-                engage = Member_Engage()
-                engage.community_id = community
-                engage.member_id = user
-                engage.updated_at = time.time()
-                engage.save()
-                info_logger.info(
-                    """Data Inserted successfully in members engage table where user_id=%s and community_id=%s""" % (
-                    user_id, community_id))
-            else:
-                info_logger.info("Data already present for user")
-        else:
-            # if the user refered by someone
-            referer = User.objects.get(id=ref_id)
-            if not is_member_engage(community, user):
-                engage = Member_Engage()
-                engage.community_id = community
-                engage.member_id = user
-                engage.updated_at = time.time()
-                engage.save()
-            info_logger.info(
-                """Data Inserted successfully in members engage table where user_id=%s and community_id=%s""" % (
-                    user_id, community_id))
-            Member_Engage.objects.filter(community_id=community, member_id=referer).update(
-                pending_members=F('pending_members') + 1)
-            info_logger.info(
-                """Members engage table updated  where ref_id=%s and community_id=%s""" % (
-                    user_id, community_id))
-
-    #update_referral_text_in_engage_table.delay(community_id)
-    log = """Request for community_id=%s is sent from member_id=%s\n""" % (community_id, user_id)
-    info_logger.info(log)
-    info_logger.info("\n")
-
-    if is_ig_pilot_active:
-        req_dict = {
-            'accepted': True,
-            'member_id': user_id,
-            'community_id': community_id
-        }
-        request_response(request, req_dict)
     return JsonResponse({'success': True})
 
 
@@ -725,6 +584,54 @@ def join_lg_communities(request,res,community,user,ref_id):
         member_instance.update(state=member_states.PENDING_MEMBER)
 
 
+def join_promoter_created_community(res,community,user):
+
+    '''function to join promoter created community'''
+
+    member_instance = Members.objects.filter(member_id=user, community_id=community)
+    if not member_instance:
+        # making a member instance
+        member = Members()
+        member.member_id = user
+        member.community_id = community
+        member.state = member_states.PENDING_MEMBER
+        member.created_at = time.time()
+        member.save()
+
+        introduction_answer = ""
+        # saving questions
+        if 'questions' in res:
+            info_logger.info(res['questions'])
+            for i in res['questions']:
+                response = Form_response.objects.filter(data=i['key'], user=user.id, community=community.id)
+                if not response.exists():
+                    response = Form_response()
+                    response.data = i['key']
+                    response.response = i['value']
+                    response.user = user.id
+                    response.community = community.id
+                    response.save()
+
+                if not introduction_answer:
+                    introduction_answer = i['value']
+        else:
+            res['questions'] = [{}]
+
+        engage = Member_Engage()
+        engage.member_id = user
+        engage.community_id = community
+        engage.updated_at = time.time()
+        engage.member_state = member_states.PENDING_MEMBER
+        engage.save()
+        update_pending_member_count_in_engage(community)
+
+        #sending notifications to the admin of the community
+        name=user.userinfo.name
+        send_notification_to_admins.delay(community.id, name)
+
+
+    else:
+        member_instance.update(state=member_states.PENDING_MEMBER)
 
 
 
@@ -1611,21 +1518,31 @@ def pending_members(request, community_id):
 
     ''' function to get members requested to join in a community '''
 
+    member_id = get_member_id_from_headers(request)
+    pending_requests=get_pending_members_of_community(community_id,requested_member_id=member_id)
+    return JsonResponse({'pending_members': pending_requests})
+
+
+def get_pending_members_of_community(community_id,requested_member_id):
+
+    '''functions to get pending members of the community'''
+
+    member_id=requested_member_id
     community = Community.objects.get(id=community_id)
     pend_requests = Members.objects.filter(community_id=community).filter(state=3)
-    member_id=get_member_id_from_headers(request)
 
-    is_admin=False
-    is_member_admin=Members.objects.filter(community_id=community,member_id=member_id,state=1)
+    is_admin = False
+    is_member_admin = Members.objects.filter(community_id=community, member_id=member_id, state=1)
     if is_member_admin.exists():
-        is_admin=True
+        is_admin = True
 
-    is_verified=False
-    is_verified_member=Members.objects.filter(community_id=community,member_id=member_id).filter(Q(state=1)|Q(state=4))
+    is_verified = False
+    is_verified_member = Members.objects.filter(community_id=community, member_id=member_id).filter(
+        Q(state=1) | Q(state=4))
     if is_verified_member.exists():
-        is_verified=True
+        is_verified = True
     pending_requests = []
-    is_lg=is_LG_or_LP_community(community)
+    is_lg = is_LG_or_LP_community(community)
     for i in pend_requests:
         if is_lg and is_verified:
             if str(i.ask_member_id) == str(member_id):
@@ -1658,7 +1575,8 @@ def pending_members(request, community_id):
                 user_response.append(response_object)
             usr['response'] = user_response
             pending_requests.append(usr)
-    return JsonResponse({'pending_members': pending_requests})
+    return pending_requests
+
 
 
 def check_for_member_eligibiity(community_id, member_id):
@@ -2039,36 +1957,23 @@ def approve_or_decline_lg_community(request,req_dict,member_verification):
                 community.save()
             send_notification_for_join_requests.delay(community_id, True, member_id)
 
-
-
             update_last_unseen_in_engage(user=user,community=community)
 
             #deleting the data from collabcard temp
             member_instance=Members.objects.get(member_id=user,community_id=community)
+
+            #getting pending members who was refered by me
+            pending_members=get_pending_members_of_community(community.id,requested_member_id=member_id)
+            Members_Engage.objects.filter(member_id=user,community_id=community).update(pending_members=len(pending_members))
+
             if member_instance.ask_member_id:
                 collabcardTemp.objects.filter(member=member_instance.ask_member_id, community=community,show_member=user).delete()
-
-                engage = Member_Engage.objects.filter(member_id=member_instance.ask_member_id, community_id=community)
-                if engage.exists():
-                    engage_instance=engage[0]
-                    if engage_instance.pending_members > 0:
-                        engage_instance.pending_members=engage.pending_members - 1
-                    engage_instance.save()
 
             collabcardTemp.objects.filter(member=member_id,community=community).delete()
 
             if member_verification:
                 header_member_id=get_member_id_from_headers(request)
                 Members.objects.filter(member_id=member_id, community_id=community).update(approved_member_id=header_member_id)
-
-                engage = Member_Engage.objects.filter(member_id=member_instance.ask_member_id, community_id=community)
-                if engage.exists():
-                    engage_instance = engage[0]
-                    if engage_instance.pending_members > 0:
-                        engage_instance.pending_members = engage.pending_members - 1
-                    engage_instance.save()
-
-
 
                 # making the referer promoter if his referal count becomes equal to eligibility count
                 header_member_instance=User.objects.get(id=header_member_id)
