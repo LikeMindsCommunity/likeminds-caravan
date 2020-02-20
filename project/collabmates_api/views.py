@@ -18,7 +18,7 @@ from django.db.models import Q
 from django.http import HttpResponse
 from django.http.response import JsonResponse
 from django.shortcuts import get_object_or_404
-from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.csrf import csrf_exempt,ensure_csrf_cookie
 from togther.forms import *
 from togther.models import *
 from togther.tasks import send_email_to_proposed_admin, send_mail_after_rank_computation
@@ -501,7 +501,7 @@ def join_ig_communities(request,res,community,user,ref_id):
             'community_id':community_id,
             'title':introduction_answer,
             'type':1,
-            'is_ig':1
+            'create_intro':1
         }
         create_card(request,req_dict=req_dict)
         #saving the referal detail and sending notifications for refered members
@@ -1200,9 +1200,9 @@ def create_card(request,req_dict=None):
             date_time=0
 
         #if the community is a ig community
-        is_ig=False
-        if 'is_ig' in res:
-            is_ig=True
+        create_intro=False
+        if 'create_intro' in res:
+            create_intro=True
 
         is_feedback=False
         if int(community_id) == int(feedback_community_id):
@@ -1233,40 +1233,8 @@ def create_card(request,req_dict=None):
             collabcardpolls_instance.text = poll['text']
             collabcardpolls_instance.save()
 
-        # if the community does not have a purpose card then a purpose will be created
-        # the first card created for a community is the purpose card
-        # if its a pilot community making the user promoter and updating community state to pilot active
-
-        is_pilot_active = False
 
 
-        if not community.purpose_collabcard and community.hide_community == '3' and not is_ig:
-            community.purpose_collabcard = card.id
-            join_time = time.time()
-            Members.objects.filter(community_id=community, member_id=user_instance).update(state=1,
-                                                                                           created_at=join_time)
-            # changing community state to 0 (zero) to make it a active community
-            community.hide_community = '4'
-
-            is_pilot_active = True
-            introduction_question, introduction_answer = auto_create_collabcard(user_instance, community)
-            json_body = {
-                'communityId': community_id,
-                'title': introduction_answer,
-                'image_count': 0,
-                'pdf_count': 0,
-                'type': 1  # if state=0 normal if state =1 intro
-            }
-            params = {
-                'community_id': community_id,
-                'member_id': user_id
-            }
-            # calling create card APi with required credentials
-            link = url + "/api/create_collabcard"
-            post_response = rqst.post(link, params=params, json=json_body)
-
-        community.updated_at = time.time()
-        community.save()
 
         collabcard = CollabcardSerializer(card, user_id, community)
 
@@ -1312,31 +1280,14 @@ def create_card(request,req_dict=None):
 
         if is_member_engage(community, user_instance):
 
-            if is_ig:
+            if create_intro:
                 Member_Engage.objects.filter(community_id=community,member_id=user_instance).update(
                     member_state=member_states.MEMBER,
                     last_unseen_conversation=card,
                     member_referral=""
                 )
 
-            # if is_pilot_active:
-            #     # updating the last unseen card for community and member who become promoter
-            #     engage = Member_Engage.objects.get(community_id=community,
-            #                                        member_id=user_instance)
-            #     engage.last_unseen_conversation = card
-            #     engage.updated_at = time.time()
-            #     engage.save()
-            #
-            #     # updating the members engage for members who is refered by user
-            #     refered_members = get_referred_members_of_a_member(community_id, user_id)
-            #     for member in refered_members:
-            #         refered_members_user_instance = User.objects.get(id=member)
-            #         engage = Member_Engage.objects.get(community_id=community, member_id=refered_members_user_instance)
-            #         engage.last_unseen_conversation = card
-            #         engage.last_unseen_count = 1
-            #         engage.updated_at = time.time()
-            #         engage.save()
-            #     update_pending_member_count_in_engage(community)
+
 
         else:
             engage = Member_Engage()
@@ -1344,15 +1295,14 @@ def create_card(request,req_dict=None):
             engage.community_id = community
             engage.last_unseen_conversation = card
             engage.updated_at = time.time()
-            if is_ig:
+            if create_into:
                 engage.member_state=member_states.MEMBER
             engage.save()
         #update_referral_text_in_engage_table.delay(community_id)
         update_last_unseen_in_engage_on_card_creation.delay(community_id=community_id)
 
-        print("condition----",is_ig and not community.purpose_collabcard)
-        if is_ig and not community.purpose_collabcard:
-            update_community_purpose_card.delay(community_id,card.id)
+
+
 
         # custom_cache.clear()
 
@@ -1368,7 +1318,7 @@ def create_card(request,req_dict=None):
         if typ != 1:  # stopping mail for introduction cards
             send_email_for_collabcard(community, userinfo_instance, card, typ)
 
-        print(collabcard)
+
         return JsonResponse({'success': True, 'collabcard': collabcard})
     return JsonResponse({'success': False})
 
@@ -1794,7 +1744,7 @@ def request_response(request, req_dict=None):
         member_id = res['member_id']
     if 'community_id' in res:
         community_id = res['community_id']
-
+    accepted=False
     if 'accepted' in res:
         accepted = res['accepted']
     community = Community.objects.get(id=community_id)
@@ -1819,68 +1769,30 @@ def request_response(request, req_dict=None):
         join_time = time.time()
 
         # check if member is already accepted to stop duplicate notifications and false member count
-        state = Members.objects.filter(member_id=member_id, community_id=community)[0].state
-        if state == 3 or state == 8:
+        member_queryset = Members.objects.filter(member_id=member_id, community_id=community).filter(Q(state=1)|Q(state=4))
+        if member_queryset.exists():
             # updating the approve state
             Members.objects.filter(member_id=member_id, community_id=community).update(state=4,
                                                                                        created_at=join_time)  # aprove state = 4
             community = Community.objects.get(id=community_id)
             members_count = community.members_count + 1
             Community.objects.filter(id=community_id).update(members_count=members_count)
-            send_notification_for_join_requests.delay(community_id, True, member_id)
 
-            # inserting data in member engage with all neccesary constarints
+            introduction_answer=auto_create_collabcard(user,community)
+            req_dict = {
 
-            # purpose card of community to be shown in your communities card text
-            purpose_card = Collabcard.objects.get(id=community.purpose_collabcard)
-            # unseen cards count for new user
-            unseen_count = Collabcard.objects.filter(community=community).count()
-            count = check_for_member_eligibiity(community_id, member_id)
-            if not is_member_engage(community, user.id):
-                engage = Member_Engage()
-                engage.member_id = user
-                engage.community_id = community
-                engage.last_unseen_conversation = purpose_card
-                engage.last_unseen_count = unseen_count
-                engage.updated_at = time.time()
-                engage.save()
-                update_pending_member_count_in_engage(community)
-                #update_referral_text_in_engage_table.delay(community_id)
-            else:
-                # if the community is created by user than updating the user details
-                if community.hide_community == '0' or community.hide_community == '1' or community.hide_community == '4':
-                    engage = Member_Engage.objects.get(community_id=community, member_id=user)
-                    engage.last_unseen_conversation = purpose_card
-                    engage.last_unseen_count = unseen_count
-                    engage.updated_at = time.time()
-                    engage.save()
-                    update_pending_member_count_in_engage(community)
-                    #update_referral_text_in_engage_table.delay(community_id)
-
-            # -----  new user intro card auto create functionality -------
-            introduction_question, introduction_answer = auto_create_collabcard(user, community)
-            json_body = {
-                'communityId': community_id,
-                'title': introduction_answer,
-                'image_count': 0,
-                'pdf_count': 0,
-                'type': 1  # if state=0 normal if state =1 intro
-            }
-            params = {
+                'member_id': member_id,
                 'community_id': community_id,
-                'member_id': member_id
+                'title': introduction_answer,
+                'type': 1,
+                'create_intro': 1
             }
 
-            # calling create card APi with required credentials
-            link = url + "/api/create_collabcard"
-            rqst.post(link, params=params, json=json_body)
+            request.method = "POST"
+            create_card(request, req_dict=req_dict)
 
-            # notify the referred member if it is a pilot community
-            send_notification = res['send_notification'] if 'send_notification' in res else True
-            if send_notification or send_notification == 'true':
-                notify_referred_member_after_join(joined_member_id=member_id,
-                                                  joined_member_name=user.userinfo.name,
-                                                  community_name=community.name, community_id=community_id)
+
+            send_notification_for_join_requests.delay(community_id, True, member_id)
             ## sending email to the user that his request is accepted for this community
             member_request_approval_or_denied.delay(user_id=member_id, community_id=community_id, approved=True)
 
@@ -1899,11 +1811,6 @@ def request_response(request, req_dict=None):
             Form_response.objects.filter(user=member_id, community=community_id).delete()
             # update pending members count of community and referal text of user
             update_pending_member_count_in_engage(community)
-            #update_referral_text_in_engage_table.delay(community_id)
-
-            # uncomment to send
-            # sending email to the user that his request is rejected for this community
-            # member_request_approval_or_denied.delay(user_id=member_id,community_id=community_id,approved=False)
 
             if send_notification or send_notification == 'true':
                 send_notification_for_join_requests.delay(community_id, False, member_id)
@@ -1941,7 +1848,7 @@ def approve_or_decline_lg_community(request,req_dict,member_verification):
                 'community_id': community_id,
                 'title': introduction_answer,
                 'type': 1,
-                'is_ig': 1
+                'create_intro': 1
             }
 
             request.method="POST"
@@ -4851,3 +4758,9 @@ def update_poll_card_text(card_id):
     card.answer_text = poll_text
     card.polls_count = total_polls_count
     card.save()
+
+@ensure_csrf_cookie
+def get_csrf_token(request):
+    return JsonResponse({'success':True})
+
+
