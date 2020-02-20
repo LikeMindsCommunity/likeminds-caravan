@@ -595,3 +595,4 @@ class collabcardTemp(models.Model):
     member = models.ForeignKey(User, on_delete=models.CASCADE,related_name='collabcardTemp_member')
     created_at = models.BigIntegerField(default=0, null=True)
     show_member=models.ForeignKey(User, on_delete=models.CASCADE,related_name='show_member_id')
+    state=models.IntegerField(default=0)
