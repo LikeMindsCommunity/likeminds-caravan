@@ -13,7 +13,7 @@ from collabmates_api.serializers import *
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.paginator import Paginator
-from django.db.models import F
+from django.db.models import F,Case,When,Value
 from django.db.models import Q
 from django.http import HttpResponse
 from django.http.response import JsonResponse
@@ -175,7 +175,7 @@ def your_communities(request, user_id):
     for each_community in communities:
 
         community = CommunitySerializer(each_community.community_id)
-        community['pending_members_count'] = each_community.pending_members
+        community['pending_members_count'] = each_community.pending_members if each_community.pending_members else 0
         community['updated_at'] = get_time_text(each_community.updated_at)
         if each_community.last_unseen_conversation:
             collabcard = CollabcardSerializer(each_community.last_unseen_conversation, user=member_id)
@@ -706,6 +706,18 @@ def join_lg_communities(request,res,community,user,ref_id):
         engage.member_state = member_states.PENDING_MEMBER
         engage.member_referral="Your profile is being verified"
         engage.save()
+
+
+
+        #updating the pending members count in engage table if the ref_id member is verified
+        if ref_id:
+
+            member_queryset=Member_Engage.objects.filter(community_id=community,member_id=ref_id).filter(
+                Q(member_states=member_states.ADMIN)|Q(member_states=member_states.MEMBER))
+
+            if member_queryset.exists():
+                member_queryset.update(pending_members=F('pending_members')+1)
+
 
         log = """Request in LG community where community_id=%s and member_id=%s""" % (community.id, user.id)
         print(log)
@@ -1602,14 +1614,20 @@ def pending_members(request, community_id):
     community = Community.objects.get(id=community_id)
     pend_requests = Members.objects.filter(community_id=community).filter(state=3)
     member_id=get_member_id_from_headers(request)
+
     is_admin=False
     is_member_admin=Members.objects.filter(community_id=community,member_id=member_id,state=1)
-    if is_member_admin:
+    if is_member_admin.exists():
         is_admin=True
+
+    is_verified=False
+    is_verified_member=Members.objects.filter(community_id=community,member_id=member_id).filter(Q(state=1)|Q(state=4))
+    if is_verified_member.exists():
+        is_verified=True
     pending_requests = []
     is_lg=is_LG_or_LP_community(community)
     for i in pend_requests:
-        if is_lg:
+        if is_lg and is_verified:
             if str(i.ask_member_id) == str(member_id):
                 resp = Form_response.objects.filter(community=community_id).filter(user=i.member_id.id).order_by('id')
                 user = Userinfo.objects.get(user_id=i.member_id.id)
@@ -2029,12 +2047,26 @@ def approve_or_decline_lg_community(request,req_dict,member_verification):
             member_instance=Members.objects.get(member_id=user,community_id=community)
             if member_instance.ask_member_id:
                 collabcardTemp.objects.filter(member=member_instance.ask_member_id, community=community,show_member=user).delete()
+
+                engage = Member_Engage.objects.filter(member_id=member_instance.ask_member_id, community_id=community)
+                if engage.exists():
+                    engage_instance=engage[0]
+                    if engage_instance.pending_members > 0:
+                        engage_instance.pending_members=engage.pending_members - 1
+                    engage_instance.save()
+
             collabcardTemp.objects.filter(member=member_id,community=community).delete()
 
             if member_verification:
                 header_member_id=get_member_id_from_headers(request)
                 Members.objects.filter(member_id=member_id, community_id=community).update(approved_member_id=header_member_id)
-                Member_Engage.objects.filter(member_id=header_member_id, community_id=community).update(pending_members=F('pending_members')-1)
+
+                engage = Member_Engage.objects.filter(member_id=member_instance.ask_member_id, community_id=community)
+                if engage.exists():
+                    engage_instance = engage[0]
+                    if engage_instance.pending_members > 0:
+                        engage_instance.pending_members = engage.pending_members - 1
+                    engage_instance.save()
 
 
 
@@ -2810,7 +2842,7 @@ def compute_community_live_subtitle_for_lg(total_count,count_of_verified_members
 
 
             if other_member_list:
-                community_live_subtitle = """1 last step pending! %s, %s are %s are already verified members of this community. The community will be initiated as soon your profile is verified.""" % (
+                community_live_subtitle = """1 last step pending! %s, %s are %s and already verified members of this community. The community will be initiated as soon your profile is verified.""" % (
                     other_member_list[0], other_member_list[1], other_member_list[2])
 
 
