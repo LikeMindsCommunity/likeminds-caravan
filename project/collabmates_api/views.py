@@ -1964,7 +1964,7 @@ def approve_or_decline_lg_community(request,req_dict,member_verification):
 
             #getting pending members who was refered by me
             pending_members=get_pending_members_of_community(community.id,requested_member_id=member_id)
-            Members_Engage.objects.filter(member_id=user,community_id=community).update(pending_members=len(pending_members))
+            Member_Engage.objects.filter(member_id=user,community_id=community).update(pending_members=len(pending_members))
 
             if member_instance.ask_member_id:
                 collabcardTemp.objects.filter(member=member_instance.ask_member_id, community=community,show_member=user).delete()
