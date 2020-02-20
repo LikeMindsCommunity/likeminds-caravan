@@ -586,7 +586,7 @@ def join_community_responses(request):
                 """Members engage table updated  where ref_id=%s and community_id=%s""" % (
                     user_id, community_id))
 
-    update_referral_text_in_engage_table.delay(community_id)
+    #update_referral_text_in_engage_table.delay(community_id)
     log = """Request for community_id=%s is sent from member_id=%s\n""" % (community_id, user_id)
     info_logger.info(log)
     info_logger.info("\n")
@@ -1927,7 +1927,7 @@ def request_response(request, req_dict=None):
                 engage.updated_at = time.time()
                 engage.save()
                 update_pending_member_count_in_engage(community)
-                update_referral_text_in_engage_table.delay(community_id)
+                #update_referral_text_in_engage_table.delay(community_id)
             else:
                 # if the community is created by user than updating the user details
                 if community.hide_community == '0' or community.hide_community == '1' or community.hide_community == '4':
@@ -1937,7 +1937,7 @@ def request_response(request, req_dict=None):
                     engage.updated_at = time.time()
                     engage.save()
                     update_pending_member_count_in_engage(community)
-                    update_referral_text_in_engage_table.delay(community_id)
+                    #update_referral_text_in_engage_table.delay(community_id)
 
             # -----  new user intro card auto create functionality -------
             introduction_question, introduction_answer = auto_create_collabcard(user, community)
@@ -1981,7 +1981,7 @@ def request_response(request, req_dict=None):
             Form_response.objects.filter(user=member_id, community=community_id).delete()
             # update pending members count of community and referal text of user
             update_pending_member_count_in_engage(community)
-            update_referral_text_in_engage_table.delay(community_id)
+            #update_referral_text_in_engage_table.delay(community_id)
 
             # uncomment to send
             # sending email to the user that his request is rejected for this community
@@ -4375,7 +4375,7 @@ def accept_promotership(request):
 
     # update member engage table enteries
     update_pending_member_count_in_engage(community)
-    update_referral_text_in_engage_table.delay(community_id)
+    #update_referral_text_in_engage_table.delay(community_id)
     update_member_count(community_id)
     return JsonResponse({'success': True})
 
