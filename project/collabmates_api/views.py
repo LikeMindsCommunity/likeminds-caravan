@@ -1200,9 +1200,9 @@ def create_card(request,req_dict=None):
             date_time=0
 
         #if the community is a ig community
-        create_into=False
-        if 'create_into' in res:
-            create_into=True
+        create_intro=False
+        if 'create_intro' in res:
+            create_intro=True
 
         is_feedback=False
         if int(community_id) == int(feedback_community_id):
@@ -1280,7 +1280,7 @@ def create_card(request,req_dict=None):
 
         if is_member_engage(community, user_instance):
 
-            if create_into:
+            if create_intro:
                 Member_Engage.objects.filter(community_id=community,member_id=user_instance).update(
                     member_state=member_states.MEMBER,
                     last_unseen_conversation=card,
