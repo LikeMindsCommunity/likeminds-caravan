@@ -207,7 +207,7 @@ def get_city_address(request=None,city=None):
             pincode = location_info.pincode if location_info.city else ''
 
         else:
-            request = "https://maps.googleapis.com/maps/api/geocode/json?address="+str(tag_name)+"&key=AIzaSyDN10TwCPVMdLEE6vvTiglKHGlkTIYKduc"
+            request = "https://maps.googleapis.com/maps/api/geocode/json?address="+str(tag_name)+"&key="+str(settings.GOOGLE_API_KEY)
             response = rqst.get(request)
             response = response.json()
 

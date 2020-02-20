@@ -61,4 +61,6 @@ urlpatterns = [
     path('community_collabcard_meta', api_views.community_collabcard_meta, name='community_collabcard_meta'),
     path('collabcard_poll', api_views.collabcard_poll, name='collabcard_poll'),
 
+    path('get_csrf_token', api_views.get_csrf_token, name='get_csrf_token'),
+
 ]

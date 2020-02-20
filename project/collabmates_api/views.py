@@ -18,7 +18,7 @@ from django.db.models import Q
 from django.http import HttpResponse
 from django.http.response import JsonResponse
 from django.shortcuts import get_object_or_404
-from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.csrf import csrf_exempt,ensure_csrf_cookie
 from togther.forms import *
 from togther.models import *
 from togther.tasks import send_email_to_proposed_admin, send_mail_after_rank_computation
@@ -4758,3 +4758,9 @@ def update_poll_card_text(card_id):
     card.answer_text = poll_text
     card.polls_count = total_polls_count
     card.save()
+
+@ensure_csrf_cookie
+def get_csrf_token(request):
+    return JsonResponse({'success':True})
+
+
