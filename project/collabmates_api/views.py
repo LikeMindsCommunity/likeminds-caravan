@@ -4062,14 +4062,14 @@ def config(request):
 
     ingest_your_communities = request.GET.get('ingest_your_communities', False)
     info_logger.info(ingest_your_communities)
-    if ingest_your_communities:
-        update_communities_in_member_engage_table.delay(member_id)
-        log = """Updated successfull for user=%s""" % (member_id)
-        info_logger.info(log)
-        if version_update:
-            return JsonResponse({'success': True})  # route:route
-        else:
-            return JsonResponse({'success': True})
+    # if ingest_your_communities:
+    #     update_communities_in_member_engage_table.delay(member_id)
+    #     log = """Updated successfull for user=%s""" % (member_id)
+    #     info_logger.info(log)
+    #     if version_update:
+    #         return JsonResponse({'success': True})  # route:route
+    #     else:
+    #         return JsonResponse({'success': True})
     # error_logger.error("headers are not comming correctly")
 
     if version_update:
