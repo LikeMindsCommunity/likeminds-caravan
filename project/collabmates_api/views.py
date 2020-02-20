@@ -713,7 +713,7 @@ def join_lg_communities(request,res,community,user,ref_id):
         if ref_id:
 
             member_queryset=Member_Engage.objects.filter(community_id=community,member_id=ref_id).filter(
-                Q(member_states=member_states.ADMIN)|Q(member_states=member_states.MEMBER))
+                Q(member_state=member_states.ADMIN)|Q(member_state=member_states.MEMBER))
 
             if member_queryset.exists():
                 member_queryset.update(pending_members=F('pending_members')+1)
