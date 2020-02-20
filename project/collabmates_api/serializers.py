@@ -83,7 +83,7 @@ def CollabcardSerializer(card,user,community=None):
         'id': card.id,
         'title': card.title,
         'community_id': card.community_id,
-        'share_url': url + '/collabcard/' + str(card.id) + "?ref_id" + str(card.user.id),
+        'share_url': url + '/collabcard/' + str(card.id) + "?ref_id=" + str(card.user.id),
         'answer_text': card.answer_text,
         'share_link': card.share_link,
         'image_count': card.image_count,
