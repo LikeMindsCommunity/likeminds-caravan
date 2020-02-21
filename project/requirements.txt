@@ -44,3 +44,4 @@ ua-parser
 django-redis
 redis
 django-celery-beat
+python-dotenv==0.11.0
