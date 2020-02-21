@@ -218,7 +218,8 @@ SOCIAL_AUTH_PIPELINE = (
 
 )
 
-ADMINS = os.getenv('ADMINS')
+ADMINS = [('mahesh', 'mahesh61437mahe@gmail.com')]
+
 
 SENDGRID_API_KEY = os.getenv('SENDGRID_API_KEY')
 EMAIL_HOST = os.getenv('EMAIL_HOST')
