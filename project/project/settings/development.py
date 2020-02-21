@@ -30,6 +30,6 @@ TIME_ZONE = 'Asia/Kolkata'
 IS_BETA = True
 
 
-ALLOWED_HOSTS = os.getenv('BETA_ALLOWED_HOSTS')
+ALLOWED_HOSTS = [os.getenv("BETA_ALLOWED_HOST_1"),os.getenv("BETA_ALLOWED_HOST_2")]
 
 FCM_SERVER_KEY=os.getenv('BETA_FCM_SERVER_KEY')
