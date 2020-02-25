@@ -115,7 +115,7 @@ class Userinfo(models.Model):
     version_code = models.IntegerField(null=True, default=21)
     image_link = models.CharField(max_length=500, null=True)
     apple_id = models.CharField(max_length=100, null=True)
-    has_tags=models.BooleanField(default=False)
+    #has_tags=models.BooleanField(default=False)
 
     def __str__(self):
         return self.name
