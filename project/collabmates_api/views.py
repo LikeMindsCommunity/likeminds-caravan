@@ -3601,7 +3601,7 @@ def login(request):
 
         usr = UserinfoSerializer(userinfo)
         # see if user has tags or not
-        has_tags = user_onbaord(usr['id'])
+        has_tags = userinfo.has_tags
 
         # saving the OS type of user (Android,iOS,WEB)
         request_type = get_request_type(request)
@@ -4550,7 +4550,7 @@ def push_onboarding(request):
 
     compute_rank.delay(user_id=user_id)
     send_mail_after_rank_computation.delay(user_id)  # both mail and notification will be sent here
-
+    Userinfo.objects.filter(user_id=user_id).update(has_tags=True)
     return JsonResponse({'success': True})
 
 
