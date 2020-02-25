@@ -1295,7 +1295,7 @@ def create_card(request,req_dict=None):
             engage.community_id = community
             engage.last_unseen_conversation = card
             engage.updated_at = time.time()
-            if create_into:
+            if create_intro:
                 engage.member_state=member_states.MEMBER
             engage.save()
         #update_referral_text_in_engage_table.delay(community_id)
