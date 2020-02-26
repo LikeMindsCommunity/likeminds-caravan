@@ -11,6 +11,8 @@ https://docs.djangoproject.com/en/2.1/ref/settings/
 """
 
 import os
+from dotenv import load_dotenv
+load_dotenv()
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -20,16 +22,13 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__fil
 # See https://docs.djangoproject.com/en/2.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'rg9n#$ebfj4w_mv-%7aahi2!qnitgw%xt(4re%i&)vdlppnz^e'
+SECRET_KEY = os.getenv("SECRET_KEY")
 
 #SECURE_SSL_REDIRECT = True
 # Honor the 'X-Forwarded-Proto' header for request.is_secure()
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 # Force HTTPS in the final URIs
 SOCIAL_AUTH_REDIRECT_IS_HTTPS = True
-
-ALLOWED_HOSTS = ["127.0.0.1", "localhost", '[::1]']
-
 
 # Application definition
 
@@ -143,15 +142,17 @@ AUTHENTICATION_BACKENDS = (
     'django.contrib.auth.backends.ModelBackend',
 )
 
-SOCIAL_AUTH_FACEBOOK_KEY = '633859857057924'
-SOCIAL_AUTH_FACEBOOK_SECRET = 'f90d662fdb205e53f24a90009318a6d4'
+SOCIAL_AUTH_FACEBOOK_KEY = os.getenv('SOCIAL_AUTH_FACEBOOK_KEY')
+SOCIAL_AUTH_FACEBOOK_SECRET = os.getenv('SOCIAL_AUTH_FACEBOOK_SECRET')
 
 SOCIAL_AUTH_FACEBOOK_SCOPE = ['email']
 SOCIAL_AUTH_FACEBOOK_PROFILE_EXTRA_PARAMS = {'fields': 'id,name,email', }
 
-SOCIAL_AUTH_LINKEDIN_OAUTH2_KEY = '8616kilc3dqagd'        #Client ID
-SOCIAL_AUTH_LINKEDIN_OAUTH2_SECRET = 'g2LdZt5KN9HRF1IB'  #Client Secret
+SOCIAL_AUTH_LINKEDIN_OAUTH2_KEY = os.getenv('SOCIAL_AUTH_LINKEDIN_OAUTH2_KEY')        #Client ID
+SOCIAL_AUTH_LINKEDIN_OAUTH2_SECRET = os.getenv('SOCIAL_AUTH_LINKEDIN_OAUTH2_SECRET')  #Client Secret
 # SOCIAL_AUTH_LINKEDIN_OAUTH2_SCOPE = ['r_basicprofile','r_emailaddress','rw_company_admin','w_share']
+
+
 SOCIAL_AUTH_LINKEDIN_OAUTH2_SCOPE = ['r_basicprofile','r_emailaddress']
 # SOCIAL_AUTH_LINKEDIN_OAUTH2_WHITELISTED_DOMAINS=['*']
 
@@ -217,12 +218,13 @@ SOCIAL_AUTH_PIPELINE = (
 
 )
 
-ADMINS = [('mahesh', 'mahesh61437mahe@gmail.com')]
+ADMINS = [('mahesh', 'mahesh61437mahe@gmail.com'),('access_mahesh','accessmaheshforu@gmail.com')]
 
-SENDGRID_API_KEY = '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'
-EMAIL_HOST = 'smtp.sendgrid.net'
-EMAIL_HOST_USER = 'collabmates1'
-EMAIL_HOST_PASSWORD = 'Nipun@git@123'
+
+SENDGRID_API_KEY = os.getenv('SENDGRID_API_KEY')
+EMAIL_HOST = os.getenv('EMAIL_HOST')
+EMAIL_HOST_USER =  os.getenv('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD =  os.getenv('EMAIL_HOST_PASSWORD')
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 
@@ -230,11 +232,12 @@ EMAIL_USE_TLS = True
 CORS_ORIGIN_ALLOW_ALL = True
 
 FCM_DJANGO_SETTINGS = {
-    "FCM_SERVER_KEY": "AAAAllezPSk:APA91bEYRnVqZGMS_YNTDwu4wJfQfbubN7jQtwvdAyZI6XvoRIjQPii9kj2joizPGJ8GhcoXpcIF5ftsZ-zyBuY9WzqS48b2JCZ51Lv8K9L56gMwBjLsW7tDSfntEqMtAQ9f8f024M5P",
+    "FCM_SERVER_KEY":  os.getenv('PROD_FCM_SERVER_KEY'),
     "ONE_DEVICE_PER_USER": True,
     "DELETE_INACTIVE_DEVICES": False
 }
 
+GOOGLE_API_KEY=os.getenv('GOOGLE_API_KEY')
 
 
 

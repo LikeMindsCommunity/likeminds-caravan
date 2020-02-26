@@ -48,6 +48,8 @@ class Members(models.Model):
     state = models.IntegerField(null=True)
     created_at = models.BigIntegerField(default=-9223372036854775808)
     tool_state = models.IntegerField(default=0)
+    ask_member_id = models.IntegerField(null=True)
+    approved_member_id = models.IntegerField(null=True)
 
     def __str__(self):
         return self.community_id.name
@@ -113,6 +115,7 @@ class Userinfo(models.Model):
     version_code = models.IntegerField(null=True, default=21)
     image_link = models.CharField(max_length=500, null=True)
     apple_id = models.CharField(max_length=100, null=True)
+    has_tags=models.BooleanField(default=False)
 
     def __str__(self):
         return self.name
@@ -580,3 +583,16 @@ class MemberPollVotes(models.Model):
             self.created_at = time.time()
         self.updated_at = time.time()
         super(MemberPollVotes, self).save(*args, **kwargs)
+
+
+class collabcardTemp(models.Model):
+
+    '''model to save the data for new collabcard created by user'''
+
+    title = models.TextField()
+    community = models.ForeignKey(Community, on_delete=models.CASCADE)
+    member = models.ForeignKey(User, on_delete=models.CASCADE,related_name='collabcardTemp_member')
+    created_at = models.BigIntegerField(default=0, null=True)
+    show_member=models.ForeignKey(User, on_delete=models.CASCADE,related_name='show_member_id')
+    state=models.IntegerField(default=0)
+
