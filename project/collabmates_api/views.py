@@ -1521,8 +1521,8 @@ def get_pending_members_of_community(community_id,requested_member_id):
                     # getting the answers of the users who requested to join
                     # for the questions that have been asked while requestiong to join in a community
                     response_object = {}
-                    response_object['key'] = j.data
-                    response_object['value'] = j.response
+                    response_object['key'] = j.question_title
+                    response_object['value'] = j.question_answer
                     user_response.append(response_object)
                 usr['response'] = user_response
                 pending_requests.append(usr)
@@ -1536,8 +1536,8 @@ def get_pending_members_of_community(community_id,requested_member_id):
                 # getting the answers of the users who requested to join
                 # for the questions that have been asked while requestiong to join in a community
                 response_object = {}
-                response_object['key'] = j.data
-                response_object['value'] = j.response
+                response_object['key'] = j.question_title
+                response_object['value'] = j.question_answer
                 user_response.append(response_object)
             usr['response'] = user_response
             pending_requests.append(usr)
