@@ -429,7 +429,7 @@ def refer_members(request,community_id):
             # elif not member.exists():
             #     share_text = 'Hi, I have added '+ str(community.name) +' community on CollabMates. It will be good if you can join this community'
 
-            form_responses=Form_response.objects.filter(community=community_id,user=request.user.id).order_by('id')
+            form_responses=communityAnswers.objects.filter(community=community_id,member=request.user.id).order_by('id')
             form_answers_list=[]
 
             is_introduction=False
@@ -500,9 +500,9 @@ def get_admins_details(community):
         temp={}
         temp['name']=admin.member_id.userinfo.name
         temp['image_link']=admin.member_id.userinfo.image_link
-        form_response=Form_response.objects.filter(user=admin.member_id.id,community=community.id).order_by('id')
+        form_response=communityAnswers.objects.filter(member=admin.member_id,community=community).order_by('id')
         if form_response:
-            temp['introduction_answer']=form_response[0].response
+            temp['introduction_answer']=form_response[0].question_answer
 
         admins.append(temp)
 
@@ -1024,12 +1024,12 @@ def questions_responses(request):
     member_id=request.GET.get('member_id')
     community_id=request.GET.get('community_id')
     userinfo=Userinfo.objects.get(user_id=member_id)
-    form_response=Form_response.objects.filter(user=member_id,community=community_id).order_by('-id')
+    form_response=communityAnswers.objects.filter(member=member_id,community=community_id).order_by('-id')
     response_list=[]
     for data in form_response:
         response={}
-        response['question']=data.data
-        response['answer']=data.response
+        response['question']=data.question_title
+        response['answer']=data.question_answer
         response_list.append(response)
     if not userinfo.image_link:
         image=url+userinfo.image_file.url

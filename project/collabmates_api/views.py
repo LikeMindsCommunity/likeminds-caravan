@@ -479,13 +479,16 @@ def join_ig_communities(request,res,community,user,ref_id):
         if 'questions' in res:
             info_logger.info(res['questions'])
             for i in res['questions']:
-                response = Form_response.objects.filter(data=i['key'], user=user.id, community=community.id)
+                response = communityAnswers.objects.filter(question_title=i['key'], member=user, community=community)
                 if not response.exists():
-                    response = Form_response()
-                    response.data = i['key']
-                    response.response = i['value']
-                    response.user = user.id
-                    response.community = community.id
+                    question_list=communityQuestions.objects.filter(question_title=i['key'])
+                    response = communityAnswers()
+                    response.question_title = i['key']
+                    response.question_answer = i['value']
+                    response.member = user
+                    response.community = community
+                    if question_list:
+                        response.question=question_list[0]
                     response.save()
         else:
             res['questions'] = [{}]
@@ -539,13 +542,17 @@ def join_lg_communities(request,res,community,user,ref_id):
         if 'questions' in res:
             info_logger.info(res['questions'])
             for i in res['questions']:
-                response = Form_response.objects.filter(data=i['key'], user=user.id, community=community.id)
+                response = communityAnswers.objects.filter(question_title=i['key'], member=user,
+                                                           community=community)
                 if not response.exists():
-                    response = Form_response()
-                    response.data = i['key']
-                    response.response = i['value']
-                    response.user = user.id
-                    response.community = community.id
+                    question_list = communityQuestions.objects.filter(question_title=i['key'])
+                    response = communityAnswers()
+                    response.question_title = i['key']
+                    response.question_answer = i['value']
+                    response.member = user
+                    response.community = community
+                    if question_list:
+                        response.question = question_list[0]
                     response.save()
 
                 if not introduction_answer:
@@ -603,13 +610,17 @@ def join_promoter_created_community(res,community,user):
         if 'questions' in res:
             info_logger.info(res['questions'])
             for i in res['questions']:
-                response = Form_response.objects.filter(data=i['key'], user=user.id, community=community.id)
+                response = communityAnswers.objects.filter(question_title=i['key'], member=user,
+                                                           community=community)
                 if not response.exists():
-                    response = Form_response()
-                    response.data = i['key']
-                    response.response = i['value']
-                    response.user = user.id
-                    response.community = community.id
+                    question_list = communityQuestions.objects.filter(question_title=i['key'])
+                    response = communityAnswers()
+                    response.question_title = i['key']
+                    response.question_answer = i['value']
+                    response.member = user
+                    response.community = community
+                    if question_list:
+                        response.question = question_list[0]
                     response.save()
 
                 if not introduction_answer:
@@ -1157,6 +1168,11 @@ def create_community(request):
     return HttpResponse("Create Community Api")
 
 
+def create_community_version_1(request):
+
+    '''function to create community for version for whatsapp shifting'''
+    pass
+
 # /api/create_collabcard?community_id=&member_id=
 @csrf_exempt
 def create_card(request,req_dict=None):
@@ -1496,7 +1512,7 @@ def get_pending_members_of_community(community_id,requested_member_id):
     for i in pend_requests:
         if is_lg and is_verified:
             if str(i.ask_member_id) == str(member_id):
-                resp = Form_response.objects.filter(community=community_id).filter(user=i.member_id.id).order_by('id')
+                resp = communityAnswers.objects.filter(community=community_id).filter(member=i.member_id.id).order_by('id')
                 user = Userinfo.objects.get(user_id=i.member_id.id)
                 # serilaizing userinfo object
                 usr = UserinfoSerializer(user)
@@ -1511,7 +1527,7 @@ def get_pending_members_of_community(community_id,requested_member_id):
                 usr['response'] = user_response
                 pending_requests.append(usr)
         elif is_admin:
-            resp = Form_response.objects.filter(community=community_id).filter(user=i.member_id.id).order_by('id')
+            resp = communityAnswers.objects.filter(community=community_id).filter(member=i.member_id.id).order_by('id')
             user = Userinfo.objects.get(user_id=i.member_id.id)
             # serilaizing userinfo object
             usr = UserinfoSerializer(user)
@@ -1808,7 +1824,7 @@ def request_response(request, req_dict=None):
             # delete the member engage table record for the user
             Member_Engage.objects.filter(member_id=member_id, community_id=community).delete()
             # delete the responses of user to community questions, if any
-            Form_response.objects.filter(user=member_id, community=community_id).delete()
+            communityAnswers.objects.filter(member=member_id, community=community_id).delete()
             # update pending members count of community and referal text of user
             update_pending_member_count_in_engage(community)
 
@@ -1915,7 +1931,7 @@ def approve_or_decline_lg_community(request,req_dict,member_verification):
             # delete the member engage table record for the user
             Member_Engage.objects.filter(member_id=member_id, community_id=community).delete()
             # delete the responses of user to community questions, if any
-            Form_response.objects.filter(user=member_id, community=community_id).delete()
+            communityAnswers.objects.filter(member=member_id, community=community_id).delete()
             if member_verification:
                 header_member_id = get_member_id_from_headers(request)
                 Member_Engage.objects.filter(member_id=header_member_id, community_id=community).update(
@@ -3251,10 +3267,10 @@ def auto_create_collabcard(member, community):
     #                                                                                 form_response[0].response)
     # else:
     if True:
-        form_response = Form_response.objects.filter(user=member.id, community=community.id).order_by('id')
+        form_response = communityAnswers.objects.filter(member=member.id, community=community.id).order_by('id')
         if form_response.exists():
-            introduction_question = form_response[0].data
-            introduction_answer = form_response[0].response
+            introduction_question = form_response[0].question_title
+            introduction_answer = form_response[0].question_answer
             # introduction_answer = introduction_answer
     return introduction_question, introduction_answer
 
