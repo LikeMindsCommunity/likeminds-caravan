@@ -335,7 +335,7 @@ def join_community(request, community_id):
     first_question = False
     for i in data:
         if not first_question:
-            ques = {'question': i.data,
+            ques = {'question': i.question_title,
                     'question_state': 3,
                     }
             if i.question_state == 1:
@@ -4779,5 +4779,6 @@ def update_poll_card_text(card_id):
 @ensure_csrf_cookie
 def get_csrf_token(request):
     return JsonResponse({'success':True})
+
 
 
