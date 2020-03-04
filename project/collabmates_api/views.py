@@ -1887,8 +1887,8 @@ def approve_or_decline_lg_community(request,req_dict,member_verification):
 
             #getting pending members who was refered by me
             pending_members=get_pending_members_of_community(community.id,requested_member_id=member_id)
-            Member_Engage.objects.filter(member_id=user,community_id=community).update(pending_members=len(pending_members))
-
+            check=Member_Engage.objects.filter(member_id=user,community_id=community).update(pending_members=len(pending_members))
+            print(check)
             if member_instance.ask_member_id:
                 collabcardTemp.objects.filter(member=member_instance.ask_member_id, community=community,show_member=user).delete()
 
@@ -2380,6 +2380,7 @@ def community_collabcard_invite(request,community_id):
 
         # invite prompt logic for lg
         member_type="relevant alumnus"
+        member_types="relevant alumini"
         invite_prompt = {}
 
         ref_members = get_referred_members_of_a_member(community_id, member_id)

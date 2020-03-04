@@ -39,15 +39,17 @@ def migrate_community_answers():
             if question_details:
                 question_id=question_details[0]
                 community_instance=Community.objects.get(id=form.community)
-                user_instance=User.objects.get(id=form.user)
 
-                answer_instance=communityAnswers()
-                answer_instance.community =community_instance
-                answer_instance.question_title = form.data
-                answer_instance.question_answer =form.response
-                answer_instance.member = user_instance
-                answer_instance.question =question_id
-                answer_instance.save()
+                user_instance=User.objects.filter(id=form.user)
+
+                if user_instance:
+                    answer_instance=communityAnswers()
+                    answer_instance.community =community_instance
+                    answer_instance.question_title = form.data
+                    answer_instance.question_answer =form.response
+                    answer_instance.member = user_instance[0]
+                    answer_instance.question = question_id
+                    answer_instance.save()
 
 
 start_time=time.time()
