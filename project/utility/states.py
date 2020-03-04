@@ -37,6 +37,7 @@ member_states = MemberStates()
 
 # community types
 class CommunityTypes(enum.IntEnum):
+    TYPE_NONE = -1
     TYPE_LC_GC = 0
     TYPE_LH_GC = 1
     TYPE_LC_PS = 2

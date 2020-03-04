@@ -17,9 +17,12 @@ class CommunityType(View):
     interest_queryset = None
     geography_queryset = None
     community_instance = None
+    community_id = None
 
     def __init__(self, *args, **kwargs):
         super(CommunityType, self).__init__(*args, **kwargs)
+        self.community_id = kwargs['community_id'] if 'community_id' in kwargs else None
+        self.community_instance = kwargs['community_instance'] if 'community_instance' in kwargs else None
 
     @method_decorator(csrf_exempt)
     def dispatch(self, *args, **kwargs):
@@ -32,8 +35,8 @@ class CommunityType(View):
         if response_type == None:
             return JsonResponse(response)
         else:
-            return HttpResponse(repr(response))
-            # return response
+            # return repr(response)
+            return response
 
     def post(self, request=None, community_id=None, response_type=None, community_instance=None):
         try:
@@ -49,14 +52,33 @@ class CommunityType(View):
 
         response = self.get_community_type()
         if not self.community_instance.type:
-            self.community_instance.type = response['Map']
+            self.community_instance.type = response['Map'] if response['Map'] >= 0 else None
             self.community_instance.save()
 
         if response_type == None:
             return JsonResponse(response)
         else:
-            return HttpResponse(repr(response))
-            # return response
+            # return repr(response)
+            return response
+
+    def set_querysets(self):
+        self.set_legacy_queryset()
+        self.set_interest_queryset()
+        self.set_profession_queryset()
+
+    def set_legacy_queryset(self):
+        self.legacy_queryset = Community_Legacy.objects.filter(community_id=self.community_instance).select_related(
+            'tags_id')
+
+    def set_profession_queryset(self):
+        self.profession_queryset = Community_Profession.objects.filter(
+            community_id=self.community_instance).select_related(
+            'tags_id')
+
+    def set_interest_queryset(self):
+        self.interest_queryset = Community_Interest.objects.filter(community_id=self.community_instance).select_related(
+            'tags_id')
+
 
     def get_community_type(self):
 
@@ -65,17 +87,10 @@ class CommunityType(View):
 
         else:
             self.city_exists = self.contains_gc()
-
-            self.legacy_queryset = Community_Legacy.objects.filter(community_id=self.community_instance).select_related(
-                'tags_id')
-            self.profession_queryset = Community_Profession.objects.filter(
-                community_id=self.community_instance).select_related(
-                'tags_id')
-            self.interest_queryset = Community_Interest.objects.filter(community_id=self.community_instance).select_related(
-                'tags_id')
+            self.set_querysets()
 
             community_type = ''
-            community_type_map = -1
+            community_type_map = CommunityTypes.TYPE_NONE
 
             if not self.city_exists and self.legacy_queryset.exists() and self.profession_queryset.exists() and self.interest_queryset.exists():
                 pass
@@ -128,27 +143,70 @@ class CommunityType(View):
             #     community_type = "SS_GC"
             #     community_type_map = CommunityTypes.TYPE_SS_GC
 
-            community_type_value = community_type_map if isinstance(community_type_map, int) else community_type_map.value
+            community_type_value = community_type_map.value
             response = {"Type": community_type, "Map": community_type_value}
 
         return response
 
     # LC_GC
-    def is_community_type_lc_gc(self):
+    def is_community_type_lc_gc(self, community_id=None, community_instance=None):
+
+        if self.legacy_queryset:
+            pass
+        elif community_instance:
+            self.community_instance = community_instance
+            self.set_legacy_queryset()
+            self.city_exists = self.contains_gc()
+
+        elif community_id:
+            community_instance = Community.objects.get(pk=community_id)
+            self.community_instance = community_instance
+            self.set_legacy_queryset()
+            self.city_exists = self.contains_gc()
+
         college = self.legacy_queryset.filter(tags_id__attribute_id__id=CommunityAttributes.Legacy_education)
+
         if college.exists() and self.city_exists:
             return True
         return False
 
     # LH_GC
-    def is_community_type_lh_gc(self):
+    def is_community_type_lh_gc(self, community_id=None, community_instance=None):
+
+        if self.legacy_queryset:
+            pass
+        elif community_instance:
+            self.community_instance = community_instance
+            self.set_legacy_queryset()
+            self.city_exists = self.contains_gc()
+
+        elif community_id:
+            community_instance = Community.objects.get(pk=community_id)
+            self.community_instance = community_instance
+            self.set_legacy_queryset()
+            self.city_exists = self.contains_gc()
+
         hometown = self.legacy_queryset.filter(tags_id__attribute_id__id=CommunityAttributes.Legacy_hometown)
         if hometown.exists() and self.city_exists:
             return True
         return False
 
     # LC_PS
-    def is_community_type_lc_ps(self):
+    def is_community_type_lc_ps(self, community_id=None, community_instance=None):
+
+        if self.legacy_queryset and self.profession_queryset:
+            pass
+        elif community_instance:
+            self.community_instance = community_instance
+            self.set_legacy_queryset()
+            self.set_profession_queryset()
+
+        elif community_id:
+            community_instance = Community.objects.get(pk=community_id)
+            self.community_instance = community_instance
+            self.set_legacy_queryset()
+            self.set_profession_queryset()
+
         college = self.legacy_queryset.filter(tags_id__attribute_id__id=CommunityAttributes.Legacy_education)
         skill = self.profession_queryset.filter(tags_id__attribute_id__id=CommunityAttributes.Profession_skill)
         if college.exists() and skill.exists():
@@ -156,49 +214,135 @@ class CommunityType(View):
         return False
 
     # IH_GC
-    def is_community_type_ih_gc(self):
+    def is_community_type_ih_gc(self, community_id=None, community_instance=None):
+
+        if self.interest_queryset:
+            pass
+
+        elif community_instance:
+            self.community_instance = community_instance
+            self.set_interest_queryset()
+            self.city_exists = self.contains_gc()
+
+        elif community_id:
+            community_instance = Community.objects.get(pk=community_id)
+            self.community_instance = community_instance
+            self.set_interest_queryset()
+            self.city_exists = self.contains_gc()
+
         hobby = self.interest_queryset.filter(tags_id__attribute_id__id=CommunityAttributes.Interests_hobby)
         if hobby.exists() and self.city_exists:
             return True
         return False
 
     # IS_GC
-    def is_community_type_is_gc(self):
+    def is_community_type_is_gc(self, community_id=None, community_instance=None):
+
+        if self.interest_queryset:
+            pass
+
+        elif community_instance:
+            self.community_instance = community_instance
+            self.set_interest_queryset()
+            self.city_exists = self.contains_gc()
+
+        elif community_id:
+            community_instance = Community.objects.get(pk=community_id)
+            self.community_instance = community_instance
+            self.set_interest_queryset()
+            self.city_exists = self.contains_gc()
+
         sports = self.interest_queryset.filter(tags_id__attribute_id__id=CommunityAttributes.Interests_sports)
         if sports.exists() and self.city_exists:
             return True
         return False
 
     # IF_GC
-    def is_community_type_if_gc(self):
+    def is_community_type_if_gc(self, community_id=None, community_instance=None):
+        if self.interest_queryset:
+            pass
+
+        elif community_instance:
+            self.community_instance = community_instance
+            self.set_interest_queryset()
+            self.city_exists = self.contains_gc()
+
+        elif community_id:
+            community_instance = Community.objects.get(pk=community_id)
+            self.community_instance = community_instance
+            self.set_interest_queryset()
+            self.city_exists = self.contains_gc()
+
         fan = self.interest_queryset.filter(tags_id__attribute_id__id=CommunityAttributes.Interests_fan)
         if fan.exists() and self.city_exists:
             return True
         return False
 
     # PS_GC
-    def is_community_type_ic_gc(self):
+    def is_community_type_ic_gc(self, community_id=None, community_instance=None):
+        if self.interest_queryset:
+            pass
+
+        elif community_instance:
+            self.community_instance = community_instance
+            self.set_interest_queryset()
+            self.city_exists = self.contains_gc()
+
+        elif community_id:
+            community_instance = Community.objects.get(pk=community_id)
+            self.community_instance = community_instance
+            self.set_interest_queryset()
+            self.city_exists = self.contains_gc()
+
         cause = self.interest_queryset.filter(tags_id__attribute_id__id=CommunityAttributes.Interests_cause)
         if cause.exists() and self.city_exists:
             return True
         return False
 
     # PS_GC
-    def is_community_type_pi_gc(self):
+    def is_community_type_pi_gc(self, community_id=None, community_instance=None):
+        if self.profession_queryset:
+            pass
+
+        elif community_instance:
+            self.community_instance = community_instance
+            self.set_profession_queryset()
+            self.city_exists = self.contains_gc()
+
+        elif community_id:
+            community_instance = Community.objects.get(pk=community_id)
+            self.community_instance = community_instance
+            self.set_profession_queryset()
+            self.city_exists = self.contains_gc()
+
         industry = self.profession_queryset.filter(tags_id__attribute_id__id=CommunityAttributes.Profession_industry)
         if industry.exists() and self.city_exists:
             return True
         return False
 
     # PS_GC
-    def is_community_type_ps_gc(self):
+    def is_community_type_ps_gc(self, community_id=None, community_instance=None):
+        if self.profession_queryset:
+            pass
+
+        elif community_instance:
+            self.community_instance = community_instance
+            self.set_profession_queryset()
+            self.city_exists = self.contains_gc()
+
+        elif community_id:
+            community_instance = Community.objects.get(pk=community_id)
+            self.community_instance = community_instance
+            self.set_profession_queryset()
+            self.city_exists = self.contains_gc()
+
         skill = self.profession_queryset.filter(tags_id__attribute_id__id=CommunityAttributes.Profession_skill)
         if skill.exists() and self.city_exists:
             return True
         return False
 
     # # GN
-    # def is_community_type_gn(self):
+    # def is_community_type_gn(self, community_id=None, community_instance=None):
     #
     #     college = self.legacy_queryset.filter(tags_id__attribute_id__id = 2)
     #     city = self.geography_queryset.filter(attribute_id__id = 12)
@@ -207,7 +351,7 @@ class CommunityType(View):
     #     return False
     #
     # # SS_GN
-    # def is_community_type_ss_gn(self):
+    # def is_community_type_ss_gn(self, community_id=None, community_instance=None):
     #
     #     college = self.legacy_queryset.filter(attribute_id__id = 2)
     #     if college.exists() and self.is_community_type_gn():
@@ -215,7 +359,7 @@ class CommunityType(View):
     #     return False
     #
     # # SS_GC
-    # def is_community_type_ss_gc(self):
+    # def is_community_type_ss_gc(self, community_id=None, community_instance=None):
     #
     #     college = self.legacy_queryset.filter(attribute_id__id = 2)
     #     if college.exists() and self.city_exists:
