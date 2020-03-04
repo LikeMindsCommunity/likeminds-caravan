@@ -31,7 +31,7 @@ class Community(models.Model):
     image_link = models.CharField(max_length=500, null=True)
     thumbnail = models.CharField(max_length=500, null=True)
     introduction_text_state = models.IntegerField(default=0)
-    type = models.IntegerField(default=0)
+    type = models.IntegerField(null=True)
 
     def __str__(self):
         return self.name
