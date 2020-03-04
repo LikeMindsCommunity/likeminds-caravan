@@ -158,7 +158,7 @@ def dashboard(request):
         members_count = Members.objects.filter(community_id=i).filter(Q(state=1)|Q(state=2)|Q(state=4)|Q(state=7)).count()
         community_dic['members_count'] = members_count
         community_dic['active_since'] = i.active_since
-        community_dic['question_count'] = Form_data.objects.filter(community_id=i).count()
+        community_dic['question_count'] = communityQuestions.objects.filter(community=i).count()
         community_dic['hidden_tags_count'] = get_tags_count(i)
         community_dic['image_link'] = i.image_link
         dashboard_list.append(community_dic)
@@ -853,7 +853,8 @@ def show_member_responses(request,community_id,member_id):
 def add_questions(request,community_id):
 
     '''function to add and edit questions'''
-    questions=Form_data.objects.filter(community_id=community_id).order_by('id')
+    questions=communityQuestions.objects.filter(community=community_id).order_by('id')
+
     community_name=Community.objects.filter(id=community_id).values('name')
     question_list=[]
     for question in questions:
@@ -879,13 +880,14 @@ def add_questions(request,community_id):
                if len(question['question']) == 0:
                    continue
                if question['update']:
-                   Form_data.objects.filter(id=question['id']).update(data=question['question'])
+                   communityQuestions.objects.filter(id=question['id']).update(question_title=question['question'])
                else:
                    community = Community.objects.get(id=community_id)
-                   if not Form_data.objects.filter(community_id=community,data=question['question']).exists():
-                       form_data=Form_data()
-                       form_data.community_id=community
-                       form_data.data=question['question']
+                   if not communityQuestions.objects.filter(community=community,question_title=question['question']).exists():
+                       form_data=communityQuestions()
+                       form_data.community=community
+                       form_data.question_title=question['question']
+                       form_data.value="text"
                        form_data.save()
 
             return JsonResponse({"success": True})
@@ -894,11 +896,11 @@ def add_questions(request,community_id):
 
 def delete_questions(request,question_id):
     '''function to delelte the questions'''
-    form_data=Form_data.objects.filter(id=question_id)
+    form_data=communityQuestions.objects.filter(id=question_id)
     community_id=0
     for i in form_data:
-        community_id=i.community_id.id
-    Form_data.objects.filter(id=question_id).delete()
+        community_id=i.community.id
+    communityQuestions.objects.filter(id=question_id).delete()
     url='/admin_dashboard/add_questions/'+str(community_id)
     return redirect(url)
 
@@ -906,7 +908,7 @@ def delete_questions(request,question_id):
 def add_dropdown_responses(request,question_id):
 
     '''adding the dropdown reponses'''
-    form_data = Form_data.objects.get(id=question_id)
+    form_data = communityQuestions.objects.get(id=question_id)
     if request.method == "GET":
 
         # dropdown_list=["Ford", "BMW", "Fiat"]
@@ -915,13 +917,13 @@ def add_dropdown_responses(request,question_id):
         dropdown_list=[]
         dropdown_status=0
         if form_data.question_state:
-            dropdown_list=json.loads(form_data.dropdown_list)
+            dropdown_list=json.loads(form_data.value)
             dropdown_status=form_data.question_state
 
         context={
                 'dropdown_list':dropdown_list,
                 'question_id':question_id,
-                'question_name':form_data.data,
+                'question_name':form_data.question_title,
                 'length':len(dropdown_list),
                 'dropdown_status': dropdown_status,
                 'dropdown_selection_limit':form_data.dropdown_selection_limit
@@ -940,13 +942,13 @@ def add_dropdown_responses(request,question_id):
             dropdown_list.append(option['option'])
         if dropdown_list:
             dropdown_list=json.dumps(dropdown_list)
-            form_data.dropdown_list=dropdown_list
+            form_data.value=dropdown_list
             form_data.question_state=dropdown_state
             form_data.dropdown_selection_limit=dropdown_limit if dropdown_limit else None
             form_data.save()
             return JsonResponse({"success": True})
         else:
-            form_data.dropdown_list=None
+            form_data.value=None
             form_data.question_state=0
             form_data.save()
             return JsonResponse({"success":False})

@@ -764,7 +764,7 @@ def join_community(request, community_id,ref_id):
             return True, validation_error, user, question_format, community, []
 
 def get_community_questions(community_id):
-    questions = Form_data.objects.filter(community_id=community_id).order_by('id')
+    questions = communityQuestions.objects.filter(community=community_id).order_by('id')
     question_format = []
 
     for each_question in questions:
@@ -772,12 +772,12 @@ def get_community_questions(community_id):
         if each_question.question_state:
             temp['question_state'] = each_question.question_state
             temp['dropdown_list'] = json.loads(each_question.dropdown_list)
-            temp['data'] = each_question.data
+            temp['data'] = each_question.question_title
         else:
             temp['question_state'] = each_question.question_state
             temp['dropdown_list'] = []
             temp['data'] = each_question.data
-        temp['data_type'] = each_question.data_type
+        #temp['data_type'] = each_question.data_type
         temp['id']=each_question.id
         if each_question.dropdown_selection_limit:
             temp['max_selections']=each_question.dropdown_selection_limit

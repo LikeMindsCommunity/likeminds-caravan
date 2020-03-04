@@ -45,6 +45,9 @@ else:
     eligibility_count = 5
     ig_members_count = 4
 
+    feedback_community_id = 20739
+    feedback_collabcard_id = 1025
+
 # count for a particular community to show tutorial
 tutorial_count=3
 
