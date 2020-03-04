@@ -41,15 +41,16 @@ class CommunityTypes(enum.IntEnum):
     TYPE_LC_GC = 0
     TYPE_LH_GC = 1
     TYPE_LC_PS = 2
-    TYPE_IH_GC = 3
-    TYPE_IS_GC = 4
-    TYPE_IF_GC = 5
-    TYPE_IC_GC = 6
-    TYPE_PI_GC = 7
-    TYPE_PS_GC = 8
-    TYPE_GN = 9
-    TYPE_SS_GN = 10
-    TYPE_SS_GC = 11
+    TYPE_LC_PI = 3
+    TYPE_IH_GC = 4
+    TYPE_IS_GC = 5
+    TYPE_IF_GC = 6
+    TYPE_IC_GC = 7
+    # TYPE_PI_GC = 8
+    # TYPE_PS_GC = 9
+    # TYPE_GN = 10
+    # TYPE_SS_GN = 11
+    # TYPE_SS_GC = 12
 
 # community attributes
 class CommunityAttributes(enum.IntEnum):
