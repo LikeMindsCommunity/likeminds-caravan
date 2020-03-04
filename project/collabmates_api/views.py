@@ -329,7 +329,7 @@ def similar_community(request, community_id):
 def join_community(request, community_id):
     '''function to get questions of community'''
 
-    data = Form_data.objects.filter(community_id=community_id).order_by("id")
+    data = communityQuestions.objects.filter(community=community_id).order_by("id")
     community_instance=Community.objects.get(id=community_id)
     reqd_info = []
     first_question = False
@@ -339,16 +339,16 @@ def join_community(request, community_id):
                     'question_state': 3,
                     }
             if i.question_state == 1:
-                ques['dropdown_list'] = json.loads(i.dropdown_list)
+                ques['dropdown_list'] = json.loads(i.value)
             first_question = True
         else:
 
-            ques = {'question': i.data}
+            ques = {'question': i.question_title}
             if i.question_state == 1:
-                ques['dropdown_list'] = json.loads(i.dropdown_list)
+                ques['dropdown_list'] = json.loads(i.value)
                 ques['question_state'] = 1
             elif i.question_state == 2:
-                ques['dropdown_list'] = json.loads(i.dropdown_list)
+                ques['dropdown_list'] = json.loads(i.value)
                 ques['question_state'] = 2  # multiselect for android only
             elif i.question_state == 0:
                 ques['question_state'] = 0  # no limit on answer condition for android
@@ -3929,14 +3929,14 @@ def edit_questions(questions, community_id):
     '''function to edit questions of community'''
 
     community_object = Community.objects.get(id=community_id)
-    Form_data.objects.filter(community_id=community_object).delete()
+    communityQuestions.objects.filter(community=community_object).delete()
     print('Previous Questions Deleted')
 
     for question in questions:
         # if any new question is added -- Insert functionality
-        question_object = Form_data()
-        question_object.data = question['key']
-        question_object.community_id = community_object
+        question_object = communityQuestions()
+        question_object.question_title = question['key']
+        question_object.community = community_object
         question_object.save()
 
     print('questions updated successfully')

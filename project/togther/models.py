@@ -597,3 +597,19 @@ class collabcardTemp(models.Model):
     show_member=models.ForeignKey(User, on_delete=models.CASCADE,related_name='show_member_id')
     state=models.IntegerField(default=0)
 
+
+class communityQuestions(models.Model):
+
+    '''model to save community questions'''
+
+    community = models.ForeignKey(Community, on_delete=models.CASCADE)
+    question_title = models.TextField(null=True)
+    question_state = models.IntegerField(default=0)
+    value = models.TextField(null=True)
+    dropdown_selection_limit = models.IntegerField(null=True)
+    optional=models.BooleanField(default=False)
+
+
+
+
+
