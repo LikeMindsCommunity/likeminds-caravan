@@ -54,7 +54,7 @@ def migrate_community_answers():
 
 
 start_time=time.time()
-#migrate_community_questions()
+migrate_community_questions()
 migrate_community_answers()
 end_time=time.time()
 
