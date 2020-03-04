@@ -156,8 +156,8 @@ def FormResponseSerilaizer(community_id, user_id):
         # getting the answers of the users who requested to join
         # for the questions that have been asked while requestiong to join in a community
         response_object = {}
-        response_object['key'] = response.data
-        response_object['value'] = response.response
+        response_object['key'] = response.question_title
+        response_object['value'] = response.question_answer
         user_response.append(response_object)
 
     return user_response
