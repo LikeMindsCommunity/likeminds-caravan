@@ -92,7 +92,10 @@ class CommunityType(View):
             community_type = ''
             community_type_map = CommunityTypes.TYPE_NONE
 
-            if not self.city_exists and self.legacy_queryset.exists() and self.profession_queryset.exists() and self.interest_queryset.exists():
+            if not self.city_exists and not self.legacy_queryset.exists() and not self.profession_queryset.exists() and not self.interest_queryset.exists():
+                pass
+
+            elif not self.geography_queryset.count() <= 1 and not self.legacy_queryset.count() <= 1 and not self.profession_queryset.count() <= 1 and not self.interest_queryset.count() <= 1:
                 pass
 
             elif self.is_community_type_lc_gc():
