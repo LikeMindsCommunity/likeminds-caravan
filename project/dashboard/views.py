@@ -753,7 +753,7 @@ def all_members(request,community_id):
     '''function to show all members of the community'''
 
     members_info=Members.objects.filter(community_id=community_id).order_by('created_at')
-    form_responses=Form_response.objects.filter(community=community_id)
+    form_responses=communityAnswers.objects.filter(community=community_id)
     print(form_responses)
     has_questions=False
     if form_responses:
@@ -833,14 +833,14 @@ def delete_members(request,community_id,member_id):
 def show_member_responses(request,community_id,member_id):
 
     ''' function to show member responses '''
-    form_responses=Form_response.objects.filter(user=member_id,community=community_id)
+    form_responses=communityAnswers.objects.filter(member=member_id,community=community_id)
     response_list=[]
     community_instance=Community.objects.get(id=community_id)
     user_instance=User.objects.get(id=member_id)
     for response in form_responses:
         temp={}
-        temp['question']=response.data
-        temp['answer']=response.response
+        temp['question']=response.question_title
+        temp['answer']=response.question_answer
         response_list.append(temp)
     context={
         'response_list':response_list,
