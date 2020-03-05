@@ -16,9 +16,9 @@ card_action = (
 
 class Community(models.Model):
     name = models.CharField(max_length=200)
-    about = models.TextField()
+    about = models.TextField(null=True)
     purpose = models.CharField(max_length=2048)
-    location = models.CharField(max_length=200)
+    location = models.CharField(max_length=200,null=True)
     image_url = models.ImageField(upload_to="media/community", null=True)
     members_count = models.IntegerField(default=0)
     active_since = models.DateField(auto_now_add=True)
@@ -32,6 +32,7 @@ class Community(models.Model):
     thumbnail = models.CharField(max_length=500, null=True)
     introduction_text_state = models.IntegerField(default=0)
     type = models.IntegerField(default=0)
+    community_type=models.TextField(null=True)
 
     def __str__(self):
         return self.name
