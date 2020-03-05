@@ -92,7 +92,10 @@ class CommunityType(View):
             community_type = ''
             community_type_map = CommunityTypes.TYPE_NONE
 
-            if not self.city_exists and self.legacy_queryset.exists() and self.profession_queryset.exists() and self.interest_queryset.exists():
+            if not self.city_exists and not self.legacy_queryset.exists() and not self.profession_queryset.exists() and not self.interest_queryset.exists():
+                pass
+
+            elif not self.geography_queryset.count() <= 1 and not self.legacy_queryset.count() <= 1 and not self.profession_queryset.count() <= 1 and not self.interest_queryset.count() <= 1:
                 pass
 
             elif self.is_community_type_lc_gc():
@@ -106,6 +109,10 @@ class CommunityType(View):
             elif self.is_community_type_lc_ps():
                 community_type = "LC_PS"
                 community_type_map = CommunityTypes.TYPE_LC_PS
+
+            elif self.is_community_type_lc_pi():
+                community_type = "LC_PI"
+                community_type_map = CommunityTypes.TYPE_LC_PI
 
             elif self.is_community_type_ih_gc():
                 community_type = "IH_GC"
@@ -123,13 +130,13 @@ class CommunityType(View):
                 community_type = "IC_GC"
                 community_type_map = CommunityTypes.TYPE_IC_GC
 
-            elif self.is_community_type_pi_gc():
-                community_type = "PI_GC"
-                community_type_map = CommunityTypes.TYPE_PI_GC
-
-            elif self.is_community_type_ps_gc():
-                community_type = "PS_GC"
-                community_type_map = CommunityTypes.TYPE_PS_GC
+            # elif self.is_community_type_pi_gc():
+            #     community_type = "PI_GC"
+            #     community_type_map = CommunityTypes.TYPE_PI_GC
+            #
+            # elif self.is_community_type_ps_gc():
+            #     community_type = "PS_GC"
+            #     community_type_map = CommunityTypes.TYPE_PS_GC
 
             # elif self.is_community_type_gn:
             #     community_type = "GN"
@@ -210,6 +217,28 @@ class CommunityType(View):
         college = self.legacy_queryset.filter(tags_id__attribute_id__id=CommunityAttributes.Legacy_education)
         skill = self.profession_queryset.filter(tags_id__attribute_id__id=CommunityAttributes.Profession_skill)
         if college.exists() and skill.exists():
+            return True
+        return False
+
+        # LC_PS
+    def is_community_type_lc_pi(self, community_id=None, community_instance=None):
+
+        if self.legacy_queryset and self.profession_queryset:
+            pass
+        elif community_instance:
+            self.community_instance = community_instance
+            self.set_legacy_queryset()
+            self.set_profession_queryset()
+
+        elif community_id:
+            community_instance = Community.objects.get(pk=community_id)
+            self.community_instance = community_instance
+            self.set_legacy_queryset()
+            self.set_profession_queryset()
+
+        college = self.legacy_queryset.filter(tags_id__attribute_id__id=CommunityAttributes.Legacy_education)
+        industry = self.profession_queryset.filter(tags_id__attribute_id__id=CommunityAttributes.Profession_industry)
+        if college.exists() and industry.exists():
             return True
         return False
 

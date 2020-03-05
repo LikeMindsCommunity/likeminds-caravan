@@ -33,6 +33,7 @@ class Community(models.Model):
     introduction_text_state = models.IntegerField(default=0)
     type = models.IntegerField(default=0)
     community_type=models.TextField(null=True)
+   
 
     def __str__(self):
         return self.name
