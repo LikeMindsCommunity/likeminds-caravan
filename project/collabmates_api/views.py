@@ -1534,7 +1534,7 @@ def create_community_version_1(request):
     community_instance.name=community_name
     community_instance.purpose=purpose
     community_instance.members_count=1
-
+    community_instance.image_link="https://beta.collabmates.com/media/media/community/default.jpeg"
     if community_type:
         community_instance.community_type=community_type
     community_instance.created_at=time.time()
@@ -1564,7 +1564,7 @@ def create_community_version_1(request):
         questions_instance.question_title=question['question_title']
         questions_instance.question_state=question['state']
         questions_instance.value=question['value']
-        questions_instance.optinal=question['optional']
+        questions_instance.optional=question['optional']
         questions_instance.save()
 
     log = """questions added in community questions table"""
