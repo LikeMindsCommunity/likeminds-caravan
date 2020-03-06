@@ -9,9 +9,15 @@ urlpatterns = [
     path('community/<int:community_id>', api_views.community, name="community"),
     path('similar_communities/<int:community_id>', api_views.similar_community, name="similar_community"),
     path('community/<int:community_id>/questions', api_views.join_community, name="join"),
+
     path('join_community', views.join_community_responses, name="join_community_responses"),
+    path('v1/join_community', views.join_community_responses_version_1, name="join_community_responses_version_1"),
+
     path('categories', api_views.categories, name="categories"),
+
     path('create_community', api_views.create_community, name="create_community"),
+    path('v1/create_community',api_views.create_community_version_1,name='create_community_version_1'),
+
     path('community/<str:category>', api_views.category_filter, name="category_filter"),
     path('user/<int:user_id>', api_views.user, name="user"),
     path('admins/<int:community_id>', api_views.admins, name="admins"),
@@ -61,6 +67,7 @@ urlpatterns = [
     path('community_collabcard_meta', api_views.community_collabcard_meta, name='community_collabcard_meta'),
     path('collabcard_poll', api_views.collabcard_poll, name='collabcard_poll'),
 
-    path('get_csrf_token', api_views.get_csrf_token, name='get_csrf_token'),
+    path('fetch_whatsapp_tool', api_views.fetch_whatsapp_tool, name='fetch_whatsapp_tool'),
+    path('questions', api_views.questions, name='questions'),
 
 ]

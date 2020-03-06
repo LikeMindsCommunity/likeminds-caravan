@@ -766,12 +766,14 @@ def join_community(request, community_id,ref_id):
 def get_community_questions(community_id):
     questions = communityQuestions.objects.filter(community=community_id).order_by('id')
     question_format = []
-
+    dropdown_list=[]
     for each_question in questions:
         temp = {}
         if each_question.question_state:
             temp['question_state'] = each_question.question_state
-            temp['dropdown_list'] = json.loads(each_question.dropdown_list)
+            if temp['question_state'] == 1 or temp['question_state'] == 2:
+                dropdown_list=each_question.value.split(",")
+            temp['dropdown_list'] = dropdown_list
             temp['data'] = each_question.question_title
         else:
             temp['question_state'] = each_question.question_state
@@ -782,7 +784,7 @@ def get_community_questions(community_id):
         if each_question.dropdown_selection_limit:
             temp['max_selections']=each_question.dropdown_selection_limit
         question_format.append(temp)
-
+    print(question_format)
     return question_format
 
 
