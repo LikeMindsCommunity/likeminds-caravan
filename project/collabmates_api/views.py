@@ -29,7 +29,7 @@ from utility.celery_tasks import (save_community_purpose_card,
                                   )
 from utility.firebase import update_last_answer_id, upload_image_to_firebase, upload_community_thumbnail, \
     upload_community_files
-from utility.states import collabcard_states, member_states
+from utility.states import collabcard_states, member_states,question_states
 from utility.tasks import (mail_triger, new_member_request,
                            member_request_approval_or_denied,
                            send_mail_for_report_abuse,
@@ -775,8 +775,6 @@ def join_community_responses_version_1(request):
     return JsonResponse({'success': True})
 
 
-
-
 def join_ig_communities_version_1(request,res,community,user,ref_id):
 
     '''join api for ig communities'''
@@ -960,34 +958,79 @@ def join_whatsapp_community(res,request):
     community_id = res['community_id']
     community_instance = Community.objects.get(id=community_id)
 
-    if community_instance.hide_community == '5':
 
-        member_id = get_member_id_from_headers(request)
-        user_instance = User.objects.get(id=member_id)
 
-        if 'questions' in res:
+    member_id = get_member_id_from_headers(request)
+    user_instance = User.objects.get(id=member_id)
 
-            for question in res['questions']:
-                question_instance = communityQuestions.objects.get(id=question['id'])
-                answer_instance = communityAnswers()
-                answer_instance.question = question_instance
-                answer_instance.member = user_instance
-                answer_instance.community = community_instance
-                answer_instance.question_answer = question['value']
-                answer_instance.question_title = question_instance.question_title
-                answer_instance.save()
+    if 'questions' in res:
 
-        member_list = Members.objects.filter(member_id=user_instance, community_id=community_instance)
+        for question in res['questions']:
+            question_instance = communityQuestions.objects.get(id=question['id'])
+            answer_instance = communityAnswers()
+            answer_instance.question = question_instance
+            answer_instance.member = user_instance
+            answer_instance.community = community_instance
+            answer_instance.question_answer = question['value']
+            answer_instance.question_title = question_instance.question_title
+            answer_instance.save()
 
-        if member_list:
-            member_state = member_list[0].state
-            return JsonResponse({'success': True})
+    member_list = Members.objects.filter(member_id=user_instance, community_id=community_instance)
+    if member_list:
+        member_state = member_list[0].state
+        if member_state == member_states.ADMIN:
+            post_introduction_card_for_whatsapp_community(community_id,member_id,request)
         else:
-            member_instance = Members()
-            member_instance.member_id = user_instance
-            member_instance.community_id = community_instance
-            member_instance.state = member_states.PENDING_MEMBER
-            member_instance.save()
+            Members.objects.filter(member_id=user_instance,community_id=community_instance).update(
+                    state=member_states.PENDING_MEMBER)
+
+            Members_Engage.objects.filter(member_id=user_instance,community_id=community_instance).update(
+                    member_state=member_states.PENDING_MEMBER)
+        return JsonResponse({'success': True})
+    else:
+
+        #updating the member instance
+        member_instance = Members()
+        member_instance.member_id = user_instance
+        member_instance.community_id = community_instance
+        member_instance.state = member_states.PENDING_MEMBER
+        member_instance.save()
+
+        #updating the member engage instance
+        engage = Member_Engage()
+        engage.member_id = user_instance
+        engage.community_id = community_instance
+        engage.updated_at = time.time()
+        engage.member_state = member_states.PENDING_MEMBER
+        engage.save()
+
+
+
+
+
+def post_introduction_card_for_whatsapp_community(community_id,member_id,request):
+
+    '''fucntion to get introduction card of community'''
+
+    check_intro=collabcardQuestions.objects.filter(community=community_id,question_state=question_states.INTRODUCTION)
+
+    if check_intro.exists():
+        question_id=check_intro[0].id
+        introduction_answer_list=collabcardAnswers.objects.filter(community=community_id,member=member_id,question_id=question_id)
+        if introduction_answer_list.exists():
+            introduction_answer=introduction_answer_list[0].question_answer
+            req_dict = {
+
+                'member_id': member_id,
+                'community_id': community_id,
+                'title': introduction_answer,
+                'type': 1,
+                'create_intro': 1
+            }
+            create_card(request, req_dict=req_dict)
+            return True
+
+    return False
 
 
 
@@ -1556,6 +1599,15 @@ def create_community_version_1(request):
     member_instance.community_id=community_instance
     member_instance.state=member_states.ADMIN
     member_instance.created_at=time.time()
+
+    #making the member enage instance for created community
+    engage = Member_Engage()
+    engage.member_id = user_instance
+    engage.community_id = community_instance
+    engage.updated_at = time.time()
+    engage.member_state = member_states.ADMIN
+    engage.save()
+
 
     log = """%s is the promoter of %s"""%(user_instance.userinfo.name,community_instance.name)
     info_logger.info(log)
