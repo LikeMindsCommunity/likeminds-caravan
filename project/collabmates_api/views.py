@@ -674,7 +674,7 @@ def join_community_responses_version_1(request):
 
 
     res = json.loads(request.body)
-
+    info_logger.info(res)
     community_id = res['community_id']
     community_instance = Community.objects.get(id=community_id)
     community=community_instance
@@ -682,7 +682,7 @@ def join_community_responses_version_1(request):
 
     #for whatsapp community
     if community_instance.hide_community == '5':
-        join_whatsapp_community(res)
+        join_whatsapp_community(res,request)
         return JsonResponse({'success': True})
 
 
