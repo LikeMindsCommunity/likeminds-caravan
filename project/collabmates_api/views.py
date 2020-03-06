@@ -674,7 +674,9 @@ def join_community_responses_version_1(request):
 
 
     res = json.loads(request.body)
+    info_logger.info("\n")
     info_logger.info(res)
+    info_logger.info("\n")
     community_id = res['community_id']
     community_instance = Community.objects.get(id=community_id)
     community=community_instance
@@ -961,7 +963,7 @@ def join_whatsapp_community(res,request):
         member_id = get_member_id_from_headers(request)
         user_instance = User.objects.get(id=member_id)
 
-        if 'questions' in res['questions']:
+        if 'questions' in res:
 
             for question in res['questions']:
                 question_instance = communityQuestions.objects.get(id=question['id'])
