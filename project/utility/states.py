@@ -74,3 +74,15 @@ class CommunityAttributes(enum.IntEnum):
     Profession_uncategorized = 18
     Interests_uncategorized = 19
     Geography_uncategorized = 20
+
+
+class QuestionStates:
+    TEXT = 0
+    CHOICE_SINGLE = 1
+    CHOICE_MULTIPLE = 2
+    PARAGRAPH = 4
+    FILE_UPLOAD = 5
+    DATE_TIME = 6
+    INTRODUCTION = 7
+
+question_states=QuestionStates()
