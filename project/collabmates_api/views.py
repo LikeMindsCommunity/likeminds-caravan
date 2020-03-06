@@ -672,7 +672,7 @@ def questions(request):
 def join_community_responses_version_1(request):
 
 
-    info_logger("Join community request\n")
+    info_logger.info("Join community request\n")
     info_logger.info(request.body)
     res = json.loads(request.body)
 
