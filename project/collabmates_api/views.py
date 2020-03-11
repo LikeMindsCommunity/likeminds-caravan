@@ -371,6 +371,9 @@ def join_community_responses(request):
     user_id = request.GET.get('member_id')
     community_id = request.GET.get('community_id')
 
+    if 'questions' not in res:
+        res['questions'] = None
+
     community = Community.objects.get(id=community_id)
 
     is_private=False
@@ -426,11 +429,6 @@ def join_community_responses(request):
 
                     send_notification_to_promoter_of_ig_community.delay(community_id=community.id,
                                                                   community_name=community.name,member_id=ref_id)
-
-
-
-
-
         if not ref_id:
             # sending mail to nipun and harsh
             new_member_request.delay(member_id=user_id, community_id=community_id, ref_id=None,
@@ -445,7 +443,6 @@ def join_community_responses(request):
     elif is_lg:
         print("LG community")
         join_lg_communities(request,res,community,user,ref_id)
-
 
         if not ref_id:
             # sending mail to nipun and harsh
