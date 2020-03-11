@@ -917,7 +917,14 @@ def add_dropdown_responses(request,question_id):
         dropdown_list=[]
         dropdown_status=0
         if form_data.question_state:
-            dropdown_list=json.loads(form_data.value)
+            dropdown_list=form_data.value.split(",")
+            for index, item in enumerate(dropdown_list):
+                item = item.strip()
+                if item[0] == '"':
+                    item = item[1:]
+                if item[-1] == '"':
+                    item = item[:-1]
+                dropdown_list[index] = item
             dropdown_status=form_data.question_state
 
         context={
@@ -941,7 +948,11 @@ def add_dropdown_responses(request,question_id):
         for option in option_data:
             dropdown_list.append(option['option'])
         if dropdown_list:
-            dropdown_list=json.dumps(dropdown_list)
+            if dropdown_list[0][0] == '[':
+                dropdown_list[0] = dropdown_list[0][1:]
+                dropdown_list[-1] = dropdown_list[-1][:-1]
+
+            dropdown_list=",".join(dropdown_list)
             form_data.value=dropdown_list
             form_data.question_state=dropdown_state
             form_data.dropdown_selection_limit=dropdown_limit if dropdown_limit else None
