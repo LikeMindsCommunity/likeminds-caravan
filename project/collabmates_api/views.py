@@ -278,6 +278,8 @@ def community(request, community_id):
     elif community.hide_community == '0' or community.hide_community == '1':
         serialized_object['share_url'] = serialized_object['share_url'] + "?cta=share"
 
+    serialized_object['private_link']=serialized_object['share_url']+"?aj=t"
+
     # form a dictionary of community objects
     new_dict.update(serialized_object)
     if community:
@@ -958,8 +960,6 @@ def join_whatsapp_community(res,request):
     community_id = res['community_id']
     community_instance = Community.objects.get(id=community_id)
 
-
-
     member_id = get_member_id_from_headers(request)
     user_instance = User.objects.get(id=member_id)
 
@@ -975,17 +975,33 @@ def join_whatsapp_community(res,request):
             answer_instance.question_title = question_instance.question_title
             answer_instance.save()
 
+
+    #saving data directly
+    if 'timestamp' in res:
+        auto_join= is_joining_time_valid(community_instance,res['timestamp'])
+        if auto_join:
+            auto_join_community(community_instance,user_instance)
+            post_introduction_card_for_whatsapp_community(community_id, member_id, request)
+            print("Everything is fine")
+            return
+
+
+
     member_list = Members.objects.filter(member_id=user_instance, community_id=community_instance)
+
+
     if member_list:
         member_state = member_list[0].state
         if member_state == member_states.ADMIN:
             post_introduction_card_for_whatsapp_community(community_id,member_id,request)
         else:
+
             Members.objects.filter(member_id=user_instance,community_id=community_instance).update(
-                    state=member_states.PENDING_MEMBER)
+                        state=member_states.PENDING_MEMBER)
 
             Members_Engage.objects.filter(member_id=user_instance,community_id=community_instance).update(
-                    member_state=member_states.PENDING_MEMBER)
+                state=member_states.PENDING_MEMBER)
+
         return JsonResponse({'success': True})
     else:
 
@@ -1007,16 +1023,50 @@ def join_whatsapp_community(res,request):
 
 
 
+def is_joining_time_valid(community_instance,time_stamp):
+
+    '''function to check whether community joining time is valid or not'''
+
+    duration=communityExpire.objects.filter(community=community_instance)
+    time_stamp=int(time_stamp)
+    if duration:
+        duration=duration[0].duration
+        if (time_stamp-community_instance.created_at) <= duration:
+            return True
+    else:
+        return False
+
+    return False
+
+
+def auto_join_community(community_instance,user_instance):
+
+    # updating the member instance
+    member_instance = Members()
+    member_instance.member_id = user_instance
+    member_instance.community_id = community_instance
+    member_instance.state = member_states.MEMBER
+    member_instance.created_at=time.time()
+    member_instance.save()
+
+    # updating the member engage instance
+    engage = Member_Engage()
+    engage.member_id = user_instance
+    engage.community_id = community_instance
+    engage.updated_at = time.time()
+    engage.member_state = member_states.MEMBER
+    engage.save()
+
 
 def post_introduction_card_for_whatsapp_community(community_id,member_id,request):
 
     '''fucntion to get introduction card of community'''
 
-    check_intro=collabcardQuestions.objects.filter(community=community_id,question_state=question_states.INTRODUCTION)
+    check_intro=communityQuestions.objects.filter(community=community_id,question_state=question_states.INTRODUCTION)
 
     if check_intro.exists():
         question_id=check_intro[0].id
-        introduction_answer_list=collabcardAnswers.objects.filter(community=community_id,member=member_id,question_id=question_id)
+        introduction_answer_list=communityAnswers.objects.filter(community=community_id,member=member_id,question_id=question_id)
         if introduction_answer_list.exists():
             introduction_answer=introduction_answer_list[0].question_answer
             req_dict = {
@@ -1625,6 +1675,14 @@ def create_community_version_1(request):
 
     log = """questions added in community questions table"""
     info_logger.info(log)
+
+
+    check_data=communityExpire.objects.filter(community=community_instance)
+    if not check_data:
+        communityExpireInstance=communityExpire()
+        communityExpireInstance.community=community_instance
+        communityExpireInstance.duration=86400                  #for 24 hours saving in community
+        communityExpireInstance.save()
     return JsonResponse({'success':True})
 
 

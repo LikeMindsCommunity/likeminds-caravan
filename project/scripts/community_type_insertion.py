@@ -157,11 +157,11 @@ def send_string_dropdown(test):
     option = ""
     if len(question) == 2:
         question1 = question[0]
-        print(question1)
+        #print(question1)
         option = question[1]
         option = option.replace("$", ",")
         option = option[:-1]
-        print(option)
+        #print(option)
     else:
         question1 = question[0]
 
