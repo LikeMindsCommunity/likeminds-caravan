@@ -654,3 +654,13 @@ class masterQuestions(models.Model):
     help_text=models.TextField(null=True)
     state=models.IntegerField(default=0)
 
+
+# saving the community duration
+class communityExpire(models.Model):
+
+    '''community to save duration of community when it got expired'''
+
+    duration=models.BigIntegerField(default=0)
+    community=models.ForeignKey(Community,on_delete=models.CASCADE)
+
+
