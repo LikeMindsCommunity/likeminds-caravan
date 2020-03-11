@@ -310,19 +310,19 @@ height:35%;
 
                 {% for question in data %}
                 <div class=" required field">
-                    {% if question.data_type == 'text' %}
+
                         {% if question.question_state == 0 %}
                             <label class="Roboto" style="font-size:13px;margin-left:7px;">{{question.data}}</label>
 
                             {% if forloop.counter == 1 %}
-                               <textarea rows="3" cols="4" style="border-radius: 10px;" name ="{{question.data}}" minlength="50" required placeholder="This will be visible to all the members of the community" oninput="check(this)" id="length_check"></textarea>
+                               <textarea rows="3" cols="4" style="border-radius: 10px;" name ="{{question.id}}" minlength="50" required placeholder="This will be visible to all the members of the community" oninput="check(this)" id="length_check"></textarea>
                             {% else %}
-                               <textarea rows="3" cols="4" style="border-radius: 10px;" name ="{{question.data}}" required ></textarea>
+                               <textarea rows="3" cols="4" style="border-radius: 10px;" name ="{{question.id}}" required ></textarea>
                             {% endif %}
                         {% else %}
                              <label class="Roboto" style="font-size:13px;margin-left:7px;" >{{question.data}}</label>
                                 {% if question.question_state == 2 %}
-<!--                                     <input type="hidden" name="{{question.data}}">-->
+<!--                                     <input type="hidden" name="{{question.id}}">-->
 
 <!--                                           <select name="{{question.data}}" multiple="" class="ui search fluid dropdown multiple_select" id="multiple_select" >-->
 <!--                                          <option value="">Enter your choice or select from dropdown</option>-->
@@ -333,7 +333,7 @@ height:35%;
 
                       <div class="ui fluid multiple search selection dropdown {{question.id}}"  style="border-radius: 10px;" >
 
-                                      <input type="hidden" name="{{question.data}}">
+                                      <input type="hidden" name="{{question.id}}">
                                       <i class="dropdown icon"></i>
                                        <div class="default text">Select {{question.max_selections}}</div>
                                     <div class="menu">
@@ -347,7 +347,7 @@ height:35%;
                                 {% else %}
                              <div class="ui selection dropdown single_select" style="border-radius: 10px;" >
 
-                                      <input type="hidden" name="{{question.data}}">
+                                      <input type="hidden" name="{{question.id}}">
                                       <i class="dropdown icon"></i>
                                        <div class="default text">Select</div>
                                     <div class="menu">
@@ -359,7 +359,6 @@ height:35%;
                                 {% endif %}
 
                         {% endif %}
-                    {% endif %}
                 </div>
 
                 {% endfor %}
@@ -438,7 +437,7 @@ height:35%;
                         $('#loading_button').show();
 
                     }else{
-                        alert("Please Right your Introduction in bit more detail")
+                        alert("Please write your Introduction in bit more detail")
                         return;
                     }
 
