@@ -84,5 +84,6 @@ class QuestionStates:
     FILE_UPLOAD = 5
     DATE_TIME = 6
     INTRODUCTION = 7
+    PROFILE_LINK=8
 
 question_states=QuestionStates()
