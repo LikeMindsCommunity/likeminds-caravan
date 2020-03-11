@@ -37,7 +37,7 @@ url = settings.URL
 
 # uncomment to run it in localhost
 #
-#url='http://localhost:8000'
+# url='http://localhost:8000'
 
 api_url = url + '/api/'
 error_logger=logging.getLogger("error_logger")
@@ -710,7 +710,7 @@ def join_community(request, community_id,ref_id):
     similar_communitites = json.loads(res.content)
     similar_communities = similar_communitites['communities'][:10]
 
-    join_url = api_url + 'join_community'
+    join_url = api_url + 'v1/join_community'
 
     community = Community.objects.get(id=community_id)
     validation_error = False
@@ -742,7 +742,7 @@ def join_community(request, community_id,ref_id):
         #         question_format = get_community_questions(community_id)
         #         return True, validation_error, user, question_format, community, values_list
 
-        json_dict = {}
+        json_dict = {"community_id":community_id,"timestamp":time.time()}
         json_dict['questions'] = response_list
 
         params = {'member_id': member_id, 'community_id': community_id,'ref_id':ref_id}
@@ -778,7 +778,7 @@ def get_community_questions(community_id):
         else:
             temp['question_state'] = each_question.question_state
             temp['dropdown_list'] = []
-            temp['data'] = each_question.data
+            temp['data'] = each_question.question_title
         #temp['data_type'] = each_question.data_type
         temp['id']=each_question.id
         if each_question.dropdown_selection_limit:
