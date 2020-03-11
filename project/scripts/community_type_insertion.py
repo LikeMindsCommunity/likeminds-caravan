@@ -1,7 +1,7 @@
 import xlrd
 from togther.models import communityType,communitySubtype,masterQuestions
 from utility.states import question_states
-
+import time
 def get_type_of_community():
 
     loc = ("scripts/community_questions.xlsx")
@@ -188,6 +188,7 @@ def updating_communities():
     #get_community_details(sheet_no=14, typ=4)
 
 
-
+insert_type_of_community()
+time.sleep(2)
 updating_communities()
 print("Communities Updated")
