@@ -917,6 +917,10 @@ def add_dropdown_responses(request,question_id):
         dropdown_list=[]
         dropdown_status=0
         if form_data.question_state:
+            if form_data.value[0] == '[':
+                form_data.value = form_data.value[1:]
+            if form_data.value[-1] == ']':
+                form_data.value[-1] = form_data.value[:-1]
             dropdown_list=form_data.value.split(",")
             for index, item in enumerate(dropdown_list):
                 item = item.strip()
