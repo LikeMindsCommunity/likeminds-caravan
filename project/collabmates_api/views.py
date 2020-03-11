@@ -5233,7 +5233,7 @@ def update_poll_card_text(card_id):
     card.polls_count = total_polls_count
     card.save()
 
-def fetch_whatsapp_tool():
+def fetch_whatsapp_tool(request):
 
     '''fetch whatsapp tool page'''
 
@@ -5269,7 +5269,36 @@ def fetch_whatsapp_tool():
     whatsapp_tool={}
     whatsapp_tool['title']=title
     whatsapp_tool['sub_title']=sub_title
-    whatsapp_tool['list_points']=list_points
+    whatsapp_tool['points']=list_points
+
+
+    #getting types.object
+    community_type_list=communityType.objects.all()
+    types=[]
+    for instance in community_type_list:
+        types.append(communityTypeSerializer(instance))
+
+    # getting sub-types.object
+    community_subtype_list = communitySubtype.objects.all()
+    sub_types = []
+
+    for instance in community_subtype_list:
+        sub_types.append(communitySubtypeSerializer(instance))
+
+
+    #getting master Questions
+    master_question_list=masterQuestions.objects.all()
+    master_questions=[]
+    for instance in master_question_list:
+        master_questions.append(masterQuestionSerializer(instance))
+
+    whatsapp_tool['types'] = types
+    whatsapp_tool['sub_types'] = sub_types
+    whatsapp_tool['master_questions'] = master_questions
+
+
+
+
 
     return JsonResponse({'whatsapp_tool':whatsapp_tool})
 

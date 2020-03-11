@@ -616,11 +616,41 @@ class communityQuestions(models.Model):
 
 class communityAnswers(models.Model):
 
-    '''function to save answers of a user in community'''
+    '''model to save answers of a user in community'''
 
     community = models.ForeignKey(Community, on_delete=models.CASCADE)
     question_title = models.TextField(null=True)
     question_answer=models.TextField()
     member=models.ForeignKey(User, on_delete=models.CASCADE)
     question=models.ForeignKey(communityQuestions, on_delete=models.CASCADE)
+
+
+
+#master questions flow
+
+class communityType(models.Model):
+
+    '''model  to save type of community'''
+
+    typ=models.TextField(null=True)
+    next_input_title=models.TextField(null=True)
+
+
+class communitySubtype(models.Model):
+
+    '''model to save subtype of community'''
+    sub_typ=models.TextField(null=True)
+    typ = models.ForeignKey(communityType, on_delete=models.CASCADE)
+
+
+class masterQuestions(models.Model):
+
+    '''model to save the master questions of community'''
+
+    typ=models.ForeignKey(communityType,on_delete=models.CASCADE)
+    sub_type=models.ForeignKey(communitySubtype,on_delete=models.CASCADE)
+    question_title=models.TextField(null=True)
+    value=models.TextField(null=True)
+    help_text=models.TextField(null=True)
+    state=models.IntegerField(default=0)
 

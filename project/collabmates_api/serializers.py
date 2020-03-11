@@ -174,3 +174,34 @@ def CommunityQuestionsSerializer(community_question_instance):
         'community_id':community_question_instance.community_id,
         'state':community_question_instance.question_state
     }
+
+
+def communityTypeSerializer(communityTypeInstance):
+
+    return {
+
+        'id':communityTypeInstance.id,
+        'type':communityTypeInstance.typ,
+        'next_input_title':communityTypeInstance.next_input_title
+    }
+
+
+def communitySubtypeSerializer(communitySubtypeInstance):
+
+    return {
+        'id':communitySubtypeInstance.id,
+        'sub_type':communitySubtypeInstance.sub_typ
+    }
+
+
+def masterQuestionSerializer(masterQuestionInstance):
+
+    return {
+        'type_id': masterQuestionInstance.typ_id,
+        'sub_type_id' : masterQuestionInstance.sub_type_id,
+        'state' : masterQuestionInstance.state,
+        'question_title' : masterQuestionInstance.question_title,
+        'help_text' : masterQuestionInstance.help_text,
+        'value': masterQuestionInstance.value
+
+    }
