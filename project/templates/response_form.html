@@ -29,8 +29,9 @@
         <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
         <link href="https://fonts.googleapis.com/css?family=Roboto:400,500,500i,700&display=swap" rel="stylesheet">
 
+<script src="https://cdn.rawgit.com/mdehoog/Semantic-UI/6e6d051d47b598ebab05857545f242caf2b4b48c/dist/semantic.min.js"></script>
 
-
+<link href="//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.min.css" rel="stylesheet" type="text/css" />
 <style>
 
 
@@ -308,63 +309,105 @@ height:35%;
             <form class="ui form"   onsubmit="return false" id="response_form">
                 {% csrf_token %}
 
-                {% for question in data %}
-                <div class=" required field">
 
-                        {% if question.question_state == 0 %}
+<!--    TEXT = 0-->
+<!--    CHOICE_SINGLE = 1-->
+<!--    CHOICE_MULTIPLE = 2-->
+<!--    TEXT_WITH_LIMIT = 3-->
+<!--    PARAGRAPH = 4-->
+<!--    FILE_UPLOAD = 5-->
+<!--    DATE_TIME = 6-->
+<!--    INTRODUCTION = 7-->
+<!--    PROFILE_LINK=8-->
+<!--    MOBILE_NO = 9-->
+<!--    EMAIL_ID = 10-->
+
+                {% for question in data %}
+                    {% if question.optional%}
+                    <div class="field">
+                    {% else %}
+                    <div class="required field">
+                    {% endif %}
+                        {% if question.question_state == 0 or question.question_state == 4 or question.question_state == 7 %}
+                        <!--    TEXT = 0  PARAGRAPH = 4 INTRODUCTION = 7  -->
+                            <label class="Roboto" style="font-size:13px;margin-left:7px;">{{question.data}}</label>
+                            {% if question.question_state == 4 or question.question_state == 7 %}
+                                <textarea rows="4" cols="4" style="border-radius: 10px;" name ="{{question.id}}" required ></textarea>
+                            {% else %}
+                                <textarea rows="2" cols="4" style="border-radius: 10px;" name ="{{question.id}}" required ></textarea>
+                            {% endif %}
+
+                        {% elif question.question_state == 1 %}
+                        <!--    CHOICE_SINGLE = 1-->
+                            <label class="Roboto" style="font-size:13px;margin-left:7px;" >{{question.data}}</label>
+                            <div class="ui selection dropdown single_select" style="border-radius: 10px;height:50px;" >
+
+                                <input type="hidden" name="{{question.id}}">
+                                <i class="dropdown icon"></i>
+                                <div class="default text">Select</div>
+                                <div class="menu">
+                                    {% for option in question.dropdown_list %}
+                                        <div class="item" data-value="{{option}}">{{option}}</div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        {% elif question.question_state == 2 %}
+                        <!--    CHOICE_MULTIPLE = 2-->
+                            <label class="Roboto" style="font-size:13px;margin-left:7px;" >{{question.data}}</label>
+
+                            <div class="ui fluid multiple search selection dropdown {{question.id}}"  style="border-radius: 10px;height:50px;" >
+
+                                <input type="hidden" name="{{question.id}}">
+                                <i class="dropdown icon"></i>
+                                <div class="default text">Select {{question.max_selections}}</div>
+                                <div class="menu">
+                                    {% for option in question.dropdown_list %}
+                                    <div class="item" data-value="{{option}}">{{option}}</div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        {% elif question.question_state == 3 %}
+                        <!--    TEXT_WITH_LIMIT = 3-->
+                            <label class="Roboto" style="font-size:13px;margin-left:7px;">{{question.data}}</label>
+                            <textarea rows="2" cols="4" style="border-radius: 10px;" name ="{{question.id}}" minlength="50" required placeholder="" oninput="check(this)" id="length_check"></textarea>
+                        {% elif question.question_state == 5 %}
+                        <!--    FILE_UPLOAD = 5-->
+                            <label class="Roboto" style="font-size:13px;margin-left:7px;">{{question.data}}</label>
+                            <div class="ui action input">
+                                <input type="file" formenctype="multipart/form-data">
+                                <div class="ui icon button">
+                                    <i class="attach icon"></i>
+                                </div>
+                            </div>
+                        {% elif question.question_state == 6 %}
+                        <!--    DATE_TIME = 6-->
                             <label class="Roboto" style="font-size:13px;margin-left:7px;">{{question.data}}</label>
 
-                            {% if forloop.counter == 1 %}
-                               <textarea rows="3" cols="4" style="border-radius: 10px;" name ="{{question.id}}" minlength="50" required placeholder="This will be visible to all the members of the community" oninput="check(this)" id="length_check"></textarea>
-                            {% else %}
-                               <textarea rows="3" cols="4" style="border-radius: 10px;" name ="{{question.id}}" required ></textarea>
-                            {% endif %}
-                        {% else %}
-                             <label class="Roboto" style="font-size:13px;margin-left:7px;" >{{question.data}}</label>
-                                {% if question.question_state == 2 %}
-<!--                                     <input type="hidden" name="{{question.id}}">-->
-
-<!--                                           <select name="{{question.data}}" multiple="" class="ui search fluid dropdown multiple_select" id="multiple_select" >-->
-<!--                                          <option value="">Enter your choice or select from dropdown</option>-->
-<!--                                           {% for option in question.dropdown_list %}-->
-<!--                                                <option value="{{option}}">{{option}}</option>-->
-<!--                                           {% endfor %}-->
-<!--                                        </select>-->
-
-                      <div class="ui fluid multiple search selection dropdown {{question.id}}"  style="border-radius: 10px;" >
-
-                                      <input type="hidden" name="{{question.id}}">
-                                      <i class="dropdown icon"></i>
-                                       <div class="default text">Select {{question.max_selections}}</div>
-                                    <div class="menu">
-                                        {% for option in question.dropdown_list %}
-                                                <div class="item" data-value="{{option}}">{{option}}</div>
-                                        {% endfor %}
-                                     </div>
+                            <div class="ui calendar" id="calender_input">
+                                <div class="ui input right icon">
+                                    <input type="text" placeholder="dd/mm/yyyy" name ="{{question.id}}">
+                                    <i class="calendar alternate outline icon"></i>
                                 </div>
+                            </div>
 
-
-                                {% else %}
-                             <div class="ui selection dropdown single_select" style="border-radius: 10px;" >
-
-                                      <input type="hidden" name="{{question.id}}">
-                                      <i class="dropdown icon"></i>
-                                       <div class="default text">Select</div>
-                                    <div class="menu">
-                                        {% for option in question.dropdown_list %}
-                                                <div class="item" data-value="{{option}}">{{option}}</div>
-                                        {% endfor %}
-                                     </div>
-                                </div>
-                                {% endif %}
-
+                        {% elif question.question_state == 8 %}
+                        <!--    PROFILE_LINK=8-->
+                            <label class="Roboto" style="font-size:13px;margin-left:7px;">{{question.data}}</label>
+                            <textarea rows="2" cols="4" style="border-radius: 10px;" name ="{{question.id}}" minlength="50" required placeholder="" oninput="check(this)" ></textarea>
+                        {% elif question.question_state == 9 %}
+                        <!--    MOBILE_NO = 9-->
+                            <label class="Roboto" style="font-size:13px;margin-left:7px;">{{question.data}}</label>
+                            <textarea rows="2" cols="4" style="border-radius: 10px;" name ="{{question.id}}" minlength="50" required placeholder="" oninput="check(this)"></textarea>
+                        {% elif question.question_state == 10 %}
+                        <!--    EMAIL_ID = 10-->
+                            <label class="Roboto" style="font-size:13px;margin-left:7px;">{{question.data}}</label>
+                            <textarea rows="2" cols="4" style="border-radius: 10px;" name ="{{question.id}}" minlength="50" required placeholder="" oninput="check(this)"></textarea>
                         {% endif %}
-                </div>
+                    </div>
 
                 {% endfor %}
                 <input type="hidden" name="ref_id" value="{{ref_id}}"/>
                 <br>
-
 
             </form>
 
@@ -384,9 +427,21 @@ height:35%;
 
 <script>
 
+$('#calender_input').calendar({
+  type: 'date',
+  monthFirst: false,
+  formatter: {
+    date: function (date, settings) {
+      if (!date) return '';
+      var day = date.getDate();
+      var month = date.getMonth() + 1;
+      var year = date.getFullYear();
+      return day + '/' + month + '/' + year;
+    }
+  }
+});
 
        $('.ui.selection.dropdown.single_select').dropdown();
-
 
         {% for question in data %}
             $('.ui.dropdown.{{question.id}}')
@@ -397,8 +452,6 @@ height:35%;
                   })
                 ;
             {% endfor %}
-
-
 
         function check(input) {
            if (input.value.length < '50') {
@@ -414,14 +467,10 @@ height:35%;
 
          }
 
-
-
          $('#back_button').click(function(e){
 
         window.history.back();
         })
-
-
 
         $('#simple_button').click(function(e){
 
@@ -430,41 +479,26 @@ height:35%;
                 url="/community/"+community_id+"?cta=join";
 
                   var test=$('#length_check').val()
-                    if(test.length >= 50)
-                    {
-
+                  if (typeof test != 'undefined' ) {
+                     if(test.length >= 50)
+                     {
                         $('#simple_button').hide();
                         $('#loading_button').show();
-
-                    }else{
+                     }else{
                         alert("Please write your Introduction in bit more detail")
                         return;
-                    }
-
+                     }
+                  }
                    $.ajax({
-
-
                         url:url,
                         type:"POST",
                         data:values,
                         success:function(data){
                             console.log(data)
                             location.href="/refer_members/"+'{{community.id}}'
-
-
                         }
-
-
                     })
-
-
         })
-
-
-
-
-
-
 
 </script>
 

@@ -821,7 +821,10 @@ def get_community_questions(community_id):
         if each_question.question_state:
             temp['question_state'] = each_question.question_state
             if temp['question_state'] == 1 or temp['question_state'] == 2:
-                dropdown_list=each_question.value.split(",")
+                if each_question.value[0] == '[':
+                    dropdown_list=each_question.value[1:-1].split(",")
+                else:
+                    dropdown_list = each_question.value.split(",")
             temp['dropdown_list'] = dropdown_list
             temp['data'] = each_question.question_title
         else:
