@@ -66,10 +66,11 @@
 
         <link href="https://fonts.googleapis.com/css?family=Roboto:400,500,500i,700&display=swap" rel="stylesheet">
 
+<!-- adding the external css files -->
 
 
 
-
+<!---->
 
     </head>
 
@@ -445,10 +446,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         </div>
             {% endif %}
 
-
+{% if community.about %}
         <div class="ui fluid card" style="margin-top:0px;margin-bottom:8px;">
             <!-- printing community about -->
-            {% if community.about != '' %}
+
             <div class="content ui fluid" id="about_card">
 
                 <div class="content" id="about">
@@ -461,9 +462,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             </div>
 
             </div>
-            {% endif %}
-        </div>
 
+        </div>
+    {% endif %}
 
 <!-- members rendering -->
         {% if members_length > 0 %}
@@ -472,35 +473,44 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             <div class="content" id="members">
                 {% if community.hide_community == '3' %}
                 <h4 style="display: inline;" class="RobotoBold">Interested </h4>
-                <h6 style="display: inline;">&nbsp;&nbsp;&nbsp;&nbsp;{{members_length}} members</h6>
+                <h6 style="display: inline;">&nbsp;&nbsp;&nbsp;&nbsp;{{members_length}} </h6>
                 {% else  %}
                 <h4 style="display: inline;" class="RobotoBold">Members</h4>
-                <h6 style="display: inline;" class="RobotoBold">&nbsp;&nbsp;&nbsp;&nbsp;{{members_length}} members</h6>
+                <h6 style="display: inline; font-size:10px;" class="RobotoBold">&nbsp;&nbsp;&nbsp;&nbsp;{{members_length}} </h6>
                 {% endif %}
-                <div class="ui container" style=" overflow-y:auto;white-space:nowrap;padding-top:12px;">
-                    <div class="ui big horizontal  list">
+
+                    <div class="ui container" style="padding-top:12px;">
 
                         {% for i in members%}
+                        <br/>
+                        <div class="ui two column grid">
+                            <div class="row">
+                                <div  style="padding-left:5px;">
+                                    <img class="ui tiny circular centered image" src="{{i.image_link}}" style="border-radius:50%;width:80px;height:80px;"/>
+                                </div>
+                                <div style="padding-left:10%;padding-top:10px;padding-bottom:10px;">
+                                    <p class="RobotoMedium" style="color:black;line-height:20px;font-size:17px;">{{i.name}}</p>
+                                    <p style="line-height:17px;font-size:13px;color:#9b9b9b" class="Roboto">{{i.answer}}</p>
 
-                        <div class="item">
-                            {% if not i.image_link %}
-                                <img class="ui tiny circular centered image" src="{{i.image_file.url}}" style="border-radius:50%;width:80px;height:80px;"/>
-                            {% else %}
-                                 <img class="ui tiny circular centered image" src="{{i.image_link}}" style="border-radius:50%;width:80px;height:80px;"/>
-                            {% endif %}
-                            <p></p>
-                            <!-- <a href="../../profile/{{i.user_id.id}}">-->
+                                </div>
 
-                            <p style="font-size:65%;" class="RobotoMedium">{{i.name}}</p>
-                            <div class="content">
 
                             </div>
 
+
                         </div>
+
+                         <hr style="border-style:solid;border-width:1px;border-color:#e6e6e6;padding-right:200px;padding-left:65px;">
+
+
+
+
+
+
                         {% endfor %}
 
                         <br/>
-                    </div>
+<!--                    </div>-->
                 </div>
             </div>
             {% endif %}

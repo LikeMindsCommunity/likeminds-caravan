@@ -32,6 +32,7 @@ from user_agents import parse
 import time
 import logging
 import itertools
+from utility.states import collabcard_states, member_states,question_states
 import re
 url = settings.URL
 
@@ -322,7 +323,7 @@ def community(request, community_id):
     else:
         member_state = 0
     # ------------------------------------------------------------------
-    members, admin_details = get_members_of_community(request=request,community=community)
+    #members, admin_details = get_members_of_community(request=request,community=community)
     # if user is not authenticated, give some communities as similar communities
     communities=Community.objects.filter(Q(hide_community='0')|Q(hide_community = '4'))[:10]
 
@@ -361,7 +362,7 @@ def community(request, community_id):
         about_2=about[180:]
 
     admin_details=get_admins_details(community)
-
+    members=get_member_details(community)
     context={'usr': user, 'similar_communities': communities,
              'community': community, 'admins': admin_details,
              'members': members, 'source': source,
@@ -510,6 +511,24 @@ def get_admins_details(community):
 
 
 
+def get_member_details(community):
+
+    '''function to get member details of community'''
+
+    member_list= Members.objects.filter(community_id=community).filter(Q(state=1)|Q(state=2)|Q(state=4))
+
+    members=[]
+
+    for member in member_list:
+        temp={}
+        temp['name'] = member.member_id.userinfo.name
+        temp['image_link'] = member.member_id.userinfo.image_link
+        answer = get_introduction_answer(community,member)
+        temp['answer'] = answer
+        members.append(temp)
+
+    return members
+
 
 
 def get_members_of_community(request,community):
@@ -541,6 +560,36 @@ def get_members_of_community(request,community):
             members.append(mem[0])
 
     return members, admin_details
+
+
+
+def get_introduction_answer(community_instance,member_instance):
+
+    '''function to get introduction answer'''
+    introduction_answer=""
+    check_intro=communityQuestions.objects.filter(community=community_instance,question_state=question_states.INTRODUCTION)
+    if check_intro:
+
+        question_id = check_intro[0].id
+        introduction_answer_list = communityAnswers.objects.filter(community=community_instance, member=member_instance.member_id,
+                                                                   question_id=question_id)
+        if introduction_answer_list.exists():
+            introduction_answer = introduction_answer_list[0].question_answer
+            return introduction_answer
+
+
+    if not  introduction_answer:
+        epoch_time=member_instance.created_at
+        if epoch_time < 0:
+            return ""
+        else:
+            time_string="Member since "
+            time_string=time_string + time.strftime("%d %b %Y", time.localtime(epoch_time))
+            return time_string
+    return ""
+
+
+
 
 
 @login_required
