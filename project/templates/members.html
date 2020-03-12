@@ -1,45 +1,153 @@
-{% extends 'base.html' %}
+<!DOCTYPE html>
+{% load static %}
+<html>
+<head>
 
 
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
-{% block content %}
-<div class=" ui small breadcrumb" style="padding: 0 10px;">
-        <a class="section" href = "{% url 'home' %}">Home</a>
-        <i class="right chevron icon divider"></i>
-        <a class="section" href = "{% url 'comunity' community.0.id  %}">{{community.0.name}}</a>
-        <i class="right chevron icon divider"></i>
-        <div class="active section">Members </div>
+        <link rel="shortcut icon" href="https://beta.collabmates.com/media/media/ic_launcher_round.png">
 
-</div>
+        <meta name="author" content="colorlib">
+
+
+        <meta name="keywords" content="">
+
+        <meta charset="UTF-8">
+
+        <title>{{community.name}}</title>
+        <meta name="description"
+              content={{community.name}}/>
+        {% if not community.thumbnail %}
+        <meta property="og:image" itemprop="image"
+              content='https://beta.collabmates.com/media/media/ic_launcher_round.png'/>
+        {% else %}
+            <meta property="og:image" itemprop="image"
+              content='{{community.thumbnail}}'/>
+        {% endif %}
+        <meta property="og:title" content="{{community.name}}"/>
+        <meta property="og:description"
+              content="{{community.purpose}}"/>
+        <meta property="og:type" content="website"/>
+
+
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.css"/>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.js"></script>
+        <script async src="https://www.googletagmanager.com/gtag/js?id=UA-130288684-1"></script>
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+
+        <link rel="stylesheet" href="{% static 'css/community.css' %}">
+        <link rel="stylesheet" href="{% static 'css/main_css/community.css' %}">
+
+        <link href="https://fonts.googleapis.com/css?family=Roboto:400,500,500i,700&display=swap" rel="stylesheet">
+
+    </head>
+
 <body>
-    <div class="ui celled list">
-                {% for i in members %}
-                <!-- <div class="card" style=" margin-left: 0.5em; margin-right:0.5em; width: calc(50% - 1em) !important;" >
-                  <div class="image">
-                    <img src="{{i.image_url}}" onclick = "direct('{{i.user_id_id}}');">
-                  </div>
-                  <div class="extra">
-                  <a href="{% url 'profile' i.user_id_id %}">
-                    {{i.name}}</a>
-                  </div>
-                </div> -->
-                <div class="item">
-                            
-                    <div class="content" style="margin-left:10px; padding-left:10px;">
-                    <a class="header" href="../../profile/{{i.user_id.id}}"><img class="ui avatar image" style="margin-right:10px;" src="{{i.image_url}}">{{i.name}}</a>
-                    <!-- {% if i.interests != None %}
-                    <div class="description">Interested in  <a><b>{{i.interests}}</b></a> </div>
-                    {% endif %} -->
+<div style="margin:0 auto; max-width:786px;background-color:#f0f5f5;">
+        {% if members_length > 0 %}
+
+
+            <div class="ui fluid card" style="margin-top:0px;margin-bottom:8px; background-color:#075e54;">
+
+                <div class="top-left" >
+                    <i class="arrow left icon" style="font-size:20px;padding-top:15px;color:white" id="back_click"></i>
+                </div>
+
+                        <div class="content" >
+
+                            <h4 style="display: inline;padding-left:14%;color:white ;font-size:20px;" class="Roboto">Members</h4>
+                            <br/>
+                            <h5 style="display: inline;font-size:12px;padding-left:14%;color:white" class="Roboto">{{community_name}}</h5>
+
+                        </div>
+                    </div>
+
+
+     {% if members_length > 0 %}
+        <div class="ui fluid card" style="margin-top:0px;margin-bottom:8px;">
+                <div class="ui container" style=" overflow-y:auto;white-space:nowrap;padding-top:12px;">
+                    <div class="ui big horizontal  list">
+
+                        {% for i in members%}
+
+                        <div class="item">
+
+                           <button style="z-index:2; background-color: white; border-radius:20px;
+                           color:#00897b;width:100%;white-space: nowrap; border: 1px solid #00897b;font-size:15px;">
+                               <p class="Roboto" style="padding-top:5px;padding-bottom:5px;padding-left:10px;padding-right:5px;color:#00897b;">{{i.name}}&nbsp;&nbsp;<i class="caret down icon"></i></p>
+                            </button>
+
+                            <p></p> <p></p> <p></p>
+
+                        </div>
+                        {% endfor %}
+
+                        <br/>
                     </div>
                 </div>
-                {% endfor %}
+            </div>
+            {% endif %}
+
+
+
+        <div class="ui fluid card" style="margin-top:0px;margin-bottom:8px;">
+
+            <div class="content" id="members">
+
+                    <div class="ui container" style="padding-top:12px;">
+
+                        {% for i in members%}
+                        <br/>
+                        <div class="ui two column grid">
+                            <div class="row">
+                                <div  style="padding-left:5px;">
+                                    <img class="ui tiny circular centered image" src="{{i.image_link}}" style="border-radius:50%;width:80px;height:80px;"/>
+                                </div>
+                                <div style="padding-left:10%;padding-top:10px;padding-bottom:10px;">
+                                    <p class="RobotoMedium" style="color:black;line-height:20px;font-size:17px;">{{i.name}}</p>
+                                    <p style="line-height:17px;font-size:13px;color:#9b9b9b" class="Roboto">{{i.answer}}</p>
+
+                                </div>
+
+
+                            </div>
+
+
+                        </div>
+
+                         <hr style="border-style:solid;border-width:1px;border-color:#e6e6e6;padding-right:200px;padding-left:65px;">
+
+
+                        {% endfor %}
+
+                        <br/>
+<!--                    </div>-->
+                </div>
+            </div>
+            {% endif %}
+                <br>
+                <div >
         </div>
-              
+
+
+
+        </div>
+</div>
 </body>
 
-<script>
-  function direct(id){
-    window.location = '../../../profile/'+id;
-  }
-</script>
-{% endblock %}
+</html>
+
+
+
+
+
+
+
+
+
+
+
+

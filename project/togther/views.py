@@ -589,7 +589,21 @@ def get_introduction_answer(community_instance,member_instance):
     return ""
 
 
+def members_directory(request,community_id):
 
+    '''function to see members directory'''
+    community_instance=Community.objects.get(pk=community_id)
+    members=get_member_details(community_instance)
+
+    context={
+        'members':members,
+        'members_length':len(members),
+        'community_name':community_instance.name
+    }
+
+
+
+    return render(request,'members.html',context)
 
 
 @login_required
