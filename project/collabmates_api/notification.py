@@ -416,7 +416,7 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title, 
 
                 date_time = int(str(kwargs['date_time'])[:10])
 
-                date_time = (date_time - 1800) if typ == 2 else date_time + 19800 if not settings.DEBUG else 0
+                date_time = (date_time - 1800) if typ == 2 else date_time + 19800 if not settings.IS_BETA else 0
                 celerybeatask.get_or_create_new_beat_task(card_creater_id=card_creater_id,
                                                           card_creater_name=card_creater_name,
                                                           args=args, task_name=task_name, task_path=task_path,
