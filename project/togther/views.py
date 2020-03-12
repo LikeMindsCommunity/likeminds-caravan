@@ -745,8 +745,10 @@ def join_community(request, community_id,ref_id):
         json_dict = {"community_id":community_id,"timestamp":time.time()}
         json_dict['questions'] = response_list
 
+        # print(">>>>  ",response_list)
+
         params = {'member_id': member_id, 'community_id': community_id,'ref_id':ref_id}
-        rqst.post(join_url, params=params, json=json_dict)
+        # rqst.post(join_url, params=params, json=json_dict)
         # return false to show thank you page the user has now answered the questions
         return False, validation_error, user, similar_communities, community, []
 
@@ -772,10 +774,25 @@ def get_community_questions(community_id):
         if each_question.question_state:
             temp['question_state'] = each_question.question_state
             if temp['question_state'] == 1 or temp['question_state'] == 2:
+
                 if each_question.value[0] == '[':
-                    dropdown_list=each_question.value[1:-1].split(",")
+                    each_question.value = each_question.value[1:]
+                if each_question.value[-1] == ']':
+                    each_question.value = each_question.value[:-1]
+
+                if '$' in each_question.value:
+                    dropdown_list = each_question.value.split("$")
                 else:
                     dropdown_list = each_question.value.split(",")
+
+                for index, item in enumerate(dropdown_list):
+                    item = item.strip()
+                    if item[0] == '"':
+                        item = item[1:]
+                    if item[-1] == '"':
+                        item = item[:-1]
+                    dropdown_list[index] = item
+
             temp['dropdown_list'] = dropdown_list
             temp['data'] = each_question.question_title
         else:
@@ -786,8 +803,9 @@ def get_community_questions(community_id):
         temp['id']=each_question.id
         if each_question.dropdown_selection_limit:
             temp['max_selections']=each_question.dropdown_selection_limit
+        temp['optional'] = each_question.optional
         question_format.append(temp)
-    print(question_format)
+    # print(question_format)
     return question_format
 
 
