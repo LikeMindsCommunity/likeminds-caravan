@@ -175,7 +175,7 @@ def your_communities(request, user_id):
     for each_community in communities:
 
         community = CommunitySerializer(each_community.community_id)
-        community['pending_members_count'] = each_community.pending_members if each_community.pending_members else 0
+        community['pending_members_count'] = len(get_pending_members_of_community(each_community.id,member_id))
         community['updated_at'] = get_time_text(each_community.updated_at)
         if each_community.last_unseen_conversation:
             collabcard = CollabcardSerializer(each_community.last_unseen_conversation, user=member_id)
@@ -908,14 +908,16 @@ def join_lg_communities_version_1(request,res,community,user,ref_id):
 
 
         #updating the pending members count in engage table if the ref_id member is verified
-        if ref_id:
-
-            member_queryset=Member_Engage.objects.filter(community_id=community,member_id=ref_id).filter(
-                Q(member_state=member_states.ADMIN)|Q(member_state=member_states.MEMBER))
-
-            if member_queryset.exists():
-                member_queryset.update(pending_members=F('pending_members')+1)
-
+        member_queryset = Member_Engage.objects.filter(community_id=community, member_id=ref_id).filter(
+            Q(member_state=member_states.ADMIN) | Q(member_state=member_states.MEMBER))
+        is_verified = member_queryset.exists()
+        if is_verified:
+            member_queryset.update(pending_members=F('pending_members') + 1)
+        send_notification_to_referrer_of_lg_community(community_id=community.id, community_name=community.name,
+                                                      referrer_id=ref_id,
+                                                      member_name=user.userinfo.name,
+                                                      community_state=community.hide_community,
+                                                      is_verified=is_verified)
 
         log = """Request in LG community where community_id=%s and member_id=%s""" % (community.id, user.id)
         print(log)
@@ -2427,8 +2429,11 @@ def approve_or_decline_lg_community(request,req_dict,member_verification):
 
             #getting pending members who was refered by me
             pending_members=get_pending_members_of_community(community.id,requested_member_id=member_id)
+            info_logger.info("\n")
+            info_logger.info(pending_members)
             check=Member_Engage.objects.filter(member_id=user,community_id=community).update(pending_members=len(pending_members))
-            print(check)
+            info_logger.info(check)
+
             if member_instance.ask_member_id:
                 collabcardTemp.objects.filter(member=member_instance.ask_member_id, community=community,show_member=user).delete()
 
