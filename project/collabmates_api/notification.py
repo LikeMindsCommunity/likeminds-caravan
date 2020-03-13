@@ -14,7 +14,7 @@ from togther.models import (Community_Rank, collabcardState,
                             )
 from utility.celery_beat_tasks import CeleryBeatTask
 from utility.states import *
-from utiltity import get_referred_members_of_a_member
+from utility import get_referred_members_of_a_member
 # file to store configuration of the system
 
 
