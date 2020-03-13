@@ -2,7 +2,7 @@ from __future__ import absolute_import, unicode_literals
 
 import re
 import time
-
+from django.http.response import JsonResponse
 import psycopg2
 from celery import shared_task
 from django.conf import settings
@@ -738,6 +738,7 @@ def send_poll_notification_manually(request):
 
     poll_expiry_or_event_remainder_notification(community_name, community_id, typ,
                                                 community_state=community_state, card_id=card_id)
+    return JsonResponse({'success':True})
 #toots unlocked
 
 @shared_task
