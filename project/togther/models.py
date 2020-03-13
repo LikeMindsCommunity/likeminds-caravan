@@ -612,8 +612,6 @@ class communityQuestions(models.Model):
     optional=models.BooleanField(default=False)
 
 
-
-
 class communityAnswers(models.Model):
 
     '''model to save answers of a user in community'''
@@ -664,3 +662,9 @@ class communityExpire(models.Model):
     community=models.ForeignKey(Community,on_delete=models.CASCADE)
 
 
+class questionFilters(models.Model):
+
+    '''model to save questions filters'''
+    question = models.ForeignKey(communityQuestions, on_delete=models.CASCADE)
+    filter = models.TextField(null=True)
+    member = models.ForeignKey(User, on_delete=models.CASCADE)
