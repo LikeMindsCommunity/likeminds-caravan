@@ -14,7 +14,6 @@ from togther.models import (Community_Rank, collabcardState,
                             )
 from utility.celery_beat_tasks import CeleryBeatTask
 from utility.states import *
-from utiltity import get_referred_members_of_a_member
 # file to store configuration of the system
 
 
@@ -931,6 +930,28 @@ def ask_approval_notification(community_id,community_name,approver_id,
     }
 
     notification_meta(notification_list, message)
+
+
+
+
+#utility functions
+def get_referred_members_of_a_member(community_id,member_id):
+
+    community = get_object_or_404(Community, pk=community_id)
+    referred_member = User.objects.get(pk=member_id)
+
+    member_list=[]
+    total_referals = Referal.objects.filter(member=referred_member, community=community)
+
+    if total_referals.exists():
+        for interested_member in total_referals:
+            mem_id=interested_member.invited_member.id
+            member = Members.objects.filter(member_id=mem_id, community_id=community_id)
+            if member.exists():
+                if member[0].state == 4:
+                    member_list.append(member[0].member_id.id)
+
+    return member_list
 
 
 
