@@ -2035,6 +2035,9 @@ def get_pending_members_of_community(community_id,requested_member_id):
 
     '''functions to get pending members of the community'''
 
+
+    info_logger.info("PENDING MEMBERS COUNT CHECK")
+
     member_id=requested_member_id
     community = Community.objects.get(id=community_id)
     pend_requests = Members.objects.filter(community_id=community).filter(state=3)
@@ -2043,6 +2046,7 @@ def get_pending_members_of_community(community_id,requested_member_id):
     is_member_admin = Members.objects.filter(community_id=community, member_id=member_id, state=1)
     if is_member_admin.exists():
         is_admin = True
+    info_logger.info(is_admin)
 
     is_verified = False
     is_verified_member = Members.objects.filter(community_id=community, member_id=member_id).filter(
@@ -2083,6 +2087,9 @@ def get_pending_members_of_community(community_id,requested_member_id):
                 user_response.append(response_object)
             usr['response'] = user_response
             pending_requests.append(usr)
+
+    info_logger.info("PENDING MEMBER REQUEST")
+    info_logger.info(pending_requests)
     return pending_requests
 
 
