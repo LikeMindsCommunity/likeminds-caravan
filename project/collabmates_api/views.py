@@ -90,7 +90,6 @@ def communities(request):
         community = [serializer(Community.objects.get(pk=community['community_id']) if state else community) for community in queryset]
 
         # custom_cache.set(cache_key,community,timeout=CACHE_TTL)
-        info_logger.info(community)
         # custom_cache.clear()
 
         state = 1 if state else 0
@@ -5207,7 +5206,6 @@ def fetch_report_tags(request):
         temp['name'] = instance.tag_name
         report_tags.append(temp)
     info_logger.info("fetch report tags api successfulll")
-    info_logger.info(report_tags)
     return JsonResponse({'report_tags': report_tags})
 
 
