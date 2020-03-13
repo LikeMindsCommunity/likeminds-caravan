@@ -344,16 +344,26 @@ def join_community(request, community_id):
                     'question_state': 3,
                     }
             if i.question_state == 1:
-                ques['dropdown_list'] = json.loads(i.value)
+                try:
+                    ques['dropdown_list'] = json.loads(i.value)
+                except:
+                    ques['dropdown_list'] = i.value.split("$#")
+
             first_question = True
         else:
 
             ques = {'question': i.question_title}
             if i.question_state == 1:
-                ques['dropdown_list'] = json.loads(i.value)
+                try:
+                    ques['dropdown_list'] = json.loads(i.value)
+                except:
+                    ques['dropdown_list'] = i.value.split("$#")
                 ques['question_state'] = 1
             elif i.question_state == 2:
-                ques['dropdown_list'] = json.loads(i.value)
+                try:
+                    ques['dropdown_list'] = json.loads(i.value)
+                except:
+                    ques['dropdown_list'] = i.value.split("$#")
                 ques['question_state'] = 2  # multiselect for android only
             elif i.question_state == 0:
                 ques['question_state'] = 0  # no limit on answer condition for android
@@ -1004,7 +1014,7 @@ def join_whatsapp_community(res,request):
             answer_instance.question_answer = question['value']
             answer_instance.question_title = question_instance.question_title
             answer_instance.save()
-            
+
             if question_instance.question_state == question_states.CHOICE_SINGLE or question_instance.question_state == question_states.CHOICE_MULTIPLE:
                 selected_choices = question['value'].split("$#")
                 for choice in selected_choices:
