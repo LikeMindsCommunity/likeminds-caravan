@@ -587,30 +587,6 @@ def send_notification_to_all_admins(community_id,name,current_promoter_id):
         print ("Error while connecting to PostgreSQL", error)
 
 
-@shared_task
-def send_notification_to_promoter_of_ig_community(community_id,community_name,member_id):
-
-   '''function to send notification for the promoter of IG communities'''
-
-   notification_list = []
-
-   temp = {}
-   temp['user_id'] = member_id
-   notification_details = get_token_for_fcm(member_id, True)
-   temp['fcm_token'] = notification_details[0]
-   temp['mobile_os'] = notification_details[1]
-
-   notification_list.append(temp)
-
-   message = {}
-   message['payload'] = {
-       'title': str(community_name),
-       'sub_title': "You are now promoter of this community.",
-       'route': 'route://community?community_id=' + str(community_id)
-   }
-
-
-   notification_meta(notification_list, message)
 
 @shared_task
 def send_notification_for_tool_unlocked(referer_id,joined_member_name,referal_count,community_id,community_name):
@@ -787,5 +763,128 @@ def poll_expiry_or_event_remainder_notification(community_name, community_id, ty
 
         print("Error while connecting to PostgreSQL")
 
+
+
+#Ig notifications
+
+
+@shared_task
+def send_notification_to_promoter_of_ig_community(community_id,community_name,member_id):
+
+   '''function to send notification for the promoter of IG communities'''
+
+   notification_list = []
+
+   temp = {}
+   temp['user_id'] = member_id
+   notification_details = get_token_for_fcm(member_id, True)
+   temp['fcm_token'] = notification_details[0]
+   temp['mobile_os'] = notification_details[1]
+
+   notification_list.append(temp)
+
+   message = {}
+   message['payload'] = {
+       'title': str(community_name),
+       'sub_title': "You are now promoter of this community.",
+       'route': 'route://community?community_id=' + str(community_id)
+   }
+
+
+   notification_meta(notification_list, message)
+
+
+
+
+@shared_task
+def send_notification_to_referrer_of_ig_community(community_id,community_name,referrer_id,
+                                                  member_name,community_state):
+
+    '''function to send notification to the referrer of ig community'''
+
+    notification_list = []
+
+    temp = {}
+    temp['user_id'] = referrer_id
+    notification_details = get_token_for_fcm(referrer_id, True)
+    temp['fcm_token'] = notification_details[0]
+    temp['mobile_os'] = notification_details[1]
+
+    notification_list.append(temp)
+
+    message = {}
+    message['payload'] = {
+        'title': str(community_name),
+        'sub_title': """%s just joined this community."""%(member_name),
+        'route':'route://community_collabcard?community_id=' + str(community_id) + '&community_name=' + str(
+            community_name) + '&community_state=' + str(community_state)
+    }
+
+    notification_meta(notification_list, message)
+
+
+
+
+
+
+#LG notifications
+@shared_task
+def send_notification_to_referrer_of_lg_community(community_id,community_name,referrer_id,
+                                                  member_name,community_state,is_verified=False):
+
+    '''function to send notification to the referrer of ig community'''
+
+    notification_list = []
+
+    temp = {}
+    temp['user_id'] = referrer_id
+    notification_details = get_token_for_fcm(referrer_id, True)
+    temp['fcm_token'] = notification_details[0]
+    temp['mobile_os'] = notification_details[1]
+
+    notification_list.append(temp)
+    if not is_verified:
+        sub_title="""%s has shown interest to join."""%(member_name)
+    else:
+        sub_title = """%s has shown interest to join. Please verify""" % (member_name)
+
+    message = {}
+    message['payload'] = {
+        'title': str(community_name),
+        'sub_title': sub_title,
+        'route':'route://community_collabcard?community_id=' + str(community_id) + '&community_name=' + str(
+            community_name) + '&community_state=' + str(community_state)
+    }
+
+    notification_meta(notification_list, message)
+
+
+
+
+@shared_task
+def ask_approval_notification(community_id,community_name,approver_id,
+                                                  member_name,community_state):
+
+    '''function to send notification for ask approval'''
+
+    notification_list = []
+
+    temp = {}
+    temp['user_id'] = approver_id
+    notification_details = get_token_for_fcm(approver_id, True)
+    temp['fcm_token'] = notification_details[0]
+    temp['mobile_os'] = notification_details[1]
+
+    notification_list.append(temp)
+
+    message = {}
+    message['payload'] = {
+        'title': str(community_name),
+        'sub_title': """%s has requested to join your community."""%(member_name),
+        'route':'route://community_collabcard?community_id=' + str(community_id) + '&community_name=' + str(
+            community_name) + '&community_state=' + str(community_state)
+    }
+
+    notification_meta(notification_list, message)
 
 
