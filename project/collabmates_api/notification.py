@@ -15,6 +15,7 @@ from togther.models import (Community_Rank, collabcardState,
 from utility.celery_beat_tasks import CeleryBeatTask
 from utility.states import *
 import json
+
 # file to store configuration of the system
 
 
@@ -587,74 +588,7 @@ def send_notification_to_all_admins(community_id,name,current_promoter_id):
         print ("Error while connecting to PostgreSQL", error)
 
 
-@shared_task
-def send_notification_to_promoter_of_ig_community(community_id,community_name,member_id):
 
-   '''function to send notification for the promoter of IG communities'''
-
-   notification_list = []
-
-   temp = {}
-   temp['user_id'] = member_id
-   notification_details = get_token_for_fcm(member_id, True)
-   temp['fcm_token'] = notification_details[0]
-   temp['mobile_os'] = notification_details[1]
-
-   notification_list.append(temp)
-
-   message = {}
-   message['payload'] = {
-       'title': str(community_name),
-       'sub_title': "You are now promoter of this community.",
-       'route': 'route://community?community_id=' + str(community_id)
-   }
-
-
-   notification_meta(notification_list, message)
-
-@shared_task
-def send_notification_for_tool_unlocked(referer_id,joined_member_name,referal_count,community_id,community_name):
-
-    '''function to send notification for tool unlocked'''
-
-    if referal_count == 1:
-        sub_title="""%s joined. New tool unlocked!"""%(joined_member_name)
-        route= """route://community_collabcard?community_id=%s&tour_unlocked=true"""
-    elif referal_count == 2:
-        sub_title="""%s joined. You have referred %s members to the community". Refer 1 more member to unlock a new tool."""%(joined_member_name,referal_count)
-        route= """route://community_collabcard?community_id=%s&community_name=%s"""%(community_id,community_name)
-
-    elif referal_count == 3:
-        sub_title="""%s joined. Another tool unlocked!"""%(joined_member_name)
-        route= """route://community_collabcard?community_id=%s&tour_unlocked=true"""
-
-    elif referal_count == 4:
-        sub_title=""""%s joined. You have referred %s members to the community". Refer 1 more member to become promoter of the community"""%(joined_member_name,referal_count)
-        route= """route://community_collabcard?community_id=%s&community_name=%s"""%(community_id,community_name)
-
-    else:
-        sub_title="""%s joined. You have become a promoter of this community!!"""%(joined_member_name)
-        route="""'route://community?community_id=%s"""%(community_id)
-
-    notification_list = []
-
-    temp = {}
-    temp['user_id'] = referer_id
-    notification_details = get_token_for_fcm(referer_id, True)
-    temp['fcm_token'] = notification_details[0]
-    temp['mobile_os'] = notification_details[1]
-
-    notification_list.append(temp)
-
-    message={}
-    message['payload']={
-        'title':community_name,
-        'sub_title':sub_title,
-        'route':route
-    }
-
-
-    notification_meta(notification_list, message)
 
 
 @shared_task
@@ -803,3 +737,238 @@ def send_poll_notification_manually(request):
 
     poll_expiry_or_event_remainder_notification(community_name, community_id, typ,
                                                 community_state=community_state, card_id=card_id)
+#toots unlocked
+
+@shared_task
+def send_notification_for_tool_unlocked_for_live_community(referer_id,referal_count, community_id, community_name,community_state):
+    '''function to send notification for tool unlocked'''
+
+    sub_title = ""
+    route = 'route://community_collabcard?community_id=' + str(community_id) + '&community_name=' + str(
+            community_name) + '&community_state=' + str(community_state)
+    if referal_count == 1:
+        sub_title = "Event tool unlocked. You have successfully referred 1 member"
+        notification_list = []
+
+        temp = {}
+        temp['user_id'] = referer_id
+        notification_details = get_token_for_fcm(referer_id, True)
+        temp['fcm_token'] = notification_details[0]
+        temp['mobile_os'] = notification_details[1]
+
+        notification_list.append(temp)
+
+        message = {}
+        message['payload'] = {
+            'title': community_name,
+            'sub_title': sub_title,
+            'route': route
+        }
+
+        notification_meta(notification_list, message)
+
+
+    elif referal_count == 3:
+        sub_title = "Pool tool unlocked. You have successfully referred 3 member."
+        notification_list = []
+
+        temp = {}
+        temp['user_id'] = referer_id
+        notification_details = get_token_for_fcm(referer_id, True)
+        temp['fcm_token'] = notification_details[0]
+        temp['mobile_os'] = notification_details[1]
+
+        notification_list.append(temp)
+
+        message = {}
+        message['payload'] = {
+            'title': community_name,
+            'sub_title': sub_title,
+            'route': route
+        }
+
+        notification_meta(notification_list, message)
+    elif referal_count == 5:
+        sub_title = " Congrats. You are now promoter of this community."
+        notification_list = []
+
+        temp = {}
+        temp['user_id'] = referer_id
+        notification_details = get_token_for_fcm(referer_id, True)
+        temp['fcm_token'] = notification_details[0]
+        temp['mobile_os'] = notification_details[1]
+
+        notification_list.append(temp)
+
+        message = {}
+        message['payload'] = {
+            'title': community_name,
+            'sub_title': sub_title,
+            'route': route
+        }
+
+        notification_meta(notification_list, message)
+
+@shared_task
+def send_notification_for_tool_unlocked_for_pilot(community_id):
+    '''function to send notification when the community is pilot and becomes live'''
+
+    members_list=Members.objects.filter(community_id=community_id).filter(Q(state=member_states.ADMIN)|Q(state=member_states.MEMBER))
+    community_instance=Community.objects.get(id=community_id)
+    for member in members_list:
+
+        referal_count=get_referred_members_of_a_member(community_id,member.member_id.id)
+        send_notification_for_tool_unlocked_for_live_community(referer_id=member.member_id.id,
+                                                               referal_count=referal_count,community_id=community_id,
+                                                               community_name=community_instance.name,community_state=community_instance.hide_community
+                                                               )
+
+
+#Ig notifications
+
+
+@shared_task
+def send_notification_to_promoter_of_ig_community(community_id,community_name,member_id):
+
+   '''function to send notification for the promoter of IG communities'''
+
+   notification_list = []
+
+   temp = {}
+   temp['user_id'] = member_id
+   notification_details = get_token_for_fcm(member_id, True)
+   temp['fcm_token'] = notification_details[0]
+   temp['mobile_os'] = notification_details[1]
+
+   notification_list.append(temp)
+
+   message = {}
+   message['payload'] = {
+       'title': str(community_name),
+       'sub_title': "You are now promoter of this community.",
+       'route': 'route://community?community_id=' + str(community_id)
+   }
+
+
+   notification_meta(notification_list, message)
+
+
+
+
+@shared_task
+def send_notification_to_referrer_of_ig_community(community_id,community_name,referrer_id,
+                                                  member_name,community_state):
+
+    '''function to send notification to the referrer of ig community'''
+
+    notification_list = []
+
+    temp = {}
+    temp['user_id'] = referrer_id
+    notification_details = get_token_for_fcm(referrer_id, True)
+    temp['fcm_token'] = notification_details[0]
+    temp['mobile_os'] = notification_details[1]
+
+    notification_list.append(temp)
+
+    message = {}
+    message['payload'] = {
+        'title': str(community_name),
+        'sub_title': """%s just joined this community."""%(member_name),
+        'route':'route://community_collabcard?community_id=' + str(community_id) + '&community_name=' + str(
+            community_name) + '&community_state=' + str(community_state)
+    }
+
+    notification_meta(notification_list, message)
+
+
+
+
+
+
+#LG notifications
+@shared_task
+def send_notification_to_referrer_of_lg_community(community_id,community_name,referrer_id,
+                                                  member_name,community_state,is_verified=False):
+
+    '''function to send notification to the referrer of ig community'''
+
+    notification_list = []
+
+    temp = {}
+    temp['user_id'] = referrer_id
+    notification_details = get_token_for_fcm(referrer_id, True)
+    temp['fcm_token'] = notification_details[0]
+    temp['mobile_os'] = notification_details[1]
+
+    notification_list.append(temp)
+    if not is_verified:
+        sub_title="""%s has shown interest to join."""%(member_name)
+    else:
+        sub_title = """%s has shown interest to join. Please verify""" % (member_name)
+
+    message = {}
+    message['payload'] = {
+        'title': str(community_name),
+        'sub_title': sub_title,
+        'route':'route://community_collabcard?community_id=' + str(community_id) + '&community_name=' + str(
+            community_name) + '&community_state=' + str(community_state)
+    }
+
+    notification_meta(notification_list, message)
+
+
+
+
+@shared_task
+def ask_approval_notification(community_id,community_name,approver_id,
+                                                  member_name,community_state):
+
+    '''function to send notification for ask approval'''
+
+    notification_list = []
+
+    temp = {}
+    temp['user_id'] = approver_id
+    notification_details = get_token_for_fcm(approver_id, True)
+    temp['fcm_token'] = notification_details[0]
+    temp['mobile_os'] = notification_details[1]
+
+    notification_list.append(temp)
+
+    message = {}
+    message['payload'] = {
+        'title': str(community_name),
+        'sub_title': """%s has requested to join your community."""%(member_name),
+        'route':'route://community_collabcard?community_id=' + str(community_id) + '&community_name=' + str(
+            community_name) + '&community_state=' + str(community_state)
+    }
+
+    notification_meta(notification_list, message)
+
+
+
+
+#utility functions
+def get_referred_members_of_a_member(community_id,member_id):
+
+    community = get_object_or_404(Community, pk=community_id)
+    referred_member = User.objects.get(pk=member_id)
+
+    member_list=[]
+    total_referals = Referal.objects.filter(member=referred_member, community=community)
+
+    if total_referals.exists():
+        for interested_member in total_referals:
+            mem_id=interested_member.invited_member.id
+            member = Members.objects.filter(member_id=mem_id, community_id=community_id)
+            if member.exists():
+                if member[0].state == 4:
+                    member_list.append(member[0].member_id.id)
+
+    return member_list
+
+
+
+
+
