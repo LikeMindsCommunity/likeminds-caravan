@@ -711,8 +711,8 @@ def poll_expiry_or_event_remainder_notification(community_name, community_id, ty
 
         send_notification_to_multiple_devices(token_list, message)
         # disable the task , to prevent it from trigerring in future
-        # beat_task = CeleryBeatTask()
-        # beat_task.stop_task(task_name=kwargs['task_name'])
+        beat_task = CeleryBeatTask()
+        beat_task.stop_task(task_name=kwargs['task_name'])
 
     except:
         print("Error while connecting to PostgreSQL")
@@ -809,7 +809,7 @@ def send_notification_for_tool_unlocked_for_pilot(community_id):
     for member in members_list:
 
         referal_count=get_referred_members_of_a_member(community_id,member.member_id.id)
-        print(referal_count)
+        referal_count=len(referal_count)
         if referal_count >= 3:
 
             send_notification_for_tool_unlocked_for_live_community(referer_id=member.member_id.id,
