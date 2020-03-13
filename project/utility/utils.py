@@ -627,7 +627,7 @@ def user_onbaord(member_id):
     # if user does not have any tags , user has to do on-boarding
 
     if user_legacy.exists() and user_prof.exists() and user_int.exists() and user_gro.exists():
-        if (len(user_legacy) == 1 and user_legacy[0].tags_id.tag_id == 15) or (len(user_prof) == 1 and user_prof[0].tags_id.tag_id ==16) or (len(user_int) == 1 and user_int[0].tags_id.tag_id == 17) or (len(user_gro) == 1 and user_int[0].tags_id.tag_id == 18):
+        if (len(user_legacy) == 1 and user_legacy[0].tags_id.tag_id == 15) or (len(user_prof) == 1 and user_prof[0].tags_id.tag_id ==16) or (len(user_int) == 1 and user_int[0].tags_id.tag_id == 17) or (len(user_gro) == 1 and user_gro[0].tags_id.tag_id == 18):
             return False
         return True
     else:
