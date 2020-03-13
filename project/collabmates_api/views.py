@@ -2036,7 +2036,7 @@ def get_pending_members_of_community(community_id,requested_member_id):
 
 
     info_logger.info("PENDING MEMBERS COUNT CHECK")
-
+    info_logger.info(community_id)
     member_id=requested_member_id
     community = Community.objects.get(id=community_id)
     pend_requests = Members.objects.filter(community_id=community).filter(state=3)
@@ -2088,7 +2088,9 @@ def get_pending_members_of_community(community_id,requested_member_id):
             pending_requests.append(usr)
 
     info_logger.info("PENDING MEMBER REQUEST")
+
     info_logger.info(pending_requests)
+    info_logger.info("\n\n")
     return pending_requests
 
 
