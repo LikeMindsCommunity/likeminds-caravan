@@ -471,13 +471,13 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         <div class="ui fluid card" style="margin-top:0px;margin-bottom:8px;">
 
             <div class="content" id="members">
-                {% if community.hide_community == '3' %}
-                <h4 style="display: inline;" class="RobotoBold">Interested </h4>
-                <h6 style="display: inline;">&nbsp;&nbsp;&nbsp;&nbsp;{{members_length}} </h6>
-                {% else  %}
+
                 <h4 style="display: inline;" class="RobotoBold">Members</h4>
                 <h6 style="display: inline; font-size:10px;" class="RobotoBold">&nbsp;&nbsp;&nbsp;&nbsp;{{members_length}} </h6>
-                {% endif %}
+                <h6 style="display: inline;padding-left:66%;" class="RobotoBold" id="filter_icon">
+                    <i class="filter icon"></i>
+                </h6>
+
 
                     <div class="ui container" style="padding-top:12px;">
 
@@ -881,6 +881,11 @@ $('#more').html(display)
 })
 
 
+$('#filter_icon').click(function(e){
+
+    location.href="/members_directory/"+'{{community.id}}'
+
+})
 
 
         </script>

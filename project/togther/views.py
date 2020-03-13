@@ -589,7 +589,41 @@ def get_introduction_answer(community_instance,member_instance):
     return ""
 
 
+def members_directory(request,community_id):
 
+    '''function to see members directory'''
+    community_instance=Community.objects.get(pk=community_id)
+    filter_list=communityQuestions.objects.filter(community=community_instance).filter(
+        Q(question_state=question_states.CHOICE_SINGLE)|Q(question_state=question_states.CHOICE_MULTIPLE))
+
+
+    filters=[]
+
+    for filter in filter_list:
+
+        temp={}
+        temp['question_title']=filter.question_title
+        temp['values']=filter.value.split(",")
+        filters.append(temp)
+
+
+
+
+
+
+
+    members=get_member_details(community_instance)
+
+    context={
+        'members':members,
+        'members_length':len(members),
+        'community_name':community_instance.name,
+        'filter_list':filters
+    }
+
+
+
+    return render(request,'members.html',context)
 
 
 @login_required
