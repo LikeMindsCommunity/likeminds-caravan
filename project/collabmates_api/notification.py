@@ -513,6 +513,7 @@ def send_notification_to_referred_member(referred_member_id,joined_member_name,c
         token_list=[]
         token_list.append(fcm_token)
         if referal_count == 1:
+
             sub_title =  str(joined_member_name) + " has shown interest to join. You have referred "+ str(referal_count) +" member to the community"
         elif referal_count > 1:
             sub_title =  str(joined_member_name) + " has shown interest to join. You have referred "+ str(referal_count) +" members to the community"
@@ -743,6 +744,8 @@ def send_notification_for_tool_unlocked_for_live_community(referer_id,referal_co
     sub_title = ""
     route = 'route://community_collabcard?community_id=' + str(community_id) + '&community_name=' + str(
             community_name) + '&community_state=' + str(community_state)
+    print("refererid--",referer_id)
+
     if referal_count == 1:
         sub_title = "Event tool unlocked. You have successfully referred 1 member"
         notification_list = []
@@ -759,6 +762,7 @@ def send_notification_for_tool_unlocked_for_live_community(referer_id,referal_co
             'sub_title': sub_title,
             'route': route
         }
+
         notification_meta(notification_list, message)
 
     elif referal_count == 3:
@@ -810,8 +814,9 @@ def send_notification_for_tool_unlocked_for_pilot(community_id):
 
         referal_count=get_referred_members_of_a_member(community_id,member.member_id.id)
         referal_count=len(referal_count)
+        print("Referral count ---",referal_count)
         if referal_count >= 3:
-
+            print("referal count first condtion")
             send_notification_for_tool_unlocked_for_live_community(referer_id=member.member_id.id,
                                                                referal_count=1,community_id=community_id,
                                                                community_name=community_instance.name,
@@ -825,6 +830,7 @@ def send_notification_for_tool_unlocked_for_pilot(community_id):
                                                                    community_state=community_instance.hide_community
                                                                    )
         elif referal_count >= 1:
+            print("referal count second condtion")
 
             send_notification_for_tool_unlocked_for_live_community(referer_id=member.member_id.id,
                                                                    referal_count=1, community_id=community_id,
@@ -976,6 +982,13 @@ def get_referred_members_of_a_member(community_id,member_id):
                     member_list.append(member[0].member_id.id)
 
     return member_list
+
+
+def test_api(request,community_id):
+
+    send_notification_for_tool_unlocked_for_pilot(community_id)
+    return JsonResponse({'success':True})
+
 
 
 
