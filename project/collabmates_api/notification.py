@@ -742,6 +742,7 @@ def send_poll_notification_manually(request):
 
 @shared_task
 def send_notification_for_tool_unlocked_for_live_community(referer_id,referal_count, community_id, community_name,community_state):
+
     '''function to send notification for tool unlocked'''
 
     sub_title = ""
@@ -750,13 +751,11 @@ def send_notification_for_tool_unlocked_for_live_community(referer_id,referal_co
     if referal_count == 1:
         sub_title = "Event tool unlocked. You have successfully referred 1 member"
         notification_list = []
-
         temp = {}
         temp['user_id'] = referer_id
         notification_details = get_token_for_fcm(referer_id, True)
         temp['fcm_token'] = notification_details[0]
         temp['mobile_os'] = notification_details[1]
-
         notification_list.append(temp)
 
         message = {}
@@ -765,20 +764,16 @@ def send_notification_for_tool_unlocked_for_live_community(referer_id,referal_co
             'sub_title': sub_title,
             'route': route
         }
-
         notification_meta(notification_list, message)
-
 
     elif referal_count == 3:
         sub_title = "Pool tool unlocked. You have successfully referred 3 member."
         notification_list = []
-
         temp = {}
         temp['user_id'] = referer_id
         notification_details = get_token_for_fcm(referer_id, True)
         temp['fcm_token'] = notification_details[0]
         temp['mobile_os'] = notification_details[1]
-
         notification_list.append(temp)
 
         message = {}
@@ -787,18 +782,16 @@ def send_notification_for_tool_unlocked_for_live_community(referer_id,referal_co
             'sub_title': sub_title,
             'route': route
         }
-
         notification_meta(notification_list, message)
+
     elif referal_count == 5:
         sub_title = " Congrats. You are now promoter of this community."
         notification_list = []
-
         temp = {}
         temp['user_id'] = referer_id
         notification_details = get_token_for_fcm(referer_id, True)
         temp['fcm_token'] = notification_details[0]
         temp['mobile_os'] = notification_details[1]
-
         notification_list.append(temp)
 
         message = {}
@@ -807,8 +800,9 @@ def send_notification_for_tool_unlocked_for_live_community(referer_id,referal_co
             'sub_title': sub_title,
             'route': route
         }
-
         notification_meta(notification_list, message)
+
+
 
 @shared_task
 def send_notification_for_tool_unlocked_for_pilot(community_id):
@@ -819,10 +813,26 @@ def send_notification_for_tool_unlocked_for_pilot(community_id):
     for member in members_list:
 
         referal_count=get_referred_members_of_a_member(community_id,member.member_id.id)
-        send_notification_for_tool_unlocked_for_live_community(referer_id=member.member_id.id,
-                                                               referal_count=referal_count,community_id=community_id,
-                                                               community_name=community_instance.name,community_state=community_instance.hide_community
+        if referal_count >= 3:
+
+            send_notification_for_tool_unlocked_for_live_community(referer_id=member.member_id.id,
+                                                               referal_count=1,community_id=community_id,
+                                                               community_name=community_instance.name,
+                                                               community_state=community_instance.hide_community
                                                                )
+
+            send_notification_for_tool_unlocked_for_live_community(referer_id=member.member_id.id,
+                                                                   referal_count=3,
+                                                                   community_id=community_id,
+                                                                   community_name=community_instance.name,
+                                                                   community_state=community_instance.hide_community
+                                                                   )
+        elif referal_count >= 1:
+            send_notification_for_tool_unlocked_for_live_community(referer_id=member.member_id.id,
+                                                                   referal_count=1, community_id=community_id,
+                                                                   community_name=community_instance.name,
+                                                                   community_state=community_instance.hide_community
+                                                                   )
 
 
 #Ig notifications
