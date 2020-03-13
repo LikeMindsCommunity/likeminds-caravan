@@ -57,7 +57,9 @@ from .notification import (send_follow_notification, send_notification_to_admins
                            send_notification_to_promoter_of_ig_community,
                            send_notification_to_referrer_of_ig_community,
                            send_notification_to_referrer_of_lg_community,
-                           ask_approval_notification)
+                           ask_approval_notification,
+                           send_notification_for_tool_unlocked_for_live_community,
+                           send_notification_for_tool_unlocked_for_pilot)
 from .raw_queries import compute_rank
 from .tasks import send_email_to_nominated_admin, send_email_for_new_collabcard_posted, send_welcome_mail
 
@@ -397,47 +399,6 @@ def join_community_responses(request):
     if  is_ig or is_lg == None:                                 #if the community is ig community or is_lg hometown community
         print("Inside IG")
         join_ig_communities(request,res,community,user,ref_id)
-        if ref_id:
-            referer_instance = User.objects.get(pk=ref_id)
-            refer = Referal.objects.filter(member=referer_instance,
-                                           invited_member=user,
-                                           community=community)
-
-            #send notification for joining community
-            send_notification_to_referrer_of_ig_community(community_id=community_id, community_name=community.name,
-                                                          referrer_id=ref_id,
-                                                          member_name=user.userinfo.name,
-                                                          community_state=community.hide_community)
-
-
-            if not refer.exists():
-                refer = Referal(member=referer_instance,
-                                invited_member=user,
-                                community=community)
-                refer.save()
-
-            total_referals = Referal.objects.filter(member=referer_instance,
-                                                    community=community)
-
-            total_referal_count=total_referals.count()
-
-            # send_notification_for_tool_unlocked.delay(referer_id=ref_id,
-            #                                           joined_member_name=user.userinfo.name,
-            #                                           referal_count=total_referal_count, community_id=community.id,
-            #                                           community_name=community.name)
-            if total_referal_count < ig_members_count:
-                pass
-
-            if total_referal_count == eligibility_count:
-                admin = Members.objects.filter(community_id=community, member_id=referer_instance)
-
-                if admin.exists():
-                    Members.objects.filter(community_id=community, member_id=referer_instance).update(state=member_states.ADMIN)
-                    Member_Engage.objects.filter(member_id=referer_instance, community_id=community).update(
-                        member_state=member_states.ADMIN)
-
-                    send_notification_to_promoter_of_ig_community.delay(community_id=community.id,
-                                                                  community_name=community.name,member_id=ref_id)
 
 
         if not ref_id:
@@ -525,13 +486,59 @@ def join_ig_communities(request,res,community,user,ref_id):
         community.members_count=community.members_count + 1
         community.save()
 
+        is_live = False
+        if community.hide_community == '4':
+            is_live = True
+
         if community.members_count == ig_members_count:
             community.hide_community='4'
             community.save()
+            send_notification_for_tool_unlocked_for_pilot.delay(community_id=community.id)
+
         send_notification_for_join_requests.delay(community_id, True, member_id)
         log="""Community joined for community_id=%s and member_id=%s"""%(community.id,user.id)
 
         info_logger.info(log)
+
+
+        if ref_id:
+            referer_instance = User.objects.get(pk=ref_id)
+            refer = Referal.objects.filter(member=referer_instance,
+                                           invited_member=user,
+                                           community=community)
+
+            #send notification for joining community
+            send_notification_to_referrer_of_ig_community.delay(community_id=community_id, community_name=community.name,
+                                                          referrer_id=ref_id,
+                                                          member_name=user.userinfo.name,
+                                                          community_state=community.hide_community)
+
+
+            if not refer.exists():
+                refer = Referal(member=referer_instance,
+                                invited_member=user,
+                                community=community)
+                refer.save()
+
+            total_referals = get_referred_members_of_a_member(community.id,ref_id)
+            total_referal_count = len(total_referals)
+
+
+            if total_referal_count >= eligibility_count:
+                admin = Members.objects.filter(community_id=community, member_id=referer_instance)
+
+                if admin.exists():
+                    Members.objects.filter(community_id=community, member_id=referer_instance).update(state=member_states.ADMIN)
+                    Member_Engage.objects.filter(member_id=referer_instance, community_id=community).update(
+                        member_state=member_states.ADMIN)
+
+
+            if is_live:
+                send_notification_for_tool_unlocked_for_live_community.delay(referer_id=ref_id, referal_count=total_referal_count,
+                                                    community_id=community.id,
+                                                    community_name=community.name,
+                                                    community_state=community.hide_community)
+
 
 
 
@@ -2424,10 +2431,15 @@ def approve_or_decline_lg_community(request,req_dict,member_verification):
             community.updated_at = time.time()
             community.members_count = community.members_count + 1
             community.save()
+            is_live=False
+            if community.hide_community == '4':
+                is_live=True
 
             if community.members_count == ig_members_count:
                 community.hide_community = '4'
+                send_notification_for_tool_unlocked_for_pilot.delay(community_id=community_id)
                 community.save()
+
             send_notification_for_join_requests.delay(community_id, True, member_id)
 
             update_last_unseen_in_engage(user=user,community=community)
@@ -2472,10 +2484,13 @@ def approve_or_decline_lg_community(request,req_dict,member_verification):
                             Members.objects.filter(community_id=community, member_id=referer_instance).update(
                                 state=member_states.ADMIN)
                             Member_Engage.objects.filter(member_id=member_id, community_id=community).update(
-                                member_state=member_states.ADMIN)
-                            send_notification_to_promoter_of_ig_community.delay(community_id=community.id,
-                                                                                community_name=community.name,
-                                                                                member_id=referer_instance.id)
+                                    member_state=member_states.ADMIN)
+                    if is_live:
+                        send_notification_for_tool_unlocked_for_live_community.delay(referer_id=header_member_id,
+                                                                                     referal_count=total_referal_count,
+                                                                                     community_id=community.id,
+                                                                                     community_name=community.name,
+                                                                                     community_state=community.hide_community)
 
 
         else:
@@ -4354,8 +4369,8 @@ def members_state(request):
 
     #sending pop-up for lg community
     community_instance=Community.objects.get(id=community_id)
-    unlock_title="Can’t Post Yet"
-    unlock_sub_title="Your verification for joining this closed group is still pending. Posting is not open for non verified members. Verify your credentials."
+    unlock_title="Can’t Engage Yet"
+    unlock_sub_title="Your verification for joining this closed group is still pending. Engaging is not open for non verified members. Verify your credentials."
     unlock_action_title="REQUEST COMMUNITY MEMBERS"
     unlock_action="""route://member_ask?community_id=%s&community_name=%s"""%(community_instance.id,community_instance.name)
 
