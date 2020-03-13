@@ -753,7 +753,9 @@ def poll_expiry_or_event_remainder_notification(community_name, community_id, ty
 
     """ function to send notification to all members when event/poll is going to start/end """
     try:
-
+        print("type === ",typ)
+        print(" community-id === ",community_id)
+        print("kwargs === ",kwargs)
         if typ == 2:
             token_list = list(collabcardState.objects.filter(card=kwargs['card_id']).filter(
                                  Q(state=3) |
@@ -763,7 +765,7 @@ def poll_expiry_or_event_remainder_notification(community_name, community_id, ty
             token_list = list(MemberPollVotes.objects.filter(card=kwargs[
                                                                 'card_id']).order_by('-id').values_list(
                                                                 'user__userinfo__fcm_token', flat=True))
-            print("token list ===== ", token_list)
+        print("token list ===== ", token_list)
 
         if typ == 3:
             sub_title = 'your poll ended. Tap to see results'
@@ -784,7 +786,6 @@ def poll_expiry_or_event_remainder_notification(community_name, community_id, ty
         beat_task.stop_task(task_name=kwargs['task_name'])
 
     except:
-
         print("Error while connecting to PostgreSQL")
 
 
