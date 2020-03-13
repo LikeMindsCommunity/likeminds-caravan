@@ -36,7 +36,7 @@ url=settings.URL
 if settings.IS_BETA:
 
     eligibility_count = 5
-    ig_members_count=4
+    ig_members_count=3
 
     feedback_community_id = 20739
     feedback_collabcard_id = 1025

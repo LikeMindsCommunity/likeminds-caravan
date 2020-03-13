@@ -46,7 +46,6 @@ def send_notification_for_android(token_list,message):
     result = push_service.notify_multiple_devices(registration_ids=token_list,
                                                   data_message=message['payload'])
 
-    print(result)
 
 
 def send_notification_for_ios(token_list, message):
@@ -62,18 +61,13 @@ def send_notification_for_ios(token_list, message):
                                                   message_body=message['payload']['sub_title'],
                                                   data_message=message['payload'])
 
-    print(result)
 
 
 def notification_meta(notification_list,message):
 
     '''function to process notification to send'''
 
-    print("Notification Info--")
-    print(notification_list)
 
-    print("Message--")
-    print(message)
 
     token_list_android=[]
     token_list_ios=[]
@@ -811,9 +805,11 @@ def send_notification_for_tool_unlocked_for_pilot(community_id):
 
     members_list=Members.objects.filter(community_id=community_id).filter(Q(state=member_states.ADMIN)|Q(state=member_states.MEMBER))
     community_instance=Community.objects.get(id=community_id)
+    print("Send Notification for tool unlocked")
     for member in members_list:
 
         referal_count=get_referred_members_of_a_member(community_id,member.member_id.id)
+        print(referal_count)
         if referal_count >= 3:
 
             send_notification_for_tool_unlocked_for_live_community(referer_id=member.member_id.id,
@@ -829,6 +825,7 @@ def send_notification_for_tool_unlocked_for_pilot(community_id):
                                                                    community_state=community_instance.hide_community
                                                                    )
         elif referal_count >= 1:
+
             send_notification_for_tool_unlocked_for_live_community(referer_id=member.member_id.id,
                                                                    referal_count=1, community_id=community_id,
                                                                    community_name=community_instance.name,
