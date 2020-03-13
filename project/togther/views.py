@@ -441,11 +441,11 @@ def refer_members(request,community_id):
 
                 if not is_introduction:
                     temp['is_introduction']=True
-                    temp['answer']=form.response
+                    temp['answer']=form.question_answer
                     is_introduction=True
                 else:
                     temp['is_introduction'] = False
-                    temp['answer']=form.data + " : " + form.response
+                    temp['answer']=form.question_title + " : " + form.question_answer
 
                 form_answers_list.append(temp)
 
@@ -777,7 +777,7 @@ def join_community(request, community_id,ref_id):
             elif key == 'ref_id':
                 continue
 
-            question_dict['key'] = key
+            question_dict['id'] = key
             question_dict['value'] = re.sub(r'(?<=[.,])(?=[^\s])', r' ', value)
 
 
@@ -793,11 +793,10 @@ def join_community(request, community_id,ref_id):
 
         json_dict = {"community_id":community_id,"timestamp":time.time()}
         json_dict['questions'] = response_list
-
-        # print(">>>>  ",response_list)
+        json_dict['user_id'] = member_id
 
         params = {'member_id': member_id, 'community_id': community_id,'ref_id':ref_id}
-        rqst.post(join_url, params=params, json=json_dict)
+        response  = rqst.post(join_url, params=params, json=json_dict)
         # return false to show thank you page the user has now answered the questions
         return False, validation_error, user, similar_communities, community, []
 

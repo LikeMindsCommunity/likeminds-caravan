@@ -350,7 +350,7 @@ def send_notification_for_join_requests(community_id,flag,member_id):
     else:
         message['payload'] = {
             'title': community_name,
-            'sub_title': "Sorry! your request to join this community has been rejected",
+            'sub_title': "Your request to join this community has been rejected",
             'route': 'route://member_declined?community_id=' + str(community_id)
         }
 
