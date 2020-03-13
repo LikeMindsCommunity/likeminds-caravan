@@ -728,10 +728,10 @@ def send_poll_or_event_notification(card_id, user_id):
 def poll_expiry_or_event_remainder_notification(community_name, community_id, typ, **kwargs):
 
     """ function to send notification to all members when event/poll is going to start/end """
+    print("\ntype === ", typ)
+    print(" community-id === ", community_id)
+    print("kwargs === ", kwargs,"\n")
     try:
-        print("type === ",typ)
-        print(" community-id === ",community_id)
-        print("kwargs === ",kwargs)
         if typ == 2:
             token_list = list(collabcardState.objects.filter(card=kwargs['card_id']).filter(
                                  Q(state=3) |
@@ -758,8 +758,8 @@ def poll_expiry_or_event_remainder_notification(community_name, community_id, ty
 
         send_notification_to_multiple_devices(token_list, message)
         # disable the task , to prevent it from trigerring in future
-        beat_task = CeleryBeatTask()
-        beat_task.stop_task(task_name=kwargs['task_name'])
+        # beat_task = CeleryBeatTask()
+        # beat_task.stop_task(task_name=kwargs['task_name'])
 
     except:
         print("Error while connecting to PostgreSQL")
