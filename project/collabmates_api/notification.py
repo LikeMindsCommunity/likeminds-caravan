@@ -735,28 +735,59 @@ def send_notification_for_tool_unlocked_for_live_community(referer_id,referal_co
             community_name) + '&community_state=' + str(community_state)
     if referal_count == 1:
         sub_title = "Event tool unlocked. You have successfully referred 1 member"
+        notification_list = []
+        temp = {}
+        temp['user_id'] = referer_id
+        notification_details = get_token_for_fcm(referer_id, True)
+        temp['fcm_token'] = notification_details[0]
+        temp['mobile_os'] = notification_details[1]
+        notification_list.append(temp)
+
+        message = {}
+        message['payload'] = {
+            'title': community_name,
+            'sub_title': sub_title,
+            'route': route
+        }
+        notification_meta(notification_list, message)
 
     elif referal_count == 3:
         sub_title = "Pool tool unlocked. You have successfully referred 3 member."
+        notification_list = []
+        temp = {}
+        temp['user_id'] = referer_id
+        notification_details = get_token_for_fcm(referer_id, True)
+        temp['fcm_token'] = notification_details[0]
+        temp['mobile_os'] = notification_details[1]
+        notification_list.append(temp)
+
+        message = {}
+        message['payload'] = {
+            'title': community_name,
+            'sub_title': sub_title,
+            'route': route
+        }
+        notification_meta(notification_list, message)
 
     elif referal_count == 5:
         sub_title = " Congrats. You are now promoter of this community."
+        notification_list = []
+        temp = {}
+        temp['user_id'] = referer_id
+        notification_details = get_token_for_fcm(referer_id, True)
+        temp['fcm_token'] = notification_details[0]
+        temp['mobile_os'] = notification_details[1]
+        notification_list.append(temp)
 
-    notification_list = []
-    temp = {}
-    temp['user_id'] = referer_id
-    notification_details = get_token_for_fcm(referer_id, True)
-    temp['fcm_token'] = notification_details[0]
-    temp['mobile_os'] = notification_details[1]
-    notification_list.append(temp)
+        message = {}
+        message['payload'] = {
+            'title': community_name,
+            'sub_title': sub_title,
+            'route': route
+        }
+        notification_meta(notification_list, message)
 
-    message = {}
-    message['payload'] = {
-        'title': community_name,
-        'sub_title': sub_title,
-        'route': route
-    }
-    notification_meta(notification_list, message)
+
 
 @shared_task
 def send_notification_for_tool_unlocked_for_pilot(community_id):
