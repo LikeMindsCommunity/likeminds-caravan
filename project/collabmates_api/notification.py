@@ -14,6 +14,7 @@ from togther.models import (Community_Rank, collabcardState,
                             )
 from utility.celery_beat_tasks import CeleryBeatTask
 from utility.states import *
+import json
 from django.shortcuts import get_object_or_404
 
 # file to store configuration of the system
@@ -723,7 +724,20 @@ def poll_expiry_or_event_remainder_notification(community_name, community_id, ty
         print("Error while connecting to PostgreSQL")
 
 
+def send_poll_notification_manually(request):
+    body = json.loads(request.body)
 
+    community_id = body['community_id']
+    community = Community.objects.get(pk=community_id)
+    community_name = community.name
+    community_state = community.hide_community
+    card_id = body['card_id']
+
+    card = Collabcard.objects.get(pk = card_id)
+    typ = card.type
+
+    poll_expiry_or_event_remainder_notification(community_name, community_id, typ,
+                                                community_state=community_state, card_id=card_id)
 #toots unlocked
 
 @shared_task

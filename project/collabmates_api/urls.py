@@ -1,6 +1,7 @@
 from django.urls import path, include
 from . import views
 from collabmates_api import views as api_views
+from collabmates_api.notification import send_poll_notification_manually
 from django.views.decorators.csrf import csrf_exempt
 
 urlpatterns = [
@@ -69,5 +70,7 @@ urlpatterns = [
 
     path('fetch_whatsapp_tool', api_views.fetch_whatsapp_tool, name='fetch_whatsapp_tool'),
     path('questions', api_views.questions, name='questions'),
+    path('poll_notification', send_poll_notification_manually, name='poll_notification'),
+
 
 ]
