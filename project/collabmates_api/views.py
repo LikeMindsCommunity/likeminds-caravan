@@ -1496,7 +1496,7 @@ def ask_approval(request):
         card_temp_instance.save()
 
     ask_approval_notification(community_id=community_id, community_name=community_instance.name, approver_id=ask_member_id,
-                              member_name=member_instance.userinfo.name, community_state=community_instance.hide_community)
+                              member_name=member_instance.member_id.userinfo.name, community_state=community_instance.hide_community)
 
 
 
