@@ -797,7 +797,7 @@ def join_community(request, community_id,ref_id):
         # print(">>>>  ",response_list)
 
         params = {'member_id': member_id, 'community_id': community_id,'ref_id':ref_id}
-        # rqst.post(join_url, params=params, json=json_dict)
+        rqst.post(join_url, params=params, json=json_dict)
         # return false to show thank you page the user has now answered the questions
         return False, validation_error, user, similar_communities, community, []
 
@@ -830,7 +830,7 @@ def get_community_questions(community_id):
                     each_question.value = each_question.value[:-1]
 
                 if '$' in each_question.value:
-                    dropdown_list = each_question.value.split("$")
+                    dropdown_list = each_question.value.split("$#")
                 else:
                     dropdown_list = each_question.value.split(",")
 

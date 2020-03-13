@@ -172,7 +172,7 @@ def CommunityQuestionsSerializer(community_question_instance):
         community_question_instance.value = community_question_instance.value[:-1]
 
     if '$' in community_question_instance.value:
-        dropdown_list = community_question_instance.value.split("$")
+        dropdown_list = community_question_instance.value.split("$#")
     else:
         dropdown_list = community_question_instance.value.split(",")
 
