@@ -67,7 +67,7 @@ from .tasks import send_email_to_nominated_admin, send_email_for_new_collabcard_
 
 
 url = settings.URL
-#url='http://localhost:8000'
+# url='http://localhost:8000'
 error_logger = logging.getLogger("error_logger")
 info_logger = logging.getLogger("info_logger")
 
@@ -404,8 +404,6 @@ def join_community_responses(request):
     else:
         ref_id = request.GET.get('ref_id', None)
 
-
-
     if  is_ig or is_lg == None:                                 #if the community is ig community or is_lg hometown community
         print("Inside IG")
         join_ig_communities(request,res,community,user,ref_id)
@@ -424,7 +422,7 @@ def join_community_responses(request):
 
     elif is_lg:
         print("LG community")
-        join_lg_communities(request,res,community,user,ref_id)
+        join_lg_communities(request, res, community,user,ref_id)
 
         if not ref_id:
             # sending mail to nipun and harsh
@@ -716,14 +714,18 @@ def join_community_responses_version_1(request):
     community_id = res['community_id']
     community_instance = Community.objects.get(id=community_id)
     community=community_instance
-    user_id=get_member_id_from_headers(request)
+
+    if 'user_id' in res :
+        # request from web
+        user_id = res['user_id']
+    else:
+        user_id = get_member_id_from_headers(request)
 
     #for whatsapp community
     if community_instance.hide_community == '5':
+        info_logger.info("whats app communtiy")
         join_whatsapp_community(res,request)
         return JsonResponse({'success': True})
-
-
 
     is_private = False
     if community.hide_community == '0' or community.hide_community == '1':
@@ -808,6 +810,7 @@ def join_community_responses_version_1(request):
                                      form_response=res['questions'])
         return JsonResponse({'success': True})
     elif is_private:
+        info_logger.info("Inside private\n")
         join_promoter_created_community_version_1(res, community, user)
         new_member_request.delay(member_id=user_id, community_id=community_id, ref_id=ref_id,
                                  form_response=res['questions'])
@@ -1018,8 +1021,8 @@ def join_whatsapp_community(res,request):
             if question_instance.question_state == question_states.CHOICE_SINGLE or question_instance.question_state == question_states.CHOICE_MULTIPLE:
                 selected_choices = question['value'].split("$#")
                 for choice in selected_choices:
-                    filter_instance = questionFilters(question=question['id'],
-                                                      filter=choice.strip(), member=user_instance)
+                    filter_instance = questionFilters(question=question['id'], filter=choice.strip(),
+                                                      member=user_instance, community=community_instance)
                     filter_instance.save()
 
 

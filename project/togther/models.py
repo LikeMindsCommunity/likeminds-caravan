@@ -668,3 +668,10 @@ class questionFilters(models.Model):
     question = models.ForeignKey(communityQuestions, on_delete=models.CASCADE)
     filter = models.TextField(null=True)
     member = models.ForeignKey(User, on_delete=models.CASCADE)
+    community = models.ForeignKey(Community, on_delete=models.CASCADE)
+    created_at = models.BigIntegerField(default=0, null=True)
+
+    def save(self, *args, **kwargs):
+        if self.created_at == 0:
+            self.created_at = time.time()
+        super(questionFilters, self).save(*args, **kwargs)
