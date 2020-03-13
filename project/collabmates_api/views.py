@@ -1004,6 +1004,13 @@ def join_whatsapp_community(res,request):
             answer_instance.question_answer = question['value']
             answer_instance.question_title = question_instance.question_title
             answer_instance.save()
+            
+            if question_instance.question_state == question_states.CHOICE_SINGLE or question_instance.question_state == question_states.CHOICE_MULTIPLE:
+                selected_choices = question['value'].split("$#")
+                for choice in selected_choices:
+                    filter_instance = questionFilters(question=question['id'],
+                                                      filter=choice.strip(), member=user_instance)
+                    filter_instance.save()
 
 
     #saving data directly
