@@ -46,7 +46,7 @@ def insert_type_of_community():
     '''function to insert type of community'''
 
     typ_list=get_type_of_community()
-    print(typ_list)
+    # print(typ_list)
     for typ in typ_list:
         check_data=communityType.objects.filter(typ=typ['type'],next_input_title=typ['sub_type'])
 
@@ -163,8 +163,11 @@ def send_string_dropdown(test):
         question1 = test[:index]
 
         options_string = test.strip()[index:]
+        print("options string === ",options_string)
         index = options_string.find("(")
         option = options_string[index:-1]
+
+        print("options === ", option)
 
         option = option.split("$")
         option_list=[]
