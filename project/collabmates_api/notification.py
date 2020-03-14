@@ -409,16 +409,16 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title, 
             if task_name and task_path:
                 celerybeatask = CeleryBeatTask()
                 args = [community_name, community_id, typ]
-
+                print("card id === ", kwargs['card_id'],"   type ===  ",typ)
                 print("date time === ",kwargs['date_time'])
 
                 date_time = int(str(kwargs['date_time'])[:10])
                 print("date time === ", date_time)
                 if typ == 2:
-                    if not settings.IS_BETA :
-                        date_time = date_time - 1800 # subtracting 30 minutes if BETA
+                    if settings.IS_BETA:
+                        date_time = date_time - 1800  # subtracting 30 minutes if BETA
                     else:
-                        date_time = date_time - 1800 + 19800 # subtracting 30 minutes and adding 5:30 to make time into IST
+                        date_time = date_time - 1800 + 19800  # subtracting 30 minutes and adding 5:30 to make time into IST
                 else:
                     date_time = date_time + 19800 if not settings.IS_BETA else date_time
                 print("date time === ", date_time)
