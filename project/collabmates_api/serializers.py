@@ -191,7 +191,7 @@ def CommunityQuestionsSerializer(community_question_instance):
         'optional':community_question_instance.optional,
         'community_id':community_question_instance.community_id,
         'state':community_question_instance.question_state,
-        'help_text':community_question_instance.help_text
+        'help_text':community_question_instance.help_text if community_question_instance.help_text else ''
     }
 
 
