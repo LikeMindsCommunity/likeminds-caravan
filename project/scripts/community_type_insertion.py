@@ -157,29 +157,23 @@ def send_string_dropdown(test):
 
 
     # question = test.split("(")
-    index = test.find("(")
+    index = test.find("?")
 
     if index != -1:
         question1 = test[:index]
         option = test[index:-1]
-        option_list = []
-        # if len(question) == 2:
-        # question1 = question[0]
-        #print(question1)
-
-        # option = question[1]
-        # option = option[:-1]
 
         option = option.split("$")
         option_list=[]
         for word in option:
             option_list.append({'value':word.strip()})
 
-            #print(option)
     else:
         option_list = None
         question1 = test.strip()
-    print(question1,option_list)
+    if not len(option_list):
+        option_list = None
+        
     return (question1,option_list)
 
 
