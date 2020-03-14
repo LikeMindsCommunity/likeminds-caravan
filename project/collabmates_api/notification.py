@@ -697,9 +697,9 @@ def poll_expiry_or_event_remainder_notification(community_name, community_id, ty
         print("token list ===== ", token_list)
 
         if typ == 3:
-            sub_title = 'your poll ended. Tap to see results'
+            sub_title = 'Your poll ended. Tap to see results'
         else:
-            sub_title = 'your event is starting in 30 minutes'
+            sub_title = 'Your event is starting in 30 minutes'
 
         message = {}
         message['payload'] = {
