@@ -74,8 +74,10 @@ class CeleryBeatTask:
 
     def stop_task(self, task_name):
         """pauses the task"""
-        periodic_task = PeriodicTask.object.filter(name=task_name)
-        periodic_task.update(enabled=False)
+        periodic_task = PeriodicTask.object.get(name=task_name)
+        periodic_task.enabled=False
+        periodic_task.save()
+        print("disabled task succesfully")
 
     def resume_task(self, task_name):
         """starts the task"""
@@ -86,6 +88,7 @@ class CeleryBeatTask:
         ''' function to delete the periodic task '''
         periodic_task = PeriodicTask.object.filter(name=task_name)
         periodic_task.delete()
+        print("deleted task succesfully")
 
     def reschedule_task(self, task_name,**kwargs):
         ''' function to reschedule the periodic task '''
