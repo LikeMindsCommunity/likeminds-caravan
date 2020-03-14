@@ -91,7 +91,7 @@ def get_community_details(sheet_no,typ):
 
     '''function to get alumni community'''
 
-    loc = ("scripts/individual_questions.xlsx")
+    loc = ("scripts/test.xlsx")
 
     wb = xlrd.open_workbook(loc)
     sheet = wb.sheet_by_index(sheet_no)
@@ -161,14 +161,14 @@ def send_string_dropdown(test):
 
     if index != -1:
         question1 = test[:index+1]
-        print("old index === ", index)
+        #print("old index === ", index)
         options_string = test.strip()[index:]
-        print("options string === ",options_string)
+        #print("options string === ",options_string)
         index = options_string.find("(")
-        print("new index === ",index)
+        #print("new index === ",index)
         option = options_string[index+1:-1]
 
-        print("options === ", option)
+        #print("options === ", option)
 
         option = option.split("$")
         option_list=[]
@@ -202,7 +202,7 @@ def updating_communities():
     get_community_details(sheet_no=11, typ=2)
     get_community_details(sheet_no=12, typ=16)
     get_community_details(sheet_no=13, typ=3)
-    #get_community_details(sheet_no=14, typ=4)
+    get_community_details(sheet_no=14, typ=4)
 
 
 insert_type_of_community()
