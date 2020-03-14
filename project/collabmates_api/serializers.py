@@ -225,13 +225,6 @@ def masterQuestionSerializer(masterQuestionInstance):
     }
 
     if masterQuestionInstance.value:
-        values = masterQuestionInstance.value.split(",")
-        value_list = []
-
-        for value in values:
-            value_dict = {"value": value.strip()}
-            value_list.append(value_dict)
-
-        json_dict['value'] = value_list
+        json_dict['value'] = json.loads(masterQuestionInstance.value)
 
     return json_dict
