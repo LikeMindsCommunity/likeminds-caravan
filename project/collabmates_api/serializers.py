@@ -190,7 +190,8 @@ def CommunityQuestionsSerializer(community_question_instance):
         'value':dropdown_list,
         'optional':community_question_instance.optional,
         'community_id':community_question_instance.community_id,
-        'state':community_question_instance.question_state
+        'state':community_question_instance.question_state,
+        'help_text':community_question_instance.help_text
     }
 
 
