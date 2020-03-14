@@ -697,6 +697,14 @@ def poll_expiry_or_event_remainder_notification(community_name, community_id, ty
                                                                 'user__userinfo__fcm_token', flat=True))
         print("token list ===== ", token_list)
 
+        card_instance = Collabcard.objects.get(pk=kwargs['card_id'])
+
+        user_fcm = card_instance.user.userinfo.fcm_token
+
+        if not user_fcm in token_list:
+            token_list.append(user_fcm)
+
+
         if typ == 3:
             sub_title = 'your poll ended. Tap to see results'
         else:

@@ -36,6 +36,9 @@ from utility.states import collabcard_states, member_states,question_states
 import re
 url = settings.URL
 
+if not url:
+    url = "https://beta.collabmates.com"
+
 # uncomment to run it in localhost
 #
 # url='http://localhost:8000'
