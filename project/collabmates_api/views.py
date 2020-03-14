@@ -1741,7 +1741,9 @@ def create_community_version_1(request):
         communityExpireInstance.community=community_instance
         communityExpireInstance.duration=86400                  #for 24 hours saving in community
         communityExpireInstance.save()
-    return JsonResponse({'success':True})
+        
+    communty_serailized_object = CommunitySerializer(community_instance)
+    return JsonResponse({'success':True,'community':communty_serailized_object})
 
 
 
