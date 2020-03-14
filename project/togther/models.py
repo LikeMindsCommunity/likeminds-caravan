@@ -610,6 +610,7 @@ class communityQuestions(models.Model):
     value = models.TextField(null=True)
     dropdown_selection_limit = models.IntegerField(null=True)
     optional=models.BooleanField(default=False)
+    help_text = models.TextField(null=True)
 
 
 class communityAnswers(models.Model):

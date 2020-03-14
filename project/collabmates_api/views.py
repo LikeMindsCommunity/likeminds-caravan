@@ -1725,6 +1725,7 @@ def create_community_version_1(request):
         questions_instance.question_state=question['state']
         questions_instance.value=question['value']
         questions_instance.optional=question['optional']
+        questions_instance.help_text = question['help_text'] if 'help_text' in question else None
         questions_instance.save()
 
     log = """questions added in community questions table"""
