@@ -2,6 +2,7 @@ import xlrd
 from togther.models import communityType,communitySubtype,masterQuestions
 from utility.states import question_states
 import time
+import json
 def get_type_of_community():
 
     loc = ("scripts/community_questions.xlsx")
@@ -72,6 +73,8 @@ def create_question(question_title,sub_type,typ,state,help_text=None,value=None)
         test_string =  send_string_dropdown(question_title)
         question_title = test_string[0]
         value = test_string[1]
+        value=json.dumps(value)
+
 
     typ_instances=communityType.objects.filter(pk=typ)
     if typ_instances:
@@ -80,7 +83,7 @@ def create_question(question_title,sub_type,typ,state,help_text=None,value=None)
         masterQuestions_instance.sub_type=sub_type
         masterQuestions_instance.typ=typ_instances[0]
         masterQuestions_instance.help_text=help_text
-        masterQuestions_instance.value=value
+        masterQuestions_instance.value=value if value != "null" else None
         masterQuestions_instance.state=state
         masterQuestions_instance.save()
 
@@ -153,19 +156,31 @@ def get_community_details(sheet_no,typ):
 def send_string_dropdown(test):
 
 
-    question = test.split("(")
-    option = ""
-    if len(question) == 2:
-        question1 = question[0]
-        #print(question1)
-        option = question[1]
-        option = option.replace("$", ",")
-        option = option[:-1]
-        #print(option)
-    else:
-        question1 = question[0]
+    # question = test.split("(")
+    index = test.find("(")
 
-    return (question1,option)
+    if index != -1:
+        question1 = test[:index]
+        option = test[index:-1]
+        option_list = []
+        # if len(question) == 2:
+        # question1 = question[0]
+        #print(question1)
+
+        # option = question[1]
+        # option = option[:-1]
+
+        option = option.split("$")
+        option_list=[]
+        for word in option:
+            option_list.append({'value':word.strip()})
+
+            #print(option)
+    else:
+        option_list = None
+        question1 = test.strip()
+    print(question1,option_list)
+    return (question1,option_list)
 
 
 def updating_communities():
