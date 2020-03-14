@@ -161,7 +161,10 @@ def send_string_dropdown(test):
 
     if index != -1:
         question1 = test[:index]
-        option = test[index:].strip()[1:-1]
+
+        options_string = test.strip()[index:]
+        index = options_string.find("(")
+        option = options_string[index:-1]
 
         option = option.split("$")
         option_list=[]
@@ -171,7 +174,7 @@ def send_string_dropdown(test):
     else:
         option_list = None
         question1 = test.strip()
-        
+
     if not option_list:
         option_list = None
 
