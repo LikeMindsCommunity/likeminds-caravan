@@ -495,7 +495,11 @@ $('#calender_input').calendar({
                         data:values,
                         success:function(data){
                             console.log(data)
+                            {% if community.hide_community == '5' %}
+                            location.href="/members_directory/"+'{{community.id}}'
+                            {% else %}
                             location.href="/refer_members/"+'{{community.id}}'
+                            {% endif %}
                         }
                     })
         })
