@@ -171,7 +171,8 @@ def send_string_dropdown(test):
     else:
         option_list = None
         question1 = test.strip()
-    if not len(option_list):
+        
+    if not option_list:
         option_list = None
 
     return (question1,option_list)
