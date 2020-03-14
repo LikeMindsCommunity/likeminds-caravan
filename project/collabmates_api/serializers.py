@@ -215,12 +215,23 @@ def communitySubtypeSerializer(communitySubtypeInstance):
 
 def masterQuestionSerializer(masterQuestionInstance):
 
-    return {
-        'type_id': masterQuestionInstance.typ_id,
-        'sub_type_id' : masterQuestionInstance.sub_type_id,
-        'state' : masterQuestionInstance.state,
-        'question_title' : masterQuestionInstance.question_title,
-        'help_text' : masterQuestionInstance.help_text,
-        'value': masterQuestionInstance.value
 
+    json_dict = {
+        'type_id': masterQuestionInstance.typ_id,
+        'sub_type_id': masterQuestionInstance.sub_type_id,
+        'state' : masterQuestionInstance.state,
+        'question_title': masterQuestionInstance.question_title,
+        'help_text': masterQuestionInstance.help_text
     }
+
+    if masterQuestionInstance.value:
+        values = masterQuestionInstance.value.split(",")
+        value_list = []
+
+        for value in values:
+            value_dict = {"value": value.strip()}
+            value_list.append(value_dict)
+
+        json_dict['value']: value_list
+
+    return json_dict
