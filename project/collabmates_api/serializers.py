@@ -201,11 +201,12 @@ def masterQuestionSerializer(masterQuestionInstance):
         'type_id': masterQuestionInstance.typ_id,
         'sub_type_id': masterQuestionInstance.sub_type_id,
         'state' : masterQuestionInstance.state,
-        'question_title': masterQuestionInstance.question_title,
-        'help_text': masterQuestionInstance.help_text
+        'question_title': masterQuestionInstance.question_title
     }
 
     if masterQuestionInstance.value:
         json_dict['value'] = json.loads(masterQuestionInstance.value)
+    if masterQuestionInstance.help_text:
+        json_dict['help_text'] = masterQuestionInstance.help_text
 
     return json_dict
