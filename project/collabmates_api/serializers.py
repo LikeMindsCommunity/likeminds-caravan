@@ -232,6 +232,6 @@ def masterQuestionSerializer(masterQuestionInstance):
             value_dict = {"value": value.strip()}
             value_list.append(value_dict)
 
-        json_dict['value']: value_list
+        json_dict['value'] = value_list
 
     return json_dict
