@@ -47,8 +47,33 @@
     <style>
 
             #test{
-               display: none; position:absolute; bottom:0; left:0;top:50%;
+               display: none; position:absolute; bottom:0; left:0;bottom:0%;
             }
+
+
+
+
+.ui.checkbox input:checked ~ label:before {
+  background-color: #00897b !important;
+}
+
+
+.ui.checkbox input:checked ~ label:after {
+  color: white !important;
+
+
+}
+
+.checkbox label:before {
+  transform: scale(1.1); !important
+}
+.checkbox label:after {
+  transform: scale(1); !important
+}
+
+
+
+
     </style>
 
     </head>
@@ -81,17 +106,31 @@
 
                         {% for i in filter_list %}
 
+                        {% if not i.selected %}
                         <div class="item">
 
                            <button style="z-index:2; background-color: white; border-radius:20px;
                            color:#00897b;width:100%;white-space: nowrap; border: 1px solid #00897b;font-size:15px;">
                                <p class="Roboto" style="padding-top:5px;padding-bottom:5px;padding-left:10px;padding-right:5px;color:#00897b;
-" id="{{i.question_title}}">{{i.question_title}}&nbsp;&nbsp;<i class="caret down icon"></i></p>
+" id="{{i.question_id}}">{{i.question_title}}&nbsp;&nbsp;<i class="caret down icon"></i></p>
                             </button>
 
                             <p></p> <p></p> <p></p>
 
                         </div>
+                        {% else %}
+                         <div class="item">
+
+                           <button style="z-index:2; background-color: white; border-radius:20px;
+                           background-color:#00897b;width:100%;white-space: nowrap; border: 1px solid #00897b;font-size:15px;">
+                               <p class="Roboto" style="padding-top:5px;padding-bottom:5px;padding-left:10px;padding-right:5px;color:white;
+" id="{{i.question_id}}">{{i.question_title}}&nbsp;&nbsp;<i class="caret down icon"></i></p>
+                            </button>
+
+                            <p></p> <p></p> <p></p>
+
+                        </div>
+                        {% endif %}
                         {% endfor %}
 
                         <br/>
@@ -154,7 +193,7 @@
 <div id="test">
 
 
-    <div class="ui fluid card" style="width:360px;" id="filters">
+    <div class="ui fluid card" style="max-width:786px;" id="filters">
 
 
 
@@ -181,20 +220,22 @@ $('#test').hide()
 
 }
 
+
+
     {% for filter in filter_list %}
 
-        $('#{{filter.question_title}}').click(function(){
+        $('#{{filter.question_id}}').click(function(){
         html=`
 
         <div class="ui two column grid">
               <div class="row">
-                 <div class="column RobotoMedium" style="padding-left:40px;padding-top:10px;padding-bottom:6px;font-size:16px;" >
+                 <div class="column RobotoMedium" style="padding-left:40px;padding-top:10px;padding-bottom:6px;font-size:17px;" >
                    <p id="question_heading">{{filter.question_title}}</p>
                  </div>
 
-                  <div class="column" style="padding-left:150px;padding-top:10px;padding-bottom:10px;" >
+                  <div class="column" style="padding-left:160px;padding-top:10px;padding-bottom:10px; font-size:17px;" >
 
-                      <button  onclick="checking()"><i class="close icon"></i></button>
+                      <i class="close icon" onclick="checking()"></i>
 
                   </div>
 
@@ -206,19 +247,22 @@ $('#test').hide()
         html=html +`
               <br/>
                 <div class="row">
-                     <div class="column Roboto" style="font-size:16px;padding-left:40px;text-align:left">
+                     <div class="column Roboto" style="font-size:17px;padding-left:40px;text-align:left">
                         {{value}}
                      </div>
 
-                      <div class="column Roboto" style="padding-left:150px;">
+                      <div class="column Roboto" style="padding-left:160px;">
 
-                          <div class="ui checkbox ">
+                          <div class="ui checkbox">
                                 <input type="checkbox" name="example" value="{{value}}" class="t1">
                                 <label></label>
                             </div>
 
                       </div>
                   </div>
+
+             <hr style="border-style:solid;border-width:1px;border-color:white;">
+
 
 
 
@@ -257,6 +301,12 @@ $('#test').hide()
 
 
 
+
+
+
+
+
+
 $(document.body).on('click', '.apply_filter' ,function(){
 
 var option_list=[]
@@ -291,12 +341,24 @@ $('.t1').each(function () {
             dataType:'json',
             success:function(data){
 
-             console.log('check');
+             console.log(question_id)
+             url="/members_directory/"+"{{community_id}}?members="+data['success']+"&filter="+data['question_id']
+             console.log(url)
+             location.href=url
+
+
 
 
             }
 
          })
+
+
+})
+
+$('#back_click').click(function(e){
+
+location.href="/members_directory/"+"{{community_id}}"
 
 
 })

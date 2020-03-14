@@ -500,20 +500,33 @@ def get_admins_details(community):
     return admins
 
 
-def get_member_details(community):
+def get_member_details(community,filter_list=None):
     '''function to get member details of community'''
 
     members = []
+    if not filter_list:
+        member_list = Members.objects.filter(community_id=community).filter(Q(state=1) | Q(state=2) | Q(state=4))
+        for member in member_list:
+            temp = {}
+            temp['name'] = member.member_id.userinfo.name
+            temp['image_link'] = member.member_id.userinfo.image_link
+            answer = get_introduction_answer(community, member)
+            temp['answer'] = answer
+            members.append(temp)
+    else:
 
-    member_list = Members.objects.filter(community_id=community).filter(Q(state=1) | Q(state=2) | Q(state=4))
+        for member_id in filter_list:
+            if not member_id:
+                continue
+            member=Members.objects.filter(community_id=community,member_id=member_id)
+            if member.exists():
+                temp = {}
+                temp['name'] = member[0].member_id.userinfo.name
+                temp['image_link'] = member[0].member_id.userinfo.image_link
+                answer = get_introduction_answer(community, member[0])
+                temp['answer'] = answer
+                members.append(temp)
 
-    for member in member_list:
-        temp = {}
-        temp['name'] = member.member_id.userinfo.name
-        temp['image_link'] = member.member_id.userinfo.image_link
-        answer = get_introduction_answer(community, member)
-        temp['answer'] = answer
-        members.append(temp)
 
     return members
 
@@ -577,49 +590,73 @@ def get_introduction_answer(community_instance, member_instance):
 
 
 def members_directory(request, community_id):
+
     '''function to see members directory'''
 
-    if request.method == 'POST':
+    if request.user.is_authenticated:
 
-        option_data = request.POST.get('data')
-        option_data = json.loads(option_data)
-        question_id = request.POST.get('question_id')
+        check_data=Members.objects.filter(community_id=community_id,member_id=request.user.id)
 
-        member_set = set()
-        for option in option_data:
-            question_list = questionFilters.objects.filter(filter=option, question=question_id)
+        if not check_data or check_data[0].state == member_states.PENDING_MEMBER or check_data[0].state == member_states.DECLINED_MEMBER:
+            return redirect('comunity',community_id=community_id)
 
-            for member_instance in question_list:
-                member_set.add(member_instance.member.id)
+        if request.method == 'POST':
 
-        return JsonResponse({'success': True})
 
-        # return JsonResponse({'success':True})
+            option_data = request.POST.get('data')
+            option_data = json.loads(option_data)
+            question_id = request.POST.get('question_id')
 
-    community_instance = Community.objects.get(pk=community_id)
-    filter_list = communityQuestions.objects.filter(community=community_instance).filter(
-        Q(question_state=question_states.CHOICE_SINGLE) | Q(question_state=question_states.CHOICE_MULTIPLE))
+            member_set = set()
+            member_string=""
+            for option in option_data:
+                question_list = questionFilters.objects.filter(filter=option, question=question_id)
 
-    filters = []
+                for member_instance in question_list:
+                    if member_instance.member.id not in member_set:
+                        member_string=member_string+"$"+str(member_instance.member.id)
+                        member_set.add(member_instance.member.id)
 
-    for filter in filter_list:
-        temp = {}
-        temp['question_id'] = filter.id
-        temp['question_title'] = filter.question_title
-        temp['values'] = filter.value.split(",")
-        filters.append(temp)
+            return JsonResponse({'success':member_string,'question_id':question_id})
 
-    members = get_member_details(community_instance)
 
-    context = {
-        'members': members,
-        'members_length': len(members),
-        'community_name': community_instance.name,
-        'community_id': community_instance.id,
-        'filter_list': filters
-    }
+        community_instance = Community.objects.get(pk=community_id)
+        filter_list = communityQuestions.objects.filter(community=community_instance).filter(
+            Q(question_state=question_states.CHOICE_SINGLE) | Q(question_state=question_states.CHOICE_MULTIPLE))
 
-    return render(request, 'members.html', context)
+        #for filter processing
+        member_string=request.GET.get('members',None)
+        filter_question_id=request.GET.get('filter',None)
+        filters = []
+
+        for filter in filter_list:
+            temp = {}
+            temp['question_id'] = filter.id
+            temp['question_title'] = filter.question_title
+            temp['values'] = filter.value.split(",")
+            if str(filter_question_id) == str(filter.id):
+                temp['selected']=True
+            else:
+                temp['selected']=False
+            filters.append(temp)
+
+
+        if not member_string:
+            members = get_member_details(community_instance)
+        else:
+            filter_list=member_string.split("$")
+            members=get_member_details(community_instance,filter_list)
+
+        context = {
+            'members': members,
+            'members_length': len(members),
+            'community_name': community_instance.name,
+            'community_id': community_instance.id,
+            'filter_list': filters
+        }
+
+        return render(request, 'members.html', context)
+    return   redirect('comunity',community_id=community_id)
 
 
 @login_required
