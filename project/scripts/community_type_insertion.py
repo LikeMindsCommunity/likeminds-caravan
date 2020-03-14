@@ -161,10 +161,11 @@ def send_string_dropdown(test):
 
     if index != -1:
         question1 = test[:index]
-
+        print("old index === ", index)
         options_string = test.strip()[index:]
         print("options string === ",options_string)
         index = options_string.find("(")
+        print("new index === ",index)
         option = options_string[index:-1]
 
         print("options === ", option)
