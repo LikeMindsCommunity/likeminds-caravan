@@ -65,6 +65,7 @@ from .tasks import send_email_to_nominated_admin, send_email_for_new_collabcard_
 
 # CACHE_TTL = getattr(settings, 'CACHE_TTL', cache_timeout)
 
+import gzip
 
 url = settings.URL
 # url='http://localhost:8000'
@@ -4720,9 +4721,22 @@ def all_members(request):
     page = request.GET.get('page',1)
     community_id = request.GET.get('community_id')
 
+    res=load_request_body(request)
+
+    if res:
+        if 'filter' in res:
+            member_set=set()
+            option_data=res['filter']
+            for option in option_data:
+                question_list = questionFilters.objects.filter(filter=option['value'], question=option['id']).distinct()
+                for member_instance in question_list:
+                    if member_instance.member.id not in member_set:
+                        member_set.add(member_instance.member.id)
+            print(member_set)
+            return JsonResponse({'success':True})
     members=[]
 
-    member_list=Members.objects.filter(community_id=community_id).filter(Q(state=1)|Q(state=4)|Q(state=7))
+    member_list=Members.objects.filter(community_id=community_id).filter(Q(state=1)|Q(state=4)|Q(state=7)).order_by('id')
     member_list=pagination(member_list,page,paginate_by=20)
 
     for member in member_list:
@@ -4730,13 +4744,27 @@ def all_members(request):
         userinfo_serialized_object = UserinfoSerializer(member.member_id.userinfo)
         userinfo_serialized_object['state']=member.state
 
-        form_response = FormResponseSerilaizer(community_id, member.member_id.id)
+        form_response = FormResponseSerilaizer(community_id, member.member_id.id,new_response=True)
 
         if form_response:
-            userinfo_serialized_object['response']=form_response
+            userinfo_serialized_object['response'] = form_response[0]
+            userinfo_serialized_object['question_answers'] = form_response[1]
         members.append(userinfo_serialized_object)
 
     return JsonResponse({'members':members})
+
+
+
+def load_request_body(request):
+
+    '''function to load json body'''
+
+    try:
+        res=json.loads(request.body)
+        return res
+    except:
+        print("Json can't be load")
+        return False
 
 
 def invite_members(request):
@@ -5438,12 +5466,7 @@ def fetch_whatsapp_tool(request):
 
     whatsapp_tool['types'] = types
     whatsapp_tool['sub_types'] = sub_types
-    whatsapp_tool['master_questions'] = master_questions
-
-
-
-
-
+    print(whatsapp_tool)
     return JsonResponse({'whatsapp_tool':whatsapp_tool})
 
 
