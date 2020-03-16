@@ -9,6 +9,7 @@ from datetime import datetime
 
 import dateutil.relativedelta
 import googlemaps
+from celery import shared_task
 from collabmates_api.serializers import *
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -29,7 +30,7 @@ from utility.celery_tasks import (save_community_purpose_card,
                                   )
 from utility.firebase import update_last_answer_id, upload_image_to_firebase, upload_community_thumbnail, \
     upload_community_files
-from utility.states import collabcard_states, member_states,question_states
+from utility.states import collabcard_states, member_states, question_states
 from utility.tasks import (mail_triger, new_member_request,
                            member_request_approval_or_denied,
                            send_mail_for_report_abuse,
@@ -64,8 +65,6 @@ from .raw_queries import compute_rank
 from .tasks import send_email_to_nominated_admin, send_email_for_new_collabcard_posted, send_welcome_mail
 
 # CACHE_TTL = getattr(settings, 'CACHE_TTL', cache_timeout)
-
-import gzip
 
 url = settings.URL
 # url='http://localhost:8000'
@@ -4723,17 +4722,14 @@ def all_members(request):
 
     res=load_request_body(request)
 
+    #functionality for user filteration based on options
     if res:
         if 'filter' in res:
-            member_set=set()
-            option_data=res['filter']
-            for option in option_data:
-                question_list = questionFilters.objects.filter(filter=option['value'], question=option['id']).distinct()
-                for member_instance in question_list:
-                    if member_instance.member.id not in member_set:
-                        member_set.add(member_instance.member.id)
-            print(member_set)
-            return JsonResponse({'success':True})
+            members=get_filtered_users(res,community_id)
+            JsonResponse({'members':members})
+
+
+    #sending all the users of community
     members=[]
 
     member_list=Members.objects.filter(community_id=community_id).filter(Q(state=1)|Q(state=4)|Q(state=7)).order_by('id')
@@ -4765,6 +4761,37 @@ def load_request_body(request):
     except:
         print("Json can't be load")
         return False
+
+
+def get_filtered_users(res,community_id):
+
+    '''function to get filtered users'''
+
+    member_set = set()
+    option_data = res['filter']
+    for option in option_data:
+        question_list = questionFilters.objects.filter(filter=option['value'], question=option['id'])
+        for member_instance in question_list:
+            if member_instance.member.id not in member_set:
+                member_set.add(member_instance.member.id)
+    members = []
+    for member in member_set:
+        member_list = Members.objects.filter(community_id=community_id, member_id=member)
+        if member_list.exists():
+            member_instance = member_list[0]
+            userinfo_serialized_object = UserinfoSerializer(member_instance.member_id.userinfo)
+            userinfo_serialized_object['state'] = member_instance.state
+
+            form_response = FormResponseSerilaizer(community_id, member_instance.member_id.id, new_response=True)
+
+            if form_response:
+                userinfo_serialized_object['response'] = form_response[0]
+                userinfo_serialized_object['question_answers'] = form_response[1]
+            members.append(userinfo_serialized_object)
+
+    return members
+
+
 
 
 def invite_members(request):
