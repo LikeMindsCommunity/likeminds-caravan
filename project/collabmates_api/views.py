@@ -5473,7 +5473,9 @@ def fetch_whatsapp_tool(request):
 def fetch_master_questions(request):
     # getting master Questions
 
+    page=request.GET.get('page',1)
     master_question_list = masterQuestions.objects.all()
+    master_question_list=pagination(master_question_list,page_number=page,paginate_by=10)
     master_questions = []
     for instance in master_question_list:
         master_questions.append(masterQuestionSerializer(instance))
