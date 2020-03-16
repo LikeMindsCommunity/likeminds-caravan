@@ -238,7 +238,7 @@ def masterQuestionSerializer(masterQuestionInstance):
     }
 
     if masterQuestionInstance.value:
-        json_dict['value'] = json.loads(masterQuestionInstance.value)
+        json_dict['value'] = masterQuestionInstance.value
     if masterQuestionInstance.help_text:
         json_dict['help_text'] = masterQuestionInstance.help_text
 
