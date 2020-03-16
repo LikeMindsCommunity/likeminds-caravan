@@ -5431,14 +5431,14 @@ def fetch_whatsapp_tool(request):
 
 
     #getting master Questions
-    master_question_list=masterQuestions.objects.all()
-    master_questions=[]
-    for instance in master_question_list:
-        master_questions.append(masterQuestionSerializer(instance))
+    # master_question_list=masterQuestions.objects.all()
+    # master_questions=[]
+    # for instance in master_question_list:
+    #     master_questions.append(masterQuestionSerializer(instance))
 
     whatsapp_tool['types'] = types
     whatsapp_tool['sub_types'] = sub_types
-    whatsapp_tool['master_questions'] = master_questions
+    # whatsapp_tool['master_questions'] = master_questions
 
 
 
@@ -5449,6 +5449,16 @@ def fetch_whatsapp_tool(request):
 
 
 
+def fetch_master_questions(request):
+    # getting master Questions
 
+    master_question_list = masterQuestions.objects.all()
+    master_questions = []
+    for instance in master_question_list:
+        master_questions.append(masterQuestionSerializer(instance))
+
+    return JsonResponse({
+        'master_questions':master_questions
+    })
 
 
