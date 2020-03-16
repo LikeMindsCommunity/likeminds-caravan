@@ -5467,6 +5467,13 @@ def fetch_whatsapp_tool(request):
     whatsapp_tool['types'] = types
     whatsapp_tool['sub_types'] = sub_types
 
+    master_question_list = masterQuestions.objects.all()
+    master_question_length=len(master_question_list)
+
+    whatsapp_tool['total_master_questions'] = master_question_length
+
+
+
     return JsonResponse(whatsapp_tool)
 
 
