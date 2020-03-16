@@ -5495,9 +5495,10 @@ def fetch_whatsapp_tool(request):
     whatsapp_tool['sub_types'] = sub_types
 
     master_question_list = masterQuestions.objects.all()
-    master_question_length=len(master_question_list)
+    paginator = Paginator(master_question_list, 50)
 
-    whatsapp_tool['total_master_questions'] = master_question_length
+
+    whatsapp_tool['total_master_questions'] = paginator.num_pages
 
 
 
@@ -5509,7 +5510,7 @@ def fetch_master_questions(request):
 
     page=request.GET.get('page',1)
     master_question_list = masterQuestions.objects.all()
-    master_question_list=pagination(master_question_list,page_number=page,paginate_by=10)
+    master_question_list=pagination(master_question_list,page_number=page,paginate_by=50)
     master_questions = []
     for instance in master_question_list:
         master_questions.append(masterQuestionSerializer(instance))
