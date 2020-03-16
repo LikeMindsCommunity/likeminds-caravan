@@ -5441,12 +5441,7 @@ def fetch_whatsapp_tool(request):
     # whatsapp_tool['master_questions'] = master_questions
 
 
-
-
-
-    return JsonResponse({'whatsapp_tool':whatsapp_tool})
-
-
+    return JsonResponse(whatsapp_tool)
 
 
 def fetch_master_questions(request):
