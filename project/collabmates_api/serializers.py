@@ -50,6 +50,8 @@ def CommunitySerializer(community):
         community_type=1
         new_dict['community_type'] = community_type
 
+    if community.type:
+        new_dict['type']=community.type
     if community.sub_type:
         new_dict['sub_type'] = community.sub_type
 

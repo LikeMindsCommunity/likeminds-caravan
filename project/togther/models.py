@@ -31,9 +31,9 @@ class Community(models.Model):
     image_link = models.CharField(max_length=500, null=True)
     thumbnail = models.CharField(max_length=500, null=True)
     introduction_text_state = models.IntegerField(default=0)
-    type = models.IntegerField(default=0)
+    attribute_type = models.IntegerField(default=0)
     # for whats app community
-    community_type=models.TextField(null=True)
+    type=models.IntegerField(null=True)
     sub_type = models.IntegerField(null=True)
 
     def __str__(self):
