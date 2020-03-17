@@ -9,6 +9,7 @@ from datetime import datetime
 
 import dateutil.relativedelta
 import googlemaps
+from celery import shared_task
 from collabmates_api.serializers import *
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -29,7 +30,7 @@ from utility.celery_tasks import (save_community_purpose_card,
                                   )
 from utility.firebase import update_last_answer_id, upload_image_to_firebase, upload_community_thumbnail, \
     upload_community_files
-from utility.states import collabcard_states, member_states,question_states
+from utility.states import collabcard_states, member_states, question_states
 from utility.tasks import (mail_triger, new_member_request,
                            member_request_approval_or_denied,
                            send_mail_for_report_abuse,
@@ -65,9 +66,8 @@ from .tasks import send_email_to_nominated_admin, send_email_for_new_collabcard_
 
 # CACHE_TTL = getattr(settings, 'CACHE_TTL', cache_timeout)
 
-
 url = settings.URL
-#url='http://localhost:8000'
+# url='http://localhost:8000'
 error_logger = logging.getLogger("error_logger")
 info_logger = logging.getLogger("info_logger")
 
@@ -344,16 +344,26 @@ def join_community(request, community_id):
                     'question_state': 3,
                     }
             if i.question_state == 1:
-                ques['dropdown_list'] = json.loads(i.value)
+                try:
+                    ques['dropdown_list'] = json.loads(i.value)
+                except:
+                    ques['dropdown_list'] = i.value.split("$#")
+
             first_question = True
         else:
 
             ques = {'question': i.question_title}
             if i.question_state == 1:
-                ques['dropdown_list'] = json.loads(i.value)
+                try:
+                    ques['dropdown_list'] = json.loads(i.value)
+                except:
+                    ques['dropdown_list'] = i.value.split("$#")
                 ques['question_state'] = 1
             elif i.question_state == 2:
-                ques['dropdown_list'] = json.loads(i.value)
+                try:
+                    ques['dropdown_list'] = json.loads(i.value)
+                except:
+                    ques['dropdown_list'] = i.value.split("$#")
                 ques['question_state'] = 2  # multiselect for android only
             elif i.question_state == 0:
                 ques['question_state'] = 0  # no limit on answer condition for android
@@ -394,8 +404,6 @@ def join_community_responses(request):
     else:
         ref_id = request.GET.get('ref_id', None)
 
-
-
     if  is_ig or is_lg == None:                                 #if the community is ig community or is_lg hometown community
         print("Inside IG")
         join_ig_communities(request,res,community,user,ref_id)
@@ -414,7 +422,7 @@ def join_community_responses(request):
 
     elif is_lg:
         print("LG community")
-        join_lg_communities(request,res,community,user,ref_id)
+        join_lg_communities(request, res, community,user,ref_id)
 
         if not ref_id:
             # sending mail to nipun and harsh
@@ -538,8 +546,6 @@ def join_ig_communities(request,res,community,user,ref_id):
                                                     community_id=community.id,
                                                     community_name=community.name,
                                                     community_state=community.hide_community)
-
-
 
 
 
@@ -706,14 +712,18 @@ def join_community_responses_version_1(request):
     community_id = res['community_id']
     community_instance = Community.objects.get(id=community_id)
     community=community_instance
-    user_id=get_member_id_from_headers(request)
+
+    if 'user_id' in res :
+        # request from web
+        user_id = res['user_id']
+    else:
+        user_id = get_member_id_from_headers(request)
 
     #for whatsapp community
     if community_instance.hide_community == '5':
+        info_logger.info("whats app communtiy")
         join_whatsapp_community(res,request)
         return JsonResponse({'success': True})
-
-
 
     is_private = False
     if community.hide_community == '0' or community.hide_community == '1':
@@ -798,6 +808,7 @@ def join_community_responses_version_1(request):
                                      form_response=res['questions'])
         return JsonResponse({'success': True})
     elif is_private:
+        info_logger.info("Inside private\n")
         join_promoter_created_community_version_1(res, community, user)
         new_member_request.delay(member_id=user_id, community_id=community_id, ref_id=ref_id,
                                  form_response=res['questions'])
@@ -1004,6 +1015,13 @@ def join_whatsapp_community(res,request):
             answer_instance.question_answer = question['value']
             answer_instance.question_title = question_instance.question_title
             answer_instance.save()
+
+            if question_instance.question_state == question_states.CHOICE_SINGLE or question_instance.question_state == question_states.CHOICE_MULTIPLE:
+                selected_choices = question['value'].split("$#")
+                for choice in selected_choices:
+                    filter_instance = questionFilters(question=question['id'], filter=choice.strip(),
+                                                      member=user_instance, community=community_instance)
+                    filter_instance.save()
 
 
     #saving data directly
@@ -1476,7 +1494,7 @@ def ask_approval(request):
         card_temp_instance.save()
 
     ask_approval_notification(community_id=community_id, community_name=community_instance.name, approver_id=ask_member_id,
-                              member_name=member_instance.userinfo.name, community_state=community_instance.hide_community)
+                              member_name=member_instance.member_id.userinfo.name, community_state=community_instance.hide_community)
 
 
 
@@ -1650,7 +1668,8 @@ def create_community_version_1(request):
 
     community_name=""
     purpose=""
-    community_type=""
+    community_type = None
+    sub_type = None
 
     if 'name' in res:
         community_name=res['name']
@@ -1661,7 +1680,9 @@ def create_community_version_1(request):
     if 'type' in res:
         community_type=res['type']
 
-    sub_type = res['sub_type'] if 'sub_type' in res else ''
+    if 'sub_type' in res:
+        sub_type = res['sub_type']
+
 
     community_instance=Community()
     community_instance.name=community_name
@@ -1673,7 +1694,8 @@ def create_community_version_1(request):
     community_instance.created_at=time.time()
     community_instance.updated_at=time.time()
     community_instance.hide_community='5'     #for whatsapp community
-    community_instance.sub_type = sub_type    #for whatsapp community
+    if sub_type:
+        community_instance.sub_type = sub_type    #for whatsapp community
     community_instance.save()
 
     log = """%s community created in community table"""%(community_name)
@@ -1706,8 +1728,9 @@ def create_community_version_1(request):
         questions_instance.community=community_instance
         questions_instance.question_title=question['question_title']
         questions_instance.question_state=question['state']
-        questions_instance.value=question['value']
+        questions_instance.value=question['value'] if 'value' in res else None
         questions_instance.optional=question['optional']
+        questions_instance.help_text = question['help_text'] if 'help_text' in question else None
         questions_instance.save()
 
     log = """questions added in community questions table"""
@@ -4699,9 +4722,19 @@ def all_members(request):
     page = request.GET.get('page',1)
     community_id = request.GET.get('community_id')
 
+    res=load_request_body(request)
+
+    #functionality for user filteration based on options
+    if res:
+        if 'filters' in res:
+            members=get_filtered_users(res,community_id)
+            JsonResponse({'members':members})
+
+
+    #sending all the users of community
     members=[]
 
-    member_list=Members.objects.filter(community_id=community_id).filter(Q(state=1)|Q(state=4)|Q(state=7))
+    member_list=Members.objects.filter(community_id=community_id).filter(Q(state=1)|Q(state=4)|Q(state=7)).order_by('id')
     member_list=pagination(member_list,page,paginate_by=20)
 
     for member in member_list:
@@ -4709,13 +4742,58 @@ def all_members(request):
         userinfo_serialized_object = UserinfoSerializer(member.member_id.userinfo)
         userinfo_serialized_object['state']=member.state
 
-        form_response = FormResponseSerilaizer(community_id, member.member_id.id)
+        form_response = FormResponseSerilaizer(community_id, member.member_id.id,new_response=True)
 
         if form_response:
-            userinfo_serialized_object['response']=form_response
+            userinfo_serialized_object['response'] = form_response[0]
+            userinfo_serialized_object['question_answers'] = form_response[1]
         members.append(userinfo_serialized_object)
 
     return JsonResponse({'members':members})
+
+
+
+def load_request_body(request):
+
+    '''function to load json body'''
+
+    try:
+        res=json.loads(request.body)
+        return res
+    except:
+        print("Json can't be load")
+        return False
+
+
+def get_filtered_users(res,community_id):
+
+    '''function to get filtered users'''
+
+    member_set = set()
+    option_data = res['filter']
+    for option in option_data:
+        question_list = questionFilters.objects.filter(filter=option['value'], question=option['id'])
+        for member_instance in question_list:
+            if member_instance.member.id not in member_set:
+                member_set.add(member_instance.member.id)
+    members = []
+    for member in member_set:
+        member_list = Members.objects.filter(community_id=community_id, member_id=member)
+        if member_list.exists():
+            member_instance = member_list[0]
+            userinfo_serialized_object = UserinfoSerializer(member_instance.member_id.userinfo)
+            userinfo_serialized_object['state'] = member_instance.state
+
+            form_response = FormResponseSerilaizer(community_id, member_instance.member_id.id, new_response=True)
+
+            if form_response:
+                userinfo_serialized_object['response'] = form_response[0]
+                userinfo_serialized_object['question_answers'] = form_response[1]
+            members.append(userinfo_serialized_object)
+
+    return members
+
+
 
 
 def invite_members(request):
@@ -5397,35 +5475,67 @@ def fetch_whatsapp_tool(request):
 
     #getting types.object
     community_type_list=communityType.objects.all()
+    community_subtype_list = communitySubtype.objects.all()
+
     types=[]
     for instance in community_type_list:
-        types.append(communityTypeSerializer(instance))
+        temp = communityTypeSerializer(instance)
+
+
+        sub_type_list = []
+        subtype_queryset = communitySubtype.objects.filter(typ=instance.id)
+
+        if subtype_queryset.exists():
+            for subtype_instance in subtype_queryset:
+
+                sub_type_list.append(communitySubtypeSerializer(subtype_instance))
+
+        if sub_type_list:
+            temp['sub_types'] = sub_type_list
+
+        types.append(temp)
+
+
+
+
+
 
     # getting sub-types.object
-    community_subtype_list = communitySubtype.objects.all()
-    sub_types = []
+    # community_subtype_list = communitySubtype.objects.all()
+    # sub_types = []
+    #
+    # for instance in community_subtype_list:
+    #     sub_types.append(communitySubtypeSerializer(instance))
 
-    for instance in community_subtype_list:
-        sub_types.append(communitySubtypeSerializer(instance))
 
 
-    #getting master Questions
-    master_question_list=masterQuestions.objects.all()
-    master_questions=[]
+    whatsapp_tool['types'] = types
+    #whatsapp_tool['sub_types'] = sub_types
+
+    master_question_list = masterQuestions.objects.all()
+    paginator = Paginator(master_question_list, 50)
+
+
+    whatsapp_tool['total_master_questions'] = paginator.num_pages
+
+
+
+    return JsonResponse(whatsapp_tool)
+
+
+def fetch_master_questions(request):
+    # getting master Questions
+
+    page=request.GET.get('page',1)
+    master_question_list = masterQuestions.objects.all()
+    master_question_list=pagination(master_question_list,page_number=page,paginate_by=50)
+    master_questions = []
     for instance in master_question_list:
         master_questions.append(masterQuestionSerializer(instance))
 
-    whatsapp_tool['types'] = types
-    whatsapp_tool['sub_types'] = sub_types
-    whatsapp_tool['master_questions'] = master_questions
-
-
-
-
-
-    return JsonResponse({'whatsapp_tool':whatsapp_tool})
-
-
+    return JsonResponse({
+        'master_questions':master_questions
+    })
 
 
 

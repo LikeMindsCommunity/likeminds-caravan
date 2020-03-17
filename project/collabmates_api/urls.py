@@ -71,6 +71,7 @@ urlpatterns = [
     path('fetch_whatsapp_tool', api_views.fetch_whatsapp_tool, name='fetch_whatsapp_tool'),
     path('questions', api_views.questions, name='questions'),
     path('poll_notification', send_poll_notification_manually, name='poll_notification'),
+    path('fetch_master_questions', api_views.fetch_master_questions, name='fetch_master_questions'),
 
 
 ]

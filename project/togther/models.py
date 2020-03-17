@@ -31,9 +31,9 @@ class Community(models.Model):
     image_link = models.CharField(max_length=500, null=True)
     thumbnail = models.CharField(max_length=500, null=True)
     introduction_text_state = models.IntegerField(default=0)
-    type = models.IntegerField(default=0)
+    attribute_type = models.IntegerField(default=0)
     # for whats app community
-    community_type=models.TextField(null=True)
+    type=models.IntegerField(null=True)
     sub_type = models.IntegerField(null=True)
 
     def __str__(self):
@@ -611,8 +611,7 @@ class communityQuestions(models.Model):
     value = models.TextField(null=True)
     dropdown_selection_limit = models.IntegerField(null=True)
     optional=models.BooleanField(default=False)
-
-
+    help_text = models.TextField(null=True)
 
 
 class communityAnswers(models.Model):
@@ -665,3 +664,16 @@ class communityExpire(models.Model):
     community=models.ForeignKey(Community,on_delete=models.CASCADE)
 
 
+class questionFilters(models.Model):
+
+    '''model to save questions filters'''
+    question = models.ForeignKey(communityQuestions, on_delete=models.CASCADE)
+    filter = models.TextField(null=True)
+    member = models.ForeignKey(User, on_delete=models.CASCADE)
+    community = models.ForeignKey(Community, on_delete=models.CASCADE)
+    created_at = models.BigIntegerField(default=0, null=True)
+
+    def save(self, *args, **kwargs):
+        if self.created_at == 0:
+            self.created_at = time.time()
+        super(questionFilters, self).save(*args, **kwargs)

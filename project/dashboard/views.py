@@ -920,8 +920,12 @@ def add_dropdown_responses(request,question_id):
             if form_data.value[0] == '[':
                 form_data.value = form_data.value[1:]
             if form_data.value[-1] == ']':
-                form_data.value[-1] = form_data.value[:-1]
-            dropdown_list=form_data.value.split(",")
+                form_data.value = form_data.value[:-1]
+
+            if '$' in form_data.value:
+                dropdown_list=form_data.value.split("$#")
+            else:
+                dropdown_list=form_data.value.split(",")
             for index, item in enumerate(dropdown_list):
                 item = item.strip()
                 if item[0] == '"':
@@ -956,7 +960,7 @@ def add_dropdown_responses(request,question_id):
                 dropdown_list[0] = dropdown_list[0][1:]
                 dropdown_list[-1] = dropdown_list[-1][:-1]
 
-            dropdown_list=",".join(dropdown_list)
+            dropdown_list=" $# ".join(dropdown_list)
             form_data.value=dropdown_list
             form_data.question_state=dropdown_state
             form_data.dropdown_selection_limit=dropdown_limit if dropdown_limit else None

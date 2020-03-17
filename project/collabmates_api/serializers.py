@@ -50,6 +50,8 @@ def CommunitySerializer(community):
         community_type=1
         new_dict['community_type'] = community_type
 
+    if community.type:
+        new_dict['type']=community.type
     if community.sub_type:
         new_dict['sub_type'] = community.sub_type
 
@@ -147,38 +149,65 @@ def get_member_count(community):
         Q(state=1) | Q(state=2) | Q(state=4) | Q(state=7) | Q(state = 8)).count()
 
 
-def FormResponseSerilaizer(community_id, user_id):
+def FormResponseSerilaizer(community_id, user_id,new_response=False):
     responses = communityAnswers.objects.filter(community=community_id).filter(member=user_id).order_by('id')
     if not responses.exists():
         return None
     user_response = []
+    new_response=[]
     for response in responses:
         # getting the answers of the users who requested to join
         # for the questions that have been asked while requestiong to join in a community
         response_object = {}
         response_object['key'] = response.question_title
         response_object['value'] = response.question_answer
+
+        temp={}
+        temp['community_id'] = community_id
+        temp['member_id'] = user_id
+        temp['question_title'] = response.question_title
+        temp['value'] = response.question_answer
+        temp['question_id'] = response.question_id
+        new_response.append(temp)
+
         user_response.append(response_object)
 
-    return user_response
+    if not new_response:
+        return user_response
+    return (user_response,new_response)
+
+
 
 
 
 def CommunityQuestionsSerializer(community_question_instance):
 
-    if community_question_instance.value:
-        values = community_question_instance.value[1:-1] if community_question_instance.value[
-                                                   0] == '[' else community_question_instance.value
+    if community_question_instance.value[0] == '[':
+        community_question_instance.value = community_question_instance.value[1:]
+    if community_question_instance.value[-1] == ']':
+        community_question_instance.value = community_question_instance.value[:-1]
+
+    if '$' in community_question_instance.value:
+        dropdown_list = community_question_instance.value.split("$#")
     else:
-        values = community_question_instance.value
+        dropdown_list = community_question_instance.value.split(",")
+
+    for index, item in enumerate(dropdown_list):
+        item = item.strip()
+        if item[0] == '"':
+            item = item[1:]
+        if item[-1] == '"':
+            item = item[:-1]
+        dropdown_list[index] = item
 
     return {
         'id':community_question_instance.id,
         'question_title':community_question_instance.question_title,
-        'value':values,
+        'value':dropdown_list,
         'optional':community_question_instance.optional,
         'community_id':community_question_instance.community_id,
-        'state':community_question_instance.question_state
+        'state':community_question_instance.question_state,
+        'help_text':community_question_instance.help_text if community_question_instance.help_text else ''
     }
 
 
@@ -211,7 +240,7 @@ def masterQuestionSerializer(masterQuestionInstance):
     }
 
     if masterQuestionInstance.value:
-        json_dict['value'] = json.loads(masterQuestionInstance.value)
+        json_dict['value'] = masterQuestionInstance.value
     if masterQuestionInstance.help_text:
         json_dict['help_text'] = masterQuestionInstance.help_text
 

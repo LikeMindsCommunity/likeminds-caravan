@@ -229,7 +229,7 @@ def send_follow_notification(card_id,user_id,answer):
         connection=get_connection()
         curr=connection.cursor()
         sql="select user_id from togther_collabcardstate where card_id=%s and state=%s"
-        parameter_list=[card_id, collabcard_follow_state]
+        parameter_list=[card_id, collabcard_states.COLLABCARD_STATE_FOLLOW]
         curr.execute(sql,parameter_list)
         member_list=curr.fetchall()
         curr.execute("select name from togther_userinfo where user_id_id=%s",[user_id])
@@ -350,7 +350,7 @@ def send_notification_for_join_requests(community_id,flag,member_id):
     else:
         message['payload'] = {
             'title': community_name,
-            'sub_title': "Sorry! your request to join this community has been rejected",
+            'sub_title': "Your request to join this community has been rejected",
             'route': 'route://member_declined?community_id=' + str(community_id)
         }
 
@@ -409,16 +409,16 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title, 
             if task_name and task_path:
                 celerybeatask = CeleryBeatTask()
                 args = [community_name, community_id, typ]
-
+                print("card id === ", kwargs['card_id'],"   type ===  ",typ)
                 print("date time === ",kwargs['date_time'])
 
                 date_time = int(str(kwargs['date_time'])[:10])
                 print("date time === ", date_time)
                 if typ == 2:
-                    if not settings.IS_BETA :
-                        date_time = date_time - 1800 # subtracting 30 minutes if BETA
+                    if settings.IS_BETA:
+                        date_time = date_time - 1800  # subtracting 30 minutes if BETA
                     else:
-                        date_time = date_time - 1800 + 19800 # subtracting 30 minutes and adding 5:30 to make time into IST
+                        date_time = date_time - 1800 + 19800  # subtracting 30 minutes and adding 5:30 to make time into IST
                 else:
                     date_time = date_time + 19800 if not settings.IS_BETA else date_time
                 print("date time === ", date_time)
@@ -513,6 +513,7 @@ def send_notification_to_referred_member(referred_member_id,joined_member_name,c
         token_list=[]
         token_list.append(fcm_token)
         if referal_count == 1:
+
             sub_title =  str(joined_member_name) + " has shown interest to join. You have referred "+ str(referal_count) +" member to the community"
         elif referal_count > 1:
             sub_title =  str(joined_member_name) + " has shown interest to join. You have referred "+ str(referal_count) +" members to the community"
@@ -696,6 +697,14 @@ def poll_expiry_or_event_remainder_notification(community_name, community_id, ty
                                                                 'user__userinfo__fcm_token', flat=True))
         print("token list ===== ", token_list)
 
+        card_instance = Collabcard.objects.get(pk=kwargs['card_id'])
+
+        user_fcm = card_instance.user.userinfo.fcm_token
+
+        if not user_fcm in token_list:
+            token_list.append(user_fcm)
+
+
         if typ == 3:
             sub_title = 'Your poll ended. Tap to see results'
         else:
@@ -743,6 +752,8 @@ def send_notification_for_tool_unlocked_for_live_community(referer_id,referal_co
     sub_title = ""
     route = 'route://community_collabcard?community_id=' + str(community_id) + '&community_name=' + str(
             community_name) + '&community_state=' + str(community_state)
+    print("refererid--",referer_id)
+
     if referal_count == 1:
         sub_title = "Event tool unlocked. You have successfully referred 1 member"
         notification_list = []
@@ -759,6 +770,7 @@ def send_notification_for_tool_unlocked_for_live_community(referer_id,referal_co
             'sub_title': sub_title,
             'route': route
         }
+
         notification_meta(notification_list, message)
 
     elif referal_count == 3:
@@ -810,6 +822,7 @@ def send_notification_for_tool_unlocked_for_pilot(community_id):
 
         referal_count=get_referred_members_of_a_member(community_id,member.member_id.id)
         referal_count=len(referal_count)
+
         if referal_count >= 3:
 
             send_notification_for_tool_unlocked_for_live_community(referer_id=member.member_id.id,
@@ -825,6 +838,7 @@ def send_notification_for_tool_unlocked_for_pilot(community_id):
                                                                    community_state=community_instance.hide_community
                                                                    )
         elif referal_count >= 1:
+
 
             send_notification_for_tool_unlocked_for_live_community(referer_id=member.member_id.id,
                                                                    referal_count=1, community_id=community_id,
