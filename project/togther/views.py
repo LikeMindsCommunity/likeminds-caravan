@@ -892,6 +892,7 @@ def get_community_questions(community_id):
         temp = {}
         if each_question.question_state:
             temp['question_state'] = each_question.question_state
+
             if temp['question_state'] == 1 or temp['question_state'] == 2:
 
                 if each_question.value[0] == '[':
@@ -899,7 +900,7 @@ def get_community_questions(community_id):
                 if each_question.value[-1] == ']':
                     each_question.value = each_question.value[:-1]
 
-                if '$' in each_question.value:
+                if '$#' in each_question.value:
                     dropdown_list = each_question.value.split("$#")
                 else:
                     dropdown_list = each_question.value.split(",")
@@ -910,6 +911,12 @@ def get_community_questions(community_id):
                         item = item[1:]
                     if item[-1] == '"':
                         item = item[:-1]
+                    if each_question.community.hide_community == '5':
+                        find_index = item.find(":")
+                        if find_index != -1:
+                            item = item[find_index+1:-1].strip()
+                            if item[0] == '"':
+                                item = item[1:-1]
                     dropdown_list[index] = item
 
             temp['dropdown_list'] = dropdown_list
