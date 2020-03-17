@@ -549,8 +549,6 @@ def join_ig_communities(request,res,community,user,ref_id):
 
 
 
-
-
 def join_lg_communities(request,res,community,user,ref_id):
 
     '''function to join lg communities'''
@@ -4728,7 +4726,7 @@ def all_members(request):
 
     #functionality for user filteration based on options
     if res:
-        if 'filter' in res:
+        if 'filters' in res:
             members=get_filtered_users(res,community_id)
             JsonResponse({'members':members})
 
