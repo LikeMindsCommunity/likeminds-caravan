@@ -37,8 +37,11 @@ import re
 
 url = settings.URL
 
-if not url:
+if not url and settings.IS_BETA:
     url = "https://beta.collabmates.com"
+
+if not url and not settings.IS_BETA:
+    url = "https://www.collabmates.com"
 
 # uncomment to run it in localhost
 #
