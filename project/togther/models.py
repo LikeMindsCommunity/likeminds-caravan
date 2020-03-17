@@ -33,7 +33,7 @@ class Community(models.Model):
     introduction_text_state = models.IntegerField(default=0)
     type = models.IntegerField(default=0)
     # for whats app community
-    community_type=models.TextField(null=True)
+    community_type=models.IntegerField(null=True)
     sub_type = models.IntegerField(null=True)
 
     def __str__(self):
