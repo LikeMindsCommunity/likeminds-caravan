@@ -1685,6 +1685,7 @@ def create_community_version_1(request):
         sub_type = res['sub_type']
 
 
+
     community_instance=Community()
     community_instance.name=community_name
     community_instance.purpose=purpose
@@ -1729,7 +1730,7 @@ def create_community_version_1(request):
         questions_instance.community=community_instance
         questions_instance.question_title=question['question_title']
         questions_instance.question_state=question['state']
-        questions_instance.value=question['value'] if 'value' in res else None
+        questions_instance.value=question['value'] if 'value' in question else None
         questions_instance.optional=question['optional']
         questions_instance.help_text = question['help_text'] if 'help_text' in question else None
         questions_instance.save()
@@ -1744,7 +1745,7 @@ def create_community_version_1(request):
         communityExpireInstance.community=community_instance
         communityExpireInstance.duration=86400                  #for 24 hours saving in community
         communityExpireInstance.save()
-        
+
     communty_serailized_object = CommunitySerializer(community_instance)
     return JsonResponse({'success':True,'community':communty_serailized_object})
 
