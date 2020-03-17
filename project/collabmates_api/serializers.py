@@ -166,10 +166,16 @@ def FormResponseSerilaizer(community_id, user_id):
 
 def CommunityQuestionsSerializer(community_question_instance):
 
+    if community_question_instance.value:
+        values = community_question_instance.value[1:-1] if community_question_instance.value[
+                                                   0] == '[' else community_question_instance.value
+    else:
+        values = community_question_instance.value
+
     return {
         'id':community_question_instance.id,
         'question_title':community_question_instance.question_title,
-        'value':community_question_instance.value[1:-1] if community_question_instance.value[0] == '[' else community_question_instance.value,
+        'value':values,
         'optional':community_question_instance.optional,
         'community_id':community_question_instance.community_id,
         'state':community_question_instance.question_state

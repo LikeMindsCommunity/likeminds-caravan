@@ -768,7 +768,7 @@ def join_community(request, community_id,ref_id):
 
         question_data = request.POST.dict()
         response_list = []
-       
+
         for key, value in question_data.items():
 
             question_dict = {}
@@ -795,7 +795,7 @@ def join_community(request, community_id,ref_id):
         json_dict['questions'] = response_list
 
         params = {'member_id': member_id, 'community_id': community_id,'ref_id':ref_id}
-        rqst.post(join_url, params=params, json=json_dict)
+        # rqst.post(join_url, params=params, json=json_dict)
         # return false to show thank you page the user has now answered the questions
         return False, validation_error, user, similar_communities, community, []
 
@@ -804,7 +804,7 @@ def join_community(request, community_id,ref_id):
 
         if not question_format:
             params = {'member_id': member_id, 'community_id': community_id}
-            rqst.post(join_url, params=params, json={})
+            # rqst.post(join_url, params=params, json={})
             # return false to show thank you page as there are no questions for this community
 
             return False, validation_error, user, similar_communities, community, []
@@ -822,9 +822,9 @@ def get_community_questions(community_id):
             temp['question_state'] = each_question.question_state
             if temp['question_state'] == 1 or temp['question_state'] == 2:
                 if each_question.value[0] == '[':
-                    dropdown_list=each_question.value[1:-1].split(",")
+                    dropdown_list=each_question.value[1:-1].split("$#")
                 else:
-                    dropdown_list = each_question.value.split(",")
+                    dropdown_list = each_question.value.split("$#")
             temp['dropdown_list'] = dropdown_list
             temp['data'] = each_question.question_title
         else:
