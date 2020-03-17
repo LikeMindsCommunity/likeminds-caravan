@@ -149,7 +149,7 @@ def get_member_count(community):
         Q(state=1) | Q(state=2) | Q(state=4) | Q(state=7) | Q(state = 8)).count()
 
 
-def FormResponseSerilaizer(community_id, user_id,new_response=False):
+def FormResponseSerilaizer(community_id, user_id,bl=False):
     responses = communityAnswers.objects.filter(community=community_id).filter(member=user_id).order_by('id')
     if not responses.exists():
         return None
@@ -172,7 +172,7 @@ def FormResponseSerilaizer(community_id, user_id,new_response=False):
 
         user_response.append(response_object)
 
-    if not new_response:
+    if not bl:
         return user_response
     return (user_response,new_response)
 
