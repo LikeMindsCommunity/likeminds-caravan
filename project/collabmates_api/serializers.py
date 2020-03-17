@@ -182,28 +182,10 @@ def FormResponseSerilaizer(community_id, user_id,new_response=False):
 
 def CommunityQuestionsSerializer(community_question_instance):
 
-    if community_question_instance.value[0] == '[':
-        community_question_instance.value = community_question_instance.value[1:]
-    if community_question_instance.value[-1] == ']':
-        community_question_instance.value = community_question_instance.value[:-1]
-
-    if '$' in community_question_instance.value:
-        dropdown_list = community_question_instance.value.split("$#")
-    else:
-        dropdown_list = community_question_instance.value.split(",")
-
-    for index, item in enumerate(dropdown_list):
-        item = item.strip()
-        if item[0] == '"':
-            item = item[1:]
-        if item[-1] == '"':
-            item = item[:-1]
-        dropdown_list[index] = item
-
     return {
         'id':community_question_instance.id,
         'question_title':community_question_instance.question_title,
-        'value':dropdown_list,
+        'value':community_question_instance.value,
         'optional':community_question_instance.optional,
         'community_id':community_question_instance.community_id,
         'state':community_question_instance.question_state,
