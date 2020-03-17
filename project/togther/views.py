@@ -603,7 +603,7 @@ def members_directory(request, community_id):
 
         check_data=Members.objects.filter(community_id=community_id,member_id=request.user.id)
 
-        if not check_data or check_data[0].state == member_states.PENDING_MEMBER or check_data[0].state == member_states.DECLINED_MEMBER:
+        if not check_data.exists() or check_data[0].state == member_states.PENDING_MEMBER or check_data[0].state == member_states.DECLINED_MEMBER:
             return redirect('comunity',community_id=community_id)
 
         if request.method == 'POST':
@@ -662,7 +662,7 @@ def members_directory(request, community_id):
         }
 
         return render(request, 'members.html', context)
-    return   redirect('comunity',community_id=community_id)
+    return redirect('comunity',community_id=community_id)
 
 
 @login_required
@@ -848,7 +848,7 @@ def join_community(request, community_id, ref_id):
             elif key == 'ref_id':
                 continue
 
-            question_dict['key'] = key
+            question_dict['id'] = key
             question_dict['value'] = re.sub(r'(?<=[.,])(?=[^\s])', r' ', value)
 
             values_list.append(value)
@@ -862,6 +862,7 @@ def join_community(request, community_id, ref_id):
 
         json_dict = {"community_id": community_id, "timestamp": time.time()}
         json_dict['questions'] = response_list
+        json_dict['user_id'] = request.user.id
 
         # print(">>>>  ",response_list)
 
@@ -874,8 +875,9 @@ def join_community(request, community_id, ref_id):
         question_format = get_community_questions(community_id)
 
         if not question_format:
+            json_dict = {'user_id': request.user.id}
             params = {'member_id': member_id, 'community_id': community_id}
-            rqst.post(join_url, params=params, json={})
+            rqst.post(join_url, params=params, json=json_dict)
             # return false to show thank you page as there are no questions for this community
 
             return False, validation_error, user, similar_communities, community, []
@@ -892,6 +894,7 @@ def get_community_questions(community_id):
         temp = {}
         if each_question.question_state:
             temp['question_state'] = each_question.question_state
+
             if temp['question_state'] == 1 or temp['question_state'] == 2:
 
                 if each_question.value[0] == '[':
@@ -899,7 +902,7 @@ def get_community_questions(community_id):
                 if each_question.value[-1] == ']':
                     each_question.value = each_question.value[:-1]
 
-                if '$' in each_question.value:
+                if '$#' in each_question.value:
                     dropdown_list = each_question.value.split("$#")
                 else:
                     dropdown_list = each_question.value.split(",")
@@ -910,6 +913,12 @@ def get_community_questions(community_id):
                         item = item[1:]
                     if item[-1] == '"':
                         item = item[:-1]
+                    if each_question.community.hide_community == '5':
+                        find_index = item.find(":")
+                        if find_index != -1:
+                            item = item[find_index+1:-1].strip()
+                            if item[0] == '"':
+                                item = item[1:-1]
                     dropdown_list[index] = item
 
             temp['dropdown_list'] = dropdown_list

@@ -713,11 +713,10 @@ def join_community_responses_version_1(request):
     community_instance = Community.objects.get(id=community_id)
     community=community_instance
 
-    if 'user_id' in res :
-        # request from web
-        user_id = res['user_id']
-    else:
-        user_id = get_member_id_from_headers(request)
+
+    user_id = get_member_id_from_headers(request)
+    if not user_id:
+        user_id = request.GET.get('member_id', None)
 
     #for whatsapp community
     if community_instance.hide_community == '5':
@@ -1002,6 +1001,8 @@ def join_whatsapp_community(res,request):
     community_instance = Community.objects.get(id=community_id)
 
     member_id = get_member_id_from_headers(request)
+    if not member_id:
+        member_id = request.GET.get('member_id', None)
     user_instance = User.objects.get(id=member_id)
 
     if 'questions' in res:
@@ -1019,7 +1020,7 @@ def join_whatsapp_community(res,request):
             if question_instance.question_state == question_states.CHOICE_SINGLE or question_instance.question_state == question_states.CHOICE_MULTIPLE:
                 selected_choices = question['value'].split("$#")
                 for choice in selected_choices:
-                    filter_instance = questionFilters(question=question['id'], filter=choice.strip(),
+                    filter_instance = questionFilters(question=question_instance, filter=choice.strip(),
                                                       member=user_instance, community=community_instance)
                     filter_instance.save()
 
