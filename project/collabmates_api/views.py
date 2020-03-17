@@ -5491,7 +5491,7 @@ def fetch_whatsapp_tool(request):
                 sub_type_list.append(communitySubtypeSerializer(subtype_instance))
 
         if sub_type_list:
-            temp['sub_type_list'] = sub_type_list
+            temp['sub_types'] = sub_type_list
 
         types.append(temp)
 
