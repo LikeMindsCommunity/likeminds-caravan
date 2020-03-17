@@ -848,7 +848,7 @@ def join_community(request, community_id, ref_id):
             elif key == 'ref_id':
                 continue
 
-            question_dict['key'] = key
+            question_dict['id'] = key
             question_dict['value'] = re.sub(r'(?<=[.,])(?=[^\s])', r' ', value)
 
             values_list.append(value)
