@@ -1681,7 +1681,10 @@ def create_community_version_1(request):
     if 'type' in res:
         community_type=res['type']
 
-    sub_type = res['sub_type'] if 'sub_type' in res else ''
+    if 'sub_type' in res:
+        sub_type = res['sub_type']
+    else:
+        sub_type=None
 
     community_instance=Community()
     community_instance.name=community_name
