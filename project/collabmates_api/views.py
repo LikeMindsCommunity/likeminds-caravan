@@ -1670,7 +1670,8 @@ def create_community_version_1(request):
 
     community_name=""
     purpose=""
-    community_type=""
+    community_type = None
+    sub_type = None
 
     if 'name' in res:
         community_name=res['name']
@@ -1683,8 +1684,7 @@ def create_community_version_1(request):
 
     if 'sub_type' in res:
         sub_type = res['sub_type']
-    else:
-        sub_type=None
+
 
     community_instance=Community()
     community_instance.name=community_name
@@ -1696,7 +1696,8 @@ def create_community_version_1(request):
     community_instance.created_at=time.time()
     community_instance.updated_at=time.time()
     community_instance.hide_community='5'     #for whatsapp community
-    community_instance.sub_type = sub_type    #for whatsapp community
+    if sub_type:
+        community_instance.sub_type = sub_type    #for whatsapp community
     community_instance.save()
 
     log = """%s community created in community table"""%(community_name)
@@ -1729,7 +1730,7 @@ def create_community_version_1(request):
         questions_instance.community=community_instance
         questions_instance.question_title=question['question_title']
         questions_instance.question_state=question['state']
-        questions_instance.value=question['value']
+        questions_instance.value=question['value'] if 'value' in res else None
         questions_instance.optional=question['optional']
         questions_instance.help_text = question['help_text'] if 'help_text' in question else None
         questions_instance.save()
