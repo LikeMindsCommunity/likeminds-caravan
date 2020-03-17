@@ -5475,26 +5475,42 @@ def fetch_whatsapp_tool(request):
 
     #getting types.object
     community_type_list=communityType.objects.all()
+    community_subtype_list = communitySubtype.objects.all()
+
     types=[]
     for instance in community_type_list:
-        types.append(communityTypeSerializer(instance))
+        temp = communityTypeSerializer(instance)
+
+
+        sub_type_list = []
+        subtype_queryset = communitySubtype.objects.filter(typ=instance.id)
+
+        if subtype_queryset.exists():
+            for subtype_instance in subtype_queryset:
+
+                sub_type_list.append(communitySubtypeSerializer(subtype_instance))
+
+        if sub_type_list:
+            temp['sub_type_list'] = sub_type_list
+
+        types.append(temp)
+
+
+
+
+
 
     # getting sub-types.object
-    community_subtype_list = communitySubtype.objects.all()
-    sub_types = []
+    # community_subtype_list = communitySubtype.objects.all()
+    # sub_types = []
+    #
+    # for instance in community_subtype_list:
+    #     sub_types.append(communitySubtypeSerializer(instance))
 
-    for instance in community_subtype_list:
-        sub_types.append(communitySubtypeSerializer(instance))
 
-
-    #getting master Questions
-    # master_question_list=masterQuestions.objects.all()
-    # master_questions=[]
-    # for instance in master_question_list:
-    #     master_questions.append(masterQuestionSerializer(instance))
 
     whatsapp_tool['types'] = types
-    whatsapp_tool['sub_types'] = sub_types
+    #whatsapp_tool['sub_types'] = sub_types
 
     master_question_list = masterQuestions.objects.all()
     paginator = Paginator(master_question_list, 50)
@@ -5520,5 +5536,8 @@ def fetch_master_questions(request):
     return JsonResponse({
         'master_questions':master_questions
     })
+
+
+
 
 
