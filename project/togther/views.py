@@ -514,6 +514,7 @@ def get_member_details(community,filter_list=None):
         member_list = Members.objects.filter(community_id=community).filter(Q(state=1) | Q(state=2) | Q(state=4))
         for member in member_list:
             temp = {}
+            temp['id'] = member.member_id.id
             temp['name'] = member.member_id.userinfo.name
             temp['image_link'] = member.member_id.userinfo.image_link
             answer = get_introduction_answer(community, member)
@@ -527,6 +528,7 @@ def get_member_details(community,filter_list=None):
             member=Members.objects.filter(community_id=community,member_id=member_id)
             if member.exists():
                 temp = {}
+                temp['id'] = member[0].member_id.id
                 temp['name'] = member[0].member_id.userinfo.name
                 temp['image_link'] = member[0].member_id.userinfo.image_link
                 answer = get_introduction_answer(community, member[0])
@@ -599,12 +601,12 @@ def members_directory(request, community_id):
 
     '''function to see members directory'''
 
-    if request.user.is_authenticated:
-
-        check_data=Members.objects.filter(community_id=community_id,member_id=request.user.id)
-
-        if not check_data or check_data[0].state == member_states.PENDING_MEMBER or check_data[0].state == member_states.DECLINED_MEMBER:
-            return redirect('comunity',community_id=community_id)
+    if True:
+        #
+        # check_data=Members.objects.filter(community_id=community_id,member_id=request.user.id)
+        #
+        # if not check_data or check_data[0].state == member_states.PENDING_MEMBER or check_data[0].state == member_states.DECLINED_MEMBER:
+        #     return redirect('comunity',community_id=community_id)
 
         if request.method == 'POST':
 
@@ -663,6 +665,46 @@ def members_directory(request, community_id):
 
         return render(request, 'members.html', context)
     return   redirect('comunity',community_id=community_id)
+
+
+
+def member_profile(request):
+
+    '''function to show member profile'''
+    member_id = request.POST.get('data')
+    community_id = request.POST.get('community_id')
+    user_answers = communityAnswers.objects.filter(community=community_id,member_id=member_id)
+    answer_list=[]
+    for answer in user_answers:
+        temp={}
+        question_instance = communityQuestions.objects.get(pk=answer.question_id)
+
+        #introduction answer
+        if question_instance == question_states.INTRODUCTION:
+            #introduction
+            temp['introduction'] = answer.question_answer
+
+        elif question_instance == question_states.EMAIL_ID:
+            #email id
+            temp['email'] = answer.question_answer
+
+        elif question_instance == question_states.MOBILE_NO:
+            #mobile number
+            temp['mobile_number'] = answer.question_answer
+
+        elif question_instance == question_states.PROFILE_LINK:
+            #profile link
+            temp['profile_link'] = answer.question_answer
+
+        else:
+            #question answer
+            temp['question'] = question_instance.question_title
+            temp['answer'] = answer.question_answer
+
+        answer_list.append(temp)
+    print(answer_list)
+
+    return JsonResponse({'show':"hello"})
 
 
 @login_required

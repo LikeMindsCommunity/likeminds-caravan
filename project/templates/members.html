@@ -72,6 +72,20 @@
 }
 
 
+  .image_container::after{
+    content: '';
+    position: absolute ;
+    top: 2% ;
+    background-image: url('https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Fuser%2F181%2Fimg_user_181?alt=media');
+    background-size: cover !important;
+    background-repeat: no-repeat ;
+    transform: translate(-50%, -50%) ;
+    border-top: inherit ;
+    border-top-color: transparent !important;
+    border-radius:50% ;width:95px !important;height:95px !important;display: inline-block !important;left:50% !important;
+    opacity:5;
+}
+
 
 
     </style>
@@ -149,6 +163,7 @@
                     <div class="ui container" style="padding-top:12px;">
 
                         {% for i in members%}
+
                         <br/>
                         <div class="ui two column grid">
                             <div class="row">
@@ -156,7 +171,8 @@
                                     <img class="ui tiny circular centered image" src="{{i.image_link}}" style="border-radius:50%;width:80px;height:80px;"/>
                                 </div>
                                 <div style="padding-left:10%;padding-top:10px;padding-bottom:10px;">
-                                    <p class="RobotoMedium" style="color:black;line-height:20px;font-size:17px;">{{i.name}}</p>
+                                    <a class="RobotoMedium members" style="color:black;line-height:20px;font-size:17px;" id="{{i.id}}">{{i.name}}</a>
+
                                     <p style="line-height:17px;font-size:13px;color:#9b9b9b" class="Roboto">{{i.answer}}</p>
 
                                 </div>
@@ -195,15 +211,27 @@
 
     <div class="ui fluid card" style="max-width:786px;" id="filters">
 
-
-
-
     </div>
 
 </div>
 
 
 <!-- -->
+
+<!-- profile pop-up -->
+
+<div class="ui modal image_container" id="display">
+<!--  <div class="ui segment" style="background-color:#07b890;margin:0 auto;background-color:#075e54;">-->
+<!--    <div class="image_container" style="max-width:100%;">-->
+
+
+</div>
+<!--  </div>-->
+<!--</div>-->
+
+<!-- -->
+
+
 </body>
 
 </html>
@@ -307,6 +335,8 @@ $('#test').hide()
 
 
 
+
+
 $(document.body).on('click', '.apply_filter' ,function(){
 
 var option_list=[]
@@ -364,7 +394,59 @@ location.href="/members_directory/"+"{{community_id}}"
 })
 
 
+$(document.body).on('click','.members',function(e){
 
+member_id=this.id
+community_id={{community_id}}
+
+ json_data={
+    'data':member_id,
+    'community_id':community_id,
+    'csrfmiddlewaretoken':'{{csrf_token}}',
+    }
+
+
+  $.ajax({
+
+            url:"/member_profile",
+            data:json_data,
+            type:"POST",
+            dataType:'json',
+            success:function(data){
+
+            console.log(data)
+
+            html=`
+
+             <img src="https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Fprofile_header?alt=media" style="width:100%;height:70%;">
+
+
+      <div class="profile_name">
+          <p align="center" style="font-family:Roboto;sans-serif;font-weight:600px;color:black;font-size:17px;">hello</p>
+
+      </div>
+
+       <div style="margin-top:5%;margin-left:16px;margin-right:16px;">
+          <p>hi</p>
+           <br/>
+         </div>
+
+
+
+            `
+
+            $('#display').html(html)
+            $('#display').modal('show');
+
+
+
+            }
+
+         })
+
+
+
+})
 </script>
 
 
