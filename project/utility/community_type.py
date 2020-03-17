@@ -51,8 +51,8 @@ class CommunityType(View):
             return JsonResponse({"Error": "Provide Community ID or Instance "})
 
         response = self.get_community_type()
-        if not self.community_instance.type:
-            self.community_instance.type = response['Map'] if response['Map'] >= 0 else None
+        if not self.community_instance.attribute_type:
+            self.community_instance.attribute_type = response['Map'] if response['Map'] >= 0 else None
             self.community_instance.save()
 
         if response_type == None:
@@ -82,8 +82,8 @@ class CommunityType(View):
 
     def get_community_type(self):
 
-        if self.community_instance.type:
-            response = {"Type": self.community_instance.type, "Map": self.community_instance.type}
+        if self.community_instance.attribute_type:
+            response = {"Type": self.community_instance.attribute_type, "Map": self.community_instance.attribute_type}
 
         else:
             self.city_exists = self.contains_gc()
