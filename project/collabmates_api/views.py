@@ -1054,14 +1054,14 @@ def join_whatsapp_community(res,request):
         return JsonResponse({'success': True})
     else:
 
-        #updating the member instance
+        #creating a member instance
         member_instance = Members()
         member_instance.member_id = user_instance
         member_instance.community_id = community_instance
         member_instance.state = member_states.PENDING_MEMBER
         member_instance.save()
 
-        #updating the member engage instance
+        #creating a member engage instance
         engage = Member_Engage()
         engage.member_id = user_instance
         engage.community_id = community_instance
@@ -1730,7 +1730,7 @@ def create_community_version_1(request):
         questions_instance.community=community_instance
         questions_instance.question_title=question['question_title']
         questions_instance.question_state=question['state']
-        questions_instance.value=question['value'] if 'value' in question else None
+        questions_instance.value = question['value'] if 'value' in question else None
         questions_instance.optional=question['optional']
         questions_instance.help_text = question['help_text'] if 'help_text' in question else None
         questions_instance.save()
