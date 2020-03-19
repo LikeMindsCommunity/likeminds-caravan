@@ -851,7 +851,10 @@ def join_community(request, community_id, ref_id, auto_join=False):
         question_data = request.POST.dict()
 
         for key, value in question_data.items():
-            question_data = key+"="+value
+            if not key[-1] == ']':
+                question_data = key+"="+value
+            else:
+                question_data = key
             break
 
         question_data = ast.literal_eval(question_data)
