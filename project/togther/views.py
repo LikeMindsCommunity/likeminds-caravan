@@ -709,6 +709,7 @@ def member_profile(request):
     member_name=""
 
     user_instance=User.objects.filter(id=member_id)
+    image_link=""
     if user_instance.exists():
         member_name = user_instance[0].userinfo.name
         image_link = user_instance[0].userinfo.image_link
@@ -716,8 +717,21 @@ def member_profile(request):
     answer_list = get_member_profile(community_id,member_id)
 
     json_response = {'answer_list':answer_list,'member_name':member_name,'image_link':image_link}
-    print(json_response)
     return JsonResponse(json_response)
+
+
+def update_email(request):
+
+    '''function to update email'''
+
+    email = request.POST.get('email',None)
+    if request.user.is_authenticated:
+        if email:
+            Userinfo.objects.filter(user_id=request.user).update(secondary_email=email)
+
+        return JsonResponse({'success':True})
+    return JsonResponse({'success':False})
+
 
 def get_member_profile(community_id,member_id):
 
