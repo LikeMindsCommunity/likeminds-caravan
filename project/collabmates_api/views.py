@@ -2912,7 +2912,7 @@ def community_collabcard_invite(request,community_id):
     community_serializer_instance = CommunitySerializer(community)
 
     #if the community is a user-created community
-    if community_serializer_instance['state'] == 0 or community_serializer_instance['state'] == 1:
+    if community_serializer_instance['state'] == 0 or community_serializer_instance['state'] == 1 or community_serializer_instance['state']:
         json_response = {
 
             'community': community_serializer_instance,
