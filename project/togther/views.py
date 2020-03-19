@@ -34,6 +34,7 @@ import logging
 import itertools
 from utility.states import collabcard_states, member_states, question_states
 import re
+import ast
 
 url = settings.URL
 
@@ -45,7 +46,7 @@ if not url and not settings.IS_BETA:
 
 # uncomment to run it in localhost
 #
-# url='http://localhost:8000'
+#url='http://localhost:8000'
 
 api_url = url + '/api/'
 error_logger = logging.getLogger("error_logger")
@@ -249,25 +250,6 @@ def community(request, community_id):
                                                                   'validation_error': validation_error,
                                                                   'filled_answers': filled_answers})
             else:
-
-                if community.hide_community == '3':
-                    # if ref_id != '':
-                    #     base_url = reverse('refer_members', kwargs={'community_id': community_id})
-                    #     query_string = urlencode({'ref_id': ref_id})
-                    #     url = '{}?{}'.format(base_url, query_string)
-                    #     return redirect(url)
-                    # return redirect('refer_members',community_id=community.id)
-                    JsonResponse({'success': True})
-
-                # onboard = False
-                # user_legacy = User_Legacy.objects.filter(user_id = request.user)
-                # user_profession = User_Profession.objects.filter(user_id = request.user)
-                # user_interests = User_Interest.objects.filter(user_id = request.user)
-                # user_geography = User_Geography.objects.filter(user_id = request.user)
-                #
-                # if user_legacy.exists() and user_profession.exists() and user_interests.exists() and user_geography.exists():
-                #     onboard = True
-
                 return JsonResponse({'success': True})
         elif cta == 'share':
             cta = 'join'
@@ -336,6 +318,10 @@ def community(request, community_id):
         user = Userinfo.objects.all().filter(user_id=request.user.id)
     else:
         user = []
+
+
+
+    #sending links and context
     android_app_link = ""
     ios_app_download_link = ""
     if is_request_android(request):
@@ -514,6 +500,7 @@ def get_member_details(community,filter_list=None):
         member_list = Members.objects.filter(community_id=community).filter(Q(state=1) | Q(state=2) | Q(state=4))
         for member in member_list:
             temp = {}
+            temp['id'] = member.member_id.id
             temp['name'] = member.member_id.userinfo.name
             temp['image_link'] = member.member_id.userinfo.image_link
             answer = get_introduction_answer(community, member)
@@ -527,6 +514,7 @@ def get_member_details(community,filter_list=None):
             member=Members.objects.filter(community_id=community,member_id=member_id)
             if member.exists():
                 temp = {}
+                temp['id'] = member[0].member_id.id
                 temp['name'] = member[0].member_id.userinfo.name
                 temp['image_link'] = member[0].member_id.userinfo.image_link
                 answer = get_introduction_answer(community, member[0])
@@ -582,7 +570,7 @@ def get_introduction_answer(community_instance, member_instance):
                                                                    question_id=question_id)
         if introduction_answer_list.exists():
             introduction_answer = introduction_answer_list[0].question_answer
-            return introduction_answer
+            return introduction_answer[:30]
 
     if not introduction_answer:
         epoch_time = member_instance.created_at
@@ -598,6 +586,7 @@ def get_introduction_answer(community_instance, member_instance):
 def members_directory(request, community_id):
 
     '''function to see members directory'''
+
 
     if request.user.is_authenticated:
 
@@ -639,7 +628,7 @@ def members_directory(request, community_id):
             temp = {}
             temp['question_id'] = filter.id
             temp['question_title'] = filter.question_title
-            temp['values'] = filter.value.split(",")
+            temp['values'] = decode_option(filter.value)
             if str(filter_question_id) == str(filter.id):
                 temp['selected']=True
             else:
@@ -663,6 +652,66 @@ def members_directory(request, community_id):
 
         return render(request, 'members.html', context)
     return redirect('comunity',community_id=community_id)
+
+
+def decode_option(value):
+
+
+
+    value = ast.literal_eval(value)
+    value_list = []
+
+    for item in value:
+        value_list.append(item['value'])
+
+    #print(value_list)
+
+    return value_list
+
+
+
+
+def member_profile(request):
+
+    '''function to show member profile'''
+    member_id = request.POST.get('data')
+    community_id = request.POST.get('community_id')
+    user_answers = communityAnswers.objects.filter(community=community_id,member_id=member_id).order_by('id')
+    answer_list=[]
+    for answer in user_answers:
+        temp={}
+        question_instance = communityQuestions.objects.get(pk=answer.question_id)
+
+        #introduction answer
+        if question_instance.question_state == question_states.INTRODUCTION:
+            #introduction
+            temp['answer'] = answer.question_answer
+            temp['rank'] = 4
+
+        elif question_instance.question_state == question_states.EMAIL_ID:
+            #email id
+            temp['answer'] = answer.question_answer
+            temp['rank'] = 1
+
+        elif question_instance.question_state == question_states.MOBILE_NO:
+            #mobile number
+            temp['answer'] = answer.question_answer
+            temp['rank'] = 2
+
+        elif question_instance.question_state == question_states.PROFILE_LINK:
+            #profile link
+            temp['answer'] = answer.question_answer
+            temp['rank'] = 3
+
+        else:
+            #question answer
+            temp['answer'] = question_instance.question_title + ": " + answer.question_answer
+            temp['rank'] = 5
+        answer_list.append(temp)
+        answer_list=sorted(answer_list, key=lambda i: i['rank'])
+    print(answer_list)
+
+    return JsonResponse({'answer_list':answer_list})
 
 
 @login_required
@@ -917,7 +966,7 @@ def get_community_questions(community_id):
                         find_index = item.find(":")
                         if find_index != -1:
                             item = item[find_index+1:-1].strip()
-                            if item[0] == '"':
+                            if item[0] == '"' or item[0] == "'":
                                 item = item[1:-1]
                     dropdown_list[index] = item
 
