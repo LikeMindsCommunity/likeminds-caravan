@@ -501,7 +501,11 @@ $('#back_button').click(function(e){
 
         var values = $('#response_form').serialize();
         var community_id='{{community.id}}'
-        url="/community/"+community_id+"?cta=join";
+        {% if auto_join %}
+            url="/community/"+community_id+"?cta=join_ajt";
+        {% else %}
+            url="/community/"+community_id+"?cta=join";
+        {% endif %}
 
         var files_exist = false;
         var files_array = [];

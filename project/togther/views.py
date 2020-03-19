@@ -232,11 +232,13 @@ def community(request, community_id):
     ref_id = request.GET.get('ref_id', '')
 
     profile = request.GET.get('profile', None)                  #for showing the pop-up on display screen
+
     auto_join = request.GET.get('aj', False)
     if auto_join and auto_join.lower() == 't':
         auto_join = True
         if not 'cta' in res:
             res['cta'] = 'join'
+
 
     cta = ''
     if 'cta' in res:
@@ -255,7 +257,6 @@ def community(request, community_id):
         if cta == 'join' and request.user.is_authenticated:
             member = Members.objects.filter(member_id=request.user, community_id=community)
             member_state = member[0].state if member.exists() else 0
-
             questions, validation_error, user, data, community, filled_answers = join_community(request, community_id,
                                                                                                 ref_id,auto_join=auto_join)
             if questions:
@@ -265,7 +266,8 @@ def community(request, community_id):
                     return render(request, 'response_form.html', {"data": data, 'usr': user,
                                                                   'community': community, 'ref_id': ref_id,
                                                                   'validation_error': validation_error,
-                                                                  'filled_answers': filled_answers})
+                                                                  'filled_answers': filled_answers,
+                                                                  'auto_join':auto_join,})
             else:
                 return JsonResponse({'success': True})
         elif cta == 'share':
@@ -901,6 +903,7 @@ def logout_view(request):
 
 @login_required
 def join_community(request, community_id, ref_id, auto_join=False):
+
     if request.user.is_authenticated:
         try:
             user = Userinfo.objects.get(user_id=request.user.id)
@@ -955,7 +958,7 @@ def join_community(request, community_id, ref_id, auto_join=False):
         json_dict['questions'] = response_list
         json_dict['user_id'] = request.user.id
 
-        print(">>>>  ",response_list)
+        print(">>>>  ",json_dict)
 
         params = {'member_id': member_id, 'community_id': community_id, 'ref_id': ref_id}
         rqst.post(join_url, params=params, json=json_dict)
