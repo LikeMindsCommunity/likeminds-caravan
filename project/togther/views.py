@@ -371,6 +371,7 @@ def community(request, community_id):
     admin_details = get_admins_details(community)
     members = get_member_details(community)
 
+    auto_join = 'true' if auto_join else 'false'
 
     context = {'usr': user, 'similar_communities': communities,
                'community': community, 'admins': admin_details,
@@ -959,6 +960,7 @@ def join_community(request, community_id, ref_id, auto_join=False):
         json_dict['user_id'] = request.user.id
 
         print(">>>>  ",json_dict)
+        info_logger.info(json_dict)
 
         params = {'member_id': member_id, 'community_id': community_id, 'ref_id': ref_id}
         rqst.post(join_url, params=params, json=json_dict)
