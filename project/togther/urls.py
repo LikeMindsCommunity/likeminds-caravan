@@ -29,5 +29,6 @@ urlpatterns = [
     path('members_directory/<int:community_id>', views.members_directory, name='members_directory'),
     path('member_profile', views.member_profile, name='member_profile'),
     path('check', views.check, name='check'),
+    path('check1', views.check1, name='check1'),
 
 ]
