@@ -34,6 +34,7 @@ import logging
 import itertools
 from utility.states import collabcard_states, member_states, question_states
 import re
+import ast
 
 url = settings.URL
 
@@ -834,37 +835,35 @@ def join_community(request, community_id, ref_id):
 
     community = Community.objects.get(id=community_id)
     validation_error = False
-    values_list = []
     if request.method == "POST":
 
         question_data = request.POST.dict()
-        response_list = []
 
         for key, value in question_data.items():
+            question_data = key+"="+value
+            break
+
+        question_data = ast.literal_eval(question_data)
+        response_list = []
+
+        for quest_dict in question_data:
 
             question_dict = {}
-            if key == 'csrfmiddlewaretoken':
+            if quest_dict['id'] == 'csrfmiddlewaretoken':
                 continue
-            elif key == 'ref_id':
+            elif quest_dict['id'] == 'ref_id':
                 continue
 
-            question_dict['id'] = key
-            question_dict['value'] = re.sub(r'(?<=[.,])(?=[^\s])', r' ', value)
-
-            values_list.append(value)
+            question_dict['id'] = quest_dict['id']
+            question_dict['value'] = re.sub(r'(?<=[.,])(?=[^\s])', r' ', quest_dict['value'])
 
             response_list.append(question_dict)
-
-        # if value == '' or value == None or value == ' ':
-        #         validation_error = True
-        #         question_format = get_community_questions(community_id)
-        #         return True, validation_error, user, question_format, community, values_list
 
         json_dict = {"community_id": community_id, "timestamp": time.time()}
         json_dict['questions'] = response_list
         json_dict['user_id'] = request.user.id
 
-        # print(">>>>  ",response_list)
+        print(">>>>  ",response_list)
 
         params = {'member_id': member_id, 'community_id': community_id, 'ref_id': ref_id}
         rqst.post(join_url, params=params, json=json_dict)
@@ -894,6 +893,16 @@ def get_community_questions(community_id):
         temp = {}
         if each_question.question_state:
             temp['question_state'] = each_question.question_state
+            if temp['question_state'] == 6:
+                if each_question.value:
+                    item = ast.literal_eval(each_question.value)[0]['value']
+                    if item.lower() == "yyyy":
+                        date_format = 'year'
+                    elif item.lower() == "mm yyyy":
+                        date_format = 'month'
+                    else:
+                        date_format = 'date'
+                    temp["date_format"]=date_format
 
             if temp['question_state'] == 1 or temp['question_state'] == 2:
 
@@ -933,6 +942,7 @@ def get_community_questions(community_id):
             temp['max_selections'] = each_question.dropdown_selection_limit
         temp['optional'] = each_question.optional
         question_format.append(temp)
+
     # print(question_format)
     return question_format
 
