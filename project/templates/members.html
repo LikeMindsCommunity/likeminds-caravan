@@ -72,6 +72,20 @@
 }
 
 
+  .image_container::after{
+    content: '';
+    position: absolute ;
+    top: 2% ;
+    background-image: url('{{request.user.userinfo.image_link}}');
+    background-size: cover !important;
+    background-repeat: no-repeat ;
+    transform: translate(-50%, -50%) ;
+    border-top: inherit ;
+    border-top-color: transparent !important;
+    border-radius:50% ;width:95px !important;height:95px !important;display: inline-block !important;left:50% !important;
+    opacity:5;
+}
+
 
 
     </style>
@@ -149,6 +163,7 @@
                     <div class="ui container" style="padding-top:12px;">
 
                         {% for i in members%}
+
                         <br/>
                         <div class="ui two column grid">
                             <div class="row">
@@ -156,8 +171,9 @@
                                     <img class="ui tiny circular centered image" src="{{i.image_link}}" style="border-radius:50%;width:80px;height:80px;"/>
                                 </div>
                                 <div style="padding-left:10%;padding-top:10px;padding-bottom:10px;">
-                                    <p class="RobotoMedium" style="color:black;line-height:20px;font-size:17px;">{{i.name}}</p>
-                                    <p style="line-height:17px;font-size:13px;color:#9b9b9b" class="Roboto">{{i.answer}}</p>
+                                    <a class="RobotoMedium members" style="color:black;line-height:20px;font-size:17px;" id="{{i.id}}">{{i.name}}</a>
+
+                                    <p style="line-height:17px;font-size:13px;color:#9b9b9b;word-break: break-all;" class="Roboto">{{i.answer}}</p>
 
                                 </div>
 
@@ -195,15 +211,24 @@
 
     <div class="ui fluid card" style="max-width:786px;" id="filters">
 
-
-
-
     </div>
 
 </div>
 
+<!-- -->
+
+
+
+<!-- profile pop-up -->
+<div class="ui modal image_container" id="display" style="max-width:786px;">
+
+
+
+</div>
 
 <!-- -->
+
+
 </body>
 
 </html>
@@ -221,7 +246,7 @@ $('#test').hide()
 }
 
 
-
+//functionality to show filter list
     {% for filter in filter_list %}
 
         $('#{{filter.question_id}}').click(function(){
@@ -307,6 +332,8 @@ $('#test').hide()
 
 
 
+
+//functionality to apply filter
 $(document.body).on('click', '.apply_filter' ,function(){
 
 var option_list=[]
@@ -356,15 +383,134 @@ $('.t1').each(function () {
 
 })
 
+
+
+//functionality to show back button click
 $('#back_click').click(function(e){
 
 location.href="/members_directory/"+"{{community_id}}"
-
 
 })
 
 
 
+
+
+
+// functionality to show member pop-up
+$(document.body).on('click','.members',function(e){
+
+member_id=this.id
+community_id={{community_id}}
+
+ json_data={
+    'data':member_id,
+    'community_id':community_id,
+    'csrfmiddlewaretoken':'{{csrf_token}}',
+    }
+
+
+  $.ajax({
+
+            url:"/member_profile",
+            data:json_data,
+            type:"POST",
+            dataType:'json',
+            success:function(data){
+
+            console.log(data['answer_list'])
+
+            html=`
+
+             <img src="/media/main_website/profile_header.png" style="width:100%;height:70%;">
+
+
+      <div class="profile_name">
+          <p align="center" style="font-family:Roboto;sans-serif;font-weight:600px;color:black;font-size:17px;">
+          {{request.user.userinfo.name}}</p>
+
+      </div>
+
+      `
+       $.each(data['answer_list'],function(index,value){
+
+               segment=""
+               if(value['rank'] == 1){
+               segment = `
+               <div style="margin-top:5%;margin-left:16px;margin-right:16px;">
+                            <p class="Roboto" style="line-height:20px;font-size:13px;color:#9b9b9b"><img src="/media/main_website/ic_email_48_px.png" height=16px;width=14px;/>&nbsp;&nbsp;${value['answer']}</p>
+
+                     </div>
+                    `
+               html = html + segment
+               }else if(value['rank'] == 2){
+
+               segment = `
+               <div style="margin-top:3%;margin-left:16px;margin-right:16px;">
+                            <p class="Roboto" style="line-height:20px;font-size:13px;color:#9b9b9b">
+                                <img src="/media/main_website/mobile_alt.png" height=20px;width=16px;/>&nbsp;&nbsp;${value['answer']}
+                            </p>
+
+                     </div>
+                    `
+               html = html + segment
+
+
+               }else if(value['rank'] == 3){
+
+                segment = `
+               <div style="margin-top:3%;margin-left:16px;margin-right:16px;">
+                            <a class="Roboto" style="line-height:20px;font-size:13px;color:#00897b" href=${value['answer']}>
+                                <img src="/media/main_website/link.png" height=20px;width=16px;/>&nbsp;&nbsp;${value['answer']}
+                            </a>
+
+                     </div>
+                     <br/>
+                    `
+               html = html + segment
+
+
+               }else if(value['rank'] == 4){
+
+               segment = `
+               <div style="margin-top:5%;margin-left:16px;margin-right:16px;padding-bottom:5%;">
+                            <p class="Roboto" style="font-size:15px;line-height:24px;color:#4a4a4a">
+                                ${value['answer']}
+
+                            </p>
+
+
+               </div>
+                    `
+               html = html + segment
+
+
+               }else{
+
+                segment = `
+               <div style="margin-top:3%;margin-left:16px;margin-right:16px;">
+                            <p class="Roboto" style="font-size:15px;line-height:20px;color:#9b9b9b">${value['answer']}</p>
+
+               </div>
+                    `
+               html = html + segment
+
+               }
+
+       })
+
+       html=html + "<br/>"
+
+            $('#display').html(html)
+            $('#display').modal('show');
+            $(".dimmer").css("background-color","rgba(40,40,40,0.5)");
+
+
+
+            }
+
+         })
+})
 </script>
 
 

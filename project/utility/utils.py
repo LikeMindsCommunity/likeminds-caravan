@@ -4,7 +4,6 @@ from celery import shared_task
 from bs4 import BeautifulSoup
 import requests
 from togther.models import *
-from togther.models import *
 from django.shortcuts import get_object_or_404
 from django.db.models import Q
 import requests as rqst
@@ -63,6 +62,18 @@ def is_member_engage(community,member):
     if member_data:
         is_present=True
     return is_present
+
+
+def is_member_verified(community,user_instance):
+
+    '''function to check whether the member is verified or not'''
+
+    is_verified=Members.objects.filter(community_id=community,member_id=user_instance).filter(
+        Q(state=1)|Q(state=4)|Q(state=2))
+
+    if is_verified:
+        return True
+    return False
 
 def decode_meta_from_url(url):
 
