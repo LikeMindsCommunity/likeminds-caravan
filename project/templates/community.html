@@ -185,11 +185,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 <!--        </div>-->
 
         {% block content %}
-
-
-
-
-
+      
 
 <!-- accept invitation model -->
                     <div class="ui modal accept" id="accept">
@@ -643,6 +639,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                             {% if ref_id != '' %}
                             <a href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join_{{ref_id}}">
                             <button class="ui facebook button" style="width:130px;">
+                            {% elif auto_join or auto_join == 'True' or auto_join == 'true' %}
+                                  <a href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join_ajt">
+                                  <button class="ui facebook button" style="width:130px;">
                             {% elif cta == 'share' %}
                             <a href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join">
                                 <button class="ui facebook button" style="width:130px;">
@@ -667,6 +666,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                                         {% if ref_id != '' %}
                                         <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join_{{ref_id}}">
                                             <button class="ui linkedin button" style="width:130px;">
+                                        {% elif auto_join or auto_join == 'True' or auto_join == 'true' %}
+                                             <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join_ajt">
+                                             <button class="ui linkedin button" style="width:130px;">
                                         {% elif cta == 'share' %}
                                         <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join">
                                             <button class="ui linkedin button" style="width:130px;">
