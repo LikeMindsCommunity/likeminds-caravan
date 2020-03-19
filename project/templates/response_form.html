@@ -245,9 +245,28 @@ height:35%;
 
 }
 
+textarea.noscrollbars {
+  overflow: hidden;
+
+}
+
 
 
 </style>
+
+     <script>
+
+     function remove_warning(id) {
+            $(id).remove();
+            $("#div_{{question.id}}").removeClass("error");
+        };
+     function remove_error(id) {
+            var hidden_id = '#hidden_div_'+id
+            var div_id = '#div_'+id
+            $(hidden_id).remove();
+            $(div_id).removeClass("error");
+        };
+</script>
 
 
     </head>
@@ -306,7 +325,7 @@ height:35%;
     <div class="container">
 
             <div class="" style="margin: 14px 14px !important;">
-            <form class="ui form"   onsubmit="return false" id="response_form">
+            <form class="ui form" onsubmit="return false" id="response_form" enctype="multipart/form-data">
                 {% csrf_token %}
 
 
@@ -323,58 +342,58 @@ height:35%;
 <!--    EMAIL_ID = 10-->
 
                 {% for question in data %}
-                    {% if question.optional%}
-                    <div class="field">
+                    {% if question.optional %}
+                    <div class="field" id="div_{{question.id}}">
                     {% else %}
-                    <div class="required field">
+                    <div class="required field" id="div_{{question.id}}">
                     {% endif %}
                         {% if question.question_state == 0 or question.question_state == 4 or question.question_state == 7 %}
                         <!--    TEXT = 0  PARAGRAPH = 4 INTRODUCTION = 7  -->
                             <label class="Roboto" style="font-size:13px;margin-left:7px;">{{question.data}}</label>
                             {% if question.question_state == 4 or question.question_state == 7 %}
-                                <textarea rows="4" cols="4" style="border-radius: 10px;" name ="{{question.id}}" required ></textarea>
+                                <textarea id="{{question.id}}" class="noscrollbars" rows="4" cols="4" style="border-radius: 10px;" name ="{{question.id}}" required oninput="remove_error('{{question.id}}')"  onchange="remove_error('{{question.id}}')"></textarea>
                             {% else %}
-                                <textarea rows="2" cols="4" style="border-radius: 10px;" name ="{{question.id}}" required ></textarea>
+                                <textarea id="{{question.id}}" class="noscrollbars" rows="2" cols="4" style="border-radius: 10px;" name ="{{question.id}}" required oninput="remove_error('{{question.id}}')"  onchange="remove_error('{{question.id}}')"></textarea>
                             {% endif %}
 
                         {% elif question.question_state == 1 %}
                         <!--    CHOICE_SINGLE = 1-->
                             <label class="Roboto" style="font-size:13px;margin-left:7px;" >{{question.data}}</label>
-                            <div class="ui selection dropdown single_select" style="border-radius: 10px;height:50px;" >
-
-                                <input type="hidden" name="{{question.id}}">
-                                <i class="dropdown icon"></i>
-                                <div class="default text">Select</div>
-                                <div class="menu">
-                                    {% for option in question.dropdown_list %}
-                                        <div class="item" data-value="{{option}}">{{option}}</div>
-                                    {% endfor %}
-                                </div>
+                            <div class="ui fluid search selection dropdown single_select_{{question.id}}" style="border-radius: 10px;height:50px;">
+                                  <input id="{{question.id}}" type="hidden" name="{{question.id}}" oninput="remove_error('{{question.id}}')" onchange="remove_error('{{question.id}}')">
+                                  <i class="dropdown icon"></i>
+                                  <div class="default text">Select Country</div>
+                                  <div class="menu">
+                                  {% for option in question.dropdown_list %}
+                                       <div class="item" data-value="{{option}}">{{option}}</div>
+                                  {% endfor %}
+                                  </div>
                             </div>
+
+
                         {% elif question.question_state == 2 %}
                         <!--    CHOICE_MULTIPLE = 2-->
                             <label class="Roboto" style="font-size:13px;margin-left:7px;" >{{question.data}}</label>
 
-                            <div class="ui fluid multiple search selection dropdown {{question.id}}"  style="border-radius: 10px;height:50px;" >
+                            <div class="ui fluid multiple search normal selection dropdown multi_select_{{question.id}}" style="border-radius: 10px;height:50px;">
+                                  <input id="{{question.id}}" type="hidden" name="{{question.id}}" oninput="remove_error('{{question.id}}')"  onchange="remove_error('{{question.id}}')">
+                                  <i class="dropdown icon"></i>
+                                  <div class="default text">Select Country</div>
+                                  <div class="menu">
+                                  {% for option in question.dropdown_list %}
+                                      <div class="item" data-value="{{option}}">{{option}}</div>
+                                  {% endfor %}
 
-                                <input type="hidden" name="{{question.id}}">
-                                <i class="dropdown icon"></i>
-                                <div class="default text">Select {{question.max_selections}}</div>
-                                <div class="menu">
-                                    {% for option in question.dropdown_list %}
-                                    <div class="item" data-value="{{option}}">{{option}}</div>
-                                    {% endfor %}
-                                </div>
-                            </div>
+                                  </div></div>
                         {% elif question.question_state == 3 %}
                         <!--    TEXT_WITH_LIMIT = 3-->
                             <label class="Roboto" style="font-size:13px;margin-left:7px;">{{question.data}}</label>
-                            <textarea rows="2" cols="4" style="border-radius: 10px;" name ="{{question.id}}" minlength="50" required placeholder="" oninput="check(this)" id="length_check"></textarea>
+                            <textarea id="{{question.id}}" class="noscrollbars " rows="2" cols="4" style="border-radius: 10px;" name ="{{question.id}}" minlength="50" required placeholder=""  oninput="remove_error('{{question.id}}')"  onchange="remove_error('{{question.id}}')"></textarea>
                         {% elif question.question_state == 5 %}
-                        <!--    FILE_UPLOAD = 5-->
+                        <!--  FILE_UPLOAD = 5 -->
                             <label class="Roboto" style="font-size:13px;margin-left:7px;">{{question.data}}</label>
                             <div class="ui action input">
-                                <input type="file" formenctype="multipart/form-data">
+                                <input id="{{question.id}}" name ="{{question.id}}" type="file" formenctype="multipart/form-data" oninput="remove_error('{{question.id}}')"  onchange="remove_error('{{question.id}}')">
                                 <div class="ui icon button">
                                     <i class="attach icon"></i>
                                 </div>
@@ -383,9 +402,9 @@ height:35%;
                         <!--    DATE_TIME = 6-->
                             <label class="Roboto" style="font-size:13px;margin-left:7px;">{{question.data}}</label>
 
-                            <div class="ui calendar" id="calender_input">
+                            <div class="ui calendar" id="calendar_{{question.id}}">
                                 <div class="ui input right icon">
-                                    <input type="text" placeholder="dd/mm/yyyy" name ="{{question.id}}">
+                                    <input id="{{question.id}}" type="text" placeholder="dd/mm/yyyy" name ="{{question.id}}" oninput="remove_error('{{question.id}}')" onchange="remove_error('{{question.id}}')" onsubmit="remove_error('{{question.id}}')">
                                     <i class="calendar alternate outline icon"></i>
                                 </div>
                             </div>
@@ -393,15 +412,15 @@ height:35%;
                         {% elif question.question_state == 8 %}
                         <!--    PROFILE_LINK=8-->
                             <label class="Roboto" style="font-size:13px;margin-left:7px;">{{question.data}}</label>
-                            <textarea rows="2" cols="4" style="border-radius: 10px;" name ="{{question.id}}" minlength="50" required placeholder="" oninput="check(this)" ></textarea>
+                            <textarea id="{{question.id}}" class="noscrollbars" rows="2" cols="4" style="border-radius: 10px;" name ="{{question.id}}" minlength="50" required placeholder="" oninput="remove_error('{{question.id}}')" onchange="remove_error('{{question.id}}')"></textarea>
                         {% elif question.question_state == 9 %}
                         <!--    MOBILE_NO = 9-->
                             <label class="Roboto" style="font-size:13px;margin-left:7px;">{{question.data}}</label>
-                            <textarea rows="2" cols="4" style="border-radius: 10px;" name ="{{question.id}}" minlength="50" required placeholder="" oninput="check(this)"></textarea>
+                            <textarea id="{{question.id}}" class="noscrollbars"  rows="2" cols="4" style="border-radius: 10px;" name ="{{question.id}}" minlength="50" required placeholder="" oninput="remove_error('{{question.id}}')"  onchange="remove_error('{{question.id}}')"></textarea>
                         {% elif question.question_state == 10 %}
                         <!--    EMAIL_ID = 10-->
                             <label class="Roboto" style="font-size:13px;margin-left:7px;">{{question.data}}</label>
-                            <textarea rows="2" cols="4" style="border-radius: 10px;" name ="{{question.id}}" minlength="50" required placeholder="" oninput="check(this)"></textarea>
+                            <textarea id="{{question.id}}" class="noscrollbars" rows="2" cols="4" style="border-radius: 10px;" name ="{{question.id}}" minlength="50" required placeholder="" oninput="remove_error('{{question.id}}')"  onchange="remove_error('{{question.id}}')"></textarea>
                         {% endif %}
                     </div>
 
@@ -427,82 +446,294 @@ height:35%;
 
 <script>
 
-$('#calender_input').calendar({
-  type: 'date',
-  monthFirst: false,
-  formatter: {
-    date: function (date, settings) {
-      if (!date) return '';
-      var day = date.getDate();
-      var month = date.getMonth() + 1;
-      var year = date.getFullYear();
-      return day + '/' + month + '/' + year;
-    }
+function autoGrow (oField) {
+  if (oField.scrollHeight > oField.clientHeight) {
+    oField.style.height = oField.scrollHeight + "px";
   }
-});
+}
 
-       $('.ui.selection.dropdown.single_select').dropdown();
 
+
+{% for question in data %}
+    {% if question.question_state == 6 %}
+        $('#calendar_{{question.id}}').calendar({
+            type: '{{question.date_format}}',
+            monthFirst: false,
+            formatter: {
+                date: function (date, settings) {
+                    if (!date) return '';
+                    var day = date.getDate();
+                    var month = date.getMonth() + 1;
+                    var year = date.getFullYear();
+                    {% if question.date_format == 'year' %}
+                        return year;
+                    {% elif question.date_format == 'month' %}
+                        return month + '/' + year;
+                    {% else %}
+                        return day + '/' + month + '/' + year;
+                    {% endif %}
+                }
+            }
+        });
+    {% elif question.question_state == 1 %}
+        $('.ui.dropdown.single_select_{{question.id}}').dropdown({allowAdditions: true});
+
+    {% elif question.question_state == 2 %}
+
+        $('.ui.normal.dropdown.multi_select_{{question.id}}')
+          .dropdown({
+          allowAdditions: true,
+              {% if question.max_selections > 0 and question.max_selections != ''  %}
+                  maxSelections: {{question.max_selections}}
+              {% endif %}
+          })
+        ;
+
+    {% endif %}
+{% endfor %}
+
+
+$('#back_button').click(function(e){
+    window.history.back();
+})
+
+    $('#simple_button').click(function(e){
+
+        var values = $('#response_form').serialize();
+        var community_id='{{community.id}}'
+        url="/community/"+community_id+"?cta=join";
+
+        var files_exist = false;
+        var files_array = [];
+
+        var values_list = [];
         {% for question in data %}
-            $('.ui.dropdown.{{question.id}}')
-                  .dropdown({
-                    allowAdditions: true,
-                    maxSelections: '{{question.max_selections}}'
 
-                  })
-                ;
-            {% endfor %}
+            $("#div_{{question.id}}").removeClass("error");
+            remove_warning('#hidden_div_{{question.id}}');
 
-        function check(input) {
-           if (input.value.length < '50') {
+            {% if question.question_state == 3 or  question.question_state == 7 %}
+                values_dict = {'id':{{question.id}}};
+                var input=document.getElementById('{{question.id}}');
+                var value=input.value;
 
-                input.setCustomValidity('Please write your introduction in bit more detail');
-           }
-
-           else if(input.value.length >= '50')
-           {
-             input.setCustomValidity('');
-           }
+                {% if question.optional %}
+                    values_dict['value'] = value;
+                    values_list.push(values_dict)
+                {% else %}
+                    if (value.length < 50) {
+                        console.log("less than 50 characters");
+                          $("#div_{{question.id}}").addClass("error");
 
 
-         }
-
-         $('#back_button').click(function(e){
-
-        window.history.back();
-        })
-
-        $('#simple_button').click(function(e){
-
-                var values = $('#response_form').serialize();
-                var community_id='{{community.id}}'
-                url="/community/"+community_id+"?cta=join";
-
-                  var test=$('#length_check').val()
-                  if (typeof test != 'undefined' ) {
-                     if(test.length >= 50)
-                     {
-                        $('#simple_button').hide();
-                        $('#loading_button').show();
-                     }else{
-                        alert("Please write your Introduction in bit more detail")
+                        var tag_div_html = `
+                            <div class="ui negative message" id="hidden_div_{{question.id}}">
+                                <i class="close icon" onclick="remove_error('{{question.id}}')"></i>
+                                <div class="header">
+                                {% if question.question_state == 7 %}
+                                    Please write your introduction in bit more detail
+                                {% else %}
+                                    Please write your answer in bit more detail
+                                {% endif %}
+                                </div>
+                            </div>
+                            `
+                        $('#div_{{question.id}}').append(tag_div_html)
                         return;
-                     }
-                  }
-                   $.ajax({
-                        url:url,
-                        type:"POST",
-                        data:values,
-                        success:function(data){
-                            console.log(data)
-                            {% if community.hide_community == '5' %}
-                            location.href="/members_directory/"+'{{community.id}}'
-                            {% else %}
-                            location.href="/refer_members/"+'{{community.id}}'
-                            {% endif %}
-                        }
-                    })
-        })
+                    }
+                    else if(value.length >= 50){
+                        console.log("more than 50 characters");
+                        values_dict['value'] = value;
+                        values_list.push(values_dict)
+
+                    }
+                {% endif %}
+            {% elif question.question_state == 9 %}
+                values_dict = {'id':{{question.id}}};
+                value = $('#{{question.id}}').val();
+                {% if question.optional %}
+                        values_dict['value'] = value;
+                        values_list.push(values_dict)
+                {% else %}
+                    var numbers = /^[0-9]+$/;
+                    if(value.match(numbers)){
+                        values_dict['value'] = value;
+                        values_list.push(values_dict)
+
+                    } else{
+                        $("#div_{{question.id}}").addClass("error");
+
+                        var tag_div_html = `<div class="ui negative message" id="hidden_div_{{question.id}}">
+                                                <i class="close icon" onclick="remove_error('{{question.id}}')"></i>
+                                                <div class="header">
+                                                    Please enter only numbers
+                                                </div>
+                                            </div>`
+                        $('#div_{{question.id}}').append(tag_div_html)
+                        return;
+                    }
+                {% endif %}
+
+            {% elif question.question_state == 10 %}
+                values_dict = {'id':{{question.id}}};
+                value = $('#{{question.id}}').val();
+                {% if question.optional %}
+                    values_dict['value'] = value;
+                    values_list.push(values_dict)
+                {% else %}
+                    var mailformat = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
+                    if(value.match(mailformat)){
+                        values_dict['value'] = value;
+                        values_list.push(values_dict)
+
+                    } else{
+                        $("#div_{{question.id}}").addClass("error");
+
+                        var tag_div_html = `<div class="ui negative message" id="hidden_div_{{question.id}}">
+                                                <i class="close icon" onclick="remove_error('{{question.id}}')"></i>
+                                                <div class="header">
+                                                    Please enter valid email
+                                                </div>
+                                            </div>`
+                        $('#div_{{question.id}}').append(tag_div_html)
+                        return;
+                    }
+                {% endif %}
+
+            {% elif question.question_state != 5 %}
+
+                value = $('#{{question.id}}').val();
+                values_dict = {'id':{{question.id}}};
+                if (value == ''){
+                    {% if question.optional %}
+                        values_dict['value'] = value;
+                        values_list.push(values_dict)
+                    {% else %}
+                        $("#div_{{question.id}}").addClass("error");
+
+                        var tag_div_html = `
+                            <div class="ui negative message" id="hidden_div_{{question.id}}">
+                                <i class="close icon" onclick="remove_error('{{question.id}}')"></i>
+                                <div class="header">
+                                {% if question.question_state == 0 %}
+                                    Please fill this feild
+                                {% elif question.question_state == 1 %}
+                                    Please select an option
+                                {% elif question.question_state == 2 %}
+                                    Please select atleast one option
+                                {% elif question.question_state == 4 %}
+                                    Please fill this answer
+                                {% elif question.question_state == 5 %}
+                                    Please upload a file
+                                {% elif question.question_state == 6 %}
+                                    Please select a {{question.date_format}}
+                                {% elif question.question_state == 7 %}
+                                    Please write your introduction in bit more detail
+                                {% elif question.question_state == 8 %}
+                                    Please fill this field
+                                {% else %}
+                                    Please write your answer in bit more detail
+                                {% endif %}
+                                </div>
+                            </div>
+                            `
+                        $('#div_{{question.id}}').append(tag_div_html)
+                        return;
+
+                    {% endif %}
+                }else{
+                    values_dict['value'] = value;
+                    values_list.push(values_dict)
+                }
+            {% elif question.question_state == 5 %}
+
+                if ($('#{{question.id}}')[0].files.length === 0){
+                    {% if question.optional %}
+                        file =$('#{{question.id}}').prop('files')[0];
+                    {% else %}
+                        $("#div_{{question.id}}").addClass("error");
+
+                        var tag_div_html = `
+                            <div class="ui negative message" id="hidden_div_{{question.id}}">
+                                <i class="close icon" onclick="remove_error('{{question.id}}')"></i>
+                                <div class="header">
+                                    Please upload a file
+                                </div>
+                            </div>
+                            `
+                        $('#div_{{question.id}}').append(tag_div_html)
+                        return;
+                    {% endif %}
+                }else if($('#{{question.id}}')[0].files.length > 0) {
+                    file =$('#{{question.id}}').prop('files')[0];
+
+                    files_exist = true;
+                    file_dict = {'id':{{question.id}},'value': file};
+                    files_array.push(file_dict)
+
+                }
+
+            {% endif %}
+
+        {% endfor %}
+
+        function csrfSafeMethod(method) {
+        // these HTTP methods do not require CSRF protection
+            return (/^(GET|HEAD|OPTIONS|TRACE)$/.test(method));
+        }
+
+        $.ajaxSetup({
+            beforeSend: function(xhr, settings) {
+                xhr.setRequestHeader("X-CSRFToken", '{{csrf_token}}');
+            }
+        });
+
+        // uploading files
+        if(files_exist){
+            files_array.forEach((element) => {
+                console.log(element)
+                console.log(element.id)
+                console.log(element.value)
+                var file_data = new FormData();
+                file_data.append("file", element.value);
+                $.ajax({
+                    url:"/utils/upload_question_file/"+ community_id +"/" + element.id,
+                    type:"POST",
+                    async: false,
+                    data:file_data,
+                    processData:false,
+                    contentType: false,
+                    cache: false,
+                    success:function(data){
+                        console.log("image_url : ");
+                        var image_url = data.image_url;
+                        console.log(image_url);
+                        file_dict = {'id':element.id,'value': ''+image_url};
+                        values_list.push(file_dict);
+
+                    }
+                });
+            })
+        }
+        console.log(values_list);
+        console.log(JSON.stringify(values_list));
+
+        $.ajax({
+            url:url,
+            type:"POST",
+            data:JSON.stringify(values_list),
+            dataType:'json',
+            success:function(data){
+                console.log(data)
+                {% if community.hide_community == '5' %}
+                    location.href="/community/"+'{{community.id}}?profile='+{{request.user.id}};
+                {% else %}
+                    location.href="/refer_members/"+'{{community.id}}';
+                {% endif %}
+            }
+        });
+
+    })
 
 </script>
 
