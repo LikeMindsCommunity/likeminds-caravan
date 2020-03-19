@@ -678,7 +678,6 @@ def members_directory(request, community_id):
         'filter_list': filters,
         'is_member':is_member
     }
-    print(context)
     return render(request, 'members.html', context)
 
 
@@ -709,6 +708,7 @@ def member_profile(request):
     member_name=""
 
     user_instance=User.objects.filter(id=member_id)
+    image_link=""
     if user_instance.exists():
         member_name = user_instance[0].userinfo.name
         image_link = user_instance[0].userinfo.image_link
@@ -716,49 +716,20 @@ def member_profile(request):
     answer_list = get_member_profile(community_id,member_id)
 
     json_response = {'answer_list':answer_list,'member_name':member_name,'image_link':image_link}
-    print(json_response)
     return JsonResponse(json_response)
 
 
-def check(request):
+def update_email(request):
 
-  context = {
+    '''function to update email'''
 
-  'members': [{
-    'id': 75,
-    'name': "Mahesh Royal's",
-    'image_link': 'https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fuser%2F457?alt=media\n',
-    'answer': 'I just want check check checke'
-  }, {
-    'id': 36,
-    'name': 'Nipun Goyal',
-    'image_link': 'https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Fuser%2F36%2Fimg_user_36?alt=media',
-    'answer': 'my name my name my name my nam'
-  }],
-  'members_length': 2,
-  'community_name': 'Testing',
-  'community_id': 2755,
-  'filter_list': [{
-    'question_id': 2680,
-    'question_title': 'CHOICE_MULTIPLE',
-    'values': ['hello', 'hi'],
-    'selected': False
-  }, {
-    'question_id': 2679,
-    'question_title': 'CHOICE_SINGLE',
-    'values': ['hello'],
-    'selected': False
-  }],
-  'is_member': True
-}
-  return  render(request, 'test.html', context)
+    email = request.POST.get('email',None)
+    if request.user.is_authenticated:
+        if email:
+            Userinfo.objects.filter(user_id=request.user).update(secondary_email=email)
 
-
-def check1(request):
-
-    json_response={'answer_list': [{'answer': 'ram@gmail. com', 'rank': 1}, {'answer': '9917147714', 'rank': 2}, {'answer': 'http://localhost:8000/community/2755?cta=join#_=_', 'rank': 3}, {'answer': 'I just want check check checke aoda dsad sf  fs af sfafkasfn famsf a', 'rank': 4}, {'answer': 'TEXT: Testing the local', 'rank': 5}, {'answer': 'CHOICE_SINGLE: hello', 'rank': 5}, {'answer': 'CHOICE_MULTIPLE: hi, hello', 'rank': 5}, {'answer': 'DATE_TIME: 19/3/2020', 'rank': 5}], 'member_name': "Mahesh Royal's", 'image_link': 'https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fuser%2F457?alt=media\n'}
-    return JsonResponse(json_response)
-
+        return JsonResponse({'success':True})
+    return JsonResponse({'success':False})
 
 
 def get_member_profile(community_id,member_id):
