@@ -664,6 +664,7 @@ def members_directory(request, community_id):
         'filter_list': filters,
         'is_member':is_member
     }
+    print(context)
     return render(request, 'members.html', context)
 
 
@@ -703,6 +704,41 @@ def member_profile(request):
     json_response = {'answer_list':answer_list,'member_name':member_name,'image_link':image_link}
     print(json_response)
     return JsonResponse(json_response)
+
+
+def check(request):
+
+  context = {
+
+  'members': [{
+    'id': 75,
+    'name': "Mahesh Royal's",
+    'image_link': 'https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fuser%2F457?alt=media\n',
+    'answer': 'I just want check check checke'
+  }, {
+    'id': 36,
+    'name': 'Nipun Goyal',
+    'image_link': 'https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Fuser%2F36%2Fimg_user_36?alt=media',
+    'answer': 'my name my name my name my nam'
+  }],
+  'members_length': 2,
+  'community_name': 'Testing',
+  'community_id': 2755,
+  'filter_list': [{
+    'question_id': 2680,
+    'question_title': 'CHOICE_MULTIPLE',
+    'values': ['hello', 'hi'],
+    'selected': False
+  }, {
+    'question_id': 2679,
+    'question_title': 'CHOICE_SINGLE',
+    'values': ['hello'],
+    'selected': False
+  }],
+  'is_member': True
+}
+  return  render(request, 'test.html', context)
+
 
 def get_member_profile(community_id,member_id):
 

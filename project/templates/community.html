@@ -66,11 +66,47 @@
 
         <link href="https://fonts.googleapis.com/css?family=Roboto:400,500,500i,700&display=swap" rel="stylesheet">
 
-<!-- adding the external css files -->
+    <style>
+
+
+.image_container_login::after{
+                content: '';
+                position: absolute ;
+                top: 2% ;
+                background-image: url('/media/main_website/like_minds_speaker.png');
+                background-size: cover !important;
+                background-repeat: no-repeat ;
+                transform: translate(-50%, -50%) ;
+                border-top: inherit ;
+                border-top-color: transparent !important;
+                border-radius:50% ;width:95px !important;height:95px !important;display: inline-block !important;left:50% !important;
+                opacity:5;
+            }
+
+
+    .blur_answer{
+
+     filter:blur(3px);
+
+    }
+
+.image_container_verified::after{
+                content: '';
+                position: absolute ;
+                top: 2% ;
+                background-image: url('/media/main_website/like_minds_speaker.png');
+                background-size: cover !important;
+                background-repeat: no-repeat ;
+                transform: translate(-50%, -50%) ;
+                border-top: inherit ;
+                border-top-color: transparent !important;
+                border-radius:50% ;width:95px !important;height:95px !important;display: inline-block !important;left:50% !important;
+                opacity:5;
+            }
 
 
 
-<!---->
+    </style>
 
     </head>
 
@@ -151,120 +187,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
 
 
-        <div class="ui modal test">
 
-            <div class="ui fluid card " style="margin:0 0 ; padding: 10px 10px;">
-                <h2 class="ui teal center aligned header">
-                        <img src="https://beta.collabmates.com/media/media/ic_launcher_round.png" style="float:left;width:35px;"/>
-
-
-                    <div class="content" style="color:#008577">
-                        Login to continue
-                    </div>
-                </h2>
-                <div class="content">
-                    <p class="center aligned">
-                        To join this community we need few basic information about you. This will help us to have
-                        relevant member in group.
-                    </p>
-                </div>
-                <div class="center aligned container">
-                    <div class="content">
-
-                        {% if ref_id != '' %}
-                        <a href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join_{{ref_id}}">
-                        <button class="ui facebook button" style="width:130px;">
-                        {% elif cta == 'share' %}
-                        <a href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join">
-                            <button class="ui facebook button" style="width:130px;">
-                        {% elif cta != '' %}
-                        <a href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta={{cta}}">
-                            <button class="ui facebook button" style="width:130px;">
-                                {% else %}
-                                <a href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join">
-                                    <button class="ui facebook button" style="width:200px;">
-                                        {% endif %}
-                                        <i class="fa fa-facebook" ></i>&nbsp;&nbsp;&nbsp;&nbsp;
-                                        Login with Facebook
-                                    </button>
-                                </a>
-                                <br>
-                                <br>
-                                OR
-                                <br>
-                                <br>
-                                <div class="content">
-
-                                    {% if ref_id != '' %}
-                                    <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join_{{ref_id}}">
-                                        <button class="ui linkedin button" style="width:130px;">
-                                    {% elif cta == 'share' %}
-                                    <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join">
-                                        <button class="ui linkedin button" style="width:130px;">
-                                    {% elif cta != '' %}
-                                    <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta={{cta}}">
-                                        <button class="ui linkedin button" style="width:130px;">
-                                    {% else %}
-                                        <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join">
-                                        <button class="ui linkedin button" style="width:200px;">
-                                    {% endif %}
-                                    <i class="fa fa-linkedin"></i>&nbsp;&nbsp;&nbsp;&nbsp;
-                                    Login with LinkedIn
-                                    </button>
-                                    </a></button>
-                                    </a>
-                                </div>
-                            </button>
-                        </a>
-                    </div>
-                    <br>
-
-<!-- accept invitation model -->
-                    <div class="ui modal accept" id="accept">
-
-                        <div class="ui fluid card " style="border: 2px solid #1ebea5; margin:0 0 ; padding: 10px 10px;">
-                            <h2 class="ui teal center aligned header">
-                                <div class="content">
-                                    Respond to Invitation
-                                </div>
-                            </h2>
-                            <div class="content">
-                                <p class="center aligned">
-                                    Send Response
-                                </p>
-                            </div>
-                            <div class="center aligned container">
-                                <div class="content">
-                                    <a href="../accept_admin/{{community.id}}?cta=accept_invitation&value=true">
-                                        <button class="ui button" style="width:130px; color:green;">
-
-                                            Accept
-                                        </button>
-                                    </a>
-                                    <br>
-                                    <br>
-
-                                    <br>
-                                    <br>
-                                    <div class="content">
-                                        <a href="../accept_admin/{{community.id}}?cta=accept_invitation&value=false">
-                                            <button class="ui button" style="width:130px; color:green;">
-
-                                                Decline
-                                            </button>
-                                        </a>
-                                    </div>
-                                </div>
-                                <br>
-
-                            </div>
-                        </div>
-                    </div>
-
-
-                </div>
-            </div>
-        </div>
 
 
 
@@ -490,9 +413,13 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                                     <img class="ui tiny circular centered image" src="{{i.image_link}}" style="border-radius:50%;width:80px;height:80px;"/>
                                 </div>
                                 <div style="padding-left:10%;padding-top:10px;padding-bottom:10px;">
-                                    <p class="RobotoMedium" style="color:black;line-height:20px;font-size:17px;">{{i.name}}</p>
-                                    <p style="line-height:17px;font-size:13px;color:#9b9b9b" class="Roboto">{{i.answer}}</p>
+                                    <button class="RobotoMedium member_link" style="color:black;line-height:20px;font-size:17px;" value="{{i.id}}">{{i.name}}</button>
+                                    {% if not is_member %}
+                                    <p style="line-height:17px;font-size:13px;color:#9b9b9b" class="Roboto blur_answer">{{i.answer}}</p>
+                                    {% else %}
+                                  <p style="line-height:17px;font-size:13px;color:#9b9b9b" class="Roboto">{{i.answer}}</p>
 
+                                    {% endif %}
                                 </div>
 
 
@@ -612,30 +539,451 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         </div>
 
 
-<!-- download the app pop-up -->
-    <div class="ui modal" id="download_app_popup">
-        <div class="header">
-            Download the app
-        </div>
-        <div class="image content">
 
-            <div class="description">
-                <div class="ui  form">
-                  <div class="field">
-                    In order to view the conversations of this community, please download the app
-                  </div>
+
+
+
+
+<!-- models to display on clicks -->
+
+    <!-- download the app pop-up -->
+        <div class="ui modal" id="download_app_popup">
+            <div class="header">
+                Download the app
+            </div>
+            <div class="image content">
+
+                <div class="description">
+                    <div class="ui  form">
+                      <div class="field">
+                        In order to view the conversations of this community, please download the app
+                      </div>
+                    </div>
+                </div>
+            </div>
+            <div class="actions">
+                <div class="ui positive right labeled icon button" style="background-color:#00897b;" id="Download" onclick="window.location.href = '{{android_app_link}}';">
+                    Download
+                    <i class="arrow alternate circle down icon"></i>
+
                 </div>
             </div>
         </div>
-        <div class="actions">
-            <div class="ui positive right labeled icon button" style="background-color:#00897b;" id="Download" onclick="window.location.href = '{{android_app_link}}';">
-                Download
-                <i class="arrow alternate circle down icon"></i>
+    <!-- -->
 
+
+    <!-- login model for non exclusive communities -->
+     <div class="ui modal test">
+
+                <div class="ui fluid card " style="margin:0 0 ; padding: 10px 10px;">
+                    <h2 class="ui teal center aligned header">
+                            <img src="https://beta.collabmates.com/media/media/ic_launcher_round.png" style="float:left;width:35px;"/>
+
+
+                        <div class="content" style="color:#008577">
+                            Login to continue
+                        </div>
+                    </h2>
+                    <div class="content">
+                        <p class="center aligned">
+                            To join this community we need few basic information about you. This will help us to have
+                            relevant member in group.
+                        </p>
+                    </div>
+                    <div class="center aligned container">
+                        <div class="content">
+
+                            {% if ref_id != '' %}
+                            <a href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join_{{ref_id}}">
+                            <button class="ui facebook button" style="width:130px;">
+                            {% elif cta == 'share' %}
+                            <a href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join">
+                                <button class="ui facebook button" style="width:130px;">
+                            {% elif cta != '' %}
+                            <a href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta={{cta}}">
+                                <button class="ui facebook button" style="width:130px;">
+                                    {% else %}
+                                    <a href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join">
+                                        <button class="ui facebook button" style="width:200px;">
+                                            {% endif %}
+                                            <i class="fa fa-facebook" ></i>&nbsp;&nbsp;&nbsp;&nbsp;
+                                            Login with Facebook
+                                        </button>
+                                    </a>
+                                    <br>
+                                    <br>
+                                    OR
+                                    <br>
+                                    <br>
+                                    <div class="content">
+
+                                        {% if ref_id != '' %}
+                                        <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join_{{ref_id}}">
+                                            <button class="ui linkedin button" style="width:130px;">
+                                        {% elif cta == 'share' %}
+                                        <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join">
+                                            <button class="ui linkedin button" style="width:130px;">
+                                        {% elif cta != '' %}
+                                        <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta={{cta}}">
+                                            <button class="ui linkedin button" style="width:130px;">
+                                        {% else %}
+                                            <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join">
+                                            <button class="ui linkedin button" style="width:200px;">
+                                        {% endif %}
+                                        <i class="fa fa-linkedin"></i>&nbsp;&nbsp;&nbsp;&nbsp;
+                                        Login with LinkedIn
+                                        </button>
+                                        </a></button>
+                                        </a>
+                                    </div>
+                                </button>
+                            </a>
+                        </div>
+                        <br>
+
+    <!-- accept invitation model -->
+                        <div class="ui modal accept" id="accept">
+
+                            <div class="ui fluid card " style="border: 2px solid #1ebea5; margin:0 0 ; padding: 10px 10px;">
+                                <h2 class="ui teal center aligned header">
+                                    <div class="content">
+                                        Respond to Invitation
+                                    </div>
+                                </h2>
+                                <div class="content">
+                                    <p class="center aligned">
+                                        Send Response
+                                    </p>
+                                </div>
+                                <div class="center aligned container">
+                                    <div class="content">
+                                        <a href="../accept_admin/{{community.id}}?cta=accept_invitation&value=true">
+                                            <button class="ui button" style="width:130px; color:green;">
+
+                                                Accept
+                                            </button>
+                                        </a>
+                                        <br>
+                                        <br>
+
+                                        <br>
+                                        <br>
+                                        <div class="content">
+                                            <a href="../accept_admin/{{community.id}}?cta=accept_invitation&value=false">
+                                                <button class="ui button" style="width:130px; color:green;">
+
+                                                    Decline
+                                                </button>
+                                            </a>
+                                        </div>
+                                    </div>
+                                    <br>
+
+                                </div>
+                            </div>
+                        </div>
+
+
+                    </div>
+                </div>
             </div>
-        </div>
+    <!-- -->
+
+
+    <!-- login model for exclusive communities -->
+
+    <div class="ui modal image_container_login" id="whatsapp_login" style="width:80%;">
+
+<!--             <img src="/media/main_website/profile_header.png" style="width:100%;height:70%;">-->
+        <br/><br/><br/><br/><br/>
+
+      <div class="profile_name">
+          <p align="center" style="font-family:Roboto;sans-serif;font-weight:500;color:black;font-size:17px;line-height:22px;">Login to continue</p>
+
+      </div>
+
+       <div style="margin-top:5%;margin-left:16px;margin-right:16px;text-align:center;font-size:15px;line-height:22px;font-family:Roboto;sans-serif;font-weight:400;color:#8a000000;">
+           <p>This is an exclusive community. To view member details please login/signup and join the community.</p>
+       </div>
+       <div style="margin-top:5%;margin-left:16px;margin-right:16px;text-align:center;font-size:15px;line-height:22px;font-family:Roboto;sans-serif;font-weight:400;color:#8a000000;">
+
+            <div class="center aligned container">
+                 <div class="content">
+
+                                        {% if ref_id != '' %}
+                                        <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join_{{ref_id}}">
+                                            <button class="ui linkedin button" style="width:130px;z-index:2;border-radius:20px;">
+                                        {% elif cta == 'share' %}
+                                        <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join">
+                                            <button class="ui linkedin button" style="width:130px;z-index:2;border-radius:20px;">
+                                        {% elif cta != '' %}
+                                        <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta={{cta}}">
+                                            <button class="ui linkedin button" style="width:130px;z-index:2;border-radius:20px;">
+                                        {% else %}
+                                            <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join">
+                                            <button class="ui linkedin button" style="width:200px;z-index:2;border-radius:20px;">
+                                        {% endif %}
+                                        <i class="fa fa-linkedin"></i>&nbsp;&nbsp;&nbsp;&nbsp;
+                                        Login with LinkedIn
+                                        </button>
+                                            </a>
+
+
+                 </div>
+            <br/>
+                        <div class="content">
+
+                            {% if ref_id != '' %}
+                            <a href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join_{{ref_id}}">
+                            <button class="ui facebook button" style="width:130px;z-index:2;border-radius:20px;">
+                            {% elif cta == 'share' %}
+                            <a href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join">
+                                <button class="ui facebook button" style="width:130px;z-index:2;border-radius:20px;">
+                            {% elif cta != '' %}
+                            <a href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta={{cta}}">
+                                <button class="ui facebook button" style="width:130px;z-index:2;border-radius:20px;">
+                                    {% else %}
+                                    <a href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join">
+                                        <button class="ui facebook button" style="width:200px;z-index:2;border-radius:20px;">
+                                            {% endif %}
+                                            <i class="fa fa-facebook" ></i>&nbsp;&nbsp;&nbsp;&nbsp;
+                                            Login with Facebook
+                                        </button>
+                                    </a>
+                                </button>
+                            </a>
+                                </button></a></button>
+                            </a>
+                        </div>
+
+                        <br>
+
+    <!-- accept invitation model -->
+                        <div class="ui modal accept" id="accept">
+
+                            <div class="ui fluid card " style="border: 2px solid #1ebea5; margin:0 0 ; padding: 10px 10px;">
+                                <h2 class="ui teal center aligned header">
+                                    <div class="content">
+                                        Respond to Invitation
+                                    </div>
+                                </h2>
+                                <div class="content">
+                                    <p class="center aligned">
+                                        Send Response
+                                    </p>
+                                </div>
+                                <div class="center aligned container">
+                                    <div class="content">
+                                        <a href="../accept_admin/{{community.id}}?cta=accept_invitation&value=true">
+                                            <button class="ui button" style="width:130px; color:green;">
+
+                                                Accept
+                                            </button>
+                                        </a>
+                                        <br>
+                                        <br>
+
+                                        <br>
+                                        <br>
+                                        <div class="content">
+                                            <a href="../accept_admin/{{community.id}}?cta=accept_invitation&value=false">
+                                                <button class="ui button" style="width:130px; color:green;">
+
+                                                    Decline
+                                                </button>
+                                            </a>
+                                        </div>
+                                    </div>
+                                    <br>
+
+                                </div>
+                            </div>
+                        </div>
+
+
+                    </div>
+       </div>
+
+
+    <br/>
+   </div>
+    <!-- -->
+
+
+
+    <!-- pop-up to show member profile -->
+<!-- style="overflow:scroll;height:80%;width:80%; -->
+        <div class="ui modal image_container_profile" id="member_profile" style="width:90%;">
+<br/>
+
+            <div class="profile_name">
+                    <p align="center" style="font-family:Roboto;sans-serif;font-weight:500;color:black;font-size:17px;line-height:22px;color:#075e54;">Awesome !<br/>
+Your community profile is created.!</p>
+             </div>
+<br/>
+
+      <div class="profile_name" style="margin-top:5%">
+          <img class="ui tiny circular centered image" src="{{request.user.userinfo.image_link}}">
+
+      </div>
+
+<br/>
+            <div style="margin-top:5%;margin-left:16px;margin-right:16px;text-align:center;">
+               <p style="font-family:Roboto;sans-serif;font-weight:500;color:black;font-size:17px;">{{request.user.userinfo.name}}</p>
+           </div>
+
+
+
+       {% for profile in profile_list %}
+
+            {% if profile.rank == 1 %}
+
+               <div style="margin-top:5%;margin-left:16px;margin-right:16px;">
+                            <p class="Roboto" style="line-height:20px;font-size:13px;color:#9b9b9b"><img src="/media/main_website/ic_email_48_px.png" height=16px;width=14px;/>&nbsp;&nbsp;{{profile.answer}}</p>
+
+               </div>
+
+
+            {% elif profile.rank == 2 %}
+
+
+               <div style="margin-top:3%;margin-left:16px;margin-right:16px;">
+                            <p class="Roboto" style="line-height:20px;font-size:13px;color:#9b9b9b">
+                                <img src="/media/main_website/mobile_alt.png" height=20px;width=16px;/>&nbsp;&nbsp;{{profile.answer}}
+                            </p>
+
+               </div>
+
+            {% elif profile.rank == 3 %}
+               <div style="margin-top:3%;margin-left:16px;margin-right:16px;">
+                            <a class="Roboto" style="line-height:20px;font-size:13px;color:#00897b" href=${value['answer']}>
+                                <img src="/media/main_website/link.png" height=20px;width=16px;/>&nbsp;&nbsp;{{profile.answer}}
+                            </a>
+
+               </div>
+            <br/>
+
+
+
+            {% elif profile.rank == 4 %}
+
+
+               <div style="margin-top:5%;margin-left:16px;margin-right:16px;padding-bottom:5%;">
+                            <p class="Roboto" style="font-size:15px;line-height:24px;color:#4a4a4a">
+                                {{profile.answer}}
+
+                            </p>
+               </div>
+
+
+
+            {% else %}
+               <div style="margin-top:3%;margin-left:16px;margin-right:16px;">
+                            <p class="Roboto" style="font-size:15px;line-height:20px;color:#9b9b9b">{{profile.answer}}</p>
+
+               </div>
+            {% endif %}
+
+       {% endfor %}
+            <br/>
+
+             <div style="margin-top:3%;margin-left:16px;margin-right:16px;text-align:center">
+                            <p class="Roboto" style="font-size:13px;font-weight:500;color:black;letter-spacing:0.46px;opacity:40%" id="dismiss">DISMISS</p>
+
+               </div>
+            <br/>
+
+   </div>
+    <!-- -->
+
+
+    <!-- unverified member profile pop-up-->
+    <div class="ui modal" id="unverified_member" style="width:75%;">
+
+<!--             <img src="/media/main_website/profile_header.png" style="width:100%;height:70%;">-->
+
+
+      <div class="profile_name" style="margin-top:6%;margin-left:20px;">
+          <p align="left" style="font-family:Roboto;sans-serif;font-weight:500;color:black;font-size:17px;line-height:22px;opacity:87%;">Member profile not accessible</p>
+
+      </div>
+       <div style="margin-top:5%;margin-left:20px;margin-right:18px;text-align:left;">
+           <p style="font-size:15px;line-height:22px;font-family:Roboto;sans-serif;font-weight:400;color:#000000;opacity:54%;">Your account is pending for approval from the admin. Once the admin approves, you would be able to view the full communtity profile of the user.
+<br/><br/>
+               Once verified, we will send an email on: <span style="color:#007aff;">xyz@gmail.com.</span></p>
+       </div>
+       <br/>
+        <div style="margin-top:5%;margin-left:16px;margin-right:16px;text-align:center">
+
+           <p class="Roboto" style="font-size:13px;font-weight:500;color:#009688;letter-spacing:0.46px;opacity:100%" id="change_email">CHANGE EMAIL ID</p>
+
+       </div>
+       <div style="margin-top:5%;margin-left:16px;margin-right:16px;text-align:center">
+
+           <p class="Roboto" style="font-size:13px;font-weight:500;color:black;letter-spacing:0.46px;opacity:40%" id="dismiss_email">DISMISS</p>
+
+       </div>
+
+
+
+
+    <br/>
+   </div>
+    <!-- -->
+
+
+    <!-- verifief member profile pop-up -->
+
+    <!-- profile pop-up -->
+    <div class="ui modal image_container_verified" id="display" style="max-width:786px;">
+
     </div>
+
+    <!-- -->
+
+
+    <!-- change email address -->
+            <div class="ui modal" id="email_update" style="width:75%;">
+
+<!--             <img src="/media/main_website/profile_header.png" style="width:100%;height:70%;">-->
+
+
+      <div class="profile_name" style="margin-top:6%;margin-left:20px;">
+          <p align="left" style="font-family:Roboto;sans-serif;font-weight:500;color:black;font-size:17px;line-height:22px;opacity:87%;">Member profile not accessible</p>
+
+      </div>
+       <div style="margin-top:5%;margin-left:20px;margin-right:18px;text-align:left;">
+           <p style="font-size:15px;line-height:22px;font-family:Roboto;sans-serif;font-weight:400;color:#000000;opacity:54%;">Your account is pending for approval from the admin. Once the admin approves, you would be able to view the full communtity profile of the user.
+<br/><br/>
+               Once verified, we will send an email on: <span style="color:#007aff;">xyz@gmail.com.</span></p>
+       </div>
+       <br/>
+        <div style="margin-top:5%;margin-left:16px;margin-right:16px;text-align:center">
+
+           <p class="Roboto" style="font-size:13px;font-weight:500;color:#009688;letter-spacing:0.46px;opacity:100%" id="update_email">CHANGE EMAIL ID</p>
+
+       </div>
+       <div style="margin-top:5%;margin-left:16px;margin-right:16px;text-align:center">
+
+           <p class="Roboto" style="font-size:13px;font-weight:500;color:black;letter-spacing:0.46px;opacity:40%" id="dismiss_email">DISMISS</p>
+
+       </div>
+
+
+
+
+    <br/>
+   </div>
+
+    <!-- -->
+
+
+
+    <!-- -->
+
 <!-- -->
+
+
 
 
 
@@ -666,9 +1014,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                            window.open("/"+"community/"+community_id+"?cta=join",'_self');
                         {% endif %}
                     {% else %}
-                    $('.test')
-                    .modal('show')
-                  ;
+                          model_show();
                     {% endif %}
                 }
 
@@ -698,32 +1044,35 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                     {% if user.is_authenticated %}
 
                      window.location.href ="../refer_members/"+{{community.id}}+"?ref_id="+ref_id;
+
                     {% else %}
-                    $('.test')
-                    .modal('show')
-                  ;
+
+                      model_show()
+
                     {% endif %}
 
                 }
 
 
 
+function model_show(){
 
-    $(function(){
-      $("#test").click(function(){
-        $(".test").modal('show');
-      });
-      $(".test").modal({
-        closable: true
-      });
-    });
-       function hide(){
-    $('.ui.modal').modal("hide");
-  }
+//function to show the model
+
+  {% if community_state != 5 %}
+        $('.test').modal('show');
+  {% else %}
+        $('#whatsapp_login').modal('show');
+  {% endif %}
+
+}
+
 
   //jquery
 
 $(document).ready(function() {
+
+
 
        for(var i=0;i<={{similar_community_length}};i++)
        {
@@ -888,6 +1237,172 @@ $('#filter_icon').click(function(e){
 
 })
 
+
+
+
+//member profile pop-up
+{% if profile_list %}
+    $('#member_profile').modal('show');
+    $(".dimmer").css("background-color","rgba(40,40,40,0.5)");
+{% endif %}
+
+
+//dismiss pop-up
+
+$('#dismiss').click(function(){
+
+ $('#member_profile').modal('hide');
+
+})
+
+
+
+//dismiss email popup
+$('#dismiss_email').click(function(){
+
+ $('#unverified_member').modal('hide');
+
+})
+
+
+$('.member_link').click(function(){
+
+member_id=$(this).val()
+
+//unverified member pop-up
+
+{% if not is_member %}
+
+    $('#unverified_member').modal('show');
+    console.log("test")
+
+{% else %}
+    showMemberProfile(member_id);
+{% endif %}
+
+
+
+})
+
+
+
+function showMemberProfile(member_id){
+
+
+community_id={{community.id}}
+
+ json_data={
+    'data':member_id,
+    'community_id':community_id,
+    'csrfmiddlewaretoken':'{{csrf_token}}',
+    }
+console.log(json_data)
+
+  $.ajax({
+
+            url:"/member_profile",
+            data:json_data,
+            type:"POST",
+            dataType:'json',
+            success:function(data){
+
+            console.log(data['answer_list'])
+
+            html=`
+
+             <img src="/media/main_website/profile_header.png" style="width:100%;height:70%;">
+
+
+      <div class="profile_name">
+          <p align="center" style="font-family:Roboto;sans-serif;font-weight:600px;color:black;font-size:17px;">
+          ${data['member_name']}</p>
+
+      </div>
+
+      `
+       $.each(data['answer_list'],function(index,value){
+
+               segment=""
+               if(value['rank'] == 1){
+               segment = `
+               <div style="margin-top:5%;margin-left:16px;margin-right:16px;">
+                            <p class="Roboto" style="line-height:20px;font-size:13px;color:#9b9b9b"><img src="/media/main_website/ic_email_48_px.png" height=16px;width=14px;/>&nbsp;&nbsp;${value['answer']}</p>
+
+                     </div>
+                    `
+               html = html + segment
+               }else if(value['rank'] == 2){
+
+               segment = `
+               <div style="margin-top:3%;margin-left:16px;margin-right:16px;">
+                            <p class="Roboto" style="line-height:20px;font-size:13px;color:#9b9b9b">
+                                <img src="/media/main_website/mobile_alt.png" height=20px;width=16px;/>&nbsp;&nbsp;${value['answer']}
+                            </p>
+
+                     </div>
+                    `
+               html = html + segment
+
+
+               }else if(value['rank'] == 3){
+
+                segment = `
+               <div style="margin-top:3%;margin-left:16px;margin-right:16px;">
+                            <a class="Roboto" style="line-height:20px;font-size:13px;color:#00897b" href=${value['answer']}>
+                                <img src="/media/main_website/link.png" height=20px;width=16px;/>&nbsp;&nbsp;${value['answer']}
+                            </a>
+
+                     </div>
+                     <br/>
+                    `
+               html = html + segment
+
+
+               }else if(value['rank'] == 4){
+
+               segment = `
+               <div style="margin-top:5%;margin-left:16px;margin-right:16px;padding-bottom:5%;">
+                            <p class="Roboto" style="font-size:15px;line-height:24px;color:#4a4a4a">
+                                ${value['answer']}
+
+                            </p>
+
+
+               </div>
+                    `
+               html = html + segment
+
+
+               }else{
+
+                segment = `
+               <div style="margin-top:3%;margin-left:16px;margin-right:16px;">
+                            <p class="Roboto" style="font-size:15px;line-height:20px;color:#9b9b9b">${value['answer']}</p>
+
+               </div>
+                    `
+               html = html + segment
+
+               }
+
+       })
+
+       html=html + "<br/>"
+
+            $('#display').html(html)
+            $('#display').modal('show');
+            $(".dimmer").css("background-color","rgba(40,40,40,0.5)");
+
+
+
+            }
+
+         })
+
+
+
+
+}
 
         </script>
 
