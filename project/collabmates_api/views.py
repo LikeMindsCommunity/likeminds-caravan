@@ -1018,7 +1018,10 @@ def join_whatsapp_community(res,request):
             answer_instance.save()
 
             if question_instance.question_state == question_states.CHOICE_SINGLE or question_instance.question_state == question_states.CHOICE_MULTIPLE:
-                selected_choices = question['value'].split("$#")
+                if "$#" in question['value']:
+                    selected_choices = question['value'].split("$#")
+                else:
+                    selected_choices = question['value'].split(",")
                 for choice in selected_choices:
                     filter_instance = questionFilters(question=question_instance, filter=choice.strip(),
                                                       member=user_instance, community=community_instance)

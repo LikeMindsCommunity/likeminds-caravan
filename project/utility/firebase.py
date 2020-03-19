@@ -9,6 +9,8 @@ import os
 from PIL import Image
 from io import BytesIO
 from togther.models import Community,Tags_lpig
+import json
+from django.http.response import JsonResponse
 
 if settings.IS_BETA:
     # beta firebase config
@@ -244,3 +246,40 @@ def upload_main_website_images_to_firebase(file):
 
 
 #upload_main_website_images_to_firebase("media/main_website/last.png")
+
+
+def upload_question_files(request=None, community_id=None, question_id=None, member_id=None, image=None, url=False):
+
+    '''function to put tags images in firebase'''
+    # / community / < community_id > / question / < question_id > / < member_id >
+    name="img_tag_"+str(question_id)
+    question_id = str(question_id)
+    community_id = str(community_id)
+    member_id = str(member_id)
+    if url:
+        image_url=image
+        if is_url_image_valid(image_url):
+            image_data = requests.get(image_url).content
+            storage.child("files").child("community").child(community_id).child("question").child(question_id).child(member_id).child(name).put(image_data)
+            image_url = storage.child("files").child("question").child(question_id).child(name).get_url(None)
+            return image_url
+        else:
+            print("Image url is broken for tag=", question_id)
+            return ''
+    elif image:
+        storage.child("files").child("question").child(question_id).child(name).put(image)
+        image_url = storage.child("files").child("question").child(question_id).child(name).get_url(None)
+        return image_url
+    elif request.method == 'POST':
+        files = request.FILES.getlist('file')
+        member_id = str(request.user.id)
+        name = "img_tag_" + str(question_id)
+        image_data = files[0]
+
+        storage.child("files").child("community").child(community_id).child("question").child(question_id).child(
+            member_id).child(name).put(image_data)
+        image_url = storage.child("files").child("community").child(community_id).child("question").child(question_id).child(
+            member_id).child(name).get_url(None)
+
+        return JsonResponse({"success": True, "image_url": image_url})
+
