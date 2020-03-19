@@ -227,6 +227,9 @@ def community(request, community_id):
     # --------- referal part ----------------------
 
     ref_id = request.GET.get('ref_id', '')
+    auto_join = request.GET.get('aj', False)
+    if auto_join and auto_join.lower() == 't':
+        auto_join = True
     cta = ''
     if 'cta' in res:
         cta = res['cta']
@@ -240,7 +243,7 @@ def community(request, community_id):
             member_state = member[0].state if member.exists() else 0
 
             questions, validation_error, user, data, community, filled_answers = join_community(request, community_id,
-                                                                                                ref_id)
+                                                                                                ref_id,auto_join=auto_join)
             if questions:
 
                 # data = itertools.zip_longest(data,filled_answers,fillvalue='')
@@ -859,7 +862,7 @@ def logout_view(request):
 
 
 @login_required
-def join_community(request, community_id, ref_id):
+def join_community(request, community_id, ref_id, auto_join=False):
     if request.user.is_authenticated:
         try:
             user = Userinfo.objects.get(user_id=request.user.id)
@@ -907,7 +910,7 @@ def join_community(request, community_id, ref_id):
 
             response_list.append(question_dict)
 
-        json_dict = {"community_id": community_id, "timestamp": time.time()}
+        json_dict = {"community_id": community_id, "timestamp": time.time(), 'auto_join':auto_join}
         json_dict['questions'] = response_list
         json_dict['user_id'] = request.user.id
 
