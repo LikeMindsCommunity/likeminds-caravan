@@ -230,6 +230,8 @@ def community(request, community_id):
     auto_join = request.GET.get('aj', False)
     if auto_join and auto_join.lower() == 't':
         auto_join = True
+        if not 'cta' in res:
+            res['cta'] = 'join'
     cta = ''
     if 'cta' in res:
         cta = res['cta']
