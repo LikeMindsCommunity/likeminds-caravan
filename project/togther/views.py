@@ -740,6 +740,13 @@ def check(request):
   return  render(request, 'test.html', context)
 
 
+def check1(request):
+
+    json_response={'answer_list': [{'answer': 'ram@gmail. com', 'rank': 1}, {'answer': '9917147714', 'rank': 2}, {'answer': 'http://localhost:8000/community/2755?cta=join#_=_', 'rank': 3}, {'answer': 'I just want check check checke aoda dsad sf  fs af sfafkasfn famsf a', 'rank': 4}, {'answer': 'TEXT: Testing the local', 'rank': 5}, {'answer': 'CHOICE_SINGLE: hello', 'rank': 5}, {'answer': 'CHOICE_MULTIPLE: hi, hello', 'rank': 5}, {'answer': 'DATE_TIME: 19/3/2020', 'rank': 5}], 'member_name': "Mahesh Royal's", 'image_link': 'https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fuser%2F457?alt=media\n'}
+    return JsonResponse(json_response)
+
+
+
 def get_member_profile(community_id,member_id):
 
     '''function to get member profile'''
