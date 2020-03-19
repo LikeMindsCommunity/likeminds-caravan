@@ -23,7 +23,7 @@ from utility.utils import (get_city_address, update_tag_image,
                            update_user_geography_tags, create_or_categorize_tag,
                            referal, insert_user_home_town_tags, user_onbaord,
                            is_request_android, is_request_ios,
-                           is_request_pc, android_app_download_link, is_IG_community, ios_app_download_link)
+                           is_request_pc, android_app_download_link, is_IG_community, ios_app_download_link,is_member_verified)
 from utility.firebase import upload_image_to_firebase
 from urllib.parse import urlencode, quote
 from collabmates_api.tasks import send_email
@@ -211,11 +211,14 @@ def get_user_communities(request):
 
 
 def community(request, community_id):
+
+    is_member = False
     if request.user.is_authenticated:
         try:
             user = Userinfo.objects.get(user_id=request.user.id)
         except:
             user = update_user_info(request)
+        is_member = is_member_verified(community_id,request.user)
 
     community = get_object_or_404(Community, pk=community_id)
 
@@ -227,6 +230,8 @@ def community(request, community_id):
     # --------- referal part ----------------------
 
     ref_id = request.GET.get('ref_id', '')
+
+    profile = request.GET.get('profile', None)                  #for showing the pop-up on display screen
     cta = ''
     if 'cta' in res:
         cta = res['cta']
@@ -234,6 +239,7 @@ def community(request, community_id):
         cta = cta_split[0]
         if len(cta_split) == 2:
             ref_id = cta_split[1]
+
         # -------------------- auto join functionality ---------------------------------
         if cta == 'join' and request.user.is_authenticated:
             member = Members.objects.filter(member_id=request.user, community_id=community)
@@ -253,6 +259,7 @@ def community(request, community_id):
                 return JsonResponse({'success': True})
         elif cta == 'share':
             cta = 'join'
+
 
     else:
         cta = ''
@@ -305,6 +312,7 @@ def community(request, community_id):
     # members, admin_details = get_members_of_community(request=request,community=community)
     # if user is not authenticated, give some communities as similar communities
     communities = Community.objects.filter(Q(hide_community='0') | Q(hide_community='4'))[:10]
+    profile_list=[]
 
     if request.user.is_authenticated:
         # calling similar communities api
@@ -316,6 +324,8 @@ def community(request, community_id):
             communities = json.loads(response.content.decode('utf-8'))['communities'][:10]
 
         user = Userinfo.objects.all().filter(user_id=request.user.id)
+        if profile:
+            profile_list = get_member_profile(community_id,request.user.id)
     else:
         user = []
 
@@ -347,6 +357,8 @@ def community(request, community_id):
 
     admin_details = get_admins_details(community)
     members = get_member_details(community)
+
+
     context = {'usr': user, 'similar_communities': communities,
                'community': community, 'admins': admin_details,
                'members': members, 'source': source,
@@ -361,11 +373,19 @@ def community(request, community_id):
                'share_url': share_url,
                'ios_app_download_link': ios_app_download_link,
                'about_1': about_1,
-               'about_2': about_2
+               'about_2': about_2,
+               'community_state':int(community.hide_community),
+               'profile_list': profile_list,
+               'is_member':is_member
 
                }
     # user_email = True
     return render(request, 'community.html', context)
+
+
+
+
+
 
 
 def refer_members(request, community_id):
@@ -587,71 +607,65 @@ def members_directory(request, community_id):
 
     '''function to see members directory'''
 
+    is_member = False
 
     if request.user.is_authenticated:
+        is_member=is_member_verified(community_id,request.user)
 
-        check_data=Members.objects.filter(community_id=community_id,member_id=request.user.id)
+    if request.method == 'POST':
 
-        if not check_data.exists() or check_data[0].state == member_states.PENDING_MEMBER or check_data[0].state == member_states.DECLINED_MEMBER:
-            return redirect('comunity',community_id=community_id)
+        option_data = request.POST.get('data')
+        option_data = json.loads(option_data)
+        question_id = request.POST.get('question_id')
 
-        if request.method == 'POST':
+        member_set = set()
+        member_string = ""
+        for option in option_data:
+            question_list = questionFilters.objects.filter(filter=option, question=question_id)
 
+            for member_instance in question_list:
+                if member_instance.member.id not in member_set:
+                    member_string = member_string + "$" + str(member_instance.member.id)
+                    member_set.add(member_instance.member.id)
 
-            option_data = request.POST.get('data')
-            option_data = json.loads(option_data)
-            question_id = request.POST.get('question_id')
+        return JsonResponse({'success': member_string, 'question_id': question_id})
 
-            member_set = set()
-            member_string=""
-            for option in option_data:
-                question_list = questionFilters.objects.filter(filter=option, question=question_id)
+    community_instance = Community.objects.get(pk=community_id)
+    filter_list = communityQuestions.objects.filter(community=community_instance).filter(
+        Q(question_state=question_states.CHOICE_SINGLE) | Q(question_state=question_states.CHOICE_MULTIPLE))
 
-                for member_instance in question_list:
-                    if member_instance.member.id not in member_set:
-                        member_string=member_string+"$"+str(member_instance.member.id)
-                        member_set.add(member_instance.member.id)
+    # for filter processing
+    member_string = request.GET.get('members', None)
+    filter_question_id = request.GET.get('filter', None)
+    filters = []
 
-            return JsonResponse({'success':member_string,'question_id':question_id})
-
-
-        community_instance = Community.objects.get(pk=community_id)
-        filter_list = communityQuestions.objects.filter(community=community_instance).filter(
-            Q(question_state=question_states.CHOICE_SINGLE) | Q(question_state=question_states.CHOICE_MULTIPLE))
-
-        #for filter processing
-        member_string=request.GET.get('members',None)
-        filter_question_id=request.GET.get('filter',None)
-        filters = []
-
-        for filter in filter_list:
-            temp = {}
-            temp['question_id'] = filter.id
-            temp['question_title'] = filter.question_title
-            temp['values'] = decode_option(filter.value)
-            if str(filter_question_id) == str(filter.id):
-                temp['selected']=True
-            else:
-                temp['selected']=False
-            filters.append(temp)
-
-
-        if not member_string:
-            members = get_member_details(community_instance)
+    for filter in filter_list:
+        temp = {}
+        temp['question_id'] = filter.id
+        temp['question_title'] = filter.question_title
+        temp['values'] = decode_option(filter.value)
+        if str(filter_question_id) == str(filter.id):
+            temp['selected'] = True
         else:
-            filter_list=member_string.split("$")
-            members=get_member_details(community_instance,filter_list)
+            temp['selected'] = False
+        filters.append(temp)
 
-        context = {
-            'members': members,
-            'members_length': len(members),
-            'community_name': community_instance.name,
-            'community_id': community_instance.id,
-            'filter_list': filters
-        }
+    if not member_string:
+        members = get_member_details(community_instance)
+    else:
+        filter_list = member_string.split("$")
+        members = get_member_details(community_instance, filter_list)
 
-        return render(request, 'members.html', context)
-    return redirect('comunity',community_id=community_id)
+    context = {
+        'members': members,
+        'members_length': len(members),
+        'community_name': community_instance.name,
+        'community_id': community_instance.id,
+        'filter_list': filters,
+        'is_member':is_member
+    }
+    return render(request, 'members.html', context)
+
 
 
 def decode_option(value):
@@ -674,44 +688,59 @@ def decode_option(value):
 def member_profile(request):
 
     '''function to show member profile'''
+
     member_id = request.POST.get('data')
     community_id = request.POST.get('community_id')
-    user_answers = communityAnswers.objects.filter(community=community_id,member_id=member_id).order_by('id')
-    answer_list=[]
-    for answer in user_answers:
-        temp={}
-        question_instance = communityQuestions.objects.get(pk=answer.question_id)
+    member_name=""
 
-        #introduction answer
+    user_instance=User.objects.filter(id=member_id)
+    if user_instance.exists():
+        member_name = user_instance[0].userinfo.name
+        image_link = user_instance[0].userinfo.image_link
+
+    answer_list = get_member_profile(community_id,member_id)
+
+    json_response = {'answer_list':answer_list,'member_name':member_name,'image_link':image_link}
+    print(json_response)
+    return JsonResponse(json_response)
+
+def get_member_profile(community_id,member_id):
+
+    '''function to get member profile'''
+    user_answers = communityAnswers.objects.filter(community=community_id, member_id=member_id).order_by('id')
+    answer_list = []
+    for answer in user_answers:
+        temp = {}
+        question_instance = communityQuestions.objects.get(pk=answer.question_id)
+        # introduction answer
         if question_instance.question_state == question_states.INTRODUCTION:
-            #introduction
+            # introduction
             temp['answer'] = answer.question_answer
             temp['rank'] = 4
 
         elif question_instance.question_state == question_states.EMAIL_ID:
-            #email id
+            # email id
             temp['answer'] = answer.question_answer
             temp['rank'] = 1
 
         elif question_instance.question_state == question_states.MOBILE_NO:
-            #mobile number
+            # mobile number
             temp['answer'] = answer.question_answer
             temp['rank'] = 2
 
         elif question_instance.question_state == question_states.PROFILE_LINK:
-            #profile link
+            # profile link
             temp['answer'] = answer.question_answer
             temp['rank'] = 3
 
         else:
-            #question answer
+            # question answer
             temp['answer'] = question_instance.question_title + ": " + answer.question_answer
             temp['rank'] = 5
         answer_list.append(temp)
-        answer_list=sorted(answer_list, key=lambda i: i['rank'])
-    print(answer_list)
+        answer_list = sorted(answer_list, key=lambda i: i['rank'])
+    return answer_list
 
-    return JsonResponse({'answer_list':answer_list})
 
 
 @login_required

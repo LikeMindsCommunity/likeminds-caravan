@@ -1029,9 +1029,10 @@ def join_whatsapp_community(res,request):
 
 
     #saving data directly
-    if 'timestamp' in res:
-        auto_join= is_joining_time_valid(community_instance,res['timestamp'])
-        if auto_join:
+    if 'auto_join' in res:
+
+        validate_time= is_joining_time_valid(community_instance,res['timestamp'])
+        if validate_time and res['auto_join']:
             auto_join_community(community_instance,user_instance)
             post_introduction_card_for_whatsapp_community(community_id, member_id, request)
             print("Everything is fine")
@@ -1687,6 +1688,10 @@ def create_community_version_1(request):
     if 'sub_type' in res:
         sub_type = res['sub_type']
 
+    if 'community_id' in res:
+        community_serialized_object = update_community(res)
+        return JsonResponse({'success':True,'community':community_serialized_object})
+
 
 
     community_instance=Community()
@@ -1721,7 +1726,7 @@ def create_community_version_1(request):
     engage.community_id = community_instance
     engage.updated_at = time.time()
     engage.member_state = member_states.ADMIN
-    engage.member_referral="Create your member profile"
+    engage.member_referral = "Create your member profile"
     engage.save()
 
 
@@ -1753,6 +1758,81 @@ def create_community_version_1(request):
 
     communty_serailized_object = CommunitySerializer(community_instance)
     return JsonResponse({'success':True,'community':communty_serailized_object})
+
+
+
+def update_community(res):
+
+    '''function to update the community'''
+
+    community_id = res['community_id']
+
+    community_filter = Community.objects.filter(id=community_id)
+
+    #updating community
+    if community_filter.exists():
+
+        community_instance = community_filter[0]
+        community_name = ""
+        purpose = ""
+        community_type = None
+        sub_type = None
+
+        if 'name' in res:
+            community_name = res['name']
+
+        if 'purpose' in res:
+            purpose = res['purpose']
+
+        if 'type' in res:
+            community_type = res['type']
+
+        if 'sub_type' in res:
+            sub_type = res['sub_type']
+
+        community_instance.name = community_name
+        community_instance.purpose = purpose
+        community_instance.members_count = 1
+        community_instance.image_link = "https://beta.collabmates.com/media/media/community/default.jpeg"
+        if community_type:
+            community_instance.community_type = community_type
+        community_instance.created_at = time.time()
+        community_instance.updated_at = time.time()
+        community_instance.hide_community = '5'  # for whatsapp community
+        if sub_type:
+            community_instance.sub_type = sub_type  # for whatsapp community
+        community_instance.save()
+
+
+        #deleting previous questions
+        delete_status = communityQuestions.objects.filter(community=community_id).delete()
+        print("delete status--",delete_status)
+
+
+        #saving the questions again
+        for question in res['questions']:
+            questions_instance = communityQuestions()
+            questions_instance.community = community_instance
+            questions_instance.question_title = question['question_title']
+            questions_instance.question_state = question['state']
+            questions_instance.value = question['value'] if 'value' in question else None
+            questions_instance.optional = question['optional']
+            questions_instance.help_text = question['help_text'] if 'help_text' in question else None
+            questions_instance.save()
+
+        log = """questions added in community questions table"""
+        info_logger.info(log)
+
+        communty_serailized_object = CommunitySerializer(community_instance)
+        return communty_serailized_object
+
+    return "Not a valid community"
+
+
+
+
+
+
 
 
 
