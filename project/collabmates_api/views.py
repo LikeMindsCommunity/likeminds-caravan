@@ -44,7 +44,10 @@ from utility.utils import (decode_meta_from_url, update_tag_image,
     # custom_cache,cache_timeout,
                            get_city_address,
                            update_user_geography_tags, insert_user_home_town_tags, is_IG_community,
-                           ig_members_count, is_LG_or_LP_community, feedback_community_id, feedback_collabcard_id)
+                           ig_members_count, is_LG_or_LP_community, feedback_community_id, feedback_collabcard_id,
+                           is_member_verified
+
+                           )
 
 from .notification import (send_follow_notification, send_notification_to_admins,
                            send_notification_for_join_requests,
@@ -1049,7 +1052,7 @@ def join_whatsapp_community(res,request):
                         state=member_states.PENDING_MEMBER)
 
             Members_Engage.objects.filter(member_id=user_instance,community_id=community_instance).update(
-                state=member_states.PENDING_MEMBER)
+                state=member_states.PENDING_MEMBER,referal_text='')
 
         return JsonResponse({'success': True})
     else:
@@ -1710,6 +1713,7 @@ def create_community_version_1(request):
     member_instance.community_id=community_instance
     member_instance.state=member_states.ADMIN
     member_instance.created_at=time.time()
+    member_instance.save()
 
     #making the member enage instance for created community
     engage = Member_Engage()
@@ -1717,6 +1721,7 @@ def create_community_version_1(request):
     engage.community_id = community_instance
     engage.updated_at = time.time()
     engage.member_state = member_states.ADMIN
+    engage.member_referral="Create your member profile"
     engage.save()
 
 
@@ -1743,7 +1748,7 @@ def create_community_version_1(request):
     if not check_data:
         communityExpireInstance=communityExpire()
         communityExpireInstance.community=community_instance
-        communityExpireInstance.duration=86400                  #for 24 hours saving in community
+        communityExpireInstance.duration = 86400                  #for 24 hours saving in community
         communityExpireInstance.save()
 
     communty_serailized_object = CommunitySerializer(community_instance)
@@ -2200,6 +2205,8 @@ def check_for_member_eligibiity(community_id, member_id):
                                                                community_id=community_id)
 
     return return_count
+
+
 
 
 def pending_request_count(request, community_id):
@@ -3297,15 +3304,7 @@ def compute_community_live_subtitle_for_lg(total_count,count_of_verified_members
 
 
 
-def is_member_verified(community,user_instance):
 
-    '''function to check whether the member is verified or not'''
-
-    is_verified=Members.objects.filter(community_id=community,member_id=user_instance).filter(Q(state=1)|Q(state=4))
-
-    if is_verified:
-        return True
-    return False
 
 
 def community_cards_version_1(request,community_id):
