@@ -235,13 +235,21 @@ def community(request, community_id):
     auto_join = request.GET.get('aj', False)
     if auto_join and auto_join.lower() == 't':
         auto_join = True
+        if not 'cta' in res:
+            res['cta'] = 'join'
+
     cta = ''
     if 'cta' in res:
         cta = res['cta']
         cta_split = cta.split("_")
         cta = cta_split[0]
         if len(cta_split) == 2:
+            auto_join = True if cta_split[1] == 'ajt' else False
+            if not auto_join:
+                ref_id = cta_split[1]
+        if len(cta_split) > 2:
             ref_id = cta_split[1]
+            auto_join = True if cta_split[2] == 'ajt' else False
 
         # -------------------- auto join functionality ---------------------------------
         if cta == 'join' and request.user.is_authenticated:
@@ -377,6 +385,7 @@ def community(request, community_id):
                'ios_app_download_link': ios_app_download_link,
                'about_1': about_1,
                'about_2': about_2,
+               'auto_join':auto_join,
                'community_state':int(community.hide_community),
                'profile_list': profile_list,
                'is_member':is_member
