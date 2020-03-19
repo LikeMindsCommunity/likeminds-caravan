@@ -726,10 +726,9 @@ $('#back_button').click(function(e){
             success:function(data){
                 console.log(data)
                 {% if community.hide_community == '5' %}
-                    location.href="/members_directory/"+'{{community.id}}'
+                    location.href="/community/"+'{{community.id}}?profile='+{{request.user.id}};
                 {% else %}
-                    location.href="/refer_members/"+'{{community.id}}'
-                {% endif %}
+                    location.href="/refer_members/"+'{{community.id}}';
             }
         });
 
