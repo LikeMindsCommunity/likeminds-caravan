@@ -84,26 +84,27 @@
             }
 
 
-    .blur_answer{
+.blur_answer{
 
-     filter:blur(3px);
+  filter:blur(3px);
 
-    }
+}
 
-.image_container_verified::after{
-                content: '';
-                position: absolute ;
-                top: 2% ;
-                background-image: url('/media/main_website/like_minds_speaker.png');
-                background-size: cover !important;
-                background-repeat: no-repeat ;
-                transform: translate(-50%, -50%) ;
-                border-top: inherit ;
-                border-top-color: transparent !important;
-                border-radius:50% ;width:95px !important;height:95px !important;display: inline-block !important;left:50% !important;
-                opacity:5;
-            }
 
+.profile_pic{
+
+    content: '';
+    position: absolute ;
+    top: 2% ;
+    background-image: url('https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fuser%2F459?alt=media');
+    background-size: cover !important;
+    background-repeat: no-repeat ;
+    transform: translate(-50%, -50%) ;
+    border-top: inherit ;
+    border-top-color: transparent !important;
+    border-radius:50% ;width:95px !important;height:95px !important;display: inline-block !important;left:50% !important;
+    opacity:5;
+}
 
 
     </style>
@@ -942,32 +943,41 @@ Your community profile is created.!</p>
     <!-- -->
 
 
-    <!-- change email address -->
-            <div class="ui modal" id="email_update" style="width:75%;">
+    <!-- update secondary email -->
+
+ <div class="ui modal" id="secondary_email" style="width:65%;">
 
 <!--             <img src="/media/main_website/profile_header.png" style="width:100%;height:70%;">-->
 
 
       <div class="profile_name" style="margin-top:6%;margin-left:20px;">
-          <p align="left" style="font-family:Roboto;sans-serif;font-weight:500;color:black;font-size:17px;line-height:22px;opacity:87%;">Member profile not accessible</p>
+          <p align="left" style="font-family:Roboto;sans-serif;font-weight:500;color:black;font-size:17px;line-height:22px;opacity:.87;">Change Email ID</p>
 
       </div>
-       <div style="margin-top:5%;margin-left:20px;margin-right:18px;text-align:left;">
-           <p style="font-size:15px;line-height:22px;font-family:Roboto;sans-serif;font-weight:400;color:#000000;opacity:54%;">Your account is pending for approval from the admin. Once the admin approves, you would be able to view the full communtity profile of the user.
-<br/><br/>
-               Once verified, we will send an email on: <span style="color:#007aff;">xyz@gmail.com.</span></p>
+       <br/>
+     <div style="margin-top:5%;margin-left:20px;margin-right:18px;text-align:left;">
+           <p style="font-size:15px;line-height:22px;font-family:Roboto;sans-serif;font-weight:400;color:#000000;opacity:54%;">Update your email ID below for further communications.</p>
+       </div>
+
+
+     <div style="margin-top:5%;margin-left:20px;margin-right:18px;text-align:left;">
+           <form class="ui form">
+               <div class="field">
+                    <input type="text" name="first-name" placeholder="Enter your email id" id="secondary_email_text">
+              </div>
+           </form>
+
        </div>
        <br/>
-        <div style="margin-top:5%;margin-left:16px;margin-right:16px;text-align:center">
 
-           <p class="Roboto" style="font-size:13px;font-weight:500;color:#009688;letter-spacing:0.46px;opacity:100%" id="update_email">CHANGE EMAIL ID</p>
+     <div style="margin-top:5%;margin-left:16px;margin-right:16px;text-align:right">
 
-       </div>
-       <div style="margin-top:5%;margin-left:16px;margin-right:16px;text-align:center">
-
-           <p class="Roboto" style="font-size:13px;font-weight:500;color:black;letter-spacing:0.46px;opacity:40%" id="dismiss_email">DISMISS</p>
+           <p class="Roboto" style="font-size:13px;font-weight:500;color:#009688;letter-spacing:0.46px;opacity:100%" id="update_secondary_email">SUBMIT</p>
 
        </div>
+
+
+
 
 
 
@@ -976,7 +986,6 @@ Your community profile is created.!</p>
    </div>
 
     <!-- -->
-
 
 
     <!-- -->
@@ -1256,7 +1265,6 @@ $('#dismiss').click(function(){
 })
 
 
-
 //dismiss email popup
 $('#dismiss_email').click(function(){
 
@@ -1265,16 +1273,33 @@ $('#dismiss_email').click(function(){
 })
 
 
+$('#change_email').click(function(){
+
+    $('#unverified_member').modal('hide');
+    $('#secondary_email').modal('show');
+
+
+})
+
+
+update_email()
+
+
+
 $('.member_link').click(function(){
+
+
 
 member_id=$(this).val()
 
 //unverified member pop-up
-
 {% if not is_member %}
 
-    $('#unverified_member').modal('show');
-    console.log("test")
+    {% if request.user.is_authenticated %}
+        $('#unverified_member').modal('show');
+    {% else %}
+        model_show();
+     {% endif %}
 
 {% else %}
     showMemberProfile(member_id);
@@ -1284,6 +1309,46 @@ member_id=$(this).val()
 
 })
 
+
+
+
+
+function update_email(){
+
+
+
+
+    $('#update_secondary_email').click(function(e){
+
+    email=$('#secondary_email_text').val()
+
+     json_data={
+        'data':'{{request.user.id}}',
+        'email':email,
+        'csrfmiddlewaretoken':'{{csrf_token}}',
+        }
+
+     $.ajax({
+
+                url:"/update_email",
+                data:json_data,
+                type:"POST",
+                dataType:'json',
+                success:function(data){
+
+                if(data['success']){
+
+                    $('#secondary_email').modal('hide');
+                    alert("updated")
+                }
+                }
+
+            })
+
+
+
+    })
+}
 
 
 function showMemberProfile(member_id){
@@ -1310,7 +1375,9 @@ console.log(json_data)
 
             html=`
 
-             <img src="/media/main_website/profile_header.png" style="width:100%;height:70%;">
+              <div style="width:100%;min-height:150px;background-image:url('https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Fprofile_header?alt=media&token=fa838851-244c-4cbc-81da-3d2125536e18');background-repeat:no-repeat;background-size:contain">
+                <img src=${data['image_link']} class="profile_pic">
+             </div>
 
 
       <div class="profile_name">
