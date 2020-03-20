@@ -1050,13 +1050,15 @@ def join_whatsapp_community(res,request):
         member_state = member_list[0].state
         if member_state == member_states.ADMIN:
             post_introduction_card_for_whatsapp_community(community_id,member_id,request)
+            Members_Engage.objects.filter(member_id=user_instance, community_id=community_instance).update(
+                state=member_states.PENDING_MEMBER,member_referral="")
         else:
 
             Members.objects.filter(member_id=user_instance,community_id=community_instance).update(
                         state=member_states.PENDING_MEMBER)
 
             Members_Engage.objects.filter(member_id=user_instance,community_id=community_instance).update(
-                state=member_states.PENDING_MEMBER,referal_text='')
+                state=member_states.PENDING_MEMBER)
 
         return JsonResponse({'success': True})
     else:
@@ -4005,6 +4007,10 @@ def community_collabcard_meta(request):
 
     collabcard_ids = request.GET.get('collabcard_ids', False)
     collabcard_ids = collabcard_ids.split(",")
+
+    #for whatsapp community
+    if not collabcard_ids:
+        return JsonResponse({'succes':True})
 
     member_id = get_member_id_from_headers(request)
     community_instance = None
