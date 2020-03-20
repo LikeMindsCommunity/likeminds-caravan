@@ -1035,6 +1035,7 @@ def join_whatsapp_community(res,request):
     if 'auto_join' in res:
 
         validate_time= is_joining_time_valid(community_instance,res['timestamp'])
+        print(validate_time)
         if validate_time and res['auto_join']:
             auto_join_community(community_instance,user_instance)
             post_introduction_card_for_whatsapp_community(community_id, member_id, request)
@@ -1087,7 +1088,13 @@ def is_joining_time_valid(community_instance,time_stamp):
     '''function to check whether community joining time is valid or not'''
 
     duration=communityExpire.objects.filter(community=community_instance)
-    time_stamp=int(time_stamp)
+
+
+    time_stamp=str(time_stamp)
+    if len(time_stamp) == 10:
+        time_stamp = int(time_stamp)
+    else:
+        time_stamp = int(time_stamp[:-3])
     if duration:
         duration=duration[0].duration
         if (time_stamp-community_instance.created_at) <= duration:
