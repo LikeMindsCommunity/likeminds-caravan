@@ -598,7 +598,7 @@ console.log(json_data)
        $.each(data['answer_list'],function(index,value){
 
                segment=""
-               if(value['rank'] == 1){
+               if(value['rank'] == 1 && value['answer_privacy']){
                segment = `
                <div style="margin-top:5%;margin-left:16px;margin-right:16px;">
                             <p class="Roboto" style="line-height:20px;font-size:13px;color:#9b9b9b"><img src="/media/main_website/ic_email_48_px.png" height=16px;width=14px;/>&nbsp;&nbsp;${value['answer']}</p>
@@ -606,7 +606,7 @@ console.log(json_data)
                      </div>
                     `
                html = html + segment
-               }else if(value['rank'] == 2){
+               }else if(value['rank'] == 2 && value['answer_privacy'] ){
 
                segment = `
                <div style="margin-top:3%;margin-left:16px;margin-right:16px;">
@@ -619,7 +619,7 @@ console.log(json_data)
                html = html + segment
 
 
-               }else if(value['rank'] == 3){
+               }else if(value['rank'] == 3 && value['answer_privacy'] ){
 
                 segment = `
                <div style="margin-top:3%;margin-left:16px;margin-right:16px;">
@@ -648,7 +648,7 @@ console.log(json_data)
                html = html + segment
 
 
-               }else{
+               }else if(value['rank'] == 4){
 
                 segment = `
                <div style="margin-top:3%;margin-left:16px;margin-right:16px;">

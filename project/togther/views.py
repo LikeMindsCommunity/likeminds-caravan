@@ -714,11 +714,15 @@ def member_profile(request):
 
     user_instance=User.objects.filter(id=member_id)
     image_link=""
+
+    is_promoter=False
     if user_instance.exists():
         member_name = user_instance[0].userinfo.name
         image_link = user_instance[0].userinfo.image_link
-
-    answer_list = get_member_profile(community_id,member_id)
+        is_promoter = Members.objects.filter(community_id=community_id,member_id=request.user.id).filter(
+            state = member_states.ADMIN)
+        is_promoter=is_promoter.exists()
+    answer_list = get_member_profile(community_id,member_id,is_promoter=is_promoter)
 
     json_response = {'answer_list':answer_list,'member_name':member_name,'image_link':image_link}
     return JsonResponse(json_response)
@@ -737,7 +741,7 @@ def update_email(request):
     return JsonResponse({'success':False})
 
 
-def get_member_profile(community_id,member_id):
+def get_member_profile(community_id,member_id,is_promoter=False):
 
     '''function to get member profile'''
     user_answers = communityAnswers.objects.filter(community=community_id, member_id=member_id).order_by('id')
@@ -759,18 +763,24 @@ def get_member_profile(community_id,member_id):
         elif question_instance.question_state == question_states.EMAIL_ID:
             # email id
             email = email + "," + answer.question_answer
+            temp['answer_privacy']=answer_privacy(question_instance.value,is_promoter=is_promoter)
+            #print(temp['answer_privacy'])
             temp['answer'] = email[1:]
             temp['rank'] = 1
 
         elif question_instance.question_state == question_states.MOBILE_NO:
             # mobile number
             mobile_no = mobile_no + "," + answer.question_answer
+            temp['answer_privacy']=answer_privacy(question_instance.value,is_promoter=is_promoter)
+            #print(temp['answer_privacy'])
             temp['answer'] = mobile_no[1:]
             temp['rank'] = 2
 
         elif question_instance.question_state == question_states.PROFILE_LINK:
             # profile link
             profile_link = profile_link + "," + answer.question_answer
+            temp['answer_privacy']=answer_privacy(question_instance.value,is_promoter=is_promoter)
+            #print(temp['answer_privacy'])
             temp['answer'] = profile_link[1:]
             temp['rank'] = 3
 
@@ -781,6 +791,23 @@ def get_member_profile(community_id,member_id):
         answer_list.append(temp)
         answer_list = sorted(answer_list, key=lambda i: i['rank'])
     return answer_list
+
+def answer_privacy(answer,is_promoter=False):
+
+    '''function to check the privacy of answer'''
+
+    if is_promoter:
+        return True
+
+    value_list = ast.literal_eval(answer)
+    privacy = ""
+    print("ansert==",answer)
+    for value in value_list:
+        privacy = value['answer_privacy']
+
+    if privacy == "public":
+        return True
+    return False
 
 
 
