@@ -46,7 +46,7 @@ if not url and not settings.IS_BETA:
 
 # uncomment to run it in localhost
 #
-url='http://localhost:8000'
+#url='http://localhost:8000'
 
 api_url = url + '/api/'
 error_logger = logging.getLogger("error_logger")
