@@ -188,46 +188,46 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       
 
 <!-- accept invitation model -->
-                    <div class="ui modal accept" id="accept">
+<!--                    <div class="ui modal accept" id="accept">-->
 
-                        <div class="ui fluid card " style="border: 2px solid #1ebea5; margin:0 0 ; padding: 10px 10px;">
-                            <h2 class="ui teal center aligned header">
-                                <div class="content">
-                                    Respond to Invitation
-                                </div>
-                            </h2>
-                            <div class="content">
-                                <p class="center aligned">
-                                    Send Response
-                                </p>
-                            </div>
-                            <div class="center aligned container">
-                                <div class="content">
-                                    <a href="../accept_admin/{{community.id}}?cta=accept_invitation&value=true">
-                                        <button class="ui button" style="width:130px; color:green;">
+<!--                        <div class="ui fluid card " style="border: 2px solid #1ebea5; margin:0 0 ; padding: 10px 10px;">-->
+<!--                            <h2 class="ui teal center aligned header">-->
+<!--                                <div class="content">-->
+<!--                                    Respond to Invitation-->
+<!--                                </div>-->
+<!--                            </h2>-->
+<!--                            <div class="content">-->
+<!--                                <p class="center aligned">-->
+<!--                                    Send Response-->
+<!--                                </p>-->
+<!--                            </div>-->
+<!--                            <div class="center aligned container">-->
+<!--                                <div class="content">-->
+<!--                                    <a href="../accept_admin/{{community.id}}?cta=accept_invitation&value=true">-->
+<!--                                        <button class="ui button" style="width:130px; color:green;">-->
 
-                                            Accept
-                                        </button>
-                                    </a>
-                                    <br>
-                                    <br>
+<!--                                            Accept-->
+<!--                                        </button>-->
+<!--                                    </a>-->
+<!--                                    <br>-->
+<!--                                    <br>-->
 
-                                    <br>
-                                    <br>
-                                    <div class="content">
-                                        <a href="../accept_admin/{{community.id}}?cta=accept_invitation&value=false">
-                                            <button class="ui button" style="width:130px; color:green;">
+<!--                                    <br>-->
+<!--                                    <br>-->
+<!--                                    <div class="content">-->
+<!--                                        <a href="../accept_admin/{{community.id}}?cta=accept_invitation&value=false">-->
+<!--                                            <button class="ui button" style="width:130px; color:green;">-->
 
-                                                Decline
-                                            </button>
-                                        </a>
-                                    </div>
-                                </div>
-                                <br>
+<!--                                                Decline-->
+<!--                                            </button>-->
+<!--                                        </a>-->
+<!--                                    </div>-->
+<!--                                </div>-->
+<!--                                <br>-->
 
-                            </div>
-                        </div>
-                    </div>
+<!--                            </div>-->
+<!--                        </div>-->
+<!--                    </div>-->
 
 
 
@@ -456,7 +456,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                                     <img class="ui tiny circular centered image" src="{{i.image_link}}" style="border-radius:50%;width:80px;height:80px;"/>
                                 </div>
                                 <div style="padding-left:10%;padding-top:10px;padding-bottom:10px;">
-                                    <a class="RobotoMedium member_link" style="color:black;line-height:20px;font-size:17px;" value="{{i.id}}">{{i.name}}</a>
+                                    <button class="RobotoMedium member_link" style="color:black;line-height:20px;font-size:17px;" value="{{i.id}}">{{i.name}}</button>
                                     {% if not is_member %}
                                     <p style="line-height:17px;font-size:13px;color:#9b9b9b" class="Roboto blur_answer">{{i.answer}}</p>
                                     {% else %}
