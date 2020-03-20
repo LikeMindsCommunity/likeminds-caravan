@@ -218,7 +218,7 @@ SOCIAL_AUTH_PIPELINE = (
 
 )
 
-ADMINS = [('mahesh', 'mahesh61437mahe@gmail.com'),('access_mahesh','accessmaheshforu@gmail.com')]
+ADMINS = [('mahesh', 'mahesh61437mahe@gmail.com'),('Priyanshu','rastogi.fresh88@gmail.com')]
 
 
 SENDGRID_API_KEY = os.getenv('SENDGRID_API_KEY')
