@@ -1091,7 +1091,7 @@ def is_joining_time_valid(community_instance,time_stamp):
     duration=communityExpire.objects.filter(community=community_instance)
 
 
-
+    time_stamp = int(time_stamp)
     if duration:
         duration=duration[0].duration
         if (time_stamp-community_instance.created_at) <= duration:
