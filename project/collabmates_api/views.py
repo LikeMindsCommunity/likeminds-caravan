@@ -1060,7 +1060,7 @@ def join_whatsapp_community(res,request):
             Members.objects.filter(member_id=user_instance,community_id=community_instance).update(
                         state=member_states.PENDING_MEMBER)
 
-            Members_Engage.objects.filter(member_id=user_instance,community_id=community_instance).update(
+            Member_Engage.objects.filter(member_id=user_instance,community_id=community_instance).update(
                 state=member_states.PENDING_MEMBER)
 
         return JsonResponse({'success': True})
