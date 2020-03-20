@@ -1006,6 +1006,9 @@ def join_whatsapp_community(res,request):
     member_id = get_member_id_from_headers(request)
     if not member_id:
         member_id = request.GET.get('member_id', None)
+    else:
+        res['timestamp'] = res['timestamp'] / 1000
+
     user_instance = User.objects.get(id=member_id)
 
     if 'questions' in res:
@@ -1094,6 +1097,7 @@ def is_joining_time_valid(community_instance,time_stamp):
 
 
     time_stamp = int(time_stamp)
+
     if duration:
         duration=duration[0].duration
         if (time_stamp-community_instance.created_at) <= duration:
