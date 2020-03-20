@@ -1052,7 +1052,7 @@ def join_whatsapp_community(res,request):
         if member_state == member_states.ADMIN:
             post_introduction_card_for_whatsapp_community(community_id,member_id,request)
             Member_Engage.objects.filter(member_id=user_instance, community_id=community_instance).update(
-                state=member_states.PENDING_MEMBER,member_referral="")
+                member_referral="")
         else:
 
             Members.objects.filter(member_id=user_instance,community_id=community_instance).update(
