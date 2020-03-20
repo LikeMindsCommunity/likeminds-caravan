@@ -456,7 +456,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                                     <img class="ui tiny circular centered image" src="{{i.image_link}}" style="border-radius:50%;width:80px;height:80px;"/>
                                 </div>
                                 <div style="padding-left:10%;padding-top:10px;padding-bottom:10px;">
-                                    <button class="RobotoMedium member_link" style="color:black;line-height:20px;font-size:17px;" value="{{i.id}}">{{i.name}}</button>
+                                    <a class="RobotoMedium member_link" style="color:black;line-height:20px;font-size:17px;" value="{{i.id}}">{{i.name}}</a>
                                     {% if not is_member %}
                                     <p style="line-height:17px;font-size:13px;color:#9b9b9b" class="Roboto blur_answer">{{i.answer}}</p>
                                     {% else %}
@@ -639,7 +639,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                             {% if ref_id != '' %}
                             <a href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join_{{ref_id}}">
                             <button class="ui facebook button" style="width:130px;">
-                            {% elif auto_join or auto_join == 'True' or auto_join == 'true' %}
+                            {% elif auto_join  %}
                                   <a href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join_ajt">
                                   <button class="ui facebook button" style="width:130px;">
                             {% elif cta == 'share' %}
@@ -666,7 +666,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                                         {% if ref_id != '' %}
                                         <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join_{{ref_id}}">
                                             <button class="ui linkedin button" style="width:130px;">
-                                        {% elif auto_join or auto_join == 'True' or auto_join == 'true' %}
+                                        {% elif auto_join  %}
                                              <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join_ajt">
                                              <button class="ui linkedin button" style="width:130px;">
                                         {% elif cta == 'share' %}
@@ -762,7 +762,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                                         {% if ref_id != '' %}
                                         <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join_{{ref_id}}">
                                             <button class="ui linkedin button" style="width:130px;z-index:2;border-radius:20px;">
-                                        {% elif auto_join or auto_join == 'True' or auto_join == 'true' %}
+                                        {% elif auto_join  %}
                                              <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join_ajt">
                                              <button class="ui linkedin button" style="width:130px;z-index:2;border-radius:20px;">
                                         {% elif cta == 'share' %}
@@ -788,7 +788,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                             {% if ref_id != '' %}
                             <a href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join_{{ref_id}}">
                             <button class="ui facebook button" style="width:130px;z-index:2;border-radius:20px;">
-                            {% elif auto_join or auto_join == 'True' or auto_join == 'true' %}
+                            {% elif auto_join  %}
                                 <a href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join_ajt">
                                 <button class="ui facebook button" style="width:130px;z-index:2;border-radius:20px;">
                             {% elif cta == 'share' %}

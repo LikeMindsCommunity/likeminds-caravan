@@ -1081,6 +1081,8 @@ def join_whatsapp_community(res,request):
         engage.member_state = member_states.PENDING_MEMBER
         engage.save()
 
+        send_notification_to_admins.delay(community_id,user_instance.userinfo.name)
+
 
 
 

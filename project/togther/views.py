@@ -46,7 +46,7 @@ if not url and not settings.IS_BETA:
 
 # uncomment to run it in localhost
 #
-#url='http://localhost:8000'
+url='http://localhost:8000'
 
 api_url = url + '/api/'
 error_logger = logging.getLogger("error_logger")
@@ -371,7 +371,11 @@ def community(request, community_id):
     admin_details = get_admins_details(community)
     members = get_member_details(community)
 
-    auto_join = 'true' if auto_join else 'false'
+    auto_join = request.GET.get('aj', False)
+    if auto_join and auto_join.lower() == 't':
+        auto_join = True
+    else:
+        auto_join = False
 
     context = {'usr': user, 'similar_communities': communities,
                'community': community, 'admins': admin_details,
@@ -918,6 +922,9 @@ def logout_view(request):
 
 @login_required
 def join_community(request, community_id, ref_id, auto_join=False):
+
+
+    print(auto_join)
 
     if request.user.is_authenticated:
         try:
