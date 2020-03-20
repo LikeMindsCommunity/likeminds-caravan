@@ -742,6 +742,11 @@ def get_member_profile(community_id,member_id):
     '''function to get member profile'''
     user_answers = communityAnswers.objects.filter(community=community_id, member_id=member_id).order_by('id')
     answer_list = []
+
+    email = ""
+    mobile_no = ""
+    profile_link = ""
+
     for answer in user_answers:
         temp = {}
         question_instance = communityQuestions.objects.get(pk=answer.question_id)
@@ -753,17 +758,20 @@ def get_member_profile(community_id,member_id):
 
         elif question_instance.question_state == question_states.EMAIL_ID:
             # email id
-            temp['answer'] = answer.question_answer
+            email = email + "," + answer.question_answer
+            temp['answer'] = email[1:]
             temp['rank'] = 1
 
         elif question_instance.question_state == question_states.MOBILE_NO:
             # mobile number
-            temp['answer'] = answer.question_answer
+            mobile_no = mobile_no + "," + answer.question_answer
+            temp['answer'] = mobile_no[1:]
             temp['rank'] = 2
 
         elif question_instance.question_state == question_states.PROFILE_LINK:
             # profile link
-            temp['answer'] = answer.question_answer
+            profile_link = profile_link + "," + answer.question_answer
+            temp['answer'] = profile_link[1:]
             temp['rank'] = 3
 
         else:

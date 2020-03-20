@@ -1007,7 +1007,7 @@ def join_whatsapp_community(res,request):
     if not member_id:
         member_id = request.GET.get('member_id', None)
     else:
-        res['timestamp'] = res['timestamp'] / 1000
+        res['timestamp'] = res['timestamp'] / 1000                  #for android timestamp
 
     user_instance = User.objects.get(id=member_id)
 
