@@ -1038,7 +1038,8 @@ def join_whatsapp_community(res,request):
         if validate_time and res['auto_join']:
             auto_join_community(community_instance,user_instance)
             post_introduction_card_for_whatsapp_community(community_id, member_id, request)
-            print("Everything is fine")
+            log="""Auto join community for community_id=%s for user=%s"""%(community_id,member_id)
+            info_logger.info(log)
             return
 
 
