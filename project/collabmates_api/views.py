@@ -1034,14 +1034,15 @@ def join_whatsapp_community(res,request):
     #saving data directly
     if 'auto_join' in res:
 
-        validate_time= is_joining_time_valid(community_instance,res['timestamp'])
-        print(validate_time)
-        if validate_time and res['auto_join']:
-            auto_join_community(community_instance,user_instance)
-            post_introduction_card_for_whatsapp_community(community_id, member_id, request)
-            log="""Auto join community for community_id=%s for user=%s"""%(community_id,member_id)
-            info_logger.info(log)
-            return
+        if res['auto_join']:
+
+            validate_time = is_joining_time_valid(community_instance, res['timestamp'])
+            if validate_time:
+                auto_join_community(community_instance,user_instance)
+                post_introduction_card_for_whatsapp_community(community_id, member_id, request)
+                log="""Auto join community for community_id=%s for user=%s"""%(community_id,member_id)
+                info_logger.info(log)
+                return
 
 
 
@@ -1090,11 +1091,7 @@ def is_joining_time_valid(community_instance,time_stamp):
     duration=communityExpire.objects.filter(community=community_instance)
 
 
-    time_stamp=str(time_stamp)
-    if len(time_stamp) == 10:
-        time_stamp = int(time_stamp)
-    else:
-        time_stamp = int(time_stamp[:-3])
+    time_stamp = int(time_stamp)
     if duration:
         duration=duration[0].duration
         if (time_stamp-community_instance.created_at) <= duration:
