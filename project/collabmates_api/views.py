@@ -1113,6 +1113,8 @@ def auto_join_community(community_instance,user_instance):
     engage.member_state = member_states.MEMBER
     engage.save()
 
+    send_notification_for_join_requests(community_instance.id,True, user_instance.id)
+
 
 def post_introduction_card_for_whatsapp_community(community_id,member_id,request):
 
