@@ -4011,7 +4011,7 @@ def community_collabcard_meta(request):
 
     #for whatsapp community
     if not collabcard_ids:
-        return JsonResponse({'succes':True})
+        return JsonResponse({'collabcards': []})
 
     member_id = get_member_id_from_headers(request)
     community_instance = None
