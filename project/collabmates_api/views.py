@@ -4007,11 +4007,14 @@ def community_collabcard_meta(request):
     ''' function to get the collabcard details '''
 
     collabcard_ids = request.GET.get('collabcard_ids', False)
-    collabcard_ids = collabcard_ids.split(",")
+    print("collabcardid----",collabcard_ids)
+
 
     #for whatsapp community
     if not collabcard_ids:
         return JsonResponse({'collabcards': []})
+    else:
+        collabcard_ids = collabcard_ids.split(",")
 
     member_id = get_member_id_from_headers(request)
     community_instance = None
