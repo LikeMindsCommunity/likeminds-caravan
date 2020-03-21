@@ -1445,7 +1445,7 @@ def send_mail_for_signup(context,flag):
 
     msg = EmailMultiAlternatives(subject,
                                  template,
-                                 "Collabmates<hello@collabmates.com>",
+                                 "LikeMinds<hello@collabmates.com>",
                                  [to],
                                  )
     msg.attach_alternative(template, "text/html")
