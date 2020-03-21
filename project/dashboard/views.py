@@ -741,7 +741,7 @@ def send_email_to_nominated_admin(NominatedAdmin,email,ProposedAdmin,CommunityNa
         template = get_template("mails/accept_temp_admin_request.html").render({"NominatedAdmin":NominatedAdmin,"email":email,"ProposedAdmin":ProposedAdmin,"CommunityName":CommunityName,"community_id":community_id,'url':url})
     msg = EmailMultiAlternatives(subject,
                                      template,
-                                     "Collabmates<hello@collabmates.com>",
+                                     "LikeMinds<hello@collabmates.com>",
                                      [to],
                                      )
     msg.attach_alternative(template, "text/html")
@@ -1436,11 +1436,11 @@ def send_mail_for_signup(context,flag):
     if flag:             #alpha signup
 
         template = get_template("mails/alpha_sign_up.html").render(context)
-        subject="""Thanks for joining CollabMates! Here's the next step"""
+        subject="""Thanks for joining LikeMinds! Here's the next step"""
 
     else:
         template = get_template("mails/testing_signup.html").render(context)
-        subject="""Access to the first version of CollabMates App"""
+        subject="""Access to the first version of LikeMinds App"""
 
 
     msg = EmailMultiAlternatives(subject,

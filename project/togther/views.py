@@ -352,10 +352,10 @@ def community(request, community_id):
     if is_request_ios(request):
         ios_app_download_link = ios_app_download_link
     if not is_IG_community(community):
-        share_text = """I recently joined %s community on CollabMates. It will be good if you also join this community""" % (
+        share_text = """I recently joined %s community on LikeMinds. It will be good if you also join this community""" % (
             community.name)
     else:
-        share_text = """I recently joined %s community on CollabMates. It will be fun if you also join this community""" % (
+        share_text = """I recently joined %s community on LikeMinds. It will be fun if you also join this community""" % (
             community.name)
     if request.user.is_authenticated:
         share_url = str(settings.URL) + '/community/' + str(community_id) + "?ref_id=" + str(request.user.id)
@@ -429,7 +429,7 @@ def refer_members(request, community_id):
             admins = Members.objects.filter(community_id=community).filter(Q(state=1) | Q(state=2)).order_by('id')
 
             share_text = 'Hi, I have added ' + str(
-                community.name) + ' community on CollabMates. It will be good if you can join this community'
+                community.name) + ' community on LikeMinds. It will be good if you can join this community'
 
             android = is_request_android(request)
             ios = False
