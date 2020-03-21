@@ -231,16 +231,16 @@
 
         <div class="oA ffR fwM taC fs13 bgF">
             <div class="dT tlF mnw100">
-                <div href="#purpose" class="dTc vM p16 bs mnw20">PURPOSE</div>
-                <div href="#about" class="dTc vM p16 bs mnw20">ABOUT</div>
+                <a href="#purpose" class="dTc vM p16 bs mnw20 tdN c0 bdb2F hSel bs">PURPOSE</a>
+                <a href="#about" class="dTc vM p16 bs mnw20 tdN c0 bdb2F hSel bs">ABOUT</a>
                 {% if members_length > 0 %}
                     {% if community.hide_community == '3' %}
-                    <div href="#members" class="dTc vM p16 bs mnw20">WAIT LIST</div>
+                    <a href="#members" class="dTc vM p16 bs mnw20 tdN c0 bdb2F hSel bs">WAIT LIST</a>
                     {% else %}
-                    <div href="#members" class="dTc vM p16 bs mnw20">MEMBERS</div>
+                    <a href="#members" class="dTc vM p16 bs mnw20 tdN c0 bdb2F hSel bs">MEMBERS</a>
                     {% endif %}
                 {% endif %}
-                <div id="conv" class="dTc vM p16 bs mnw20">CONVERSATIONS</div>
+                <div id="conv" class="dTc vM p16 bs mnw20 c0">CONVERSATIONS</div>
             </div>
         </div>
 
@@ -307,7 +307,7 @@
             <div class="bgF" id="members">
                 <div class="dT w100 p16 bs">
                     <h4 class="dTc vM taL m0 p0 fs16 c0 lh20">Members {{members_length}}</h4>
-                    <div class="dTc vM taC w96 cT bd2T bs p6 br16" ><i class="filter icon lh16"></i> <span class="lh16 fs14">Filter</span></div>
+                    <div id="filter_icon" class="dTc vM taC w96 cT bd2T bs p6 br16" ><i class="filter icon lh16"></i> <span class="lh16 fs14">Filter</span></div>
                 </div>
                 {% for i in members%}
                     <div class="dT w100">

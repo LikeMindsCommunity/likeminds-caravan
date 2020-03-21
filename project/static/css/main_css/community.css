@@ -1,3 +1,5 @@
+html { scroll-behavior: smooth; }
+
 .bgF { background: #fff; }
 .bgT { background: teal; }
 .bgBg { background: #f0f5f5; }
@@ -104,12 +106,18 @@
 .bdbE { border-bottom: 0.275vw solid #eee; }
 .bdtE { border-top: 0.275vw solid #eee; }
 .bd2T { border: 0.275vw solid teal; }
+.bdb2F { border-bottom: 0.55vw solid #fff; }
 
 .z1 { z-index: 1; }
 
 .bxs { box-shadow: 0 0 1.11vw rgba(0, 0, 0, .3);}
 
 .ttU { text-transform: uppercase; }
+
+.hSel:hover {
+    color: teal;
+    border-bottom: 0.55vw solid teal;
+}
 
 
     .ui.button.join_button{
