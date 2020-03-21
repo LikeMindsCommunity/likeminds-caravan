@@ -1048,7 +1048,7 @@ def get_community_questions(community_id):
             temp['question_state'] = each_question.question_state
             if temp['question_state'] == 6:
                 if each_question.value:
-                    item = ast.literal_eval(each_question.value)[0]['value']
+                    item = ast.literal_eval(each_question.value)[0]['date_time']
                     if item.lower() == "yyyy":
                         date_format = 'year'
                     elif item.lower() == "mm yyyy":
