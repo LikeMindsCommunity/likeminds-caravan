@@ -321,7 +321,7 @@ $('#send').click(function(){
       create_new_message();
       {% else %}
       var element = document.getElementById("login_text");
-      element.innerHTML = "Your answer has been successfully saved. However to ensure privacy of the community, you need to be part of the <b>{{community_name}}</b> on CollabMates before your answer gets posted.";
+      element.innerHTML = "Your answer has been successfully saved. However to ensure privacy of the community, you need to be part of the <b>{{community_name}}</b> on LikeMinds before your answer gets posted.";
        $('.test')
           .modal('show');
       {% endif %}
@@ -333,11 +333,11 @@ $('#view_answer').click(function(){
 
           var element = document.getElementById("login_text");
           {% if request.user.is_anonymous %}
-          element.innerHTML = "To view answers, you need to be part of the <b>{{community_name}}</b> on CollabMates";
+          element.innerHTML = "To view answers, you need to be part of the <b>{{community_name}}</b> on LikeMinds";
             $('.test')
           .modal('show');
             {% elif not is_member and request.user.is_authenticated%}
-           element.innerHTML = "To view answers, you need to be part of the <b>{{community_name}}</b> on CollabMates";
+           element.innerHTML = "To view answers, you need to be part of the <b>{{community_name}}</b> on LikeMinds";
             $('.test')
           .modal('show');
             {% endif %}

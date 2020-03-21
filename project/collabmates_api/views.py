@@ -291,9 +291,9 @@ def community(request, community_id):
     if community:
         community_type = is_IG_community(community)
         if not community_type:
-            new_dict['share_text_admin'] = """Hi, I am trying to gather %s community on CollabMates. It will be good if you can join it.\n""" % (new_dict['name'])
-            new_dict['share_text_member'] = """I recently joined %s community on CollabMates. It will be good if you also join this community.\n""" % (new_dict['name'])
-            new_dict['share_text_anonymous'] = """I recently discovered %s community on CollabMates. You can join this community using this link.\n""" % (new_dict['name'])
+            new_dict['share_text_admin'] = """Hi, I am trying to gather %s community on LikeMinds. It will be good if you can join it.\n""" % (new_dict['name'])
+            new_dict['share_text_member'] = """I recently joined %s community on LikeMinds. It will be good if you also join this community.\n""" % (new_dict['name'])
+            new_dict['share_text_anonymous'] = """I recently discovered %s community on LikeMinds. You can join this community using this link.\n""" % (new_dict['name'])
         else:
             new_dict['share_text_admin'] = """Hi, I am trying to gather %s community on CollabMates. It will be fun if you can join it.\n""" % (new_dict['name'])
             new_dict['share_text_member'] = """I recently joined %s community on CollabMates. It will be fun if you also join this community.\n""" % (new_dict['name'])
@@ -1595,7 +1595,7 @@ def create_community(request):
             if community.purpose != '':
                 card.title = "Created this community " + community.purpose
             else:
-                card.title = "Listed our community on CollabMates. This will help us to know each other, have organised discussions and network efficiently."
+                card.title = "Listed our community on LikeMinds. This will help us to know each other, have organised discussions and network efficiently."
             card.community = community
             card.user = user
             card.date_epoch = time.time()
