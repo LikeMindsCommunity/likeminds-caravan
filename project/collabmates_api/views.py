@@ -5551,7 +5551,7 @@ def fetch_whatsapp_tool(request):
 
     point_1={}
 
-    point_1['title'] = "Your group is not discoverable"
+    point_1['title'] = "Group members can't identify each other"    #text change
     point_1['sub_title'] = "Make your group discoverable to other relevant members who might be interested in joining your group."
 
     list_points.append(point_1)
