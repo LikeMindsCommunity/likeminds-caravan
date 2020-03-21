@@ -57,11 +57,11 @@ def send_mail_after_rank_computation(user_id):
     to = user_email
 
     if android:
-        subject = 'Access to the first version of CollabMates App'
+        subject = 'Access to the first version of LikeMinds App'
         template = get_template("mails/android_apk.html").render({"name":user_name,
                                                                   'android_app_download_link':android_app_download_link,'ios_app_download_link':ios_app_download_link})
     else:
-        subject = 'Access to the first version of CollabMates App'
+        subject = 'Access to the first version of LikeMinds App'
         template = get_template("mails/ios_users.html").render({"name":user_name,'url':url,
                                                                 'android_app_download_link':android_app_download_link,
                                                                 'ios_app_download_link':ios_app_download_link})
