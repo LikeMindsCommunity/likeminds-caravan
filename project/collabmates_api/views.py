@@ -1744,7 +1744,7 @@ def create_community_version_1(request):
     engage.community_id = community_instance
     engage.updated_at = time.time()
     engage.member_state = member_states.ADMIN
-    engage.member_referral = "Create your member profile"
+    engage.member_referral = "Finish setting up your community"
     engage.save()
 
 
