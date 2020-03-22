@@ -25,7 +25,7 @@ from dashboard.views import admin_login
 
 
 handler404 = 'utility.exceptions.handler404'
-handler500 = 'utility.exceptions.handler500'
+# handler500 = 'utility.exceptions.handler500'
 
 urlpatterns = [
     #url(r'^login/$', auth_views.LoginView, name='login'),
@@ -38,7 +38,6 @@ urlpatterns = [
     path('admin_dashboard/',include('dashboard.urls'),name='admin_dashboard'),
     path('utils/', include('utility.urls'), name='utils'),
     path('admin_login', admin_login, name="admin_login"),
-
 ]
 
 

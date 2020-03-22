@@ -1,14 +1,14 @@
 from __future__ import absolute_import, unicode_literals
+
 from celery import shared_task
-from django.template.loader import get_template
-from django.shortcuts import render
-from django.core.mail import EmailMultiAlternatives
-from togther.models import *
-from django.conf import settings
-from togther.models import *
 from collabmates_api.notification import notification_to_complete_onboarding
-from .utils import is_request_android, is_request_ios, is_request_pc, android_app_download_link
-import time
+from django.conf import settings
+from django.core.mail import EmailMultiAlternatives
+from django.template.loader import get_template
+from togther.models import *
+from togther.models import *
+
+from .utils import is_request_android, is_request_ios, is_request_pc, android_app_download_link, is_IG_community
 
 url = settings.URL
 
@@ -92,7 +92,7 @@ def onboarding_mail_for_new_users(member_id, android, ios, pc):
 
 
 @shared_task
-def new_member_request(member_id, community_id, form_response, ref_id=None, ):
+def new_member_request(member_id, community_id, form_response, ref_id=None, ph_no=None ):
     # time.sleep(5)
     member = User.objects.get(pk=member_id)
     if ref_id:
@@ -108,7 +108,12 @@ def new_member_request(member_id, community_id, form_response, ref_id=None, ):
     fail_silently = True
     community_link = url + "/community/" + str(community_id)
     subject = "New Member Request in Community " + str(community_name)
-    if not ref_id:
+
+    if ph_no:
+        text = str(member_name) + ' has requsted collabmates to verify his account to join' + str(
+                community_name)+'\nUser has submitted his contact number  : ' + str(ph_no)
+
+    elif not ref_id:
         if community.hide_community == '3':
 
             text = str(member_name) + ' has shown interest in ' + str(
@@ -141,22 +146,29 @@ def new_member_request(member_id, community_id, form_response, ref_id=None, ):
                 community_name) + ' community and is referred by ' + str(ref_name)
 
     res = {}
-    for response in form_response:
-        print("response =====   ", response)
-        res[response['key']] = response['value']
+    if form_response:
+        for response in form_response:
+            res[response['key']] = response['value']
+    else:
+        responses = Form_response.objects.filter(community=community_id).filter(user=member_id).order_by('id')
+        if responses.exists():
+            for response in responses:
+                res[response.data] = response.response
 
     community_state = community.hide_community
+
+    is_IG = is_IG_community(community)
 
     template = get_template("mails/new_member_request.html").render(
         {"member_name": member_name, "member_id": member_id, 'ref_name': ref_name,
          'subject': subject, 'community_name': community_name, 'community_id': community_id,
          'text': text, 'community_link': community_link, "community_state": community_state,
-         'result': res, 'url': url, })
+         'result': res, 'url': url, 'is_IG':is_IG })
 
-    if url == "https://beta.collabmates.com":
+    if is_beta:
         to_list = ['mahesh61437mahe@gmail.com']
 
-    elif url == "https://www.collabmates.com":
+    elif not is_beta:
         to_list = ['nipungoyal.iitd@gmail.com', 'hrshshukl@gmail.com']
     else:
         to_list = ['mahesh61437mahe@gmail.com', 'rastogi.fresh88@gmail.com']
@@ -238,3 +250,31 @@ def send_mail_for_report_abuse(user_name, collabcard_message, report_tag, commun
     to = [to]
     send_email(subject, template, to)
     print("Executed")
+
+
+
+def send_mail_for_query_and_feedback(mail_dict):
+
+    '''function to send the mail to collabmates regarding a query or feedback'''
+
+    subject="New Collabcard Posted in Collabmates Queries and Feedback Community"
+    context=mail_dict
+    template = get_template("mails/community_feedback.html").render(context)
+    if not is_beta:
+        to_list = ['nipungoyal.iitd@gmail.com', 'hrshshukl@gmail.com']
+    else:
+        to_list = ['rastogi.fresh88@gmail.com']
+
+    send_email(subject, template, to_list)
+
+
+
+
+# mail_dict={}
+# mail_dict['user_name'] = "Mahesh Royals"
+# mail_dict['email'] = "test@gmail.com"
+# mail_dict['collabcard_link'] ="www.google.com"
+# mail_dict['content'] = "What is this about I don't know anything about it and I don't want to know either"
+# mail_dict['collabcard_id'] = 181
+
+#send_mail_for_query_and_feedback(mail_dict)

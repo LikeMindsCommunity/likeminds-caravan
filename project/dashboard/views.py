@@ -12,13 +12,11 @@ import csv
 from django.template.loader import get_template
 from django.shortcuts import render
 from django.core.mail import EmailMultiAlternatives
-from collabmates_api.notification import send_notification_for_join_requests, send_notification_to_proposed_admin
+from collabmates_api.notification import send_notification_for_join_requests, send_notification_to_proposed_admin,send_notification_for_new_collabcard_posted
 from django.conf import settings
 import json
 from django.http.response import JsonResponse
-import requests as rqst
-import os
-import re
+from utility.states import collabcard_states, member_states
 from django.views.decorators.csrf import csrf_exempt
 from collabmates_api.raw_queries import compute_rank
 from utility.pre_creation import pre_create_communities
@@ -39,7 +37,7 @@ from django.contrib.auth import authenticate, login
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth import logout
-
+from collabmates_api.views import send_email_for_collabcard
 url = settings.URL
 import logging
 # uncomment to run it in localhost
@@ -160,7 +158,7 @@ def dashboard(request):
         members_count = Members.objects.filter(community_id=i).filter(Q(state=1)|Q(state=2)|Q(state=4)|Q(state=7)).count()
         community_dic['members_count'] = members_count
         community_dic['active_since'] = i.active_since
-        community_dic['question_count'] = Form_data.objects.filter(community_id=i).count()
+        community_dic['question_count'] = communityQuestions.objects.filter(community=i).count()
         community_dic['hidden_tags_count'] = get_tags_count(i)
         community_dic['image_link'] = i.image_link
         dashboard_list.append(community_dic)
@@ -743,7 +741,7 @@ def send_email_to_nominated_admin(NominatedAdmin,email,ProposedAdmin,CommunityNa
         template = get_template("mails/accept_temp_admin_request.html").render({"NominatedAdmin":NominatedAdmin,"email":email,"ProposedAdmin":ProposedAdmin,"CommunityName":CommunityName,"community_id":community_id,'url':url})
     msg = EmailMultiAlternatives(subject,
                                      template,
-                                     "Collabmates<hello@collabmates.com>",
+                                     "LikeMinds<hello@collabmates.com>",
                                      [to],
                                      )
     msg.attach_alternative(template, "text/html")
@@ -755,7 +753,7 @@ def all_members(request,community_id):
     '''function to show all members of the community'''
 
     members_info=Members.objects.filter(community_id=community_id).order_by('created_at')
-    form_responses=Form_response.objects.filter(community=community_id)
+    form_responses=communityAnswers.objects.filter(community=community_id)
     print(form_responses)
     has_questions=False
     if form_responses:
@@ -835,14 +833,14 @@ def delete_members(request,community_id,member_id):
 def show_member_responses(request,community_id,member_id):
 
     ''' function to show member responses '''
-    form_responses=Form_response.objects.filter(user=member_id,community=community_id)
+    form_responses=communityAnswers.objects.filter(member=member_id,community=community_id)
     response_list=[]
     community_instance=Community.objects.get(id=community_id)
     user_instance=User.objects.get(id=member_id)
     for response in form_responses:
         temp={}
-        temp['question']=response.data
-        temp['answer']=response.response
+        temp['question']=response.question_title
+        temp['answer']=response.question_answer
         response_list.append(temp)
     context={
         'response_list':response_list,
@@ -855,7 +853,8 @@ def show_member_responses(request,community_id,member_id):
 def add_questions(request,community_id):
 
     '''function to add and edit questions'''
-    questions=Form_data.objects.filter(community_id=community_id).order_by('id')
+    questions=communityQuestions.objects.filter(community=community_id).order_by('id')
+
     community_name=Community.objects.filter(id=community_id).values('name')
     question_list=[]
     for question in questions:
@@ -881,13 +880,14 @@ def add_questions(request,community_id):
                if len(question['question']) == 0:
                    continue
                if question['update']:
-                   Form_data.objects.filter(id=question['id']).update(data=question['question'])
+                   communityQuestions.objects.filter(id=question['id']).update(question_title=question['question'])
                else:
                    community = Community.objects.get(id=community_id)
-                   if not Form_data.objects.filter(community_id=community,data=question['question']).exists():
-                       form_data=Form_data()
-                       form_data.community_id=community
-                       form_data.data=question['question']
+                   if not communityQuestions.objects.filter(community=community,question_title=question['question']).exists():
+                       form_data=communityQuestions()
+                       form_data.community=community
+                       form_data.question_title=question['question']
+                       form_data.value="text"
                        form_data.save()
 
             return JsonResponse({"success": True})
@@ -896,11 +896,11 @@ def add_questions(request,community_id):
 
 def delete_questions(request,question_id):
     '''function to delelte the questions'''
-    form_data=Form_data.objects.filter(id=question_id)
+    form_data=communityQuestions.objects.filter(id=question_id)
     community_id=0
     for i in form_data:
-        community_id=i.community_id.id
-    Form_data.objects.filter(id=question_id).delete()
+        community_id=i.community.id
+    communityQuestions.objects.filter(id=question_id).delete()
     url='/admin_dashboard/add_questions/'+str(community_id)
     return redirect(url)
 
@@ -908,7 +908,7 @@ def delete_questions(request,question_id):
 def add_dropdown_responses(request,question_id):
 
     '''adding the dropdown reponses'''
-    form_data = Form_data.objects.get(id=question_id)
+    form_data = communityQuestions.objects.get(id=question_id)
     if request.method == "GET":
 
         # dropdown_list=["Ford", "BMW", "Fiat"]
@@ -917,13 +917,34 @@ def add_dropdown_responses(request,question_id):
         dropdown_list=[]
         dropdown_status=0
         if form_data.question_state:
-            dropdown_list=json.loads(form_data.dropdown_list)
+            if form_data.value[0] == '[':
+                form_data.value = form_data.value[1:]
+            if form_data.value[-1] == ']':
+                form_data.value = form_data.value[:-1]
+
+            if '$' in form_data.value:
+                dropdown_list=form_data.value.split("$#")
+            else:
+                dropdown_list=form_data.value.split(",")
+            for index, item in enumerate(dropdown_list):
+                item = item.strip()
+                if item[0] == '"':
+                    item = item[1:]
+                if item[-1] == '"':
+                    item = item[:-1]
+                if form_data.community.hide_community == '5':
+                    find_index = item.find(":")
+                    if find_index != -1:
+                        item = item[find_index + 1:-1].strip()
+                        if item[0] == '"':
+                            item = item[1:-1]
+                dropdown_list[index] = item
             dropdown_status=form_data.question_state
 
         context={
                 'dropdown_list':dropdown_list,
                 'question_id':question_id,
-                'question_name':form_data.data,
+                'question_name':form_data.question_title,
                 'length':len(dropdown_list),
                 'dropdown_status': dropdown_status,
                 'dropdown_selection_limit':form_data.dropdown_selection_limit
@@ -935,20 +956,26 @@ def add_dropdown_responses(request,question_id):
         dropdown_state=request.POST.get('dropdown_state')
         dropdown_limit=request.POST.get('dropdown_selection_limit')
 
+        if form_data.community.hide_community == '5':
+            return JsonResponse({"success": True})
 
         dropdown_list=[]
 
         for option in option_data:
             dropdown_list.append(option['option'])
         if dropdown_list:
-            dropdown_list=json.dumps(dropdown_list)
-            form_data.dropdown_list=dropdown_list
+            if dropdown_list[0][0] == '[':
+                dropdown_list[0] = dropdown_list[0][1:]
+                dropdown_list[-1] = dropdown_list[-1][:-1]
+
+            dropdown_list=" $# ".join(dropdown_list)
+            form_data.value=dropdown_list
             form_data.question_state=dropdown_state
             form_data.dropdown_selection_limit=dropdown_limit if dropdown_limit else None
             form_data.save()
             return JsonResponse({"success": True})
         else:
-            form_data.dropdown_list=None
+            form_data.value=None
             form_data.question_state=0
             form_data.save()
             return JsonResponse({"success":False})
@@ -1409,16 +1436,16 @@ def send_mail_for_signup(context,flag):
     if flag:             #alpha signup
 
         template = get_template("mails/alpha_sign_up.html").render(context)
-        subject="""Thanks for joining CollabMates! Here's the next step"""
+        subject="""Thanks for joining LikeMinds! Here's the next step"""
 
     else:
         template = get_template("mails/testing_signup.html").render(context)
-        subject="""Access to the first version of CollabMates App"""
+        subject="""Access to the first version of LikeMinds App"""
 
 
     msg = EmailMultiAlternatives(subject,
                                  template,
-                                 "Collabmates<hello@collabmates.com>",
+                                 "LikeMinds<hello@collabmates.com>",
                                  [to],
                                  )
     msg.attach_alternative(template, "text/html")
@@ -3339,3 +3366,48 @@ def delete_collabcard(request):
 
 
         return JsonResponse({"success": True, 'raise_error': False})
+
+
+def approve_collabcard_for_feedback_community(request,card_id):
+
+    '''function to approve the collabcard for feedback community'''
+
+    card_instance=Collabcard.objects.get(id=card_id)
+    community_instance=Community.objects.get(id=card_instance.community_id)
+    user_instance=User.objects.get(id=card_instance.user_id)
+    #saving state for card creater
+    is_state=collabcardState.objects.filter(card=card_instance,user=user_instance)
+    if not is_state.exists():
+        collabcard_state_instance = collabcardState()
+        collabcard_state_instance.card = card_instance
+        collabcard_state_instance.user = user_instance
+        collabcard_state_instance.community = community_instance
+        collabcard_state_instance.state = collabcard_states.COLLABCARD_STATE_FOLLOW  # user has created the card and he is autofollowing
+        collabcard_state_instance.created_at = time.time()
+        collabcard_state_instance.updated_at = time.time()
+        collabcard_state_instance.save()
+
+    card_instance.type=0                #posted state
+    card_instance.save()
+
+    update_last_unseen_in_engage_on_card_creation(community_instance.id)
+
+    typ=0
+
+
+
+    send_notification_for_new_collabcard_posted.delay(community_instance.id, card_instance.title,
+                                                      user_instance.id, user_instance.userinfo.name,
+                                                      type=typ, date_time=card_instance.date_time,
+                                                      card_id=card_instance.id,
+                                                      community_name=community_instance.name,
+                                                      community_state=community_instance.hide_community)
+
+
+    send_email_for_collabcard(community_instance, user_instance.userinfo, card_instance, typ)
+
+    return HttpResponse("Collabcard Posted")
+
+
+
+

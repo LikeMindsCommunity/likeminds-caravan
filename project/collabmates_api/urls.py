@@ -1,6 +1,7 @@
 from django.urls import path, include
 from . import views
 from collabmates_api import views as api_views
+from collabmates_api.notification import send_poll_notification_manually
 from django.views.decorators.csrf import csrf_exempt
 
 urlpatterns = [
@@ -9,16 +10,28 @@ urlpatterns = [
     path('community/<int:community_id>', api_views.community, name="community"),
     path('similar_communities/<int:community_id>', api_views.similar_community, name="similar_community"),
     path('community/<int:community_id>/questions', api_views.join_community, name="join"),
+
     path('join_community', views.join_community_responses, name="join_community_responses"),
+    path('v1/join_community', views.join_community_responses_version_1, name="join_community_responses_version_1"),
+
     path('categories', api_views.categories, name="categories"),
+
     path('create_community', api_views.create_community, name="create_community"),
+    path('v1/create_community',api_views.create_community_version_1,name='create_community_version_1'),
+
     path('community/<str:category>', api_views.category_filter, name="category_filter"),
     path('user/<int:user_id>', api_views.user, name="user"),
     path('admins/<int:community_id>', api_views.admins, name="admins"),
     path('members/<int:community_id>', api_views.members, name="members"),
+    path('ask_approval', api_views.ask_approval, name="ask_approval"),
     path('create_collabcard', api_views.create_card, name="create_card"),
     path('collabcard/<int:card_id>', api_views.collabcard, name="collabcard"),
+
     path('community_collabcard/<int:community_id>', api_views.community_cards, name="community_cards"),
+    path('community_collabcard_invite/<int:community_id>', api_views.community_collabcard_invite, name="community_collabcard_invite"),
+    path('v1/community_collabcard/<int:community_id>', api_views.community_cards_version_1,
+         name="community_cards_version_1"),
+
     path('create_answer', api_views.create_answer, name="create_answer"),
     path('login',api_views.login,name = 'login'),
     path('image_upload',api_views.image_upload,name = 'image'),
@@ -54,5 +67,11 @@ urlpatterns = [
     path('community_collabcard_id', api_views.community_collabcard_id, name='community_collabcard_id'),
     path('community_collabcard_meta', api_views.community_collabcard_meta, name='community_collabcard_meta'),
     path('collabcard_poll', api_views.collabcard_poll, name='collabcard_poll'),
+
+    path('fetch_whatsapp_tool', api_views.fetch_whatsapp_tool, name='fetch_whatsapp_tool'),
+    path('questions', api_views.questions, name='questions'),
+    path('poll_notification', send_poll_notification_manually, name='poll_notification'),
+    path('fetch_master_questions', api_views.fetch_master_questions, name='fetch_master_questions'),
+
 
 ]

@@ -16,9 +16,9 @@ card_action = (
 
 class Community(models.Model):
     name = models.CharField(max_length=200)
-    about = models.TextField()
+    about = models.TextField(null=True)
     purpose = models.CharField(max_length=2048)
-    location = models.CharField(max_length=200)
+    location = models.CharField(max_length=200,null=True)
     image_url = models.ImageField(upload_to="media/community", null=True)
     members_count = models.IntegerField(default=0)
     active_since = models.DateField(auto_now_add=True)
@@ -31,6 +31,10 @@ class Community(models.Model):
     image_link = models.CharField(max_length=500, null=True)
     thumbnail = models.CharField(max_length=500, null=True)
     introduction_text_state = models.IntegerField(default=0)
+    attribute_type = models.IntegerField(default=0)
+    # for whats app community
+    type=models.IntegerField(null=True)
+    sub_type = models.IntegerField(null=True)
 
     def __str__(self):
         return self.name
@@ -48,6 +52,8 @@ class Members(models.Model):
     state = models.IntegerField(null=True)
     created_at = models.BigIntegerField(default=-9223372036854775808)
     tool_state = models.IntegerField(default=0)
+    ask_member_id = models.IntegerField(null=True)
+    approved_member_id = models.IntegerField(null=True)
 
     def __str__(self):
         return self.community_id.name
@@ -113,6 +119,7 @@ class Userinfo(models.Model):
     version_code = models.IntegerField(null=True, default=21)
     image_link = models.CharField(max_length=500, null=True)
     apple_id = models.CharField(max_length=100, null=True)
+    has_tags=models.BooleanField(default=False)
 
     def __str__(self):
         return self.name
@@ -580,3 +587,93 @@ class MemberPollVotes(models.Model):
             self.created_at = time.time()
         self.updated_at = time.time()
         super(MemberPollVotes, self).save(*args, **kwargs)
+
+
+class collabcardTemp(models.Model):
+
+    '''model to save the data for new collabcard created by user'''
+
+    title = models.TextField()
+    community = models.ForeignKey(Community, on_delete=models.CASCADE)
+    member = models.ForeignKey(User, on_delete=models.CASCADE,related_name='collabcardTemp_member')
+    created_at = models.BigIntegerField(default=0, null=True)
+    show_member=models.ForeignKey(User, on_delete=models.CASCADE,related_name='show_member_id')
+    state=models.IntegerField(default=0)
+
+
+class communityQuestions(models.Model):
+
+    '''model to save community questions'''
+
+    community = models.ForeignKey(Community, on_delete=models.CASCADE)
+    question_title = models.TextField(null=True)
+    question_state = models.IntegerField(default=0)
+    value = models.TextField(null=True)
+    dropdown_selection_limit = models.IntegerField(null=True)
+    optional=models.BooleanField(default=False)
+    help_text = models.TextField(null=True)
+
+
+class communityAnswers(models.Model):
+
+    '''model to save answers of a user in community'''
+
+    community = models.ForeignKey(Community, on_delete=models.CASCADE)
+    question_title = models.TextField(null=True)
+    question_answer=models.TextField()
+    member=models.ForeignKey(User, on_delete=models.CASCADE)
+    question=models.ForeignKey(communityQuestions, on_delete=models.CASCADE)
+
+
+
+#master questions flow
+
+class communityType(models.Model):
+
+    '''model  to save type of community'''
+
+    typ=models.TextField(null=True)
+    next_input_title=models.TextField(null=True)
+
+
+class communitySubtype(models.Model):
+
+    '''model to save subtype of community'''
+    sub_typ=models.TextField(null=True)
+    typ = models.ForeignKey(communityType, on_delete=models.CASCADE)
+
+
+class masterQuestions(models.Model):
+
+    '''model to save the master questions of community'''
+
+    typ=models.ForeignKey(communityType,on_delete=models.CASCADE)
+    sub_type=models.ForeignKey(communitySubtype,on_delete=models.CASCADE)
+    question_title=models.TextField(null=True)
+    value=models.TextField(null=True)
+    help_text=models.TextField(null=True)
+    state=models.IntegerField(default=0)
+
+
+# saving the community duration
+class communityExpire(models.Model):
+
+    '''community to save duration of community when it got expired'''
+
+    duration=models.BigIntegerField(default=0)
+    community=models.ForeignKey(Community,on_delete=models.CASCADE)
+
+
+class questionFilters(models.Model):
+
+    '''model to save questions filters'''
+    question = models.ForeignKey(communityQuestions, on_delete=models.CASCADE)
+    filter = models.TextField(null=True)
+    member = models.ForeignKey(User, on_delete=models.CASCADE)
+    community = models.ForeignKey(Community, on_delete=models.CASCADE)
+    created_at = models.BigIntegerField(default=0, null=True)
+
+    def save(self, *args, **kwargs):
+        if self.created_at == 0:
+            self.created_at = time.time()
+        super(questionFilters, self).save(*args, **kwargs)

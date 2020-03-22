@@ -1,18 +1,54 @@
 from __future__ import absolute_import, unicode_literals
 from celery import shared_task
-from django.shortcuts import get_object_or_404
-from django.http import HttpResponse
-from togther.models import *
-from togther.forms import *
-from django.contrib.auth.models import User
 import json
-from django.http.response import JsonResponse
-from collabmates_api.serializers import *
-from django.views.decorators.csrf import csrf_exempt
-from datetime import datetime
-from django.db.models import F
+import logging
+import os
+import re
 import time
-import requests as rqst
+from datetime import datetime
+
+import dateutil.relativedelta
+import googlemaps
+from celery import shared_task
+from collabmates_api.serializers import *
+from django.conf import settings
+from django.contrib.auth.models import User
+from django.core.paginator import Paginator
+from django.db.models import F
+from django.db.models import Q
+from django.http import HttpResponse
+from django.http.response import JsonResponse
+from django.shortcuts import get_object_or_404
+from django.views.decorators.csrf import csrf_exempt
+from togther.forms import *
+from togther.models import *
+from togther.tasks import send_email_to_proposed_admin, send_mail_after_rank_computation
+from togther.views import get_nominated_admin_details
+from utility.celery_tasks import (save_community_purpose_card,
+                                  update_last_unseen_in_engage_on_card_creation,
+                                  update_last_unseen_in_engage,
+                                  )
+from utility.firebase import update_last_answer_id, upload_image_to_firebase, upload_community_thumbnail, \
+    upload_community_files
+from utility.states import collabcard_states, member_states, question_states
+from utility.tasks import (mail_triger, new_member_request,
+                           member_request_approval_or_denied,
+                           send_mail_for_report_abuse,
+                           send_mail_for_query_and_feedback
+                           )
+from utility.utils import (decode_meta_from_url, update_tag_image,
+                           get_referred_members_of_a_member,
+                           eligibility_count, notify_referred_member,
+                           update_member_count,
+                           tutorial_count,
+    # custom_cache,cache_timeout,
+                           get_city_address,
+                           update_user_geography_tags, insert_user_home_town_tags, is_IG_community,
+                           ig_members_count, is_LG_or_LP_community, feedback_community_id, feedback_collabcard_id,
+                           is_member_verified
+
+                           )
+
 from .notification import (send_follow_notification, send_notification_to_admins,
                            send_notification_for_join_requests,
                            send_notification_for_new_collabcard_posted,
@@ -22,55 +58,19 @@ from .notification import (send_follow_notification, send_notification_to_admins
                            send_notification_to_all_admins,
                            send_notification_to_tagged_users,
                            send_poll_or_event_notification,
-                           )
-
-from django.db.models import Q
-import dateutil.relativedelta
-from .tasks import send_email_to_nominated_admin, send_email_for_new_collabcard_posted, send_welcome_mail
-from django.conf import settings
-from togther.tasks import send_email_to_proposed_admin, send_mail_after_rank_computation
-from django.core.paginator import Paginator
-from togther.views import get_nominated_admin_details
-import os
-import re
-import googlemaps
-import logging
-from django.views.decorators.csrf import ensure_csrf_cookie
-
-from utility.utils import (decode_meta_from_url, update_tag_image,
-                           referal, get_referred_members_of_a_member,
-                           eligibility_count, notify_referred_member,
-                           user_onbaord, update_member_count,
-                           update_community_tags_to_user, tutorial_count,
-                           # custom_cache,cache_timeout,
-                           get_city_address,
-                           update_user_geography_tags, create_or_categorize_tag,
-                           insert_user_home_town_tags, user_onbaord, is_IG_community,
-                           create_user_hometown_tag_and_related_tags)
-
-from utility.states import collabcard_states, card_types, member_states
-
-from utility.tasks import (mail_triger, new_member_request,
-                           member_request_approval_or_denied,
-                           send_mail_for_report_abuse,
-                           )
-from utility.firebase import update_last_answer_id, upload_image_to_firebase, upload_community_thumbnail, upload_community_files
+                           send_notification_to_promoter_of_ig_community,
+                           send_notification_to_referrer_of_ig_community,
+                           send_notification_to_referrer_of_lg_community,
+                           ask_approval_notification,
+                           send_notification_for_tool_unlocked_for_live_community,
+                           send_notification_for_tool_unlocked_for_pilot)
 from .raw_queries import compute_rank
-from multiprocessing.pool import ThreadPool
-
-from utility.celery_tasks import (update_referral_text_in_engage_table,
-                                  save_community_purpose_card,
-                                  update_communities_in_member_engage_table,
-                                  update_last_unseen_in_engage_on_card_creation,
-                                  update_last_unseen_in_engage,
-                                  )
-from utility.celery_beat_tasks import CeleryBeatTask
+from .tasks import send_email_to_nominated_admin, send_email_for_new_collabcard_posted, send_welcome_mail
 
 # CACHE_TTL = getattr(settings, 'CACHE_TTL', cache_timeout)
 
-
 url = settings.URL
-
+# url='http://localhost:8000'
 error_logger = logging.getLogger("error_logger")
 info_logger = logging.getLogger("info_logger")
 
@@ -95,7 +95,6 @@ def communities(request):
         community = [serializer(Community.objects.get(pk=community['community_id']) if state else community) for community in queryset]
 
         # custom_cache.set(cache_key,community,timeout=CACHE_TTL)
-        info_logger.info(community)
         # custom_cache.clear()
 
         state = 1 if state else 0
@@ -180,7 +179,7 @@ def your_communities(request, user_id):
     for each_community in communities:
 
         community = CommunitySerializer(each_community.community_id)
-        community['pending_members_count'] = each_community.pending_members
+        community['pending_members_count'] = len(get_pending_members_of_community(each_community.community_id.id,member_id))
         community['updated_at'] = get_time_text(each_community.updated_at)
         if each_community.last_unseen_conversation:
             collabcard = CollabcardSerializer(each_community.last_unseen_conversation, user=member_id)
@@ -285,19 +284,24 @@ def community(request, community_id):
     elif community.hide_community == '0' or community.hide_community == '1':
         serialized_object['share_url'] = serialized_object['share_url'] + "?cta=share"
 
+    serialized_object['private_link']=serialized_object['share_url']+"?aj=t"
+
     # form a dictionary of community objects
     new_dict.update(serialized_object)
     if community:
         community_type = is_IG_community(community)
         if not community_type:
-            new_dict['share_text_admin'] = """Hi, I am trying to gather %s community on CollabMates. It will be good if you can join it.\n""" % (new_dict['name'])
-            new_dict['share_text_member'] = """I recently joined %s community on CollabMates. It will be good if you also join this community.\n""" % (new_dict['name'])
-            new_dict['share_text_anonymous'] = """I recently discovered %s community on CollabMates. You can join this community using this link.\n""" % (new_dict['name'])
+            new_dict['share_text_admin'] = """Hi, I am trying to gather %s community on LikeMinds. It will be good if you can join it.\n""" % (new_dict['name'])
+            new_dict['share_text_member'] = """I recently joined %s community on LikeMinds. It will be good if you also join this community.\n""" % (new_dict['name'])
+            new_dict['share_text_anonymous'] = """I recently discovered %s community on LikeMinds. You can join this community using this link.\n""" % (new_dict['name'])
         else:
             new_dict['share_text_admin'] = """Hi, I am trying to gather %s community on CollabMates. It will be fun if you can join it.\n""" % (new_dict['name'])
             new_dict['share_text_member'] = """I recently joined %s community on CollabMates. It will be fun if you also join this community.\n""" % (new_dict['name'])
             new_dict['share_text_anonymous'] = """I recently discovered %s community on CollabMates. You can join this community using this link.\n""" % (new_dict['name'])
     new_dict['min_referrer_member'] = eligibility_count
+
+    if community.id == feedback_community_id:
+        new_dict['share_url'] = ""
     return JsonResponse({'community': new_dict})
 
 
@@ -332,49 +336,72 @@ def similar_community(request, community_id):
 
 # /api/community/264/questions
 def join_community(request, community_id):
-    '''function to get questions of community'''
 
-    data = Form_data.objects.all().filter(community_id=community_id).order_by("id")
+    '''function to get questions of community'''
+    data = communityQuestions.objects.filter(community=community_id).order_by("id")
+    community_instance = Community.objects.get(id=community_id)
+    community = CommunitySerializer(community_instance)
+
     reqd_info = []
     first_question = False
     for i in data:
         if not first_question:
-            ques = {'question': i.data,
-                    'question_state': i.question_state,
+            ques = {'question': i.question_title,
+                    'question_state': 3,
                     }
             if i.question_state == 1:
-                ques['dropdown_list'] = json.loads(i.dropdown_list)
+                try:
+                    ques['dropdown_list'] = json.loads(i.value)
+                except:
+                    ques['dropdown_list'] = i.value.split("$#")
+
             first_question = True
         else:
 
-            ques = {'question': i.data}
+            ques = {'question': i.question_title}
             if i.question_state == 1:
-                ques['dropdown_list'] = json.loads(i.dropdown_list)
+                try:
+                    ques['dropdown_list'] = json.loads(i.value)
+                except:
+                    ques['dropdown_list'] = i.value.split("$#")
                 ques['question_state'] = 1
             elif i.question_state == 2:
-                ques['dropdown_list'] = json.loads(i.dropdown_list)
-                ques['question_state'] = 3  # multiselect for android only
+                try:
+                    ques['dropdown_list'] = json.loads(i.value)
+                except:
+                    ques['dropdown_list'] = i.value.split("$#")
+                ques['question_state'] = 2  # multiselect for android only
             elif i.question_state == 0:
-                ques['question_state'] = 2  # no limit on answer condition for android
+                ques['question_state'] = 0  # no limit on answer condition for android
 
         reqd_info.append(ques)
-    return JsonResponse({'questions': reqd_info})
+
+
+    return JsonResponse({'questions': reqd_info,'community':community})
 
 
 # /api/join_community?member_id=&community_id=
 @csrf_exempt
 def join_community_responses(request):
+
     '''function to join community'''
+
     res = json.loads(request.body)
     user_id = request.GET.get('member_id')
     community_id = request.GET.get('community_id')
 
+    if 'questions' not in res:
+        res['questions'] = None
+
     community = Community.objects.get(id=community_id)
 
-    is_ig_pilot_active = False
+    is_private=False
+    if community.hide_community == '0' or community.hide_community == '1':
+        is_private=True
 
-    if community.hide_community == '4' and is_IG_community(community):
-        is_ig_pilot_active = True
+    is_ig=is_IG_community(community)
+    is_lg=is_LG_or_LP_community(community)
+
 
     user = User.objects.get(id=user_id)
 
@@ -383,138 +410,816 @@ def join_community_responses(request):
     else:
         ref_id = request.GET.get('ref_id', None)
 
-    info_logger.info("\n")
-    info_logger.info("Join Community api")
-    info_logger.info("""Community Id=%s""" % (community_id))
-    info_logger.info("""Member Id=%s""" % (user_id))
-    info_logger.info("""ref_id=%s""", str(ref_id))
-    info_logger.info("""Community State=%s""" % str(community.hide_community))
+    if  is_ig or is_lg == None:                                 #if the community is ig community or is_lg hometown community
+        print("Inside IG")
+        join_ig_communities(request,res,community,user,ref_id)
 
-    if ref_id:
-        # ref_id = res['ref_id']
 
-        if community.hide_community == '3' or community.hide_community == '4':
-            invited_member = Members.objects.filter(community_id=community,
-                                                    member_id=ref_id)
-            if invited_member.exists():
-                referal(ref_id=ref_id, community_id=community_id, interested_member_id=user_id)
+        if not ref_id:
+            # sending mail to nipun and harsh
+            new_member_request.delay(member_id=user_id, community_id=community_id, ref_id=None,
+                                     form_response=res['questions'])
+        else:
+            # sending mail to nipun and harsh
+            new_member_request.delay(member_id=user_id, community_id=community_id, ref_id=ref_id,
+                                     form_response=res['questions'])
 
-    # inserting in members table if the member status is pending and inserting it to database with status=3
+        return JsonResponse({'success':True})
 
-    # If the member is declined from the community and he applied again
-    try:
-        current_state = Members.objects.filter(member_id=user, community_id=community).values('state')
-        if current_state[0]['state'] == 5:
-            Members.objects.filter(member_id=user, community_id=community).update(state=3)
+    elif is_lg:
+        print("LG community")
+        join_lg_communities(request, res, community,user,ref_id)
 
-    except:
-        # if not
-        member = Members.objects.filter(member_id=user, community_id=community)
-        if not member.exists():
-            member = Members()
-            member.member_id = user
-            member.community_id = community
-            if community.hide_community == '0' or community.hide_community == '1' or community.hide_community == '4':
-                member.state = 3  # pending members
-                member.save()
-            elif community.hide_community == '3':
-                member.state = 8
-                member.save()
-                update_member_count(community_id)
-            update_community_tags_to_user(community_id=community_id, user_id=user.id)
-
-    if 'questions' in res:
-        info_logger.info(res['questions'])
-        for i in res['questions']:
-            response = Form_response.objects.filter(data=i['key'], user=user.id, community=community.id)
-            if not response.exists():
-                response = Form_response()
-                response.data = i['key']
-                response.response = i['value']
-                response.user = user.id
-                response.community = community.id
-                response.save()
-    else:
-        res['questions'] = [{}]
-
-    if not ref_id:
-        # sending mail to nipun and harsh
-        new_member_request.delay(member_id=user_id, community_id=community_id, ref_id=None,
-                                 form_response=res['questions'])
-    else:
-        # sending mail to nipun and harsh
+        if not ref_id:
+            # sending mail to nipun and harsh
+            new_member_request.delay(member_id=user_id, community_id=community_id, ref_id=None,
+                                     form_response=res['questions'])
+        else:
+            # sending mail to nipun and harsh
+            new_member_request.delay(member_id=user_id, community_id=community_id, ref_id=ref_id,
+                                     form_response=res['questions'])
+        return JsonResponse({'success': True})
+    elif is_private:
+        join_promoter_created_community(res,community,user)
         new_member_request.delay(member_id=user_id, community_id=community_id, ref_id=ref_id,
                                  form_response=res['questions'])
 
-    if community.hide_community == '0' or community.hide_community == '1' or community.hide_community == '4':
-
-        # updating updated time of community and pending member count for admins of commnity
-        Community.objects.filter(id=community_id).update(updated_at=time.time())
-
-        # if the member is not present in engage table
-        if not is_member_engage(community, user):
-            engage = Member_Engage()
-            engage.community_id = community
-            engage.member_id = user
-            engage.updated_at = time.time()
-            engage.save()
-            info_logger.info(
-                """Data Inserted successfully in members engage table where user_id=%s and community_id=%s""" % (
-                    user_id, community_id))
-
-        update_pending_member_count_in_engage(community)
-        # sending notification to admins of the community
-        name = user.userinfo.name
-        if not is_ig_pilot_active:
-            send_notification_to_admins.delay(community_id, name)
-
-    # if the community is the pilot community then filling the engage table
-    if community.hide_community == '3':
-        # if the user is not refered by anyone
-        if not ref_id:
-            # if the user data is already there in members engage
-            if not is_member_engage(community, user):
-                engage = Member_Engage()
-                engage.community_id = community
-                engage.member_id = user
-                engage.updated_at = time.time()
-                engage.save()
-                info_logger.info(
-                    """Data Inserted successfully in members engage table where user_id=%s and community_id=%s""" % (
-                    user_id, community_id))
-            else:
-                info_logger.info("Data already present for user")
-        else:
-            # if the user refered by someone
-            referer = User.objects.get(id=ref_id)
-            if not is_member_engage(community, user):
-                engage = Member_Engage()
-                engage.community_id = community
-                engage.member_id = user
-                engage.updated_at = time.time()
-                engage.save()
-            info_logger.info(
-                """Data Inserted successfully in members engage table where user_id=%s and community_id=%s""" % (
-                    user_id, community_id))
-            Member_Engage.objects.filter(community_id=community, member_id=referer).update(
-                pending_members=F('pending_members') + 1)
-            info_logger.info(
-                """Members engage table updated  where ref_id=%s and community_id=%s""" % (
-                    user_id, community_id))
-
-    update_referral_text_in_engage_table.delay(community_id)
-    log = """Request for community_id=%s is sent from member_id=%s\n""" % (community_id, user_id)
-    info_logger.info(log)
-    info_logger.info("\n")
-
-    if is_ig_pilot_active:
-        req_dict = {
-            'accepted': True,
-            'member_id': user_id,
-            'community_id': community_id
-        }
-        request_response(request, req_dict)
     return JsonResponse({'success': True})
+
+
+#old api support
+def join_ig_communities(request,res,community,user,ref_id):
+
+    '''join api for ig communities'''
+
+    member_instance = Members.objects.filter(member_id=user, community_id=community)
+    if not member_instance:
+        # making a member instance
+        member = Members()
+        member.member_id = user
+        member.community_id = community
+        member.state = member_states.MEMBER
+        member.created_at=time.time()
+        member.save()
+
+        # saving questions
+        if 'questions' in res:
+            info_logger.info(res['questions'])
+            for i in res['questions']:
+                response = communityAnswers.objects.filter(question_title=i['key'], member=user, community=community)
+                if not response.exists():
+                    question_list=communityQuestions.objects.filter(question_title=i['key'])
+                    response = communityAnswers()
+                    response.question_title = i['key']
+                    response.question_answer = i['value']
+                    response.member = user
+                    response.community = community
+                    if question_list:
+                        response.question=question_list[0]
+                    response.save()
+        else:
+            res['questions'] = [{}]
+
+        # creating an introduction card
+        community_id = community.id
+        member_id =user.id
+        introduction_question, introduction_answer = auto_create_collabcard(user, community)
+        print(introduction_answer)
+        req_dict={
+
+            'member_id':member_id,
+            'community_id':community_id,
+            'title':introduction_answer,
+            'type':1,
+            'create_intro':1
+        }
+        create_card(request,req_dict=req_dict)
+        #saving the referal detail and sending notifications for refered members
+
+        community.updated_at=time.time()
+        community.members_count=community.members_count + 1
+        community.save()
+
+        is_live = False
+        if community.hide_community == '4':
+            is_live = True
+
+        if community.members_count == ig_members_count:
+            community.hide_community='4'
+            community.save()
+            send_notification_for_tool_unlocked_for_pilot.delay(community_id=community.id)
+
+        send_notification_for_join_requests.delay(community_id, True, member_id)
+        log="""Community joined for community_id=%s and member_id=%s"""%(community.id,user.id)
+
+        info_logger.info(log)
+
+
+        if ref_id:
+            referer_instance = User.objects.get(pk=ref_id)
+            refer = Referal.objects.filter(member=referer_instance,
+                                           invited_member=user,
+                                           community=community)
+
+            #send notification for joining community
+            send_notification_to_referrer_of_ig_community.delay(community_id=community_id, community_name=community.name,
+                                                          referrer_id=ref_id,
+                                                          member_name=user.userinfo.name,
+                                                          community_state=community.hide_community)
+
+
+            if not refer.exists():
+                refer = Referal(member=referer_instance,
+                                invited_member=user,
+                                community=community)
+                refer.save()
+
+            total_referals = get_referred_members_of_a_member(community.id,ref_id)
+            total_referal_count = len(total_referals)
+
+
+            if total_referal_count >= eligibility_count:
+                admin = Members.objects.filter(community_id=community, member_id=referer_instance)
+
+                if admin.exists():
+                    Members.objects.filter(community_id=community, member_id=referer_instance).update(state=member_states.ADMIN)
+                    Member_Engage.objects.filter(member_id=referer_instance, community_id=community).update(
+                        member_state=member_states.ADMIN)
+
+
+            if is_live:
+                send_notification_for_tool_unlocked_for_live_community.delay(referer_id=ref_id, referal_count=total_referal_count,
+                                                    community_id=community.id,
+                                                    community_name=community.name,
+                                                    community_state=community.hide_community)
+
+
+
+def join_lg_communities(request,res,community,user,ref_id):
+
+    '''function to join lg communities'''
+
+    member_instance = Members.objects.filter(member_id=user, community_id=community)
+    if not member_instance:
+        # making a member instance
+        member = Members()
+        member.member_id = user
+        member.community_id = community
+        member.state = member_states.PENDING_MEMBER
+        if ref_id:
+            member.ask_member_id=ref_id
+        member.created_at = time.time()
+        member.save()
+
+        introduction_answer=""
+        # saving questions
+        if 'questions' in res:
+            info_logger.info(res['questions'])
+            for i in res['questions']:
+                response = communityAnswers.objects.filter(question_title=i['key'], member=user,
+                                                           community=community)
+                if not response.exists():
+                    question_list = communityQuestions.objects.filter(question_title=i['key'])
+                    response = communityAnswers()
+                    response.question_title = i['key']
+                    response.question_answer = i['value']
+                    response.member = user
+                    response.community = community
+                    if question_list:
+                        response.question = question_list[0]
+                    response.save()
+
+                if not introduction_answer:
+                    introduction_answer=i['value']
+        else:
+            res['questions'] = [{}]
+
+        creating_collabcard_for_lg_communities(community, user, introduction_answer, ref_id=ref_id)
+
+
+       #creating members engage
+
+        engage = Member_Engage()
+        engage.member_id = user
+        engage.community_id = community
+        engage.updated_at = time.time()
+        engage.member_state = member_states.PENDING_MEMBER
+        engage.member_referral="Your profile is being verified"
+        engage.save()
+
+
+
+        #updating the pending members count in engage table if the ref_id member is verified
+        if ref_id:
+
+            member_queryset=Member_Engage.objects.filter(community_id=community,member_id=ref_id).filter(
+                Q(member_state=member_states.ADMIN)|Q(member_state=member_states.MEMBER))
+            is_verified = member_queryset.exists()
+            if is_verified:
+                member_queryset.update(pending_members=F('pending_members')+1)
+            send_notification_to_referrer_of_lg_community(community_id=community.id, community_name=community.name,
+                                                          referrer_id=ref_id,
+                                                          member_name=user.userinfo.name, community_state=community.hide_community,
+                                                          is_verified=is_verified)
+
+
+        log = """Request in LG community where community_id=%s and member_id=%s""" % (community.id, user.id)
+        print(log)
+    else:
+        member_instance.update(state=member_states.PENDING_MEMBER)
+
+
+def join_promoter_created_community(res,community,user):
+
+    '''function to join promoter created community'''
+
+    member_instance = Members.objects.filter(member_id=user, community_id=community)
+    if not member_instance:
+        # making a member instance
+        member = Members()
+        member.member_id = user
+        member.community_id = community
+        member.state = member_states.PENDING_MEMBER
+        member.created_at = time.time()
+        member.save()
+
+        introduction_answer = ""
+        # saving questions
+        if 'questions' in res:
+            info_logger.info(res['questions'])
+            for i in res['questions']:
+                response = communityAnswers.objects.filter(question_title=i['key'], member=user,
+                                                           community=community)
+                if not response.exists():
+                    question_list = communityQuestions.objects.filter(question_title=i['key'])
+                    response = communityAnswers()
+                    response.question_title = i['key']
+                    response.question_answer = i['value']
+                    response.member = user
+                    response.community = community
+                    if question_list:
+                        response.question = question_list[0]
+                    response.save()
+
+                if not introduction_answer:
+                    introduction_answer = i['value']
+        else:
+            res['questions'] = [{}]
+
+        engage = Member_Engage()
+        engage.member_id = user
+        engage.community_id = community
+        engage.updated_at = time.time()
+        engage.member_state = member_states.PENDING_MEMBER
+        engage.save()
+        update_pending_member_count_in_engage(community)
+
+        #sending notifications to the admin of the community
+        name=user.userinfo.name
+        send_notification_to_admins.delay(community.id, name)
+
+
+    else:
+        member_instance.update(state=member_states.PENDING_MEMBER)
+
+
+
+
+def questions(request):
+
+    '''api to send the questions for a particular community'''
+
+    community_id = request.GET.get('community_id')
+    data = communityQuestions.objects.filter(community=community_id).order_by("id")
+    community_instance = Community.objects.get(id=community_id)
+    community = CommunitySerializer(community_instance)
+
+
+    questions = []
+
+    for question in data:
+        serialized_question = CommunityQuestionsSerializer(question)
+        questions.append(serialized_question)
+
+    return JsonResponse({'questions': questions, 'community': community})
+
+#version support apis
+@csrf_exempt
+def join_community_responses_version_1(request):
+
+
+    info_logger.info("Join community request\n")
+    info_logger.info(request.body)
+    res = json.loads(request.body)
+
+    info_logger.info("Join community res\n")
+    info_logger.info(res)
+    info_logger.info("\n")
+    community_id = res['community_id']
+    community_instance = Community.objects.get(id=community_id)
+    community=community_instance
+
+
+    user_id = get_member_id_from_headers(request)
+    if not user_id:
+        user_id = request.GET.get('member_id', None)
+
+    #for whatsapp community
+    if community_instance.hide_community == '5':
+        info_logger.info("whats app communtiy")
+        join_whatsapp_community(res,request)
+        return JsonResponse({'success': True})
+
+    is_private = False
+    if community.hide_community == '0' or community.hide_community == '1':
+        is_private = True
+
+    is_ig = is_IG_community(community)
+    is_lg = is_LG_or_LP_community(community)
+
+    user = User.objects.get(id=user_id)
+
+    if 'ref_id' in res:
+        ref_id = res['ref_id']
+    else:
+        ref_id = request.GET.get('ref_id', None)
+
+    if is_ig or is_lg == None:  # if the community is ig community or is_lg hometown community
+        print("Inside IG")
+        join_ig_communities_version_1(request, res, community, user, ref_id)
+        if ref_id:
+            referer_instance = User.objects.get(pk=ref_id)
+            refer = Referal.objects.filter(member=referer_instance,
+                                           invited_member=user,
+                                           community=community)
+            if not refer.exists():
+                refer = Referal(member=referer_instance,
+                                invited_member=user,
+                                community=community)
+                refer.save()
+
+            # send notification for joining community
+            send_notification_to_referrer_of_ig_community(community_id=community_id, community_name=community.name,
+                                                              referrer_id=ref_id,
+                                                              member_name=user.userinfo.name,
+                                                              community_state=community.hide_community)
+
+            total_referals = Referal.objects.filter(member=referer_instance,
+                                                    community=community)
+
+            total_referal_count = total_referals.count()
+
+            # send_notification_for_tool_unlocked.delay(referer_id=ref_id,
+            #                                           joined_member_name=user.userinfo.name,
+            #                                           referal_count=total_referal_count, community_id=community.id,
+            #                                           community_name=community.name)
+            if total_referal_count < ig_members_count:
+                pass
+
+            if total_referal_count == eligibility_count:
+                admin = Members.objects.filter(community_id=community, member_id=referer_instance)
+
+                if admin.exists():
+                    Members.objects.filter(community_id=community, member_id=referer_instance).update(
+                        state=member_states.ADMIN)
+                    Member_Engage.objects.filter(member_id=referer_instance, community_id=community).update(
+                        member_state=member_states.ADMIN)
+
+                    send_notification_to_promoter_of_ig_community.delay(community_id=community.id,
+                                                                        community_name=community.name, member_id=ref_id)
+
+        if not ref_id:
+            # sending mail to nipun and harsh
+            new_member_request.delay(member_id=user_id, community_id=community_id, ref_id=None,
+                                     form_response=res['questions'])
+        else:
+            # sending mail to nipun and harsh
+            new_member_request.delay(member_id=user_id, community_id=community_id, ref_id=ref_id,
+                                     form_response=res['questions'])
+
+        return JsonResponse({'success': True})
+
+    elif is_lg:
+        print("LG community")
+        join_lg_communities_version_1(request, res, community, user, ref_id)
+
+        if not ref_id:
+            # sending mail to nipun and harsh
+            new_member_request.delay(member_id=user_id, community_id=community_id, ref_id=None,
+                                     form_response=res['questions'])
+        else:
+            # sending mail to nipun and harsh
+            new_member_request.delay(member_id=user_id, community_id=community_id, ref_id=ref_id,
+                                     form_response=res['questions'])
+        return JsonResponse({'success': True})
+    elif is_private:
+        info_logger.info("Inside private\n")
+        join_promoter_created_community_version_1(res, community, user)
+        new_member_request.delay(member_id=user_id, community_id=community_id, ref_id=ref_id,
+                                 form_response=res['questions'])
+
+    return JsonResponse({'success': True})
+
+
+def join_ig_communities_version_1(request,res,community,user,ref_id):
+
+    '''join api for ig communities'''
+
+    member_instance = Members.objects.filter(member_id=user, community_id=community)
+    if not member_instance:
+        # making a member instance
+        member = Members()
+        member.member_id = user
+        member.community_id = community
+        member.state = member_states.MEMBER
+        member.created_at=time.time()
+        member.save()
+
+        # saving questions
+        if 'questions' in res:
+            info_logger.info(res['questions'])
+            for question in res['questions']:
+                question_instance = communityQuestions.objects.get(id=question['id'])
+                answer_instance = communityAnswers()
+                answer_instance.question = question_instance
+                answer_instance.member = user
+                answer_instance.community = community
+                answer_instance.question_answer = question['value']
+                answer_instance.question_title = question_instance.question_title
+                answer_instance.save()
+        else:
+            res['questions'] = [{}]
+
+        # creating an introduction card
+        community_id = community.id
+        member_id =user.id
+        introduction_question, introduction_answer = auto_create_collabcard(user, community)
+        print(introduction_answer)
+        req_dict={
+
+            'member_id':member_id,
+            'community_id':community_id,
+            'title':introduction_answer,
+            'type':1,
+            'create_intro':1
+        }
+        create_card(request,req_dict=req_dict)
+        #saving the referal detail and sending notifications for refered members
+
+        community.updated_at=time.time()
+        community.members_count=community.members_count + 1
+        community.save()
+
+        if community.members_count == ig_members_count:
+            community.hide_community='4'
+            community.save()
+        send_notification_for_join_requests.delay(community_id, True, member_id)
+        log="""Community joined for community_id=%s and member_id=%s"""%(community.id,user.id)
+        print(log)
+
+
+def join_lg_communities_version_1(request,res,community,user,ref_id):
+
+    '''function to join lg communities'''
+
+    member_instance = Members.objects.filter(member_id=user, community_id=community)
+    if not member_instance:
+        # making a member instance
+        member = Members()
+        member.member_id = user
+        member.community_id = community
+        member.state = member_states.PENDING_MEMBER
+        if ref_id:
+            member.ask_member_id=ref_id
+        member.created_at = time.time()
+        member.save()
+
+        introduction_answer=""
+        # saving questions
+        if 'questions' in res:
+            info_logger.info(res['questions'])
+
+            for question in res['questions']:
+                question_instance = communityQuestions.objects.get(id=question['id'])
+                answer_instance = communityAnswers()
+                answer_instance.question = question_instance
+                answer_instance.member = user
+                answer_instance.community = community
+                answer_instance.question_answer = question['value']
+                answer_instance.question_title = question_instance.question_title
+                answer_instance.save()
+
+                if not introduction_answer:
+                    introduction_answer = question['value']
+        else:
+            res['questions'] = [{}]
+
+        creating_collabcard_for_lg_communities(community, user, introduction_answer, ref_id=ref_id)
+
+
+       #creating members engage
+
+        engage = Member_Engage()
+        engage.member_id = user
+        engage.community_id = community
+        engage.updated_at = time.time()
+        engage.member_state = member_states.PENDING_MEMBER
+        engage.member_referral="Your profile is being verified"
+        engage.save()
+
+
+
+        #updating the pending members count in engage table if the ref_id member is verified
+        member_queryset = Member_Engage.objects.filter(community_id=community, member_id=ref_id).filter(
+            Q(member_state=member_states.ADMIN) | Q(member_state=member_states.MEMBER))
+        is_verified = member_queryset.exists()
+        if is_verified:
+            member_queryset.update(pending_members=F('pending_members') + 1)
+        send_notification_to_referrer_of_lg_community(community_id=community.id, community_name=community.name,
+                                                      referrer_id=ref_id,
+                                                      member_name=user.userinfo.name,
+                                                      community_state=community.hide_community,
+                                                      is_verified=is_verified)
+
+        log = """Request in LG community where community_id=%s and member_id=%s""" % (community.id, user.id)
+        print(log)
+    else:
+        member_instance.update(state=member_states.PENDING_MEMBER)
+
+
+def join_promoter_created_community_version_1(res,community,user):
+
+    '''function to join promoter created community'''
+
+    member_instance = Members.objects.filter(member_id=user, community_id=community)
+    if not member_instance:
+        # making a member instance
+        member = Members()
+        member.member_id = user
+        member.community_id = community
+        member.state = member_states.PENDING_MEMBER
+        member.created_at = time.time()
+        member.save()
+
+        introduction_answer = ""
+        # saving questions
+        if 'questions' in res:
+            info_logger.info(res['questions'])
+
+            for question in res['questions']:
+                question_instance = communityQuestions.objects.get(id=question['id'])
+                answer_instance = communityAnswers()
+                answer_instance.question = question_instance
+                answer_instance.member = user
+                answer_instance.community = community
+                answer_instance.question_answer = question['value']
+                answer_instance.question_title = question_instance.question_title
+                answer_instance.save()
+
+                if not introduction_answer:
+                    introduction_answer = question['value']
+        else:
+            res['questions'] = [{}]
+
+        engage = Member_Engage()
+        engage.member_id = user
+        engage.community_id = community
+        engage.updated_at = time.time()
+        engage.member_state = member_states.PENDING_MEMBER
+        engage.save()
+        update_pending_member_count_in_engage(community)
+
+        #sending notifications to the admin of the community
+        name=user.userinfo.name
+        send_notification_to_admins.delay(community.id, name)
+
+
+    else:
+        member_instance.update(state=member_states.PENDING_MEMBER)
+
+
+
+def join_whatsapp_community(res,request):
+
+    '''function to join whatsapp community'''
+
+    community_id = res['community_id']
+    community_instance = Community.objects.get(id=community_id)
+
+    member_id = get_member_id_from_headers(request)
+    if not member_id:
+        member_id = request.GET.get('member_id', None)
+    else:
+        res['timestamp'] = res['timestamp'] / 1000                  #for android timestamp
+
+    user_instance = User.objects.get(id=member_id)
+
+    if 'questions' in res:
+
+        for question in res['questions']:
+            question_instance = communityQuestions.objects.get(id=question['id'])
+            answer_instance = communityAnswers()
+            answer_instance.question = question_instance
+            answer_instance.member = user_instance
+            answer_instance.community = community_instance
+            answer_instance.question_answer = question['value']
+            answer_instance.question_title = question_instance.question_title
+            answer_instance.save()
+
+            if question_instance.question_state == question_states.CHOICE_SINGLE or question_instance.question_state == question_states.CHOICE_MULTIPLE:
+                if "$#" in question['value']:
+                    selected_choices = question['value'].split("$#")
+                else:
+                    selected_choices = question['value'].split(",")
+                for choice in selected_choices:
+                    filter_instance = questionFilters(question=question_instance, filter=choice.strip(),
+                                                      member=user_instance, community=community_instance)
+                    filter_instance.save()
+
+
+    #saving data directly
+    if 'auto_join' in res:
+
+        if res['auto_join']:
+
+            validate_time = is_joining_time_valid(community_instance, res['timestamp'])
+            if validate_time:
+                auto_join_community(community_instance,user_instance)
+                post_introduction_card_for_whatsapp_community(community_id, member_id, request)
+                log="""Auto join community for community_id=%s for user=%s"""%(community_id,member_id)
+                info_logger.info(log)
+                return
+
+
+
+    member_list = Members.objects.filter(member_id=user_instance, community_id=community_instance)
+
+
+    if member_list:
+        member_state = member_list[0].state
+        if member_state == member_states.ADMIN:
+            post_introduction_card_for_whatsapp_community(community_id,member_id,request)
+            Member_Engage.objects.filter(member_id=user_instance, community_id=community_instance).update(
+                member_referral="")
+        else:
+
+            Members.objects.filter(member_id=user_instance,community_id=community_instance).update(
+                        state=member_states.PENDING_MEMBER)
+
+            Member_Engage.objects.filter(member_id=user_instance,community_id=community_instance).update(
+                state=member_states.PENDING_MEMBER)
+
+        return JsonResponse({'success': True})
+    else:
+
+        #creating a member instance
+        member_instance = Members()
+        member_instance.member_id = user_instance
+        member_instance.community_id = community_instance
+        member_instance.state = member_states.PENDING_MEMBER
+        member_instance.save()
+
+        #creating a member engage instance
+        engage = Member_Engage()
+        engage.member_id = user_instance
+        engage.community_id = community_instance
+        engage.updated_at = time.time()
+        engage.member_state = member_states.PENDING_MEMBER
+        engage.save()
+
+        send_notification_to_admins.delay(community_id,user_instance.userinfo.name)
+
+
+
+
+def is_joining_time_valid(community_instance,time_stamp):
+
+    '''function to check whether community joining time is valid or not'''
+
+    duration=communityExpire.objects.filter(community=community_instance)
+
+
+    time_stamp = int(time_stamp)
+
+    if duration:
+        duration=duration[0].duration
+        if (time_stamp-community_instance.created_at) <= duration:
+            return True
+    else:
+        return False
+
+    return False
+
+
+def auto_join_community(community_instance,user_instance):
+
+    # updating the member instance
+    member_instance = Members()
+    member_instance.member_id = user_instance
+    member_instance.community_id = community_instance
+    member_instance.state = member_states.MEMBER
+    member_instance.created_at=time.time()
+    member_instance.save()
+
+    # updating the member engage instance
+    engage = Member_Engage()
+    engage.member_id = user_instance
+    engage.community_id = community_instance
+    engage.updated_at = time.time()
+    engage.member_state = member_states.MEMBER
+    engage.save()
+
+    send_notification_for_join_requests.delay(community_instance.id,True, user_instance.id)
+
+
+def post_introduction_card_for_whatsapp_community(community_id,member_id,request):
+
+    '''fucntion to get introduction card of community'''
+
+    check_intro=communityQuestions.objects.filter(community=community_id,question_state=question_states.INTRODUCTION)
+
+    if check_intro.exists():
+        question_id=check_intro[0].id
+        introduction_answer_list=communityAnswers.objects.filter(community=community_id,member=member_id,question_id=question_id)
+        if introduction_answer_list.exists():
+            introduction_answer=introduction_answer_list[0].question_answer
+            req_dict = {
+
+                'member_id': member_id,
+                'community_id': community_id,
+                'title': introduction_answer,
+                'type': 1,
+                'create_intro': 1
+            }
+            create_card(request, req_dict=req_dict)
+            return True
+
+    return False
+
+
+
+def creating_collabcard_for_lg_communities(community,user,introduction_answer,ref_id=None):
+
+    '''function to create collabcard for lg community'''
+
+    if ref_id:
+        is_present=collabcardTemp.objects.filter(community=community,member=user)
+        if not is_present:
+
+            referer_instance = User.objects.get(pk=ref_id)
+
+            # creating card for current logged in user with refferred user's data
+            collabcard_temp_instance = collabcardTemp.objects.filter(Q(member=referer_instance),
+                                                                     Q(show_member=referer_instance),
+                                                                     Q(community=community))
+            if collabcard_temp_instance.exists():
+                collabcard_temp_instance = collabcard_temp_instance.first()
+                title = collabcard_temp_instance.title
+
+                collabcard_temp_instance = collabcardTemp()
+                collabcard_temp_instance.member = referer_instance
+                collabcard_temp_instance.community = community
+                collabcard_temp_instance.title = title
+                collabcard_temp_instance.show_member = user
+                collabcard_temp_instance.created_at = time.time()
+                collabcard_temp_instance.save()
+
+            # creating for the person who has refered
+            collabcard_temp_instance = collabcardTemp()
+            collabcard_temp_instance.member = user
+            collabcard_temp_instance.community = community
+            collabcard_temp_instance.title = introduction_answer
+            collabcard_temp_instance.show_member = referer_instance
+            collabcard_temp_instance.created_at = time.time()
+            collabcard_temp_instance.save()
+
+            #creating for user
+            collabcard_temp_instance=collabcardTemp()
+            collabcard_temp_instance.member=user
+            collabcard_temp_instance.community=community
+            collabcard_temp_instance.title=introduction_answer
+            collabcard_temp_instance.show_member=user
+            collabcard_temp_instance.created_at=time.time()
+            collabcard_temp_instance.save()
+
+
+
+
+    else:
+
+        # if ref_id is not present then creating for user
+        is_present = collabcardTemp.objects.filter(community=community, member=user)
+        if not is_present:
+            collabcard_temp_instance = collabcardTemp()
+            collabcard_temp_instance.member = user
+            collabcard_temp_instance.community = community
+            collabcard_temp_instance.title = introduction_answer
+            collabcard_temp_instance.show_member = user
+            collabcard_temp_instance.created_at = time.time()
+            collabcard_temp_instance.save()
+
+
+
 
 
 def category_filter(request, category):
@@ -566,6 +1271,13 @@ def members(request, community_id):
     ''' function to get all the mebers of a community including admins and nominated members '''
     community = get_object_or_404(Community, pk=community_id)
     # get members of the community
+
+
+    if community_id == feedback_community_id:
+        # if the community is feedback community sending empty list
+        return  JsonResponse({'members': []})
+
+
     member = Members.objects.filter(community_id=community).filter(Q(state=1) | Q(state=2) |
                                                                    Q(state=4) | Q(state=7) |
                                                                    Q(state=8) | Q(state=9))
@@ -589,37 +1301,53 @@ def admins(request, community_id):
     member_id = request.GET.get('member_id', None)
     admins = Members.objects.filter(community_id=community_id).filter(Q(state=1) | Q(state=2))
     users = []
+
     for admin in admins:
         user = Userinfo.objects.filter(user_id=admin.member_id.id)
         # get user serialized
         usr = UserinfoSerializer(user[0])
+
+        if int(community_id) != feedback_community_id:
+            form_response = FormResponseSerilaizer(community_id, admin.member_id.id)
+        else:
+            form_response =[
+                {
+                    'key':"",
+                    'value':"founder of LikeMinds"
+                }
+
+            ]
+        ref_members = get_referred_members_of_a_member(community_id, admin.member_id.id)
+        usr['referred_members_count']=len(ref_members)
+        if form_response:
+            usr['response'] = form_response
+
         users.append(usr)
+
+
     community = Community.objects.get(pk=community_id)
     referred_members_count = 0
     if member_id and community.hide_community == '3':
         ref_members = get_referred_members_of_a_member(community_id, member_id)
-        if len(ref_members):
-            referred_members_count = len(ref_members)
-            return JsonResponse({'members': users, 'referred_members_count': referred_members_count})
-        else:
-            return JsonResponse({'members': users, 'referred_members_count': referred_members_count})
+        referred_members_count = len(ref_members)
+        return JsonResponse({'members': users, 'referred_members_count': referred_members_count})
     elif member_id:
 
-        print(">>>>>>>>>>> ", member_id)
+        #print(">>>>>>>>>>> ", member_id)
         referals = get_referred_members_of_a_member(community_id=community_id, member_id=member_id)
         referal_count = len(referals)
-        print(referals)
-        count = 0
-        print("referal count === ", referal_count)
+        # print(referals)
+        # count = 0
+        # print("referal count === ", referal_count)
+        #
+        # for mem_id in referals:
+        #     member = Members.objects.filter(member_id=mem_id, community_id=community_id)
+        #     if member.exists():
+        #
+        #         if member[0].state == 4:
+        #             count += 1
 
-        for mem_id in referals:
-            member = Members.objects.filter(member_id=mem_id, community_id=community_id)
-            if member.exists():
-
-                if member[0].state == 4:
-                    count += 1
-
-        return JsonResponse({'members': users, 'referred_members_count': count})
+        return JsonResponse({'members': users, 'referred_members_count': referal_count})
     else:
         return JsonResponse({'members': users})
 
@@ -645,6 +1373,7 @@ def get_user_lpig_tags(user_id):
             temp['name'] = each.tags_id.name
             if each.tags_id.image_link:
                 temp['image_url'] = each.tags_id.image_link
+
             elif each.tags_id.tag_image:
                 temp['image_url'] = url + each.tags_id.tag_image.url
             attribute_id = each.tags_id.attribute_id.id
@@ -748,6 +1477,65 @@ def get_user_lpig_tags(user_id):
     # print(tags)
     return tags
 
+@csrf_exempt
+def ask_approval(request):
+
+    '''function to ask for approval in LG communities for member to member verification'''
+
+    member_id=get_member_id_from_headers(request)
+    ask_member_id=request.GET.get('ask_member_id',None)
+
+
+    community_id=request.GET.get('community_id')
+    community_instance=Community.objects.get(id=community_id)
+
+    if not ask_member_id:
+        contact_number=request.GET.get('contact_number')
+        user_instance=User.objects.get(id=member_id)
+        Userinfo.objects.filter(user_id=user_instance).update(contact_number=contact_number)
+        new_member_request.delay(member_id=member_id, community_id=community_id, ref_id=None,
+                                 form_response=None, ph_no=contact_number)
+        return JsonResponse({'success': True})
+
+    member_instance=Members.objects.get(member_id=member_id,community_id=community_id)
+    member_engage_instance=Member_Engage.objects.get(community_id=community_id,member_id=ask_member_id)
+
+    if member_instance.ask_member_id:                       #if the member ask someone else already for verification
+        previous_asked_member=member_instance.ask_member_id
+        member_engage_ask_instance=Member_Engage.objects.get(community_id=community_id,member_id=member_instance.ask_member_id)
+        if member_engage_ask_instance.pending_members:
+            member_engage_ask_instance.pending_members= member_engage_ask_instance.pending_members - 1
+            member_engage_ask_instance.save()
+
+        collabcardTemp.objects.filter(show_member=previous_asked_member,member=member_id,community=community_id).delete()
+        collabcardTemp.objects.filter(show_member=member_id,member=previous_asked_member,community=community_id).delete()
+
+    member_instance.ask_member_id=ask_member_id
+    member_instance.save()
+
+    member_engage_instance.pending_members=member_engage_instance.pending_members + 1
+    member_engage_instance.save()
+
+    card_temp_list=collabcardTemp.objects.filter(show_member=member_id,member_id=member_id,community_id=community_id)
+
+    if card_temp_list.exists():
+        ask_user_instance=User.objects.get(id=ask_member_id)
+
+        card_temp_instance=collabcardTemp()
+        card_temp_instance.show_member=ask_user_instance
+        card_temp_instance.member=card_temp_list[0].member
+        card_temp_instance.community=card_temp_list[0].community
+        card_temp_instance.title = card_temp_list[0].title
+        card_temp_instance.created_at = card_temp_list[0].created_at
+        card_temp_instance.save()
+
+    ask_approval_notification(community_id=community_id, community_name=community_instance.name, approver_id=ask_member_id,
+                              member_name=member_instance.member_id.userinfo.name, community_state=community_instance.hide_community)
+
+
+
+    return JsonResponse({'success':True})
+
 
 ############# functions for  create flow of card,community and members   ##########################
 
@@ -820,7 +1608,7 @@ def create_community(request):
             if community.purpose != '':
                 card.title = "Created this community " + community.purpose
             else:
-                card.title = "Listed our community on CollabMates. This will help us to know each other, have organised discussions and network efficiently."
+                card.title = "Listed our community on LikeMinds. This will help us to know each other, have organised discussions and network efficiently."
             card.community = community
             card.user = user
             card.date_epoch = time.time()
@@ -905,35 +1693,236 @@ def create_community(request):
             return JsonResponse({'success': True, 'community': new_dict})
     return HttpResponse("Create Community Api")
 
+@csrf_exempt
+def create_community_version_1(request):
+
+    '''function to create community for version for whatsapp shifting'''
+    member_id=get_member_id_from_headers(request)
+    user_instance=User.objects.get(pk=member_id)
+    res=json.loads(request.body)
+    info_logger.info(res)
+
+    community_name=""
+    purpose=""
+    community_type = None
+    sub_type = None
+
+    if 'name' in res:
+        community_name=res['name']
+
+    if 'purpose' in res:
+        purpose=res['purpose']
+
+    if 'type' in res:
+        community_type=res['type']
+
+    if 'sub_type' in res:
+        sub_type = res['sub_type']
+
+    if 'community_id' in res:
+        community_serialized_object = update_community(res)
+        return JsonResponse({'success':True,'community':community_serialized_object})
+
+
+
+    community_instance=Community()
+    community_instance.name=community_name
+    community_instance.purpose=purpose
+    community_instance.members_count=1
+    community_instance.image_link="https://beta.collabmates.com/media/media/community/default.jpeg"
+    if community_type:
+        community_instance.community_type=community_type
+    community_instance.created_at=time.time()
+    community_instance.updated_at=time.time()
+    community_instance.hide_community='5'     #for whatsapp community
+    if sub_type:
+        community_instance.sub_type = sub_type    #for whatsapp community
+    community_instance.save()
+
+    log = """%s community created in community table"""%(community_name)
+    info_logger.info(log)
+
+
+    #making the member instance for created community
+    member_instance=Members()
+    member_instance.member_id=user_instance
+    member_instance.community_id=community_instance
+    member_instance.state=member_states.ADMIN
+    member_instance.created_at=time.time()
+    member_instance.save()
+
+    #making the member enage instance for created community
+    engage = Member_Engage()
+    engage.member_id = user_instance
+    engage.community_id = community_instance
+    engage.updated_at = time.time()
+    engage.member_state = member_states.ADMIN
+    engage.member_referral = "Finish setting up your community"
+    engage.save()
+
+
+    log = """%s is the promoter of %s"""%(user_instance.userinfo.name,community_instance.name)
+    info_logger.info(log)
+
+
+    for question in res['questions']:
+
+        questions_instance=communityQuestions()
+        questions_instance.community=community_instance
+        questions_instance.question_title=question['question_title']
+        questions_instance.question_state=question['state']
+        questions_instance.value = question['value'] if 'value' in question else None
+        questions_instance.optional=question['optional']
+        questions_instance.help_text = question['help_text'] if 'help_text' in question else None
+        questions_instance.save()
+
+    log = """questions added in community questions table"""
+    info_logger.info(log)
+
+
+    check_data=communityExpire.objects.filter(community=community_instance)
+    if not check_data:
+        communityExpireInstance=communityExpire()
+        communityExpireInstance.community=community_instance
+        communityExpireInstance.duration = 86400                  #for 24 hours saving in community
+        communityExpireInstance.save()
+
+    communty_serailized_object = CommunitySerializer(community_instance)
+    return JsonResponse({'success':True,'community':communty_serailized_object})
+
+
+
+def update_community(res):
+
+    '''function to update the community'''
+
+    community_id = res['community_id']
+
+    community_filter = Community.objects.filter(id=community_id)
+
+    #updating community
+    if community_filter.exists():
+
+        community_instance = community_filter[0]
+        community_name = ""
+        purpose = ""
+        community_type = None
+        sub_type = None
+
+        if 'name' in res:
+            community_name = res['name']
+
+        if 'purpose' in res:
+            purpose = res['purpose']
+
+        if 'type' in res:
+            community_type = res['type']
+
+        if 'sub_type' in res:
+            sub_type = res['sub_type']
+
+        community_instance.name = community_name
+        community_instance.purpose = purpose
+        community_instance.members_count = 1
+        community_instance.image_link = "https://beta.collabmates.com/media/media/community/default.jpeg"
+        if community_type:
+            community_instance.community_type = community_type
+        community_instance.created_at = time.time()
+        community_instance.updated_at = time.time()
+        community_instance.hide_community = '5'  # for whatsapp community
+        if sub_type:
+            community_instance.sub_type = sub_type  # for whatsapp community
+        community_instance.save()
+
+
+        #deleting previous questions
+        delete_status = communityQuestions.objects.filter(community=community_id).delete()
+        print("delete status--",delete_status)
+
+
+        #saving the questions again
+        for question in res['questions']:
+            questions_instance = communityQuestions()
+            questions_instance.community = community_instance
+            questions_instance.question_title = question['question_title']
+            questions_instance.question_state = question['state']
+            questions_instance.value = question['value'] if 'value' in question else None
+            questions_instance.optional = question['optional']
+            questions_instance.help_text = question['help_text'] if 'help_text' in question else None
+            questions_instance.save()
+
+        log = """questions added in community questions table"""
+        info_logger.info(log)
+
+        communty_serailized_object = CommunitySerializer(community_instance)
+        return communty_serailized_object
+
+    return "Not a valid community"
+
+
+
+
+
+
+
+
 
 # /api/create_collabcard?community_id=&member_id=
 @csrf_exempt
-def create_card(request):
+def create_card(request,req_dict=None):
     ''' function to create a card '''
-    user_id = request.GET.get('member_id')
-    community_id = request.GET.get('community_id')
 
-    member_id = get_member_id_from_headers(request)
+    if not req_dict:
+        user_id = request.GET.get('member_id')
+        community_id = request.GET.get('community_id')
+    else:
+
+        user_id=req_dict['member_id']
+        community_id=req_dict['community_id']
+
+    print(request.method)
+
+    #member_id = get_member_id_from_headers(request)
     user_instance = User.objects.get(id=user_id)
     userinfo_instance = user_instance.userinfo
     community = Community.objects.get(id=community_id)
+    community_name = community.name
+    community_state = community.hide_community
     if request.method == 'POST':
-        res = json.loads(request.body, strict=False)
+        if not req_dict:
+            res = json.loads(request.body)
+        else:
+            res=req_dict
+
         # creating card
         # type=0 normal card, type =1 intro card, type 2 is event card and type 3 is poll card
-        type = int(res['type']) if 'type' in res else 0
+        typ = int(res['type']) if 'type' in res else 0
+
 
         card = Collabcard.objects.filter(community=community, user=user_instance, type=1)
-        if card.exists() and type == 1:
+        if card.exists() and typ == 1:
             # if welcome card for user is already existing
             return JsonResponse({'success': False})
-        date_time = res['date_time'] if (str(type) == '2' or str(type) == '3') else 0
 
+        if 'date_time' in res:
+            date_time = res['date_time'] if (str(typ) == '2' or str(typ) == '3') else 0
+        else:
+            date_time=0
+
+        #if the community is a ig community
+        create_intro=False
+        if 'create_intro' in res:
+            create_intro=True
+
+        is_feedback=False
+        if int(community_id) == int(feedback_community_id):
+            typ=4
+            is_feedback=True
         card = Collabcard()
         card.title = res['title']
         card.community = community
         card.user = user_instance
-        card.type = type
+        card.type = typ
         card.image_count = res['image_count'] if ('image_count' in res) else 0
         card.pdf_count = res['pdf_count'] if ('pdf_count' in res) else 0
         card.date_time = date_time
@@ -954,37 +1943,8 @@ def create_card(request):
             collabcardpolls_instance.text = poll['text']
             collabcardpolls_instance.save()
 
-        # if the community does not have a purpose card then a purpose will be created
-        # the first card created for a community is the purpose card
-        # if its a pilot community making the user promoter and updating community state to pilot active
-        info_logger.info(community.purpose_collabcard)
-        is_pilot_active = False
-        if not community.purpose_collabcard and community.hide_community == '3':
-            community.purpose_collabcard = card.id
-            join_time = time.time()
-            Members.objects.filter(community_id=community, member_id=user_instance).update(state=1,
-                                                                                           created_at=join_time)
-            # changing community state to 0 (zero) to make it a active community
-            community.hide_community = '4'
 
-            is_pilot_active = True
-            introduction_question, introduction_answer = auto_create_collabcard(user_instance, community)
-            json_body = {
-                'communityId': community_id,
-                'title': introduction_answer,
-                'image_count': 0,
-                'pdf_count': 0,
-                'type': 1  # if state=0 normal if state =1 intro
-            }
-            params = {
-                'community_id': community_id,
-                'member_id': user_id
-            }
-            # calling create card APi with required credentials
-            link = url + "/api/create_collabcard"
-            post_response = rqst.post(link, params=params, json=json_body)
-        community.updated_at = time.time()
-        community.save()
+
 
         collabcard = CollabcardSerializer(card, user_id, community)
 
@@ -994,6 +1954,31 @@ def create_card(request):
         user_info_serializer = UserinfoSerializer(userinfo_instance)
         collabcard['member'] = user_info_serializer
 
+        if is_feedback:                                      #if the collabcard created in feedback community
+
+            mail_dict={}
+            mail_dict['user_name']=user_info_serializer['name']
+            mail_dict['email']=user_info_serializer['email']
+            mail_dict['collabcard_link']=collabcard['share_url']
+            mail_dict['content']=collabcard['title']
+            mail_dict['collabcard_id']=collabcard['id']
+            mail_dict['url']=url
+
+            send_mail_for_query_and_feedback(mail_dict)          #sending mail to collabmates for posting
+
+            #sending text for pop-up:
+
+            collabcard_feedback_popup={
+
+                'title':"Thanks for writing to us",
+                'sub_title':"We may reply privately to your query/feedback via email or feature it in this community depending on its utility for everyone.",
+                'action_title':"OK",
+                'action':'route://community_collabcard?community_id=' + str(community.id) + '&community_name=' + str(
+            community.name) + '&community_state=' + str(community.hide_community)
+            }
+            return JsonResponse({'success': True, 'collabcard': collabcard,'collabcard_feedback_popup':collabcard_feedback_popup})
+
+
         # #saving the state in collabcardState table instead of follow collabcard
         create_collabcard_state_for_user(card=card, user=user_instance,
                                          state=collabcard_states.COLLABCARD_STATE_FOLLOW,
@@ -1001,25 +1986,18 @@ def create_card(request):
 
         update_last_answer_id(card.id, "")
 
-        if is_member_engage(community, user_instance):
-            if is_pilot_active:
-                # updating the last unseen card for community and member who become promoter
-                engage = Member_Engage.objects.get(community_id=community,
-                                                   member_id=user_instance)
-                engage.last_unseen_conversation = card
-                engage.updated_at = time.time()
-                engage.save()
 
-                # updating the members engage for members who is refered by user
-                refered_members = get_referred_members_of_a_member(community_id, user_id)
-                for member in refered_members:
-                    refered_members_user_instance = User.objects.get(id=member)
-                    engage = Member_Engage.objects.get(community_id=community, member_id=refered_members_user_instance)
-                    engage.last_unseen_conversation = card
-                    engage.last_unseen_count = 1
-                    engage.updated_at = time.time()
-                    engage.save()
-                update_pending_member_count_in_engage(community)
+
+        if is_member_engage(community, user_instance):
+
+            if create_intro:
+                Member_Engage.objects.filter(community_id=community,member_id=user_instance).update(
+                    member_state=member_states.MEMBER,
+                    last_unseen_conversation=card,
+                    member_referral=""
+                )
+
+
 
         else:
             engage = Member_Engage()
@@ -1027,21 +2005,29 @@ def create_card(request):
             engage.community_id = community
             engage.last_unseen_conversation = card
             engage.updated_at = time.time()
+            if create_intro:
+                engage.member_state=member_states.MEMBER
             engage.save()
-        update_referral_text_in_engage_table.delay(community_id)
+        #update_referral_text_in_engage_table.delay(community_id)
         update_last_unseen_in_engage_on_card_creation.delay(community_id=community_id)
+
+
+
 
         # custom_cache.clear()
 
-        # sending notification to the user
+        #sending notification to the user
 
         send_notification_for_new_collabcard_posted.delay(community_id, res['title'],
                                                           user_id, userinfo_instance.name,
-                                                          type=type, date_time=date_time,
-                                                          card_id=card.id)
+                                                          type=typ, date_time=date_time,
+                                                          card_id=card.id,
+                                                          community_name=community_name,
+                                                          community_state=community_state)
 
-        if type != 1:  # stopping mail for introduction cards
-            send_email_for_collabcard(community, userinfo_instance, card, type)
+        if typ != 1:  # stopping mail for introduction cards
+            send_email_for_collabcard(community, userinfo_instance, card, typ)
+
 
         return JsonResponse({'success': True, 'collabcard': collabcard})
     return JsonResponse({'success': False})
@@ -1189,27 +2175,77 @@ def check_member(email, community_id, member_id, res):
 
 
 def pending_members(request, community_id):
+
     ''' function to get members requested to join in a community '''
+
+    member_id = get_member_id_from_headers(request)
+    pending_requests=get_pending_members_of_community(community_id,requested_member_id=member_id)
+    return JsonResponse({'pending_members': pending_requests})
+
+
+def get_pending_members_of_community(community_id,requested_member_id):
+
+    '''functions to get pending members of the community'''
+
+
+    info_logger.info("PENDING MEMBERS COUNT CHECK")
+    info_logger.info(community_id)
+    member_id=requested_member_id
     community = Community.objects.get(id=community_id)
     pend_requests = Members.objects.filter(community_id=community).filter(state=3)
-    pending_requests = []
-    for i in pend_requests:
 
-        resp = Form_response.objects.filter(community=community_id).filter(user=i.member_id.id).order_by('id')
-        user = Userinfo.objects.get(user_id=i.member_id.id)
-        # serilaizing userinfo object
-        usr = UserinfoSerializer(user)
-        user_response = []
-        for j in resp:
-            # getting the answers of the users who requested to join
-            # for the questions that have been asked while requestiong to join in a community
-            response_object = {}
-            response_object['key'] = j.data
-            response_object['value'] = j.response
-            user_response.append(response_object)
-        usr['response'] = user_response
-        pending_requests.append(usr)
-    return JsonResponse({'pending_members': pending_requests})
+    is_admin = False
+    is_member_admin = Members.objects.filter(community_id=community, member_id=member_id, state=1)
+    if is_member_admin.exists():
+        is_admin = True
+    info_logger.info(is_admin)
+
+    is_verified = False
+    is_verified_member = Members.objects.filter(community_id=community, member_id=member_id).filter(
+        Q(state=1) | Q(state=4))
+    if is_verified_member.exists():
+        is_verified = True
+    pending_requests = []
+    is_lg = is_LG_or_LP_community(community)
+    for i in pend_requests:
+        if is_lg and is_verified:
+            if str(i.ask_member_id) == str(member_id):
+                resp = communityAnswers.objects.filter(community=community_id).filter(member=i.member_id.id).order_by('id')
+                user = Userinfo.objects.get(user_id=i.member_id.id)
+                # serilaizing userinfo object
+                usr = UserinfoSerializer(user)
+                user_response = []
+                for j in resp:
+                    # getting the answers of the users who requested to join
+                    # for the questions that have been asked while requestiong to join in a community
+                    response_object = {}
+                    response_object['key'] = j.question_title
+                    response_object['value'] = j.question_answer
+                    user_response.append(response_object)
+                usr['response'] = user_response
+                pending_requests.append(usr)
+        elif is_admin:
+            resp = communityAnswers.objects.filter(community=community_id).filter(member=i.member_id.id).order_by('id')
+            user = Userinfo.objects.get(user_id=i.member_id.id)
+            # serilaizing userinfo object
+            usr = UserinfoSerializer(user)
+            user_response = []
+            for j in resp:
+                # getting the answers of the users who requested to join
+                # for the questions that have been asked while requestiong to join in a community
+                response_object = {}
+                response_object['key'] = j.question_title
+                response_object['value'] = j.question_answer
+                user_response.append(response_object)
+            usr['response'] = user_response
+            pending_requests.append(usr)
+
+    info_logger.info("PENDING MEMBER REQUEST")
+
+    info_logger.info(pending_requests)
+    info_logger.info("\n\n")
+    return pending_requests
+
 
 
 def check_for_member_eligibiity(community_id, member_id):
@@ -1280,6 +2316,8 @@ def check_for_member_eligibiity(community_id, member_id):
                                                                community_id=community_id)
 
     return return_count
+
+
 
 
 def pending_request_count(request, community_id):
@@ -1427,77 +2465,55 @@ def request_response(request, req_dict=None):
         member_id = res['member_id']
     if 'community_id' in res:
         community_id = res['community_id']
+    accepted=False
     if 'accepted' in res:
         accepted = res['accepted']
     community = Community.objects.get(id=community_id)
     user = User.objects.get(id=member_id)
+
+    is_lg=is_LG_or_LP_community(community)
+
+    if is_lg:
+        member_verification=False
+        if not req_dict:
+            member_verification=True
+            req_dict = {
+                'member_id': member_id,
+                'community_id': community_id,
+                'accepted':accepted
+            }
+        approve_or_decline_lg_community(request,req_dict,member_verification)
+        return JsonResponse({'success': True})
+
     if accepted or accepted == 'true':
         # if accepted , then make him a member of the community
         join_time = time.time()
 
         # check if member is already accepted to stop duplicate notifications and false member count
-        state = Members.objects.filter(member_id=member_id, community_id=community)[0].state
-        if state == 3 or state == 8:
+        member_queryset = Members.objects.filter(member_id=member_id, community_id=community).filter(Q(state=1)|Q(state=4))
+        if member_queryset.exists():
             # updating the approve state
             Members.objects.filter(member_id=member_id, community_id=community).update(state=4,
                                                                                        created_at=join_time)  # aprove state = 4
             community = Community.objects.get(id=community_id)
             members_count = community.members_count + 1
             Community.objects.filter(id=community_id).update(members_count=members_count)
-            send_notification_for_join_requests.delay(community_id, True, member_id)
 
-            # inserting data in member engage with all neccesary constarints
+            introduction_answer=auto_create_collabcard(user,community)
+            req_dict = {
 
-            # purpose card of community to be shown in your communities card text
-            purpose_card = Collabcard.objects.get(id=community.purpose_collabcard)
-            # unseen cards count for new user
-            unseen_count = Collabcard.objects.filter(community=community).count()
-            count = check_for_member_eligibiity(community_id, member_id)
-            if not is_member_engage(community, user.id):
-                engage = Member_Engage()
-                engage.member_id = user
-                engage.community_id = community
-                engage.last_unseen_conversation = purpose_card
-                engage.last_unseen_count = unseen_count
-                engage.updated_at = time.time()
-                engage.save()
-                update_pending_member_count_in_engage(community)
-                update_referral_text_in_engage_table.delay(community_id)
-            else:
-                # if the community is created by user than updating the user details
-                if community.hide_community == '0' or community.hide_community == '1' or community.hide_community == '4':
-                    engage = Member_Engage.objects.get(community_id=community, member_id=user)
-                    engage.last_unseen_conversation = purpose_card
-                    engage.last_unseen_count = unseen_count
-                    engage.updated_at = time.time()
-                    engage.save()
-                    update_pending_member_count_in_engage(community)
-                    update_referral_text_in_engage_table.delay(community_id)
-
-            # -----  new user intro card auto create functionality -------
-            introduction_question, introduction_answer = auto_create_collabcard(user, community)
-            json_body = {
-                'communityId': community_id,
-                'title': introduction_answer,
-                'image_count': 0,
-                'pdf_count': 0,
-                'type': 1  # if state=0 normal if state =1 intro
-            }
-            params = {
+                'member_id': member_id,
                 'community_id': community_id,
-                'member_id': member_id
+                'title': introduction_answer,
+                'type': 1,
+                'create_intro': 1
             }
 
-            # calling create card APi with required credentials
-            link = url + "/api/create_collabcard"
-            rqst.post(link, params=params, json=json_body)
+            request.method = "POST"
+            create_card(request, req_dict=req_dict)
 
-            # notify the referred member if it is a pilot community
-            send_notification = res['send_notification'] if 'send_notification' in res else True
-            if send_notification or send_notification == 'true':
-                notify_referred_member_after_join(joined_member_id=member_id,
-                                                  joined_member_name=user.userinfo.name,
-                                                  community_name=community.name, community_id=community_id)
+
+            send_notification_for_join_requests.delay(community_id, True, member_id)
             ## sending email to the user that his request is accepted for this community
             member_request_approval_or_denied.delay(user_id=member_id, community_id=community_id, approved=True)
 
@@ -1513,19 +2529,138 @@ def request_response(request, req_dict=None):
             # delete the member engage table record for the user
             Member_Engage.objects.filter(member_id=member_id, community_id=community).delete()
             # delete the responses of user to community questions, if any
-            Form_response.objects.filter(user=member_id, community=community_id).delete()
+            communityAnswers.objects.filter(member=member_id, community=community_id).delete()
             # update pending members count of community and referal text of user
             update_pending_member_count_in_engage(community)
-            update_referral_text_in_engage_table.delay(community_id)
-
-            # uncomment to send
-            # sending email to the user that his request is rejected for this community
-            # member_request_approval_or_denied.delay(user_id=member_id,community_id=community_id,approved=False)
 
             if send_notification or send_notification == 'true':
                 send_notification_for_join_requests.delay(community_id, False, member_id)
 
     return JsonResponse({'success': True})
+
+
+def approve_or_decline_lg_community(request,req_dict,member_verification):
+
+    '''function to approve and decline request in lg community'''
+
+    if req_dict:
+        print(req_dict)
+        community_id = req_dict['community_id']
+        member_id = req_dict['member_id']
+        community = Community.objects.get(id=community_id)
+        user=User.objects.get(id=member_id)
+        if req_dict['accepted']:
+
+            #if the request is accepted from dashboard
+
+
+            join_time=time.time()
+            Members.objects.filter(member_id=member_id, community_id=community).update(state=member_states.MEMBER,
+                                                                                       created_at=join_time)  # aprove state = 4
+
+
+
+            #creating a collabcard
+            introduction_question, introduction_answer = auto_create_collabcard(user, community)
+            print(introduction_answer)
+            req_dict = {
+
+                'member_id': member_id,
+                'community_id': community_id,
+                'title': introduction_answer,
+                'type': 1,
+                'create_intro': 1
+            }
+
+            request.method="POST"
+            create_card(request,req_dict=req_dict)
+            # saving the referal detail and sending notifications for refered members
+
+            community.updated_at = time.time()
+            community.members_count = community.members_count + 1
+            community.save()
+            is_live=False
+            if community.hide_community == '4':
+                is_live=True
+
+            if community.members_count == ig_members_count:
+                community.hide_community = '4'
+                send_notification_for_tool_unlocked_for_pilot.delay(community_id=community_id)
+                community.save()
+
+            send_notification_for_join_requests.delay(community_id, True, member_id)
+
+            update_last_unseen_in_engage(user=user,community=community)
+
+            #deleting the data from collabcard temp
+            member_instance=Members.objects.get(member_id=user,community_id=community)
+
+            #getting pending members who was refered by me
+            pending_members=get_pending_members_of_community(community.id,requested_member_id=member_id)
+            info_logger.info("\n")
+            info_logger.info(pending_members)
+            check=Member_Engage.objects.filter(member_id=user,community_id=community).update(pending_members=len(pending_members))
+            info_logger.info(check)
+
+            if member_instance.ask_member_id:
+                collabcardTemp.objects.filter(member=member_instance.ask_member_id, community=community,show_member=user).delete()
+
+            collabcardTemp.objects.filter(member=member_id,community=community).delete()
+
+            if member_verification:
+                header_member_id=get_member_id_from_headers(request)
+                Members.objects.filter(member_id=member_id, community_id=community).update(approved_member_id=header_member_id)
+
+                # making the referer promoter if his referal count becomes equal to eligibility count
+                header_member_instance=User.objects.get(id=header_member_id)
+                referal_instance=Referal(community=community,invited_member=user,member=header_member_instance)
+                referal_instance.save()
+
+                referal_list = Referal.objects.filter(member=header_member_instance, community=community)
+
+                if referal_list.exists():
+
+                    referer_instance = referal_list[0].member
+                    referal_list = get_referred_members_of_a_member(community_id=community_id,
+                                                                    member_id=referer_instance.id)
+                    total_referal_count = len(referal_list)
+
+                    if total_referal_count == eligibility_count:
+                        admin = Members.objects.filter(community_id=community, member_id=referer_instance)
+
+                        if admin.exists():
+                            Members.objects.filter(community_id=community, member_id=referer_instance).update(
+                                state=member_states.ADMIN)
+                            Member_Engage.objects.filter(member_id=member_id, community_id=community).update(
+                                    member_state=member_states.ADMIN)
+                    if is_live:
+                        send_notification_for_tool_unlocked_for_live_community.delay(referer_id=header_member_id,
+                                                                                     referal_count=total_referal_count,
+                                                                                     community_id=community.id,
+                                                                                     community_name=community.name,
+                                                                                     community_state=community.hide_community)
+
+
+        else:
+            # change user state to 5
+            Members.objects.filter(member_id=member_id, community_id=community).update(state=5)  # decline state = 5
+            # delete the member engage table record for the user
+            Member_Engage.objects.filter(member_id=member_id, community_id=community).delete()
+            # delete the responses of user to community questions, if any
+            communityAnswers.objects.filter(member=member_id, community=community_id).delete()
+            collabcardTemp.objects.filter(member=member_id, community=community).delete()
+            if member_verification:
+                header_member_id = get_member_id_from_headers(request)
+                Member_Engage.objects.filter(member_id=header_member_id, community_id=community).update(
+                    pending_members=F('pending_members') - 1)
+                Referal.objects.filter(member=header_member_id, community=community).delete()
+            send_notification_for_join_requests.delay(community_id, False, member_id)
+
+
+
+
+
+
 
 
 ############# functions for  collabcard flow   ##########################
@@ -1582,6 +2717,10 @@ def collabcard(request, card_id):
     cards = Collabcard.objects.get(id=card_id)
     page = request.GET.get('page', 1)
 
+    feedback=True
+    if cards.community.id == feedback_community_id:
+        feedback = False
+
     # coverting current time into epoch time for getting time stamp of answers and card
 
     # get all the answers of the card
@@ -1596,10 +2735,10 @@ def collabcard(request, card_id):
 
         answer = card_answers.objects.filter(card=cards, id__gte=answer_id).filter(~Q(user__id=user_id))
         # answer = pagination(answer, page, paginate_by=10)
-        answers = get_answer_data(answer)
+        answers = get_answer_data(answer,feedback,cards.community.id)         #if the feedback is true don't send id in userinfo
         return JsonResponse({'answers': answers})
     else:
-        answers = get_answer_data(answer)
+        answers = get_answer_data(answer,feedback,cards.community.id)
 
     # serializing Collabcard
     card = CollabcardSerializer(cards, user_id, cards.community)
@@ -1607,6 +2746,7 @@ def collabcard(request, card_id):
     user = Userinfo.objects.get(user_id=cards.user.id)
     # serializing user object
     usr = UserinfoSerializer(user)
+    usr['is_clickable']=feedback
     # user form response serialzer
     form_response = FormResponseSerilaizer(cards.community.id, cards.user.id)
     if form_response:
@@ -1624,12 +2764,17 @@ def collabcard(request, card_id):
     return JsonResponse({"collabcard": card, 'answers': answers})
 
 
-def get_answer_data(answer):
+def get_answer_data(answer,feedback,community_id):
     '''function to get answer for a particular collabcard from database database'''
     answers = []
+
     for ans in answer:
         user = Userinfo.objects.filter(user_id=ans.user.id)
         usr = UserinfoSerializer(user[0])
+        usr['is_clickable']=feedback
+        form_response = FormResponseSerilaizer(community_id, ans.user.id)
+        if form_response:
+            usr['response'] = form_response
         # coverting current time into epoch time
 
         if str(ans.date_epoch) == "-9223372036854775808":
@@ -1785,6 +2930,541 @@ def community_cards(request, community_id):
     # card_list=list(Collabcard.objects.filter(community_id=community).values_list("id",flat=True))
     # print(card_list)
     return JsonResponse({'collabcards': card_list, 'size': size})
+
+
+
+def community_collabcard_invite(request,community_id):
+
+    '''api to send collabcard invite footer'''
+
+    community = Community.objects.get(id=community_id)
+    member_id = request.GET.get('member_id')
+
+    community_serializer_instance = CommunitySerializer(community)
+
+    #if the community is a user-created community
+    if community_serializer_instance['state'] == 0 or community_serializer_instance['state'] == 1 or community_serializer_instance['state'] == 5:
+        json_response = {
+
+            'community': community_serializer_instance,
+
+        }
+        return JsonResponse(json_response)
+
+    #initializing variables
+
+
+    community_live_subtitle=""
+    invite_prompt={}
+
+
+
+    number_of_members = community.members_count
+    members_left = ig_members_count - number_of_members
+    card_list = []
+
+    # prompt for invite  for ig and lg community
+
+    unlock_title = "Invite members"
+    if members_left == 1:
+        unlock_sub_title = "To start a conversation, invite %s more member to this community and make this community live." % (
+            members_left)
+        community_live_title = "more member required"
+    else:
+        unlock_sub_title = "To start a conversation, invite %s more members to this community and make this community live." % (
+            members_left)
+        community_live_title = "more members required"
+
+    unlock_action_title = "OK, INVITE NOW"
+    unlock_action = """route://community?community_id=%s&share=true&source=community_live_unlock"""
+
+
+    # community live for ig communities
+    if community_serializer_instance['community_type'] == 0:
+        community_name = community.name
+        member_types = community_name.split("of")[0].strip()
+        member_type = member_types
+        if member_types[-1] == "s":
+            member_type = member_types[0:-1]
+
+        member_types = member_types.lower()
+        member_type = member_type.lower()
+
+        # community live sub_title logic
+
+        community_live_subtitle = """Every community needs its members to make purposeful conversations. Invite %s or more members to start conversations.""" % (
+            members_left)
+        if number_of_members == 1:
+            community_live_subtitle = """Awesome, you have taken the first step! Be the spark to ignite this community by inviting other %s from your network.""" % (
+                member_types)
+        elif number_of_members == 2:
+
+            member_list = Members.objects.filter(community_id=community_id)
+            print(member_list)
+            member_name = ""
+            for member in member_list:
+                if member_id == str(member.member_id.id):
+                    continue
+                if member.state == 4:
+                    member_name = member.member_id.userinfo.name
+            community_live_subtitle = """Superb, you and %s are now together for your shared interest! Invite 2 other %s and let them join you in this community.""" % (
+            member_name, member_types)
+
+        elif number_of_members == 3:
+
+            member_list = Members.objects.filter(community_id=community_id).order_by('-id')
+            other_member_list = []
+            for member in member_list:
+                if member_id == str(member.member_id.id):
+                    continue
+                member_name = member.member_id.userinfo.name
+                if member.state == 4:
+                    other_member_list.append(member_name)
+            if other_member_list:
+                community_live_subtitle = """You, %s  and %s  make a great group! Make it a community by inviting 1 more %s.""" % (
+                other_member_list[0], other_member_list[1], member_type)
+
+        # invite prompt logic
+        invite_prompt = {}
+
+        ref_members = get_referred_members_of_a_member(community_id, member_id)
+        ref_members_count = len(ref_members)
+
+        if ref_members_count == 0:
+            invite_prompt['title'] = """Know any %s?""" % (member_type)
+            invite_prompt['sub_title'] = """Invite a new member here and unlock a tool"""
+            invite_prompt['action_title'] = """Invite"""
+            invite_prompt['action'] = """route://community?community_id=%s&share=true&source=invite_prompt""" % (community_id)
+        elif ref_members_count == 1:
+            invite_prompt['title'] = """Unlock a new tool"""
+            invite_prompt['sub_title'] = """By inviting 2 more members to this community"""
+            invite_prompt['action_title'] = """Invite"""
+            invite_prompt['action'] = """route://community?community_id=%s&share=true&source=invite_prompt""" % (community_id)
+        elif ref_members_count == 2:
+            invite_prompt['title'] = """Unlock a new tool"""
+            invite_prompt['sub_title'] = """By inviting 1 more member to this community"""
+            invite_prompt['action_title'] = """Invite"""
+            invite_prompt['action'] = """route://community?community_id=%s&share=true&source=invite_prompt""" % (community_id)
+        elif ref_members_count == 3:
+            invite_prompt['title'] = """Become a promoter"""
+            invite_prompt['sub_title'] = """Get recognised by inviting 2 more members"""
+            invite_prompt['action_title'] = """Invite"""
+            invite_prompt['action'] = """route://community?community_id=%s&share=true&source=invite_prompt""" % (community_id)
+        elif ref_members_count == 4:
+            invite_prompt['title'] = """Become a promoter"""
+            invite_prompt['sub_title'] = """Get recognised by inviting 1 more member"""
+            invite_prompt['action_title'] = """Invite"""
+            invite_prompt['action'] = """route://community?community_id=%s&share=true&source=invite_prompt""" % (community_id)
+        else:
+            invite_prompt['title'] = """Promote your community"""
+            invite_prompt['sub_title'] = """Let other %s discover this community""" % (member_types)
+            invite_prompt['action_title'] = """Invite"""
+            invite_prompt['action'] = """route://community?community_id=%s&share=true&source=invite_prompt""" % (community_id)
+
+
+
+    #community live for lg communities
+    elif community_serializer_instance['community_type'] == 1:
+
+
+        user_instance=User.objects.get(id=member_id)
+
+        collabcardTemp_instance_list=collabcardTemp.objects.filter(show_member=user_instance,community_id=community_serializer_instance['id']).order_by('id')
+
+        for instance in collabcardTemp_instance_list:
+
+            card_dict={}
+            card_dict['id']=instance.id
+            card_dict['title']=instance.title
+            user = Userinfo.objects.get(user_id=instance.member)
+            # serialize user object
+            usr = UserinfoSerializer(user)
+            card_dict['created_at'] = get_time_text(instance.created_at)
+            card_dict['member'] = usr
+            card_dict['images'] = []
+            card_dict['pdf'] = []
+            card_dict['state'] = instance.state
+            card_dict['type'] = 5           #for unverified
+            card_list.append(card_dict)
+
+        count_of_verified_members=Members.objects.filter(community_id=community_serializer_instance['id']).filter(Q(state=4)|Q(state=1)).count()
+        collabcard_temp_count=collabcardTemp_instance_list.count()
+        total_count=count_of_verified_members + collabcard_temp_count
+
+
+        community_live_subtitle= compute_community_live_subtitle_for_lg(total_count,count_of_verified_members,user_instance,community)
+
+        # invite prompt logic for lg
+        member_type="relevant alumnus"
+        member_types="relevant alumini"
+        invite_prompt = {}
+
+        ref_members = get_referred_members_of_a_member(community_id, member_id)
+        ref_members_count = len(ref_members)
+
+        if ref_members_count == 0:
+            invite_prompt['title'] = """Know any %s?""" % (member_type)
+            invite_prompt['sub_title'] = """Invite a new member here and unlock a tool"""
+            invite_prompt['action_title'] = """Invite"""
+            invite_prompt['action'] = """route://community?community_id=%s&share=true&source=invite_prompt""" % (
+                community_id)
+        elif ref_members_count == 1:
+            invite_prompt['title'] = """Unlock a new tool"""
+            invite_prompt['sub_title'] = """By inviting 2 more members to this community"""
+            invite_prompt['action_title'] = """Invite"""
+            invite_prompt['action'] = """route://community?community_id=%s&share=true&source=invite_prompt""" % (
+                community_id)
+        elif ref_members_count == 2:
+            invite_prompt['title'] = """Unlock a new tool"""
+            invite_prompt['sub_title'] = """By inviting 1 more member to this community"""
+            invite_prompt['action_title'] = """Invite"""
+            invite_prompt['action'] = """route://community?community_id=%s&share=true&source=invite_prompt""" % (
+                community_id)
+        elif ref_members_count == 3:
+            invite_prompt['title'] = """Become a promoter"""
+            invite_prompt['sub_title'] = """Get recognised by inviting 2 more members"""
+            invite_prompt['action_title'] = """Invite"""
+            invite_prompt['action'] = """route://community?community_id=%s&share=true&source=invite_prompt""" % (
+                community_id)
+        elif ref_members_count == 4:
+            invite_prompt['title'] = """Become a promoter"""
+            invite_prompt['sub_title'] = """Get recognised by inviting 1 more member"""
+            invite_prompt['action_title'] = """Invite"""
+            invite_prompt['action'] = """route://community?community_id=%s&share=true&source=invite_prompt""" % (
+                community_id)
+        else:
+            invite_prompt['title'] = """Promote your community"""
+            invite_prompt['sub_title'] = """Let other %s discover this community""" % (member_types)
+            invite_prompt['action_title'] = """Invite"""
+            invite_prompt['action'] = """route://community?community_id=%s&share=true&source=invite_prompt""" % (
+                community_id)
+
+
+
+    if members_left > 0:
+
+        community_live = {
+            'members_left': members_left,
+            'title': community_live_title,
+            'sub_title': community_live_subtitle,
+            'action_title': "Invite Friends",
+            'action': """route://community?community_id=%s&share=true&source=community_live""" % (community_id),
+
+            'unlock_title': unlock_title,
+            'unlock_sub_title': unlock_sub_title,
+            'unlock_action_title': unlock_action_title,
+            'unlock_action': unlock_action
+
+        }
+
+        json_response = {
+
+            'community': community_serializer_instance,
+            'community_live': community_live,
+            'invite_prompt': invite_prompt,
+            'intro_collabcards':card_list
+        }
+
+    else:
+
+        check_member=is_member_verified(community_id,member_id)
+        if check_member:
+            json_response = {
+
+                'community': community_serializer_instance,
+                'invite_prompt': invite_prompt,
+                'intro_collabcards': card_list
+            }
+        else:
+            json_response = {
+
+                'community': community_serializer_instance,
+                'intro_collabcards': card_list
+            }
+    return JsonResponse(json_response)
+
+
+def text_for_community_live_subtitile(total_count,intro_collabcard_list,verified_members_list):
+
+    '''function to return intro collabcard and verified list'''
+
+    diff = total_count - len(intro_collabcard_list)
+
+    if diff > 0:
+        intro_name_list=[]
+        members_list=[]
+        for instance in intro_collabcard_list:
+
+            intro_name_list.append(instance.member.userinfo.name)
+
+        verified_member_name_list=[]
+
+        for member in verified_members_list:
+            verified_member_name_list.append(member.member_id.userinfo.name)
+
+
+        for num in range(diff):
+            members_list.append(verified_member_name_list[num])
+
+        total_list=intro_name_list+members_list
+
+        return total_list
+    else:
+
+        intro_name_list = []
+        members_list = []
+        for instance in intro_collabcard_list:
+            intro_name_list.append(instance.member.userinfo.name)
+        return intro_name_list
+
+
+
+
+
+def compute_community_live_subtitle_for_lg(total_count,count_of_verified_members,user_instance,community):
+
+    verfied_status=is_member_verified(community,user_instance)
+    member_id=user_instance
+    community_id=community.id
+    member_type="relevant alumnus"
+    member_types="relevant alumni"
+
+    community_live_subtitle=""
+    if verfied_status:
+        #if member is verified
+        if total_count == 1:
+           community_live_subtitle="""Awesome, you have taken the first step! Be the spark to ignite this community by inviting other %s from your network."""%(member_types)
+
+        elif total_count == 2:
+
+
+            intro_collabcard_list=collabcardTemp.objects.filter(show_member=user_instance,community_id=community_id)
+            verified_members_list = Members.objects.filter(community_id=community_id).filter(Q(state=1)|Q(state=4))
+
+            total_list=text_for_community_live_subtitile(total_count,intro_collabcard_list,verified_members_list)
+
+            ans_list=[]
+
+            for data in total_list:
+
+                if data == user_instance.userinfo.name:
+                    continue
+                ans_list.append(data)
+            if ans_list:
+                community_live_subtitle = """Superb, you and %s are now together for your shared interest! Invite 2 other %s and let them join you in this community.""" % (
+                ans_list[0], member_types)
+
+
+        elif total_count == 3:
+            intro_collabcard_list = collabcardTemp.objects.filter(show_member=user_instance, community_id=community_id)
+            verified_members_list = Members.objects.filter(community_id=community_id).filter(Q(state=1)|Q(state=4))
+
+            total_list = text_for_community_live_subtitile(total_count, intro_collabcard_list, verified_members_list)
+
+            ans_list = []
+
+            for data in total_list:
+
+                if data == user_instance.userinfo.name:
+                    continue
+                ans_list.append(data)
+
+            if ans_list:
+                community_live_subtitle = """You, %s and %s  make a great group! Make it a community by inviting 1 more %s.""" % (
+                    ans_list[0], ans_list[1], member_type)
+
+        elif total_count == 4 and count_of_verified_members == 1:
+            member_list = Members.objects.filter(community_id=community_id).order_by('-id')
+            other_member_list = []
+            for member in member_list:
+                if member_id == str(member.member_id.id):
+                    continue
+                member_name = member.member_id.userinfo.name
+                if member.state == 3:
+                    other_member_list.append(member_name)
+            if other_member_list:
+                community_live_subtitle = """1 last step pending! Since this is an exclusive community, you need to verify %s, %s and %s  to initiate the community""" % (
+                    other_member_list[0], other_member_list[1],other_member_list[2])
+
+        elif total_count == 4 and count_of_verified_members == 2:
+            member_list = Members.objects.filter(community_id=community_id).order_by('-id')
+            other_member_list = []
+            for member in member_list:
+                if member_id == str(member.member_id.id):
+                    continue
+                member_name = member.member_id.userinfo.name
+                if member.state == 3:
+                    other_member_list.append(member_name)
+            if other_member_list:
+                community_live_subtitle = """1 last step pending! Since this is an exclusive community, you need to verify %s and %s  to initiate the community""" % (
+                    other_member_list[0], other_member_list[1])
+
+        elif total_count == 4 and count_of_verified_members == 3:
+            member_list = Members.objects.filter(community_id=community_id).order_by('-id')
+            other_member_list = []
+            for member in member_list:
+                if member_id == str(member.member_id.id):
+                    continue
+                member_name = member.member_id.userinfo.name
+                if member.state == 3:
+                    other_member_list.append(member_name)
+            if other_member_list:
+                community_live_subtitle = """1 last step pending! Since this is an exclusive community, you need to verify %s  to initiate the community""" % (
+                    other_member_list[0])
+
+        elif total_count > 4 and count_of_verified_members == 1:
+            community_live_subtitle="1 last step pending! Since this is an exclusive community, you need to verify atleast 3 other members to initiate the community"
+
+        elif total_count > 4 and count_of_verified_members == 2:
+            community_live_subtitle="1 last step pending! Since this is an exclusive community, you need to verify atleast 2 other members to initiate the community"
+
+        elif total_count > 4 and count_of_verified_members == 3:
+            community_live_subtitle = "1 last step pending! Since this is an exclusive community, you need to verify atleast 1 member to initiate the community"
+
+
+
+
+    else:
+        # member is not verified
+        if total_count == 1:
+           community_live_subtitle="""Awesome, you have taken the first step! Be the spark to ignite this community by inviting other %s from your network."""%(member_types)
+
+
+        elif total_count == 2:
+            intro_collabcard_list = collabcardTemp.objects.filter(show_member=user_instance, community_id=community_id)
+            verified_members_list = Members.objects.filter(community_id=community_id).filter(Q(state=1)|Q(state=4))
+
+            total_list = text_for_community_live_subtitile(total_count, intro_collabcard_list, verified_members_list)
+
+            ans_list = []
+
+            for data in total_list:
+
+                if data == user_instance.userinfo.name:
+                    continue
+                ans_list.append(data)
+            if ans_list:
+                community_live_subtitle = """Superb, you and %s are now together for your shared interest! Invite 2 other %s and let them join you in this community.""" % (
+                    ans_list[0], member_types)
+
+        elif total_count == 3:
+            intro_collabcard_list = collabcardTemp.objects.filter(show_member=user_instance, community_id=community_id)
+            verified_members_list = Members.objects.filter(community_id=community_id).filter(Q(state=1)|Q(state=4))
+
+            total_list = text_for_community_live_subtitile(total_count, intro_collabcard_list, verified_members_list)
+
+            ans_list = []
+
+            for data in total_list:
+
+                if data == user_instance.userinfo.name:
+                    continue
+                ans_list.append(data)
+
+            if ans_list:
+                community_live_subtitle = """You, %s and %s  make a great group! Make it a community by inviting 1 more %s.""" % (
+                    ans_list[0], ans_list[1], member_type)
+
+
+        elif total_count == 4 and count_of_verified_members == 1:
+            community_live_subtitle = """Your profile isn't verified yet. Since this is an exclusive community, your profile needs to be verified in order to initiate the community"""
+        elif total_count == 4 and count_of_verified_members == 2:
+            community_live_subtitle = """Your profile isn't verified yet. Since this is an exclusive community, your profile needs to be verified in order to initiate the community"""
+        elif total_count == 4 and count_of_verified_members == 3:
+
+            member_list = Members.objects.filter(community_id=community_id).filter(Q(state=4) | Q(state=1))
+            other_member_list = []
+            for member in member_list:
+                member_name = member.member_id.userinfo.name
+                other_member_list.append(member_name)
+            if other_member_list:
+                community_live_subtitle = """1 last step pending! %s, %s and %s are already verified members of this community. The community will be initiated as soon your profile is verified.""" % (
+                    other_member_list[0],other_member_list[1],other_member_list[2])
+
+
+        elif total_count > 4 and count_of_verified_members == 1:
+            community_live_subtitle="Your profile isn't verified yet. Since this is an exclusive community, your profile needs to be verified in order to initiate the community"
+        elif total_count > 4 and count_of_verified_members == 2:
+            community_live_subtitle="Your profile isn't verified yet. Since this is an exclusive community, your profile needs to be verified in order to initiate the community"
+        elif total_count > 4 and count_of_verified_members == 3:
+
+            member_list = Members.objects.filter(community_id=community_id).filter(Q(state=4) | Q(state=1))
+            other_member_list = []
+            for member in member_list:
+                member_name = member.member_id.userinfo.name
+                other_member_list.append(member_name)
+
+
+            if other_member_list:
+                community_live_subtitle = """1 last step pending! %s, %s are %s and already verified members of this community. The community will be initiated as soon your profile is verified.""" % (
+                    other_member_list[0], other_member_list[1], other_member_list[2])
+
+
+        elif total_count == 4 and count_of_verified_members == 0:
+           community_live_subtitle="Your profile isn't verified yet. Since this is an exclusive community, your profile needs to be verified in order to initiate the community"
+
+
+        elif total_count > 0  and count_of_verified_members == 0:
+            community_live_subtitle="Your profile isn't verified yet. Since this is an exclusive community, your profile needs to be verified in order to initiate the community"
+    return community_live_subtitle
+
+
+
+
+
+
+
+
+
+
+
+def community_cards_version_1(request,community_id):
+
+    '''Version 1 community cards for ig communities'''
+
+    community = Community.objects.get(id=community_id)
+    member_id = request.GET.get('member_id')
+
+    size = request.GET.get('size', '')
+    if size:
+        size = int(size)
+        collabcard_instance_list = Collabcard.objects.filter(community=community_id).order_by('id')[:size]
+        size = Collabcard.objects.filter(community=community_id).count()
+    else:
+        collabcard_instance_list = Collabcard.objects.filter(community=community_id).order_by('id')
+        size = collabcard_instance_list.count()
+    card_list = []
+
+    for card_instance in collabcard_instance_list:
+
+        user = Userinfo.objects.get(user_id=card_instance.user)
+        # serialize user object
+        usr = UserinfoSerializer(user)
+        # form responses of user
+        form_response = FormResponseSerilaizer(card_instance.community.id, card_instance.user.id)
+        if form_response:
+            usr['response'] = form_response
+        # get card images --------------------------------------------------------
+        files = get_collabcard_files(card_instance)
+        # -----------------------------------------------------------------------
+        # share_url = url+'/collabcard/'+str(card.id)
+
+        time_text = '' if str(card_instance.date_epoch) == "-9223372036854775808" else get_time_text(
+            card_instance.date_epoch)
+        card_dict = CollabcardSerializer(card_instance, member_id, card_instance.community)
+        card_dict['state'] = get_status_of_collabcard(member_id, community, card_instance)
+        card_dict['created_at'] = time_text
+        card_dict['member'] = usr
+        card_dict['images'] = files[0]
+        card_dict['pdf'] = files[1]
+        card_list.append(card_dict)
+
+    json_response = {
+        'collabcards': card_list,
+        'size': size,
+    }
+    return JsonResponse(json_response)
+
 
 
 def get_cards_for_demo(community_id, member_id):
@@ -1944,13 +3624,6 @@ def get_status_of_collabcard(member_id, community, card):
     if collabcard_state:
         state = collabcard_state[0].state
         return state
-    seen_status = collabcard_seen.objects.filter(card=card, community=community, user=member_id)
-    if seen_status:
-        state = 1
-        follow = follow_collabcard.objects.filter(collabcard_id=card, member_id=member_id)
-        if follow:
-            state = 2
-
     return state
 
 
@@ -1991,7 +3664,9 @@ def create_answer(request):
             print("type === ", card.type)
             update_answer_text(card_id)
 
-        return JsonResponse({'success': True})
+        return JsonResponse({'success': True,'id':ans.id})
+
+    return JsonResponse({'success': False})
 
 
 def _send_notification_to_tagged_users(card_id, answerer_name, answer, user_id):
@@ -2129,6 +3804,7 @@ def collabcards_seen(request):
     params = request.GET
     community_id = None
     card_id = None
+    collabcard_type=None
     user_id = None
     if 'community_id' in params:
         community_id = params['community_id']
@@ -2136,6 +3812,13 @@ def collabcards_seen(request):
         card_id = params['collabcard_id']
     if 'member_id' in params:
         user_id = params['member_id']
+    if 'collabcard_type' in params:
+        collabcard_type=params['collabcard_type']
+
+    if str(collabcard_type) == str(5):                        #unverifeid collabcard
+        collabcardTemp.objects.filter(id=card_id).update(state=1)
+        return JsonResponse({'success': True})
+
 
     community = Community.objects.get(id=community_id)
     user_instance = User.objects.get(id=user_id)
@@ -2302,10 +3985,10 @@ def auto_create_collabcard(member, community):
     #                                                                                 form_response[0].response)
     # else:
     if True:
-        form_response = Form_response.objects.filter(user=member.id, community=community.id).order_by('id')
+        form_response = communityAnswers.objects.filter(member=member.id, community=community.id).order_by('id')
         if form_response.exists():
-            introduction_question = form_response[0].data
-            introduction_answer = form_response[0].response
+            introduction_question = form_response[0].question_title
+            introduction_answer = form_response[0].question_answer
             # introduction_answer = introduction_answer
     return introduction_question, introduction_answer
 
@@ -2320,7 +4003,7 @@ def community_collabcard_id(request):
     user_instance = User.objects.get(id=member_id)
 
     collabcard_ids_list = list(
-        Collabcard.objects.filter(community=community_instance).order_by('id').values_list('id', flat=True))
+        Collabcard.objects.filter(community=community_instance).filter(~Q(type=4)).order_by('id').values_list('id', flat=True))
     collabcard_state_for_member = collabcardState.objects.filter(community=community_instance,
                                                                  user=user_instance).order_by('id')
 
@@ -2347,16 +4030,27 @@ def community_collabcard_meta(request):
     ''' function to get the collabcard details '''
 
     collabcard_ids = request.GET.get('collabcard_ids', False)
-    collabcard_ids = collabcard_ids.split(",")
+    print("collabcardid----",collabcard_ids)
+
+
+    #for whatsapp community
+    if not collabcard_ids:
+        return JsonResponse({'collabcards': []})
+    else:
+        collabcard_ids = collabcard_ids.split(",")
 
     member_id = get_member_id_from_headers(request)
-
+    community_instance = None
+    feed_back=True
     card_list = []
     for card_id in collabcard_ids:
         card_instance = Collabcard.objects.get(id=card_id)
         user = Userinfo.objects.get(user_id=card_instance.user)
         # serialize user object
+        if card_instance.community.id == feedback_community_id:
+            feed_back=False
         usr = UserinfoSerializer(user)
+        usr['is_clickable']=feed_back
         # user form response serialzer
         form_response = FormResponseSerilaizer(card_instance.community.id, card_instance.user.id)
         if form_response:
@@ -2372,6 +4066,7 @@ def community_collabcard_meta(request):
         else:
             # get time stamp
             time_text = get_time_text(card_instance.date_epoch)
+        community_instance=card_instance.community
         card_dict = CollabcardSerializer(card_instance, member_id, card_instance.community)
         card_dict['state'] = get_status_of_collabcard(member_id, card_instance.community, card_instance)
         card_dict['created_at'] = time_text
@@ -2379,6 +4074,11 @@ def community_collabcard_meta(request):
         card_dict['images'] = files[0]
         card_dict['pdf'] = files[1]
         card_list.append(card_dict)
+
+    if community_instance:
+        community=CommunitySerializer(community_instance)
+        return JsonResponse({'collabcards': card_list,'community':community})
+
     return JsonResponse({'collabcards': card_list})
 
 
@@ -2642,7 +4342,7 @@ def login(request):
 
         usr = UserinfoSerializer(userinfo)
         # see if user has tags or not
-        has_tags = user_onbaord(usr['id'])
+        has_tags = userinfo.has_tags
 
         # saving the OS type of user (Android,iOS,WEB)
         request_type = get_request_type(request)
@@ -2654,7 +4354,9 @@ def login(request):
             tags = get_user_lpig_tags(usr['id'])
             usr['tags'] = tags
             return JsonResponse({'user': usr, 'has_tags': has_tags})
-        return JsonResponse({'user': usr, 'has_tags': has_tags})
+        else:
+            create_member_for_feedback_community(userinfo.user_id)
+            return JsonResponse({'user': usr, 'has_tags': has_tags})
 
     return HttpResponse('Login Api')
 
@@ -2706,6 +4408,35 @@ def create_userinfo(user, email, user_name, profile_picture, login_type, json_to
     return userinfo
 
 
+def create_member_for_feedback_community(user_instance):
+
+    '''function to make user directly a member of feedback community'''
+
+    is_member=Members.objects.filter(community_id=feedback_community_id,member_id=user_instance)
+
+    community_instance = Community.objects.get(id=feedback_community_id)
+
+    if not is_member.exists():                                                #not is_member.exists()
+        member_instance=Members()
+        member_instance.member_id=user_instance
+        member_instance.community_id=community_instance
+        member_instance.state=member_states.MEMBER
+        member_instance.created_at=time.time()
+        member_instance.save()
+
+
+    if not is_member_engage(community_instance,user_instance):          #not is_member_engage(community_instance,user_instance)
+
+        card_instance=Collabcard.objects.get(id=feedback_collabcard_id)
+        engage = Member_Engage()
+        engage.member_id = user_instance
+        engage.community_id = community_instance
+        engage.last_unseen_conversation = card_instance
+        engage.updated_at = time.time()
+        engage.member_state = member_states.MEMBER
+        engage.save()
+
+
 def notify_referred_member_after_join(joined_member_id, joined_member_name, community_name, community_id):
     community = get_object_or_404(Community, pk=community_id)
     refer = Referal.objects.filter(invited_member=joined_member_id,
@@ -2730,12 +4461,28 @@ def members_state(request):
     if collabcard_id and not community_id:
         card = Collabcard.objects.get(pk=collabcard_id)
         community_id = card.community.id
+
     state = 0
     tool_state = 0
     query_set = Members.objects.filter(member_id=member_id, community_id=community_id)
+    community_instance=Community.objects.get(id=community_id)
+    is_pilot_active = False
+    if community_instance.hide_community == '4':
+        is_pilot_active = True
+
+    ref_members=[]
     for data in query_set:
+        is_member = False
+        tool_state = 0
         state = data.state
-        tool_state = data.tool_state
+
+        if state == 1 or state == 2 or state == 4 or state == 7:
+            is_member = True
+
+        if is_member and is_pilot_active:
+            tool_state = 1
+
+        ref_members = get_referred_members_of_a_member(community_id, member_id)
 
     if state == 0:
         '''checking if user DETAILS EXIST in temp admin table in case he is a newly registered user'''
@@ -2754,9 +4501,68 @@ def members_state(request):
             state = 6
         else:
             state = 0
+    referred_members_count=len(ref_members)
+    tool_unlock_sub_title=""
+    if referred_members_count == 0:
+        tool_unlock_sub_title="Some features might be available only for active members of the community. Invite a new member and unlock a tool"
+    elif referred_members_count == 1:
+        tool_unlock_sub_title="Some features might be available only for active members of the community. Invite 2 more members and unlock this tool"
+    elif referred_members_count == 2:
+        tool_unlock_sub_title="Some features might be available only for active members of the community. Invite 1 more member and unlock this tool"
 
-    return JsonResponse({'state': state, 'tool_state': tool_state})
 
+
+    diff=eligibility_count-referred_members_count
+
+    #sending pop-up for lg community
+    community_instance=Community.objects.get(id=community_id)
+    unlock_title="Can’t Engage Yet"
+    unlock_sub_title="Your verification for joining this closed group is still pending. Engaging is not open for non verified members. Verify your credentials."
+    unlock_action_title="REQUEST COMMUNITY MEMBERS"
+    unlock_action="""route://member_ask?community_id=%s&community_name=%s"""%(community_instance.id,community_instance.name)
+
+    if diff <= 0:
+        json_response = {'state': state,
+                         'tool_state': tool_state,
+                         'referred_members_count': referred_members_count,
+                         'tool_unlock_title': "Unlock Feature",
+                         'tool_unlock_sub_title': tool_unlock_sub_title,
+                         'tool_unlock_action_title': "OK, INVITE NOW",
+                         'tool_unlock_action': """route://community?community_id=%s&share=true&source=tool_unlock""" % (community_id),
+                         'unlock_title':unlock_title,
+                         'unlock_sub_title':unlock_sub_title,
+                         'unlock_action':unlock_action,
+                         'unlock_action_title':unlock_action_title
+                         }
+    else:
+
+        if diff == 1:
+            tool_title = """Invite friends to unlock features.If you invite %s friend, You will be highlighted as a promoter of this community.""" % (
+            diff)
+        else:
+            tool_title = """Invite friends to unlock features.If you invite %s friends, You will be highlighted as a promoter of this community.""" % (
+                diff)
+
+        json_response={'state': state,
+                   'tool_state': tool_state,
+                   'referred_members_count':referred_members_count,
+                   'tool_title':tool_title,
+                   'tool_unlock_title':"Unlock Feature",
+                   'tool_unlock_sub_title':tool_unlock_sub_title,
+                   'tool_unlock_action_title':"OK, INVITE NOW",
+                   'tool_unlock_action':"""route://community?community_id=%s&share=true&source=tool_unlock""" % (community_id),
+                   'unlock_title': unlock_title,
+                   'unlock_sub_title': unlock_sub_title,
+                   'unlock_action': unlock_action,
+                   'unlock_action_title':unlock_action_title
+
+                   }
+
+
+    return JsonResponse(json_response)
+
+
+#
 
 @csrf_exempt
 def push(request):
@@ -2808,14 +4614,14 @@ def config(request):
 
     ingest_your_communities = request.GET.get('ingest_your_communities', False)
     info_logger.info(ingest_your_communities)
-    if ingest_your_communities:
-        update_communities_in_member_engage_table.delay(member_id)
-        log = """Updated successfull for user=%s""" % (member_id)
-        info_logger.info(log)
-        if version_update:
-            return JsonResponse({'success': True})  # route:route
-        else:
-            return JsonResponse({'success': True})
+    # if ingest_your_communities:
+    #     update_communities_in_member_engage_table.delay(member_id)
+    #     log = """Updated successfull for user=%s""" % (member_id)
+    #     info_logger.info(log)
+    #     if version_update:
+    #         return JsonResponse({'success': True})  # route:route
+    #     else:
+    #         return JsonResponse({'success': True})
     # error_logger.error("headers are not comming correctly")
 
     if version_update:
@@ -2863,14 +4669,14 @@ def edit_questions(questions, community_id):
     '''function to edit questions of community'''
 
     community_object = Community.objects.get(id=community_id)
-    Form_data.objects.filter(community_id=community_object).delete()
+    communityQuestions.objects.filter(community=community_object).delete()
     print('Previous Questions Deleted')
 
     for question in questions:
         # if any new question is added -- Insert functionality
-        question_object = Form_data()
-        question_object.data = question['key']
-        question_object.community_id = community_object
+        question_object = communityQuestions()
+        question_object.question_title = question['key']
+        question_object.community = community_object
         question_object.save()
 
     print('questions updated successfully')
@@ -3030,24 +4836,83 @@ def get_user_location(request, user_id, type=None):
 
 
 def all_members(request):
-    '''function to send all user data '''
-    page = request.GET.get('page')
+
+    '''function to send all members of community '''
+    page = request.GET.get('page',1)
     community_id = request.GET.get('community_id')
-    query_set = Userinfo.objects.all().order_by("name")
-    user_data = []
-    for user in query_set:
 
-        user_object = UserinfoSerializer(user)
-        state = Members.objects.filter(community_id=community_id, member_id_id=user.user_id).values('state')
-        if state:
-            state = state[0]['state']
-        else:
-            state = 0
-        user_object['state'] = state
-        user_data.append(user_object)
-    user_data = sorted(user_data, key=lambda i: i['state'], reverse=True)
+    res=load_request_body(request)
 
-    return JsonResponse({'members': user_data[20 * (int(page) - 1):20 * int(page)]})
+    #functionality for user filteration based on options
+    if res:
+        if 'filters' in res:
+            members=get_filtered_users(res,community_id)
+            JsonResponse({'members':members})
+
+
+    #sending all the users of community
+    members=[]
+
+    member_list=Members.objects.filter(community_id=community_id).filter(Q(state=1)|Q(state=4)|Q(state=7)).order_by('id')
+    member_list=pagination(member_list,page,paginate_by=20)
+
+    for member in member_list:
+
+        userinfo_serialized_object = UserinfoSerializer(member.member_id.userinfo)
+        userinfo_serialized_object['state']=member.state
+
+        form_response = FormResponseSerilaizer(community_id, member.member_id.id,new_response=True)
+
+        if form_response:
+            userinfo_serialized_object['response'] = form_response[0]
+            userinfo_serialized_object['question_answers'] = form_response[1]
+        members.append(userinfo_serialized_object)
+
+    return JsonResponse({'members':members})
+
+
+
+def load_request_body(request):
+
+    '''function to load json body'''
+
+    try:
+        res=json.loads(request.body)
+        return res
+    except:
+        print("Json can't be load")
+        return False
+
+
+def get_filtered_users(res,community_id):
+
+    '''function to get filtered users'''
+
+    member_set = set()
+    option_data = res['filter']
+    for option in option_data:
+        question_list = questionFilters.objects.filter(filter=option['value'], question=option['id'])
+        for member_instance in question_list:
+            if member_instance.member.id not in member_set:
+                member_set.add(member_instance.member.id)
+    members = []
+    for member in member_set:
+        member_list = Members.objects.filter(community_id=community_id, member_id=member)
+        if member_list.exists():
+            member_instance = member_list[0]
+            userinfo_serialized_object = UserinfoSerializer(member_instance.member_id.userinfo)
+            userinfo_serialized_object['state'] = member_instance.state
+
+            form_response = FormResponseSerilaizer(community_id, member_instance.member_id.id, new_response=True)
+
+            if form_response:
+                userinfo_serialized_object['response'] = form_response[0]
+                userinfo_serialized_object['question_answers'] = form_response[1]
+            members.append(userinfo_serialized_object)
+
+    return members
+
+
 
 
 def invite_members(request):
@@ -3117,7 +4982,7 @@ def accept_promotership(request):
 
     # update member engage table enteries
     update_pending_member_count_in_engage(community)
-    update_referral_text_in_engage_table.delay(community_id)
+    #update_referral_text_in_engage_table.delay(community_id)
     update_member_count(community_id)
     return JsonResponse({'success': True})
 
@@ -3480,7 +5345,7 @@ def push_onboarding(request):
 
     compute_rank.delay(user_id=user_id)
     send_mail_after_rank_computation.delay(user_id)  # both mail and notification will be sent here
-
+    Userinfo.objects.filter(user_id=user_id).update(has_tags=True)
     return JsonResponse({'success': True})
 
 
@@ -3560,7 +5425,6 @@ def fetch_report_tags(request):
         temp['name'] = instance.tag_name
         report_tags.append(temp)
     info_logger.info("fetch report tags api successfulll")
-    info_logger.info(report_tags)
     return JsonResponse({'report_tags': report_tags})
 
 
@@ -3688,3 +5552,111 @@ def update_poll_card_text(card_id):
     card.answer_text = poll_text
     card.polls_count = total_polls_count
     card.save()
+
+def fetch_whatsapp_tool(request):
+
+    '''fetch whatsapp tool page'''
+
+    title="Your WhatsApp community is still not connected well."
+    sub_title="Register your group on LikeMinds and get exciting tools to better functioning of your whatsapp group."
+
+    list_points=[]
+
+    point_1={}
+
+    point_1['title'] = "Your group is not discoverable"    #text change
+    point_1['sub_title'] = "Make your group discoverable to other relevant members who might be interested in joining your group."
+
+    list_points.append(point_1)
+
+
+    point_2 = {}
+    point_2['title'] = "Group members can't identify each other"
+    point_2['sub_title'] = "Your group members can create their profile and share them so that other members can get to know them better."
+    list_points.append(point_2)
+
+    point_3={}
+    point_3['title']="Not able to create polls on whatsapp?"
+    point_3['sub_title'] = "Get the ability to create private polls for your group."
+    list_points.append(point_3)
+
+    point_4={}
+    point_4['title']="Not able to create events on whatsapp?"
+    point_4['sub_title']="Create private events for your group and easier way to access the attending members."
+
+    list_points.append(point_4)
+
+    whatsapp_tool={}
+    whatsapp_tool['title']=title
+    whatsapp_tool['sub_title']=sub_title
+    whatsapp_tool['points']=list_points
+
+
+    #getting types.object
+    community_type_list=communityType.objects.all()
+    community_subtype_list = communitySubtype.objects.all()
+
+    types=[]
+    for instance in community_type_list:
+        temp = communityTypeSerializer(instance)
+
+
+        sub_type_list = []
+        subtype_queryset = communitySubtype.objects.filter(typ=instance.id)
+
+        if subtype_queryset.exists():
+            for subtype_instance in subtype_queryset:
+
+                sub_type_list.append(communitySubtypeSerializer(subtype_instance))
+
+        if sub_type_list:
+            temp['sub_types'] = sub_type_list
+
+        types.append(temp)
+
+
+
+
+
+
+    # getting sub-types.object
+    # community_subtype_list = communitySubtype.objects.all()
+    # sub_types = []
+    #
+    # for instance in community_subtype_list:
+    #     sub_types.append(communitySubtypeSerializer(instance))
+
+
+
+    whatsapp_tool['types'] = types
+    #whatsapp_tool['sub_types'] = sub_types
+
+    master_question_list = masterQuestions.objects.all()
+    paginator = Paginator(master_question_list, 50)
+
+
+    whatsapp_tool['total_master_questions'] = paginator.num_pages
+
+
+
+    return JsonResponse(whatsapp_tool)
+
+
+def fetch_master_questions(request):
+    # getting master Questions
+
+    page=request.GET.get('page',1)
+    master_question_list = masterQuestions.objects.all()
+    master_question_list=pagination(master_question_list,page_number=page,paginate_by=50)
+    master_questions = []
+    for instance in master_question_list:
+        master_questions.append(masterQuestionSerializer(instance))
+
+    return JsonResponse({
+        'master_questions':master_questions
+    })
+
+
+
+
+

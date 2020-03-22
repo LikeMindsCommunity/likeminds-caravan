@@ -1,7 +1,7 @@
 from utility.tasks import send_email
-from django.shortcuts import render
 from django.template.loader import get_template
-from django.http import HttpResponse, HttpResponseServerError, HttpResponseNotFound
+from django.http import HttpResponse
+from django.template import loader
 
 
 def handler404(request, exception=None):
@@ -17,23 +17,23 @@ def handler404(request, exception=None):
 
     if not requested_path[0:6] == 'static':
         send_email.delay(subject, template, to_mails_list)
+    template = loader.get_template('__404__.html')
 
-    template_404 = get_template('__404__.html')
-
-    return HttpResponseNotFound(template_404)
+    return HttpResponse(template.render())
 
 
 def handler500(request, exception=None):
     subject = "500 Server Error in Main server"
     template = "mails/exceptions/server_error.html"
+    print(exception)
     template = get_template(template).render({"exception": exception,
                                               'subject': subject
                                               })
     to_mails_list = ['mahesh61437mahe@gmail.com']
     send_email.delay(subject, template, to_mails_list)
 
-    template_500 = get_template("500.html")
-    return HttpResponseNotFound(template_500)
+    template = loader.get_template('500.html')
+    return HttpResponse(template.render())
 
 
 

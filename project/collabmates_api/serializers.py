@@ -1,11 +1,12 @@
-from django.contrib.auth.models import User, Group
-from rest_framework import serializers
-from togther.models import *
-from django.conf import settings
-from django.db.models import Q
-from utility.utils import is_IG_community
 import json
 import time
+
+from django.conf import settings
+from django.db.models import Q
+from togther.models import *
+from togther.models import *
+from utility.utils import is_IG_community,is_LG_or_LP_community
+
 url = settings.URL
 
 #
@@ -40,15 +41,26 @@ def CommunitySerializer(community):
     new_dict['date'] = community.active_since
     new_dict['members_count'] = get_member_count(community)
     new_dict['state']=int(community.hide_community)
-    if new_dict['state'] == 4:
-        new_dict['auto_approval']=is_IG_community(community)
-    else:
-        new_dict['auto_approval'] = False
+
+
+    if is_IG_community(community):
+        community_type=0
+        new_dict['community_type'] = community_type
+    elif is_LG_or_LP_community(community):
+        community_type=1
+        new_dict['community_type'] = community_type
+
+    if community.type:
+        new_dict['type']=community.type
+    if community.sub_type:
+        new_dict['sub_type'] = community.sub_type
+
     return new_dict
 
 def UserinfoSerializer(user):
     # function to serialize a userinfo object
-    userinfo= {
+            #if the community is not feedback community
+    userinfo = {
         'id': user.user_id.id,
         "name": user.name,
         "email": user.email,
@@ -63,7 +75,8 @@ def UserinfoSerializer(user):
     if not user.image_link:
         userinfo['image_url'] = url + user.image_file.url
     else:
-        userinfo['image_url']=user.image_link
+        userinfo['image_url'] = user.image_link
+
     return userinfo
 
 def CollabcardSerializer(card,user,community=None):
@@ -72,7 +85,7 @@ def CollabcardSerializer(card,user,community=None):
         'id': card.id,
         'title': card.title,
         'community_id': card.community_id,
-        'share_url': url + '/collabcard/' + str(card.id),
+        'share_url': url + '/collabcard/' + str(card.id) + "?ref_id=" + str(card.user.id),
         'answer_text': card.answer_text,
         'share_link': card.share_link,
         'image_count': card.image_count,
@@ -136,19 +149,82 @@ def get_member_count(community):
         Q(state=1) | Q(state=2) | Q(state=4) | Q(state=7) | Q(state = 8)).count()
 
 
-def FormResponseSerilaizer(community_id, user_id):
-    responses = Form_response.objects.filter(community=community_id).filter(user=user_id).order_by('id')
+def FormResponseSerilaizer(community_id, user_id,bl=False):
+
+    responses = communityAnswers.objects.filter(community=community_id).filter(member=user_id).order_by('id')
     if not responses.exists():
         return None
     user_response = []
+    new_response=[]
     for response in responses:
         # getting the answers of the users who requested to join
         # for the questions that have been asked while requestiong to join in a community
         response_object = {}
-        response_object['key'] = response.data
-        response_object['value'] = response.response
+        response_object['key'] = response.question_title
+        response_object['value'] = response.question_answer
+
+        temp={}
+        temp['community_id'] = community_id
+        temp['member_id'] = user_id
+        temp['question_title'] = response.question_title
+        temp['value'] = response.question_answer
+        temp['question_id'] = response.question_id
+        new_response.append(temp)
+
         user_response.append(response_object)
 
-    return user_response
+    if not bl:
+        return user_response
+    return (user_response,new_response)
 
 
+
+
+
+def CommunityQuestionsSerializer(community_question_instance):
+
+    return {
+        'id':community_question_instance.id,
+        'question_title':community_question_instance.question_title,
+        'value':community_question_instance.value,
+        'optional':community_question_instance.optional,
+        'community_id':community_question_instance.community_id,
+        'state':community_question_instance.question_state,
+        'help_text':community_question_instance.help_text if community_question_instance.help_text else ''
+    }
+
+
+def communityTypeSerializer(communityTypeInstance):
+
+    return {
+
+        'id':communityTypeInstance.id,
+        'type':communityTypeInstance.typ,
+        'next_input_title':communityTypeInstance.next_input_title
+    }
+
+
+def communitySubtypeSerializer(communitySubtypeInstance):
+
+    return {
+        'id':communitySubtypeInstance.id,
+        'sub_type':communitySubtypeInstance.sub_typ
+    }
+
+
+def masterQuestionSerializer(masterQuestionInstance):
+
+
+    json_dict = {
+        'type_id': masterQuestionInstance.typ_id,
+        'sub_type_id': masterQuestionInstance.sub_type_id,
+        'state' : masterQuestionInstance.state,
+        'question_title': masterQuestionInstance.question_title
+    }
+
+    if masterQuestionInstance.value:
+        json_dict['value'] = masterQuestionInstance.value
+    if masterQuestionInstance.help_text:
+        json_dict['help_text'] = masterQuestionInstance.help_text
+
+    return json_dict

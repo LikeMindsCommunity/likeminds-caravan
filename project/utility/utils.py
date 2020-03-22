@@ -4,7 +4,6 @@ from celery import shared_task
 from bs4 import BeautifulSoup
 import requests
 from togther.models import *
-from togther.models import *
 from django.shortcuts import get_object_or_404
 from django.db.models import Q
 import requests as rqst
@@ -34,12 +33,24 @@ ios_app_download_link="https://apps.apple.com/us/app/collabmates/id1481298195"
 url=settings.URL
 
 if settings.IS_BETA:
-    eligibility_count = 2
+
+    eligibility_count = 5
+    ig_members_count=4
+
+    feedback_community_id = 48640
+    feedback_collabcard_id = 644
+
 else:
     eligibility_count = 5
+    ig_members_count = 4
+
+    feedback_community_id = 20739
+    feedback_collabcard_id = 1025
 
 # count for a particular community to show tutorial
 tutorial_count=3
+
+
 
 
 def is_member_engage(community,member):
@@ -51,6 +62,18 @@ def is_member_engage(community,member):
     if member_data:
         is_present=True
     return is_present
+
+
+def is_member_verified(community,user_instance):
+
+    '''function to check whether the member is verified or not'''
+
+    is_verified=Members.objects.filter(community_id=community,member_id=user_instance).filter(
+        Q(state=1)|Q(state=4)|Q(state=2))
+
+    if is_verified:
+        return True
+    return False
 
 def decode_meta_from_url(url):
 
@@ -198,7 +221,7 @@ def get_city_address(request=None,city=None):
             pincode = location_info.pincode if location_info.city else ''
 
         else:
-            request = "https://maps.googleapis.com/maps/api/geocode/json?address="+str(tag_name)+"&key=AIzaSyDN10TwCPVMdLEE6vvTiglKHGlkTIYKduc"
+            request = "https://maps.googleapis.com/maps/api/geocode/json?address="+str(tag_name)+"&key="+str(settings.GOOGLE_API_KEY)
             response = rqst.get(request)
             response = response.json()
 
@@ -471,7 +494,11 @@ def get_referred_members_of_a_member(community_id,member_id):
 
     if total_referals.exists():
         for interested_member in total_referals:
-            member_list.append(interested_member.invited_member.id)
+            mem_id=interested_member.invited_member.id
+            member = Members.objects.filter(member_id=mem_id, community_id=community_id)
+            if member.exists():
+                if member[0].state == 4:
+                    member_list.append(member[0].member_id.id)
 
     return member_list
 
@@ -611,7 +638,7 @@ def user_onbaord(member_id):
     # if user does not have any tags , user has to do on-boarding
 
     if user_legacy.exists() and user_prof.exists() and user_int.exists() and user_gro.exists():
-        if (len(user_legacy) == 1 and user_legacy[0].tags_id.tag_id == 15) or (len(user_prof) == 1 and user_prof[0].tags_id.tag_id ==16) or (len(user_int) == 1 and user_int[0].tags_id.tag_id == 17) or (len(user_gro) == 1 and user_int[0].tags_id.tag_id == 18):
+        if (len(user_legacy) == 1 and user_legacy[0].tags_id.tag_id == 15) or (len(user_prof) == 1 and user_prof[0].tags_id.tag_id ==16) or (len(user_int) == 1 and user_int[0].tags_id.tag_id == 17) or (len(user_gro) == 1 and user_gro[0].tags_id.tag_id == 18):
             return False
         return True
     else:
@@ -723,3 +750,33 @@ def is_IG_community(community):
             return True
 
     return False
+
+
+def is_LG_or_LP_community(community):
+
+    '''function to check if the community is LG community or not and excluding hometown communities'''
+
+    communities_legacy=Community_Legacy.objects.filter(community_id=community)
+
+    is_hometown=is_legacy_home_town(communities_legacy)
+
+    if not is_hometown:
+
+        for legacy in communities_legacy:
+            tag_id = legacy.tags_id.id
+            if tag_id != 15:
+                return True
+
+        return False
+    return False
+
+def is_legacy_home_town(communities_legacy):
+
+    '''function to check whether the community is legacy hometown or not'''
+
+    for legacy in communities_legacy:
+        attribute_id=legacy.tags_id.attribute_id.id
+        if attribute_id == 3 or attribute_id == 13 or attribute_id == 14 :
+            return True
+    return False
+

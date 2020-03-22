@@ -1,18 +1,22 @@
 from __future__ import absolute_import, unicode_literals
-from celery import shared_task
-import psycopg2
-from pyfcm import FCMNotification
-from django.conf import  settings
-import time
-from togther.models import (Community_Rank, collabcardState,
-                            MemberPollVotes, Collabcard,
-                            )
-from django.contrib.auth.models import User
 
-from utility.states import *
 import re
+import time
+from django.http.response import JsonResponse
+import psycopg2
+from celery import shared_task
+from django.conf import settings
+from django.contrib.auth.models import User
 from django.db.models import Q
+from pyfcm import FCMNotification
+from togther.models import (Community_Rank, collabcardState,
+                            MemberPollVotes, Collabcard,Members,Members,Referal,Community
+                            )
 from utility.celery_beat_tasks import CeleryBeatTask
+from utility.states import *
+import json
+from django.shortcuts import get_object_or_404
+
 # file to store configuration of the system
 
 
@@ -27,12 +31,7 @@ db_database=settings.DATABASES['default']['NAME']
 url=settings.URL
 
 #server keys for sending notification
-if url == "https://beta.collabmates.com":
-    server_key='AAAA5QiC06o:APA91bGK2e3Y9r2g5VXnJIwK7OJ8pliwpXs_cwayEJ2D32Dfn5TcXpiUJDJNw7w-NqSdUH93FrX5xFie8KfpQORigfSuNlDVXxgi1nt9FcB7y5e5f0428jRKX35vti3R-BhxzMc9yrj_'
-else:
-    server_key = 'AAAAllezPSk:APA91bEYRnVqZGMS_YNTDwu4wJfQfbubN7jQtwvdAyZI6XvoRIjQPii9kj2joizPGJ8GhcoXpcIF5ftsZ-zyBuY9WzqS48b2JCZ51Lv8K9L56gMwBjLsW7tDSfntEqMtAQ9f8f024M5P'
-
-
+server_key=settings.FCM_SERVER_KEY
 
 #notifications for different mobile os versions
 
@@ -47,7 +46,6 @@ def send_notification_for_android(token_list,message):
     result = push_service.notify_multiple_devices(registration_ids=token_list,
                                                   data_message=message['payload'])
 
-    print(result)
 
 
 def send_notification_for_ios(token_list, message):
@@ -63,13 +61,13 @@ def send_notification_for_ios(token_list, message):
                                                   message_body=message['payload']['sub_title'],
                                                   data_message=message['payload'])
 
-    print(result)
 
 
 def notification_meta(notification_list,message):
 
     '''function to process notification to send'''
-    print(notification_list)
+
+
 
     token_list_android=[]
     token_list_ios=[]
@@ -87,8 +85,6 @@ def notification_meta(notification_list,message):
     if token_list_ios:
         send_notification_for_ios(token_list_ios,message)
 
-    print("Notification sent")
-    print("\n")
 
 
 
@@ -159,15 +155,15 @@ def is_mobile_os_android(fcm_token):
         curr = conn.cursor()
         sql="select mobile_os from togther_userinfo where fcm_token='"+fcm_token+"'"
         curr.execute(sql)
-        print(sql)
+        #print(sql)
         mobile_os = curr.fetchone()
         if mobile_os:
-            print(mobile_os[0])
+            #print(mobile_os[0])
             if mobile_os[0] == "Android":
-                print("Android")
+                #print("Android")
                 return True
             elif mobile_os[0] == "iOS":
-                print("iOS")
+                #print("iOS")
                 return False
         else:
             return True
@@ -224,11 +220,6 @@ def send_notification(fcm_token,message,is_android):
 
 
 
-
-
-
-
-
 @shared_task
 def send_follow_notification(card_id,user_id,answer):
 
@@ -238,7 +229,7 @@ def send_follow_notification(card_id,user_id,answer):
         connection=get_connection()
         curr=connection.cursor()
         sql="select user_id from togther_collabcardstate where card_id=%s and state=%s"
-        parameter_list=[card_id, collabcard_follow_state]
+        parameter_list=[card_id, collabcard_states.COLLABCARD_STATE_FOLLOW]
         curr.execute(sql,parameter_list)
         member_list=curr.fetchall()
         curr.execute("select name from togther_userinfo where user_id_id=%s",[user_id])
@@ -340,9 +331,15 @@ def send_notification_to_admins(community_id,name):
 def send_notification_for_join_requests(community_id,flag,member_id):
     '''function to send notification for approval or denial'''
     community_name=get_community_name(community_id)
-    fcm_token=get_token_for_fcm(member_id)
-    token_list=[]
-    token_list.append(fcm_token)
+    temp = {}
+    notification_list=[]
+    temp['user_id'] = member_id
+    notification_details = get_token_for_fcm(member_id, True)
+    temp['fcm_token'] = notification_details[0]
+    temp['mobile_os'] = notification_details[1]
+
+    notification_list.append(temp)
+
     message={}
     if flag:
         message['payload']={
@@ -353,12 +350,11 @@ def send_notification_for_join_requests(community_id,flag,member_id):
     else:
         message['payload'] = {
             'title': community_name,
-            'sub_title': "Sorry! your request to join this community has been rejected",
+            'sub_title': "Your request to join this community has been rejected",
             'route': 'route://member_declined?community_id=' + str(community_id)
         }
 
-    send_notification_to_multiple_devices(token_list,message)
-
+    notification_meta(notification_list,message)
 
 
 
@@ -366,67 +362,73 @@ def send_notification_for_join_requests(community_id,flag,member_id):
 # notifications for new collabcards
 
 @shared_task
-def send_notification_for_new_collabcard_posted(community_id, collabcard_title,
-                                                card_creater_id, card_creater_name, **kwargs):
+def send_notification_for_new_collabcard_posted(community_id, collabcard_title, card_creater_id, card_creater_name,
+                                                **kwargs):
     '''function to send notification to all members when new collabcard is posted'''
     try:
-        connection=get_connection()
-        curr=connection.cursor()
-        sql="select member_id_id from togther_members where community_id_id=%s and member_id_id !=%s and (state=1 or state=2 or state=4 or state=7)"
-        parameter_list=[community_id,card_creater_id]
-        curr.execute(sql,parameter_list)
-        member_list=curr.fetchall()
+        connection = get_connection()
+        curr = connection.cursor()
+        sql = "select member_id_id from togther_members where community_id_id=%s and member_id_id !=%s and (state=1 or state=2 or state=4 or state=7)"
+        parameter_list = [community_id, card_creater_id]
+        curr.execute(sql, parameter_list)
+        member_list = curr.fetchall()
 
-        token_list=[]
-        notification_list=[]
+        notification_list = []
         for member in member_list:
-            temp={}
-            temp['user_id']=member[0]
-            notification_details=get_token_for_fcm(member[0],True)
-            temp['fcm_token']=notification_details[0]
-            temp['mobile_os']=notification_details[1]
+            temp = {}
+            temp['user_id'] = member[0]
+            notification_details = get_token_for_fcm(member[0], True)
+            temp['fcm_token'] = notification_details[0]
+            temp['mobile_os'] = notification_details[1]
             notification_list.append(temp)
 
-        community_name=get_community_name(community_id)
-        message={}
+        community_name = kwargs['community_name']
+        message = {}
         typ = kwargs['type'] if 'type' in kwargs else 0
         if typ == 2:
-            sub_title = "Posted an event: "+str(collabcard_title)
+            sub_title = "Posted an event: " + str(collabcard_title)
         elif typ == 3:
-            sub_title = "Posted a poll: "+ str(collabcard_title)
+            sub_title = "Posted a poll: " + str(collabcard_title)
         else:
             sub_title = str(collabcard_title)
 
-
-        message['payload']={
-            'title': str(card_creater_name) + " @ "+str(community_name),
+        message['payload'] = {
+            'title': str(card_creater_name) + " @ " + str(community_name),
             'sub_title': sub_title,
-            'route': 'route://community_collabcard?community_id=' + str(community_id) + '&community_name='+ str(community_name)
+            'route': 'route://community_collabcard?community_id=' + str(community_id) + '&community_name=' + str(
+                community_name) + '&community_state=' + str(kwargs['community_state'])
         }
 
-
-        notification_meta(notification_list,message)
+        notification_meta(notification_list, message)
 
         if typ == 2 or typ == 3:
-            task_name = 'poll_with_id_' + str(kwargs['card_id']) if typ == 3 else 'event_with_id_' + str(kwargs['card_id'])
+            task_name = 'poll_with_id_' + str(kwargs['card_id']) if typ == 3 else 'event_with_id_' + str(
+                kwargs['card_id'])
             task_path = 'collabmates_api.notification.poll_expiry_or_event_remainder_notification'
             task_name, task_path = task_name, task_path
             if task_name and task_path:
                 celerybeatask = CeleryBeatTask()
                 args = [community_name, community_id, typ]
+                print("card id === ", kwargs['card_id'],"   type ===  ",typ)
+                print("date time === ",kwargs['date_time'])
 
-                date_time = int(kwargs['date_time']//1000) if isinstance(kwargs['date_time'], int)\
-                                else kwargs['date_time'][:10] if isinstance(kwargs['date_time'], str)\
-                                else int(str(kwargs['date_time'])[:10])
-
-                date_time = (date_time-1800) if typ == 2 else date_time + 19800 if not settings.DEBUG else 0
+                date_time = int(str(kwargs['date_time'])[:10])
+                print("date time === ", date_time)
+                if typ == 2:
+                    if settings.IS_BETA:
+                        date_time = date_time - 1800  # subtracting 30 minutes if BETA
+                    else:
+                        date_time = date_time - 1800 + 19800  # subtracting 30 minutes and adding 5:30 to make time into IST
+                else:
+                    date_time = date_time + 19800 if not settings.IS_BETA else date_time
+                print("date time === ", date_time)
                 celerybeatask.get_or_create_new_beat_task(card_creater_id=card_creater_id,
                                                           card_creater_name=card_creater_name,
                                                           args=args, task_name=task_name, task_path=task_path,
                                                           date_time=date_time, interval=False, crontab=True,
                                                           collabcard_title=collabcard_title,
-                                                          card_id=kwargs['card_id'])
-
+                                                          card_id=kwargs['card_id'],
+                                                          community_state=kwargs['community_state'])
 
     except (Exception, psycopg2.Error) as error:
 
@@ -511,6 +513,7 @@ def send_notification_to_referred_member(referred_member_id,joined_member_name,c
         token_list=[]
         token_list.append(fcm_token)
         if referal_count == 1:
+
             sub_title =  str(joined_member_name) + " has shown interest to join. You have referred "+ str(referal_count) +" member to the community"
         elif referal_count > 1:
             sub_title =  str(joined_member_name) + " has shown interest to join. You have referred "+ str(referal_count) +" members to the community"
@@ -579,6 +582,10 @@ def send_notification_to_all_admins(community_id,name,current_promoter_id):
     except (Exception, psycopg2.Error) as error:
 
         print ("Error while connecting to PostgreSQL", error)
+
+
+
+
 
 @shared_task
 def notification_after_compute_rank(user_id):
@@ -662,7 +669,7 @@ def send_poll_or_event_notification(card_id, user_id):
         'title': str(community_name),
         'sub_title': sub_title,
         'route': 'route://community_collabcard?community_id=' + str(community_id) + '&community_name=' + str(
-            community_name)
+            community_name) + '&community_state=' + str(card.community.hide_community)
     }
 
     token_list = [card_creator_fcm_token]
@@ -675,8 +682,10 @@ def send_poll_or_event_notification(card_id, user_id):
 def poll_expiry_or_event_remainder_notification(community_name, community_id, typ, **kwargs):
 
     """ function to send notification to all members when event/poll is going to start/end """
+    print("\ntype === ", typ)
+    print(" community-id === ", community_id)
+    print("kwargs === ", kwargs,"\n")
     try:
-
         if typ == 2:
             token_list = list(collabcardState.objects.filter(card=kwargs['card_id']).filter(
                                  Q(state=3) |
@@ -686,22 +695,27 @@ def poll_expiry_or_event_remainder_notification(community_name, community_id, ty
             token_list = list(MemberPollVotes.objects.filter(card=kwargs[
                                                                 'card_id']).order_by('-id').values_list(
                                                                 'user__userinfo__fcm_token', flat=True))
-            print("token list ===== ", token_list)
+        print("token list ===== ", token_list)
 
+        card_instance = Collabcard.objects.get(pk=kwargs['card_id'])
 
-        community_name = community_name
+        user_fcm = card_instance.user.userinfo.fcm_token
+
+        if not user_fcm in token_list:
+            token_list.append(user_fcm)
+
 
         if typ == 3:
-            sub_title = 'your poll ended. Tap to see results'
+            sub_title = 'Your poll ended. Tap to see results'
         else:
-            sub_title = 'your event is starting in 30 minutes'
+            sub_title = 'Your event is starting in 30 minutes'
 
         message = {}
         message['payload'] = {
             'title': str(community_name),
             'sub_title': sub_title,
             'route': 'route://community_collabcard?community_id=' + str(
-                      community_id) + '&community_name=' + str(community_name),
+                      community_id) + '&community_name=' + str(community_name) + '&community_state=' + str(kwargs['community_state']),
         }
 
         send_notification_to_multiple_devices(token_list, message)
@@ -710,6 +724,274 @@ def poll_expiry_or_event_remainder_notification(community_name, community_id, ty
         beat_task.stop_task(task_name=kwargs['task_name'])
 
     except:
-
         print("Error while connecting to PostgreSQL")
+
+
+def send_poll_notification_manually(request):
+    body = json.loads(request.body)
+
+    community_id = body['community_id']
+    community = Community.objects.get(pk=community_id)
+    community_name = community.name
+    community_state = community.hide_community
+    card_id = body['card_id']
+
+    card = Collabcard.objects.get(pk = card_id)
+    typ = card.type
+
+    poll_expiry_or_event_remainder_notification(community_name, community_id, typ,
+                                                community_state=community_state, card_id=card_id)
+    return JsonResponse({'success':True})
+#toots unlocked
+
+@shared_task
+def send_notification_for_tool_unlocked_for_live_community(referer_id,referal_count, community_id, community_name,community_state):
+
+    '''function to send notification for tool unlocked'''
+
+    sub_title = ""
+    route = 'route://community_collabcard?community_id=' + str(community_id) + '&community_name=' + str(
+            community_name) + '&community_state=' + str(community_state)
+    print("refererid--",referer_id)
+
+    if referal_count == 1:
+        sub_title = "Event tool unlocked. You have successfully referred 1 member"
+        notification_list = []
+        temp = {}
+        temp['user_id'] = referer_id
+        notification_details = get_token_for_fcm(referer_id, True)
+        temp['fcm_token'] = notification_details[0]
+        temp['mobile_os'] = notification_details[1]
+        notification_list.append(temp)
+
+        message = {}
+        message['payload'] = {
+            'title': community_name,
+            'sub_title': sub_title,
+            'route': route
+        }
+
+        notification_meta(notification_list, message)
+
+    elif referal_count == 3:
+        sub_title = "Pool tool unlocked. You have successfully referred 3 member."
+        notification_list = []
+        temp = {}
+        temp['user_id'] = referer_id
+        notification_details = get_token_for_fcm(referer_id, True)
+        temp['fcm_token'] = notification_details[0]
+        temp['mobile_os'] = notification_details[1]
+        notification_list.append(temp)
+
+        message = {}
+        message['payload'] = {
+            'title': community_name,
+            'sub_title': sub_title,
+            'route': route
+        }
+        notification_meta(notification_list, message)
+
+    elif referal_count == 5:
+        sub_title = " Congrats. You are now promoter of this community."
+        notification_list = []
+        temp = {}
+        temp['user_id'] = referer_id
+        notification_details = get_token_for_fcm(referer_id, True)
+        temp['fcm_token'] = notification_details[0]
+        temp['mobile_os'] = notification_details[1]
+        notification_list.append(temp)
+
+        message = {}
+        message['payload'] = {
+            'title': community_name,
+            'sub_title': sub_title,
+            'route': route
+        }
+        notification_meta(notification_list, message)
+
+
+
+@shared_task
+def send_notification_for_tool_unlocked_for_pilot(community_id):
+    '''function to send notification when the community is pilot and becomes live'''
+
+    members_list=Members.objects.filter(community_id=community_id).filter(Q(state=member_states.ADMIN)|Q(state=member_states.MEMBER))
+    community_instance=Community.objects.get(id=community_id)
+    print("Send Notification for tool unlocked")
+    for member in members_list:
+
+        referal_count=get_referred_members_of_a_member(community_id,member.member_id.id)
+        referal_count=len(referal_count)
+
+        if referal_count >= 3:
+
+            send_notification_for_tool_unlocked_for_live_community(referer_id=member.member_id.id,
+                                                               referal_count=1,community_id=community_id,
+                                                               community_name=community_instance.name,
+                                                               community_state=community_instance.hide_community
+                                                               )
+
+            send_notification_for_tool_unlocked_for_live_community(referer_id=member.member_id.id,
+                                                                   referal_count=3,
+                                                                   community_id=community_id,
+                                                                   community_name=community_instance.name,
+                                                                   community_state=community_instance.hide_community
+                                                                   )
+        elif referal_count >= 1:
+
+
+            send_notification_for_tool_unlocked_for_live_community(referer_id=member.member_id.id,
+                                                                   referal_count=1, community_id=community_id,
+                                                                   community_name=community_instance.name,
+                                                                   community_state=community_instance.hide_community
+                                                                   )
+
+
+#Ig notifications
+
+
+@shared_task
+def send_notification_to_promoter_of_ig_community(community_id,community_name,member_id):
+
+   '''function to send notification for the promoter of IG communities'''
+
+   notification_list = []
+
+   temp = {}
+   temp['user_id'] = member_id
+   notification_details = get_token_for_fcm(member_id, True)
+   temp['fcm_token'] = notification_details[0]
+   temp['mobile_os'] = notification_details[1]
+
+   notification_list.append(temp)
+
+   message = {}
+   message['payload'] = {
+       'title': str(community_name),
+       'sub_title': "You are now promoter of this community.",
+       'route': 'route://community?community_id=' + str(community_id)
+   }
+
+
+   notification_meta(notification_list, message)
+
+
+
+
+@shared_task
+def send_notification_to_referrer_of_ig_community(community_id,community_name,referrer_id,
+                                                  member_name,community_state):
+
+    '''function to send notification to the referrer of ig community'''
+
+    notification_list = []
+
+    temp = {}
+    temp['user_id'] = referrer_id
+    notification_details = get_token_for_fcm(referrer_id, True)
+    temp['fcm_token'] = notification_details[0]
+    temp['mobile_os'] = notification_details[1]
+
+    notification_list.append(temp)
+
+    message = {}
+    message['payload'] = {
+        'title': str(community_name),
+        'sub_title': """%s just joined this community."""%(member_name),
+        'route':'route://community_collabcard?community_id=' + str(community_id) + '&community_name=' + str(
+            community_name) + '&community_state=' + str(community_state)
+    }
+
+    notification_meta(notification_list, message)
+
+
+
+
+
+
+#LG notifications
+@shared_task
+def send_notification_to_referrer_of_lg_community(community_id,community_name,referrer_id,
+                                                  member_name,community_state,is_verified=False):
+
+    '''function to send notification to the referrer of ig community'''
+
+    notification_list = []
+
+    temp = {}
+    temp['user_id'] = referrer_id
+    notification_details = get_token_for_fcm(referrer_id, True)
+    temp['fcm_token'] = notification_details[0]
+    temp['mobile_os'] = notification_details[1]
+
+    notification_list.append(temp)
+    if not is_verified:
+        sub_title="""%s has shown interest to join."""%(member_name)
+    else:
+        sub_title = """%s has shown interest to join. Please verify""" % (member_name)
+
+    message = {}
+    message['payload'] = {
+        'title': str(community_name),
+        'sub_title': sub_title,
+        'route':'route://community_collabcard?community_id=' + str(community_id) + '&community_name=' + str(
+            community_name) + '&community_state=' + str(community_state)
+    }
+
+    notification_meta(notification_list, message)
+
+
+
+
+@shared_task
+def ask_approval_notification(community_id,community_name,approver_id,
+                                                  member_name,community_state):
+
+    '''function to send notification for ask approval'''
+
+    notification_list = []
+
+    temp = {}
+    temp['user_id'] = approver_id
+    notification_details = get_token_for_fcm(approver_id, True)
+    temp['fcm_token'] = notification_details[0]
+    temp['mobile_os'] = notification_details[1]
+
+    notification_list.append(temp)
+
+    message = {}
+    message['payload'] = {
+        'title': str(community_name),
+        'sub_title': """%s has requested to join your community."""%(member_name),
+        'route':'route://community_collabcard?community_id=' + str(community_id) + '&community_name=' + str(
+            community_name) + '&community_state=' + str(community_state)
+    }
+
+    notification_meta(notification_list, message)
+
+
+
+
+#utility functions
+def get_referred_members_of_a_member(community_id,member_id):
+
+    community = get_object_or_404(Community, pk=community_id)
+    referred_member = User.objects.get(pk=member_id)
+
+    member_list=[]
+    total_referals = Referal.objects.filter(member=referred_member, community=community)
+
+    if total_referals.exists():
+        for interested_member in total_referals:
+            mem_id=interested_member.invited_member.id
+            member = Members.objects.filter(member_id=mem_id, community_id=community_id)
+            if member.exists():
+                if member[0].state == 4:
+                    member_list.append(member[0].member_id.id)
+
+    return member_list
+
+
+
+
 
