@@ -23,7 +23,7 @@ from utility.utils import (get_city_address, update_tag_image,
                            update_user_geography_tags, create_or_categorize_tag,
                            referal, insert_user_home_town_tags, user_onbaord,
                            is_request_android, is_request_ios,
-                           is_request_pc, android_app_download_link, is_IG_community, ios_app_download_link,is_member_verified)
+                           is_request_pc, android_app_download_link, is_IG_community, ios_app_download_link,is_member_verified,feedback_community_id)
 from utility.firebase import upload_image_to_firebase
 from urllib.parse import urlencode, quote
 from collabmates_api.tasks import send_email
@@ -370,7 +370,8 @@ def community(request, community_id):
 
     admin_details = get_admins_details(community)
     members = get_member_details(community)
-
+    if community.id == feedback_community_id:
+        members=[]
     auto_join = request.GET.get('aj', False)
     if auto_join and auto_join.lower() == 't':
         auto_join = True
@@ -540,6 +541,7 @@ def get_member_details(community,filter_list=None):
         for member in member_list:
             temp = {}
             temp['id'] = member.member_id.id
+            print(member.member_id)
             temp['name'] = member.member_id.userinfo.name
             temp['image_link'] = member.member_id.userinfo.image_link
             answer = get_introduction_answer(community, member)

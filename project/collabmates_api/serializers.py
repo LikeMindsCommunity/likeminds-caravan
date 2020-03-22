@@ -150,6 +150,7 @@ def get_member_count(community):
 
 
 def FormResponseSerilaizer(community_id, user_id,bl=False):
+
     responses = communityAnswers.objects.filter(community=community_id).filter(member=user_id).order_by('id')
     if not responses.exists():
         return None

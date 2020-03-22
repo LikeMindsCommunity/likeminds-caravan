@@ -1,12 +1,12 @@
 from django.contrib.auth.models import User
 from togther.models import (Community, Members,
-                            Collabcard, Member_Engage)
+                            Collabcard, Member_Engage,Userinfo)
 from utility.states import member_states
 import time
 
 
-feedback_community_id = 20739
-feedback_collabcard_id = 1025
+feedback_community_id = 48640
+feedback_collabcard_id = 664
 
 def is_member_engage(community,member):
 
@@ -34,7 +34,8 @@ def create_member_for_feedback_community(user_instance):
         member_instance.created_at=time.time()
         member_instance.save()
     else:
-        print("member already exists")
+        #print("member already exists")
+        pass
 
 
     if not is_member_engage(community_instance,user_instance):          #not is_member_engage(community_instance,user_instance)
@@ -48,18 +49,20 @@ def create_member_for_feedback_community(user_instance):
         engage.member_state = member_states.MEMBER
         engage.save()
     else:
-        print("member engage already exists")
+        #print("member engage already exists")
+        pass
 
 
 def add_user_to_feedback_community():
-    users = User.objects.all().order_by("id")
+
+    users = Userinfo.objects.all()
 
     for user in users:
-        print("user  == ", user.id)
-        create_member_for_feedback_community(user)
+        print("user  == ", user.user_id.id)
+        create_member_for_feedback_community(user.user_id)
 
 
 print("script started")
 add_user_to_feedback_community()
-print("script started")
+print("script ended")
 

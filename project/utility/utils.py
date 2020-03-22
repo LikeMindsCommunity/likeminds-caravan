@@ -37,8 +37,8 @@ if settings.IS_BETA:
     eligibility_count = 5
     ig_members_count=4
 
-    feedback_community_id = 20739
-    feedback_collabcard_id = 1025
+    feedback_community_id = 48640
+    feedback_collabcard_id = 644
 
 else:
     eligibility_count = 5
