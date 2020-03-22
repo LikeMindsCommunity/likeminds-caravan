@@ -369,9 +369,12 @@ def community(request, community_id):
         about_2 = about[180:]
 
     admin_details = get_admins_details(community)
-    members = get_member_details(community)
+   # members = get_member_details(community)
     if community.id == feedback_community_id:
         members=[]
+    else:
+        members = get_member_details(community)
+
     auto_join = request.GET.get('aj', False)
     if auto_join and auto_join.lower() == 't':
         auto_join = True
@@ -541,7 +544,6 @@ def get_member_details(community,filter_list=None):
         for member in member_list:
             temp = {}
             temp['id'] = member.member_id.id
-            print(member.member_id)
             temp['name'] = member.member_id.userinfo.name
             temp['image_link'] = member.member_id.userinfo.image_link
             answer = get_introduction_answer(community, member)
