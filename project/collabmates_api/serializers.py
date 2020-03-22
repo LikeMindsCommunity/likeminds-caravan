@@ -5,7 +5,7 @@ from django.conf import settings
 from django.db.models import Q
 from togther.models import *
 from togther.models import *
-from utility.utils import is_IG_community,is_LG_or_LP_community
+from utility.utils import is_IG_community,is_LG_or_LP_community,feedback_community_id
 
 url = settings.URL
 
@@ -40,7 +40,10 @@ def CommunitySerializer(community):
     elif not community.image_link:
         new_dict['image_url'] = url + new_dict['image_url']
     new_dict['is_member'] = ''
-    new_dict['share_url'] = url + '/community/' + str(new_dict['id'])
+    if feedback_community_id != community.id:
+        new_dict['share_url'] = url + '/community/' + str(new_dict['id'])
+    else:
+        new_dict['share_url'] = ""
     new_dict['date'] = community.active_since
     new_dict['members_count'] = get_member_count(community)
     new_dict['state']=int(community.hide_community)

@@ -300,8 +300,7 @@ def community(request, community_id):
             new_dict['share_text_anonymous'] = """I recently discovered %s community on CollabMates. You can join this community using this link.\n""" % (new_dict['name'])
     new_dict['min_referrer_member'] = eligibility_count
 
-    if community.id == feedback_community_id:
-        new_dict['share_url'] = ""
+
     return JsonResponse({'community': new_dict})
 
 
