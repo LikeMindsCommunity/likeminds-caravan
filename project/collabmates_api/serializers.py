@@ -22,7 +22,7 @@ def CommunitySerializer(community):
         'name': community.name,
         'purpose': community.purpose,
         'about': community.about,
-        'location': community.location,
+        'location': community.location if community.location else "",
     }
     if community.image_link:
         new_dict['image_url']=community.image_link
@@ -54,6 +54,7 @@ def CommunitySerializer(community):
         new_dict['type']=community.type
     if community.sub_type:
         new_dict['sub_type'] = community.sub_type
+
 
     return new_dict
 
@@ -97,6 +98,7 @@ def CollabcardSerializer(card,user,community=None):
         'attending_count': card.attending_count,
         'polls_count': card.polls_count
     }
+
     if card.type == 3:
         polls = []
         cardPolls = CollabcardPolls.objects.filter(card=card)

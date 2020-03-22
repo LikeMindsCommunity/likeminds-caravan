@@ -544,7 +544,6 @@ def get_member_details(community,filter_list=None):
         for member in member_list:
             temp = {}
             temp['id'] = member.member_id.id
-            print(member.member_id)
             temp['name'] = member.member_id.userinfo.name
             temp['image_link'] = member.member_id.userinfo.image_link
             answer = get_introduction_answer(community, member)
