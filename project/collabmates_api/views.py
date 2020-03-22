@@ -300,8 +300,7 @@ def community(request, community_id):
             new_dict['share_text_anonymous'] = """I recently discovered %s community on CollabMates. You can join this community using this link.\n""" % (new_dict['name'])
     new_dict['min_referrer_member'] = eligibility_count
 
-    if community.id == feedback_community_id:
-        new_dict['share_url'] = ""
+
     return JsonResponse({'community': new_dict})
 
 
@@ -4861,7 +4860,7 @@ def all_members(request):
         userinfo_serialized_object = UserinfoSerializer(member.member_id.userinfo)
         userinfo_serialized_object['state']=member.state
 
-        form_response = FormResponseSerilaizer(community_id, member.member_id.id,new_response=True)
+        form_response = FormResponseSerilaizer(community_id, member.member_id.id,bl=True)
 
         if form_response:
             userinfo_serialized_object['response'] = form_response[0]
@@ -4903,7 +4902,7 @@ def get_filtered_users(res,community_id):
             userinfo_serialized_object = UserinfoSerializer(member_instance.member_id.userinfo)
             userinfo_serialized_object['state'] = member_instance.state
 
-            form_response = FormResponseSerilaizer(community_id, member_instance.member_id.id, new_response=True)
+            form_response = FormResponseSerilaizer(community_id, member_instance.member_id.id, bl=True)
 
             if form_response:
                 userinfo_serialized_object['response'] = form_response[0]
