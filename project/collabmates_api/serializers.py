@@ -21,9 +21,12 @@ def CommunitySerializer(community):
         'id': community.id,
         'name': community.name,
         'purpose': community.purpose,
-        'about': community.about,
         'location': community.location if community.location else "",
     }
+
+    if community.about:
+        new_dict['about'] = community.about
+
     if community.image_link:
         new_dict['image_url']=community.image_link
     elif community.image_url:
