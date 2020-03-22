@@ -69,21 +69,6 @@
     <style>
 
 
-.image_container_login::after{
-                content: '';
-                position: absolute ;
-                top: 2% ;
-                background-image: url('/media/main_website/like_minds_speaker.png');
-                background-size: cover !important;
-                background-repeat: no-repeat ;
-                transform: translate(-50%, -50%) ;
-                border-top: inherit ;
-                border-top-color: transparent !important;
-                border-radius:50% ;width:95px !important;height:95px !important;display: inline-block !important;left:50% !important;
-                opacity:5;
-            }
-
-
 .blur_answer{
 
   filter:blur(3px);
@@ -502,136 +487,93 @@
     </div>
     <!-- -->
     <!-- login model for exclusive communities -->
+    <div class="ui modal image_container_login w300" id="whatsapp_login">
+        <div class="h72 w72 brp50 bd2F bs bxs oH bgT mtn22 mA">
+            <img class="h72 w72 ofC" src="/media/main_website/like_minds_speaker.png">
+        </div>
+        <div class="p24 bs taC ffR">
+            <p class="m0 p0 fs17 lh22 c0 mb10 fwM">Login to continue</p>
+            <p class="m0 p0 fs15 lh22 c9 mb16">This is an exclusive community. To view member details please login/signup and join the community.</p>
+            <div class="p160 ls05">
+                <div class="fs12 mb16">
+                    {% if ref_id != '' %}
+                        <a class="p12 bs dB br20 tdN bgLi cF ffR fwM" href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join_{{ref_id}}">
+                    {% elif auto_join  %}
+                        <a class="p12 bs dB br20 tdN bgLi cF ffR fwM" href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join_ajt">
+                    {% elif cta == 'share' %}
+                        <a class="p12 bs dB br20 tdN bgLi cF ffR fwM" href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join">
+                    {% elif cta != '' %}
+                        <a class="p12 bs dB br20 tdN bgLi cF ffR fwM" href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta={{cta}}">
+                    {% else %}
+                        <a class="p12 bs dB br20 tdN bgLi cF ffR fwM" href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join">
+                    {% endif %}
+                            <i class="dIb fa fa-linkedin fs15 lh16 vM"></i>
+                            <span  class="dIb lh16 pl12 vM">LOGIN WITH LINKEDIN</span>
+                        </a>
+                </div>
+                <div class="fs12">
+                    {% if ref_id != '' %}
+                        <a class="p12 bs dB br20 tdN bgFb cF ffR fwM" href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join_{{ref_id}}">
+                    {% elif auto_join  %}
+                        <a class="p12 bs dB br20 tdN bgFb cF ffR fwM" href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join_ajt">
+                    {% elif cta == 'share' %}
+                        <a class="p12 bs dB br20 tdN bgFb cF ffR fwM" href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join">
+                    {% elif cta != '' %}
+                        <a class="p12 bs dB br20 tdN bgFb cF ffR fwM" href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta={{cta}}">
+                    {% else %}
+                        <a class="p12 bs dB br20 tdN bgFb cF ffR fwM" href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join">
+                    {% endif %}
+                            <i class="fa fa-facebook dIb fs15 lh16 vM" ></i>
+                            <span class="dIb lh16 pl12 vM">LOGIN WITH FACEBOOK</span>
+                        </a>
+                </div>
+            </div>
+            <!-- accept invitation model -->
+            <div class="ui modal accept" id="accept">
 
-    <div class="ui modal image_container_login" id="whatsapp_login" style="width:80%;">
-
-<!--             <img src="/media/main_website/profile_header.png" style="width:100%;height:70%;">-->
-        <br/><br/><br/><br/><br/>
-
-      <div class="profile_name">
-          <p align="center" style="font-family:Roboto;sans-serif;font-weight:500;color:black;font-size:17px;line-height:22px;">Login to continue</p>
-
-      </div>
-
-       <div style="margin-top:5%;margin-left:16px;margin-right:16px;text-align:center;font-size:15px;line-height:22px;font-family:Roboto;sans-serif;font-weight:400;color:#8a000000;">
-           <p>This is an exclusive community. To view member details please login/signup and join the community.</p>
-       </div>
-       <div style="margin-top:5%;margin-left:16px;margin-right:16px;text-align:center;font-size:15px;line-height:22px;font-family:Roboto;sans-serif;font-weight:400;color:#8a000000;">
-
-            <div class="center aligned container">
-                 <div class="content">
-
-                                        {% if ref_id != '' %}
-                                        <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join_{{ref_id}}">
-                                            <button class="ui linkedin button" style="width:130px;z-index:2;border-radius:20px;">
-                                        {% elif auto_join  %}
-                                             <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join_ajt">
-                                             <button class="ui linkedin button" style="width:130px;z-index:2;border-radius:20px;">
-                                        {% elif cta == 'share' %}
-                                        <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join">
-                                            <button class="ui linkedin button" style="width:130px;z-index:2;border-radius:20px;">
-                                        {% elif cta != '' %}
-                                        <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta={{cta}}">
-                                            <button class="ui linkedin button" style="width:130px;z-index:2;border-radius:20px;">
-                                        {% else %}
-                                            <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join">
-                                            <button class="ui linkedin button" style="width:200px;z-index:2;border-radius:20px;">
-                                        {% endif %}
-                                        <i class="fa fa-linkedin"></i>&nbsp;&nbsp;&nbsp;&nbsp;
-                                        Login with LinkedIn
-                                        </button>
-                                            </a>
-
-
-                 </div>
-            <br/>
+                <div class="ui fluid card " style="border: 2px solid #1ebea5; margin:0 0 ; padding: 10px 10px;">
+                    <h2 class="ui teal center aligned header">
                         <div class="content">
+                            Respond to Invitation
+                        </div>
+                    </h2>
+                    <div class="content">
+                        <p class="center aligned">
+                            Send Response
+                        </p>
+                    </div>
+                    <div class="center aligned container">
+                        <div class="content">
+                            <a href="../accept_admin/{{community.id}}?cta=accept_invitation&value=true">
+                                <button class="ui button" style="width:130px; color:green;">
 
-                            {% if ref_id != '' %}
-                            <a href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join_{{ref_id}}">
-                            <button class="ui facebook button" style="width:130px;z-index:2;border-radius:20px;">
-                            {% elif auto_join  %}
-                                <a href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join_ajt">
-                                <button class="ui facebook button" style="width:130px;z-index:2;border-radius:20px;">
-                            {% elif cta == 'share' %}
-                            <a href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join">
-                                <button class="ui facebook button" style="width:130px;z-index:2;border-radius:20px;">
-                            {% elif cta != '' %}
-                            <a href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta={{cta}}">
-                                <button class="ui facebook button" style="width:130px;z-index:2;border-radius:20px;">
-                                    {% else %}
-                                    <a href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join">
-                                        <button class="ui facebook button" style="width:200px;z-index:2;border-radius:20px;">
-                                            {% endif %}
-                                            <i class="fa fa-facebook" ></i>&nbsp;&nbsp;&nbsp;&nbsp;
-                                            Login with Facebook
-                                        </button>
-                                    </a>
+                                    Accept
                                 </button>
                             </a>
-                                </button></a></button>
-                            </a>
-                        </div>
+                            <br>
+                            <br>
 
-                        <br>
+                            <br>
+                            <br>
+                            <div class="content">
+                                <a href="../accept_admin/{{community.id}}?cta=accept_invitation&value=false">
+                                    <button class="ui button" style="width:130px; color:green;">
 
-    <!-- accept invitation model -->
-                        <div class="ui modal accept" id="accept">
-
-                            <div class="ui fluid card " style="border: 2px solid #1ebea5; margin:0 0 ; padding: 10px 10px;">
-                                <h2 class="ui teal center aligned header">
-                                    <div class="content">
-                                        Respond to Invitation
-                                    </div>
-                                </h2>
-                                <div class="content">
-                                    <p class="center aligned">
-                                        Send Response
-                                    </p>
-                                </div>
-                                <div class="center aligned container">
-                                    <div class="content">
-                                        <a href="../accept_admin/{{community.id}}?cta=accept_invitation&value=true">
-                                            <button class="ui button" style="width:130px; color:green;">
-
-                                                Accept
-                                            </button>
-                                        </a>
-                                        <br>
-                                        <br>
-
-                                        <br>
-                                        <br>
-                                        <div class="content">
-                                            <a href="../accept_admin/{{community.id}}?cta=accept_invitation&value=false">
-                                                <button class="ui button" style="width:130px; color:green;">
-
-                                                    Decline
-                                                </button>
-                                            </a>
-                                        </div>
-                                    </div>
-                                    <br>
-
-                                </div>
+                                        Decline
+                                    </button>
+                                </a>
                             </div>
                         </div>
-
+                        <br>
 
                     </div>
-       </div>
-
-
-    <br/>
-   </div>
+                </div>
+            </div>
+        </div>
+    </div>
     <!-- -->
-
-
-
     <!-- pop-up to show member profile -->
-<!-- style="overflow:scroll;height:80%;width:80%; -->
-        <div class="ui modal image_container_profile" id="member_profile" style="width:90%;">
-<br/>
+    <div class="ui modal image_container_profile" id="member_profile" style="width:90%;">
 
             <div class="profile_name">
                     <p align="center" style="font-family:Roboto;sans-serif;font-weight:500;color:black;font-size:17px;line-height:22px;color:#075e54;">Awesome !<br/>
