@@ -299,6 +299,9 @@ def community(request, community_id):
             new_dict['share_text_member'] = """I recently joined %s community on CollabMates. It will be fun if you also join this community.\n""" % (new_dict['name'])
             new_dict['share_text_anonymous'] = """I recently discovered %s community on CollabMates. You can join this community using this link.\n""" % (new_dict['name'])
     new_dict['min_referrer_member'] = eligibility_count
+
+    if community.id == feedback_community_id:
+        new_dict['share_url'] = ""
     return JsonResponse({'community': new_dict})
 
 
@@ -1303,7 +1306,17 @@ def admins(request, community_id):
         user = Userinfo.objects.filter(user_id=admin.member_id.id)
         # get user serialized
         usr = UserinfoSerializer(user[0])
-        form_response = FormResponseSerilaizer(community_id, admin.member_id.id)
+
+        if int(community_id) != feedback_community_id:
+            form_response = FormResponseSerilaizer(community_id, admin.member_id.id)
+        else:
+            form_response =[
+                {
+                    'key':"",
+                    'value':"founder of LikeMinds"
+                }
+
+            ]
         ref_members = get_referred_members_of_a_member(community_id, admin.member_id.id)
         usr['referred_members_count']=len(ref_members)
         if form_response:
