@@ -5602,11 +5602,12 @@ def fetch_whatsapp_tool(request):
     for instance in community_type_list:
         temp = communityTypeSerializer(instance)
 
-
+        if temp['id'] == 16:
+            continue
         sub_type_list = []
         subtype_queryset = communitySubtype.objects.filter(typ=instance.id)
 
-        if subtype_queryset.exists():
+        if subtype_queryset.exists() :
             for subtype_instance in subtype_queryset:
 
                 sub_type_list.append(communitySubtypeSerializer(subtype_instance))
