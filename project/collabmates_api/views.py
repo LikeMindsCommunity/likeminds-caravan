@@ -1069,7 +1069,7 @@ def join_whatsapp_community(res,request):
                         state=member_states.PENDING_MEMBER)
 
             Member_Engage.objects.filter(member_id=user_instance,community_id=community_instance).update(
-                state=member_states.PENDING_MEMBER)
+                member_state=member_states.PENDING_MEMBER)
 
         return JsonResponse({'success': True})
     else:
