@@ -32,6 +32,7 @@
 <script src="https://cdn.rawgit.com/mdehoog/Semantic-UI/6e6d051d47b598ebab05857545f242caf2b4b48c/dist/semantic.min.js"></script>
 
 <link href="//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.min.css" rel="stylesheet" type="text/css" />
+<link rel="stylesheet" href="{% static 'css/mahaDev/mahaDev.css' %}">
 <style>
 
 
@@ -62,23 +63,6 @@
 
 margin-left:10px;
 margin-right:10px;
-
-
-}
-
-
-.image_container:after{
-
- content: '';
-    position: absolute !important ;
-    top: 57% !important;
-    background-image: url('{{request.user.userinfo.image_link}}');
-    background-size: cover !important;
-    background-repeat: no-repeat !important;
-    transform: translate(-50%, -50%) !important;
-    border-top: inherit !important;
-    border-top-color: transparent !important;
-    border-radius:50% !important;width:95px !important;height:95px !important;display: inline-block !important;left:50% !important;
 
 
 }
@@ -171,20 +155,6 @@ height:35%;
 
 }
 
-.image_container:after{
-
- content: '';
-    position: relative  ;
-    top: 34% !important;
-    background-image: url('{{request.user.userinfo.image_link}}');
-    background-size: cover !important;
-    background-repeat: no-repeat !important;
-    transform: translate(-50%, -50%) !important;
-    border-top: inherit !important;
-    border-top-color: transparent !important;
-    border-radius:50% !important;width:95px !important;height:95px !important;display: inline-block !important;left:50% !important;
-
-}
 
 
 .top-left {
@@ -250,6 +220,9 @@ textarea.noscrollbars {
 
 }
 
+/* create header selector partial */
+#header .dTc {color: #fff!important; text-align: center; font-weight: bold;}
+#header {background: transparent}
 
 
 </style>
@@ -280,28 +253,11 @@ textarea.noscrollbars {
 <!---webkit-clip-path: polygon(0 0, 100% 0, 100% 84%, 50% 100%, 0 84%, 0 0);-->
 
 <div style="margin-top:0px;">
-    <div class="image_container">
-         <img src="https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Fresponse_header?alt=media" class="header_image" />
 
-        <div class="top-left">
-            <i class="arrow left icon " style="font-size:24px;color:white;" id="back_button"></i>
-        </div>
+    {% include 'components/header.html' with data=header %}
 
-        <div class="top-middle">
-            Welcome to Collabmates!
-        </div>
+    {% include 'components/login_success_header_showcase.html' with data=header %}
 
-        <div class="subheader1">
-            You are interested in joining this community:
-        </div>
-
-        <div class="subheader2">
-
-           {{community.name}}
-
-        </div>
-
-    </div>
 <!--    <div style="margin-bottom:80px;">-->
 <!--          <div style="float:left;margin-top:5px;" >-->
 <!--                          <i class="arrow left icon" style="font-size:24px;color:white;" id="back_button"></i>-->

@@ -263,7 +263,17 @@ def community(request, community_id):
 
                 # data = itertools.zip_longest(data,filled_answers,fillvalue='')
                 if member_state == 0 or member_state == 5:
-                    return render(request, 'response_form.html', {"data": data, 'usr': user,
+                    header = {
+                        'back': True,
+                        'title': 'Welcome to Collabmates!'
+                    }
+                    header_showcase = {
+                        'image': 'https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Fresponse_header?alt=media',
+                        'header': 'You are interested in joining this community:',
+                        'subHeader': community.name,
+                        'userImage': request.user.userinfo.image_link
+                    }
+                    return render(request, 'response_form.html', {"data": data, 'usr': user, 'header': header,
                                                                   'community': community, 'ref_id': ref_id,
                                                                   'validation_error': validation_error,
                                                                   'filled_answers': filled_answers,

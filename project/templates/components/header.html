@@ -1,14 +1,15 @@
-<div class="h48 l0 pF r0 t0 z2 bgFo05">
-    <div class="dT wp100 h48">
-        {% if data.back %}
-            <div class="dTc vM p12 w48 h48 bs">
+<header class="h48 l0 pF r0 t0 z2 bgFo05" id="header">
+    <div class="dT wp100 h48 tlF">
+        <div class="bs dTc h48 taC vM w48">
+            {% if data.back %}
                 <i class="arrow left icon fs24" id="back_click"></i>
-            </div>
-        {% endif %}
-        {% if data.title %}
-            <div class="dTc vM p12 fwB fs24 cF">
+                {% endif %}
+        </div>
+        <div class="dTc fs20 fwB vM">
+            {% if data.title %}
                 {{ header.title }}
-            </div>
-        {% endif %}
+            {% endif %}
+        </div>
+        <div class="bs dTc h48 taC vM w48"></div>
     </div>
-</div>
+</header>
