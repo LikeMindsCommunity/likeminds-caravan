@@ -5611,7 +5611,7 @@ def fetch_whatsapp_tool(request):
                 subtype_temp = communitySubtypeSerializer(subtype_instance)
                 sub_type_list.append(subtype_temp)
 
-        if sub_type_list:
+        if sub_type_list and temp['id'] != 16:
             temp['sub_types'] = sub_type_list
 
         types.append(temp)
