@@ -40,7 +40,7 @@ html { scroll-behavior: smooth; }
 .lh22 { line-height: 22px; }
 .lh24 { line-height: 24px; }
 
-
+.fs24, .fs24.fs24 { font-size: 24px; }
 .fs20 { font-size: 20px; }
 .fs18 { font-size: 18px; }
 .fs17 { font-size: 17px; }
@@ -137,7 +137,10 @@ html { scroll-behavior: smooth; }
 .bd2T { border: 2px solid teal; }
 .bdb2F { border-bottom: 2px solid #fff; }
 
+.bgFo05 { background: rgba(255, 255, 255, 0.5); }
+
 .z1 { z-index: 1; }
+.z2 { z-index: 2; }
 
 .bxs { box-shadow: 0 0 4px rgba(0, 0, 0, .3);}
 

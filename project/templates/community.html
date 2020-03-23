@@ -138,7 +138,9 @@
         
         {% block content %}
 
-        {% include 'components/image_banner_header.html' with data=header %}
+        {% include 'components/header.html' with data=header %}
+
+        {% include 'components/header_showcase.html' with data=header_showcase %}
         
         {{Non_mem_state}}
         {% if Nom_mem_state != 0 %}

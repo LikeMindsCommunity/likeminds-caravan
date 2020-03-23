@@ -377,13 +377,17 @@ def community(request, community_id):
     else:
         auto_join = False
     header = {
+        'back': True,
+        'title': False
+    }
+    header_showcase = {
         'image': community.image_link if community.image_link else community.image_url,
         'header': community.name,
         'subHeader': str(len(members)) + ' Members' if len(members) else ''
     }
     context = {'usr': user, 'similar_communities': communities,
                'community': community, 'admins': admin_details,
-               'header': header,
+               'header': header, 'header_showcase': header_showcase,
                'members': members, 'source': source,
                'cta': cta, 'Nom_mem_state': member_state,
                'admin_length': len(admin_details),
