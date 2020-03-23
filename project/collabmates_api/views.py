@@ -5602,15 +5602,14 @@ def fetch_whatsapp_tool(request):
     for instance in community_type_list:
         temp = communityTypeSerializer(instance)
 
-        if temp['id'] == 16:
-            continue
+
         sub_type_list = []
         subtype_queryset = communitySubtype.objects.filter(typ=instance.id)
 
         if subtype_queryset.exists() :
             for subtype_instance in subtype_queryset:
-
-                sub_type_list.append(communitySubtypeSerializer(subtype_instance))
+                subtype_temp = communitySubtypeSerializer(subtype_instance)
+                sub_type_list.append(subtype_temp)
 
         if sub_type_list:
             temp['sub_types'] = sub_type_list
@@ -5649,7 +5648,7 @@ def fetch_master_questions(request):
     # getting master Questions
 
     page=request.GET.get('page',1)
-    master_question_list = masterQuestions.objects.all()
+    master_question_list = masterQuestions.objects.all().order_by('id')
     master_question_list=pagination(master_question_list,page_number=page,paginate_by=50)
     master_questions = []
     for instance in master_question_list:
