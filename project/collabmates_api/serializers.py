@@ -5,7 +5,7 @@ from django.conf import settings
 from django.db.models import Q
 from togther.models import *
 from togther.models import *
-from utility.utils import is_IG_community,is_LG_or_LP_community
+from utility.utils import is_IG_community,is_LG_or_LP_community,feedback_community_id
 
 url = settings.URL
 
@@ -21,9 +21,12 @@ def CommunitySerializer(community):
         'id': community.id,
         'name': community.name,
         'purpose': community.purpose,
-        'about': community.about,
-        'location': community.location,
+        'location': community.location if community.location else "",
     }
+
+    if community.about:
+        new_dict['about'] = community.about
+
     if community.image_link:
         new_dict['image_url']=community.image_link
     elif community.image_url:
@@ -37,7 +40,10 @@ def CommunitySerializer(community):
     elif not community.image_link:
         new_dict['image_url'] = url + new_dict['image_url']
     new_dict['is_member'] = ''
-    new_dict['share_url'] = url + '/community/' + str(new_dict['id'])
+    if feedback_community_id != community.id:
+        new_dict['share_url'] = url + '/community/' + str(new_dict['id'])
+    else:
+        new_dict['share_url'] = ""
     new_dict['date'] = community.active_since
     new_dict['members_count'] = get_member_count(community)
     new_dict['state']=int(community.hide_community)
@@ -54,6 +60,7 @@ def CommunitySerializer(community):
         new_dict['type']=community.type
     if community.sub_type:
         new_dict['sub_type'] = community.sub_type
+
 
     return new_dict
 
@@ -97,6 +104,7 @@ def CollabcardSerializer(card,user,community=None):
         'attending_count': card.attending_count,
         'polls_count': card.polls_count
     }
+
     if card.type == 3:
         polls = []
         cardPolls = CollabcardPolls.objects.filter(card=card)
@@ -150,6 +158,7 @@ def get_member_count(community):
 
 
 def FormResponseSerilaizer(community_id, user_id,bl=False):
+
     responses = communityAnswers.objects.filter(community=community_id).filter(member=user_id).order_by('id')
     if not responses.exists():
         return None

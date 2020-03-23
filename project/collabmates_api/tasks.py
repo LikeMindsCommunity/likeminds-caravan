@@ -38,7 +38,7 @@ def send_email_to_nominated_admin(NominatedAdmin,email,ProposedAdmin,CommunityNa
         template = get_template("mails/accept_temp_admin_request.html").render({"NominatedAdmin":NominatedAdmin,"email":email,"ProposedAdmin":ProposedAdmin,"CommunityName":CommunityName,"community_id":community_id,'url':url})
     msg = EmailMultiAlternatives(subject,
                                  template,
-                                 "Collabmates<hello@collabmates.com>",
+                                 "LikeMinds<hello@collabmates.com>",
                                  [to],
                                  )
     msg.attach_alternative(template, "text/html")
@@ -209,7 +209,7 @@ def send_welcome_mail(user_id):
     fail_silently=True
     if user.email:
         to = user.email
-        subject = "Thanks for downloading CollabMates App! Here's what to expect"
+        subject = "Thanks for downloading LikeMinds App! Here's what to expect"
         if count == 0:
 
             template = get_template("mails/welcome_mail_zero.html").render({"name":user.userinfo.name})

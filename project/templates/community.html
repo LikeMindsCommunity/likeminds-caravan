@@ -61,7 +61,6 @@
         <script async src="https://www.googletagmanager.com/gtag/js?id=UA-130288684-1"></script>
         <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
 
-        <link rel="stylesheet" href="{% static 'css/community.css' %}">
         <link rel="stylesheet" href="{% static 'css/main_css/community.css' %}">
         <link rel="stylesheet" href="{% static 'css/mahaDev/mahaDev.css' %}">
 
@@ -75,8 +74,6 @@
   filter:blur(3px);
 
 }
-
-
 .profile_pic{
 
     content: '';
@@ -286,9 +283,9 @@
                             <img class="w54 h54 oH bd2F bs brp50 bxs" src="{{i.image_link}}"/>
                         </div>
                         <div class="dTc vM p16 bs pl12 bdbE">
-                            <div class="lh20 fs16 c0">{{i.name}}</div>
+                            <div class="lh20 fs16 c0 member_link" member_id={{i.id}}>{{i.name}}</div>
                             {% if not is_member %}
-                                <p class="p0 m0 fs15 lh20">{{i.answer}}</p>
+                                <p class="p0 m0 fs15 lh20 blur_answer">{{i.answer}}</p>
                             {% else %}
                                 <p class="p0 m0 fs15 lh20">{{i.answer}}</p>
                             {% endif %}
@@ -475,7 +472,7 @@
     <!-- login model for exclusive communities -->
     <div class="ui modal image_container_login w300" id="whatsapp_login">
         <div class="h72 w72 brp50 bd2F bs bxs oH bgT mtn22 mA">
-            <img class="h86 w86 mtn8 mln8 ofC" src="https://beta.collabmates.com/media/main_website/like_minds_speaker.png">
+            <img class="h86 w86 mtn8 mln8 ofC" src="/media/main_website/like_minds_speaker.png">
         </div>
         <div class="p24 bs taC ffR">
             <p class="m0 p0 fs17 lh22 c0 mb10 fwM">Login to continue</p>
@@ -1034,8 +1031,8 @@ $('.member_link').click(function(){
 
 
 
-member_id=$(this).val()
-
+member_id=$(this).attr('member_id')
+console.log(member_id)
 //unverified member pop-up
 {% if not is_member %}
 

@@ -23,7 +23,7 @@ from utility.utils import (get_city_address, update_tag_image,
                            update_user_geography_tags, create_or_categorize_tag,
                            referal, insert_user_home_town_tags, user_onbaord,
                            is_request_android, is_request_ios,
-                           is_request_pc, android_app_download_link, is_IG_community, ios_app_download_link,is_member_verified)
+                           is_request_pc, android_app_download_link, is_IG_community, ios_app_download_link,is_member_verified,feedback_community_id)
 from utility.firebase import upload_image_to_firebase
 from urllib.parse import urlencode, quote
 from collabmates_api.tasks import send_email
@@ -362,10 +362,10 @@ def community(request, community_id):
     if is_request_ios(request):
         ios_app_download_link = ios_app_download_link
     if not is_IG_community(community):
-        share_text = """I recently joined %s community on CollabMates. It will be good if you also join this community""" % (
+        share_text = """I recently joined %s community on LikeMinds. It will be good if you also join this community""" % (
             community.name)
     else:
-        share_text = """I recently joined %s community on CollabMates. It will be fun if you also join this community""" % (
+        share_text = """I recently joined %s community on LikeMinds. It will be fun if you also join this community""" % (
             community.name)
     if request.user.is_authenticated:
         share_url = str(settings.URL) + '/community/' + str(community_id) + "?ref_id=" + str(request.user.id)
@@ -379,7 +379,11 @@ def community(request, community_id):
         about_2 = about[180:]
 
     admin_details = get_admins_details(community)
-    members = get_member_details(community)
+   # members = get_member_details(community)
+    if community.id == feedback_community_id:
+        members=[]
+    else:
+        members = get_member_details(community)
 
     auto_join = request.GET.get('aj', False)
     if auto_join and auto_join.lower() == 't':
@@ -448,7 +452,7 @@ def refer_members(request, community_id):
             admins = Members.objects.filter(community_id=community).filter(Q(state=1) | Q(state=2)).order_by('id')
 
             share_text = 'Hi, I have added ' + str(
-                community.name) + ' community on CollabMates. It will be good if you can join this community'
+                community.name) + ' community on LikeMinds. It will be good if you can join this community'
 
             android = is_request_android(request)
             ios = False
@@ -1067,7 +1071,7 @@ def get_community_questions(community_id):
             temp['question_state'] = each_question.question_state
             if temp['question_state'] == 6:
                 if each_question.value:
-                    item = ast.literal_eval(each_question.value)[0]['value']
+                    item = ast.literal_eval(each_question.value)[0]['date_time']
                     if item.lower() == "yyyy":
                         date_format = 'year'
                     elif item.lower() == "mm yyyy":

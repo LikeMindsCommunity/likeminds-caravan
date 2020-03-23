@@ -291,14 +291,19 @@ def community(request, community_id):
     if community:
         community_type = is_IG_community(community)
         if not community_type:
-            new_dict['share_text_admin'] = """Hi, I am trying to gather %s community on CollabMates. It will be good if you can join it.\n""" % (new_dict['name'])
-            new_dict['share_text_member'] = """I recently joined %s community on CollabMates. It will be good if you also join this community.\n""" % (new_dict['name'])
-            new_dict['share_text_anonymous'] = """I recently discovered %s community on CollabMates. You can join this community using this link.\n""" % (new_dict['name'])
+            new_dict['share_text_admin'] = """Hi, I am trying to gather %s community on LikeMinds. It will be good if you can join it.\n""" % (new_dict['name'])
+            new_dict['share_text_member'] = """I recently joined %s community on LikeMinds. It will be good if you also join this community.\n""" % (new_dict['name'])
+            new_dict['share_text_anonymous'] = """I recently discovered %s community on LikeMinds. You can join this community using this link.\n""" % (new_dict['name'])
         else:
             new_dict['share_text_admin'] = """Hi, I am trying to gather %s community on CollabMates. It will be fun if you can join it.\n""" % (new_dict['name'])
             new_dict['share_text_member'] = """I recently joined %s community on CollabMates. It will be fun if you also join this community.\n""" % (new_dict['name'])
             new_dict['share_text_anonymous'] = """I recently discovered %s community on CollabMates. You can join this community using this link.\n""" % (new_dict['name'])
     new_dict['min_referrer_member'] = eligibility_count
+
+    if community.id == feedback_community_id:
+        new_dict['share_url'] = ""
+
+
     return JsonResponse({'community': new_dict})
 
 
@@ -1064,7 +1069,7 @@ def join_whatsapp_community(res,request):
                         state=member_states.PENDING_MEMBER)
 
             Member_Engage.objects.filter(member_id=user_instance,community_id=community_instance).update(
-                state=member_states.PENDING_MEMBER)
+                member_state=member_states.PENDING_MEMBER)
 
         return JsonResponse({'success': True})
     else:
@@ -1303,7 +1308,17 @@ def admins(request, community_id):
         user = Userinfo.objects.filter(user_id=admin.member_id.id)
         # get user serialized
         usr = UserinfoSerializer(user[0])
-        form_response = FormResponseSerilaizer(community_id, admin.member_id.id)
+
+        if int(community_id) != feedback_community_id:
+            form_response = FormResponseSerilaizer(community_id, admin.member_id.id)
+        else:
+            form_response =[
+                {
+                    'key':"",
+                    'value':"founder of LikeMinds"
+                }
+
+            ]
         ref_members = get_referred_members_of_a_member(community_id, admin.member_id.id)
         usr['referred_members_count']=len(ref_members)
         if form_response:
@@ -1595,7 +1610,7 @@ def create_community(request):
             if community.purpose != '':
                 card.title = "Created this community " + community.purpose
             else:
-                card.title = "Listed our community on CollabMates. This will help us to know each other, have organised discussions and network efficiently."
+                card.title = "Listed our community on LikeMinds. This will help us to know each other, have organised discussions and network efficiently."
             card.community = community
             card.user = user
             card.date_epoch = time.time()
@@ -1744,7 +1759,7 @@ def create_community_version_1(request):
     engage.community_id = community_instance
     engage.updated_at = time.time()
     engage.member_state = member_states.ADMIN
-    engage.member_referral = "Create your member profile"
+    engage.member_referral = "Finish setting up your community"
     engage.save()
 
 
@@ -4848,7 +4863,7 @@ def all_members(request):
         userinfo_serialized_object = UserinfoSerializer(member.member_id.userinfo)
         userinfo_serialized_object['state']=member.state
 
-        form_response = FormResponseSerilaizer(community_id, member.member_id.id,new_response=True)
+        form_response = FormResponseSerilaizer(community_id, member.member_id.id,bl=True)
 
         if form_response:
             userinfo_serialized_object['response'] = form_response[0]
@@ -4890,7 +4905,7 @@ def get_filtered_users(res,community_id):
             userinfo_serialized_object = UserinfoSerializer(member_instance.member_id.userinfo)
             userinfo_serialized_object['state'] = member_instance.state
 
-            form_response = FormResponseSerilaizer(community_id, member_instance.member_id.id, new_response=True)
+            form_response = FormResponseSerilaizer(community_id, member_instance.member_id.id, bl=True)
 
             if form_response:
                 userinfo_serialized_object['response'] = form_response[0]
@@ -5551,14 +5566,14 @@ def fetch_whatsapp_tool(request):
 
     point_1={}
 
-    point_1['title'] = "Your group is not discoverable"
+    point_1['title'] = "Your group is not discoverable"    #text change
     point_1['sub_title'] = "Make your group discoverable to other relevant members who might be interested in joining your group."
 
     list_points.append(point_1)
 
 
     point_2 = {}
-    point_2['title'] = "Group members do not have their profile"
+    point_2['title'] = "Group members can't identify each other"
     point_2['sub_title'] = "Your group members can create their profile and share them so that other members can get to know them better."
     list_points.append(point_2)
 
@@ -5591,12 +5606,12 @@ def fetch_whatsapp_tool(request):
         sub_type_list = []
         subtype_queryset = communitySubtype.objects.filter(typ=instance.id)
 
-        if subtype_queryset.exists():
+        if subtype_queryset.exists() :
             for subtype_instance in subtype_queryset:
+                subtype_temp = communitySubtypeSerializer(subtype_instance)
+                sub_type_list.append(subtype_temp)
 
-                sub_type_list.append(communitySubtypeSerializer(subtype_instance))
-
-        if sub_type_list:
+        if sub_type_list and temp['id'] != 16:
             temp['sub_types'] = sub_type_list
 
         types.append(temp)
@@ -5633,7 +5648,7 @@ def fetch_master_questions(request):
     # getting master Questions
 
     page=request.GET.get('page',1)
-    master_question_list = masterQuestions.objects.all()
+    master_question_list = masterQuestions.objects.all().order_by('id')
     master_question_list=pagination(master_question_list,page_number=page,paginate_by=50)
     master_questions = []
     for instance in master_question_list:
