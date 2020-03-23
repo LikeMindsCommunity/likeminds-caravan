@@ -61,7 +61,6 @@
         <script async src="https://www.googletagmanager.com/gtag/js?id=UA-130288684-1"></script>
         <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
 
-        <link rel="stylesheet" href="{% static 'css/community.css' %}">
         <link rel="stylesheet" href="{% static 'css/main_css/community.css' %}">
 
         <link href="https://fonts.googleapis.com/css?family=Roboto:400,500,500i,700&display=swap" rel="stylesheet">
@@ -74,8 +73,6 @@
   filter:blur(3px);
 
 }
-
-
 .profile_pic{
 
     content: '';
@@ -300,7 +297,7 @@
                             <img class="w54 h54 oH bd2F bs brp50 bxs" src="{{i.image_link}}"/>
                         </div>
                         <div class="dTc vM p16 bs pl12 bdbE">
-                            <div class="lh20 fs16 c0">{{i.name}}</div>
+                            <div class="lh20 fs16 c0 member_link" member_id={{i.id}}>{{i.name}}</div>
                             {% if not is_member %}
                                 <p class="p0 m0 fs15 lh20">{{i.answer}}</p>
                             {% else %}
@@ -1048,8 +1045,8 @@ $('.member_link').click(function(){
 
 
 
-member_id=$(this).val()
-
+member_id=$(this).attr('member_id')
+console.log(member_id)
 //unverified member pop-up
 {% if not is_member %}
 
