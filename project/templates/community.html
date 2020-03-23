@@ -61,7 +61,6 @@
         <script async src="https://www.googletagmanager.com/gtag/js?id=UA-130288684-1"></script>
         <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
 
-        <link rel="stylesheet" href="{% static 'css/community.css' %}">
         <link rel="stylesheet" href="{% static 'css/main_css/community.css' %}">
 
         <link href="https://fonts.googleapis.com/css?family=Roboto:400,500,500i,700&display=swap" rel="stylesheet">
@@ -69,28 +68,11 @@
     <style>
 
 
-.image_container_login::after{
-                content: '';
-                position: absolute ;
-                top: 2% ;
-                background-image: url('/media/main_website/like_minds_speaker.png');
-                background-size: cover !important;
-                background-repeat: no-repeat ;
-                transform: translate(-50%, -50%) ;
-                border-top: inherit ;
-                border-top-color: transparent !important;
-                border-radius:50% ;width:95px !important;height:95px !important;display: inline-block !important;left:50% !important;
-                opacity:5;
-            }
-
-
 .blur_answer{
 
   filter:blur(3px);
 
 }
-
-
 .profile_pic{
 
     content: '';
@@ -113,20 +95,14 @@
 
 <body>
 
-<!-- Google Tag Manager (noscript) -->
-<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-KSF3G6T"
-height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
-<!-- End Google Tag Manager (noscript) -->
-
-
-<!-- email popup -->
+    <!-- Google Tag Manager (noscript) -->
+    <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-KSF3G6T" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+    <!-- End Google Tag Manager (noscript) -->
+    
+    <!-- email popup -->
     <div class="ui modal" id="email_login">
-<!--        <i class="close icon"></i>-->
-        <div class="header">
-            Please provide your email id in order to continue
-        </div>
+        <div class="header">Please provide your email id in order to continue</div>
         <div class="image content">
-
             <div class="description">
                 <div class="ui  form">
                   <div class="field">
@@ -137,150 +113,65 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             </div>
         </div>
         <div class="actions">
-            <div class="ui positive right labeled icon button" style="background-color:#00897b;" id="email_submit">
-                Submit
-
-            </div>
+            <div class="ui positive right labeled icon button" style="background-color:#00897b;" id="email_submit">Submit</div>
         </div>
     </div>
 
-
-<!-- back button popup -->
-   <div class="ui modal" id="back">
-    <div class="header">
-       {{community.name}}
+    <!-- back button popup -->
+    <div class="ui modal" id="back">
+        <div class="header">{{community.name}}</div>
+        <div class="image content">
+            <div class="description">
+                <div class="ui header">Are you sure you don't want to join this community?</div>
+            </div>
+        </div>
+        <div class="actions">
+            <div class="ui black deny button">No</div>
+            <div class="ui positive button" id="yes">Yes</div>
+        </div>
     </div>
-
-  <div class="image content">
-
-    <div class="description">
-      <div class="ui header">Are you sure you don't want to join this community?</div>
-    </div>
-  </div>
-  <div class="actions">
-    <div class="ui black deny button">
-     No
-    </div>
-    <div class="ui positive button" id="yes">
-     Yes
-
-    </div>
-  </div>
-</div>
-
-
-
-
 
     <div style="margin:0 auto; max-width:786px;background-color:#f0f5f5;">
-
-<!--        <div class="ui small inverted menu"-->
-<!--             style="  background-color:#075e54; margin:0 0 0 0 !important;display: flex;align-items: center;justify-content: center;  padding-left: 20px;">-->
-<!--            <a href="#" id="back_click"><i style="color:white;" class="big angle left icon"></i></a>-->
-<!--            <div class="ui center aligned grid container" style=" color:white; margin: 4%;">-->
-
-<!--                <h2 style="margin-left:-10px; padding-left: 5px;"> {{community.name}} </h2>-->
-
-<!--            </div>-->
-<!--        </div>-->
-
+        
         {% block content %}
-      
 
-<!-- accept invitation model -->
-<!--                    <div class="ui modal accept" id="accept">-->
-
-<!--                        <div class="ui fluid card " style="border: 2px solid #1ebea5; margin:0 0 ; padding: 10px 10px;">-->
-<!--                            <h2 class="ui teal center aligned header">-->
-<!--                                <div class="content">-->
-<!--                                    Respond to Invitation-->
-<!--                                </div>-->
-<!--                            </h2>-->
-<!--                            <div class="content">-->
-<!--                                <p class="center aligned">-->
-<!--                                    Send Response-->
-<!--                                </p>-->
-<!--                            </div>-->
-<!--                            <div class="center aligned container">-->
-<!--                                <div class="content">-->
-<!--                                    <a href="../accept_admin/{{community.id}}?cta=accept_invitation&value=true">-->
-<!--                                        <button class="ui button" style="width:130px; color:green;">-->
-
-<!--                                            Accept-->
-<!--                                        </button>-->
-<!--                                    </a>-->
-<!--                                    <br>-->
-<!--                                    <br>-->
-
-<!--                                    <br>-->
-<!--                                    <br>-->
-<!--                                    <div class="content">-->
-<!--                                        <a href="../accept_admin/{{community.id}}?cta=accept_invitation&value=false">-->
-<!--                                            <button class="ui button" style="width:130px; color:green;">-->
-
-<!--                                                Decline-->
-<!--                                            </button>-->
-<!--                                        </a>-->
-<!--                                    </div>-->
-<!--                                </div>-->
-<!--                                <br>-->
-
-<!--                            </div>-->
-<!--                        </div>-->
-<!--                    </div>-->
-
-
-
-
-
-
-        <div class="ui fluid card" id="image_card" style="margin-top:0px;margin-bottom:8px;">
-            <div class="ui fluid image">
-                  <div class="top-left">
-                      <i class="arrow left icon" style="font-size:18px;" id="back_click"></i>
-                  </div>
-
-
-                {% if not community.image_link %}
-                <img src='/media/{{community.image_url}}'>
-                {% else %}
-                 <img src='{{community.image_link}}'>
+        <div class="bgF bxs mb12">
+            <div class="top-left">
+                <i class="arrow left icon" style="font-size:18px;" id="back_click"></i>
+            </div>
+            <div class="h33">
+            {% if not community.image_link %}
+                <img class="w100 h33 ofC" src='/media/{{community.image_url}}'>
+            {% else %}
+                <img class="w100 h33 ofC" src='{{community.image_link}}'>
+            {% endif %}
+            </div>
+            <div class="p16 bs">
+                <h1 class="m0 p0 fs20 c0 fwR lh24 ffR">{{community.name}}</h1>
+                {% if members_length %}
+                    <h2 class="m0 p0 fs16 c9b fwR lh24 ffR">{{members_length}} Members</h2>
                 {% endif %}
             </div>
+        </div>
 
-<!--              <h3 style="padding-left: 15px;"> {{community.name}} </h3>-->
-<!--              <p style="padding-left:15px;">{{members_length}} Members</p>-->
-            <div class="summary left aligned">
-                <p style="padding-left:10px;padding-right:10px;padding-top:10px;font-weight:bold;font-size:19px;">{{community.name}}</p>
-            </div>
-
-            {% if members_length %}
-                <div class="summary left aligned">
-                    <p style="padding-left:10px;padding-right:10px;padding-top:10px;">{{members_length}} Members</p>
-                </div>
-            {% endif %}
-
+        {{Non_mem_state}}
+        {% if Nom_mem_state != 0 %}
             <div class="summary left aligned" style="padding-left:10px;padding-right:10px;padding-top:10px;">
-                 {{Non_mem_state}}
+                    
                 {% if Nom_mem_state == 6 %}
-                <button class="ui  button "
-
-                        onclick="accept_admin('{{cta}}','{{community.id}}','{{Nom_mem_state}}');"> Respond to invitation
+                <button class="ui  button " onclick="accept_admin('{{cta}}','{{community.id}}','{{Nom_mem_state}}');"> Respond to invitation
                 </button>
 
                 {% elif Nom_mem_state == 7 %}
-                <button class="ui  button "
-                        onclick="accept_admin('{{cta}}','{{community.id}}','{{Nom_mem_state}}');"> Respond to invitation
+                <button class="ui  button " onclick="accept_admin('{{cta}}','{{community.id}}','{{Nom_mem_state}}');"> Respond to invitation
                 </button>
 
                 {% elif Nom_mem_state == 8 %}
-                <button class="ui  button "
-                        id="ref"> Invite members
+                <button class="ui  button " id="ref"> Invite members
                 </button>
 
                 {% elif Nom_mem_state == 3 %}
-                <button class="ui  button "
-                        disabled> Pending Approval
+                <button class="ui  button " disabled> Pending Approval
                 </button>
 
                 {% elif Nom_mem_state == 1%}
@@ -316,561 +207,370 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                 {% endif %}
 
             </div>
+        {% endif %}
 
-            <div class="fixed top" id="menu" style="padding-top:10px;">
-            <ul>
-                <li><a href="#purpose" class="RobotoMedium">PURPOSE</a></li>
+        <div class="bgE h2"></div>
+
+        <div class="oA ffR fwM taC fs13 bgF">
+            <div class="dT tlF mnw100">
+                <a href="#purpose" class="dTc vM p16 bs mnw20 tdN c0 bdb2F hSel bs">PURPOSE</a>
+                <a href="#about" class="dTc vM p16 bs mnw20 tdN c0 bdb2F hSel bs">ABOUT</a>
                 {% if members_length > 0 %}
                     {% if community.hide_community == '3' %}
-                    <li><a href="#about" class="RobotoMedium" >ABOUT</a></li>
-                    <li><a href="#members" class="RobotoMedium" >WAIT LIST</a></li>
+                    <a href="#members" class="dTc vM p16 bs mnw20 tdN c0 bdb2F hSel bs">WAIT LIST</a>
                     {% else %}
-                    <li><a href="#about" class="RobotoMedium" >ABOUT</a></li>
-                    <li><a href="#members" class="RobotoMedium" >MEMBERS</a></li>
+                    <a href="#members" class="dTc vM p16 bs mnw20 tdN c0 bdb2F hSel bs">MEMBERS</a>
                     {% endif %}
-                {% else %}
-                <li><a href="#about" class="web_display RobotoMedium" >ABOUT</a></li>
-                <li><a href="#members"></a></li>
-
                 {% endif %}
-                <li><a  id="conv" class="RobotoMedium" >CONVERSATIONS</a></li>
-            </ul>
-        </div>
-
-        </div>
-
-        <div style="margin-top:0px;margin-bottom:8px;">
-             <div class="ui fluid card" id="purpose">
-                    <h5 style="padding-left:10px;padding-top:10px;margin-bottom:5px;" class="RobotoBold">Purpose</h5>
-                    <p style="padding:10px;color:#666666;" class="Roboto">{{community.purpose}}</p>
+                <div id="conv" class="dTc vM p16 bs mnw20 c0">CONVERSATIONS</div>
             </div>
         </div>
 
+        <div class="bgE h10"></div>
 
+        <div class="bgF p16 bs mb10" id="purpose">
+            <h5 class="fwB fs16 c0 m0 p0 lh20 ffR mb8">Purpose</h5>
+            <p class="fs15 p016 m0 c6 lh24">{{community.purpose}}</p>
+        </div>
 
-            <!-- rendering multiple admins -->
-            {% if admin_length > 0 %}
-
-        <div class="ui fluid card" id="promter_card" style="margin-top:0px;margin-bottom:8px;">
+        <!-- rendering multiple admins -->
+        {% if admin_length > 0 %}
+            <div class="p16 bs mb10" id="promter_card">
                 {% if admin_length == 1 %}
-                <h4 class="RobotoBold" style="padding-left:10px;padding-top:10px;margin-bottom:5px;" >Promoter</h4>
-<br/><br/>
-            <div class="image_container" style="">
-            {% for admin in admins %}
-
-                 <img class="profile_image" src="{{admin.image_link}}">
-
-
-                 <img src="https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Fprofile_header?alt=media" style="width:100%;height:70%;">
-
-<!--                   <div class="profile_name">-->
-<!--                       <p align="center" style="font-family:Roboto;sans-serif;font-weight:600px;color:black;font-size:17px;line-height:22px;">{{admin.name}}</p>-->
-
-<!--                   </div>-->
-
-<!--                    <div style="margin-top:5%;margin-left:16px;margin-right:16px;">-->
-<!--                        {{admin.introduction_answer}}-->
-<!--                      </div>-->
-                <div class="promoter_item">
-
-                      <p style="font-size:17px;font-family:roboto;sans-serif;font-weight:500">{{admin.name}}</p>
-                      <div style="margin-left:10px;margin-right:10px;">
-                        <p style="line-height:28px;font-size:15px;font-family:roboto;sans-serif;font-color:#666666;text-align:left;">{{admin.introduction_answer}}</p>
-                      </div>
-
-                </div>
-
-                <br/><br/>
-            {% endfor %}
-
-            </div>
-            <br/>
-
-                {% else %}
-                <h4 class="RobotoBold" style="padding-left:10px;padding-top:10px;margin-bottom:5px;" >Promoters</h4>
-<br/><br/>
-                <section class="horizontal-scroll">
-
-
-            {% for admin in admins %}
-              <div class="promoter_item_multiple">
-                  <img src="{{admin.image_link}}" alt="No Image"/>
-                  <p style="line-height:22px;font-size:1.1rem;font-family:roboto;sans-serif;">{{admin.name}}</p>
-                  <p style="line-height:22px;font-size:1.1rem;font-family:roboto;sans-serif;">{{admin.introduction_answer}}</p>
-              </div>
-            {% endfor %}
-
-
-    </section>
-
-                {% endif %}
-
-
-
-
-
-        </div>
-            {% endif %}
-
-{% if community.about %}
-        <div class="ui fluid card" style="margin-top:0px;margin-bottom:8px;">
-            <!-- printing community about -->
-
-            <div class="content ui fluid" id="about_card">
-
-                <div class="content" id="about">
-                 <h4 class="RobotoBold" style="font-size:16px;">   About Community  </h4>
-                    <p  id="more" class="Roboto">{{about_1}}&nbsp;<spam style="border:solid;color:#00897b
-;background-color:#00897b
-;"><i class="ellipsis horizontal icon" id="show_more" style="color:white;"></i></spam></p>
-
-
-            </div>
-
-            </div>
-
-        </div>
-    {% endif %}
-
-<!-- members rendering -->
-        {% if members_length > 0 %}
-        <div class="ui fluid card" style="margin-top:0px;margin-bottom:8px;">
-
-            <div class="content" id="members">
-
-                <h4 style="display: inline;" class="RobotoBold">Members</h4>
-                <h6 style="display: inline; font-size:10px;" class="RobotoBold">&nbsp;&nbsp;&nbsp;&nbsp;{{members_length}} </h6>
-
-                <h6 style="display: inline;padding-left:60%;" class="RobotoBold" id="filter_icon">
-                    <i class="filter icon"></i>
-                </h6>
-
-
-
-                    <div class="ui container" style="padding-top:12px;">
-
-                        {% for i in members%}
-                        <br/>
-                        <div class="ui two column grid">
-                            <div class="row">
-                                <div  style="padding-left:5px;">
-                                    <img class="ui tiny circular centered image" src="{{i.image_link}}" style="border-radius:50%;width:80px;height:80px;"/>
-                                </div>
-                                <div style="padding-left:10%;padding-top:10px;padding-bottom:10px;">
-                                    <button class="RobotoMedium member_link" style="color:black;line-height:20px;font-size:17px;" value="{{i.id}}">{{i.name}}</button>
-                                    {% if not is_member %}
-                                    <p style="line-height:17px;font-size:13px;color:#9b9b9b" class="Roboto blur_answer">{{i.answer}}</p>
-                                    {% else %}
-                                  <p style="line-height:17px;font-size:13px;color:#9b9b9b" class="Roboto">{{i.answer}}</p>
-
-                                    {% endif %}
-                                </div>
-
-
+                    <h4 class="fwB fs16 c0 m0 p0 lh20 ffR">Promoter</h4>
+                    <div class="h96 mt20 taC pR z1">
+                        {% for admin in admins %}
+                            <div class="w96 h96 brp50 bd2F bs bxs oH dIb vM bgF">
+                                <img class="w96 h96 ofC" src="{{admin.image_link}}">
                             </div>
-
-
-                        </div>
-
-                         <hr style="border-style:solid;border-width:1px;border-color:#e6e6e6;padding-right:200px;padding-left:65px;">
-
-
-
-
-
-
                         {% endfor %}
-
-                        <br/>
-<!--                    </div>-->
-                </div>
-            </div>
-            {% endif %}
-                <br>
-                <div >
-        </div>
-<!--                <div class="content ui fluid" style="background-color:#f0f5f5;">-->
-<!--                    <h4 style="margin-left:12px;padding-top:10px;">Similar Communities-->
-<!--                        &lt;!&ndash;                                <a class="right floated" style=" color:#1cb39b; font-weight:100; " href="{% url 'similar_community' 273 %}"> See all</a>&ndash;&gt;-->
-<!--                    </h4>-->
-
-<!--                    <div class="ui container" style=" overflow-y:auto;white-space:nowrap;">-->
-
-<!--                        <div class="ui  horizontal  list" style="margin-left:10px;">-->
-<!--                            {% for i in similar_communities %}-->
-
-<!--                            <div class="ui card item" onclick="open_community({{i.id}});"  >-->
-<!--                                <br><br>-->
-
-<!--                                <img class="ui avatar image" src="/media/{{i.image_url}}" style="margin-left:5px;">-->
-<!--                                <div class="content" style="font-size:12px;">-->
-<!--                                    <div class="header" style="font-size:1rem;">{{i.name}}</div>-->
-<!--                                    <p id="{{forloop.counter0}}"> {{i.purpose}}</p>-->
-<!--                                </div>-->
-<!--                                <br><br><br><br>-->
-
-<!--                            </div>-->
-<!--                            {% endfor %}-->
-<!--                        </div>-->
-
-
-<!--                    </div>-->
-<!--                </div>-->
-<br/>
-
-
-<!-- Displaying Buttons -->
-                {% if Nom_mem_state == 6 %}
-                <button class="ui  button bottom_button"
-
-                        onclick="accept_admin('{{cta}}','{{community.id}}','{{Nom_mem_state}}');"> Respond to invitation
-                </button>
-
-                {% elif Nom_mem_state == 7 %}
-                <button class="ui  button bottom_button"
-                        onclick="accept_admin('{{cta}}','{{community.id}}','{{Nom_mem_state}}');"> Respond to invitation
-                </button>
-
-                {% elif Nom_mem_state == 8 %}
-                <button class="ui  button bottom_button"
-                      id="down_ref"  > Invite members
-                </button>
-
-                {% elif Nom_mem_state == 3 %}
-                <button class="ui  button bottom_button"
-                        disabled> Pending Approval
-                </button>
-
-                {% elif Nom_mem_state == 1%}
-                <button class="ui  button bottom_button"
-                        disabled>You are a promoter
-                </button>
-
-                {% elif Nom_mem_state == 2 %}
-                <button class="ui  button bottom_button"
-                        disabled>You are a promoter
-                </button>
-
-                {% elif Nom_mem_state == 4 %}
-                <button class="ui  button bottom_button"
-                        disabled>Already a Member
-                </button>
-
-                {% elif Nom_mem_state == 5 %}
-                <button class="ui  button bottom_button"
-                        onclick="join('{{community.id}}')"> Join Community(Declined)
-                </button>
-
-                {% elif source == 'email' %}
-                <button class="ui  button bottom_button"
-                        onclick="accept_admin();">Respond to invitation
-                </button>
-
-                {% elif Nom_mem_state == 0 %}
-                <button class="ui  button bottom_button"
-                        onclick="join('{{community.id}}')"> Join Community
-                </button>
-
+                    </div>
+                    <div class="pR mtn58 bxs br8 oH bgF">
+                        {% for admin in admins %}
+                            <div class="h96">
+                                <img class="w100 ofC h96" src="https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Fprofile_header?alt=media">
+                            </div>
+                            <div class="h2"></div>
+                            <p class="p0 m0 taC fwM fs16 c0 lh20">{{admin.name}}</p>
+                            <p class="p0 m0 p18 pt28 fs15 c6 lh24 taC">{{admin.introduction_answer}}</p>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <h4 class="RobotoBold" style="padding-left:10px;padding-top:10px;margin-bottom:5px;" >Promoters</h4>
+                    <section class="horizontal-scroll">
+                        {% for admin in admins %}
+                        <div class="promoter_item_multiple">
+                            <img src="{{admin.image_link}}" alt="No Image"/>
+                            <p style="line-height:22px;font-size:1.1rem;font-family:roboto;sans-serif;">{{admin.name}}</p>
+                            <p style="line-height:22px;font-size:1.1rem;font-family:roboto;sans-serif;">{{admin.introduction_answer}}</p>
+                        </div>
+                        {% endfor %}
+                    </section>
                 {% endif %}
-
-
-
-                <br/>
-<br/>
-
-
             </div>
-        </div>
+        {% endif %}
 
-
-
-
-
-
-
-<!-- models to display on clicks -->
-
-    <!-- download the app pop-up -->
-        <div class="ui modal" id="download_app_popup">
-            <div class="header">
-                Download the app
-            </div>
-            <div class="image content">
-
-                <div class="description">
-                    <div class="ui  form">
-                      <div class="field">
-                        In order to view the conversations of this community, please download the app
-                      </div>
+        {% if community.about %}`
+            <div class="p16 bs mb10">
+                <!-- printing community about -->
+                <div class="content ui fluid" id="about_card">
+                    <div class="content" id="about">
+                        <h4 class="m0 p0 fwB ffR">   About Community  </h4>
+                        <p  id="more" class="Roboto">
+                            {{about_1}} <span><i class="ellipsis horizontal icon" id="show_more" style="color:white;"></i></span>
+                        </p>
                     </div>
                 </div>
             </div>
-            <div class="actions">
-                <div class="ui positive right labeled icon button" style="background-color:#00897b;" id="Download" onclick="window.location.href = '{{android_app_link}}';">
-                    Download
-                    <i class="arrow alternate circle down icon"></i>
+        {% endif %}
 
+        <!-- members rendering -->
+        {% if members_length > 0 %}
+            <div class="bgF" id="members">
+                <div class="dT w100 p16 bs">
+                    <h4 class="dTc vM taL m0 p0 fs16 c0 lh20">Members {{members_length}}</h4>
+                    <div id="filter_icon" class="dTc vM taC w96 cT bd2T bs p6 br16" ><i class="filter icon lh16"></i> <span class="lh16 fs14">Filter</span></div>
+                </div>
+                {% for i in members%}
+                    <div class="dT w100">
+                        <div class="dTc vM w70 p16 pr0">
+                            <img class="w54 h54 oH bd2F bs brp50 bxs" src="{{i.image_link}}"/>
+                        </div>
+                        <div class="dTc vM p16 bs pl12 bdbE">
+                            <div class="lh20 fs16 c0 member_link" member_id={{i.id}}>{{i.name}}</div>
+                            {% if not is_member %}
+                                <p class="p0 m0 fs15 lh20 blur_answer">{{i.answer}}</p>
+                            {% else %}
+                                <p class="p0 m0 fs15 lh20">{{i.answer}}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+        
+        <div class="h60"></div>
+        <!-- Displaying Buttons -->
+        <div class="p8 bs taC pF b0 l0 r0 h60 bdtE bgBg z1">
+            {% if Nom_mem_state == 6 %}
+                <button class="h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" onclick="accept_admin('{{cta}}','{{community.id}}','{{Nom_mem_state}}');">Respond to invitation</button>
+            {% elif Nom_mem_state == 7 %}
+                <button class="h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" onclick="accept_admin('{{cta}}','{{community.id}}','{{Nom_mem_state}}');"> Respond to invitation</button>
+            {% elif Nom_mem_state == 8 %}
+                <button class="h44 bgT cF br22 fwM ffR fs13" id="down_ref">Invite members</button>
+            {% elif Nom_mem_state == 3 %}
+                <button class="h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" disabled>Pending Approval</button>
+            {% elif Nom_mem_state == 1%}
+                <button class="h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" disabled>You are a promoter</button>
+            {% elif Nom_mem_state == 2 %}
+                <button class="h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" disabled>You are a promoter</button>
+            {% elif Nom_mem_state == 4 %}
+                <button class="h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" disabled>Already a Member</button>
+            {% elif Nom_mem_state == 5 %}
+                <button class="h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" onclick="join('{{community.id}}')">Join Community(Declined)</button>
+            {% elif source == 'email' %}
+                <button class="h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" onclick="accept_admin();">Respond to invitation</button>
+            {% elif Nom_mem_state == 0 %}
+                <button class="h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" onclick="join('{{community.id}}')"> Join Community</button>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- models to display on clicks -->
+
+    <!-- download the app pop-up -->
+    <div class="ui modal" id="download_app_popup">
+        <div class="header">
+            Download the app
+        </div>
+        <div class="image content">
+
+            <div class="description">
+                <div class="ui  form">
+                    <div class="field">
+                    In order to view the conversations of this community, please download the app
+                    </div>
                 </div>
             </div>
         </div>
-    <!-- -->
+        <div class="actions">
+            <div class="ui positive right labeled icon button" style="background-color:#00897b;" id="Download" onclick="window.location.href = '{{android_app_link}}';">
+                Download
+                <i class="arrow alternate circle down icon"></i>
 
+            </div>
+        </div>
+    </div>
 
     <!-- login model for non exclusive communities -->
      <div class="ui modal test">
+        <div class="ui fluid card " style="margin:0 0 ; padding: 10px 10px;">
+            <h2 class="ui teal center aligned header">
+                    <img src="https://beta.collabmates.com/media/media/ic_launcher_round.png" style="float:left;width:35px;"/>
 
-                <div class="ui fluid card " style="margin:0 0 ; padding: 10px 10px;">
+
+                <div class="content" style="color:#008577">
+                    Login to continue
+                </div>
+            </h2>
+            <div class="content">
+                <p class="center aligned">
+                    To join this community we need few basic information about you. This will help us to have
+                    relevant member in group.
+                </p>
+            </div>
+            <div class="center aligned container">
+                <div class="content">
+
+                    {% if ref_id != '' %}
+                    <a href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join_{{ref_id}}">
+                    <button class="ui facebook button" style="width:130px;">
+                    {% elif auto_join  %}
+                            <a href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join_ajt">
+                            <button class="ui facebook button" style="width:130px;">
+                    {% elif cta == 'share' %}
+                    <a href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join">
+                        <button class="ui facebook button" style="width:130px;">
+                    {% elif cta != '' %}
+                    <a href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta={{cta}}">
+                        <button class="ui facebook button" style="width:130px;">
+                            {% else %}
+                            <a href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join">
+                                <button class="ui facebook button" style="width:200px;">
+                                    {% endif %}
+                                    <i class="fa fa-facebook" ></i>&nbsp;&nbsp;&nbsp;&nbsp;
+                                    Login with Facebook
+                                </button>
+                            </a>
+                            <br>
+                            <br>
+                            OR
+                            <br>
+                            <br>
+                            <div class="content">
+
+                                {% if ref_id != '' %}
+                                <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join_{{ref_id}}">
+                                    <button class="ui linkedin button" style="width:130px;">
+                                {% elif auto_join  %}
+                                        <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join_ajt">
+                                        <button class="ui linkedin button" style="width:130px;">
+                                {% elif cta == 'share' %}
+                                <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join">
+                                    <button class="ui linkedin button" style="width:130px;">
+                                {% elif cta != '' %}
+                                <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta={{cta}}">
+                                    <button class="ui linkedin button" style="width:130px;">
+                                {% else %}
+                                    <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join">
+                                    <button class="ui linkedin button" style="width:200px;">
+                                {% endif %}
+                                <i class="fa fa-linkedin"></i>&nbsp;&nbsp;&nbsp;&nbsp;
+                                Login with LinkedIn
+                                </button>
+                                </a></button>
+                                </a>
+                            </div>
+                        </button>
+                    </a>
+                </div>
+                <br>
+
+<!-- accept invitation model -->
+                <div class="ui modal accept" id="accept">
+
+                    <div class="ui fluid card " style="border: 2px solid #1ebea5; margin:0 0 ; padding: 10px 10px;">
+                        <h2 class="ui teal center aligned header">
+                            <div class="content">
+                                Respond to Invitation
+                            </div>
+                        </h2>
+                        <div class="content">
+                            <p class="center aligned">
+                                Send Response
+                            </p>
+                        </div>
+                        <div class="center aligned container">
+                            <div class="content">
+                                <a href="../accept_admin/{{community.id}}?cta=accept_invitation&value=true">
+                                    <button class="ui button" style="width:130px; color:green;">
+
+                                        Accept
+                                    </button>
+                                </a>
+                                <br>
+                                <br>
+
+                                <br>
+                                <br>
+                                <div class="content">
+                                    <a href="../accept_admin/{{community.id}}?cta=accept_invitation&value=false">
+                                        <button class="ui button" style="width:130px; color:green;">
+
+                                            Decline
+                                        </button>
+                                    </a>
+                                </div>
+                            </div>
+                            <br>
+
+                        </div>
+                    </div>
+                </div>
+
+
+            </div>
+        </div>
+    </div>
+    <!-- -->
+    <!-- login model for exclusive communities -->
+    <div class="ui modal image_container_login w300" id="whatsapp_login">
+        <div class="h72 w72 brp50   mtn22 mA">
+            <img class="h72 w72 ofC" src="/media/main_website/like_minds_speaker.png">
+        </div>
+        <div class="p24 bs taC ffR">
+            <p class="m0 p0 fs17 lh22 c0 mb10 fwM">Login to continue</p>
+            <p class="m0 p0 fs15 lh22 c9 mb16">This is an exclusive community. To view member details please login/signup and join the community.</p>
+            <div class="p160 ls05">
+                <div class="fs12 mb16">
+                    {% if ref_id != '' %}
+                        <a class="p12 bs dB br20 tdN bgLi cF ffR fwM" href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join_{{ref_id}}">
+                    {% elif auto_join  %}
+                        <a class="p12 bs dB br20 tdN bgLi cF ffR fwM" href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join_ajt">
+                    {% elif cta == 'share' %}
+                        <a class="p12 bs dB br20 tdN bgLi cF ffR fwM" href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join">
+                    {% elif cta != '' %}
+                        <a class="p12 bs dB br20 tdN bgLi cF ffR fwM" href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta={{cta}}">
+                    {% else %}
+                        <a class="p12 bs dB br20 tdN bgLi cF ffR fwM" href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join">
+                    {% endif %}
+                            <i class="dIb fa fa-linkedin fs15 lh16 vM"></i>
+                            <span  class="dIb lh16 pl12 vM">LOGIN WITH LINKEDIN</span>
+                        </a>
+                </div>
+                <div class="fs12">
+                    {% if ref_id != '' %}
+                        <a class="p12 bs dB br20 tdN bgFb cF ffR fwM" href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join_{{ref_id}}">
+                    {% elif auto_join  %}
+                        <a class="p12 bs dB br20 tdN bgFb cF ffR fwM" href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join_ajt">
+                    {% elif cta == 'share' %}
+                        <a class="p12 bs dB br20 tdN bgFb cF ffR fwM" href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join">
+                    {% elif cta != '' %}
+                        <a class="p12 bs dB br20 tdN bgFb cF ffR fwM" href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta={{cta}}">
+                    {% else %}
+                        <a class="p12 bs dB br20 tdN bgFb cF ffR fwM" href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join">
+                    {% endif %}
+                            <i class="fa fa-facebook dIb fs15 lh16 vM" ></i>
+                            <span class="dIb lh16 pl12 vM">LOGIN WITH FACEBOOK</span>
+                        </a>
+                </div>
+            </div>
+            <!-- accept invitation model -->
+            <div class="ui modal accept" id="accept">
+
+                <div class="ui fluid card " style="border: 2px solid #1ebea5; margin:0 0 ; padding: 10px 10px;">
                     <h2 class="ui teal center aligned header">
-                            <img src="https://beta.collabmates.com/media/media/ic_launcher_round.png" style="float:left;width:35px;"/>
-
-
-                        <div class="content" style="color:#008577">
-                            Login to continue
+                        <div class="content">
+                            Respond to Invitation
                         </div>
                     </h2>
                     <div class="content">
                         <p class="center aligned">
-                            To join this community we need few basic information about you. This will help us to have
-                            relevant member in group.
+                            Send Response
                         </p>
                     </div>
                     <div class="center aligned container">
                         <div class="content">
+                            <a href="../accept_admin/{{community.id}}?cta=accept_invitation&value=true">
+                                <button class="ui button" style="width:130px; color:green;">
 
-                            {% if ref_id != '' %}
-                            <a href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join_{{ref_id}}">
-                            <button class="ui facebook button" style="width:130px;">
-                            {% elif auto_join  %}
-                                  <a href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join_ajt">
-                                  <button class="ui facebook button" style="width:130px;">
-                            {% elif cta == 'share' %}
-                            <a href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join">
-                                <button class="ui facebook button" style="width:130px;">
-                            {% elif cta != '' %}
-                            <a href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta={{cta}}">
-                                <button class="ui facebook button" style="width:130px;">
-                                    {% else %}
-                                    <a href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join">
-                                        <button class="ui facebook button" style="width:200px;">
-                                            {% endif %}
-                                            <i class="fa fa-facebook" ></i>&nbsp;&nbsp;&nbsp;&nbsp;
-                                            Login with Facebook
-                                        </button>
-                                    </a>
-                                    <br>
-                                    <br>
-                                    OR
-                                    <br>
-                                    <br>
-                                    <div class="content">
-
-                                        {% if ref_id != '' %}
-                                        <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join_{{ref_id}}">
-                                            <button class="ui linkedin button" style="width:130px;">
-                                        {% elif auto_join  %}
-                                             <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join_ajt">
-                                             <button class="ui linkedin button" style="width:130px;">
-                                        {% elif cta == 'share' %}
-                                        <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join">
-                                            <button class="ui linkedin button" style="width:130px;">
-                                        {% elif cta != '' %}
-                                        <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta={{cta}}">
-                                            <button class="ui linkedin button" style="width:130px;">
-                                        {% else %}
-                                            <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join">
-                                            <button class="ui linkedin button" style="width:200px;">
-                                        {% endif %}
-                                        <i class="fa fa-linkedin"></i>&nbsp;&nbsp;&nbsp;&nbsp;
-                                        Login with LinkedIn
-                                        </button>
-                                        </a></button>
-                                        </a>
-                                    </div>
+                                    Accept
                                 </button>
                             </a>
-                        </div>
-                        <br>
+                            <br>
+                            <br>
 
-    <!-- accept invitation model -->
-                        <div class="ui modal accept" id="accept">
+                            <br>
+                            <br>
+                            <div class="content">
+                                <a href="../accept_admin/{{community.id}}?cta=accept_invitation&value=false">
+                                    <button class="ui button" style="width:130px; color:green;">
 
-                            <div class="ui fluid card " style="border: 2px solid #1ebea5; margin:0 0 ; padding: 10px 10px;">
-                                <h2 class="ui teal center aligned header">
-                                    <div class="content">
-                                        Respond to Invitation
-                                    </div>
-                                </h2>
-                                <div class="content">
-                                    <p class="center aligned">
-                                        Send Response
-                                    </p>
-                                </div>
-                                <div class="center aligned container">
-                                    <div class="content">
-                                        <a href="../accept_admin/{{community.id}}?cta=accept_invitation&value=true">
-                                            <button class="ui button" style="width:130px; color:green;">
-
-                                                Accept
-                                            </button>
-                                        </a>
-                                        <br>
-                                        <br>
-
-                                        <br>
-                                        <br>
-                                        <div class="content">
-                                            <a href="../accept_admin/{{community.id}}?cta=accept_invitation&value=false">
-                                                <button class="ui button" style="width:130px; color:green;">
-
-                                                    Decline
-                                                </button>
-                                            </a>
-                                        </div>
-                                    </div>
-                                    <br>
-
-                                </div>
+                                        Decline
+                                    </button>
+                                </a>
                             </div>
                         </div>
-
+                        <br>
 
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
     <!-- -->
-
-
-    <!-- login model for exclusive communities -->
-
-    <div class="ui modal image_container_login" id="whatsapp_login" style="width:80%;">
-
-<!--             <img src="/media/main_website/profile_header.png" style="width:100%;height:70%;">-->
-        <br/><br/><br/><br/><br/>
-
-      <div class="profile_name">
-          <p align="center" style="font-family:Roboto;sans-serif;font-weight:500;color:black;font-size:17px;line-height:22px;">Login to continue</p>
-
-      </div>
-
-       <div style="margin-top:5%;margin-left:16px;margin-right:16px;text-align:center;font-size:15px;line-height:22px;font-family:Roboto;sans-serif;font-weight:400;color:#8a000000;">
-           <p>This is an exclusive community. To view member details please login/signup and join the community.</p>
-       </div>
-       <div style="margin-top:5%;margin-left:16px;margin-right:16px;text-align:center;font-size:15px;line-height:22px;font-family:Roboto;sans-serif;font-weight:400;color:#8a000000;">
-
-            <div class="center aligned container">
-                 <div class="content">
-
-                                        {% if ref_id != '' %}
-                                        <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join_{{ref_id}}">
-                                            <button class="ui linkedin button" style="width:130px;z-index:2;border-radius:20px;">
-                                        {% elif auto_join  %}
-                                             <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join_ajt">
-                                             <button class="ui linkedin button" style="width:130px;z-index:2;border-radius:20px;">
-                                        {% elif cta == 'share' %}
-                                        <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join">
-                                            <button class="ui linkedin button" style="width:130px;z-index:2;border-radius:20px;">
-                                        {% elif cta != '' %}
-                                        <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta={{cta}}">
-                                            <button class="ui linkedin button" style="width:130px;z-index:2;border-radius:20px;">
-                                        {% else %}
-                                            <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join">
-                                            <button class="ui linkedin button" style="width:200px;z-index:2;border-radius:20px;">
-                                        {% endif %}
-                                        <i class="fa fa-linkedin"></i>&nbsp;&nbsp;&nbsp;&nbsp;
-                                        Login with LinkedIn
-                                        </button>
-                                            </a>
-
-
-                 </div>
-            <br/>
-                        <div class="content">
-
-                            {% if ref_id != '' %}
-                            <a href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join_{{ref_id}}">
-                            <button class="ui facebook button" style="width:130px;z-index:2;border-radius:20px;">
-                            {% elif auto_join  %}
-                                <a href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join_ajt">
-                                <button class="ui facebook button" style="width:130px;z-index:2;border-radius:20px;">
-                            {% elif cta == 'share' %}
-                            <a href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join">
-                                <button class="ui facebook button" style="width:130px;z-index:2;border-radius:20px;">
-                            {% elif cta != '' %}
-                            <a href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta={{cta}}">
-                                <button class="ui facebook button" style="width:130px;z-index:2;border-radius:20px;">
-                                    {% else %}
-                                    <a href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join">
-                                        <button class="ui facebook button" style="width:200px;z-index:2;border-radius:20px;">
-                                            {% endif %}
-                                            <i class="fa fa-facebook" ></i>&nbsp;&nbsp;&nbsp;&nbsp;
-                                            Login with Facebook
-                                        </button>
-                                    </a>
-                                </button>
-                            </a>
-                                </button></a></button>
-                            </a>
-                        </div>
-
-                        <br>
-
-    <!-- accept invitation model -->
-                        <div class="ui modal accept" id="accept">
-
-                            <div class="ui fluid card " style="border: 2px solid #1ebea5; margin:0 0 ; padding: 10px 10px;">
-                                <h2 class="ui teal center aligned header">
-                                    <div class="content">
-                                        Respond to Invitation
-                                    </div>
-                                </h2>
-                                <div class="content">
-                                    <p class="center aligned">
-                                        Send Response
-                                    </p>
-                                </div>
-                                <div class="center aligned container">
-                                    <div class="content">
-                                        <a href="../accept_admin/{{community.id}}?cta=accept_invitation&value=true">
-                                            <button class="ui button" style="width:130px; color:green;">
-
-                                                Accept
-                                            </button>
-                                        </a>
-                                        <br>
-                                        <br>
-
-                                        <br>
-                                        <br>
-                                        <div class="content">
-                                            <a href="../accept_admin/{{community.id}}?cta=accept_invitation&value=false">
-                                                <button class="ui button" style="width:130px; color:green;">
-
-                                                    Decline
-                                                </button>
-                                            </a>
-                                        </div>
-                                    </div>
-                                    <br>
-
-                                </div>
-                            </div>
-                        </div>
-
-
-                    </div>
-       </div>
-
-
-    <br/>
-   </div>
-    <!-- -->
-
-
-
     <!-- pop-up to show member profile -->
-<!-- style="overflow:scroll;height:80%;width:80%; -->
-        <div class="ui modal image_container_profile" id="member_profile" style="width:90%;">
-<br/>
+    <div class="ui modal image_container_profile" id="member_profile" style="width:90%;">
 
             <div class="profile_name">
                     <p align="center" style="font-family:Roboto;sans-serif;font-weight:500;color:black;font-size:17px;line-height:22px;color:#075e54;">Awesome !<br/>
@@ -1345,8 +1045,8 @@ $('.member_link').click(function(){
 
 
 
-member_id=$(this).val()
-
+member_id=$(this).attr('member_id')
+console.log(member_id)
 //unverified member pop-up
 {% if not is_member %}
 

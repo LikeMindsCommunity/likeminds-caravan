@@ -300,6 +300,9 @@ def community(request, community_id):
             new_dict['share_text_anonymous'] = """I recently discovered %s community on CollabMates. You can join this community using this link.\n""" % (new_dict['name'])
     new_dict['min_referrer_member'] = eligibility_count
 
+    if community.id == feedback_community_id:
+        new_dict['share_url'] = ""
+
 
     return JsonResponse({'community': new_dict})
 
@@ -1066,7 +1069,7 @@ def join_whatsapp_community(res,request):
                         state=member_states.PENDING_MEMBER)
 
             Member_Engage.objects.filter(member_id=user_instance,community_id=community_instance).update(
-                state=member_states.PENDING_MEMBER)
+                member_state=member_states.PENDING_MEMBER)
 
         return JsonResponse({'success': True})
     else:
@@ -5603,12 +5606,12 @@ def fetch_whatsapp_tool(request):
         sub_type_list = []
         subtype_queryset = communitySubtype.objects.filter(typ=instance.id)
 
-        if subtype_queryset.exists():
+        if subtype_queryset.exists() :
             for subtype_instance in subtype_queryset:
+                subtype_temp = communitySubtypeSerializer(subtype_instance)
+                sub_type_list.append(subtype_temp)
 
-                sub_type_list.append(communitySubtypeSerializer(subtype_instance))
-
-        if sub_type_list:
+        if sub_type_list and temp['id'] != 16:
             temp['sub_types'] = sub_type_list
 
         types.append(temp)
@@ -5645,7 +5648,7 @@ def fetch_master_questions(request):
     # getting master Questions
 
     page=request.GET.get('page',1)
-    master_question_list = masterQuestions.objects.all()
+    master_question_list = masterQuestions.objects.all().order_by('id')
     master_question_list=pagination(master_question_list,page_number=page,paginate_by=50)
     master_questions = []
     for instance in master_question_list:
