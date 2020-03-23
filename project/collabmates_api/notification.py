@@ -317,7 +317,7 @@ def send_notification_to_admins(community_id,name):
         message={}
         message['payload']={
             'title':community_name,
-            'sub_title':str(name)+' has requested to join your community',
+            'sub_title':str(name)+' has requested to join your community.Please verify',
             'route':'route://member_approve?'+'community_id=' + str(community_id) + "&" + "community_name=" + str(community_name)
         }
         send_notification_to_multiple_devices(token_list,message)
