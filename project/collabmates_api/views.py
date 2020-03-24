@@ -1253,7 +1253,7 @@ def generate_private_link(community_instance,promoter_instance):
         current_time = int(time.time())
         last_created_time = community_expire_filter[0].created_at
 
-        if current_time - last_created_time > 300:
+        if current_time - last_created_time > 400:
             unique_code = generate_random(unique_code_list)
             expireInstance = communityExpiryCodes()
             expireInstance.community = community_instance
