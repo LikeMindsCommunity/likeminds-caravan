@@ -2552,6 +2552,7 @@ def request_response(request, req_dict=None):
         approve_or_decline_lg_community(request,req_dict,member_verification)
         return JsonResponse({'success': True})
 
+
     if accepted or accepted == 'true':
         # if accepted , then make him a member of the community
         join_time = time.time()
