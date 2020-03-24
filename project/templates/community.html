@@ -556,86 +556,42 @@
     </div>
     <!-- -->
     <!-- pop-up to show member profile -->
-    <div class="ui modal image_container_profile" id="member_profile" style="width:90%;">
+    <div class="ui modal image_container_profile w320 p16 bs" id="member_profile">
+        <div class="cT ffR fs16 fwM lh24 p160 taC">
+            <div class="">Awesome !</div>
+            <div class="">Your community profile is created.!</div>
+        </div>
 
-            <div class="profile_name">
-                    <p align="center" style="font-family:Roboto;sans-serif;font-weight:500;color:black;font-size:17px;line-height:22px;color:#075e54;">Awesome !<br/>
-Your community profile is created.!</p>
-             </div>
-<br/>
+        <div class="bd2F bgBg brp50 bs bxs h86 mA mb10 oH profile_name w86">
+            <img class="centered circular h82 image ofC tiny ui w82" src="{{request.user.userinfo.image_link}}">
+        </div>
 
-      <div class="profile_name" style="margin-top:5%">
-          <img class="ui tiny circular centered image" src="{{request.user.userinfo.image_link}}">
+        <p class="c0 fs17 mb16 taC">{{request.user.userinfo.name}}</p>
 
-      </div>
-
-<br/>
-            <div style="margin-top:5%;margin-left:16px;margin-right:16px;text-align:center;">
-               <p style="font-family:Roboto;sans-serif;font-weight:500;color:black;font-size:17px;">{{request.user.userinfo.name}}</p>
-           </div>
-
-
-
-       {% for profile in profile_list %}
-
+        {% for profile in profile_list %}
             {% if profile.rank == 1 %}
-
-               <div style="margin-top:5%;margin-left:16px;margin-right:16px;">
-                            <p class="Roboto" style="line-height:20px;font-size:13px;color:#9b9b9b"><img src="/media/main_website/ic_email_48_px.png" height=16px;width=14px;/>&nbsp;&nbsp;{{profile.answer}}</p>
-
+               <div class="dT mb10 wp100">
+                    <div class="dTc h24 vM w24"><img class="h24" src="/media/main_website/ic_email_48_px.png" /></div>
+                    <div class="c9b dTc fs13 vM wsN oH toE">{{profile.answer}}</div>
                </div>
-
-
             {% elif profile.rank == 2 %}
-
-
-               <div style="margin-top:3%;margin-left:16px;margin-right:16px;">
-                            <p class="Roboto" style="line-height:20px;font-size:13px;color:#9b9b9b">
-                                <img src="/media/main_website/mobile_alt.png" height=20px;width=16px;/>&nbsp;&nbsp;{{profile.answer}}
-                            </p>
-
+               <div class="dT mb10 wp100">
+                    <div class="dTc h24 vM w24"><img class="h24" src="/media/main_website/mobile_alt.png"/></div>
+                    <div class="c9b dTc fs13 vM wsN oH toE">{{profile.answer}}</div>
                </div>
-
             {% elif profile.rank == 3 %}
-               <div style="margin-top:3%;margin-left:16px;margin-right:16px;">
-                            <a class="Roboto" style="line-height:20px;font-size:13px;color:#00897b" href=${value['answer']}>
-                                <img src="/media/main_website/link.png" height=20px;width=16px;/>&nbsp;&nbsp;{{profile.answer}}
-                            </a>
-
-               </div>
-            <br/>
-
-
-
+                <a class="c9b dT tdN wp100" href=${value['answer']}>
+                    <div class="dTc h24 vM w24"><img class="h24" src="/media/main_website/link.png"/></div>
+                    <div class="c9b dTc fs13 vM cT wsN oH toE">{{profile.answer}}</div>
+                </a>
             {% elif profile.rank == 4 %}
-
-
-               <div style="margin-top:5%;margin-left:16px;margin-right:16px;padding-bottom:5%;">
-                            <p class="Roboto" style="font-size:15px;line-height:24px;color:#4a4a4a">
-                                {{profile.answer}}
-
-                            </p>
-               </div>
-
-
-
+               <p class="c4a fs15 lh24 m160">{{profile.answer}}</p>
             {% else %}
-               <div style="margin-top:3%;margin-left:16px;margin-right:16px;">
-                            <p class="Roboto" style="font-size:15px;line-height:20px;color:#9b9b9b">{{profile.answer}}</p>
-
-               </div>
+                <p class="c9b fs15 lh24 m160 m80 oH toE wsN">{{profile.answer}}</p>
             {% endif %}
-
        {% endfor %}
-            <br/>
-
-             <div style="margin-top:3%;margin-left:16px;margin-right:16px;text-align:center">
-                            <p class="Roboto" style="font-size:13px;font-weight:500;color:black;letter-spacing:0.46px;opacity:40%" id="dismiss">DISMISS</p>
-
-               </div>
-            <br/>
-
-   </div>
+        <div class="fs13 p12 taC fwM" id="dismiss">DISMISS</div>
+    </div>
     <!-- -->
 
 

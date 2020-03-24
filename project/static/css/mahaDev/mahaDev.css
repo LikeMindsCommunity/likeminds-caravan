@@ -22,10 +22,10 @@ html { scroll-behavior: smooth; }
 
 .mnh48 { min-height: 48px!important; }
 
-.h86 { height: 86px; } 
-.w86 {width: 86px; }
-.h86 { height: 86px; }
-.w86 { width: 86px; }
+.h86 { height: 86px!important; } 
+.w86 {width: 86px!important; }
+.h82 { height: 82px!important; }
+.w82 { width: 82px!important; }
 
 .w48 { width: 48px; }
 .w96 { width: 96px; }
@@ -34,6 +34,7 @@ html { scroll-behavior: smooth; }
 .w72 { width: 72px; }
 .w280, .w280.w280  { width: 280px; }
 .w300, .w300.w300  { width: 300px; }
+.w320, .w320.w320  { width: 300px; }
 
 .w228 { width: 228px; }
 
@@ -56,8 +57,8 @@ html { scroll-behavior: smooth; }
 .fs15 { font-size: 15px; }
 .fs12 { font-size: 12px; }
 
-.fwR { font-weight:400; }
-.fwM { font-weight:500; }
+.fwR { font-weight:400!important; }
+.fwM { font-weight:500!important; }
 
 .cF { color: #fff; }
 .c0 { color: #000; }
@@ -77,6 +78,7 @@ html { scroll-behavior: smooth; }
 .m0 { margin:0!important; }
 .mA { margin: auto; }
 .m160 { margin: 16px 0; }
+.m80 { margin: 8px 0; }
 .mb10 { margin-bottom: 10px; }
 .mb8 { margin-bottom: 8px; }
 .mt20 { margin-top: 20px; }
@@ -110,6 +112,8 @@ html { scroll-behavior: smooth; }
 .pt48 { padding-top: 48px; }
 
 .wsN { white-space: nowrap; }
+
+.toE { text-overflow: ellipsis; }
 
 .oA { overflow: auto; }
 .oH { overflow: hidden; }
@@ -174,3 +178,4 @@ html { scroll-behavior: smooth; }
 .o8 { opacity: 0.8px }
 
 .mxh240 { max-height: 240px; }
+
