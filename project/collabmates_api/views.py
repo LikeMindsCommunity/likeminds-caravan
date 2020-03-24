@@ -6,6 +6,7 @@ import os
 import re
 import time
 from datetime import datetime
+from random import randint
 
 import dateutil.relativedelta
 import googlemaps
@@ -275,7 +276,7 @@ def community(request, community_id):
     ''' Community detail page '''
 
     community = Community.objects.get(id=community_id)
-    member_id = request.GET.get('member_id', None)
+    member_id = get_member_id_from_headers(request)
     serialized_object = CommunitySerializer(community)
     new_dict = {}
 
@@ -284,7 +285,11 @@ def community(request, community_id):
     elif community.hide_community == '0' or community.hide_community == '1':
         serialized_object['share_url'] = serialized_object['share_url'] + "?cta=share"
 
-    serialized_object['private_link']=serialized_object['share_url']+"?aj=t"
+    is_member_admin = Members.objects.filter(community_id=community, member_id=member_id, state=1)
+
+    if is_member_admin:
+        serialized_object['private_link'] = generate_private_link(community_instance=community,
+                                                                  promoter_instance=is_member_admin[0].member_id)
 
     # form a dictionary of community objects
     new_dict.update(serialized_object)
@@ -727,8 +732,10 @@ def join_community_responses_version_1(request):
         user_id = request.GET.get('member_id', None)
 
     #for whatsapp community
+
     if community_instance.hide_community == '5':
         info_logger.info("whats app communtiy")
+
         join_whatsapp_community(res,request)
         return JsonResponse({'success': True})
 
@@ -1040,11 +1047,9 @@ def join_whatsapp_community(res,request):
 
 
     #saving data directly
-    if 'auto_join' in res:
-
-        if res['auto_join']:
-
-            validate_time = is_joining_time_valid(community_instance, res['timestamp'])
+    if 'aj' in res:
+        if res['aj']:
+            validate_time = is_joining_time_valid(community_instance, res['timestamp'],res['aj'])
             if validate_time:
                 auto_join_community(community_instance,user_instance)
                 post_introduction_card_for_whatsapp_community(community_id, member_id, request)
@@ -1060,7 +1065,11 @@ def join_whatsapp_community(res,request):
     if member_list:
         member_state = member_list[0].state
         if member_state == member_states.ADMIN:
+
             post_introduction_card_for_whatsapp_community(community_id,member_id,request)
+
+            generate_private_link(community_instance,user_instance)
+
             Member_Engage.objects.filter(member_id=user_instance, community_id=community_instance).update(
                 member_referral="")
         else:
@@ -1092,23 +1101,17 @@ def join_whatsapp_community(res,request):
         send_notification_to_admins.delay(community_id,user_instance.userinfo.name)
 
 
-
-
-def is_joining_time_valid(community_instance,time_stamp):
-
+def is_joining_time_valid(community_instance, time_stamp, unique_code):
     '''function to check whether community joining time is valid or not'''
+    check = communityExpiryCodes.objects.filter(community=community_instance, unique_code=unique_code)
+    print("check---",check)
+    if check.exists():
+        expiry_instance = check[0]
+        time_stamp = int(time_stamp)
+        expiry_time = int(expiry_instance.created_at)
 
-    duration=communityExpire.objects.filter(community=community_instance)
-
-
-    time_stamp = int(time_stamp)
-
-    if duration:
-        duration=duration[0].duration
-        if (time_stamp-community_instance.created_at) <= duration:
+        if (time_stamp - expiry_time) <= expiry_instance.expire_duration:
             return True
-    else:
-        return False
 
     return False
 
@@ -1222,6 +1225,68 @@ def creating_collabcard_for_lg_communities(community,user,introduction_answer,re
 
 
 
+def generate_private_link(community_instance,promoter_instance):
+
+    '''function to generate private links of community'''
+
+    community_expire_filter = communityExpiryCodes.objects.filter(community=community_instance).order_by('-id')
+    unique_code_list = list(community_expire_filter.values_list('unique_code',flat=True))
+
+
+
+    if not unique_code_list:
+
+        unique_code = generate_random(unique_code_list)
+        expireInstance = communityExpiryCodes()
+        expireInstance.community = community_instance
+        expireInstance.promoter = promoter_instance
+        expireInstance.created_at = time.time()
+        expireInstance.unique_code = unique_code
+        expireInstance.private_link = url + '/community/' + str(community_instance.id) + "?aj="+ str(unique_code)
+        expireInstance.expire_duration = 86400
+        expireInstance.save()
+
+        return expireInstance.private_link
+
+    else:
+
+        current_time = int(time.time())
+        last_created_time = community_expire_filter[0].created_at
+
+        if current_time - last_created_time > 3600:
+            unique_code = generate_random(unique_code_list)
+            expireInstance = communityExpiryCodes()
+            expireInstance.community = community_instance
+            expireInstance.promoter = promoter_instance
+            expireInstance.created_at = time.time()
+            expireInstance.unique_code = unique_code
+            expireInstance.private_link = url + '/community/' + str(community_instance.id) + "?aj=" + str(unique_code)
+            expireInstance.expire_duration = 86400
+            expireInstance.save()
+
+            return expireInstance.private_link
+
+    return community_expire_filter[0].private_link
+
+
+
+
+
+
+
+
+
+
+
+
+
+def generate_random(unique_code_list):
+
+  '''function to generate a random number'''
+
+  randInt = randint(1,100000)
+
+  return generate_random(unique_code_list) if randInt in unique_code_list else randInt
 
 
 def category_filter(request, category):
