@@ -501,8 +501,8 @@ $('#back_button').click(function(e){
 
         var values = $('#response_form').serialize();
         var community_id='{{community.id}}'
-        {% if auto_join %}
-            url="/community/"+community_id+"?cta=join_ajt";
+        {% if aj %}
+            url="/community/"+community_id+"?cta=join-aj-{{aj}}";
         {% else %}
             url="/community/"+community_id+"?cta=join";
         {% endif %}

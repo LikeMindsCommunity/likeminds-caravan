@@ -383,10 +383,10 @@
                 <div class="content">
 
                     {% if ref_id != '' %}
-                    <a href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join_{{ref_id}}">
+                    <a href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join-ref_id-{{ref_id}}">
                     <button class="ui facebook button" style="width:130px;">
-                    {% elif auto_join  %}
-                            <a href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join_ajt">
+                    {% elif aj  %}
+                            <a href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join-aj-{{aj}}">
                             <button class="ui facebook button" style="width:130px;">
                     {% elif cta == 'share' %}
                     <a href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join">
@@ -410,10 +410,10 @@
                             <div class="content">
 
                                 {% if ref_id != '' %}
-                                <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join_{{ref_id}}">
+                                <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join-ref_id-{{ref_id}}">
                                     <button class="ui linkedin button" style="width:130px;">
-                                {% elif auto_join  %}
-                                        <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join_ajt">
+                                {% elif aj  %}
+                                        <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join-aj-{{aj}}">
                                         <button class="ui linkedin button" style="width:130px;">
                                 {% elif cta == 'share' %}
                                 <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join">
@@ -494,9 +494,9 @@
             <div class="p160 ls05">
                 <div class="fs12 mb16">
                     {% if ref_id != '' %}
-                        <a class="p12 bs dB br20 tdN bgLi cF ffR fwM" href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join_{{ref_id}}">
-                    {% elif auto_join  %}
-                        <a class="p12 bs dB br20 tdN bgLi cF ffR fwM" href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join_ajt">
+                        <a class="p12 bs dB br20 tdN bgLi cF ffR fwM" href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join-ref_id-{{ref_id}}">
+                    {% elif aj  %}
+                        <a class="p12 bs dB br20 tdN bgLi cF ffR fwM" href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}&cta=join-aj-{{aj}}}">
                     {% elif cta == 'share' %}
                         <a class="p12 bs dB br20 tdN bgLi cF ffR fwM" href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join">
                     {% elif cta != '' %}
@@ -510,9 +510,9 @@
                 </div>
                 <div class="fs12">
                     {% if ref_id != '' %}
-                        <a class="p12 bs dB br20 tdN bgFb cF ffR fwM" href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join_{{ref_id}}">
-                    {% elif auto_join  %}
-                        <a class="p12 bs dB br20 tdN bgFb cF ffR fwM" href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join_ajt">
+                        <a class="p12 bs dB br20 tdN bgFb cF ffR fwM" href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join-ref_id-{{ref_id}}">
+                    {% elif aj  %}
+                        <a class="p12 bs dB br20 tdN bgFb cF ffR fwM" href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join-aj-{{aj}}">
                     {% elif cta == 'share' %}
                         <a class="p12 bs dB br20 tdN bgFb cF ffR fwM" href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join">
                     {% elif cta != '' %}
@@ -774,6 +774,8 @@ Your community profile is created.!</p>
                     {% if user.is_authenticated %}
                         {% if ref_id != '' %}
                            window.open("/"+"community/"+community_id+"?cta=join&ref_id={{ref_id}}",'_self');
+                        {% elif aj %}
+                            window.open("/"+"community/"+community_id+"?cta=join&aj={{aj}}",'_self');
                         {% else %}
                            window.open("/"+"community/"+community_id+"?cta=join",'_self');
                         {% endif %}

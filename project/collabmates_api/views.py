@@ -6,6 +6,7 @@ import os
 import re
 import time
 from datetime import datetime
+from random import randint
 
 import dateutil.relativedelta
 import googlemaps
@@ -66,7 +67,7 @@ from .notification import (send_follow_notification, send_notification_to_admins
                            send_notification_for_tool_unlocked_for_pilot)
 from .raw_queries import compute_rank
 from .tasks import send_email_to_nominated_admin, send_email_for_new_collabcard_posted, send_welcome_mail
-from random import randint
+
 # CACHE_TTL = getattr(settings, 'CACHE_TTL', cache_timeout)
 
 url = settings.URL
@@ -731,8 +732,10 @@ def join_community_responses_version_1(request):
         user_id = request.GET.get('member_id', None)
 
     #for whatsapp community
+
     if community_instance.hide_community == '5':
         info_logger.info("whats app communtiy")
+
         join_whatsapp_community(res,request)
         return JsonResponse({'success': True})
 
@@ -1043,18 +1046,16 @@ def join_whatsapp_community(res,request):
                     filter_instance.save()
 
 
-    # #saving data directly
-    # if 'auto_join' in res:
-    #
-    #     if res['auto_join']:
-    #
-    #         validate_time = is_joining_time_valid(community_instance, res['timestamp'])
-    #         if validate_time:
-    #             auto_join_community(community_instance,user_instance)
-    #             post_introduction_card_for_whatsapp_community(community_id, member_id, request)
-    #             log="""Auto join community for community_id=%s for user=%s"""%(community_id,member_id)
-    #             info_logger.info(log)
-    #             return
+    #saving data directly
+    if 'aj' in res:
+        if res['aj']:
+            validate_time = is_joining_time_valid(community_instance, res['timestamp'],res['aj'])
+            if validate_time:
+                auto_join_community(community_instance,user_instance)
+                post_introduction_card_for_whatsapp_community(community_id, member_id, request)
+                log="""Auto join community for community_id=%s for user=%s"""%(community_id,member_id)
+                info_logger.info(log)
+                return
 
 
 
@@ -1100,23 +1101,17 @@ def join_whatsapp_community(res,request):
         send_notification_to_admins.delay(community_id,user_instance.userinfo.name)
 
 
-
-
-def is_joining_time_valid(community_instance,time_stamp):
-
+def is_joining_time_valid(community_instance, time_stamp, unique_code):
     '''function to check whether community joining time is valid or not'''
+    check = communityExpiryCodes.objects.filter(community=community_instance, unique_code=unique_code)
+    print("check---",check)
+    if check.exists():
+        expiry_instance = check[0]
+        time_stamp = int(time_stamp)
+        expiry_time = int(expiry_instance.created_at)
 
-    duration=communityExpire.objects.filter(community=community_instance)
-
-
-    time_stamp = int(time_stamp)
-
-    if duration:
-        duration=duration[0].duration
-        if (time_stamp-community_instance.created_at) <= duration:
+        if (time_stamp - expiry_time) <= expiry_instance.expire_duration:
             return True
-    else:
-        return False
 
     return False
 

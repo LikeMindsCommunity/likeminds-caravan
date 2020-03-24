@@ -224,7 +224,6 @@ def community(request, community_id):
 
     # ----- accept admin APi part ---------------
     res = request.GET.dict()
-
     source = request.GET.get('source', '')
 
     # --------- referal part ----------------------
@@ -233,41 +232,44 @@ def community(request, community_id):
 
     profile = request.GET.get('profile', None)                  #for showing the pop-up on display screen
 
-    auto_join = request.GET.get('aj', False)
-    if auto_join and auto_join.lower() == 't':
-        auto_join = True
-        if not 'cta' in res:
-            res['cta'] = 'join'
-
+    aj = request.GET.get('aj', False)
 
     cta = ''
+
     if 'cta' in res:
+
         cta = res['cta']
-        cta_split = cta.split("_")
+
+        cta_split = cta.split("-")
+        print(cta_split)
         cta = cta_split[0]
-        if len(cta_split) == 2:
-            auto_join = True if cta_split[1] == 'ajt' else False
-            if not auto_join:
-                ref_id = cta_split[1]
-        if len(cta_split) > 2:
-            ref_id = cta_split[1]
-            auto_join = True if cta_split[2] == 'ajt' else False
+
+        if len(cta_split) == 3:
+
+            if cta_split[1] == "ref_id":
+                ref_id = cta_split[2]
+            elif cta_split[1] == "aj":
+                aj = cta_split[2]
 
         # -------------------- auto join functionality ---------------------------------
         if cta == 'join' and request.user.is_authenticated:
+
             member = Members.objects.filter(member_id=request.user, community_id=community)
             member_state = member[0].state if member.exists() else 0
+
             questions, validation_error, user, data, community, filled_answers = join_community(request, community_id,
-                                                                                                ref_id,auto_join=auto_join)
+                                                                                                ref_id,aj=aj)
             if questions:
 
                 # data = itertools.zip_longest(data,filled_answers,fillvalue='')
                 if member_state == 0 or member_state == 5:
-                    return render(request, 'response_form.html', {"data": data, 'usr': user,
-                                                                  'community': community, 'ref_id': ref_id,
-                                                                  'validation_error': validation_error,
-                                                                  'filled_answers': filled_answers,
-                                                                  'auto_join':auto_join,})
+
+                    context =  {"data": data, 'usr': user,
+                                'community': community, 'ref_id': ref_id,
+                                'validation_error': validation_error,
+                                'filled_answers': filled_answers,
+                                'aj':aj}
+                    return render(request, 'response_form.html',context)
             else:
                 return JsonResponse({'success': True})
         elif cta == 'share':
@@ -375,12 +377,7 @@ def community(request, community_id):
     else:
         members = get_member_details(community)
 
-    auto_join = request.GET.get('aj', False)
-    if auto_join and auto_join.lower() == 't':
-        auto_join = True
-    else:
-        auto_join = False
-
+    aj = request.GET.get('aj', False)
     context = {'usr': user, 'similar_communities': communities,
                'community': community, 'admins': admin_details,
                'members': members, 'source': source,
@@ -396,7 +393,7 @@ def community(request, community_id):
                'ios_app_download_link': ios_app_download_link,
                'about_1': about_1,
                'about_2': about_2,
-               'auto_join':auto_join,
+               'aj':aj,
                'community_state':int(community.hide_community),
                'profile_list': profile_list,
                'is_member':is_member
@@ -805,7 +802,6 @@ def answer_privacy(answer,is_promoter=False):
 
     value_list = ast.literal_eval(answer)
     privacy = ""
-    print("ansert==",answer)
     for value in value_list:
         privacy = value['answer_privacy']
 
@@ -960,10 +956,8 @@ def logout_view(request):
 
 
 @login_required
-def join_community(request, community_id, ref_id, auto_join=False):
+def join_community(request, community_id, ref_id, aj=False):
 
-
-    print(auto_join)
 
     if request.user.is_authenticated:
         try:
@@ -1015,11 +1009,11 @@ def join_community(request, community_id, ref_id, auto_join=False):
 
             response_list.append(question_dict)
 
-        json_dict = {"community_id": community_id, "timestamp": time.time(), 'auto_join':auto_join}
+        json_dict = {"community_id": community_id, "timestamp": time.time(),'aj':aj}
         json_dict['questions'] = response_list
         json_dict['user_id'] = request.user.id
 
-        print(">>>>  ",json_dict)
+        #print(">>>>  ",json_dict)
         info_logger.info(json_dict)
 
         params = {'member_id': member_id, 'community_id': community_id, 'ref_id': ref_id}
