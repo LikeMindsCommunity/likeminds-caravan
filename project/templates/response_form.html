@@ -250,153 +250,131 @@ textarea.noscrollbars {
 
 <body style="margin:0 auto; max-width:786px;background-color:#f2f2f2;">
 
-<!---webkit-clip-path: polygon(0 0, 100% 0, 100% 84%, 50% 100%, 0 84%, 0 0);-->
-
-<div style="margin-top:0px;">
+    <!---webkit-clip-path: polygon(0 0, 100% 0, 100% 84%, 50% 100%, 0 84%, 0 0);-->
 
     {% include 'components/header.html' with data=header %}
 
     {% include 'components/login_success_header_showcase.html' with data=header %}
 
-<!--    <div style="margin-bottom:80px;">-->
-<!--          <div style="float:left;margin-top:5px;" >-->
-<!--                          <i class="arrow left icon" style="font-size:24px;color:white;" id="back_button"></i>-->
-<!--          </div>-->
+    <!--    <div style="margin-bottom:80px;">-->
+    <!--          <div style="float:left;margin-top:5px;" >-->
+    <!--                          <i class="arrow left icon" style="font-size:24px;color:white;" id="back_button"></i>-->
+    <!--          </div>-->
 
-<!--         <h2 class="ui center aligned header" style="margin-top:0px;color:white;font-size:1.60rem;font-family:'Roboto';font-weight:700;">-->
-<!--              Welcome to Collabmates!-->
-<!--         </h2>-->
+    <!--         <h2 class="ui center aligned header" style="margin-top:0px;color:white;font-size:1.60rem;font-family:'Roboto';font-weight:700;">-->
+    <!--              Welcome to Collabmates!-->
+    <!--         </h2>-->
 
-<!--        <div class="ui center aligned header" style="font-size:1.12rem;color:white;font-family:Roboto ;sans-serif;">-->
-<!--            <p>You are interested in joining this community:</p>-->
-<!--            <p>{{community.name}}</p>-->
+    <!--        <div class="ui center aligned header" style="font-size:1.12rem;color:white;font-family:Roboto ;sans-serif;">-->
+    <!--            <p>You are interested in joining this community:</p>-->
+    <!--            <p>{{community.name}}</p>-->
 
-<!--        </div>-->
-<!--    </div>-->
+    <!--        </div>-->
+    <!--    </div>-->
 
-</div>
-<br/>
-<br/>
+    <form class="ui form ffR fwR m16 mt72" onsubmit="return false" id="response_form" enctype="multipart/form-data">
+        {% csrf_token %}
+        <!--    TEXT = 0-->
+        <!--    CHOICE_SINGLE = 1-->
+        <!--    CHOICE_MULTIPLE = 2-->
+        <!--    TEXT_WITH_LIMIT = 3-->
+        <!--    PARAGRAPH = 4-->
+        <!--    FILE_UPLOAD = 5-->
+        <!--    DATE_TIME = 6-->
+        <!--    INTRODUCTION = 7-->
+        <!--    PROFILE_LINK=8-->
+        <!--    MOBILE_NO = 9-->
+        <!--    EMAIL_ID = 10-->
 
-    <div class="container">
+        {% for question in data %}
+            {% if question.optional %}
+                <div class="field mb30" id="div_{{question.id}}">
+            {% else %}
+                <div class="required field mb30" id="div_{{question.id}}">
+            {% endif %}
 
-            <div class="" style="margin: 14px 14px !important;">
-            <form class="ui form" onsubmit="return false" id="response_form" enctype="multipart/form-data">
-                {% csrf_token %}
-
-
-<!--    TEXT = 0-->
-<!--    CHOICE_SINGLE = 1-->
-<!--    CHOICE_MULTIPLE = 2-->
-<!--    TEXT_WITH_LIMIT = 3-->
-<!--    PARAGRAPH = 4-->
-<!--    FILE_UPLOAD = 5-->
-<!--    DATE_TIME = 6-->
-<!--    INTRODUCTION = 7-->
-<!--    PROFILE_LINK=8-->
-<!--    MOBILE_NO = 9-->
-<!--    EMAIL_ID = 10-->
-
-                {% for question in data %}
-                    {% if question.optional %}
-                    <div class="field" id="div_{{question.id}}">
+                {% if question.question_state == 0 or question.question_state == 4 or question.question_state == 7 %}
+                    <!--    TEXT = 0  PARAGRAPH = 4 INTRODUCTION = 7  -->
+                    <label class="c4a fs15 fwR lh14 p10">{{question.data}}</label>
+                    {% if question.question_state == 4 or question.question_state == 7 %}
+                        <textarea id="{{question.id}}" class="noscrollbars bd0 br8 bxs2 p16" rows="4" cols="4" name="{{question.id}}" required oninput="remove_error('{{question.id}}')"  onchange="remove_error('{{question.id}}')"></textarea>
                     {% else %}
-                    <div class="required field" id="div_{{question.id}}">
+                        <textarea id="{{question.id}}" class="noscrollbars bd0 br8 bxs2 p16" rows="2" cols="4" name="{{question.id}}" required oninput="remove_error('{{question.id}}')"  onchange="remove_error('{{question.id}}')"></textarea>
                     {% endif %}
-                        {% if question.question_state == 0 or question.question_state == 4 or question.question_state == 7 %}
-                        <!--    TEXT = 0  PARAGRAPH = 4 INTRODUCTION = 7  -->
-                            <label class="Roboto" style="font-size:13px;margin-left:7px;">{{question.data}}</label>
-                            {% if question.question_state == 4 or question.question_state == 7 %}
-                                <textarea id="{{question.id}}" class="noscrollbars" rows="4" cols="4" style="border-radius: 10px;" name ="{{question.id}}" required oninput="remove_error('{{question.id}}')"  onchange="remove_error('{{question.id}}')"></textarea>
-                            {% else %}
-                                <textarea id="{{question.id}}" class="noscrollbars" rows="2" cols="4" style="border-radius: 10px;" name ="{{question.id}}" required oninput="remove_error('{{question.id}}')"  onchange="remove_error('{{question.id}}')"></textarea>
-                            {% endif %}
 
-                        {% elif question.question_state == 1 %}
-                        <!--    CHOICE_SINGLE = 1-->
-                            <label class="Roboto" style="font-size:13px;margin-left:7px;" >{{question.data}}</label>
-                            <div class="ui fluid search selection dropdown single_select_{{question.id}}" style="border-radius: 10px;height:50px;">
-                                  <input id="{{question.id}}" type="hidden" name="{{question.id}}" oninput="remove_error('{{question.id}}')" onchange="remove_error('{{question.id}}')">
-                                  <i class="dropdown icon"></i>
-                                  <div class="default text">Select Country</div>
-                                  <div class="menu">
-                                  {% for option in question.dropdown_list %}
-                                       <div class="item" data-value="{{option}}">{{option}}</div>
-                                  {% endfor %}
-                                  </div>
-                            </div>
-
-
-                        {% elif question.question_state == 2 %}
-                        <!--    CHOICE_MULTIPLE = 2-->
-                            <label class="Roboto" style="font-size:13px;margin-left:7px;" >{{question.data}}</label>
-
-                            <div class="ui fluid multiple search normal selection dropdown multi_select_{{question.id}}" style="border-radius: 10px;height:50px;">
-                                  <input id="{{question.id}}" type="hidden" name="{{question.id}}" oninput="remove_error('{{question.id}}')"  onchange="remove_error('{{question.id}}')">
-                                  <i class="dropdown icon"></i>
-                                  <div class="default text">Select Country</div>
-                                  <div class="menu">
-                                  {% for option in question.dropdown_list %}
-                                      <div class="item" data-value="{{option}}">{{option}}</div>
-                                  {% endfor %}
-
-                                  </div></div>
-                        {% elif question.question_state == 3 %}
-                        <!--    TEXT_WITH_LIMIT = 3-->
-                            <label class="Roboto" style="font-size:13px;margin-left:7px;">{{question.data}}</label>
-                            <textarea id="{{question.id}}" class="noscrollbars " rows="2" cols="4" style="border-radius: 10px;" name ="{{question.id}}" minlength="50" required placeholder=""  oninput="remove_error('{{question.id}}')"  onchange="remove_error('{{question.id}}')"></textarea>
-                        {% elif question.question_state == 5 %}
-                        <!--  FILE_UPLOAD = 5 -->
-                            <label class="Roboto" style="font-size:13px;margin-left:7px;">{{question.data}}</label>
-                            <div class="ui action input">
-                                <input id="{{question.id}}" name ="{{question.id}}" type="file" formenctype="multipart/form-data" oninput="remove_error('{{question.id}}')"  onchange="remove_error('{{question.id}}')">
-                                <div class="ui icon button">
-                                    <i class="attach icon"></i>
-                                </div>
-                            </div>
-                        {% elif question.question_state == 6 %}
-                        <!--    DATE_TIME = 6-->
-                            <label class="Roboto" style="font-size:13px;margin-left:7px;">{{question.data}}</label>
-
-                            <div class="ui calendar" id="calendar_{{question.id}}">
-                                <div class="ui input right icon">
-                                    <input id="{{question.id}}" type="text" placeholder="dd/mm/yyyy" name ="{{question.id}}" oninput="remove_error('{{question.id}}')" onchange="remove_error('{{question.id}}')" onsubmit="remove_error('{{question.id}}')">
-                                    <i class="calendar alternate outline icon"></i>
-                                </div>
-                            </div>
-
-                        {% elif question.question_state == 8 %}
-                        <!--    PROFILE_LINK=8-->
-                            <label class="Roboto" style="font-size:13px;margin-left:7px;">{{question.data}}</label>
-                            <textarea id="{{question.id}}" class="noscrollbars" rows="2" cols="4" style="border-radius: 10px;" name ="{{question.id}}" minlength="50" required placeholder="" oninput="remove_error('{{question.id}}')" onchange="remove_error('{{question.id}}')"></textarea>
-                        {% elif question.question_state == 9 %}
-                        <!--    MOBILE_NO = 9-->
-                            <label class="Roboto" style="font-size:13px;margin-left:7px;">{{question.data}}</label>
-                            <textarea id="{{question.id}}" class="noscrollbars"  rows="2" cols="4" style="border-radius: 10px;" name ="{{question.id}}" minlength="50" required placeholder="" oninput="remove_error('{{question.id}}')"  onchange="remove_error('{{question.id}}')"></textarea>
-                        {% elif question.question_state == 10 %}
-                        <!--    EMAIL_ID = 10-->
-                            <label class="Roboto" style="font-size:13px;margin-left:7px;">{{question.data}}</label>
-                            <textarea id="{{question.id}}" class="noscrollbars" rows="2" cols="4" style="border-radius: 10px;" name ="{{question.id}}" minlength="50" required placeholder="" oninput="remove_error('{{question.id}}')"  onchange="remove_error('{{question.id}}')"></textarea>
-                        {% endif %}
+                {% elif question.question_state == 1 %}
+                    <!--    CHOICE_SINGLE = 1-->
+                    <label class="c4a fs15 fwR lh14 p10">{{question.data}}</label>
+                    <div class="ui fluid search selection dropdown single_select_{{question.id}} bd0 br8 bxs2 p16">
+                        <input id="{{question.id}}" type="hidden" name="{{question.id}}" oninput="remove_error('{{question.id}}')" onchange="remove_error('{{question.id}}')">
+                        <i class="dropdown icon p16"></i>
+                        <div class="default text fs16 lh18">Select Country</div>
+                        <div class="menu">
+                            {% for option in question.dropdown_list %}
+                                <div class="item p16 bs" data-value="{{option}}">{{option}}</div>
+                            {% endfor %}
+                        </div>
                     </div>
-
-                {% endfor %}
-                <input type="hidden" name="ref_id" value="{{ref_id}}"/>
-                <br>
-
-            </form>
-
-                <div align="center" >
-                 <button class="ui  button " id="simple_button" type="submit" style="background-color: #00897b; color:white;position:relative;display:block">Submit</button>
-                 <button class="ui loading button " id="loading_button" type="submit" style="background-color: #00897b; color:white;position:relative;display:none">Submit</button>
-
-
-</div>
+                {% elif question.question_state == 2 %}
+                    <!--    CHOICE_MULTIPLE = 2-->
+                    <label class="c4a fs15 fwR lh14 p10">{{question.data}}</label>
+                    <div class="ui fluid multiple search normal selection dropdown multi_select_{{question.id}} bd0 br8 bxs2 p16">
+                        <input id="{{question.id}}" type="hidden" name="{{question.id}}" oninput="remove_error('{{question.id}}')"  onchange="remove_error('{{question.id}}')">
+                        <i class="dropdown icon p16"></i>
+                        <div class="default text fs16 lh18">Select Country</div>
+                        <div class="menu">
+                            {% for option in question.dropdown_list %}
+                                <div class="item p16 bs" data-value="{{option}}">{{option}}</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% elif question.question_state == 3 %}
+                    <!--    TEXT_WITH_LIMIT = 3-->
+                    <label class="c4a fs15 fwR lh14 p10">{{question.data}}</label>
+                    <textarea id="{{question.id}}" class="noscrollbars bd0 br8 bxs2 p16" rows="2" cols="4" name ="{{question.id}}" minlength="50" required placeholder=""  oninput="remove_error('{{question.id}}')"  onchange="remove_error('{{question.id}}')"></textarea>
+                {% elif question.question_state == 5 %}
+                    <!--  FILE_UPLOAD = 5 -->
+                    <label class="c4a fs15 fwR lh14 p10">{{question.data}}</label>
+                    <div class="ui action input">
+                        <input id="{{question.id}}" name ="{{question.id}}" type="file" formenctype="multipart/form-data" oninput="remove_error('{{question.id}}')"  onchange="remove_error('{{question.id}}')">
+                        <div class="ui icon button">
+                            <i class="attach icon"></i>
+                        </div>
+                    </div>
+                {% elif question.question_state == 6 %}
+                    <!--    DATE_TIME = 6-->
+                    <label class="c4a fs15 fwR lh14 p10">{{question.data}}</label>
+                    <div class="ui calendar" id="calendar_{{question.id}}">
+                        <div class="ui input right icon">
+                            <input id="{{question.id}}" type="text" placeholder="dd/mm/yyyy" name ="{{question.id}}" oninput="remove_error('{{question.id}}')" onchange="remove_error('{{question.id}}')" onsubmit="remove_error('{{question.id}}')">
+                            <i class="calendar alternate outline icon"></i>
+                        </div>
+                    </div>
+                {% elif question.question_state == 8 %}
+                    <!--    PROFILE_LINK=8-->
+                    <label class="c4a fs15 fwR lh14 p10">{{question.data}}</label>
+                    <textarea id="{{question.id}}" class="noscrollbars bd0 br8 bxs2 p16" rows="2" cols="4" name ="{{question.id}}" minlength="50" required placeholder="" oninput="remove_error('{{question.id}}')" onchange="remove_error('{{question.id}}')"></textarea>
+                {% elif question.question_state == 9 %}
+                    <!--    MOBILE_NO = 9-->
+                    <label class="c4a fs15 fwR lh14 p10">{{question.data}}</label>
+                    <textarea id="{{question.id}}" class="noscrollbars bd0 br8 bxs2 p16"  rows="2" cols="4" name ="{{question.id}}" minlength="50" required placeholder="" oninput="remove_error('{{question.id}}')"  onchange="remove_error('{{question.id}}')"></textarea>
+                {% elif question.question_state == 10 %}
+                    <!--    EMAIL_ID = 10-->
+                    <label class="c4a fs15 fwR lh14 p10">{{question.data}}</label>
+                    <textarea id="{{question.id}}" class="noscrollbars bd0 br8 bxs2 p16" rows="2" cols="4" name ="{{question.id}}" minlength="50" required placeholder="" oninput="remove_error('{{question.id}}')"  onchange="remove_error('{{question.id}}')"></textarea>
+                {% endif %}
             </div>
+        {% endfor %}
+        <input type="hidden" name="ref_id" value="{{ref_id}}"/>
+    </form>
 
-
+    <div class="h60"></div>
+        <!-- Displaying Buttons -->
+    <div class="p8 bs taC pF b0 l0 r0 h60 bdtE bgBg z1">
+        <button class="ui button h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" id="simple_button" type="submit">SUBMIT</button>
+        <button class="ui loading button h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" id="loading_button" type="submit">SUBMIT</button>
     </div>
-    <br>
+
 </body>
 </html>
 

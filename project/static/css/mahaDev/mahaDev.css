@@ -40,6 +40,8 @@ html { scroll-behavior: smooth; }
 .bs { box-sizing: border-box; }   
 
 .lh16 { line-height: 16px; }
+.lh14 { line-height: 14px; }
+.lh18 { line-height: 18px; }
 .lh20 { line-height: 20px; }
 .lh22 { line-height: 22px; }
 .lh24 { line-height: 24px; }
@@ -62,6 +64,7 @@ html { scroll-behavior: smooth; }
 .c6 { color: #666; }
 .cT { color: teal; }
 .c9 { color: #999; }
+.c4a { color: #4a4a4a; }
 
 .cFh:hover {
     color: #fff;
@@ -78,6 +81,8 @@ html { scroll-behavior: smooth; }
 .mt46 { margin-top: 46px; }
 .mtn58 { margin-top: -58px; }
 .mtn22 { margin-top: -22px; }
+.m16 { margin: 16px; }
+.mt72 { margin-top: 72px; }
 
 .mtn8 { margin-top: -8px; }
 .mln8 { margin-left: -8px; }
@@ -86,10 +91,12 @@ html { scroll-behavior: smooth; }
 .mr16 { margin-right: 16px; }
 .ml16 { margin-left: 16px; }
 .mb16 { margin-bottom: 16px; }
+.mb30 { margin-bottom: 30px; }
 
 .p0 { padding:0; }
 .p6 { padding: 6px; }
 .p8 { padding: 8px; }
+.p10 { padding: 10px; }
 .p12 { padding: 12px; }
 .p16 { padding: 16px; }
 .p160 { padding: 16px 0; }
@@ -150,6 +157,7 @@ html { scroll-behavior: smooth; }
 .z2 { z-index: 2; }
 
 .bxs { box-shadow: 0 0 4px rgba(0, 0, 0, .3);}
+.bxs2 { box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);}
 
 .ttU { text-transform: uppercase; }
 
