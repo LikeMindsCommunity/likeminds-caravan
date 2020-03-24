@@ -722,6 +722,9 @@ $('#back_button').click(function(e){
         console.log(values_list);
         console.log(JSON.stringify(values_list));
 
+        $("#simple_button").css({"display":"none"})
+        $("#loading_button").css({"display":"block"})
+
         $.ajax({
             url:url,
             type:"POST",
