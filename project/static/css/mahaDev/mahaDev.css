@@ -83,6 +83,7 @@ html { scroll-behavior: smooth; }
 .mtn22 { margin-top: -22px; }
 .m16 { margin: 16px; }
 .mt72 { margin-top: 72px; }
+.mt48 { margin-top: 48px; }
 
 .mtn8 { margin-top: -8px; }
 .mln8 { margin-left: -8px; }
@@ -104,6 +105,7 @@ html { scroll-behavior: smooth; }
 .p24 { padding: 24PX; }
 .pr0 { padding-right: 0; }
 .pl12 { padding-left: 12px; }
+.pt48 { padding-top: 48px; }
 
 .wsN { white-space: nowrap; }
 
@@ -155,6 +157,7 @@ html { scroll-behavior: smooth; }
 
 .z1 { z-index: 1; }
 .z2 { z-index: 2; }
+.z11 { z-index: 11; }
 
 .bxs { box-shadow: 0 0 4px rgba(0, 0, 0, .3);}
 .bxs2 { box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);}
@@ -164,3 +167,7 @@ html { scroll-behavior: smooth; }
 .ls05 { letter-spacing: 0.5px; }
 .ls1 { letter-spacing: 1px; }
 .ls2 { letter-spacing: 2px; }
+
+.o8 { opacity: 0.8px }
+
+.mxh280 { max-height: 280px; }
