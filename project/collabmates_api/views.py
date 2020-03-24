@@ -1,5 +1,5 @@
 from __future__ import absolute_import, unicode_literals
-from celery import shared_task
+
 import json
 import logging
 import os
@@ -1052,7 +1052,7 @@ def join_whatsapp_community(res,request):
             validate_time = is_joining_time_valid(community_instance, res['timestamp'],res['aj'])
             if validate_time:
                 auto_join_community(community_instance,user_instance)
-                post_introduction_card_for_whatsapp_community(community_id, member_id, request)
+                post_introduction_card_for_whatsapp_community(community_instance.id, user_instance, request)
                 log="""Auto join community for community_id=%s for user=%s"""%(community_id,member_id)
                 info_logger.info(log)
                 return
@@ -1253,7 +1253,7 @@ def generate_private_link(community_instance,promoter_instance):
         current_time = int(time.time())
         last_created_time = community_expire_filter[0].created_at
 
-        if current_time - last_created_time > 400:
+        if current_time - last_created_time > 3600:
             unique_code = generate_random(unique_code_list)
             expireInstance = communityExpiryCodes()
             expireInstance.community = community_instance
@@ -2540,7 +2540,7 @@ def request_response(request, req_dict=None):
 
     is_lg=is_LG_or_LP_community(community)
 
-    if is_lg:
+    if is_lg:                       #request accepted in case of lg communities
         member_verification=False
         if not req_dict:
             member_verification=True
@@ -2552,6 +2552,18 @@ def request_response(request, req_dict=None):
         approve_or_decline_lg_community(request,req_dict,member_verification)
         return JsonResponse({'success': True})
 
+
+    if community.hide_community == '5':
+
+        req_dict = {
+            'member_id': member_id,
+            'community_id': community_id,
+            'accepted': accepted
+        }
+        print("checking flow")
+        approve_or_decline_whatsapp_community(req_dict,request)
+
+        return  JsonResponse({'success': True})
 
     if accepted or accepted == 'true':
         # if accepted , then make him a member of the community
@@ -2612,11 +2624,13 @@ def approve_or_decline_lg_community(request,req_dict,member_verification):
     '''function to approve and decline request in lg community'''
 
     if req_dict:
-        print(req_dict)
+
+
         community_id = req_dict['community_id']
         member_id = req_dict['member_id']
         community = Community.objects.get(id=community_id)
         user=User.objects.get(id=member_id)
+
         if req_dict['accepted']:
 
             #if the request is accepted from dashboard
@@ -2725,6 +2739,52 @@ def approve_or_decline_lg_community(request,req_dict,member_verification):
             send_notification_for_join_requests.delay(community_id, False, member_id)
 
 
+
+def approve_or_decline_whatsapp_community(req_dict,request):
+
+    '''function to approve the whatsapp community'''
+
+    if req_dict['accepted'] or req_dict['accepted'] == 'true':
+
+        is_member = is_member_verified(community=req_dict['community_id'], user_instance=req_dict['member_id'])
+
+        if not is_member:
+            Members.objects.filter(member_id=req_dict['member_id'],
+                                   community_id=req_dict['community_id']).update(state=member_states.ADMIN,
+                                                                                 created_at=time.time())
+
+            Member_Engage.objects.filter(member_id=req_dict['member_id'],
+                                         community_id=req_dict['community_id']).update(member_state=member_states.MEMBER,
+                                                                                       updated_at=time.time())
+
+            # updating pending member count
+            community = Community.objects.get(id=req_dict['community_id'])
+            members_count = community.members_count + 1
+            Community.objects.filter(id=req_dict['community_id']).update(members_count=members_count)
+
+            # posting a intro collabcard
+            post_introduction_card_for_whatsapp_community(req_dict['community_id'], req_dict['member_id'], request)
+
+
+            #sending mails and notifications
+
+            #send notification
+            send_notification_for_join_requests.delay(req_dict['community_id'], True, req_dict['member_id'])
+
+            # sending email to the user that his request is accepted for this community
+            member_request_approval_or_denied.delay(user_id = req_dict['member_id'],community_id = req_dict['community_id'], approved = True)
+
+    else:
+
+        Members.objects.filter(member_id=req_dict['member_id'], community_id=req_dict['community_id']).delete()
+
+            # delete the member engage table record for the user
+        Member_Engage.objects.filter(member_id=req_dict['member_id'],community_id = req_dict['community_id']).delete()
+
+        # delete the responses of user to community questions, if any
+        communityAnswers.objects.filter(member_id=req_dict['member_id'],community_id = req_dict['community_id']).delete()
+
+        send_notification_for_join_requests.delay(req_dict['community_id'], False, req_dict['member_id'])
 
 
 
