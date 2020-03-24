@@ -222,7 +222,7 @@ textarea.noscrollbars {
 
 /* create header selector partial */
 #header .dTc {color: #fff!important; text-align: center; font-weight: bold;}
-#header {background: transparent}
+#header {background: #3bc19f}
 
 
 </style>
@@ -295,17 +295,17 @@ textarea.noscrollbars {
 
                 {% if question.question_state == 0 or question.question_state == 4 or question.question_state == 7 %}
                     <!--    TEXT = 0  PARAGRAPH = 4 INTRODUCTION = 7  -->
-                    <label class="c4a fs15 fwR lh14 p10">{{question.data}}</label>
+                    <label class="c4a fs15 fwR lh14 p10 m0">{{question.data}}</label>
                     {% if question.question_state == 4 or question.question_state == 7 %}
                         <textarea id="{{question.id}}" class="noscrollbars bd0 br8 bxs2 p16" rows="4" cols="4" name="{{question.id}}" required oninput="remove_error('{{question.id}}')"  onchange="remove_error('{{question.id}}')"></textarea>
                     {% else %}
-                        <textarea id="{{question.id}}" class="noscrollbars bd0 br8 bxs2 p16" rows="2" cols="4" name="{{question.id}}" required oninput="remove_error('{{question.id}}')"  onchange="remove_error('{{question.id}}')"></textarea>
+                        <textarea id="{{question.id}}" class="noscrollbars bd0 br8 bxs2 p16 h48" rows="2" cols="4" name="{{question.id}}" required oninput="remove_error('{{question.id}}')"  onchange="remove_error('{{question.id}}')"></textarea>
                     {% endif %}
 
                 {% elif question.question_state == 1 %}
                     <!--    CHOICE_SINGLE = 1-->
-                    <label class="c4a fs15 fwR lh14 p10">{{question.data}}</label>
-                    <div class="ui fluid search selection dropdown single_select_{{question.id}} bd0 br8 bxs2 p16">
+                    <label class="c4a fs15 fwR lh14 p10 m0">{{question.data}}</label>
+                    <div class="ui fluid search selection dropdown single_select_{{question.id}} bd0 br8 bxs2 p16 h48">
                         <input id="{{question.id}}" type="hidden" name="{{question.id}}" oninput="remove_error('{{question.id}}')" onchange="remove_error('{{question.id}}')">
                         <i class="dropdown icon p16"></i>
                         <div class="default text fs16 lh18">Select Country</div>
@@ -317,8 +317,8 @@ textarea.noscrollbars {
                     </div>
                 {% elif question.question_state == 2 %}
                     <!--    CHOICE_MULTIPLE = 2-->
-                    <label class="c4a fs15 fwR lh14 p10">{{question.data}}</label>
-                    <div class="ui fluid multiple search normal selection dropdown multi_select_{{question.id}} bd0 br8 bxs2 p16">
+                    <label class="c4a fs15 fwR lh14 p10 m0">{{question.data}}</label>
+                    <div class="ui fluid multiple search normal selection dropdown multi_select_{{question.id}} bd0 br8 bxs2 mnh48">
                         <input id="{{question.id}}" type="hidden" name="{{question.id}}" oninput="remove_error('{{question.id}}')"  onchange="remove_error('{{question.id}}')">
                         <i class="dropdown icon p16"></i>
                         <div class="default text fs16 lh18">Select Country</div>
@@ -330,37 +330,37 @@ textarea.noscrollbars {
                     </div>
                 {% elif question.question_state == 3 %}
                     <!--    TEXT_WITH_LIMIT = 3-->
-                    <label class="c4a fs15 fwR lh14 p10">{{question.data}}</label>
-                    <textarea id="{{question.id}}" class="noscrollbars bd0 br8 bxs2 p16" rows="2" cols="4" name ="{{question.id}}" minlength="50" required placeholder=""  oninput="remove_error('{{question.id}}')"  onchange="remove_error('{{question.id}}')"></textarea>
+                    <label class="c4a fs15 fwR lh14 p10 m0">{{question.data}}</label>
+                    <textarea id="{{question.id}}" class="noscrollbars bd0 br8 bxs2 p16 h48" rows="2" cols="4" name ="{{question.id}}" minlength="50" required placeholder=""  oninput="remove_error('{{question.id}}')"  onchange="remove_error('{{question.id}}')"></textarea>
                 {% elif question.question_state == 5 %}
                     <!--  FILE_UPLOAD = 5 -->
-                    <label class="c4a fs15 fwR lh14 p10">{{question.data}}</label>
-                    <div class="ui action input">
-                        <input id="{{question.id}}" name ="{{question.id}}" type="file" formenctype="multipart/form-data" oninput="remove_error('{{question.id}}')"  onchange="remove_error('{{question.id}}')">
-                        <div class="ui icon button">
+                    <label class="c4a fs15 fwR lh14 p10 m0">{{question.data}}</label>
+                    <div class="ui action input bd0 br8 bxs2 p16 h48 oH pR">
+                        <input class="bd0 h48" id="{{question.id}}" name ="{{question.id}}" type="file" formenctype="multipart/form-data" oninput="remove_error('{{question.id}}')"  onchange="remove_error('{{question.id}}')">
+                        <div class="b0 bgF button icon pA r0 t0 ui">
                             <i class="attach icon"></i>
                         </div>
                     </div>
                 {% elif question.question_state == 6 %}
                     <!--    DATE_TIME = 6-->
-                    <label class="c4a fs15 fwR lh14 p10">{{question.data}}</label>
+                    <label class="c4a fs15 fwR lh14 p10 m0">{{question.data}}</label>
                     <div class="ui calendar" id="calendar_{{question.id}}">
                         <div class="ui input right icon">
-                            <input id="{{question.id}}" type="text" placeholder="dd/mm/yyyy" name ="{{question.id}}" oninput="remove_error('{{question.id}}')" onchange="remove_error('{{question.id}}')" onsubmit="remove_error('{{question.id}}')">
+                            <input class="bd0 br8 bxs2 p16 h48 oH pR" id="{{question.id}}" type="text" placeholder="dd/mm/yyyy" name ="{{question.id}}" oninput="remove_error('{{question.id}}')" onchange="remove_error('{{question.id}}')" onsubmit="remove_error('{{question.id}}')">
                             <i class="calendar alternate outline icon"></i>
                         </div>
                     </div>
                 {% elif question.question_state == 8 %}
                     <!--    PROFILE_LINK=8-->
-                    <label class="c4a fs15 fwR lh14 p10">{{question.data}}</label>
+                    <label class="c4a fs15 fwR lh14 p10 m0">{{question.data}}</label>
                     <textarea id="{{question.id}}" class="noscrollbars bd0 br8 bxs2 p16" rows="2" cols="4" name ="{{question.id}}" minlength="50" required placeholder="" oninput="remove_error('{{question.id}}')" onchange="remove_error('{{question.id}}')"></textarea>
                 {% elif question.question_state == 9 %}
                     <!--    MOBILE_NO = 9-->
-                    <label class="c4a fs15 fwR lh14 p10">{{question.data}}</label>
+                    <label class="c4a fs15 fwR lh14 p10 m0">{{question.data}}</label>
                     <textarea id="{{question.id}}" class="noscrollbars bd0 br8 bxs2 p16"  rows="2" cols="4" name ="{{question.id}}" minlength="50" required placeholder="" oninput="remove_error('{{question.id}}')"  onchange="remove_error('{{question.id}}')"></textarea>
                 {% elif question.question_state == 10 %}
                     <!--    EMAIL_ID = 10-->
-                    <label class="c4a fs15 fwR lh14 p10">{{question.data}}</label>
+                    <label class="c4a fs15 fwR lh14 p10 m0">{{question.data}}</label>
                     <textarea id="{{question.id}}" class="noscrollbars bd0 br8 bxs2 p16" rows="2" cols="4" name ="{{question.id}}" minlength="50" required placeholder="" oninput="remove_error('{{question.id}}')"  onchange="remove_error('{{question.id}}')"></textarea>
                 {% endif %}
             </div>
@@ -372,7 +372,7 @@ textarea.noscrollbars {
         <!-- Displaying Buttons -->
     <div class="p8 bs taC pF b0 l0 r0 h60 bdtE bgBg z1">
         <button class="ui button h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" id="simple_button" type="submit">SUBMIT</button>
-        <button class="ui loading button h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" id="loading_button" type="submit">SUBMIT</button>
+        <button class="ui loading button h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU dN" id="loading_button" type="submit">SUBMIT</button>
     </div>
 
 </body>
