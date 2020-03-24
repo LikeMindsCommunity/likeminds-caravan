@@ -1,5 +1,5 @@
 from __future__ import absolute_import, unicode_literals
-
+from celery import shared_task
 import json
 import logging
 import os
@@ -1052,7 +1052,7 @@ def join_whatsapp_community(res,request):
             validate_time = is_joining_time_valid(community_instance, res['timestamp'],res['aj'])
             if validate_time:
                 auto_join_community(community_instance,user_instance)
-                post_introduction_card_for_whatsapp_community(community_instance.id, user_instance, request)
+                post_introduction_card_for_whatsapp_community(community_id, member_id, request)
                 log="""Auto join community for community_id=%s for user=%s"""%(community_id,member_id)
                 info_logger.info(log)
                 return
@@ -2750,7 +2750,7 @@ def approve_or_decline_whatsapp_community(req_dict,request):
 
         if not is_member:
             Members.objects.filter(member_id=req_dict['member_id'],
-                                   community_id=req_dict['community_id']).update(state=member_states.ADMIN,
+                                   community_id=req_dict['community_id']).update(state=member_states.MEMBER,
                                                                                  created_at=time.time())
 
             Member_Engage.objects.filter(member_id=req_dict['member_id'],
