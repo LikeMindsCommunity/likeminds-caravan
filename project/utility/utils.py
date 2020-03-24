@@ -780,3 +780,5 @@ def is_legacy_home_town(communities_legacy):
             return True
     return False
 
+
+
