@@ -1,0 +1,181 @@
+html { scroll-behavior: smooth; }
+
+.bgF { background: #fff!important; }
+.bgT { background: teal; }
+.bgBg { background: #f0f5f5; }
+.bgFb { background: #4267b2; }
+.bgLi { background: #007fb1; }
+
+.wp100 { width: 100%; }
+
+.hv33 { height: 30vh; }
+
+
+.h2 { height: 2px; }
+.h10 { height: 10px; }
+.h44 { height: 44px; }
+.w48 { height: 48px; }
+.h60 { height: 60px; }
+.h72 { height: 72px; }
+.h96 { height: 96px;  }
+.h54 { height: 54px; }
+
+.mnh48 { min-height: 48px!important; }
+
+.h86 { height: 86px!important; } 
+.w86 {width: 86px!important; }
+.h82 { height: 82px!important; }
+.w82 { width: 82px!important; }
+
+.w48 { width: 48px; }
+.w96 { width: 96px; }
+.w54 { width: 54px; }
+.w70 { width: 70px; }
+.w72 { width: 72px; }
+.w280, .w280.w280  { width: 280px; }
+.w300, .w300.w300  { width: 300px; }
+.w320, .w320.w320  { width: 300px; }
+
+.w228 { width: 228px; }
+
+.ofC { object-fit: cover; }
+
+.bs { box-sizing: border-box; }   
+
+.lh16 { line-height: 16px; }
+.lh14 { line-height: 14px; }
+.lh18 { line-height: 18px; }
+.lh20 { line-height: 20px; }
+.lh22 { line-height: 22px; }
+.lh24 { line-height: 24px; }
+
+.fs24, .fs24.fs24 { font-size: 24px; }
+.fs20 { font-size: 20px; }
+.fs18 { font-size: 18px; }
+.fs17 { font-size: 17px; }
+.fs16 { font-size: 16px; }
+.fs15 { font-size: 15px; }
+.fs12 { font-size: 12px; }
+
+.fwR { font-weight:400!important; }
+.fwM { font-weight:500!important; }
+
+.cF { color: #fff; }
+.c0 { color: #000; }
+.c9b { color: #9b9b9b; }
+.c4 { color: #444; }
+.c6 { color: #666; }
+.cT { color: teal; }
+.c9 { color: #999; }
+.c4a { color: #4a4a4a!important; }
+
+.cFh:hover {
+    color: #fff;
+}
+
+.ffR { font-family:'Roboto'; }
+
+.m0 { margin:0!important; }
+.mA { margin: auto; }
+.m160 { margin: 16px 0; }
+.m80 { margin: 8px 0; }
+.mb10 { margin-bottom: 10px; }
+.mb8 { margin-bottom: 8px; }
+.mt20 { margin-top: 20px; }
+.mt46 { margin-top: 46px; }
+.mtn58 { margin-top: -58px; }
+.mtn22 { margin-top: -22px; }
+.m16 { margin: 16px; }
+.mt72 { margin-top: 72px; }
+.mt48 { margin-top: 48px; }
+
+.mtn8 { margin-top: -8px; }
+.mln8 { margin-left: -8px; }
+
+.mb20 { margin-bottom: 20px; }
+.mr16 { margin-right: 16px; }
+.ml16 { margin-left: 16px; }
+.mb16 { margin-bottom: 16px; }
+.mb30.mb30.mb30, .mb30  { margin-bottom: 30px; }
+
+.p0 { padding:0; }
+.p6 { padding: 6px; }
+.p8 { padding: 8px!important; }
+.p10 { padding: 10px; }
+.p12 { padding: 12px; }
+.p16 { padding: 16px!important; }
+.p160 { padding: 16px 0; }
+.p18 { padding: 18px; }
+.p24 { padding: 24PX; }
+.pr0 { padding-right: 0; }
+.pl12 { padding-left: 12px; }
+.pt48 { padding-top: 48px; }
+
+.wsN { white-space: nowrap; }
+
+.toE { text-overflow: ellipsis; }
+
+.oA { overflow: auto; }
+.oH { overflow: hidden; }
+
+.dT { display: table; }
+.tlF { table-layout: fixed; }
+.dTc { display: table-cell; }
+.dIb { display: inline-block; }
+.dB { display: block; }
+.dN { display: none; }
+
+.vM { vertical-align: middle; }
+
+.mnwp20 { min-width: 20%; }
+.mnwp100 { min-width: 100%; }
+
+.taC { text-align: center; }
+.taR { text-align: right; }
+.taL { text-align: left; }
+
+.pR { position: relative; }
+.pA { position: absolute; }
+.pF { position: fixed; }
+
+
+.brp50 { border-radius: 50% !important; }
+.br8 { border-radius: 8px!important; }
+.br16 { border-radius: 16px; }
+.br20 { border-radius: 20px; }
+.br22 { border-radius: 22px; }
+
+.tn26 { top: -26px; }
+.l0 { left: 0; }
+.r0 { right: 0; }
+.b0 { bottom: 0; }
+.t0 { top: 0; }
+
+.bn24 { bottom: -24px; }
+
+.bd0 { border: 0!important; }
+.bd2F { border: 2px solid #fff; }
+.bdbE { border-bottom: 1px solid #eee; }
+.bdtE { border-top: 1px solid #eee; }
+.bd2T { border: 2px solid teal; }
+.bdb2F { border-bottom: 2px solid #fff; }
+
+.bgFo05 { background: rgba(255, 255, 255, 0.5); }
+
+.z1 { z-index: 1; }
+.z2 { z-index: 2; }
+.z11 { z-index: 11; }
+
+.bxs { box-shadow: 0 0 4px rgba(0, 0, 0, .3);}
+.bxs2 { box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25)!important;}
+
+.ttU { text-transform: uppercase; }
+
+.ls05 { letter-spacing: 0.5px; }
+.ls1 { letter-spacing: 1px; }
+.ls2 { letter-spacing: 2px; }
+
+.o8 { opacity: 0.8px }
+
+.mxh240 { max-height: 240px; }
+

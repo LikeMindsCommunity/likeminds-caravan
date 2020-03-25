@@ -264,12 +264,25 @@ def community(request, community_id):
                 # data = itertools.zip_longest(data,filled_answers,fillvalue='')
                 if member_state == 0 or member_state == 5:
 
-                    context =  {"data": data, 'usr': user,
-                                'community': community, 'ref_id': ref_id,
-                                'validation_error': validation_error,
-                                'filled_answers': filled_answers,
-                                'aj':aj}
-                    return render(request, 'response_form.html',context)
+
+                   
+
+                    header = {
+                        'back': True,
+                        'title': 'Welcome to Collabmates!'
+                    }
+                    header_showcase = {
+                        'image': 'https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Fresponse_header?alt=media',
+                        'header': 'You are interested in joining this community:',
+                        'subHeader': community.name,
+                        'userImage': request.user.userinfo.image_link
+                    }
+                    return render(request, 'response_form.html', {"data": data, 'usr': user, 'header': header,
+                                                                  'community': community, 'ref_id': ref_id,
+                                                                  'validation_error': validation_error,
+                                                                  'filled_answers': filled_answers,
+                                                                  'auto_join':auto_join,})
+
             else:
                 return JsonResponse({'success': True})
         elif cta == 'share':
@@ -377,9 +390,22 @@ def community(request, community_id):
     else:
         members = get_member_details(community)
 
-    aj = request.GET.get('aj', False)
+
+    auto_join = request.GET.get('aj', False)
+    
+    header = {
+        'back': True,
+        'title': False
+    }
+    header_showcase = {
+        'image': community.image_link if community.image_link else community.image_url,
+        'header': community.name,
+        'subHeader': str(len(members)) + ' Members' if len(members) else ''
+    }
+
     context = {'usr': user, 'similar_communities': communities,
                'community': community, 'admins': admin_details,
+               'header': header, 'header_showcase': header_showcase,
                'members': members, 'source': source,
                'cta': cta, 'Nom_mem_state': member_state,
                'admin_length': len(admin_details),
