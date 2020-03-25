@@ -133,7 +133,7 @@
         <!-- -->
 
         <!-- profile pop-up -->
-        <div class="ui modal w320 p16 bs" id="display"></div>
+        <div class="ui modal w320" id="display"></div>
         <!-- -->
 
         <!-- unverified member profile pop-up-->
@@ -413,18 +413,19 @@ $('.t1').each(function () {
             success:function(data){
                 console.log(data['answer_list'])
                 html = `
-                    <div class="h96 mt20 taC pR z1">
+                    <div class="h96 mtn38 taC pR z1">
                         <div class="w96 h96 brp50 bd2F bs bxs oH dIb vM bgF">
                             <img class="w96 h96 ofC" src=${data['image_link']} >
                         </div>
                     </div>
-                    <div class="pR mtn58 bxs br8 oH bgF">
+                    <div class="pR mtn58 br8 oH bgF">
                         <div class="h96">
                             <img class="wp100 ofC h96" src="https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Fprofile_header?alt=media&token=fa838851-244c-4cbc-81da-3d2125536e18">
                         </div>
                         <div class="h2"></div>
                         <p class="p0 m0 taC fwM fs16 c0 lh20">${data['member_name']}</p>
                     </div>
+                    <div class="p016 bs">
                 `
                 $.each(data['answer_list'],function(index,value){
                     segment=""
@@ -446,7 +447,7 @@ $('.t1').each(function () {
                         html = html + segment
                     }else if(value['rank'] == 3 && value['answer_privacy'] ){
                         segment = `
-                                <a class="c9b dT tdN wp100" href=${value['answer']}>
+                                <a class="c9b dT tdN wp100" href="${value['answer']}">
                                     <div class="dTc h24 vM w24"><img class="h24" src="/media/main_website/link.png"/></div>
                                     <div class="c9b dTc fs13 vM cT wsN oH toE">${value['answer']}</div>
                                 </a>
@@ -464,8 +465,7 @@ $('.t1').each(function () {
                         html = html + segment
                     }
                 })
-
-                $('#display').html(html)
+                $('#display').html(html + '</div>')
                 $('#display').modal('show');
                 $(".dimmer").css("background-color","rgba(40,40,40,0.5)");
 
