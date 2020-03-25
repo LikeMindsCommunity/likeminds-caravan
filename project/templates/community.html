@@ -253,7 +253,9 @@
                     <h4 class="dTc vM taL m0 p0 fs16 c0 lh20">Members {{members_length}}</h4>
                     <div id="filter_icon" class="dTc vM taC w96 cT bd2T bs p6 br16" ><i class="filter icon lh16"></i> <span class="lh16 fs14">Filter</span></div>
                 </div>
+
              {% include 'components/member_card_list.html' with data=members is_member=is_member %}
+
 
             </div>
         {% endif %}
@@ -445,8 +447,10 @@
                     {% if ref_id != '' %}
 
                         <a class="p12 bs dB br20 tdN bgLi cF ffR fwM" href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join-ref_id-{{ref_id}}">
+
                     {% elif aj  %}
                         <a class="p12 bs dB br20 tdN bgLi cF ffR fwM" href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}&cta=join-aj-{{aj}}">
+
                     {% elif cta == 'share' %}
                         <a class="p12 bs dB br20 tdN bgLi cF ffR fwM cFh" href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join">
                     {% elif cta != '' %}
@@ -462,8 +466,11 @@
                     {% if ref_id != '' %}
 
                         <a class="p12 bs dB br20 tdN bgFb cF ffR fwM" href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join-ref_id-{{ref_id}}">
+
                     {% elif aj  %}
+
                         <a class="p12 bs dB br20 tdN bgFb cF ffR fwM" href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join-aj-{{aj}}">
+|
                     {% elif cta == 'share' %}
                         <a class="p12 bs dB br20 tdN bgFb cF ffR fwM cFh" href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join">
                     {% elif cta != '' %}

@@ -263,13 +263,12 @@ def community(request, community_id):
 
                 # data = itertools.zip_longest(data,filled_answers,fillvalue='')
                 if member_state == 0 or member_state == 5:
-
-
-                   
-
                     header = {
                         'back': True,
-                        'title': 'Welcome to LikeMinds!'
+                        'title': 'Welcome to Collabmates!',
+                        'subTitle': False,
+                        'background': 'T',
+                        'color': 'F'
                     }
                     header_showcase = {
                         'image': 'https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Fresponse_header?alt=media',
@@ -285,7 +284,6 @@ def community(request, community_id):
                                                                   'aj':aj,'header_showcase':header_showcase}
                     #print(context)
                     return render(request, 'response_form.html', context)
-
             else:
                 return JsonResponse({'success': True})
         elif cta == 'share':
@@ -393,18 +391,20 @@ def community(request, community_id):
     else:
         members = get_member_details(community)
 
-
-    aj = request.GET.get('aj', False)
-    
     header = {
         'back': True,
-        'title': False
+        'title': False,
+        'subTitle': False,
+        'background': '_',
+        'color': '0'
     }
     header_showcase = {
         'image': community.image_link if community.image_link else community.image_url,
         'header': community.name,
         'subHeader': str(len(members)) + ' Members' if len(members) else ''
     }
+
+    aj = request.GET.get('aj', False)
 
     context = {'usr': user, 'similar_communities': communities,
                'community': community, 'admins': admin_details,
@@ -705,14 +705,20 @@ def members_directory(request, community_id):
     else:
         filter_list = member_string.split("$")
         members = get_member_details(community_instance, filter_list)
-
+    header = {
+        'back': True,
+        'title': 'Members',
+        'subTitle': community_instance.name,
+        'background': 'Wa',
+        'color': 'F'
+    }
     context = {
         'members': members,
         'members_length': len(members),
         'community_name': community_instance.name,
         'community_id': community_instance.id,
-        'filter_list': filters,
-        'is_member':True
+        'is_member':is_member,
+        'header': header
     }
 
     print(context)

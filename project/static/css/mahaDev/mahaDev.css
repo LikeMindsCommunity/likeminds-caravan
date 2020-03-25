@@ -62,7 +62,7 @@ html { scroll-behavior: smooth; }
 .fs18 { font-size: 18px; }
 .fs17 { font-size: 17px; }
 .fs16 { font-size: 16px; }
-.fs15 { font-size: 15px; }
+.fs15 { font-size: 15px!important; }
 .fs12 { font-size: 12px; }
 
 .fwR { font-weight:400!important; }
@@ -76,6 +76,7 @@ html { scroll-behavior: smooth; }
 .cT { color: teal; }
 .c9 { color: #999; }
 .c4a { color: #4a4a4a!important; }
+.c007aff { color: #007aff; }
 
 .cFh:hover {
     color: #fff;
@@ -123,8 +124,11 @@ html { scroll-behavior: smooth; }
 .pr0 { padding-right: 0; }
 .pl12 { padding-left: 12px!important; }
 .pt48 { padding-top: 48px; }
+
 .pt56 { padding-top: 56px; }
 .pl16 { padding-left: 16px!important; }
+.pb12 { padding-bottom: 12px!important; }
+.p120 { padding: 12px 0; }
 
 .wsN { white-space: nowrap; }
 
@@ -182,8 +186,8 @@ html { scroll-behavior: smooth; }
 .z2 { z-index: 2; }
 .z11 { z-index: 11; }
 
-.bxs { box-shadow: 0 0 4px rgba(0, 0, 0, .3);}
-.bxs2 { box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25)!important;}
+.bxs { box-shadow: 0 0 6px rgba(0, 0, 0, .3)!important; }
+.bxs2 { box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25)!important; }
 
 .ttU { text-transform: uppercase; }
 

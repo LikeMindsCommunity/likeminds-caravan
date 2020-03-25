@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 {% load static %}
 <html>
-<head>
+    <head>
 
 
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
@@ -40,291 +40,132 @@
 
         <link rel="stylesheet" href="{% static 'css/community.css' %}">
         <link rel="stylesheet" href="{% static 'css/main_css/community.css' %}">
-
+        <link rel="stylesheet" href="{% static 'css/mahaDev/mahaDev.css' %}">
         <link href="https://fonts.googleapis.com/css?family=Roboto:400,500,500i,700&display=swap" rel="stylesheet">
 
 
-    <style>
+        <style>
 
             #test{
-               display: none; position:absolute; bottom:0; left:0;bottom:0%;
+                display: none; position:absolute; bottom:0; left:0;bottom:0%;
+            }
+
+            .ui.checkbox input:checked ~ label:before {
+            background-color: #00897b !important;
             }
 
 
+            .ui.checkbox input:checked ~ label:after {
+            color: white !important;
 
 
-.ui.checkbox input:checked ~ label:before {
-  background-color: #00897b !important;
-}
+            }
+
+            .checkbox label:before {
+            transform: scale(1.1); !important
+            }
+            .checkbox label:after {
+            transform: scale(1); !important
+            }
+
+            .blur_answer{
+
+            filter:blur(3px);
+            }
 
 
-.ui.checkbox input:checked ~ label:after {
-  color: white !important;
+            .profile_pic{
 
-
-}
-
-.checkbox label:before {
-  transform: scale(1.1); !important
-}
-.checkbox label:after {
-  transform: scale(1); !important
-}
-
-
-
-
-
-
-.blur_answer{
-
-   filter:blur(3px);
-}
-
-
-.profile_pic{
-
-    content: '';
-    position: absolute ;
-    top: 2% ;
-    background-image: url('https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fuser%2F459?alt=media');
-    background-size: cover !important;
-    background-repeat: no-repeat ;
-    transform: translate(-50%, -50%) ;
-    border-top: inherit ;
-    border-top-color: transparent !important;
-    border-radius:50% ;width:95px !important;height:95px !important;display: inline-block !important;left:50% !important;
-    opacity:5;
-}
-    </style>
+                content: '';
+                position: absolute ;
+                top: 2% ;
+                background-image: url('https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fuser%2F459?alt=media');
+                background-size: cover !important;
+                background-repeat: no-repeat ;
+                transform: translate(-50%, -50%) ;
+                border-top: inherit ;
+                border-top-color: transparent !important;
+                border-radius:50% ;width:95px !important;height:95px !important;display: inline-block !important;left:50% !important;
+                opacity:5;
+            }
+            header {
+                box-shadow: 0 0 6px rgba(0, 0, 0, .3);
+            }
+        </style>
 
     </head>
 
-<body>
-<div style="margin:0 auto; max-width:786px;background-color:#f0f5f5;position:relative;">
-        {% if members_length > 0 %}
+    <body>
+        <div style="margin:0 auto; max-width:786px;background-color:#f0f5f5;position:relative;">
+            
+            {% include 'components/header.html' with data=header %}
 
-
-            <div class="ui fluid card" style="margin-top:0px;margin-bottom:8px; background-color:#075e54;">
-
-                <div class="top-left" >
-                    <i class="arrow left icon" style="font-size:20px;padding-top:15px;color:white" id="back_click"></i>
-                </div>
-
-                        <div class="content" >
-
-                            <h4 style="display: inline;padding-left:14%;color:white ;font-size:20px;" class="Roboto">Members</h4>
-                            <br/>
-                            <h5 style="display: inline;font-size:12px;padding-left:14%;color:white" class="Roboto">{{community_name}}</h5>
-
-                        </div>
-                    </div>
-
-
-     {% if members_length > 0 %}
-        <div class="ui fluid card" style="margin-top:0px;margin-bottom:8px;">
-                <div class="ui container" style=" overflow-y:auto;white-space:nowrap;padding-top:12px;">
-                    <div class="ui big horizontal  list">
-
-                        {% for i in filter_list %}
-
+            {% if members_length > 0 %}
+                <div class="bdbE bgF bs ffR fs15 ls05 mt56 oA p8 pl12 wsN">
+                    {% for i in filter_list %}
                         {% if not i.selected %}
-                        <div class="item">
-
-                           <button style="z-index:2; background-color: white; border-radius:20px;
-                           color:#00897b;width:100%;white-space: nowrap; border: 1px solid #00897b;font-size:15px;">
-                               <p class="Roboto" style="padding-top:5px;padding-bottom:5px;padding-left:10px;padding-right:5px;color:#00897b;
-" id="{{i.question_id}}">{{i.question_title}}&nbsp;&nbsp;<i class="caret down icon"></i></p>
+                            <button class="bdT bgF br16 bs cT dIb fs15 h32 ls05 m04 p0 p08 pl16 vM">
+                                <div class="dIb vM" id="{{i.question_id}}">{{i.question_title}}</div>
+                                <i class="caret dIb down icon m0 vM"></i>
                             </button>
-
-                            <p></p> <p></p> <p></p>
-
-                        </div>
                         {% else %}
-                         <div class="item">
-
-                           <button style="z-index:2; background-color: white; border-radius:20px;
-                           background-color:#00897b;width:100%;white-space: nowrap; border: 1px solid #00897b;font-size:15px;">
-                               <p class="Roboto" style="padding-top:5px;padding-bottom:5px;padding-left:10px;padding-right:5px;color:white;
-" id="{{i.question_id}}">{{i.question_title}}&nbsp;&nbsp;<i class="caret down icon"></i></p>
+                            <button class="bdT bgF br16 bs cT dIb fs15 h32 ls05 m04 p0 p08 pl16 vM">
+                                <div class="dIb vM" id="{{i.question_id}}">{{i.question_title}}</div>
+                                <i class="caret dIb down icon m0 vM"></i>
                             </button>
-
-                            <p></p> <p></p> <p></p>
-
-                        </div>
                         {% endif %}
-                        {% endfor %}
-
-                        <br/>
-                    </div>
+                    {% endfor %}
                 </div>
-            </div>
-
             {% endif %}
 
-
-<!-- fluid card for members -->
-        <div class="ui fluid card" style="margin-top:0px;margin-bottom:8px;">
-
+            <!-- fluid card for members -->
             <div class="content" id="members">
-
-                    <div class="ui container" style="padding-top:12px;">
-
-                        {% for i in members%}
-
-                        <br/>
-                        <div class="ui two column grid">
-                            <div class="row">
-                                <div  style="padding-left:5px;">
-                                    <img class="ui tiny circular centered image" src="{{i.image_link}}" style="border-radius:50%;width:80px;height:80px;"/>
-                                </div>
-                                <div style="padding-left:10%;padding-top:10px;padding-bottom:10px;">
-                                    <a class="RobotoMedium members" style="color:black;line-height:20px;font-size:17px;" id="{{i.id}}">{{i.name}}</a>
-                                     {% if not is_member %}
-                                         <p style="line-height:17px;font-size:13px;color:#9b9b9b" class="Roboto blur_answer">{{i.answer}}</p>
-                                    {% else %}
-
-                                       <p style="line-height:17px;font-size:13px;color:#9b9b9b" class="Roboto">{{i.answer}}</p>
-
-                                    {% endif %}
-
-                                </div>
-
-
-                            </div>
-
-
-                        </div>
-
-                         <hr style="border-style:solid;border-width:1px;border-color:#e6e6e6;padding-right:200px;padding-left:65px;">
-
-
-                        {% endfor %}
-
-                        <br/>
-<!--                    </div>-->
-                </div>
+                {% include 'components/member_card_list.html' with data=members is_member=is_member %}
             </div>
-            {% endif %}
-                <br>
-                <div >
         </div>
 
 
 
+        <!-- pop-up for dropdowns -->
+        <div id="test">
+            <div class="ui fluid card" style="max-width:786px;" id="filters"></div>
         </div>
-<!---->
-</div>
+        <!-- -->
 
+        <!-- profile pop-up -->
+        <div class="ui modal image_container" id="display" style="max-width:786px;"></div>
+        <!-- -->
 
+        <!-- unverified member profile pop-up-->
+        <div class="ui modal ffR p24 bs w280" id="unverified_member">
+            <p class="c0 fs16 fwM lh24 mb16">Member profile not accessible</p>
+            <p class="c9 fs15 fwR lh22 mb16">
+                Your account is pending for approval from the admin. Once the admin approves, you would be able to view the full communtity profile of the user.
+            </p>
+            <p class="c9 fs15 fwR lh22 mb16">
+                Once verified, we will send an email on: <span class="c007aff">xyz@gmail.com.</span>
+            </p>
+            <div id="change_email" class="cT fs13 fwM ls05 p12 taC">CHANGE EMAIL ID</div>
+            <div id="dismiss_email" class="c9 fs13 fwM ls05 p12 pb0 taC">DISMISS</div>
+        </div>
+        <!-- -->
 
-<!-- pop-up for dropdowns -->
-<div id="test">
+        <!-- update secondary email -->
+        <div class="ui modal ffR p24 bs w280 pb12" id="secondary_email">
+            <p class="c0 fs16 fwM lh24 mb16">Change Email ID</p>
+            <p class="c9 fs15 fwR lh22 mb16">
+                Update your email ID below for further communications.
+            </p>
+            <form class="ui form mb16 p0">
+                <input class="bd0 br8 bxs p16 h48 oH pR fs15" type="text" name="first-name" placeholder="Enter your email id" id="secondary_email_text">
+            </form>
+            <div class="taR fs13 ">
+                <div class="bs cT dIb fs13 fwM ls05 p120 taC vM" id="update_secondary_email">SUBMIT</div>
+            </div>
+        </div>
+        <!-- -->
 
-
-    <div class="ui fluid card" style="max-width:786px;" id="filters">
-
-    </div>
-
-</div>
-
-<!-- -->
-
-
-
-<!-- profile pop-up -->
-<div class="ui modal image_container" id="display" style="max-width:786px;">
-
-
-
-</div>
-
-<!-- -->
-
-
-
-
- <!-- unverified member profile pop-up-->
-    <div class="ui modal" id="unverified_member" style="width:75%;">
-
-<!--             <img src="/media/main_website/profile_header.png" style="width:100%;height:70%;">-->
-
-
-      <div class="profile_name" style="margin-top:6%;margin-left:20px;">
-          <p align="left" style="font-family:Roboto;sans-serif;font-weight:500;color:black;font-size:17px;line-height:22px;opacity:87%;">Member profile not accessible</p>
-
-      </div>
-       <div style="margin-top:5%;margin-left:20px;margin-right:18px;text-align:left;">
-           <p style="font-size:15px;line-height:22px;font-family:Roboto;sans-serif;font-weight:400;color:#000000;opacity:54%;">Your account is pending for approval from the admin. Once the admin approves, you would be able to view the full communtity profile of the user.
-<br/><br/>
-               Once verified, we will send an email on: <span style="color:#007aff;">xyz@gmail.com.</span></p>
-       </div>
-       <br/>
-        <div style="margin-top:5%;margin-left:16px;margin-right:16px;text-align:center">
-
-           <p class="Roboto" style="font-size:13px;font-weight:500;color:#009688;letter-spacing:0.46px;opacity:100%" id="change_email">CHANGE EMAIL ID</p>
-
-       </div>
-       <div style="margin-top:5%;margin-left:16px;margin-right:16px;text-align:center">
-
-           <p class="Roboto" style="font-size:13px;font-weight:500;color:black;letter-spacing:0.46px;opacity:40%" id="dismiss_email">DISMISS</p>
-
-       </div>
-
-
-
-
-    <br/>
-   </div>
-    <!-- -->
-
-
-
-    <!-- update secondary email -->
-
- <div class="ui modal" id="secondary_email" style="width:65%;">
-
-<!--             <img src="/media/main_website/profile_header.png" style="width:100%;height:70%;">-->
-
-
-      <div class="profile_name" style="margin-top:6%;margin-left:20px;">
-          <p align="left" style="font-family:Roboto;sans-serif;font-weight:500;color:black;font-size:17px;line-height:22px;opacity:.87;">Change Email ID</p>
-
-      </div>
-       <br/>
-     <div style="margin-top:5%;margin-left:20px;margin-right:18px;text-align:left;">
-           <p style="font-size:15px;line-height:22px;font-family:Roboto;sans-serif;font-weight:400;color:#000000;opacity:54%;">Update your email ID below for further communications.</p>
-       </div>
-
-
-     <div style="margin-top:5%;margin-left:20px;margin-right:18px;text-align:left;">
-           <form class="ui form">
-               <div class="field">
-                    <input type="text" name="first-name" placeholder="Enter your email id" id="secondary_email_text">
-              </div>
-           </form>
-
-       </div>
-       <br/>
-
-     <div style="margin-top:5%;margin-left:16px;margin-right:16px;text-align:right">
-
-           <p class="Roboto" style="font-size:13px;font-weight:500;color:#009688;letter-spacing:0.46px;opacity:100%" id="update_secondary_email">SUBMIT</p>
-
-       </div>
-
-
-
-
-
-
-
-    <br/>
-   </div>
-
-    <!-- -->
-
-</body>
+    </body>
 
 </html>
 
