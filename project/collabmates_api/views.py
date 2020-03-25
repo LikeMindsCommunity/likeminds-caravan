@@ -6,6 +6,7 @@ import os
 import re
 import time
 from datetime import datetime
+from random import randint
 
 import dateutil.relativedelta
 import googlemaps
@@ -275,7 +276,7 @@ def community(request, community_id):
     ''' Community detail page '''
 
     community = Community.objects.get(id=community_id)
-    member_id = request.GET.get('member_id', None)
+    member_id = get_member_id_from_headers(request)
     serialized_object = CommunitySerializer(community)
     new_dict = {}
 
@@ -284,7 +285,11 @@ def community(request, community_id):
     elif community.hide_community == '0' or community.hide_community == '1':
         serialized_object['share_url'] = serialized_object['share_url'] + "?cta=share"
 
-    serialized_object['private_link']=serialized_object['share_url']+"?aj=t"
+    is_member_admin = Members.objects.filter(community_id=community, member_id=member_id, state=1)
+
+    if is_member_admin:
+        serialized_object['private_link'] = generate_private_link(community_instance=community,
+                                                                  promoter_instance=is_member_admin[0].member_id)
 
     # form a dictionary of community objects
     new_dict.update(serialized_object)
@@ -727,8 +732,10 @@ def join_community_responses_version_1(request):
         user_id = request.GET.get('member_id', None)
 
     #for whatsapp community
+
     if community_instance.hide_community == '5':
         info_logger.info("whats app communtiy")
+
         join_whatsapp_community(res,request)
         return JsonResponse({'success': True})
 
@@ -1040,11 +1047,10 @@ def join_whatsapp_community(res,request):
 
 
     #saving data directly
-    if 'auto_join' in res:
-
-        if res['auto_join']:
-
-            validate_time = is_joining_time_valid(community_instance, res['timestamp'])
+    if 'aj' in res:
+        if res['aj']:
+            validate_time = is_joining_time_valid(community_instance, res['timestamp'],res['aj'])
+            info_logger.info(validate_time)
             if validate_time:
                 auto_join_community(community_instance,user_instance)
                 post_introduction_card_for_whatsapp_community(community_id, member_id, request)
@@ -1060,7 +1066,11 @@ def join_whatsapp_community(res,request):
     if member_list:
         member_state = member_list[0].state
         if member_state == member_states.ADMIN:
+
             post_introduction_card_for_whatsapp_community(community_id,member_id,request)
+
+            generate_private_link(community_instance,user_instance)
+
             Member_Engage.objects.filter(member_id=user_instance, community_id=community_instance).update(
                 member_referral="")
         else:
@@ -1092,23 +1102,18 @@ def join_whatsapp_community(res,request):
         send_notification_to_admins.delay(community_id,user_instance.userinfo.name)
 
 
-
-
-def is_joining_time_valid(community_instance,time_stamp):
-
+def is_joining_time_valid(community_instance, time_stamp, unique_code):
     '''function to check whether community joining time is valid or not'''
-
-    duration=communityExpire.objects.filter(community=community_instance)
-
-
-    time_stamp = int(time_stamp)
-
-    if duration:
-        duration=duration[0].duration
-        if (time_stamp-community_instance.created_at) <= duration:
+    check = communityExpiryCodes.objects.filter(community=community_instance, unique_code=unique_code)
+    info_logger.info(check)
+    if check.exists():
+        expiry_instance = check[0]
+        time_stamp = int(time_stamp)
+        expiry_time = int(expiry_instance.created_at)
+        info_logger.info(time_stamp)
+        info_logger.info(expiry_time)
+        if (time_stamp - expiry_time) <= expiry_instance.expire_duration:
             return True
-    else:
-        return False
 
     return False
 
@@ -1222,6 +1227,68 @@ def creating_collabcard_for_lg_communities(community,user,introduction_answer,re
 
 
 
+def generate_private_link(community_instance,promoter_instance):
+
+    '''function to generate private links of community'''
+
+    community_expire_filter = communityExpiryCodes.objects.filter(community=community_instance).order_by('-id')
+    unique_code_list = list(community_expire_filter.values_list('unique_code',flat=True))
+
+
+
+    if not unique_code_list:
+
+        unique_code = generate_random(unique_code_list)
+        expireInstance = communityExpiryCodes()
+        expireInstance.community = community_instance
+        expireInstance.promoter = promoter_instance
+        expireInstance.created_at = time.time()
+        expireInstance.unique_code = unique_code
+        expireInstance.private_link = url + '/community/' + str(community_instance.id) + "?aj="+ str(unique_code)
+        expireInstance.expire_duration = 300
+        expireInstance.save()
+
+        return expireInstance.private_link
+
+    else:
+
+        current_time = int(time.time())
+        last_created_time = community_expire_filter[0].created_at
+
+        if current_time - last_created_time > 120:
+            unique_code = generate_random(unique_code_list)
+            expireInstance = communityExpiryCodes()
+            expireInstance.community = community_instance
+            expireInstance.promoter = promoter_instance
+            expireInstance.created_at = time.time()
+            expireInstance.unique_code = unique_code
+            expireInstance.private_link = url + '/community/' + str(community_instance.id) + "?aj=" + str(unique_code)
+            expireInstance.expire_duration = 300
+            expireInstance.save()
+
+            return expireInstance.private_link
+
+    return community_expire_filter[0].private_link
+
+
+
+
+
+
+
+
+
+
+
+
+
+def generate_random(unique_code_list):
+
+  '''function to generate a random number'''
+
+  randInt = randint(1,100000)
+
+  return generate_random(unique_code_list) if randInt in unique_code_list else randInt
 
 
 def category_filter(request, category):
@@ -1782,12 +1849,12 @@ def create_community_version_1(request):
     info_logger.info(log)
 
 
-    check_data=communityExpire.objects.filter(community=community_instance)
-    if not check_data:
-        communityExpireInstance=communityExpire()
-        communityExpireInstance.community=community_instance
-        communityExpireInstance.duration = 86400                  #for 24 hours saving in community
-        communityExpireInstance.save()
+    # check_data=communityExpire.objects.filter(community=community_instance)
+    # if not check_data:
+    #     communityExpireInstance=communityExpire()
+    #     communityExpireInstance.community=community_instance
+    #     communityExpireInstance.duration = 86400                  #for 24 hours saving in community
+    #     communityExpireInstance.save()
 
     communty_serailized_object = CommunitySerializer(community_instance)
     return JsonResponse({'success':True,'community':communty_serailized_object})
@@ -2475,7 +2542,7 @@ def request_response(request, req_dict=None):
 
     is_lg=is_LG_or_LP_community(community)
 
-    if is_lg:
+    if is_lg:                       #request accepted in case of lg communities
         member_verification=False
         if not req_dict:
             member_verification=True
@@ -2486,6 +2553,19 @@ def request_response(request, req_dict=None):
             }
         approve_or_decline_lg_community(request,req_dict,member_verification)
         return JsonResponse({'success': True})
+
+
+    if community.hide_community == '5':
+
+        req_dict = {
+            'member_id': member_id,
+            'community_id': community_id,
+            'accepted': accepted
+        }
+        print("checking flow")
+        approve_or_decline_whatsapp_community(req_dict,request)
+
+        return  JsonResponse({'success': True})
 
     if accepted or accepted == 'true':
         # if accepted , then make him a member of the community
@@ -2546,11 +2626,13 @@ def approve_or_decline_lg_community(request,req_dict,member_verification):
     '''function to approve and decline request in lg community'''
 
     if req_dict:
-        print(req_dict)
+
+
         community_id = req_dict['community_id']
         member_id = req_dict['member_id']
         community = Community.objects.get(id=community_id)
         user=User.objects.get(id=member_id)
+
         if req_dict['accepted']:
 
             #if the request is accepted from dashboard
@@ -2659,6 +2741,52 @@ def approve_or_decline_lg_community(request,req_dict,member_verification):
             send_notification_for_join_requests.delay(community_id, False, member_id)
 
 
+
+def approve_or_decline_whatsapp_community(req_dict,request):
+
+    '''function to approve the whatsapp community'''
+
+    if req_dict['accepted'] or req_dict['accepted'] == 'true':
+
+        is_member = is_member_verified(community=req_dict['community_id'], user_instance=req_dict['member_id'])
+
+        if not is_member:
+            Members.objects.filter(member_id=req_dict['member_id'],
+                                   community_id=req_dict['community_id']).update(state=member_states.MEMBER,
+                                                                                 created_at=time.time())
+
+            Member_Engage.objects.filter(member_id=req_dict['member_id'],
+                                         community_id=req_dict['community_id']).update(member_state=member_states.MEMBER,
+                                                                                       updated_at=time.time())
+
+            # updating pending member count
+            community = Community.objects.get(id=req_dict['community_id'])
+            members_count = community.members_count + 1
+            Community.objects.filter(id=req_dict['community_id']).update(members_count=members_count)
+
+            # posting a intro collabcard
+            post_introduction_card_for_whatsapp_community(req_dict['community_id'], req_dict['member_id'], request)
+
+
+            #sending mails and notifications
+
+            #send notification
+            send_notification_for_join_requests.delay(req_dict['community_id'], True, req_dict['member_id'])
+
+            # sending email to the user that his request is accepted for this community
+            member_request_approval_or_denied.delay(user_id = req_dict['member_id'],community_id = req_dict['community_id'], approved = True)
+
+    else:
+
+        Members.objects.filter(member_id=req_dict['member_id'], community_id=req_dict['community_id']).delete()
+
+            # delete the member engage table record for the user
+        Member_Engage.objects.filter(member_id=req_dict['member_id'],community_id = req_dict['community_id']).delete()
+
+        # delete the responses of user to community questions, if any
+        communityAnswers.objects.filter(member_id=req_dict['member_id'],community_id = req_dict['community_id']).delete()
+
+        send_notification_for_join_requests.delay(req_dict['community_id'], False, req_dict['member_id'])
 
 
 
@@ -3409,12 +3537,6 @@ def compute_community_live_subtitle_for_lg(total_count,count_of_verified_members
         elif total_count > 0  and count_of_verified_members == 0:
             community_live_subtitle="Your profile isn't verified yet. Since this is an exclusive community, your profile needs to be verified in order to initiate the community"
     return community_live_subtitle
-
-
-
-
-
-
 
 
 
