@@ -138,7 +138,7 @@
                 Your account is pending for approval from the admin. Once the admin approves, you would be able to view the full communtity profile of the user.
             </p>
             <p class="c9 fs15 fwR lh22 mb16">
-                Once verified, we will send an email on: <span class="c007aff">xyz@gmail.com.</span>
+                Once verified, we will send an email on: <span class="c007aff">{{user_email}}</span>
             </p>
             <div id="change_email" class="cT fs13 fwM ls05 p12 taC">CHANGE EMAIL ID</div>
             <div id="dismiss_email" class="c9 fs13 fwM ls05 p12 pb0 taC">DISMISS</div>
@@ -327,7 +327,8 @@ location.href="/community/"+"{{community_id}}"
 // functionality to show member pop-up
 $(document.body).on('click','.member_link',function(e){
 
-var member_id=$(this).attr('member_id')
+member_id=$(this).attr('member_id')
+
 console.log(member_id)
 {% if not is_member %}
 
@@ -339,7 +340,7 @@ console.log(member_id)
 {% endif %}
 })
 
-    })
+
 
 
 
@@ -347,9 +348,9 @@ console.log(member_id)
 
 
     // functionality to show member pop-up
-    $(document.body).on('click','.members',function(e){
+    $(document.body).on('click','.member_link',function(e){
 
-    member_id=this.id
+    member_id=$(this).attr('member_id')
 
     {% if not is_member %}
 
@@ -359,6 +360,7 @@ console.log(member_id)
     {% else %}
         showMemberProfile(member_id);
     {% endif %}
+
     })
 
 
@@ -475,7 +477,7 @@ console.log(member_id)
                                     <p class="c4a fs15 lh24 m160">${value['answer']}</p>
                         `
                         html = html + segment
-                    }else (value['rank'] == 4){
+                    }else{
                         segment = `
                                     <p class="c9b fs15 lh24 m160 m80 oH toE wsN">${value['answer']}</p>
                         `

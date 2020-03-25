@@ -1245,7 +1245,7 @@ def generate_private_link(community_instance,promoter_instance):
         expireInstance.created_at = time.time()
         expireInstance.unique_code = unique_code
         expireInstance.private_link = url + '/community/' + str(community_instance.id) + "?aj="+ str(unique_code)
-        expireInstance.expire_duration = 300
+        expireInstance.expire_duration = 86400
         expireInstance.save()
 
         return expireInstance.private_link
@@ -1255,7 +1255,7 @@ def generate_private_link(community_instance,promoter_instance):
         current_time = int(time.time())
         last_created_time = community_expire_filter[0].created_at
 
-        if current_time - last_created_time > 120:
+        if current_time - last_created_time > 3600:
             unique_code = generate_random(unique_code_list)
             expireInstance = communityExpiryCodes()
             expireInstance.community = community_instance
@@ -1263,7 +1263,7 @@ def generate_private_link(community_instance,promoter_instance):
             expireInstance.created_at = time.time()
             expireInstance.unique_code = unique_code
             expireInstance.private_link = url + '/community/' + str(community_instance.id) + "?aj=" + str(unique_code)
-            expireInstance.expire_duration = 300
+            expireInstance.expire_duration = 86400
             expireInstance.save()
 
             return expireInstance.private_link

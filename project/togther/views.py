@@ -658,9 +658,10 @@ def members_directory(request, community_id):
     '''function to see members directory'''
 
     is_member = False
-
+    user_email = ""
     if request.user.is_authenticated:
         is_member=is_member_verified(community_id,request.user)
+        user_email = request.user.userinfo.email
 
     if request.method == 'POST':
 
@@ -718,7 +719,8 @@ def members_directory(request, community_id):
         'community_name': community_instance.name,
         'community_id': community_instance.id,
         'is_member':is_member,
-        'header': header
+        'header': header,
+        'user_email':user_email
     }
 
     return render(request, 'members.html', context)
