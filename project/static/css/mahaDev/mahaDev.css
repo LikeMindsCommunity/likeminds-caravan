@@ -8,17 +8,18 @@ html { scroll-behavior: smooth; }
 
 .wp100 { width: 100%; }
 
-.hv33 { height: 30vh; }
+.hv33 { height: 33vh; }
+.hv30 { height: 30vh; }
 
 
 .h2 { height: 2px; }
 .h10 { height: 10px; }
 .h44 { height: 44px; }
-.w48 { height: 48px; }
 .h60 { height: 60px; }
 .h72 { height: 72px; }
 .h96 { height: 96px;  }
 .h54 { height: 54px; }
+.h24 { height: 24px; }
 
 .mnh48 { min-height: 48px!important; }
 
@@ -27,6 +28,7 @@ html { scroll-behavior: smooth; }
 .h82 { height: 82px!important; }
 .w82 { width: 82px!important; }
 
+.w24 { width: 24px; }
 .w48 { width: 48px; }
 .w96 { width: 96px; }
 .w54 { width: 54px; }
