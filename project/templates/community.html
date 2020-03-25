@@ -738,17 +738,17 @@ border-radius: 5px; /* 5px rounded corners */
 
         {% for profile in profile_list %}
             {% if profile.rank == 1 %}
-               <div class="dT mb10 wp100">
+                <div class="dT mb10 wp100">
                     <div class="dTc h24 vM w24"><img class="h24" src="/media/main_website/ic_email_48_px.png" /></div>
                     <div class="c9b dTc fs13 vM wsN oH toE">{{profile.answer}}</div>
-               </div>
+                </div>
             {% elif profile.rank == 2 %}
-               <div class="dT mb10 wp100">
+                <div class="dT mb10 wp100">
                     <div class="dTc h24 vM w24"><img class="h24" src="/media/main_website/mobile_alt.png"/></div>
                     <div class="c9b dTc fs13 vM wsN oH toE">{{profile.answer}}</div>
-               </div>
+                </div>
             {% elif profile.rank == 3 %}
-                <a class="c9b dT tdN wp100" href=${value['answer']}>
+                <a class="c9b dT tdN wp100" href="{{profile.answer}}">
                     <div class="dTc h24 vM w24"><img class="h24" src="/media/main_website/link.png"/></div>
                     <div class="c9b dTc fs13 vM cT wsN oH toE">{{profile.answer}}</div>
                 </a>
