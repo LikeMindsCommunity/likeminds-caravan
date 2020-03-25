@@ -821,7 +821,8 @@ def get_member_profile(community_id,member_id,is_promoter=False):
             profile_link = profile_link + "," + answer.question_answer
             temp['answer_privacy']=answer_privacy(question_instance.value,is_promoter=is_promoter)
             #print(temp['answer_privacy'])
-            temp['answer'] = profile_link[1:]
+            temp['profile_link'] = profile_link[1:]
+            temp['answer'] = profile_link[1:40]
             temp['rank'] = 3
 
         else:
