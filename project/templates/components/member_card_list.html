@@ -1,0 +1,13 @@
+<div class="dT wp100">
+    <div class="dTc vM w70 p16 pr0">
+        <img class="w54 h54 oH bd2F bs brp50 bxs" src="{{data.image}}"/>
+    </div>
+    <div class="dTc vM p16 bs pl12 bdbE">
+        <div class="lh20 fs16 c0 member_link" member_id={{data.id}}>{{data.name}}</div>
+        {% if not data.is_member %}
+            <p class="p0 m0 fs15 lh20 blur_answer">{{data.answer}}</p>
+        {% else %}
+            <p class="p0 m0 fs15 lh20">{{data.answer}}</p>
+        {% endif %}
+    </div>
+</div>
