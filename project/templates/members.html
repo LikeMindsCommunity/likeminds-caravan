@@ -133,7 +133,7 @@
         <!-- -->
 
         <!-- profile pop-up -->
-        <div class="ui modal image_container" id="display" style="max-width:786px;"></div>
+        <div class="ui modal w320" id="display"></div>
         <!-- -->
 
         <!-- unverified member profile pop-up-->
@@ -317,8 +317,8 @@ $('.t1').each(function () {
 
 
 
-//functionality to show back button click
-$('#back_click').click(function(e){
+    //functionality to show back button click
+    $('#back_click').click(function(e){
 
 location.href="/community/"+"{{community_id}}"
 
@@ -344,179 +344,156 @@ console.log(member_id)
 {% endif %}
 })
 
-
-
-
-$(document.body).on('click','#dismiss_email',function(e){
-
-$('#unverified_member').modal('hide');
-
-})
-
-$(document.body).on('click','#change_email',function(e){
-
-    $('#unverified_member').modal('hide');
-    $('#secondary_email').modal('show');
-
-
-})
-
-update_email();
-
-function update_email(){
-
-
-    $('#update_secondary_email').click(function(e){
-
-    email=$('#secondary_email_text').val()
-
-     json_data={
-        'data':'{{request.user.id}}',
-        'email':email,
-        'csrfmiddlewaretoken':'{{csrf_token}}',
-        }
-
-     $.ajax({
-
-                url:"/update_email",
-                data:json_data,
-                type:"POST",
-                dataType:'json',
-                success:function(data){
-                console.log('hello');
-                if(data['success']){
-
-                    alert("updated")
-                }
-
-                $('#secondary_email').modal('hide');
-
-                }
-
-            })
-
-
-
     })
-}
 
 
 
-function showMemberProfile(member_id){
 
 
-community_id={{community_id}}
 
- json_data={
-    'data':member_id,
-    'community_id':community_id,
-    'csrfmiddlewaretoken':'{{csrf_token}}',
+    // functionality to show member pop-up
+    $(document.body).on('click','.members',function(e){
+
+    member_id=this.id
+
+    {% if not is_member %}
+
+        $('#unverified_member').modal('show');
+        console.log("test")
+
+    {% else %}
+        showMemberProfile(member_id);
+    {% endif %}
+    })
+
+
+
+
+    $(document.body).on('click','#dismiss_email',function(e){
+        $('#unverified_member').modal('hide');
+    })
+
+    $(document.body).on('click','#change_email',function(e){
+        $('#unverified_member').modal('hide');
+        $('#secondary_email').modal('show');
+    })
+
+    update_email();
+
+    function update_email(){
+
+
+        $('#update_secondary_email').click(function(e){
+
+        email=$('#secondary_email_text').val()
+
+        json_data={
+            'data':'{{request.user.id}}',
+            'email':email,
+            'csrfmiddlewaretoken':'{{csrf_token}}',
+            }
+
+        $.ajax({
+
+                    url:"/update_email",
+                    data:json_data,
+                    type:"POST",
+                    dataType:'json',
+                    success:function(data){
+                    console.log('hello');
+                    if(data['success']){
+
+                        alert("updated")
+                    }
+
+                    $('#secondary_email').modal('hide');
+
+                    }
+
+                })
+
+
+
+        })
     }
-console.log(json_data)
 
-  $.ajax({
 
+
+    function showMemberProfile(member_id){
+        community_id = {{community_id}};
+        json_data = {
+            'data':member_id,
+            'community_id':community_id,
+            'csrfmiddlewaretoken':'{{csrf_token}}',
+        }
+        console.log(json_data);
+        $.ajax({
             url:"/member_profile",
             data:json_data,
             type:"POST",
             dataType:'json',
             success:function(data){
-
-            console.log(data['answer_list'])
-
-            html=`
-             <div style="width:100%;min-height:150px;background-image:url('https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Fprofile_header?alt=media&token=fa838851-244c-4cbc-81da-3d2125536e18');background-repeat:no-repeat;background-size:contain">
-                <img src=${data['image_link']} class="profile_pic">
-             </div>
-
-      <div class="profile_name">
-          <p align="center" style="font-family:Roboto;sans-serif;font-weight:600px;color:black;font-size:17px;">
-          ${data['member_name']}</p>
-
-      </div>
-
-      `
-       $.each(data['answer_list'],function(index,value){
-
-               segment=""
-               if(value['rank'] == 1 && value['answer_privacy']){
-               segment = `
-               <div style="margin-top:5%;margin-left:16px;margin-right:16px;">
-                            <p class="Roboto" style="line-height:20px;font-size:13px;color:#9b9b9b"><img src="/media/main_website/ic_email_48_px.png" height=16px;width=14px;/>&nbsp;&nbsp;${value['answer']}</p>
-
-                     </div>
-                    `
-               html = html + segment
-               }else if(value['rank'] == 2 && value['answer_privacy'] ){
-
-               segment = `
-               <div style="margin-top:3%;margin-left:16px;margin-right:16px;">
-                            <p class="Roboto" style="line-height:20px;font-size:13px;color:#9b9b9b">
-                                <img src="/media/main_website/mobile_alt.png" height=20px;width=16px;/>&nbsp;&nbsp;${value['answer']}
-                            </p>
-
-                     </div>
-                    `
-               html = html + segment
-
-
-               }else if(value['rank'] == 3 && value['answer_privacy'] ){
-
-                segment = `
-               <div style="margin-top:3%;margin-left:16px;margin-right:16px;">
-                            <a class="Roboto" style="line-height:20px;font-size:13px;color:#00897b" href=${value['answer']}>
-                                <img src="/media/main_website/link.png" height=20px;width=16px;/>&nbsp;&nbsp;${value['answer']}
-                            </a>
-
-                     </div>
-                     <br/>
-                    `
-               html = html + segment
-
-
-               }else if(value['rank'] == 4){
-
-               segment = `
-               <div style="margin-top:5%;margin-left:16px;margin-right:16px;padding-bottom:5%;">
-                            <p class="Roboto" style="font-size:15px;line-height:24px;color:#4a4a4a">
-                                ${value['answer']}
-
-                            </p>
-
-
-               </div>
-                    `
-               html = html + segment
-
-
-               }else if(value['rank'] == 4){
-
-                segment = `
-               <div style="margin-top:3%;margin-left:16px;margin-right:16px;">
-                            <p class="Roboto" style="font-size:15px;line-height:20px;color:#9b9b9b">${value['answer']}</p>
-
-               </div>
-                    `
-               html = html + segment
-
-               }
-
-       })
-
-       html=html + "<br/>"
-
-            $('#display').html(html)
-            $('#display').modal('show');
-            $(".dimmer").css("background-color","rgba(40,40,40,0.5)");
-
+                console.log(data['answer_list'])
+                html = `
+                    <div class="h96 mtn38 taC pR z1">
+                        <div class="w96 h96 brp50 bd2F bs bxs oH dIb vM bgF">
+                            <img class="w96 h96 ofC" src=${data['image_link']} >
+                        </div>
+                    </div>
+                    <div class="pR mtn58 br8 oH bgF">
+                        <div class="h96">
+                            <img class="wp100 ofC h96" src="https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Fprofile_header?alt=media&token=fa838851-244c-4cbc-81da-3d2125536e18">
+                        </div>
+                        <div class="h2"></div>
+                        <p class="p0 m0 taC fwM fs16 c0 lh20">${data['member_name']}</p>
+                    </div>
+                    <div class="p016 bs">
+                `
+                $.each(data['answer_list'],function(index,value){
+                    segment=""
+                    if(value['rank'] == 1 && value['answer_privacy']){
+                        segment = `
+                                <div class="dT mb10 wp100">
+                                    <div class="dTc h24 vM w24"><img class="h24" src="/media/main_website/ic_email_48_px.png" /></div>
+                                    <div class="c9b dTc fs13 vM wsN oH toE">${value['answer']}</div>
+                                </div>
+                        `
+                        html = html + segment
+                    }else if(value['rank'] == 2 && value['answer_privacy'] ){
+                        segment = `
+                                <div class="dT mb10 wp100">
+                                    <div class="dTc h24 vM w24"><img class="h24" src="/media/main_website/mobile_alt.png"/></div>
+                                    <div class="c9b dTc fs13 vM wsN oH toE">${value['answer']}</div>
+                                </div>
+                        `
+                        html = html + segment
+                    }else if(value['rank'] == 3 && value['answer_privacy'] ){
+                        segment = `
+                                <a class="c9b dT tdN wp100" href="${value['answer']}">
+                                    <div class="dTc h24 vM w24"><img class="h24" src="/media/main_website/link.png"/></div>
+                                    <div class="c9b dTc fs13 vM cT wsN oH toE">${value['answer']}</div>
+                                </a>
+                        `
+                        html = html + segment
+                    }else if(value['rank'] == 4){
+                        segment = `
+                                    <p class="c4a fs15 lh24 m160">${value['answer']}</p>
+                        `
+                        html = html + segment
+                    }else (value['rank'] == 4){
+                        segment = `
+                                    <p class="c9b fs15 lh24 m160 m80 oH toE wsN">${value['answer']}</p>
+                        `
+                        html = html + segment
+                    }
+                })
+                $('#display').html(html + '</div>')
+                $('#display').modal('show');
+                $(".dimmer").css("background-color","rgba(40,40,40,0.5)");
 
             }
-
-         })
-
-
-
-}
+        })
+    }
 
 </script>
 
