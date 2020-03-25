@@ -1050,6 +1050,7 @@ def join_whatsapp_community(res,request):
     if 'aj' in res:
         if res['aj']:
             validate_time = is_joining_time_valid(community_instance, res['timestamp'],res['aj'])
+            info_logger.info(validate_time)
             if validate_time:
                 auto_join_community(community_instance,user_instance)
                 post_introduction_card_for_whatsapp_community(community_id, member_id, request)
@@ -1104,12 +1105,13 @@ def join_whatsapp_community(res,request):
 def is_joining_time_valid(community_instance, time_stamp, unique_code):
     '''function to check whether community joining time is valid or not'''
     check = communityExpiryCodes.objects.filter(community=community_instance, unique_code=unique_code)
-    print("check---",check)
+    info_logger.info(check)
     if check.exists():
         expiry_instance = check[0]
         time_stamp = int(time_stamp)
         expiry_time = int(expiry_instance.created_at)
-
+        info_logger.info(time_stamp)
+        info_logger.info(expiry_time)
         if (time_stamp - expiry_time) <= expiry_instance.expire_duration:
             return True
 
@@ -1243,7 +1245,7 @@ def generate_private_link(community_instance,promoter_instance):
         expireInstance.created_at = time.time()
         expireInstance.unique_code = unique_code
         expireInstance.private_link = url + '/community/' + str(community_instance.id) + "?aj="+ str(unique_code)
-        expireInstance.expire_duration = 86400
+        expireInstance.expire_duration = 300
         expireInstance.save()
 
         return expireInstance.private_link
@@ -1847,12 +1849,12 @@ def create_community_version_1(request):
     info_logger.info(log)
 
 
-    check_data=communityExpire.objects.filter(community=community_instance)
-    if not check_data:
-        communityExpireInstance=communityExpire()
-        communityExpireInstance.community=community_instance
-        communityExpireInstance.duration = 86400                  #for 24 hours saving in community
-        communityExpireInstance.save()
+    # check_data=communityExpire.objects.filter(community=community_instance)
+    # if not check_data:
+    #     communityExpireInstance=communityExpire()
+    #     communityExpireInstance.community=community_instance
+    #     communityExpireInstance.duration = 86400                  #for 24 hours saving in community
+    #     communityExpireInstance.save()
 
     communty_serailized_object = CommunitySerializer(community_instance)
     return JsonResponse({'success':True,'community':communty_serailized_object})
@@ -3535,12 +3537,6 @@ def compute_community_live_subtitle_for_lg(total_count,count_of_verified_members
         elif total_count > 0  and count_of_verified_members == 0:
             community_live_subtitle="Your profile isn't verified yet. Since this is an exclusive community, your profile needs to be verified in order to initiate the community"
     return community_live_subtitle
-
-
-
-
-
-
 
 
 
