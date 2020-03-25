@@ -552,9 +552,9 @@
                     <div class="c9b dTc fs13 vM wsN oH toE">{{profile.answer}}</div>
                 </div>
             {% elif profile.rank == 3 %}
-                <a class="c9b dT tdN wp100" href="{{profile.answer}}">
+                <a class="c9b dT tdN wp100" href="{{profile.profile_link}}">
                     <div class="dTc h24 vM w24"><img class="h24" src="/media/main_website/link.png"/></div>
-                    <div class="c9b dTc fs13 vM cT wsN oH toE">{{profile.answer}}</div>
+                    <div class="c9b dTc fs13 vM cT wsN oH ">{{profile.answer}}</div>
                 </a>
             {% elif profile.rank == 4 %}
                <p class="c4a fs15 lh24 m160">{{profile.answer}}</p>
@@ -1069,7 +1069,7 @@ function update_email(){
                         html = html + segment
                     }else if(value['rank'] == 3){
                         segment = `
-                                <a class="c9b dT tdN wp100" href="${value['answer']}">
+                                <a class="c9b dT tdN wp100" href="${value['profile_link']}">
                                     <div class="dTc h24 vM w24"><img class="h24" src="/media/main_website/link.png"/></div>
                                     <div class="c9b dTc fs13 vM cT wsN oH toE">${value['answer']}</div>
                                 </a>
