@@ -1243,14 +1243,14 @@ function update_email(){
                         <div class="h2"></div>
                         <p class="p0 m0 taC fwM fs16 c0 lh20">${data['member_name']}</p>
                     </div>
-                    <div class="p016 bs">
+                    <div class="p18 bs">
                 `
                 $.each(data['answer_list'],function(index,value){
                     segment=""
                     if(value['rank'] == 1){
                         segment = `
                                 <div class="dT mb10 wp100">
-                                    <div class="dTc h24 vM w24"><img class="h24" src="/media/main_website/ic_email_48_px.png" /></div>
+                                    <div class="dTc h24 vM w24"><img class="w24" src="/media/main_website/ic_email_48_px.png" /></div>
                                     <div class="c9b dTc fs13 vM wsN oH toE">${value['answer']}</div>
                                 </div>
                         `
@@ -1258,7 +1258,7 @@ function update_email(){
                     }else if(value['rank'] == 2){
                         segment = `
                                 <div class="dT mb10 wp100">
-                                    <div class="dTc h24 vM w24"><img class="h24" src="/media/main_website/mobile_alt.png"/></div>
+                                    <div class="dTc h24 vM w24"><img class="w24" src="/media/main_website/mobile_alt.png"/></div>
                                     <div class="c9b dTc fs13 vM wsN oH toE">${value['answer']}</div>
                                 </div>
                         `
