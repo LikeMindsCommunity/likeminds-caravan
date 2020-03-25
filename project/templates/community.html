@@ -457,21 +457,9 @@ border-radius: 5px; /* 5px rounded corners */
                     <h4 class="dTc vM taL m0 p0 fs16 c0 lh20">Members {{members_length}}</h4>
                     <div id="filter_icon" class="dTc vM taC w96 cT bd2T bs p6 br16" ><i class="filter icon lh16"></i> <span class="lh16 fs14">Filter</span></div>
                 </div>
-                {% for i in members%}
-                    <div class="dT wp100">
-                        <div class="dTc vM w70 p16 pr0">
-                            <img class="w54 h54 oH bd2F bs brp50 bxs" src="{{i.image_link}}"/>
-                        </div>
-                        <div class="dTc vM p16 bs pl12 bdbE">
-                            <div class="lh20 fs16 c0 member_link" member_id={{i.id}}>{{i.name}}</div>
-                            {% if not is_member %}
-                                <p class="p0 m0 fs15 lh20 blur_answer">{{i.answer}}</p>
-                            {% else %}
-                                <p class="p0 m0 fs15 lh20">{{i.answer}}</p>
-                            {% endif %}
-                        </div>
-                    </div>
-                {% endfor %}
+
+                {% include 'components/member_card_list.html' with data=members is_member=is_member %}
+                
             </div>
         {% endif %}
         

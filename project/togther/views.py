@@ -265,7 +265,10 @@ def community(request, community_id):
                 if member_state == 0 or member_state == 5:
                     header = {
                         'back': True,
-                        'title': 'Welcome to Collabmates!'
+                        'title': 'Welcome to Collabmates!',
+                        'subTitle': False,
+                        'background': 'T',
+                        'color': 'F'
                     }
                     header_showcase = {
                         'image': 'https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Fresponse_header?alt=media',
@@ -388,10 +391,13 @@ def community(request, community_id):
         members = get_member_details(community)
 
     aj = request.GET.get('aj', False)
-    
+
     header = {
         'back': True,
-        'title': False
+        'title': False,
+        'subTitle': False,
+        'background': '_',
+        'color': '0'
     }
     header_showcase = {
         'image': community.image_link if community.image_link else community.image_url,
@@ -696,14 +702,21 @@ def members_directory(request, community_id):
     else:
         filter_list = member_string.split("$")
         members = get_member_details(community_instance, filter_list)
-
+    header = {
+        'back': True,
+        'title': 'Members',
+        'subTitle': community_instance.name,
+        'background': 'Wa',
+        'color': 'F'
+    }
     context = {
         'members': members,
         'members_length': len(members),
         'community_name': community_instance.name,
         'community_id': community_instance.id,
         'filter_list': filters,
-        'is_member':is_member
+        'is_member':is_member,
+        'header': header
     }
     return render(request, 'members.html', context)
 
