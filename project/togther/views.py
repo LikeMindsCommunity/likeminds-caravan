@@ -721,7 +721,6 @@ def members_directory(request, community_id):
         'header': header
     }
 
-    print(context)
     return render(request, 'members.html', context)
 
 
@@ -829,6 +828,7 @@ def get_member_profile(community_id,member_id,is_promoter=False):
             temp['rank'] = 5
         answer_list.append(temp)
         answer_list = sorted(answer_list, key=lambda i: i['rank'])
+    
     return answer_list
 
 def answer_privacy(answer,is_promoter=False):
