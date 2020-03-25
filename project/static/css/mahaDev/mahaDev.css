@@ -1,7 +1,7 @@
 html { scroll-behavior: smooth; }
 
 .bgF { background: #fff!important; }
-.bgT { background: teal; }
+.bgT { background: teal!important; }
 .bgBg { background: #f0f5f5; }
 .bgFb { background: #4267b2; }
 .bgLi { background: #007fb1; }
@@ -146,7 +146,7 @@ html { scroll-behavior: smooth; }
 .br8 { border-radius: 8px!important; }
 .br16 { border-radius: 16px; }
 .br20 { border-radius: 20px; }
-.br22 { border-radius: 22px; }
+.br22 { border-radius: 22px!important; }
 
 .tn26 { top: -26px; }
 .l0 { left: 0; }
