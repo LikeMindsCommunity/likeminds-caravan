@@ -1,4 +1,5 @@
 <html>
+{% load static %}
  <head>
 
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
@@ -262,7 +263,7 @@ textarea.noscrollbars {
 
     {% include 'components/header.html' with data=header %}
 
-    {% include 'components/login_success_header_showcase.html' with data=header %}
+    {% include 'components/login_success_header_showcase.html' with data=header_showcase %}
 
     <!--    <div style="margin-bottom:80px;">-->
     <!--          <div style="float:left;margin-top:5px;" >-->
@@ -380,7 +381,6 @@ textarea.noscrollbars {
         <!-- Displaying Buttons -->
     <div class="p8 bs taC pF b0 l0 r0 h60 bdtE bgBg z1">
         <button class="ui button h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" id="simple_button" type="submit">SUBMIT</button>
-        <button class="ui loading button h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU dN" id="loading_button" type="submit">SUBMIT</button>
     </div>
 
 </body>
@@ -418,18 +418,32 @@ function autoGrow (oField) {
             }
         });
     {% elif question.question_state == 1 %}
-        $('.ui.dropdown.single_select_{{question.id}}').dropdown({allowAdditions: true});
+        {% if question.allowed_addition %}
+            $('.ui.dropdown.single_select_{{question.id}}').dropdown({allowAdditions: true});
+        {% else %}
+            $('.ui.dropdown.single_select_{{question.id}}').dropdown({allowAdditions: false});
+        {% endif %}
 
     {% elif question.question_state == 2 %}
-
-        $('.ui.normal.dropdown.multi_select_{{question.id}}')
-          .dropdown({
-          allowAdditions: true,
-              {% if question.max_selections > 0 and question.max_selections != ''  %}
-                  maxSelections: {{question.max_selections}}
-              {% endif %}
-          })
-        ;
+        {% if question.allowed_addition %}
+            $('.ui.normal.dropdown.multi_select_{{question.id}}')
+              .dropdown({
+              allowAdditions: true,
+                  {% if question.max_selections > 0 and question.max_selections != ''  %}
+                      maxSelections: {{question.max_selections}}
+                  {% endif %}
+              })
+            ;
+        {% else %}
+            $('.ui.normal.dropdown.multi_select_{{question.id}}')
+              .dropdown({
+              allowAdditions: false,
+                  {% if question.max_selections > 0 and question.max_selections != ''  %}
+                      maxSelections: {{question.max_selections}}
+                  {% endif %}
+              })
+            ;
+        {% endif %}
 
     {% endif %}
 {% endfor %}
@@ -664,8 +678,7 @@ $('#back_button').click(function(e){
         console.log(values_list);
         console.log(JSON.stringify(values_list));
 
-        $("#simple_button").css({"display":"none"})
-        $("#loading_button").css({"display":"block"})
+/*
 
         $.ajax({
             url:url,
@@ -682,6 +695,7 @@ $('#back_button').click(function(e){
             }
         });
 
+*/
     })
 
 </script>

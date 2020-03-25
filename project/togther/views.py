@@ -269,7 +269,7 @@ def community(request, community_id):
 
                     header = {
                         'back': True,
-                        'title': 'Welcome to Collabmates!'
+                        'title': 'Welcome to LikeMinds!'
                     }
                     header_showcase = {
                         'image': 'https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Fresponse_header?alt=media',
@@ -277,11 +277,14 @@ def community(request, community_id):
                         'subHeader': community.name,
                         'userImage': request.user.userinfo.image_link
                     }
-                    return render(request, 'response_form.html', {"data": data, 'usr': user, 'header': header,
+
+                    context = {"data": data, 'usr': user, 'header': header,
                                                                   'community': community, 'ref_id': ref_id,
                                                                   'validation_error': validation_error,
                                                                   'filled_answers': filled_answers,
-                                                                  'auto_join':auto_join,})
+                                                                  'aj':aj,'header_showcase':header_showcase}
+                    #print(context)
+                    return render(request, 'response_form.html', context)
 
             else:
                 return JsonResponse({'success': True})
@@ -391,7 +394,7 @@ def community(request, community_id):
         members = get_member_details(community)
 
 
-    auto_join = request.GET.get('aj', False)
+    aj = request.GET.get('aj', False)
     
     header = {
         'back': True,
@@ -422,7 +425,8 @@ def community(request, community_id):
                'aj':aj,
                'community_state':int(community.hide_community),
                'profile_list': profile_list,
-               'is_member':is_member
+               'is_member':is_member,
+               'user_email' : request.user.userinfo.email if request.user.is_authenticated else ''
 
                }
     # user_email = True
@@ -708,8 +712,10 @@ def members_directory(request, community_id):
         'community_name': community_instance.name,
         'community_id': community_instance.id,
         'filter_list': filters,
-        'is_member':is_member
+        'is_member':True
     }
+
+    print(context)
     return render(request, 'members.html', context)
 
 
@@ -822,7 +828,8 @@ def get_member_profile(community_id,member_id,is_promoter=False):
 def answer_privacy(answer,is_promoter=False):
 
     '''function to check the privacy of answer'''
-
+    if not answer:
+        return True
     if is_promoter:
         return True
 
@@ -1049,7 +1056,7 @@ def join_community(request, community_id, ref_id, aj=False):
 
     else:
         question_format = get_community_questions(community_id)
-
+        print("question format---",question_format)
         if not question_format:
             json_dict = {'user_id': request.user.id}
             params = {'member_id': member_id, 'community_id': community_id}
@@ -1105,9 +1112,18 @@ def get_community_questions(community_id):
                             item = item[find_index+1:-1].strip()
                             if item[0] == '"' or item[0] == "'":
                                 item = item[1:-1]
+
                     dropdown_list[index] = item
 
-            temp['dropdown_list'] = dropdown_list
+            if 'Other' not in dropdown_list:
+                temp['dropdown_list'] = dropdown_list
+                temp['allowed_addition'] = False
+
+            else:
+                dropdown_list.remove('Other')
+                temp['allowed_addition'] = True
+                temp['dropdown_list'] = dropdown_list
+
             temp['data'] = each_question.question_title
         else:
             temp['question_state'] = each_question.question_state

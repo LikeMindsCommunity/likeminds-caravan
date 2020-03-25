@@ -1,33 +1,41 @@
 html { scroll-behavior: smooth; }
 
+.bg { background: transparent; }
 .bgF { background: #fff!important; }
-.bgT { background: teal; }
+.bgT { background: teal!important; }
 .bgBg { background: #f0f5f5; }
 .bgFb { background: #4267b2; }
 .bgLi { background: #007fb1; }
+.bgWa { background: #075e54; }
 
 .wp100 { width: 100%; }
 
-.hv33 { height: 30vh; }
+.hv33 { height: 33vh; }
+.hv30 { height: 30vh; }
 
 
 .h2 { height: 2px; }
 .h10 { height: 10px; }
+.h32 { height: 32px; }
 .h44 { height: 44px; }
-.w48 { height: 48px; }
+.h48 { height: 48px; }
+.h56 { height: 56px; }
 .h60 { height: 60px; }
 .h72 { height: 72px; }
 .h96 { height: 96px;  }
 .h54 { height: 54px; }
+.h24 { height: 24px; }
 
 .mnh48 { min-height: 48px!important; }
 
-.h86 { height: 86px!important; } 
+.h86 { height: 86px!important; }
 .w86 {width: 86px!important; }
 .h82 { height: 82px!important; }
 .w82 { width: 82px!important; }
 
+.w24 { width: 24px; }
 .w48 { width: 48px; }
+.w56 { width: 56px; }
 .w96 { width: 96px; }
 .w54 { width: 54px; }
 .w70 { width: 70px; }
@@ -40,7 +48,7 @@ html { scroll-behavior: smooth; }
 
 .ofC { object-fit: cover; }
 
-.bs { box-sizing: border-box; }   
+.bs { box-sizing: border-box; }
 
 .lh16 { line-height: 16px; }
 .lh14 { line-height: 14px; }
@@ -88,6 +96,7 @@ html { scroll-behavior: smooth; }
 .m16 { margin: 16px; }
 .mt72 { margin-top: 72px; }
 .mt48 { margin-top: 48px; }
+.mt56 { margin-top: 56px; }
 
 .mtn8 { margin-top: -8px; }
 .mln8 { margin-left: -8px; }
@@ -97,6 +106,10 @@ html { scroll-behavior: smooth; }
 .ml16 { margin-left: 16px; }
 .mb16 { margin-bottom: 16px; }
 .mb30.mb30.mb30, .mb30  { margin-bottom: 30px; }
+
+.m04 { margin: 0 4px; }
+
+.p08 { padding: 0 8px!important; }
 
 .p0 { padding:0; }
 .p6 { padding: 6px; }
@@ -108,8 +121,10 @@ html { scroll-behavior: smooth; }
 .p18 { padding: 18px; }
 .p24 { padding: 24PX; }
 .pr0 { padding-right: 0; }
-.pl12 { padding-left: 12px; }
+.pl12 { padding-left: 12px!important; }
 .pt48 { padding-top: 48px; }
+.pt56 { padding-top: 56px; }
+.pl16 { padding-left: 16px!important; }
 
 .wsN { white-space: nowrap; }
 
@@ -143,7 +158,7 @@ html { scroll-behavior: smooth; }
 .br8 { border-radius: 8px!important; }
 .br16 { border-radius: 16px; }
 .br20 { border-radius: 20px; }
-.br22 { border-radius: 22px; }
+.br22 { border-radius: 22px!important; }
 
 .tn26 { top: -26px; }
 .l0 { left: 0; }
@@ -159,6 +174,7 @@ html { scroll-behavior: smooth; }
 .bdtE { border-top: 1px solid #eee; }
 .bd2T { border: 2px solid teal; }
 .bdb2F { border-bottom: 2px solid #fff; }
+.bdT { border: 1px solid teal; }
 
 .bgFo05 { background: rgba(255, 255, 255, 0.5); }
 
@@ -175,7 +191,6 @@ html { scroll-behavior: smooth; }
 .ls1 { letter-spacing: 1px; }
 .ls2 { letter-spacing: 2px; }
 
-.o8 { opacity: 0.8px }
+.o8 { opacity: 0.8; }
 
 .mxh240 { max-height: 240px; }
-
