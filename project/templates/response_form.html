@@ -317,7 +317,7 @@ textarea.noscrollbars {
                     <div class="ui fluid search selection dropdown single_select_{{question.id}} bd0 br8 bxs2 p16 h48">
                         <input id="{{question.id}}" type="hidden" name="{{question.id}}" oninput="remove_error('{{question.id}}')" onchange="remove_error('{{question.id}}')">
                         <i class="dropdown icon p16"></i>
-                        <div class="default text fs16 lh18">Select Country</div>
+                        <div class="default text fs16 lh18">Select Option</div>
                         <div class="menu">
                             {% for option in question.dropdown_list %}
                                 <div class="item p16 bs" data-value="{{option}}">{{option}}</div>
@@ -330,7 +330,7 @@ textarea.noscrollbars {
                     <div class="ui fluid multiple search normal selection dropdown multi_select_{{question.id}} bd0 br8 bxs2 mnh48">
                         <input id="{{question.id}}" type="hidden" name="{{question.id}}" oninput="remove_error('{{question.id}}')"  onchange="remove_error('{{question.id}}')">
                         <i class="dropdown icon p16"></i>
-                        <div class="default text fs16 lh18">Select Country</div>
+                        <div class="default text fs16 lh18">Select Option</div>
                         <div class="menu">
                             {% for option in question.dropdown_list %}
                                 <div class="item p16 bs" data-value="{{option}}">{{option}}</div>
@@ -398,6 +398,14 @@ function autoGrow (oField) {
   }
 }
 
+
+function isUrlValid(userInput) {
+    var res = userInput.match(/(http(s)?:\/\/.)?(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)/g);
+    if(res == null)
+        return false;
+    else
+        return true;
+}
 
 
 {% for question in data %}
@@ -567,6 +575,35 @@ $('#back_button').click(function(e){
                     }
                 {% endif %}
 
+            {% elif question.question_state == 8 %}
+
+                values_dict = {'id':{{question.id}}};
+                value = $('#{{question.id}}').val();
+                {% if question.optional %}
+                    values_dict['value'] = value;
+                    values_list.push(values_dict)
+                {% else %}
+                    var valid =isUrlValid(value)
+                    if(valid){
+                        values_dict['value'] = value;
+                        values_list.push(values_dict)
+
+                    } else{
+                        $("#div_{{question.id}}").addClass("error");
+
+                        var tag_div_html = `<div class="ui negative message" id="hidden_div_{{question.id}}">
+                                                <i class="close icon" onclick="remove_error('{{question.id}}')"></i>
+                                                <div class="header">
+                                                    Please enter valid url
+                                                </div>
+                                            </div>`
+                        $('#div_{{question.id}}').append(tag_div_html)
+                        return;
+                    }
+                {% endif %}
+
+
+
             {% elif question.question_state != 5 %}
 
                 value = $('#{{question.id}}').val();
@@ -582,6 +619,7 @@ $('#back_button').click(function(e){
                             <div class="ui negative message" id="hidden_div_{{question.id}}">
                                 <i class="close icon" onclick="remove_error('{{question.id}}')"></i>
                                 <div class="header">
+                                {{question.question_state}}
                                 {% if question.question_state == 0 %}
                                     Please fill this feild
                                 {% elif question.question_state == 1 %}
@@ -597,7 +635,7 @@ $('#back_button').click(function(e){
                                 {% elif question.question_state == 7 %}
                                     Please write your introduction in bit more detail
                                 {% elif question.question_state == 8 %}
-                                    Please fill this field
+                                    Please fill this detail
                                 {% else %}
                                     Please write your answer in bit more detail
                                 {% endif %}
