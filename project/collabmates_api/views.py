@@ -1359,7 +1359,9 @@ def members(request, community_id):
         usr['member_state'] = mem.state
         form_response = FormResponseSerilaizer(community_id, mem.member_id.id,bl=True)
         if form_response:
-            usr['response'] = form_response
+            usr['response'] = form_response[0]
+            usr['question_answers'] = form_response[1]
+
         members.append(usr)
 
     return JsonResponse({'members': members})
@@ -1378,6 +1380,9 @@ def admins(request, community_id):
 
         if int(community_id) != feedback_community_id:
             form_response = FormResponseSerilaizer(community_id, admin.member_id.id,bl=True)
+            if form_response:
+                usr['response'] = form_response[0]
+                usr['question_answers'] = form_response[1]
         else:
             form_response =[
                 {
@@ -1386,10 +1391,10 @@ def admins(request, community_id):
                 }
 
             ]
+            usr['response'] = form_response
         ref_members = get_referred_members_of_a_member(community_id, admin.member_id.id)
         usr['referred_members_count']=len(ref_members)
-        if form_response:
-            usr['response'] = form_response
+
 
         users.append(usr)
 
@@ -2880,7 +2885,8 @@ def collabcard(request, card_id):
     # user form response serialzer
     form_response = FormResponseSerilaizer(cards.community.id, cards.user.id,bl=True)
     if form_response:
-        usr['response'] = form_response
+        usr['response'] = form_response[0]
+        usr['question_answers'] =form_response[1]
     # get the card image if any
     files = get_collabcard_files(card_id)
     card['images'] = files[0]
@@ -2904,7 +2910,8 @@ def get_answer_data(answer,feedback,community_id):
         usr['is_clickable']=feedback
         form_response = FormResponseSerilaizer(community_id, ans.user.id,bl=True)
         if form_response:
-            usr['response'] = form_response
+            usr['response'] = form_response[0]
+            usr['question_answers'] = form_response[1]
         # coverting current time into epoch time
 
         if str(ans.date_epoch) == "-9223372036854775808":
@@ -3042,7 +3049,8 @@ def community_cards(request, community_id):
             # form responses of user
             form_response = FormResponseSerilaizer(card.community.id, card.user.id,bl=True)
             if form_response:
-                usr['response'] = form_response
+                usr['response'] = form_response[0]
+                usr['question_answers'] = form_response[1]
             # get card images --------------------------------------------------------
             files = get_collabcard_files(card)
             # -----------------------------------------------------------------------
@@ -3567,7 +3575,8 @@ def community_cards_version_1(request,community_id):
         # form responses of user
         form_response = FormResponseSerilaizer(card_instance.community.id, card_instance.user.id,bl=True)
         if form_response:
-            usr['response'] = form_response
+            usr['response'] = form_response[0]
+            usr['question_answers'] =form_response[1]
         # get card images --------------------------------------------------------
         files = get_collabcard_files(card_instance)
         # -----------------------------------------------------------------------
@@ -4181,8 +4190,10 @@ def community_collabcard_meta(request):
         usr['is_clickable']=feed_back
         # user form response serialzer
         form_response = FormResponseSerilaizer(card_instance.community.id, card_instance.user.id,bl=True)
+
         if form_response:
-            usr['response'] = form_response
+            usr['response'] = form_response[0]
+            usr['question_answers'] = form_response[1]
         # get card images --------------------------------------------------------
         files = get_collabcard_files(card_instance)
         # -----------------------------------------------------------------------
