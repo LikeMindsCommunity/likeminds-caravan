@@ -4072,6 +4072,10 @@ def member_activity(request):
     user_id = request.GET.get('member_id')
 
     community = Community.objects.get(pk=community_id)
+    if community.id == feedback_community_id:
+        state = 1
+        return JsonResponse({'state': state})
+    
     if community.introduction_text_state:
         state = 1
         return JsonResponse({'state': state})
