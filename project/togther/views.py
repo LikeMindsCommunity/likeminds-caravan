@@ -690,11 +690,15 @@ def members_directory(request, community_id):
     filter_question_id = request.GET.get('filter', None)
     filters = []
 
+
     for filter in filter_list:
         temp = {}
+        response_list = get_user_selected_option_list(filter.id)
+        if not response_list:
+            continue
         temp['question_id'] = filter.id
         temp['question_title'] = filter.question_title
-        temp['values'] = decode_option(filter.value)
+        temp['values'] = response_list
         if str(filter_question_id) == str(filter.id):
             temp['selected'] = True
         else:
@@ -725,6 +729,7 @@ def members_directory(request, community_id):
         'filter_list':filters
     }
 
+
     return render(request, 'members.html', context)
 
 
@@ -744,6 +749,12 @@ def decode_option(value):
     return value_list
 
 
+def get_user_selected_option_list(question_id):
+
+    '''function to get user selected options'''
+    response_list = list(questionFilters.objects.filter(question=question_id).values_list('filter',flat=True))
+
+    return response_list
 
 
 def member_profile(request):
