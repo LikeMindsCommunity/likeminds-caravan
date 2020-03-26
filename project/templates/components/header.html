@@ -1,0 +1,18 @@
+<header class="ffR h56 l0 pF r0 t0 z11 bg{{ data.background }}" id="header">
+    <div class="dT wp100 h56 tlF">
+        <div class="bs dTc h56 taC vM w56">
+            {% if data.back %}
+                <i class="arrow left icon fs24 c{{ data.color }}" id="back_click"></i>
+            {% endif %}
+        </div>
+        <div class="dTc fs18 fwB vM c{{ data.color }}">
+            {% if data.title %}
+                <div>{{ data.title }}</div>
+            {% endif %}
+            {% if data.subTitle %}
+                <div class="fs12 o8">{{ data.subTitle }}</div>
+            {% endif %}
+        </div>
+        <div class="bs dTc h56 taC vM w56"></div>
+    </div>
+</header>
