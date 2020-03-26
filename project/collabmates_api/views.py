@@ -1357,7 +1357,7 @@ def members(request, community_id):
             continue
         usr = UserinfoSerializer(mem.member_id.userinfo)
         usr['member_state'] = mem.state
-        form_response = FormResponseSerilaizer(community_id, mem.member_id.id)
+        form_response = FormResponseSerilaizer(community_id, mem.member_id.id,bl=True)
         if form_response:
             usr['response'] = form_response
         members.append(usr)
@@ -1377,7 +1377,7 @@ def admins(request, community_id):
         usr = UserinfoSerializer(user[0])
 
         if int(community_id) != feedback_community_id:
-            form_response = FormResponseSerilaizer(community_id, admin.member_id.id)
+            form_response = FormResponseSerilaizer(community_id, admin.member_id.id,bl=True)
         else:
             form_response =[
                 {
@@ -2878,7 +2878,7 @@ def collabcard(request, card_id):
     usr = UserinfoSerializer(user)
     usr['is_clickable']=feedback
     # user form response serialzer
-    form_response = FormResponseSerilaizer(cards.community.id, cards.user.id)
+    form_response = FormResponseSerilaizer(cards.community.id, cards.user.id,bl=True)
     if form_response:
         usr['response'] = form_response
     # get the card image if any
@@ -2902,7 +2902,7 @@ def get_answer_data(answer,feedback,community_id):
         user = Userinfo.objects.filter(user_id=ans.user.id)
         usr = UserinfoSerializer(user[0])
         usr['is_clickable']=feedback
-        form_response = FormResponseSerilaizer(community_id, ans.user.id)
+        form_response = FormResponseSerilaizer(community_id, ans.user.id,bl=True)
         if form_response:
             usr['response'] = form_response
         # coverting current time into epoch time
@@ -3040,7 +3040,7 @@ def community_cards(request, community_id):
             # serialize user object
             usr = UserinfoSerializer(user)
             # form responses of user
-            form_response = FormResponseSerilaizer(card.community.id, card.user.id)
+            form_response = FormResponseSerilaizer(card.community.id, card.user.id,bl=True)
             if form_response:
                 usr['response'] = form_response
             # get card images --------------------------------------------------------
@@ -3565,7 +3565,7 @@ def community_cards_version_1(request,community_id):
         # serialize user object
         usr = UserinfoSerializer(user)
         # form responses of user
-        form_response = FormResponseSerilaizer(card_instance.community.id, card_instance.user.id)
+        form_response = FormResponseSerilaizer(card_instance.community.id, card_instance.user.id,bl=True)
         if form_response:
             usr['response'] = form_response
         # get card images --------------------------------------------------------
@@ -4180,7 +4180,7 @@ def community_collabcard_meta(request):
         usr = UserinfoSerializer(user)
         usr['is_clickable']=feed_back
         # user form response serialzer
-        form_response = FormResponseSerilaizer(card_instance.community.id, card_instance.user.id)
+        form_response = FormResponseSerilaizer(card_instance.community.id, card_instance.user.id,bl=True)
         if form_response:
             usr['response'] = form_response
         # get card images --------------------------------------------------------
