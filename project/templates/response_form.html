@@ -383,6 +383,10 @@ textarea.noscrollbars {
         <button class="ui button h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" id="simple_button" type="submit">SUBMIT</button>
     </div>
 
+    <div class="p8 bs taC pF b0 l0 r0 h60 bdtE bgBg z1 dn" id="loading_button">
+        <button class="ui button loading h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU"  type="submit">SUBMIT</button>
+    </div>
+
 </body>
 </html>
 
@@ -454,6 +458,9 @@ $('#back_button').click(function(e){
 })
 
     $('#simple_button').click(function(e){
+
+
+
 
         var values = $('#response_form').serialize();
         var community_id='{{community.id}}'
@@ -677,6 +684,9 @@ $('#back_button').click(function(e){
         }
         console.log(values_list);
         console.log(JSON.stringify(values_list));
+
+
+        $("#loading_button").removeClass("dn");
 
 
         $.ajax({
