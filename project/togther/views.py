@@ -713,6 +713,7 @@ def members_directory(request, community_id):
         'background': 'Wa',
         'color': 'F'
     }
+
     context = {
         'members': members,
         'members_length': len(members),
@@ -720,7 +721,7 @@ def members_directory(request, community_id):
         'community_id': community_instance.id,
         'is_member':is_member,
         'header': header,
-        'user_email':user_email,
+        'user_email': user_email,
         'filter_list':filters
     }
 
