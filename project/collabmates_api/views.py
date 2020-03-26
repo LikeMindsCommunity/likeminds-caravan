@@ -1026,12 +1026,16 @@ def join_whatsapp_community(res,request):
     if 'questions' in res:
 
         for question in res['questions']:
+
+            if 'value' not in question:
+                continue
+
             question_instance = communityQuestions.objects.get(id=question['id'])
             answer_instance = communityAnswers()
             answer_instance.question = question_instance
             answer_instance.member = user_instance
             answer_instance.community = community_instance
-            answer_instance.question_answer = question['value']  
+            answer_instance.question_answer = question['value']
             answer_instance.question_title = question_instance.question_title
             answer_instance.save()
 
@@ -2284,34 +2288,40 @@ def get_pending_members_of_community(community_id,requested_member_id):
     for i in pend_requests:
         if is_lg and is_verified:
             if str(i.ask_member_id) == str(member_id):
-                resp = communityAnswers.objects.filter(community=community_id).filter(member=i.member_id.id).order_by('id')
+                # resp = communityAnswers.objects.filter(community=community_id).filter(member=i.member_id.id).order_by('id')
                 user = Userinfo.objects.get(user_id=i.member_id.id)
                 # serilaizing userinfo object
                 usr = UserinfoSerializer(user)
-                user_response = []
-                for j in resp:
-                    # getting the answers of the users who requested to join
-                    # for the questions that have been asked while requestiong to join in a community
-                    response_object = {}
-                    response_object['key'] = j.question_title
-                    response_object['value'] = j.question_answer
-                    user_response.append(response_object)
-                usr['response'] = user_response
+                # user_response = []
+                # for j in resp:
+                #     # getting the answers of the users who requested to join
+                #     # for the questions that have been asked while requestiong to join in a community
+                #     response_object = {}
+                #     response_object['key'] = j.question_title
+                #     response_object['value'] = j.question_answer
+                #     user_response.append(response_object)
+                response = FormResponseSerilaizer(community_id, i.member_id.id,bl=True)
+                if response:
+                    usr['response'] = response[0]
+                    usr['question_answers'] = response[1]
                 pending_requests.append(usr)
         elif is_admin:
-            resp = communityAnswers.objects.filter(community=community_id).filter(member=i.member_id.id).order_by('id')
+            # resp = communityAnswers.objects.filter(community=community_id).filter(member=i.member_id.id).order_by('id')
             user = Userinfo.objects.get(user_id=i.member_id.id)
             # serilaizing userinfo object
             usr = UserinfoSerializer(user)
-            user_response = []
-            for j in resp:
-                # getting the answers of the users who requested to join
-                # for the questions that have been asked while requestiong to join in a community
-                response_object = {}
-                response_object['key'] = j.question_title
-                response_object['value'] = j.question_answer
-                user_response.append(response_object)
-            usr['response'] = user_response
+            # user_response = []
+            # for j in resp:
+            #     # getting the answers of the users who requested to join
+            #     # for the questions that have been asked while requestiong to join in a community
+            #     response_object = {}
+            #     response_object['key'] = j.question_title
+            #     response_object['value'] = j.question_answer
+            #     user_response.append(response_object)
+            response = FormResponseSerilaizer(community_id, i.member_id.id, bl=True)
+            if response:
+                usr['response'] = response[0]
+                usr['question_answers'] = response[1]
             pending_requests.append(usr)
 
     info_logger.info("PENDING MEMBER REQUEST")
