@@ -265,7 +265,7 @@ def community(request, community_id):
                 if member_state == 0 or member_state == 5:
                     header = {
                         'back': True,
-                        'title': 'Welcome to Collabmates!',
+                        'title': 'Welcome to LikeMinds!',
                         'subTitle': False,
                         'background': 'T',
                         'color': 'F'
@@ -1085,7 +1085,7 @@ def join_community(request, community_id, ref_id, aj=False):
 
     else:
         question_format = get_community_questions(community_id)
-        print("question format---",question_format)
+
         if not question_format:
             json_dict = {'user_id': request.user.id}
             params = {'member_id': member_id, 'community_id': community_id}
