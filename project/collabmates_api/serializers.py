@@ -171,12 +171,16 @@ def FormResponseSerilaizer(community_id, user_id,bl=False):
         response_object['key'] = response.question_title
         response_object['value'] = response.question_answer
 
+
         temp={}
+        questions = get_question_data(response.question_id)
         temp['community_id'] = community_id
         temp['member_id'] = user_id
         temp['question_title'] = response.question_title
         temp['value'] = response.question_answer
         temp['question_id'] = response.question_id
+        temp['state'] = questions['state']
+        temp['question_instance'] = questions               #sending the question instance
         new_response.append(temp)
 
         user_response.append(response_object)
@@ -186,7 +190,15 @@ def FormResponseSerilaizer(community_id, user_id,bl=False):
     return (user_response,new_response)
 
 
+def get_question_data(question_id):
 
+    '''function to get question id'''
+
+    question_instance=communityQuestions.objects.get(id=question_id)
+
+    questions = CommunityQuestionsSerializer(question_instance)
+
+    return questions
 
 
 def CommunityQuestionsSerializer(community_question_instance):

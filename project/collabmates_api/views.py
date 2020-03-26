@@ -1031,7 +1031,7 @@ def join_whatsapp_community(res,request):
             answer_instance.question = question_instance
             answer_instance.member = user_instance
             answer_instance.community = community_instance
-            answer_instance.question_answer = question['value']
+            answer_instance.question_answer = question['value']  
             answer_instance.question_title = question_instance.question_title
             answer_instance.save()
 
