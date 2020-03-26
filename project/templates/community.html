@@ -1018,15 +1018,14 @@ function update_email(){
     })
 }
 
-
-    function showMemberProfile(member_id){
-        community_id={{community.id}}
-        json_data={
+function showMemberProfile(member_id){
+        community_id = {{community_id}};
+        json_data = {
             'data':member_id,
             'community_id':community_id,
             'csrfmiddlewaretoken':'{{csrf_token}}',
         }
-        console.log(json_data)
+        console.log(json_data);
         $.ajax({
             url:"/member_profile",
             data:json_data,
@@ -1034,7 +1033,7 @@ function update_email(){
             dataType:'json',
             success:function(data){
                 console.log(data['answer_list'])
-                html=`
+                html = `
                     <div class="h96 mtn38 taC pR z1">
                         <div class="w96 h96 brp50 bd2F bs bxs oH dIb vM bgF">
                             <img class="w96 h96 ofC" src=${data['image_link']} >
@@ -1051,23 +1050,23 @@ function update_email(){
                 `
                 $.each(data['answer_list'],function(index,value){
                     segment=""
-                    if(value['rank'] == 1){
+                    if(value['rank'] == 1 && value['answer_privacy']){
                         segment = `
-                                <div class="dT mb10 wp100">
-                                    <div class="dTc h24 vM w24"><img class="w24" src="/media/main_website/ic_email_48_px.png" /></div>
+                                <div class="dT mb10 wp100 tlF">
+                                    <div class="dTc h24 vM w24"><img class="h24" src="/media/main_website/ic_email_48_px.png" /></div>
                                     <div class="c9b dTc fs13 vM wsN oH toE">${value['answer']}</div>
                                 </div>
                         `
                         html = html + segment
-                    }else if(value['rank'] == 2){
+                    }else if(value['rank'] == 2 && value['answer_privacy'] ){
                         segment = `
                                 <div class="dT mb10 wp100">
-                                    <div class="dTc h24 vM w24"><img class="w24" src="/media/main_website/mobile_alt.png"/></div>
+                                    <div class="dTc h24 vM w24"><img class="h24" src="/media/main_website/mobile_alt.png"/></div>
                                     <div class="c9b dTc fs13 vM wsN oH toE">${value['answer']}</div>
                                 </div>
                         `
                         html = html + segment
-                    }else if(value['rank'] == 3){
+                    }else if(value['rank'] == 3 && value['answer_privacy'] ){
                         segment = `
                                 <a class="c9b dT tdN wp100" href="${value['profile_link']}">
                                     <div class="dTc h24 vM w24"><img class="h24" src="/media/main_website/link.png"/></div>
@@ -1080,9 +1079,16 @@ function update_email(){
                                     <p class="c4a fs15 lh24 m160">${value['answer']}</p>
                         `
                         html = html + segment
+                    }else if(value['rank'] == 5){
+                       segment = `
+                                <a class="c9b dT tdN wp100" href="${value['file_link']}">
+                                    <div class="c9b dTc fs13 vM cT wsN oH toE">${value['answer']}</div>
+                                </a>
+                        `
+                        html = html + segment
                     }else{
                         segment = `
-                                    <p class="c9b fs15 lh24 m160 m80 oH toE wsN">${value['answer']}</p>
+                                    <p class="c9b fs15 lh24 m160 m80 ">${value['answer']}</p>
                         `
                         html = html + segment
                     }
@@ -1090,6 +1096,7 @@ function update_email(){
                 $('#display').html(html + '</div>')
                 $('#display').modal('show');
                 $(".dimmer").css("background-color","rgba(40,40,40,0.5)");
+
             }
         })
     }

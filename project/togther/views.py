@@ -426,6 +426,7 @@ def community(request, community_id):
                'community_state':int(community.hide_community),
                'profile_list': profile_list,
                'is_member':is_member,
+               'community_id':community.id,
                'user_email' : request.user.userinfo.email if request.user.is_authenticated else ''
 
                }
@@ -835,14 +836,19 @@ def get_member_profile(community_id,member_id,is_promoter=False):
             temp['answer_privacy']=answer_privacy(question_instance.value,is_promoter=is_promoter)
             #print(temp['answer_privacy'])
             temp['profile_link'] = profile_link[1:]
-            print(temp['profile_link'])
             temp['answer'] = profile_link[1:40]
             temp['rank'] = 3
 
-        else:
+        elif question_instance.question_state == question_states.FILE_UPLOAD:
             # question answer
-            temp['answer'] = question_instance.question_title + ": " + answer.question_answer
+            file_link = answer.question_answer
+            file_link=file_link.replace(" ","")
+            temp['file_link'] = file_link
+            temp['answer'] = question_instance.question_title + ": " "File Link"
             temp['rank'] = 5
+        else:
+            temp['answer'] = question_instance.question_title + ": " + answer.question_answer
+            temp['rank'] = 6
         answer_list.append(temp)
         answer_list = sorted(answer_list, key=lambda i: i['rank'])
     
