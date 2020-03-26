@@ -140,10 +140,26 @@
             <p class="c9 fs15 fwR lh22 mb16">
                 Once verified, we will send an email on: <span class="c007aff">{{user_email}}</span>
             </p>
-            <div id="change_email" class="cT fs13 fwM ls05 p12 taC">CHANGE EMAIL ID</div>
-            <div id="dismiss_email" class="c9 fs13 fwM ls05 p12 pb0 taC">DISMISS</div>
+            <div class="cT fs13 fwM ls05 p12 taC change_email">CHANGE EMAIL ID</div>
+            <div class="c9 fs13 fwM ls05 p12 pb0 taC dismiss_email">DISMISS</div>
         </div>
         <!-- -->
+
+
+         <!-- unverified filter profile pop-up-->
+        <div class="ui modal ffR p24 bs w280" id="filter_unverified">
+            <p class="c0 fs16 fwM lh24 mb16">Filter not accessible</p>
+            <p class="c9 fs15 fwR lh22 mb16">
+                Your account is pending for approval from the admin. Once the admin approves, you would be able to use filter..
+            </p>
+            <p class="c9 fs15 fwR lh22 mb16">
+                Once verified, we will send an email on: <span class="c007aff">{{user_email}}</span>
+            </p>
+            <div  class="cT fs13 fwM ls05 p12 taC change_email">CHANGE EMAIL ID</div>
+            <div  class="c9 fs13 fwM ls05 p12 pb0 taC dismiss_email">DISMISS</div>
+        </div>
+        <!-- -->
+
 
         <!-- update secondary email -->
         <div class="ui modal ffR p24 bs w280 pb12" id="secondary_email">
@@ -182,6 +198,16 @@ $('#test').hide()
     {% for filter in filter_list %}
 
         $('#{{filter.question_id}}').click(function(){
+
+        {% if not is_member %}
+
+        $('#filter_unverified').modal('show');
+        return;
+
+        {% endif %}
+
+
+
         html=`
 
         <div class="ui two column grid">
@@ -326,25 +352,6 @@ location.href="/community/"+"{{community_id}}"
 
 
 // functionality to show member pop-up
-$(document.body).on('click','.member_link',function(e){
-
-member_id=$(this).attr('member_id')
-
-console.log(member_id)
-{% if not is_member %}
-
-    $('#unverified_member').modal('show');
-    console.log("test")
-
-{% else %}
-    showMemberProfile(member_id);
-{% endif %}
-})
-
-
-
-
-
 
 
 
@@ -367,11 +374,11 @@ console.log(member_id)
 
 
 
-    $(document.body).on('click','#dismiss_email',function(e){
+    $(document.body).on('click','.dismiss_email',function(e){
         $('#unverified_member').modal('hide');
     })
 
-    $(document.body).on('click','#change_email',function(e){
+    $(document.body).on('click','.change_email',function(e){
         $('#unverified_member').modal('hide');
         $('#secondary_email').modal('show');
     })
@@ -384,7 +391,7 @@ console.log(member_id)
         $('#update_secondary_email').click(function(e){
 
         email=$('#secondary_email_text').val()
-
+        console.log(email)
         json_data={
             'data':'{{request.user.id}}',
             'email':email,
@@ -467,7 +474,7 @@ console.log(member_id)
                         html = html + segment
                     }else if(value['rank'] == 3 && value['answer_privacy'] ){
                         segment = `
-                                <a class="c9b dT tdN wp100" href="${value['answer']}">
+                                <a class="c9b dT tdN wp100" href="${value['profile_link']}">
                                     <div class="dTc h24 vM w24"><img class="h24" src="/media/main_website/link.png"/></div>
                                     <div class="c9b dTc fs13 vM cT wsN oH toE">${value['answer']}</div>
                                 </a>
