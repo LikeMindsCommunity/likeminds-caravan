@@ -265,7 +265,7 @@ def community(request, community_id):
                 if member_state == 0 or member_state == 5:
                     header = {
                         'back': True,
-                        'title': 'Welcome to Collabmates!',
+                        'title': 'Welcome to LikeMinds!',
                         'subTitle': False,
                         'background': 'T',
                         'color': 'F'
@@ -426,6 +426,7 @@ def community(request, community_id):
                'community_state':int(community.hide_community),
                'profile_list': profile_list,
                'is_member':is_member,
+               'community_id':community.id,
                'user_email' : request.user.userinfo.email if request.user.is_authenticated else ''
 
                }
@@ -690,11 +691,15 @@ def members_directory(request, community_id):
     filter_question_id = request.GET.get('filter', None)
     filters = []
 
+
     for filter in filter_list:
         temp = {}
+        response_list = get_user_selected_option_list(filter.id)
+        if not response_list:
+            continue
         temp['question_id'] = filter.id
         temp['question_title'] = filter.question_title
-        temp['values'] = decode_option(filter.value)
+        temp['values'] = response_list
         if str(filter_question_id) == str(filter.id):
             temp['selected'] = True
         else:
@@ -713,6 +718,7 @@ def members_directory(request, community_id):
         'background': 'Wa',
         'color': 'F'
     }
+
     context = {
         'members': members,
         'members_length': len(members),
@@ -720,8 +726,10 @@ def members_directory(request, community_id):
         'community_id': community_instance.id,
         'is_member':is_member,
         'header': header,
-        'user_email':user_email
+        'user_email': user_email,
+        'filter_list':filters
     }
+
 
     return render(request, 'members.html', context)
 
@@ -742,6 +750,12 @@ def decode_option(value):
     return value_list
 
 
+def get_user_selected_option_list(question_id):
+
+    '''function to get user selected options'''
+    response_list = list(questionFilters.objects.filter(question=question_id).values_list('filter',flat=True))
+
+    return response_list
 
 
 def member_profile(request):
@@ -825,10 +839,16 @@ def get_member_profile(community_id,member_id,is_promoter=False):
             temp['answer'] = profile_link[1:40]
             temp['rank'] = 3
 
-        else:
+        elif question_instance.question_state == question_states.FILE_UPLOAD:
             # question answer
-            temp['answer'] = question_instance.question_title + ": " + answer.question_answer
+            file_link = answer.question_answer
+            file_link=file_link.replace(" ","")
+            temp['file_link'] = file_link
+            temp['answer'] = question_instance.question_title + ": " "File Link"
             temp['rank'] = 5
+        else:
+            temp['answer'] = question_instance.question_title + ": " + answer.question_answer
+            temp['rank'] = 6
         answer_list.append(temp)
         answer_list = sorted(answer_list, key=lambda i: i['rank'])
     
@@ -1065,7 +1085,7 @@ def join_community(request, community_id, ref_id, aj=False):
 
     else:
         question_format = get_community_questions(community_id)
-        print("question format---",question_format)
+
         if not question_format:
             json_dict = {'user_id': request.user.id}
             params = {'member_id': member_id, 'community_id': community_id}
