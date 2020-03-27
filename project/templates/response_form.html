@@ -400,30 +400,35 @@ function autoGrow (oField) {
 
 
 function isUrlValid(userInput,profile_platform) {
+
+
     var res = userInput.match(/(http(s)?:\/\/.)?(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)/g);
     if(res == null)
         return false;
     else{
 
-        if(profile_platform == "Facebook"){
+        console.log(profile_platform.localeCompare("facebook"))
+        console.log(profile_platform.localeCompare("linkedin"))
+        if(profile_platform == "facebook"){
 
-                let fb = userInput.match("facebook") || userInput.match("Facebook")
 
-                if(fb)
+                let fb = userInput.toLowerCase();
+                console.log(fb)
+                console.log("hello")
+                if(fb.search("facebook") != -1)
                     return true
                 return false
-        }else if(profile_platform == "LinkedIn"){
+        }else if(profile_platform == "linkedin"){
 
-                let lin = userInput.match("linkedIn") || userInput.match("LinkedIn") || userInput.match("linkedin")
-
-                if(lin)
+                let lin = userInput.toLowerCase();
+                console.log(lin)
+                console.log("kk")
+                if(lin.search("linkedin") != -1)
                     return true
                 return false
         }
 
         return true
-
-
 
     }
 
