@@ -76,7 +76,7 @@ body ::-webkit-scrollbar { display: none; }
 .fwR { font-weight:400!important; }
 .fwM { font-weight:500!important; }
 
-.cF { color: #fff; }
+.cF { color: #fff!important; }
 .c0 { color: #000; }
 .c9b { color: #9b9b9b; }
 .c4 { color: #444; }
