@@ -399,12 +399,34 @@ function autoGrow (oField) {
 }
 
 
-function isUrlValid(userInput) {
+function isUrlValid(userInput,profile_platform) {
     var res = userInput.match(/(http(s)?:\/\/.)?(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)/g);
     if(res == null)
         return false;
-    else
-        return true;
+    else{
+
+        if(profile_platform == "Facebook"){
+
+                let fb = userInput.match("facebook") || userInput.match("Facebook")
+
+                if(fb)
+                    return true
+                return false
+        }else if(profile_platform == "LinkedIn"){
+
+                let lin = userInput.match("linkedIn") || userInput.match("LinkedIn")
+
+                if(lin)
+                    return true
+                return false
+        }
+
+        return true
+
+
+
+    }
+
 }
 
 
@@ -487,7 +509,7 @@ $('#back_button').click(function(e){
             $("#div_{{question.id}}").removeClass("error");
             remove_warning('#hidden_div_{{question.id}}');
 
-            {% if question.question_state == 3 or  question.question_state == 7 %}
+            {% if question.question_state == 3 %}
                 values_dict = {'id':{{question.id}}};
                 var input=document.getElementById('{{question.id}}');
                 var value=input.value;
@@ -505,11 +527,8 @@ $('#back_button').click(function(e){
                             <div class="ui negative message" id="hidden_div_{{question.id}}">
                                 <i class="close icon" onclick="remove_error('{{question.id}}')"></i>
                                 <div class="header">
-                                {% if question.question_state == 7 %}
-                                    Please write your introduction in bit more detail
-                                {% else %}
                                     Please write your answer in bit more detail
-                                {% endif %}
+
                                 </div>
                             </div>
                             `
@@ -523,6 +542,41 @@ $('#back_button').click(function(e){
 
                     }
                 {% endif %}
+            {% elif question.question_state == 7 %}
+
+                values_dict = {'id':{{question.id}}};
+                var input=document.getElementById('{{question.id}}');
+                var value=input.value;
+
+                {% if question.optional %}
+                    values_dict['value'] = value;
+                    values_list.push(values_dict)
+                {% else %}
+                    if (value.length >= {{question.min_chars}} && value.length <= {{question.max_chars}}) {
+
+                      values_dict['value'] = value;
+                      values_list.push(values_dict)
+
+                    }else {
+                        console.log("less than 50 characters");
+                          $("#div_{{question.id}}").addClass("error");
+
+
+                        var tag_div_html = `
+                            <div class="ui negative message" id="hidden_div_{{question.id}}">
+                                <i class="close icon" onclick="remove_error('{{question.id}}')"></i>
+                                <div class="header">
+                                    Please Enter valid Introduction with atleast {{question.min_chars}} characters but not more than {{question.max_chars}} characters
+                                </div>
+                            </div>
+                            `
+                        $('#div_{{question.id}}').append(tag_div_html)
+                        return;
+
+                    }
+                {% endif %}
+
+
             {% elif question.question_state == 9 %}
                 values_dict = {'id':{{question.id}}};
                 value = $('#{{question.id}}').val();
@@ -583,7 +637,7 @@ $('#back_button').click(function(e){
                     values_dict['value'] = value;
                     values_list.push(values_dict)
                 {% else %}
-                    var valid =isUrlValid(value)
+                    var valid =isUrlValid(value,"{{question.profile_platform}}")
                     if(valid){
                         values_dict['value'] = value;
                         values_list.push(values_dict)
