@@ -267,7 +267,7 @@ def community(request, community_id):
                         'back': True,
                         'title': 'Welcome to LikeMinds!',
                         'subTitle': False,
-                        'background': 'T',
+                        'background': '_',
                         'color': 'F'
                     }
                     header_showcase = {
