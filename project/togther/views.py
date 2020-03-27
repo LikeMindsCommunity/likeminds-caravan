@@ -779,6 +779,7 @@ def member_profile(request):
     answer_list = get_member_profile(community_id,member_id,is_promoter=is_promoter)
 
     json_response = {'answer_list':answer_list,'member_name':member_name,'image_link':image_link}
+    
     return JsonResponse(json_response)
 
 
@@ -867,7 +868,7 @@ def answer_privacy(answer,is_promoter=False):
     for value in value_list:
         privacy = value['answer_privacy']
 
-    if privacy == "public":
+    if privacy == "Public":
         return True
     return False
 
@@ -1106,6 +1107,20 @@ def get_community_questions(community_id):
         temp = {}
         if each_question.question_state:
             temp['question_state'] = each_question.question_state
+
+            if temp['question_state'] == question_states.INTRODUCTION:
+                if each_question.value:
+                    item = ast.literal_eval(each_question.value)[0]
+                    temp['min_chars'] = int(item['min_chars'])
+                    temp['max_chars'] = int(item['max_chars'])
+                temp['data'] = each_question.question_title
+
+            elif temp['question_state'] == question_states.PROFILE_LINK:
+                item = ast.literal_eval(each_question.value)[0]
+                temp['profile_platform'] = item['profile_platform']
+                temp['data'] = each_question.question_title
+
+
             if temp['question_state'] == 6:
                 if each_question.value:
                     item = ast.literal_eval(each_question.value)[0]['date_time']
