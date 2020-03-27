@@ -1068,7 +1068,7 @@ def join_community(request, community_id, ref_id, aj=False):
                 continue
 
             question_dict['id'] = quest_dict['id']
-            question_dict['value'] = re.sub(r'(?<=[.,])(?=[^\s])', r' ', quest_dict['value'])
+            question_dict['value'] = quest_dict['value']
 
             response_list.append(question_dict)
 
