@@ -175,8 +175,12 @@ def FormResponseSerilaizer(community_id, user_id,current_user_id=None,bl=False):
         response_object['key'] = response.question_title
         response_object['value'] = response.question_answer
 
+        send_back=False
+        if str(response.member.id) == str(current_user_id):
+            send_back = True
+
         temp={}
-        questions = get_question_data(response.question_id, member_state)
+        questions = get_question_data(response.question_id, member_state, send_back=send_back)
         if questions:
             temp['community_id'] = community_id
             temp['member_id'] = user_id
@@ -194,13 +198,13 @@ def FormResponseSerilaizer(community_id, user_id,current_user_id=None,bl=False):
     return (user_response,new_response)
 
 
-def get_question_data(question_id, member_state):
+def get_question_data(question_id, member_state, send_back):
 
     '''function to get question id'''
 
     question_instance=communityQuestions.objects.get(id=question_id)
 
-    if member_state == 1 or member_state == 2:
+    if member_state == 1 or member_state == 2 or send_back:
         questions = CommunityQuestionsSerializer(question_instance)
     else:
         if question_instance.value and question_instance.value != '':
