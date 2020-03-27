@@ -203,16 +203,19 @@ def get_question_data(question_id, member_state):
     if member_state == 1 or member_state == 2:
         questions = CommunityQuestionsSerializer(question_instance)
     else:
-        value_list = ast.literal_eval(question_instance.value)
-        privacy = ""
-        for value in value_list:
-            if 'answer_privacy' in value:
-                privacy = value['answer_privacy']
+        if question_instance.value and question_instance.value != '':
+            value_list = ast.literal_eval(question_instance.value)
+            privacy = ""
+            for value in value_list:
+                if 'answer_privacy' in value:
+                    privacy = value['answer_privacy']
 
-        if privacy == "Public":
-            questions = CommunityQuestionsSerializer(question_instance)
+            if privacy == "Public":
+                questions = CommunityQuestionsSerializer(question_instance)
+            else:
+                return False
         else:
-            return False
+            questions = CommunityQuestionsSerializer(question_instance)
 
     return questions
 
