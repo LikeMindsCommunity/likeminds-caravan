@@ -115,61 +115,6 @@
         {% include 'components/header.html' with data=header %}
 
         {% include 'components/community_header_showcase.html' with data=header_showcase %}
-        
-        {{Non_mem_state}}
-        {% if Nom_mem_state != 0 %}
-            <div class="summary left aligned" style="padding-left:10px;padding-right:10px;padding-top:10px;">
-                    
-                {% if Nom_mem_state == 6 %}
-                <button class="ui  button " onclick="accept_admin('{{cta}}','{{community.id}}','{{Nom_mem_state}}');"> Respond to invitation
-                </button>
-
-                {% elif Nom_mem_state == 7 %}
-                <button class="ui  button " onclick="accept_admin('{{cta}}','{{community.id}}','{{Nom_mem_state}}');"> Respond to invitation
-                </button>
-
-                {% elif Nom_mem_state == 8 %}
-                <button class="ui  button " id="ref"> Invite members
-                </button>
-
-                {% elif Nom_mem_state == 3 %}
-                <button class="ui  button " disabled> Pending Approval
-                </button>
-
-                {% elif Nom_mem_state == 1%}
-                <button class="ui  button "
-                        disabled>You are a promoter
-                </button>
-
-                {% elif Nom_mem_state == 2 %}
-                <button class="ui  button "
-                        disabled>You are a promoter
-                </button>
-
-                {% elif Nom_mem_state == 4 %}
-                <button class="ui  button join_button"
-                        disabled>Already a Member
-                </button>
-
-                {% elif Nom_mem_state == 5 %}
-                <button class="ui  button join_button"
-                        onclick="join('{{community.id}}')"> Join Community(Declined)
-                </button>
-
-                {% elif source == 'email' %}
-                <button class="ui  button join_button"
-                        onclick="accept_admin();">Respond to invitation
-                </button>
-
-                {% elif Nom_mem_state == 0 %}
-                <button class="ui  button join_button"
-                        onclick="join('{{community.id}}')"> Join Community
-                </button>
-
-                {% endif %}
-
-            </div>
-        {% endif %}
 
         <div class="bgE h2"></div>
 
@@ -539,27 +484,27 @@
         </div>
 
         <p class="c0 fs17 mb16 taC">{{request.user.userinfo.name}}</p>
-
+        <!-- {% regroup answer_list by rank as answer_list_by_rank %} -->
         {% for profile in profile_list %}
             {% if profile.rank == 1 %}
                 <div class="dT mb10 wp100">
                     <div class="dTc h24 vM w24"><img class="h24" src="/media/main_website/ic_email_48_px.png" /></div>
-                    <div class="c9b dTc fs13 vM wsN oH toE">{{profile.answer}}</div>
+                    <div class="c9b dTc fs13 vM">{{profile.answer}}</div>
                 </div>
             {% elif profile.rank == 2 %}
                 <div class="dT mb10 wp100">
                     <div class="dTc h24 vM w24"><img class="h24" src="/media/main_website/mobile_alt.png"/></div>
-                    <div class="c9b dTc fs13 vM wsN oH toE">{{profile.answer}}</div>
+                    <div class="c9b dTc fs13 vM">{{profile.answer}}</div>
                 </div>
             {% elif profile.rank == 3 %}
                 <a class="c9b dT tdN wp100" href="{{profile.profile_link}}">
                     <div class="dTc h24 vM w24"><img class="h24" src="/media/main_website/link.png"/></div>
-                    <div class="c9b dTc fs13 vM cT wsN oH ">{{profile.answer}}</div>
+                    <div class="c9b dTc fs13 vM cT">{{profile.answer}}</div>
                 </a>
             {% elif profile.rank == 4 %}
                <p class="c4a fs15 lh24 m160">{{profile.answer}}</p>
             {% else %}
-                <p class="c9b fs15 lh24 m160 m80 oH toE wsN">{{profile.answer}}</p>
+                <p class="c9b fs15 lh24 m160 m80">{{profile.answer}}</p>
             {% endif %}
        {% endfor %}
         <div class="fs13 p12 taC fwM" id="dismiss">DISMISS</div>
@@ -1048,31 +993,71 @@ function showMemberProfile(member_id){
                     </div>
                     <div class="p18 bs">
                 `
-                $.each(data['answer_list'],function(index,value){
-                    segment=""
-                    if(value['rank'] == 1 && value['answer_privacy']){
+                var refined_answer_obj = data['answer_list'].reduce(function(returnValue, answer) {
+                    if(answer.answer_privacy !== false){
+                        (returnValue[answer.rank] = returnValue[x.rank] || []).push(answer);
+                    }
+                    return returnValue;
+                }, {});
+
+                console.log('refined_answer_obj', refined_answer_obj);
+
+                // var refined_answer_array = Object.keys(refined_answer_obj).map(function (answer) {
+                //     return f[answer]; 
+                // });
+
+                $.each( refined_answer_obj, function( index, value ) {
+                    segment = ""
+                    if (index == 1) {
                         segment = `
                                 <div class="dT mb10 wp100 tlF">
                                     <div class="dTc h24 vM w24"><img class="h24" src="/media/main_website/ic_email_48_px.png" /></div>
-                                    <div class="c9b dTc fs13 vM wsN oH toE">${value['answer']}</div>
+                                    <div class="c9b dTc fs13 vM">
+                        `;
+                                        $.each( value, function( index2, value2 ){
+                                            segment = segment + value2.answer;
+                                            if ( index2 != value.length - 1 ) {
+                                                segment = segment + ', ';
+                                            }
+                                        });
+                        segment = segment + `
+                                    </div>
                                 </div>
-                        `
-                        html = html + segment
+                        `;
+                        html = html + segment;
                     }else if(value['rank'] == 2 && value['answer_privacy'] ){
                         segment = `
                                 <div class="dT mb10 wp100">
                                     <div class="dTc h24 vM w24"><img class="h24" src="/media/main_website/mobile_alt.png"/></div>
-                                    <div class="c9b dTc fs13 vM wsN oH toE">${value['answer']}</div>
+                                    <div class="c9b dTc fs13 vM">
+                        `;
+                                        $.each( value, function( index2, value2 ){
+                                            segment = segment + value2.answer;
+                                            if ( index2 != value.length - 1 ) {
+                                                segment = segment + ', ';
+                                            }
+                                        });
+                        segment = segment + `
+                                    </div>
                                 </div>
-                        `
+                        `;
                         html = html + segment
                     }else if(value['rank'] == 3 && value['answer_privacy'] ){
                         segment = `
                                 <a class="c9b dT tdN wp100" href="${value['profile_link']}">
                                     <div class="dTc h24 vM w24"><img class="h24" src="/media/main_website/link.png"/></div>
-                                    <div class="c9b dTc fs13 vM cT wsN oH toE">${value['answer']}</div>
+                                    <div class="c9b dTc fs13 vM cT">
+                        `;
+                                        $.each( value, function( index2, value2 ){
+                                            segment = segment + value2.answer;
+                                            if ( index2 != value.length - 1 ) {
+                                                segment = segment + ', ';
+                                            }
+                                        });
+                        segment = segment + `
+                                    </div>
                                 </a>
-                        `
+                        `;
                         html = html + segment
                     }else if(value['rank'] == 4){
                         segment = `
@@ -1082,7 +1067,7 @@ function showMemberProfile(member_id){
                     }else if(value['rank'] == 5){
                        segment = `
                                 <a class="c9b dT tdN wp100" href="${value['file_link']}">
-                                    <div class="c9b dTc fs13 vM cT wsN oH toE">${value['answer']}</div>
+                                    <div class="c9b dTc fs13 vM cT">${value['answer']}</div>
                                 </a>
                         `
                         html = html + segment

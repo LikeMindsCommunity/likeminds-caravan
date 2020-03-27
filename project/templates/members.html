@@ -454,31 +454,71 @@ location.href="/community/"+"{{community_id}}"
                     </div>
                     <div class="p18 bs">
                 `
-                $.each(data['answer_list'],function(index,value){
-                    segment=""
-                    if(value['rank'] == 1 && value['answer_privacy']){
+                var refined_answer_obj = data['answer_list'].reduce(function(returnValue, answer) {
+                    if(answer.answer_privacy !== false){
+                        (returnValue[answer.rank] = returnValue[x.rank] || []).push(answer);
+                    }
+                    return returnValue;
+                }, {});
+
+                console.log('refined_answer_obj', refined_answer_obj);
+
+                // var refined_answer_array = Object.keys(refined_answer_obj).map(function (answer) {
+                //     return f[answer]; 
+                // });
+                
+                $.each( refined_answer_obj, function( index, value ) {
+                    segment = ""
+                    if (index == 1) {
                         segment = `
                                 <div class="dT mb10 wp100 tlF">
                                     <div class="dTc h24 vM w24"><img class="h24" src="/media/main_website/ic_email_48_px.png" /></div>
-                                    <div class="c9b dTc fs13 vM wsN oH toE">${value['answer']}</div>
+                                    <div class="c9b dTc fs13 vM">
+                        `;
+                                        $.each( value, function( index2, value2 ){
+                                            segment = segment + value2.answer;
+                                            if ( index2 != value.length - 1 ) {
+                                                segment = segment + ', ';
+                                            }
+                                        });
+                        segment = segment + `
+                                    </div>
                                 </div>
-                        `
-                        html = html + segment
+                        `;
+                        html = html + segment;
                     }else if(value['rank'] == 2 && value['answer_privacy'] ){
                         segment = `
                                 <div class="dT mb10 wp100">
                                     <div class="dTc h24 vM w24"><img class="h24" src="/media/main_website/mobile_alt.png"/></div>
-                                    <div class="c9b dTc fs13 vM wsN oH toE">${value['answer']}</div>
+                                    <div class="c9b dTc fs13 vM">
+                        `;
+                                        $.each( value, function( index2, value2 ){
+                                            segment = segment + value2.answer;
+                                            if ( index2 != value.length - 1 ) {
+                                                segment = segment + ', ';
+                                            }
+                                        });
+                        segment = segment + `
+                                    </div>
                                 </div>
-                        `
+                        `;
                         html = html + segment
                     }else if(value['rank'] == 3 && value['answer_privacy'] ){
                         segment = `
                                 <a class="c9b dT tdN wp100" href="${value['profile_link']}">
                                     <div class="dTc h24 vM w24"><img class="h24" src="/media/main_website/link.png"/></div>
-                                    <div class="c9b dTc fs13 vM cT wsN oH toE">${value['answer']}</div>
+                                    <div class="c9b dTc fs13 vM cT">
+                        `;
+                                        $.each( value, function( index2, value2 ){
+                                            segment = segment + value2.answer;
+                                            if ( index2 != value.length - 1 ) {
+                                                segment = segment + ', ';
+                                            }
+                                        });
+                        segment = segment + `
+                                    </div>
                                 </a>
-                        `
+                        `;
                         html = html + segment
                     }else if(value['rank'] == 4){
                         segment = `
@@ -488,7 +528,7 @@ location.href="/community/"+"{{community_id}}"
                     }else if(value['rank'] == 5){
                        segment = `
                                 <a class="c9b dT tdN wp100" href="${value['file_link']}">
-                                    <div class="c9b dTc fs13 vM cT wsN oH toE">${value['answer']}</div>
+                                    <div class="c9b dTc fs13 vM cT">${value['answer']}</div>
                                 </a>
                         `
                         html = html + segment
