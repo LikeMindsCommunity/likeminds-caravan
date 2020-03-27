@@ -223,7 +223,13 @@ $('#test').hide()
 
         $('#{{filter.question_id}}').click(function(){
 
-        {% if not is_member %}
+
+
+        {% if not request.user.is_authenticated %}
+            $('#login_popup').modal('show');
+            console.log("user is not authenticated");
+
+        {% elif not is_member %}
             $('#filter_unverified').modal('show');
             console.log("user is not a member");
             return;
