@@ -460,7 +460,7 @@ location.href="/community/"+"{{community_id}}"
                         segment = `
                                 <div class="dT mb10 wp100 tlF">
                                     <div class="dTc h24 vM w24"><img class="h24" src="/media/main_website/ic_email_48_px.png" /></div>
-                                    <div class="c9b dTc fs13 vM wsN oH toE">${value['answer']}</div>
+                                    <div class="c9b dTc fs13 vM">${value['answer']}</div>
                                 </div>
                         `
                         html = html + segment
@@ -468,7 +468,7 @@ location.href="/community/"+"{{community_id}}"
                         segment = `
                                 <div class="dT mb10 wp100">
                                     <div class="dTc h24 vM w24"><img class="h24" src="/media/main_website/mobile_alt.png"/></div>
-                                    <div class="c9b dTc fs13 vM wsN oH toE">${value['answer']}</div>
+                                    <div class="c9b dTc fs13 vM">${value['answer']}</div>
                                 </div>
                         `
                         html = html + segment
@@ -476,7 +476,7 @@ location.href="/community/"+"{{community_id}}"
                         segment = `
                                 <a class="c9b dT tdN wp100" href="${value['profile_link']}">
                                     <div class="dTc h24 vM w24"><img class="h24" src="/media/main_website/link.png"/></div>
-                                    <div class="c9b dTc fs13 vM cT wsN oH toE">${value['answer']}</div>
+                                    <div class="c9b dTc fs13 vM cT">${value['answer']}</div>
                                 </a>
                         `
                         html = html + segment
@@ -488,7 +488,7 @@ location.href="/community/"+"{{community_id}}"
                     }else if(value['rank'] == 5){
                        segment = `
                                 <a class="c9b dT tdN wp100" href="${value['file_link']}">
-                                    <div class="c9b dTc fs13 vM cT wsN oH toE">${value['answer']}</div>
+                                    <div class="c9b dTc fs13 vM cT">${value['answer']}</div>
                                 </a>
                         `
                         html = html + segment

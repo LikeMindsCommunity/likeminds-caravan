@@ -395,7 +395,7 @@ def community(request, community_id):
         'back': True,
         'title': False,
         'subTitle': False,
-        'background': '_',
+        'background': 'Fo05',
         'color': '0'
     }
     header_showcase = {

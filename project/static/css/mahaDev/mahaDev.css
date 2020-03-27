@@ -1,4 +1,12 @@
-html { scroll-behavior: smooth; }
+html { 
+    scroll-behavior: smooth; 
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+body ::-webkit-scrollbar { display: none; }
 
 .bg { background: transparent; }
 .bgF { background: #fff!important; }
