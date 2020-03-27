@@ -485,7 +485,7 @@ location.href="/community/"+"{{community_id}}"
                 `
                 var refined_answer_obj = data['answer_list'].reduce(function(returnValue, answer) {
                     if(answer.answer_privacy !== false){
-                        (returnValue[answer.rank] = returnValue[x.rank] || []).push(answer);
+                        (returnValue[answer.rank] = returnValue[answer.rank] || []).push(answer);
                     }
                     return returnValue;
                 }, {});

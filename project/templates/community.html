@@ -497,7 +497,7 @@
                         {% endfor %}
                     </div>
                 </div>
-            {% elif profile.rank == 2 %}
+            {% elif profile.grouper == 2 %}
                 <div class="dT mb10 tlF wp100">
                     <div class="dTc h24 vM w24 taC"><img class="dIb mxh24 mxw24 vM" src="/media/main_website/mobile_alt.png"/></div>
                     <div class="c9b dTc fs13 vM">
@@ -515,7 +515,7 @@
                         {% endfor %}
                     </div>
                 </a>
-            {% elif profile.rank == 4 %}
+            {% elif profile.grouper == 4 %}
                <p class="c4a fs15 lh24 m160">
                     {% for answer in profile.list %}
                         {{ answer.answer }}
@@ -1017,7 +1017,7 @@ function showMemberProfile(member_id){
                 `
                 var refined_answer_obj = data['answer_list'].reduce(function(returnValue, answer) {
                     if(answer.answer_privacy !== false){
-                        (returnValue[answer.rank] = returnValue[x.rank] || []).push(answer);
+                        (returnValue[answer.rank] = returnValue[answer.rank] || []).push(answer);
                     }
                     return returnValue;
                 }, {});
