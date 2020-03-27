@@ -542,39 +542,19 @@
     <!-- -->
 
 
-    <!-- unverified member profile pop-up-->
-    <div class="ui modal" id="unverified_member" style="width:75%;">
-
-<!--             <img src="/media/main_website/profile_header.png" style="width:100%;height:70%;">-->
-
-
-      <div class="profile_name" style="margin-top:6%;margin-left:20px;">
-          <p align="left" style="font-family:Roboto;sans-serif;font-weight:500;color:black;font-size:17px;line-height:22px;opacity:87%;">Member profile not accessible</p>
-
-      </div>
-       <div style="margin-top:5%;margin-left:20px;margin-right:18px;text-align:left;">
-           <p style="font-size:15px;line-height:22px;font-family:Roboto;sans-serif;font-weight:400;color:#000000;opacity:54%;">Your account is pending for approval from the admin. Once the admin approves, you would be able to view the full communtity profile of the user.
-<br/><br/>
-               Once verified, we will send an email on: <span style="color:#007aff;">{{user_email}}</span></p>
-       </div>
-       <br/>
-        <div style="margin-top:5%;margin-left:16px;margin-right:16px;text-align:center">
-
-           <p class="Roboto" style="font-size:13px;font-weight:500;color:#009688;letter-spacing:0.46px;opacity:100%" id="change_email">CHANGE EMAIL ID</p>
-
-       </div>
-       <div style="margin-top:5%;margin-left:16px;margin-right:16px;text-align:center">
-
-           <p class="Roboto" style="font-size:13px;font-weight:500;color:black;letter-spacing:0.46px;opacity:40%" id="dismiss_email">DISMISS</p>
-
-       </div>
-
-
-
-
-    <br/>
-   </div>
-    <!-- -->
+     <!-- unverified member profile pop-up-->
+        <div class="ui modal ffR p24 bs w280" id="unverified_member">
+            <p class="c0 fs16 fwM lh24 mb16">Member profile not accessible</p>
+            <p class="c9 fs15 fwR lh22 mb16">
+                Your account is pending for approval from the admin. Once the admin approves, you would be able to view the full communtity profile of the user.
+            </p>
+            <p class="c9 fs15 fwR lh22 mb16">
+                Once verified, we will send an email on: <span class="c007aff">{{user_email}}</span>
+            </p>
+            <div class="cT fs13 fwM ls05 p12 taC" id="change_email">CHANGE EMAIL ID</div>
+            <div class="c9 fs13 fwM ls05 p12 pb0 taC" id="dismiss_email">DISMISS</div>
+        </div>
+        <!-- -->
 
 
     <!-- verifief member profile pop-up -->
@@ -939,7 +919,9 @@ console.log(member_id)
 {% if not is_member %}
 
     {% if request.user.is_authenticated %}
-        $('#unverified_member').modal('show');
+        {% if Nom_mem_state == 3 %}
+            $('#unverified_member').modal('show');
+        {% endif %}
     {% else %}
         model_show();
      {% endif %}

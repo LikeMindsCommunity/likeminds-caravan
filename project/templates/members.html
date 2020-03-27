@@ -231,7 +231,9 @@ $('#test').hide()
             return;
 
         {% elif not is_member %}
-            $('#filter_unverified').modal('show');
+            {% if member_state == 3 %}
+                $('#filter_unverified').modal('show');
+            {% endif %}
             console.log("user is not a member");
             return;
 
@@ -397,8 +399,9 @@ location.href="/community/"+"{{community_id}}"
         console.log("user is not authenticated");
 
     {% elif not is_member %}
-
-        $('#unverified_member').modal('show');
+        {% if member_state == 3 %}
+            $('#unverified_member').modal('show');
+        {% endif %}
         console.log("test")
 
     {% else %}
