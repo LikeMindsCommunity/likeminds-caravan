@@ -662,8 +662,19 @@ def members_directory(request, community_id):
 
     is_member = False
     user_email = ""
+    member_state = 0
     if request.user.is_authenticated:
-        is_member=is_member_verified(community_id,request.user)
+        #is_member=is_member_verified(community_id,request.user)
+        member_instance_list = Members.objects.filter(community_id=community_id,member_id=request.user)
+
+        if member_instance_list.exists():
+
+            member_state = member_instance_list[0].state
+
+            if member_state == member_states.ADMIN or member_state == member_states.MEMBER:
+                is_member = True
+
+
         user_email = request.user.userinfo.email
 
     if request.method == 'POST':
@@ -729,7 +740,8 @@ def members_directory(request, community_id):
         'is_member':is_member,
         'header': header,
         'user_email': user_email,
-        'filter_list':filters
+        'filter_list':filters,
+        'member_state':member_state
     }
 
 
@@ -1124,8 +1136,9 @@ def get_community_questions(community_id):
                 temp['data'] = each_question.question_title
 
             elif temp['question_state'] == question_states.PROFILE_LINK:
-                item = ast.literal_eval(each_question.value)[0]
-                temp['profile_platform'] = item['profile_platform'].lower()
+                if each_question.value:
+                    item = ast.literal_eval(each_question.value)[0]
+                    temp['profile_platform'] = item['profile_platform'].lower()
                 temp['data'] = each_question.question_title
 
 
