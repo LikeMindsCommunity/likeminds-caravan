@@ -816,27 +816,27 @@ def get_member_profile(community_id,member_id,is_promoter=False):
 
         elif question_instance.question_state == question_states.EMAIL_ID:
             # email id
-            email = email + "," + answer.question_answer
+            email =  answer.question_answer
             temp['answer_privacy']=answer_privacy(question_instance.value,is_promoter=is_promoter)
             #print(temp['answer_privacy'])
-            temp['answer'] = email[1:]
+            temp['answer'] = email
             temp['rank'] = 1
 
         elif question_instance.question_state == question_states.MOBILE_NO:
             # mobile number
-            mobile_no = mobile_no + "," + answer.question_answer
+            mobile_no = answer.question_answer
             temp['answer_privacy']=answer_privacy(question_instance.value,is_promoter=is_promoter)
             #print(temp['answer_privacy'])
-            temp['answer'] = mobile_no[1:]
+            temp['answer'] = mobile_no
             temp['rank'] = 2
 
         elif question_instance.question_state == question_states.PROFILE_LINK:
             # profile link
-            profile_link = profile_link + "," + answer.question_answer
+            profile_link = answer.question_answer
             temp['answer_privacy']=answer_privacy(question_instance.value,is_promoter=is_promoter)
             #print(temp['answer_privacy'])
-            temp['profile_link'] = profile_link[1:]
-            temp['answer'] = profile_link[1:40]
+            temp['profile_link'] = profile_link
+            temp['answer'] = "Profile link"
             temp['rank'] = 3
 
         elif question_instance.question_state == question_states.FILE_UPLOAD:
