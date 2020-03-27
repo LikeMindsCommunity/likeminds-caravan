@@ -35,6 +35,8 @@ body ::-webkit-scrollbar { display: none; }
 .h24 { height: 24px; }
 
 .mnh48 { min-height: 48px!important; }
+.mxh24 { max-height: 24px; }
+.mxw24 { max-height: 24px; }
 
 .h86 { height: 86px!important; }
 .w86 {width: 86px!important; }
