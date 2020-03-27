@@ -566,6 +566,7 @@ $('#back_button').click(function(e){
                             <div class="ui negative message" id="hidden_div_{{question.id}}">
                                 <i class="close icon" onclick="remove_error('{{question.id}}')"></i>
                                 <div class="header">
+
                                     Please Enter valid Introduction with atleast {{question.min_chars}} characters but not more than {{question.max_chars}} characters
                                 </div>
                             </div>
@@ -596,7 +597,7 @@ $('#back_button').click(function(e){
                         var tag_div_html = `<div class="ui negative message" id="hidden_div_{{question.id}}">
                                                 <i class="close icon" onclick="remove_error('{{question.id}}')"></i>
                                                 <div class="header">
-                                                    Please enter only numbers
+                                                    Please enter valid mobile no
                                                 </div>
                                             </div>`
                         $('#div_{{question.id}}').append(tag_div_html)
@@ -622,7 +623,7 @@ $('#back_button').click(function(e){
                         var tag_div_html = `<div class="ui negative message" id="hidden_div_{{question.id}}">
                                                 <i class="close icon" onclick="remove_error('{{question.id}}')"></i>
                                                 <div class="header">
-                                                    Please enter valid email
+                                                    Please enter valid email address
                                                 </div>
                                             </div>`
                         $('#div_{{question.id}}').append(tag_div_html)
@@ -649,7 +650,7 @@ $('#back_button').click(function(e){
                         var tag_div_html = `<div class="ui negative message" id="hidden_div_{{question.id}}">
                                                 <i class="close icon" onclick="remove_error('{{question.id}}')"></i>
                                                 <div class="header">
-                                                    Please enter valid url
+                                                    Please enter valid {{question.profile_platform}} profile_link
                                                 </div>
                                             </div>`
                         $('#div_{{question.id}}').append(tag_div_html)
@@ -676,17 +677,17 @@ $('#back_button').click(function(e){
                                 <div class="header">
                                 {{question.question_state}}
                                 {% if question.question_state == 0 %}
-                                    Please fill this feild
+                                    Please enter the required field
                                 {% elif question.question_state == 1 %}
                                     Please select an option
                                 {% elif question.question_state == 2 %}
-                                    Please select atleast one option
+                                    Please select or enter option
                                 {% elif question.question_state == 4 %}
-                                    Please fill this answer
+                                   Please enter the required field
                                 {% elif question.question_state == 5 %}
                                     Please upload a file
                                 {% elif question.question_state == 6 %}
-                                    Please select a {{question.date_format}}
+                                    Please enter valid date
                                 {% elif question.question_state == 7 %}
                                     Please write your introduction in bit more detail
                                 {% elif question.question_state == 8 %}
@@ -717,7 +718,7 @@ $('#back_button').click(function(e){
                             <div class="ui negative message" id="hidden_div_{{question.id}}">
                                 <i class="close icon" onclick="remove_error('{{question.id}}')"></i>
                                 <div class="header">
-                                    Please upload a file
+                                    Please attach file
                                 </div>
                             </div>
                             `
