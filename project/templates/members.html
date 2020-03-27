@@ -386,7 +386,7 @@ location.href="/community/"+"{{community_id}}"
 
 
     {% if not request.user.is_authenticated %}
-        $('#filter_unverified').modal('login_popup');
+        $('#login_popup').modal('show');
         console.log("user is not authenticated");
 
     {% elif not is_member %}
