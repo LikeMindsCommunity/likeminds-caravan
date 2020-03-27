@@ -484,27 +484,49 @@
         </div>
 
         <p class="c0 fs17 mb16 taC">{{request.user.userinfo.name}}</p>
-        <!-- {% regroup answer_list by rank as answer_list_by_rank %} -->
-        {% for profile in profile_list %}
-            {% if profile.rank == 1 %}
-                <div class="dT mb10 wp100">
-                    <div class="dTc h24 vM w24"><img class="h24" src="/media/main_website/ic_email_48_px.png" /></div>
-                    <div class="c9b dTc fs13 vM">{{profile.answer}}</div>
+
+        {% regroup answer_list by rank as answer_list_by_rank %}
+
+        {% for profile in answer_list_by_rank %}
+            {% if profile.grouper == 1 %}
+                <div class="dT mb10 tlF wp100">
+                    <div class="dTc h24 vM w24 taC"><img class="dIb mxh24 mxw24 vM" src="/media/main_website/ic_email_48_px.png" /></div>
+                    <div class="c9b dTc fs13 vM">
+                        {% for answer in profile.list %}
+                            {{ answer.answer }}, 
+                        {% endfor %}
+                    </div>
                 </div>
             {% elif profile.rank == 2 %}
-                <div class="dT mb10 wp100">
-                    <div class="dTc h24 vM w24"><img class="h24" src="/media/main_website/mobile_alt.png"/></div>
-                    <div class="c9b dTc fs13 vM">{{profile.answer}}</div>
+                <div class="dT mb10 tlF wp100">
+                    <div class="dTc h24 vM w24 taC"><img class="dIb mxh24 mxw24 vM" src="/media/main_website/mobile_alt.png"/></div>
+                    <div class="c9b dTc fs13 vM">
+                        {% for answer in profile.list %}
+                            {{ answer.answer }}, 
+                        {% endfor %}
+                    </div>
                 </div>
             {% elif profile.rank == 3 %}
-                <a class="c9b dT tdN wp100" href="{{profile.profile_link}}">
-                    <div class="dTc h24 vM w24"><img class="h24" src="/media/main_website/link.png"/></div>
-                    <div class="c9b dTc fs13 vM cT">{{profile.answer}}</div>
+                <a class="c9b dT tdN mb10 tlF wp100" href="{{profile.profile_link}}">
+                    <div class="dTc h24 vM w24 taC"><img class="dIb mxh24 mxw24 vM" src="/media/main_website/link.png"/></div>
+                    <div class="c9b dTc fs13 vM cT">
+                        {% for answer in profile.list %}
+                            {{ answer.answer }}, 
+                        {% endfor %}
+                    </div>
                 </a>
             {% elif profile.rank == 4 %}
-               <p class="c4a fs15 lh24 m160">{{profile.answer}}</p>
+               <p class="c4a fs15 lh24 m160">
+                    {% for answer in profile.list %}
+                        {{ answer.answer }}
+                    {% endfor %}
+                </p>
             {% else %}
-                <p class="c9b fs15 lh24 m160 m80">{{profile.answer}}</p>
+                <p class="c9b fs15 lh24 m160 m80">
+                    {% for answer in profile.list %}
+                        {{ answer.answer }}
+                    {% endfor %}
+                </p>
             {% endif %}
        {% endfor %}
         <div class="fs13 p12 taC fwM" id="dismiss">DISMISS</div>
@@ -1010,8 +1032,8 @@ function showMemberProfile(member_id){
                     segment = ""
                     if (index == 1) {
                         segment = `
-                                <div class="dT mb10 wp100 tlF">
-                                    <div class="dTc h24 vM w24"><img class="h24" src="/media/main_website/ic_email_48_px.png" /></div>
+                                <div class="dT mb10 tlF wp100">
+                                    <div class="dTc h24 vM w24 taC"><img class="dIb mxh24 mxw24 vM" src="/media/main_website/ic_email_48_px.png" /></div>
                                     <div class="c9b dTc fs13 vM">
                         `;
                                         $.each( value, function( index2, value2 ){
@@ -1025,10 +1047,10 @@ function showMemberProfile(member_id){
                                 </div>
                         `;
                         html = html + segment;
-                    }else if(value['rank'] == 2 && value['answer_privacy'] ){
+                    }else if(value['rank'] == 2 ){
                         segment = `
-                                <div class="dT mb10 wp100">
-                                    <div class="dTc h24 vM w24"><img class="h24" src="/media/main_website/mobile_alt.png"/></div>
+                                <div class="dT mb10 tlF wp100">
+                                    <div class="dTc h24 vM w24 taC"><img class="dIb mxh24 mxw24 vM" src="/media/main_website/mobile_alt.png"/></div>
                                     <div class="c9b dTc fs13 vM">
                         `;
                                         $.each( value, function( index2, value2 ){
@@ -1042,10 +1064,10 @@ function showMemberProfile(member_id){
                                 </div>
                         `;
                         html = html + segment
-                    }else if(value['rank'] == 3 && value['answer_privacy'] ){
+                    }else if(value['rank'] == 3 ){
                         segment = `
-                                <a class="c9b dT tdN wp100" href="${value['profile_link']}">
-                                    <div class="dTc h24 vM w24"><img class="h24" src="/media/main_website/link.png"/></div>
+                                <a class="c9b dT tdN mb10 tlF wp100" href="${value['profile_link']}">
+                                    <div class="dTc h24 vM w24 taC"><img class="dIb mxh24 mxw24 vM" src="/media/main_website/link.png"/></div>
                                     <div class="c9b dTc fs13 vM cT">
                         `;
                                         $.each( value, function( index2, value2 ){
@@ -1060,21 +1082,26 @@ function showMemberProfile(member_id){
                         `;
                         html = html + segment
                     }else if(value['rank'] == 4){
-                        segment = `
-                                    <p class="c4a fs15 lh24 m160">${value['answer']}</p>
-                        `
+                        segment = ''
+                        $.each( value, function( index2, value2 ){
+                            segment = segment + `<p class="c4a fs15 lh24 m160">${value2['answer']}</p>`
+                        });
                         html = html + segment
                     }else if(value['rank'] == 5){
-                       segment = `
-                                <a class="c9b dT tdN wp100" href="${value['file_link']}">
-                                    <div class="c9b dTc fs13 vM cT">${value['answer']}</div>
+                        segment = ''
+                        $.each( value, function( index2, value2 ){
+                            segment = segment + `
+                                <a class="c9b dT tdN wp100" href="${value2['file_link']}">
+                                    <div class="c9b dTc fs13 vM cT">${value2['answer']}</div>
                                 </a>
-                        `
+                            `
+                        });
                         html = html + segment
                     }else{
-                        segment = `
-                                    <p class="c9b fs15 lh24 m160 m80 ">${value['answer']}</p>
-                        `
+                        segment = ''
+                        $.each( value, function( index2, value2 ){
+                            segment = segment + `<p class="c9b fs15 lh24 m160 m80 ">${value2['answer']}</p>`
+                        });
                         html = html + segment
                     }
                 })
