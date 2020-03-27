@@ -258,7 +258,7 @@ def community(request, community_id):
             member_state = member[0].state if member.exists() else 0
 
             questions, validation_error, user, data, community, filled_answers = join_community(request, community_id,
-                                                                                                ref_id,aj=aj)
+                                                                                                ref_id,aj=aj,member_state=member_state)
             if questions:
 
                 # data = itertools.zip_longest(data,filled_answers,fillvalue='')
@@ -284,6 +284,8 @@ def community(request, community_id):
                                                                   'aj':aj,'header_showcase':header_showcase}
                     #print(context)
                     return render(request, 'response_form.html', context)
+                else:
+                    pass
             else:
                 return JsonResponse({'success': True})
         elif cta == 'share':
@@ -1018,7 +1020,7 @@ def logout_view(request):
 
 
 @login_required
-def join_community(request, community_id, ref_id, aj=False):
+def join_community(request, community_id, ref_id, aj=False, member_state=None):
 
 
     if request.user.is_authenticated:
@@ -1078,8 +1080,9 @@ def join_community(request, community_id, ref_id, aj=False):
         #print(">>>>  ",json_dict)
         info_logger.info(json_dict)
 
-        params = {'member_id': member_id, 'community_id': community_id, 'ref_id': ref_id}
-        rqst.post(join_url, params=params, json=json_dict)
+        if (member_state == 0 or member_state == 5) and member_state is None:
+            params = {'member_id': member_id, 'community_id': community_id, 'ref_id': ref_id}
+            rqst.post(join_url, params=params, json=json_dict)
         # return false to show thank you page the user has now answered the questions
         return False, validation_error, user, similar_communities, community, []
 
