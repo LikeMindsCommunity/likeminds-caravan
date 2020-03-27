@@ -779,7 +779,7 @@ def member_profile(request):
     answer_list = get_member_profile(community_id,member_id,is_promoter=is_promoter)
 
     json_response = {'answer_list':answer_list,'member_name':member_name,'image_link':image_link}
-    
+
     return JsonResponse(json_response)
 
 
