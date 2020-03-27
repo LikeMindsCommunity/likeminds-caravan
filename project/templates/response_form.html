@@ -414,7 +414,7 @@ function isUrlValid(userInput,profile_platform) {
                 return false
         }else if(profile_platform == "LinkedIn"){
 
-                let lin = userInput.match("linkedIn") || userInput.match("LinkedIn")
+                let lin = userInput.match("linkedIn") || userInput.match("LinkedIn") || userInput.match("linkedin")
 
                 if(lin)
                     return true
