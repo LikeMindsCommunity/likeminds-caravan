@@ -344,7 +344,7 @@ textarea.noscrollbars {
                 {% elif question.question_state == 5 %}
                     <!--  FILE_UPLOAD = 5 -->
                     <label class="c4a fs15 fwR lh14 p10 m0">{{question.data}}</label>
-                    <div class="ui action input bd0 br8 bxs2 p16 h48 oH pR">
+                    <div class="ui action input bd0 br8 bxs2 h48 oH pR">
                         <input class="bd0 h48" id="{{question.id}}" name ="{{question.id}}" type="file" formenctype="multipart/form-data" oninput="remove_error('{{question.id}}')"  onchange="remove_error('{{question.id}}')">
                         <div class="b0 bgF button icon pA r0 t0 ui">
                             <i class="attach icon"></i>
@@ -362,15 +362,15 @@ textarea.noscrollbars {
                 {% elif question.question_state == 8 %}
                     <!--    PROFILE_LINK=8-->
                     <label class="c4a fs15 fwR lh14 p10 m0">{{question.data}}</label>
-                    <textarea id="{{question.id}}" class="noscrollbars bd0 br8 bxs2 p16" rows="2" cols="4" name ="{{question.id}}" minlength="50" required placeholder="" oninput="remove_error('{{question.id}}')" onchange="remove_error('{{question.id}}')"></textarea>
+                    <input id="{{question.id}}" class="noscrollbars bd0 br8 bxs2 p16" rows="2" cols="4" name ="{{question.id}}" minlength="50" required placeholder="" oninput="remove_error('{{question.id}}')" onchange="remove_error('{{question.id}}')">
                 {% elif question.question_state == 9 %}
                     <!--    MOBILE_NO = 9-->
                     <label class="c4a fs15 fwR lh14 p10 m0">{{question.data}}</label>
-                    <textarea id="{{question.id}}" class="noscrollbars bd0 br8 bxs2 p16"  rows="2" cols="4" name ="{{question.id}}" minlength="50" required placeholder="" oninput="remove_error('{{question.id}}')"  onchange="remove_error('{{question.id}}')"></textarea>
+                    <input id="{{question.id}}" class="noscrollbars bd0 br8 bxs2 p16"  rows="2" cols="4" name ="{{question.id}}" minlength="50" required placeholder="" oninput="remove_error('{{question.id}}')"  onchange="remove_error('{{question.id}}')">
                 {% elif question.question_state == 10 %}
                     <!--    EMAIL_ID = 10-->
                     <label class="c4a fs15 fwR lh14 p10 m0">{{question.data}}</label>
-                    <textarea id="{{question.id}}" class="noscrollbars bd0 br8 bxs2 p16" rows="2" cols="4" name ="{{question.id}}" minlength="50" required placeholder="" oninput="remove_error('{{question.id}}')"  onchange="remove_error('{{question.id}}')"></textarea>
+                    <input id="{{question.id}}" class="noscrollbars bd0 br8 bxs2 p16" rows="2" cols="4" name ="{{question.id}}" minlength="50" required placeholder="" oninput="remove_error('{{question.id}}')"  onchange="remove_error('{{question.id}}')">
                 {% endif %}
             </div>
         {% endfor %}
