@@ -461,7 +461,7 @@ function isUrlValid(userInput,profile_platform) {
                         if (month.length < 2) {
                             month = '0' + month;
                         }
-                        return month + '/' + year;
+                        return month + ' ' + year;
                     {% elif question.date_format == 'date' and question.date_format_full == 'full' %}
                         return day + ' ' + month_shorts[date.getMonth()] + ' ' + year;
 
