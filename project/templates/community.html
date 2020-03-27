@@ -1047,7 +1047,7 @@ function showMemberProfile(member_id){
                                 </div>
                         `;
                         html = html + segment;
-                    }else if(value['rank'] == 2 ){
+                    }else if(index == 2 ){
                         segment = `
                                 <div class="dT mb10 tlF wp100">
                                     <div class="dTc h24 vM w24 taC"><img class="dIb mxh24 mxw24 vM" src="/media/main_website/mobile_alt.png"/></div>
@@ -1064,7 +1064,7 @@ function showMemberProfile(member_id){
                                 </div>
                         `;
                         html = html + segment
-                    }else if(value['rank'] == 3 ){
+                    }else if(index == 3 ){
                         segment = `
                                 <a class="c9b dT tdN mb10 tlF wp100" href="${value['profile_link']}">
                                     <div class="dTc h24 vM w24 taC"><img class="dIb mxh24 mxw24 vM" src="/media/main_website/link.png"/></div>
@@ -1081,13 +1081,13 @@ function showMemberProfile(member_id){
                                 </a>
                         `;
                         html = html + segment
-                    }else if(value['rank'] == 4){
+                    }else if(index == 4){
                         segment = ''
                         $.each( value, function( index2, value2 ){
                             segment = segment + `<p class="c4a fs15 lh24 m160">${value2['answer']}</p>`
                         });
                         html = html + segment
-                    }else if(value['rank'] == 5){
+                    }else if(index == 5){
                         segment = ''
                         $.each( value, function( index2, value2 ){
                             segment = segment + `
