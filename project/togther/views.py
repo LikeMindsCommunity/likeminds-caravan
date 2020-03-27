@@ -755,7 +755,7 @@ def get_user_selected_option_list(question_id):
     '''function to get user selected options'''
     filter_list = list(questionFilters.objects.filter(question=question_id).values_list('filter',flat=True).distinct())
 
-    
+
     return filter_list
 
 
@@ -1118,7 +1118,7 @@ def get_community_questions(community_id):
 
             elif temp['question_state'] == question_states.PROFILE_LINK:
                 item = ast.literal_eval(each_question.value)[0]
-                temp['profile_platform'] = item['profile_platform']
+                temp['profile_platform'] = item['profile_platform'].lower()
                 temp['data'] = each_question.question_title
 
 
