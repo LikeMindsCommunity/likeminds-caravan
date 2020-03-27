@@ -1,4 +1,12 @@
-html { scroll-behavior: smooth; }
+html { 
+    scroll-behavior: smooth; 
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+body ::-webkit-scrollbar { display: none; }
 
 .bg { background: transparent; }
 .bgF { background: #fff!important; }
@@ -27,6 +35,8 @@ html { scroll-behavior: smooth; }
 .h24 { height: 24px; }
 
 .mnh48 { min-height: 48px!important; }
+.mxh24 { max-height: 24px; }
+.mxw24 { max-width: 24px; }
 
 .h86 { height: 86px!important; }
 .w86 {width: 86px!important; }
@@ -68,7 +78,7 @@ html { scroll-behavior: smooth; }
 .fwR { font-weight:400!important; }
 .fwM { font-weight:500!important; }
 
-.cF { color: #fff; }
+.cF { color: #fff!important; }
 .c0 { color: #000; }
 .c9b { color: #9b9b9b; }
 .c4 { color: #444; }

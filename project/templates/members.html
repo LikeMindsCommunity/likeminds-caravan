@@ -104,7 +104,7 @@
                                 <i class="caret dIb down icon m0 vM"></i>
                             </button>
                         {% else %}
-                            <button class="bdT bgF br16 bs cT dIb fs15 h32 ls05 m04 p0 p08 pl16 vM">
+                            <button class="bdT bgT br16 bs cF dIb fs15 h32 ls05 m04 p0 p08 pl16 vM">
                                 <div class="dIb vM" id="{{i.question_id}}">{{i.question_title}}</div>
                                 <i class="caret dIb down icon m0 vM"></i>
                             </button>
@@ -176,6 +176,30 @@
         </div>
         <!-- -->
 
+        <!-- login model for exclusive communities -->
+        <div class="ui modal image_container_login w300" id="login_popup">
+            <div class="h72 w72 brp50 bd2F bs bxs oH bgT mtn22 mA">
+                <img class="h86 w86 mtn8 mln8 ofC" src="/media/main_website/like_minds_speaker.png">
+            </div>
+            <div class="p24 bs taC ffR">
+                <p class="m0 p0 fs17 lh22 c0 mb10 fwM">Login to continue</p>
+                <p class="m0 p0 fs15 lh22 c9 mb16">This is an exclusive community. To view member details please login/signup and join the community.</p>
+                <div class="p160 ls05">
+                    <div class="fs12 mb16">
+                        <a class="p12 bs dB br20 tdN bgLi cF ffR fwM" href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}">
+                            <i class="dIb fa fa-linkedin fs15 lh16 vM"></i>
+                            <span  class="dIb lh16 pl12 vM">LOGIN WITH LINKEDIN</span>
+                        </a>
+                    </div>
+                    <div class="fs12">
+                        <a class="p12 bs dB br20 tdN bgFb cF ffR fwM" href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}">
+                            <i class="fa fa-facebook dIb fs15 lh16 vM" ></i>
+                            <span class="dIb lh16 pl12 vM">LOGIN WITH FACEBOOK</span>
+                        </a>
+                    </div>
+                </div>
+            <!-- -->
+
     </body>
 
 </html>
@@ -199,10 +223,19 @@ $('#test').hide()
 
         $('#{{filter.question_id}}').click(function(){
 
-        {% if not is_member %}
 
-        $('#filter_unverified').modal('show');
-        return;
+
+        {% if not request.user.is_authenticated %}
+            $('#login_popup').modal('show');
+            console.log("user is not authenticated");
+            return;
+
+        {% elif not is_member %}
+            {% if member_state == 3 %}
+                $('#filter_unverified').modal('show');
+            {% endif %}
+            console.log("user is not a member");
+            return;
 
         {% endif %}
 
@@ -360,9 +393,15 @@ location.href="/community/"+"{{community_id}}"
 
     member_id=$(this).attr('member_id')
 
-    {% if not is_member %}
 
-        $('#unverified_member').modal('show');
+    {% if not request.user.is_authenticated %}
+        $('#login_popup').modal('show');
+        console.log("user is not authenticated");
+
+    {% elif not is_member %}
+        {% if member_state == 3 %}
+            $('#unverified_member').modal('show');
+        {% endif %}
         console.log("test")
 
     {% else %}
@@ -454,55 +493,109 @@ location.href="/community/"+"{{community_id}}"
                     </div>
                     <div class="p18 bs">
                 `
-                $.each(data['answer_list'],function(index,value){
-                    segment=""
-                    if(value['rank'] == 1 && value['answer_privacy']){
+                var refined_answer_obj = data['answer_list'].reduce(function(returnValue, answer) {
+                    if(answer.answer_privacy !== false){
+                        (returnValue[answer.rank] = returnValue[answer.rank] || []).push(answer);
+                    }
+                    return returnValue;
+                }, {});
+
+                console.log('refined_answer_obj', refined_answer_obj);
+
+                // var refined_answer_array = Object.keys(refined_answer_obj).map(function (answer) {
+                //     return f[answer]; 
+                // });
+                
+                $.each( refined_answer_obj, function( index, value ) {
+                    segment = ""
+                    if (index == 1) {
                         segment = `
-                                <div class="dT mb10 wp100 tlF">
-                                    <div class="dTc h24 vM w24"><img class="h24" src="/media/main_website/ic_email_48_px.png" /></div>
-                                    <div class="c9b dTc fs13 vM wsN oH toE">${value['answer']}</div>
+                                <div class="dT mb10 tlF wp100">
+                                    <div class="dTc h24 vM w24 taC"><img class="dIb mxh24 mxw24 vM" src="/media/main_website/ic_email_48_px.png" /></div>
+                                    <div class="c9b dTc fs13 vM lh1h16 p08 bs">
+                        `;
+                                        $.each( value, function( index2, value2 ){
+                                            segment = segment + value2.answer;
+                                            if ( index2 != value.length - 1 ) {
+                                                segment = segment + ', ';
+                                            }
+                                        });
+                        segment = segment + `
+                                    </div>
                                 </div>
-                        `
-                        html = html + segment
-                    }else if(value['rank'] == 2 && value['answer_privacy'] ){
+                        `;
+                        html = html + segment;
+                    }else if(index == 2 ){
                         segment = `
-                                <div class="dT mb10 wp100">
-                                    <div class="dTc h24 vM w24"><img class="h24" src="/media/main_website/mobile_alt.png"/></div>
-                                    <div class="c9b dTc fs13 vM wsN oH toE">${value['answer']}</div>
+                                <div class="dT mb10 tlF wp100">
+                                    <div class="dTc h24 vM w24 taC"><img class="dIb mxh24 mxw24 vM" src="/media/main_website/mobile_alt.png"/></div>
+                                    <div class="c9b dTc fs13 vM lh1h16 p08 bs">
+                        `;
+                                        $.each( value, function( index2, value2 ){
+                                            segment = segment + value2.answer;
+                                            if ( index2 != value.length - 1 ) {
+                                                segment = segment + ', ';
+                                            }
+                                        });
+                        segment = segment + `
+                                    </div>
                                 </div>
-                        `
+                        `;
                         html = html + segment
-                    }else if(value['rank'] == 3 && value['answer_privacy'] ){
+                    }else if(index == 3 ){
                         segment = `
-                                <a class="c9b dT tdN wp100" href="${value['profile_link']}">
-                                    <div class="dTc h24 vM w24"><img class="h24" src="/media/main_website/link.png"/></div>
-                                    <div class="c9b dTc fs13 vM cT wsN oH toE">${value['answer']}</div>
-                                </a>
-                        `
+                                <div class="dT mb10 tlF wp100">
+                                    <div class="dTc h24 vM w24 taC"><img class="dIb mxh24 mxw24 vM" src="/media/main_website/link.png"/></div>
+                                    <div class="c9b dTc fs13 vM lh1h16 p08 bs">
+                        `;
+                                        $.each( value, function( index2, value2 ){
+                                            segment = segment + `<a class="cT tdN" href="//${value2['profile_link']}">${value2['answer']}</a>`;
+                                            if ( index2 != value.length - 1 ) {
+                                                segment = segment + ', ';
+                                            }
+                                        });
+                        segment = segment + `
+                                    </div>
+                                </div>
+                        `;
                         html = html + segment
-                    }else if(value['rank'] == 4){
-                        segment = `
-                                    <p class="c4a fs15 lh24 m160">${value['answer']}</p>
-                        `
+                    }else if(index == 4){
+                        segment = ''
+                        $.each( value, function( index2, value2 ){
+                            segment = segment + `<p class="c4a fs15 lh24 m160">${value2['answer']}</p>`;
+                            if ( index2 != value.length - 1 ) {
+                                segment = segment + ', ';
+                            }
+                        });
                         html = html + segment
-                    }else if(value['rank'] == 5){
-                       segment = `
-                                <a class="c9b dT tdN wp100" href="${value['file_link']}">
-                                    <div class="c9b dTc fs13 vM cT wsN oH toE">${value['answer']}</div>
+                    }else if(index == 5){
+                        segment = ''
+                        $.each( value, function( index2, value2 ){
+                            segment = segment + `
+                                <a class="cT dB m160 tdN" href="//${value2['file_link']}">
+                                    ${value2['answer']}
                                 </a>
-                        `
+                            `;
+                            if ( index2 != value.length - 1 ) {
+                                segment = segment + ', ';
+                            }
+                        });
                         html = html + segment
                     }else{
-                        segment = `
-                                    <p class="c9b fs15 lh24 m160 m80 ">${value['answer']}</p>
-                        `
+                        segment = ''
+                        $.each( value, function( index2, value2 ){
+                            segment = segment + `<p class="c9b fs15 lh24 m160 m80 ">${value2['answer']}</p>`;
+                           
+                        });
                         html = html + segment
                     }
                 })
-                $('#display').html(html + '</div>')
+                $('#display').html(html + '</div><div class="fs13 p12 taC fwM" id="dismiss1">DISMISS</div>')
                 $('#display').modal('show');
                 $(".dimmer").css("background-color","rgba(40,40,40,0.5)");
-
+                $('#dismiss1').click(function(){
+                    $('#display').modal('hide');
+                })
             }
         })
     }

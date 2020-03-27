@@ -169,6 +169,7 @@ def your_communities(request, user_id):
     '''This function is used to see your communities based on user id'''
 
     member_id = request.GET.get('member_id')
+    current_user_id = get_member_id_from_headers(request)
     page_number = request.GET.get('page', '')
     if str(member_id) != str(user_id):
         member_id = user_id
@@ -1345,6 +1346,8 @@ def members(request, community_id):
     community = get_object_or_404(Community, pk=community_id)
     # get members of the community
 
+    current_user_id = get_member_id_from_headers(request)
+
 
     if community_id == feedback_community_id:
         # if the community is feedback community sending empty list
@@ -1361,7 +1364,7 @@ def members(request, community_id):
             continue
         usr = UserinfoSerializer(mem.member_id.userinfo)
         usr['member_state'] = mem.state
-        form_response = FormResponseSerilaizer(community_id, mem.member_id.id,bl=True)
+        form_response = FormResponseSerilaizer(community_id, mem.member_id.id,bl=True,current_user_id=current_user_id)
         if form_response:
             usr['response'] = form_response[0]
             usr['question_answers'] = form_response[1]
@@ -1374,6 +1377,7 @@ def members(request, community_id):
 def admins(request, community_id):
     ''' function to get admins of a community '''
     member_id = request.GET.get('member_id', None)
+    current_user_id = get_member_id_from_headers(request)
     admins = Members.objects.filter(community_id=community_id).filter(Q(state=1) | Q(state=2))
     users = []
 
@@ -1383,7 +1387,7 @@ def admins(request, community_id):
         usr = UserinfoSerializer(user[0])
 
         if int(community_id) != feedback_community_id:
-            form_response = FormResponseSerilaizer(community_id, admin.member_id.id,bl=True)
+            form_response = FormResponseSerilaizer(community_id, admin.member_id.id,bl=True,current_user_id=current_user_id)
             if form_response:
                 usr['response'] = form_response[0]
                 usr['question_answers'] = form_response[1]
@@ -2300,7 +2304,7 @@ def get_pending_members_of_community(community_id,requested_member_id):
                 #     response_object['key'] = j.question_title
                 #     response_object['value'] = j.question_answer
                 #     user_response.append(response_object)
-                response = FormResponseSerilaizer(community_id, i.member_id.id,bl=True)
+                response = FormResponseSerilaizer(community_id, i.member_id.id,bl=True,current_user_id=requested_member_id)
                 if response:
                     usr['response'] = response[0]
                     usr['question_answers'] = response[1]
@@ -2318,7 +2322,7 @@ def get_pending_members_of_community(community_id,requested_member_id):
             #     response_object['key'] = j.question_title
             #     response_object['value'] = j.question_answer
             #     user_response.append(response_object)
-            response = FormResponseSerilaizer(community_id, i.member_id.id, bl=True)
+            response = FormResponseSerilaizer(community_id, i.member_id.id, bl=True,current_user_id=requested_member_id)
             if response:
                 usr['response'] = response[0]
                 usr['question_answers'] = response[1]
@@ -2862,6 +2866,8 @@ def collabcard(request, card_id):
     cards = Collabcard.objects.get(id=card_id)
     page = request.GET.get('page', 1)
 
+    current_user_id = get_member_id_from_headers(request)
+
     feedback=True
     if cards.community.id == feedback_community_id:
         feedback = False
@@ -2880,10 +2886,10 @@ def collabcard(request, card_id):
 
         answer = card_answers.objects.filter(card=cards, id__gte=answer_id).filter(~Q(user__id=user_id))
         # answer = pagination(answer, page, paginate_by=10)
-        answers = get_answer_data(answer,feedback,cards.community.id)         #if the feedback is true don't send id in userinfo
+        answers = get_answer_data(answer,feedback,cards.community.id,current_user_id=current_user_id)         #if the feedback is true don't send id in userinfo
         return JsonResponse({'answers': answers})
     else:
-        answers = get_answer_data(answer,feedback,cards.community.id)
+        answers = get_answer_data(answer,feedback,cards.community.id,current_user_id=current_user_id)
 
     # serializing Collabcard
     card = CollabcardSerializer(cards, user_id, cards.community)
@@ -2893,7 +2899,7 @@ def collabcard(request, card_id):
     usr = UserinfoSerializer(user)
     usr['is_clickable']=feedback
     # user form response serialzer
-    form_response = FormResponseSerilaizer(cards.community.id, cards.user.id,bl=True)
+    form_response = FormResponseSerilaizer(cards.community.id, cards.user.id,bl=True,current_user_id=current_user_id)
     if form_response:
         usr['response'] = form_response[0]
         usr['question_answers'] =form_response[1]
@@ -2910,7 +2916,7 @@ def collabcard(request, card_id):
     return JsonResponse({"collabcard": card, 'answers': answers})
 
 
-def get_answer_data(answer,feedback,community_id):
+def get_answer_data(answer,feedback,community_id,current_user_id):
     '''function to get answer for a particular collabcard from database database'''
     answers = []
 
@@ -2918,7 +2924,7 @@ def get_answer_data(answer,feedback,community_id):
         user = Userinfo.objects.filter(user_id=ans.user.id)
         usr = UserinfoSerializer(user[0])
         usr['is_clickable']=feedback
-        form_response = FormResponseSerilaizer(community_id, ans.user.id,bl=True)
+        form_response = FormResponseSerilaizer(community_id, ans.user.id,bl=True,current_user_id=current_user_id)
         if form_response:
             usr['response'] = form_response[0]
             usr['question_answers'] = form_response[1]
@@ -3028,6 +3034,8 @@ def community_cards(request, community_id):
     community = Community.objects.get(id=community_id)
     member_id = request.GET.get('member_id')
 
+    current_user_id = get_member_id_from_headers(request)
+
     # user_instance=User.objects.get(id=member_id)
 
     # is_tour=request.GET.get('is_tour',False)
@@ -3057,7 +3065,7 @@ def community_cards(request, community_id):
             # serialize user object
             usr = UserinfoSerializer(user)
             # form responses of user
-            form_response = FormResponseSerilaizer(card.community.id, card.user.id,bl=True)
+            form_response = FormResponseSerilaizer(card.community.id, card.user.id,bl=True,current_user_id=current_user_id)
             if form_response:
                 usr['response'] = form_response[0]
                 usr['question_answers'] = form_response[1]
@@ -3567,6 +3575,8 @@ def community_cards_version_1(request,community_id):
     community = Community.objects.get(id=community_id)
     member_id = request.GET.get('member_id')
 
+    current_user_id = get_member_id_from_headers(request)
+
     size = request.GET.get('size', '')
     if size:
         size = int(size)
@@ -3583,7 +3593,7 @@ def community_cards_version_1(request,community_id):
         # serialize user object
         usr = UserinfoSerializer(user)
         # form responses of user
-        form_response = FormResponseSerilaizer(card_instance.community.id, card_instance.user.id,bl=True)
+        form_response = FormResponseSerilaizer(card_instance.community.id, card_instance.user.id,bl=True,current_user_id=current_user_id)
         if form_response:
             usr['response'] = form_response[0]
             usr['question_answers'] =form_response[1]
@@ -4199,7 +4209,7 @@ def community_collabcard_meta(request):
         usr = UserinfoSerializer(user)
         usr['is_clickable']=feed_back
         # user form response serialzer
-        form_response = FormResponseSerilaizer(card_instance.community.id, card_instance.user.id,bl=True)
+        form_response = FormResponseSerilaizer(card_instance.community.id, card_instance.user.id,bl=True,current_user_id=member_id)
 
         if form_response:
             usr['response'] = form_response[0]
@@ -4992,10 +5002,12 @@ def all_members(request):
 
     res=load_request_body(request)
 
+    current_user_id = get_member_id_from_headers(request)
+
     #functionality for user filteration based on options
     if res:
         if 'filters' in res:
-            members=get_filtered_users(res,community_id)
+            members=get_filtered_users(res,community_id,current_user_id)
             JsonResponse({'members':members})
 
 
@@ -5010,7 +5022,7 @@ def all_members(request):
         userinfo_serialized_object = UserinfoSerializer(member.member_id.userinfo)
         userinfo_serialized_object['state']=member.state
 
-        form_response = FormResponseSerilaizer(community_id, member.member_id.id,bl=True)
+        form_response = FormResponseSerilaizer(community_id, member.member_id.id,bl=True,current_user_id=current_user_id)
 
         if form_response:
             userinfo_serialized_object['response'] = form_response[0]
@@ -5033,7 +5045,7 @@ def load_request_body(request):
         return False
 
 
-def get_filtered_users(res,community_id):
+def get_filtered_users(res,community_id,current_user_id):
 
     '''function to get filtered users'''
 
@@ -5052,7 +5064,7 @@ def get_filtered_users(res,community_id):
             userinfo_serialized_object = UserinfoSerializer(member_instance.member_id.userinfo)
             userinfo_serialized_object['state'] = member_instance.state
 
-            form_response = FormResponseSerilaizer(community_id, member_instance.member_id.id, bl=True)
+            form_response = FormResponseSerilaizer(community_id, member_instance.member_id.id, bl=True,current_user_id=current_user_id)
 
             if form_response:
                 userinfo_serialized_object['response'] = form_response[0]

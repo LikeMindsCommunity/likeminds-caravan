@@ -258,7 +258,7 @@ def community(request, community_id):
             member_state = member[0].state if member.exists() else 0
 
             questions, validation_error, user, data, community, filled_answers = join_community(request, community_id,
-                                                                                                ref_id,aj=aj)
+                                                                                                ref_id,aj=aj,member_state=member_state)
             if questions:
 
                 # data = itertools.zip_longest(data,filled_answers,fillvalue='')
@@ -267,7 +267,7 @@ def community(request, community_id):
                         'back': True,
                         'title': 'Welcome to LikeMinds!',
                         'subTitle': False,
-                        'background': 'T',
+                        'background': '_',
                         'color': 'F'
                     }
                     header_showcase = {
@@ -284,6 +284,8 @@ def community(request, community_id):
                                                                   'aj':aj,'header_showcase':header_showcase}
                     #print(context)
                     return render(request, 'response_form.html', context)
+                else:
+                    pass
             else:
                 return JsonResponse({'success': True})
         elif cta == 'share':
@@ -395,7 +397,7 @@ def community(request, community_id):
         'back': True,
         'title': False,
         'subTitle': False,
-        'background': '_',
+        'background': 'Fo05',
         'color': '0'
     }
     header_showcase = {
@@ -660,8 +662,19 @@ def members_directory(request, community_id):
 
     is_member = False
     user_email = ""
+    member_state = 0
     if request.user.is_authenticated:
-        is_member=is_member_verified(community_id,request.user)
+        #is_member=is_member_verified(community_id,request.user)
+        member_instance_list = Members.objects.filter(community_id=community_id,member_id=request.user)
+
+        if member_instance_list.exists():
+
+            member_state = member_instance_list[0].state
+
+            if member_state == member_states.ADMIN or member_state == member_states.MEMBER:
+                is_member = True
+
+
         user_email = request.user.userinfo.email
 
     if request.method == 'POST':
@@ -727,7 +740,8 @@ def members_directory(request, community_id):
         'is_member':is_member,
         'header': header,
         'user_email': user_email,
-        'filter_list':filters
+        'filter_list':filters,
+        'member_state':member_state
     }
 
 
@@ -753,9 +767,10 @@ def decode_option(value):
 def get_user_selected_option_list(question_id):
 
     '''function to get user selected options'''
-    response_list = list(questionFilters.objects.filter(question=question_id).values_list('filter',flat=True))
+    filter_list = list(questionFilters.objects.filter(question=question_id).values_list('filter',flat=True).distinct())
 
-    return response_list
+
+    return filter_list
 
 
 def member_profile(request):
@@ -779,6 +794,7 @@ def member_profile(request):
     answer_list = get_member_profile(community_id,member_id,is_promoter=is_promoter)
 
     json_response = {'answer_list':answer_list,'member_name':member_name,'image_link':image_link}
+
     return JsonResponse(json_response)
 
 
@@ -816,33 +832,32 @@ def get_member_profile(community_id,member_id,is_promoter=False):
 
         elif question_instance.question_state == question_states.EMAIL_ID:
             # email id
-            email = email + "," + answer.question_answer
+            email =  answer.question_answer
             temp['answer_privacy']=answer_privacy(question_instance.value,is_promoter=is_promoter)
             #print(temp['answer_privacy'])
-            temp['answer'] = email[1:]
+            temp['answer'] = email
             temp['rank'] = 1
 
         elif question_instance.question_state == question_states.MOBILE_NO:
             # mobile number
-            mobile_no = mobile_no + "," + answer.question_answer
+            mobile_no = answer.question_answer
             temp['answer_privacy']=answer_privacy(question_instance.value,is_promoter=is_promoter)
             #print(temp['answer_privacy'])
-            temp['answer'] = mobile_no[1:]
+            temp['answer'] = mobile_no
             temp['rank'] = 2
 
         elif question_instance.question_state == question_states.PROFILE_LINK:
             # profile link
-            profile_link = profile_link + "," + answer.question_answer
+            profile_link = answer.question_answer
             temp['answer_privacy']=answer_privacy(question_instance.value,is_promoter=is_promoter)
             #print(temp['answer_privacy'])
-            temp['profile_link'] = profile_link[1:]
-            temp['answer'] = profile_link[1:40]
+            temp['profile_link'] = profile_link
+            temp['answer'] = "Profile link"
             temp['rank'] = 3
 
         elif question_instance.question_state == question_states.FILE_UPLOAD:
             # question answer
             file_link = answer.question_answer
-            file_link=file_link.replace(" ","")
             temp['file_link'] = file_link
             temp['answer'] = question_instance.question_title + ": " "File Link"
             temp['rank'] = 5
@@ -867,7 +882,7 @@ def answer_privacy(answer,is_promoter=False):
     for value in value_list:
         privacy = value['answer_privacy']
 
-    if privacy == "public":
+    if privacy == "Public":
         return True
     return False
 
@@ -1018,7 +1033,7 @@ def logout_view(request):
 
 
 @login_required
-def join_community(request, community_id, ref_id, aj=False):
+def join_community(request, community_id, ref_id, aj=False, member_state=None):
 
 
     if request.user.is_authenticated:
@@ -1067,7 +1082,7 @@ def join_community(request, community_id, ref_id, aj=False):
                 continue
 
             question_dict['id'] = quest_dict['id']
-            question_dict['value'] = re.sub(r'(?<=[.,])(?=[^\s])', r' ', quest_dict['value'])
+            question_dict['value'] = quest_dict['value']
 
             response_list.append(question_dict)
 
@@ -1078,8 +1093,9 @@ def join_community(request, community_id, ref_id, aj=False):
         #print(">>>>  ",json_dict)
         info_logger.info(json_dict)
 
-        params = {'member_id': member_id, 'community_id': community_id, 'ref_id': ref_id}
-        rqst.post(join_url, params=params, json=json_dict)
+        if (member_state == 0 or member_state == 5) and member_state is not None:
+            params = {'member_id': member_id, 'community_id': community_id, 'ref_id': ref_id}
+            rqst.post(join_url, params=params, json=json_dict)
         # return false to show thank you page the user has now answered the questions
         return False, validation_error, user, similar_communities, community, []
 
@@ -1106,6 +1122,25 @@ def get_community_questions(community_id):
         temp = {}
         if each_question.question_state:
             temp['question_state'] = each_question.question_state
+
+            if temp['question_state'] == question_states.INTRODUCTION:
+                if each_question.value:
+                    item = ast.literal_eval(each_question.value)[0]
+                    temp['min_chars'] = int(item['min_chars'])
+                    if item['max_chars'] != "No limit":
+                        temp['max_chars'] = int(item['max_chars'])
+                    else:
+                        temp['max_chars'] = 10000
+                        temp['no_limit'] = True
+                temp['data'] = each_question.question_title
+
+            elif temp['question_state'] == question_states.PROFILE_LINK:
+                if each_question.value:
+                    item = ast.literal_eval(each_question.value)[0]
+                    temp['profile_platform'] = item['profile_platform'].lower()
+                temp['data'] = each_question.question_title
+
+
             if temp['question_state'] == 6:
                 if each_question.value:
                     item = ast.literal_eval(each_question.value)[0]['date_time']
@@ -1113,9 +1148,19 @@ def get_community_questions(community_id):
                         date_format = 'year'
                     elif item.lower() == "mm yyyy":
                         date_format = 'month'
+                        temp["month_format"] = "normal"
+                    elif item.lower() == "mmm yyyy":
+                        date_format = 'month'
+                        temp["month_format"] = "full"
+                    elif item.lower() == "dd mmm yyyy":
+                        date_format = 'date'
+                        temp["date_format_full"] = "full"
                     else:
                         date_format = 'date'
+                        temp["date_format_full"] = "normal"
+
                     temp["date_format"]=date_format
+
 
             if temp['question_state'] == 1 or temp['question_state'] == 2:
 

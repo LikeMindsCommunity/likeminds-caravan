@@ -344,7 +344,7 @@ textarea.noscrollbars {
                 {% elif question.question_state == 5 %}
                     <!--  FILE_UPLOAD = 5 -->
                     <label class="c4a fs15 fwR lh14 p10 m0">{{question.data}}</label>
-                    <div class="ui action input bd0 br8 bxs2 p16 h48 oH pR">
+                    <div class="ui action input bd0 br8 bxs2 h48 oH pR">
                         <input class="bd0 h48" id="{{question.id}}" name ="{{question.id}}" type="file" formenctype="multipart/form-data" oninput="remove_error('{{question.id}}')"  onchange="remove_error('{{question.id}}')">
                         <div class="b0 bgF button icon pA r0 t0 ui">
                             <i class="attach icon"></i>
@@ -362,15 +362,15 @@ textarea.noscrollbars {
                 {% elif question.question_state == 8 %}
                     <!--    PROFILE_LINK=8-->
                     <label class="c4a fs15 fwR lh14 p10 m0">{{question.data}}</label>
-                    <textarea id="{{question.id}}" class="noscrollbars bd0 br8 bxs2 p16" rows="2" cols="4" name ="{{question.id}}" minlength="50" required placeholder="" oninput="remove_error('{{question.id}}')" onchange="remove_error('{{question.id}}')"></textarea>
+                    <input id="{{question.id}}" class="noscrollbars bd0 br8 bxs2 p16" rows="2" cols="4" name ="{{question.id}}" minlength="50" required placeholder="" oninput="remove_error('{{question.id}}')" onchange="remove_error('{{question.id}}')">
                 {% elif question.question_state == 9 %}
                     <!--    MOBILE_NO = 9-->
                     <label class="c4a fs15 fwR lh14 p10 m0">{{question.data}}</label>
-                    <textarea id="{{question.id}}" class="noscrollbars bd0 br8 bxs2 p16"  rows="2" cols="4" name ="{{question.id}}" minlength="50" required placeholder="" oninput="remove_error('{{question.id}}')"  onchange="remove_error('{{question.id}}')"></textarea>
+                    <input id="{{question.id}}" class="noscrollbars bd0 br8 bxs2 p16"  rows="2" cols="4" name ="{{question.id}}" minlength="50" required placeholder="" oninput="remove_error('{{question.id}}')"  onchange="remove_error('{{question.id}}')">
                 {% elif question.question_state == 10 %}
                     <!--    EMAIL_ID = 10-->
                     <label class="c4a fs15 fwR lh14 p10 m0">{{question.data}}</label>
-                    <textarea id="{{question.id}}" class="noscrollbars bd0 br8 bxs2 p16" rows="2" cols="4" name ="{{question.id}}" minlength="50" required placeholder="" oninput="remove_error('{{question.id}}')"  onchange="remove_error('{{question.id}}')"></textarea>
+                    <input id="{{question.id}}" class="noscrollbars bd0 br8 bxs2 p16" rows="2" cols="4" name ="{{question.id}}" minlength="50" required placeholder="" oninput="remove_error('{{question.id}}')"  onchange="remove_error('{{question.id}}')">
                 {% endif %}
             </div>
         {% endfor %}
@@ -380,11 +380,11 @@ textarea.noscrollbars {
     <div class="h60"></div>
         <!-- Displaying Buttons -->
     <div class="p8 bs taC pF b0 l0 r0 h60 bdtE bgBg z1">
-        <button class="ui button h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" id="simple_button" type="submit">SUBMIT</button>
+        <button class="ui button h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU ls05" id="simple_button" type="submit">SUBMIT</button>
     </div>
 
-    <div class="p8 bs taC pF b0 l0 r0 h60 bdtE bgBg z1 dn" id="loading_button">
-        <button class="ui button loading h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU"  type="submit">SUBMIT</button>
+    <div class="p8 bs taC pF b0 l0 r0 h60 bdtE bgBg z1 dN" id="loading_button">
+        <button class="ui button loading h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU ls05" type="submit">SUBMIT</button>
     </div>
 
 </body>
@@ -399,12 +399,39 @@ function autoGrow (oField) {
 }
 
 
-function isUrlValid(userInput) {
+function isUrlValid(userInput,profile_platform) {
+
+
     var res = userInput.match(/(http(s)?:\/\/.)?(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)/g);
     if(res == null)
         return false;
-    else
-        return true;
+    else{
+
+        console.log(profile_platform.localeCompare("facebook"))
+        console.log(profile_platform.localeCompare("linkedin"))
+        if(profile_platform == "facebook"){
+
+
+                let fb = userInput.toLowerCase();
+                console.log(fb)
+                console.log("hello")
+                if(fb.search("facebook") != -1)
+                    return true
+                return false
+        }else if(profile_platform == "linkedin"){
+
+                let lin = userInput.toLowerCase();
+                console.log(lin)
+                console.log("kk")
+                if(lin.search("linkedin") != -1)
+                    return true
+                return false
+        }
+
+        return true
+
+    }
+
 }
 
 
@@ -415,16 +442,36 @@ function isUrlValid(userInput) {
             monthFirst: false,
             formatter: {
                 date: function (date, settings) {
+                    var month_shorts = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
                     if (!date) return '';
-                    var day = date.getDate();
+                    var day = date.getDate() + '';
+                    if (day.length < 2) {
+                            day = '0' + day;
+                        }
                     var month = date.getMonth() + 1;
                     var year = date.getFullYear();
                     {% if question.date_format == 'year' %}
                         return year;
+
+                    {% elif question.date_format == 'month' and question.month_format == 'full' %}
+                        return month_shorts[date.getMonth()] + ' ' + year;
+
                     {% elif question.date_format == 'month' %}
-                        return month + '/' + year;
+                        var month = (date.getMonth() + 1) + '';
+                        if (month.length < 2) {
+                            month = '0' + month;
+                        }
+                        return month + ' ' + year;
+                    {% elif question.date_format == 'date' and question.date_format_full == 'full' %}
+                        return day + ' ' + month_shorts[date.getMonth()] + ' ' + year;
+
                     {% else %}
-                        return day + '/' + month + '/' + year;
+
+                        var month = (date.getMonth() + 1) + '';
+                        if (month.length < 2) {
+                            month = '0' + month;
+                        }
+                        return day + ' ' + month + ' ' + year;
                     {% endif %}
                 }
             }
@@ -461,7 +508,7 @@ function isUrlValid(userInput) {
 {% endfor %}
 
 
-$('#back_button').click(function(e){
+$('#back_click').click(function(e){
     window.history.back();
 })
 
@@ -487,7 +534,7 @@ $('#back_button').click(function(e){
             $("#div_{{question.id}}").removeClass("error");
             remove_warning('#hidden_div_{{question.id}}');
 
-            {% if question.question_state == 3 or  question.question_state == 7 %}
+            {% if question.question_state == 3 %}
                 values_dict = {'id':{{question.id}}};
                 var input=document.getElementById('{{question.id}}');
                 var value=input.value;
@@ -505,11 +552,8 @@ $('#back_button').click(function(e){
                             <div class="ui negative message" id="hidden_div_{{question.id}}">
                                 <i class="close icon" onclick="remove_error('{{question.id}}')"></i>
                                 <div class="header">
-                                {% if question.question_state == 7 %}
-                                    Please write your introduction in bit more detail
-                                {% else %}
                                     Please write your answer in bit more detail
-                                {% endif %}
+
                                 </div>
                             </div>
                             `
@@ -523,6 +567,45 @@ $('#back_button').click(function(e){
 
                     }
                 {% endif %}
+            {% elif question.question_state == 7 %}
+
+                values_dict = {'id':{{question.id}}};
+                var input=document.getElementById('{{question.id}}');
+                var value=input.value;
+
+                {% if question.optional %}
+                    values_dict['value'] = value;
+                    values_list.push(values_dict)
+                {% else %}
+                    if (value.length >= {{question.min_chars}} && value.length <= {{question.max_chars}}) {
+
+                      values_dict['value'] = value;
+                      values_list.push(values_dict)
+
+                    }else {
+                        console.log("less than 50 characters");
+                          $("#div_{{question.id}}").addClass("error");
+
+
+                        var tag_div_html = `
+                            <div class="ui negative message" id="hidden_div_{{question.id}}">
+                                <i class="close icon" onclick="remove_error('{{question.id}}')"></i>
+                                <div class="header">
+                                    {% if not question.no_limit %}
+                                        Please enter valid introduction with atleast {{question.min_chars}} characters but not more than {{question.max_chars}} characters
+                                    {% else %}
+                                        Please enter valid introduction with atleast {{question.min_chars}} characters
+                                    {% endif %}
+                                </div>
+                            </div>
+                            `
+                        $('#div_{{question.id}}').append(tag_div_html)
+                        return;
+
+                    }
+                {% endif %}
+
+
             {% elif question.question_state == 9 %}
                 values_dict = {'id':{{question.id}}};
                 value = $('#{{question.id}}').val();
@@ -530,7 +613,8 @@ $('#back_button').click(function(e){
                         values_dict['value'] = value;
                         values_list.push(values_dict)
                 {% else %}
-                    var numbers = /^[0-9]+$/;
+                    var numbers =/^[0-9]+$/
+                    console.log(numbers)
                     if(value.match(numbers)){
                         values_dict['value'] = value;
                         values_list.push(values_dict)
@@ -541,7 +625,7 @@ $('#back_button').click(function(e){
                         var tag_div_html = `<div class="ui negative message" id="hidden_div_{{question.id}}">
                                                 <i class="close icon" onclick="remove_error('{{question.id}}')"></i>
                                                 <div class="header">
-                                                    Please enter only numbers
+                                                    Please enter valid mobile no
                                                 </div>
                                             </div>`
                         $('#div_{{question.id}}').append(tag_div_html)
@@ -567,7 +651,7 @@ $('#back_button').click(function(e){
                         var tag_div_html = `<div class="ui negative message" id="hidden_div_{{question.id}}">
                                                 <i class="close icon" onclick="remove_error('{{question.id}}')"></i>
                                                 <div class="header">
-                                                    Please enter valid email
+                                                    Please enter valid email address
                                                 </div>
                                             </div>`
                         $('#div_{{question.id}}').append(tag_div_html)
@@ -583,7 +667,7 @@ $('#back_button').click(function(e){
                     values_dict['value'] = value;
                     values_list.push(values_dict)
                 {% else %}
-                    var valid =isUrlValid(value)
+                    var valid =isUrlValid(value,"{{question.profile_platform}}")
                     if(valid){
                         values_dict['value'] = value;
                         values_list.push(values_dict)
@@ -594,7 +678,8 @@ $('#back_button').click(function(e){
                         var tag_div_html = `<div class="ui negative message" id="hidden_div_{{question.id}}">
                                                 <i class="close icon" onclick="remove_error('{{question.id}}')"></i>
                                                 <div class="header">
-                                                    Please enter valid url
+
+                                                    Please enter valid {{question.profile_platform}} profile link
                                                 </div>
                                             </div>`
                         $('#div_{{question.id}}').append(tag_div_html)
@@ -621,17 +706,17 @@ $('#back_button').click(function(e){
                                 <div class="header">
                                 {{question.question_state}}
                                 {% if question.question_state == 0 %}
-                                    Please fill this feild
+                                    Please enter the required field
                                 {% elif question.question_state == 1 %}
                                     Please select an option
                                 {% elif question.question_state == 2 %}
-                                    Please select atleast one option
+                                    Please select or enter option
                                 {% elif question.question_state == 4 %}
-                                    Please fill this answer
+                                   Please enter the required field
                                 {% elif question.question_state == 5 %}
                                     Please upload a file
                                 {% elif question.question_state == 6 %}
-                                    Please select a {{question.date_format}}
+                                    Please enter valid date
                                 {% elif question.question_state == 7 %}
                                     Please write your introduction in bit more detail
                                 {% elif question.question_state == 8 %}
@@ -662,7 +747,7 @@ $('#back_button').click(function(e){
                             <div class="ui negative message" id="hidden_div_{{question.id}}">
                                 <i class="close icon" onclick="remove_error('{{question.id}}')"></i>
                                 <div class="header">
-                                    Please upload a file
+                                    Please attach file
                                 </div>
                             </div>
                             `
@@ -681,6 +766,8 @@ $('#back_button').click(function(e){
             {% endif %}
 
         {% endfor %}
+
+
 
         function csrfSafeMethod(method) {
         // these HTTP methods do not require CSRF protection
@@ -720,11 +807,13 @@ $('#back_button').click(function(e){
                 });
             })
         }
+
+        $("#loading_button").removeClass("dN");
         console.log(values_list);
         console.log(JSON.stringify(values_list));
 
 
-        $("#loading_button").removeClass("dn");
+
 
 
         $.ajax({
@@ -743,6 +832,7 @@ $('#back_button').click(function(e){
         });
 
     })
+
 
 </script>
 
