@@ -176,6 +176,30 @@
         </div>
         <!-- -->
 
+        <!-- login model for exclusive communities -->
+        <div class="ui modal image_container_login w300" id="login_popup">
+            <div class="h72 w72 brp50 bd2F bs bxs oH bgT mtn22 mA">
+                <img class="h86 w86 mtn8 mln8 ofC" src="/media/main_website/like_minds_speaker.png">
+            </div>
+            <div class="p24 bs taC ffR">
+                <p class="m0 p0 fs17 lh22 c0 mb10 fwM">Login to continue</p>
+                <p class="m0 p0 fs15 lh22 c9 mb16">This is an exclusive community. To view member details please login/signup and join the community.</p>
+                <div class="p160 ls05">
+                    <div class="fs12 mb16">
+                        <a class="p12 bs dB br20 tdN bgLi cF ffR fwM" href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}">
+                            <i class="dIb fa fa-linkedin fs15 lh16 vM"></i>
+                            <span  class="dIb lh16 pl12 vM">LOGIN WITH LINKEDIN</span>
+                        </a>
+                    </div>
+                    <div class="fs12">
+                        <a class="p12 bs dB br20 tdN bgFb cF ffR fwM" href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}">
+                            <i class="fa fa-facebook dIb fs15 lh16 vM" ></i>
+                            <span class="dIb lh16 pl12 vM">LOGIN WITH FACEBOOK</span>
+                        </a>
+                    </div>
+                </div>
+            <!-- -->
+
     </body>
 
 </html>
@@ -199,10 +223,17 @@ $('#test').hide()
 
         $('#{{filter.question_id}}').click(function(){
 
-        {% if not is_member %}
 
-        $('#filter_unverified').modal('show');
-        return;
+
+        {% if not request.user.is_authenticated %}
+            $('#login_popup').modal('show');
+            console.log("user is not authenticated");
+            return;
+
+        {% elif not is_member %}
+            $('#filter_unverified').modal('show');
+            console.log("user is not a member");
+            return;
 
         {% endif %}
 
@@ -360,7 +391,12 @@ location.href="/community/"+"{{community_id}}"
 
     member_id=$(this).attr('member_id')
 
-    {% if not is_member %}
+
+    {% if not request.user.is_authenticated %}
+        $('#login_popup').modal('show');
+        console.log("user is not authenticated");
+
+    {% elif not is_member %}
 
         $('#unverified_member').modal('show');
         console.log("test")
