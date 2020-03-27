@@ -158,13 +158,13 @@ def get_member_count(community):
         Q(state=1) | Q(state=2) | Q(state=4) | Q(state=7) | Q(state = 8)).count()
 
 
-def FormResponseSerilaizer(community_id, user_id,bl=False):
+def FormResponseSerilaizer(community_id, user_id,current_user_id=None,bl=False):
 
     responses = communityAnswers.objects.filter(community=community_id).filter(member=user_id).order_by('id')
     if not responses.exists():
         return None
 
-    member = Members.objects.filter(community_id=community_id, member_id=user_id)
+    member = Members.objects.filter(community_id=community_id, member_id=current_user_id)
     member_state = member[0].state
     user_response = []
     new_response = []
@@ -175,10 +175,9 @@ def FormResponseSerilaizer(community_id, user_id,bl=False):
         response_object['key'] = response.question_title
         response_object['value'] = response.question_answer
 
-
         temp={}
         questions = get_question_data(response.question_id, member_state)
-        if questions == False:
+        if questions:
             temp['community_id'] = community_id
             temp['member_id'] = user_id
             temp['question_title'] = response.question_title
