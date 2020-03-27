@@ -513,7 +513,7 @@
                     <div class="dTc h24 vM w24 taC"><img class="dIb mxh24 mxw24 vM" src="/media/main_website/link.png"/></div>
                     <div class="dTc fs13 vM c9b lh16 p08 bs">
                         {% for answer in profile.list %}
-                            <a class="cT tdN" href="{{answer.profile_link}}">
+                            <a class="cT tdN" href="//{{answer.profile_link}}">
                                 {{ answer.answer }}
                             </a>
                             {% if not forloop.last %}, {% endif %}
@@ -1102,8 +1102,8 @@ function showMemberProfile(member_id){
                         segment = ''
                         $.each( value, function( index2, value2 ){
                             segment = segment + `
-                                <a class="c9b dT tdN wp100" href="${value2['file_link']}">
-                                    <div class="c9b dTc fs13 vM cT">${value2['answer']}</div>
+                                <a class="cT dB m160 tdN" href="//${value2['file_link']}">
+                                    ${value2['answer']}
                                 </a>
                             `;
                             if ( index2 != value.length - 1 ) {
@@ -1122,10 +1122,12 @@ function showMemberProfile(member_id){
                         html = html + segment
                     }
                 })
-                $('#display').html(html + '</div>')
+                $('#display').html(html + '</div><div class="fs13 p12 taC fwM" id="dismiss1">DISMISS</div>')
                 $('#display').modal('show');
                 $(".dimmer").css("background-color","rgba(40,40,40,0.5)");
-
+                $('#dismiss1').click(function(){
+                    $('#display').modal('hide');
+                })
             }
         })
     }
