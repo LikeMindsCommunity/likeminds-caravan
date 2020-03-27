@@ -181,7 +181,7 @@ def your_communities(request, user_id):
     for each_community in communities:
 
         community = CommunitySerializer(each_community.community_id)
-        community['pending_members_count'] = len(get_pending_members_of_community(each_community.community_id.id,member_id,requested_member_id=current_user_id))
+        community['pending_members_count'] = len(get_pending_members_of_community(each_community.community_id.id,member_id))
         community['updated_at'] = get_time_text(each_community.updated_at)
         if each_community.last_unseen_conversation:
             collabcard = CollabcardSerializer(each_community.last_unseen_conversation, user=member_id)
