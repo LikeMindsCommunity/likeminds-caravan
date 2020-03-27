@@ -753,9 +753,10 @@ def decode_option(value):
 def get_user_selected_option_list(question_id):
 
     '''function to get user selected options'''
-    response_list = list(questionFilters.objects.filter(question=question_id).values_list('filter',flat=True))
+    filter_list = list(questionFilters.objects.filter(question=question_id).values_list('filter',flat=True).distinct())
 
-    return response_list
+    
+    return filter_list
 
 
 def member_profile(request):
