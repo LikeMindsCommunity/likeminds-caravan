@@ -223,12 +223,9 @@ $('#test').hide()
 
         $('#{{filter.question_id}}').click(function(){
 
-        {% if not request.user.is_authenticated %}
-            $('#filter_unverified').modal('login_popup');
-            return;
-
-        {% elif not is_member %}
+        {% if not is_member %}
             $('#filter_unverified').modal('show');
+            console.log("user is not a member");
             return;
 
         {% endif %}
@@ -387,7 +384,12 @@ location.href="/community/"+"{{community_id}}"
 
     member_id=$(this).attr('member_id')
 
-    {% if not is_member %}
+
+    {% if not request.user.is_authenticated %}
+        $('#filter_unverified').modal('login_popup : {{request.user.is_authenticated}}');
+        console.log("user is not authenticated");
+
+    {% elif not is_member %}
 
         $('#unverified_member').modal('show');
         console.log("test")
