@@ -1147,11 +1147,12 @@ def get_community_questions(community_id):
                     item = ast.literal_eval(each_question.value)[0]['date_time']
                     if item.lower() == "yyyy":
                         date_format = 'year'
-                    elif item.lower() == "mm yyyy":
+                    elif item.lower() == "mm yyyy" or item.lower() == "mmm yyyy":
                         date_format = 'month'
                     else:
                         date_format = 'date'
                     temp["date_format"]=date_format
+
 
             if temp['question_state'] == 1 or temp['question_state'] == 2:
 
