@@ -209,7 +209,7 @@ def get_question_data(question_id, member_state, send_back):
     else:
         if question_instance.value and question_instance.value != '':
             value_list = ast.literal_eval(question_instance.value)
-            privacy = ""
+            privacy = "Public"
             for value in value_list:
                 if 'answer_privacy' in value:
                     privacy = value['answer_privacy']
