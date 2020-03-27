@@ -546,7 +546,7 @@ location.href="/community/"+"{{community_id}}"
                                     <div class="c9b dTc fs13 vM lh1h16 p08 bs">
                         `;
                                         $.each( value, function( index2, value2 ){
-                                            segment = segment + `<a class="cT tdN" href="${value2['profile_link']}">${value2['answer']}</a>`;
+                                            segment = segment + `<a class="cT tdN" href="//${value2['profile_link']}">${value2['answer']}</a>`;
                                             if ( index2 != value.length - 1 ) {
                                                 segment = segment + ', ';
                                             }
@@ -569,8 +569,8 @@ location.href="/community/"+"{{community_id}}"
                         segment = ''
                         $.each( value, function( index2, value2 ){
                             segment = segment + `
-                                <a class="c9b dT tdN wp100" href="${value2['file_link']}">
-                                    <div class="c9b dTc fs13 vM cT">${value2['answer']}</div>
+                                <a class="cT dB m160 tdN" href="//${value2['file_link']}">
+                                    ${value2['answer']}
                                 </a>
                             `;
                             if ( index2 != value.length - 1 ) {
@@ -589,10 +589,12 @@ location.href="/community/"+"{{community_id}}"
                         html = html + segment
                     }
                 })
-                $('#display').html(html + '</div>')
+                $('#display').html(html + '</div><div class="fs13 p12 taC fwM" id="dismiss1">DISMISS</div>')
                 $('#display').modal('show');
                 $(".dimmer").css("background-color","rgba(40,40,40,0.5)");
-
+                $('#dismiss1').click(function(){
+                    $('#display').modal('hide');
+                })
             }
         })
     }
