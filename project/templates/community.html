@@ -491,7 +491,7 @@
             {% if profile.grouper == 1 %}
                 <div class="dT mb10 tlF wp100">
                     <div class="dTc h24 vM w24 taC"><img class="dIb mxh24 mxw24 vM" src="/media/main_website/ic_email_48_px.png" /></div>
-                    <div class="c9b dTc fs13 vM lh18">
+                    <div class="c9b dTc fs13 vM lh16 p08 bs">
                         {% for answer in profile.list %}
                             {{ answer.answer }}
                             {% if not forloop.last %}, {% endif %}
@@ -501,7 +501,7 @@
             {% elif profile.grouper == 2 %}
                 <div class="dT mb10 tlF wp100">
                     <div class="dTc h24 vM w24 taC"><img class="dIb mxh24 mxw24 vM" src="/media/main_website/mobile_alt.png"/></div>
-                    <div class="c9b dTc fs13 vM lh18">
+                    <div class="c9b dTc fs13 vM lh16 p08 bs">
                         {% for answer in profile.list %}
                             {{ answer.answer }}
                             {% if not forloop.last %}, {% endif %}
@@ -509,15 +509,17 @@
                     </div>
                 </div>
             {% elif profile.grouper == 3 %}
-                <a class="c9b dT tdN mb10 tlF wp100" href="{{profile.profile_link}}">
+                <div class="dT mb10 tlF wp100">
                     <div class="dTc h24 vM w24 taC"><img class="dIb mxh24 mxw24 vM" src="/media/main_website/link.png"/></div>
-                    <div class="c9b dTc fs13 vM cT lh18">
+                    <div class="dTc fs13 vM c9b lh16 p08 bs">
                         {% for answer in profile.list %}
-                            {{ answer.answer }}
+                            <a class="cT tdN" href="{{answer.profile_link}}">
+                                {{ answer.answer }}
+                            </a>
                             {% if not forloop.last %}, {% endif %}
                         {% endfor %}
                     </div>
-                </a>
+                </div>
             {% elif profile.grouper == 4 %}
                 <p class="c4a fs15 lh24 m160">
                     {% for answer in profile.list %}
@@ -1040,7 +1042,7 @@ function showMemberProfile(member_id){
                         segment = `
                                 <div class="dT mb10 tlF wp100">
                                     <div class="dTc h24 vM w24 taC"><img class="dIb mxh24 mxw24 vM" src="/media/main_website/ic_email_48_px.png" /></div>
-                                    <div class="c9b dTc fs13 vM lh18">
+                                    <div class="c9b dTc fs13 vM lh16 p08 bs">
                         `;
                                         $.each( value, function( index2, value2 ){
                                             segment = segment + value2.answer;
@@ -1057,7 +1059,7 @@ function showMemberProfile(member_id){
                         segment = `
                                 <div class="dT mb10 tlF wp100">
                                     <div class="dTc h24 vM w24 taC"><img class="dIb mxh24 mxw24 vM" src="/media/main_website/mobile_alt.png"/></div>
-                                    <div class="c9b dTc fs13 vM lh18">
+                                    <div class="c9b dTc fs13 vM lh16 p08 bs">
                         `;
                                         $.each( value, function( index2, value2 ){
                                             segment = segment + value2.answer;
@@ -1072,19 +1074,19 @@ function showMemberProfile(member_id){
                         html = html + segment
                     }else if(index == 3 ){
                         segment = `
-                                <a class="c9b dT tdN mb10 tlF wp100" href="${value['profile_link']}">
+                                <div class="dT mb10 tlF wp100">
                                     <div class="dTc h24 vM w24 taC"><img class="dIb mxh24 mxw24 vM" src="/media/main_website/link.png"/></div>
-                                    <div class="c9b dTc fs13 vM cT lh18">
+                                    <div class="c9b dTc fs13 vM lh16 p08 bs">
                         `;
                                         $.each( value, function( index2, value2 ){
-                                            segment = segment + value2.answer;
+                                            segment = segment + `<a class="cT tdN" href="${value2['profile_link']}">${value2['answer']}</a>`;
                                             if ( index2 != value.length - 1 ) {
                                                 segment = segment + ', ';
                                             }
                                         });
                         segment = segment + `
                                     </div>
-                                </a>
+                                </div>
                         `;
                         html = html + segment
                     }else if(index == 4){
