@@ -8,6 +8,7 @@ from togther.models import *
 from utility.utils import is_IG_community,is_LG_or_LP_community,feedback_community_id
 
 url = settings.URL
+import ast
 
 #
 # class CommunitySerializer(serializers.HyperlinkedModelSerializer):
@@ -162,8 +163,11 @@ def FormResponseSerilaizer(community_id, user_id,bl=False):
     responses = communityAnswers.objects.filter(community=community_id).filter(member=user_id).order_by('id')
     if not responses.exists():
         return None
+
+    member = Members.objects.filter(community_id=community_id, member_id=user_id)
+    member_state = member[0].state
     user_response = []
-    new_response=[]
+    new_response = []
     for response in responses:
         # getting the answers of the users who requested to join
         # for the questions that have been asked while requestiong to join in a community
@@ -173,15 +177,16 @@ def FormResponseSerilaizer(community_id, user_id,bl=False):
 
 
         temp={}
-        questions = get_question_data(response.question_id)
-        temp['community_id'] = community_id
-        temp['member_id'] = user_id
-        temp['question_title'] = response.question_title
-        temp['value'] = response.question_answer
-        temp['question_id'] = response.question_id
-        temp['state'] = questions['state']
-        temp['question_instance'] = questions               #sending the question instance
-        new_response.append(temp)
+        questions = get_question_data(response.question_id, member_state)
+        if questions == False:
+            temp['community_id'] = community_id
+            temp['member_id'] = user_id
+            temp['question_title'] = response.question_title
+            temp['value'] = response.question_answer
+            temp['question_id'] = response.question_id
+            temp['state'] = questions['state']
+            temp['question_instance'] = questions               #sending the question instance
+            new_response.append(temp)
 
         user_response.append(response_object)
 
@@ -190,13 +195,25 @@ def FormResponseSerilaizer(community_id, user_id,bl=False):
     return (user_response,new_response)
 
 
-def get_question_data(question_id):
+def get_question_data(question_id, member_state):
 
     '''function to get question id'''
 
     question_instance=communityQuestions.objects.get(id=question_id)
 
-    questions = CommunityQuestionsSerializer(question_instance)
+    if member_state == 1 or member_state == 2:
+        questions = CommunityQuestionsSerializer(question_instance)
+    else:
+        value_list = ast.literal_eval(question_instance.value)
+        privacy = ""
+        for value in value_list:
+            if 'answer_privacy' in value:
+                privacy = value['answer_privacy']
+
+        if privacy == "Public":
+            questions = CommunityQuestionsSerializer(question_instance)
+        else:
+            return False
 
     return questions
 
