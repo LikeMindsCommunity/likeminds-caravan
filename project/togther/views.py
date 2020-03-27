@@ -1080,7 +1080,7 @@ def join_community(request, community_id, ref_id, aj=False, member_state=None):
         #print(">>>>  ",json_dict)
         info_logger.info(json_dict)
 
-        if (member_state == 0 or member_state == 5) and member_state is None:
+        if (member_state == 0 or member_state == 5) and member_state is not None:
             params = {'member_id': member_id, 'community_id': community_id, 'ref_id': ref_id}
             rqst.post(join_url, params=params, json=json_dict)
         # return false to show thank you page the user has now answered the questions
