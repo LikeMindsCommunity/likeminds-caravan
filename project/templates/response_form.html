@@ -566,8 +566,11 @@ $('#back_click').click(function(e){
                             <div class="ui negative message" id="hidden_div_{{question.id}}">
                                 <i class="close icon" onclick="remove_error('{{question.id}}')"></i>
                                 <div class="header">
-
-                                    Please enter valid introduction with atleast {{question.min_chars}} characters but not more than {{question.max_chars}} characters
+                                    {% if not question.no_limit %}
+                                        Please enter valid introduction with atleast {{question.min_chars}} characters but not more than {{question.max_chars}} characters
+                                    {% else %}
+                                        Please enter valid introduction with atleast {{question.min_chars}} characters
+                                    {% endif %}
                                 </div>
                             </div>
                             `
