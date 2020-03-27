@@ -858,7 +858,6 @@ def get_member_profile(community_id,member_id,is_promoter=False):
         elif question_instance.question_state == question_states.FILE_UPLOAD:
             # question answer
             file_link = answer.question_answer
-            file_link=file_link.replace(" ","")
             temp['file_link'] = file_link
             temp['answer'] = question_instance.question_title + ": " "File Link"
             temp['rank'] = 5
