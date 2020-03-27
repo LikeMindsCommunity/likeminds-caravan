@@ -567,7 +567,7 @@ $('#back_click').click(function(e){
                                 <i class="close icon" onclick="remove_error('{{question.id}}')"></i>
                                 <div class="header">
 
-                                    Please Enter valid Introduction with atleast {{question.min_chars}} characters but not more than {{question.max_chars}} characters
+                                    Please enter valid introduction with atleast {{question.min_chars}} characters but not more than {{question.max_chars}} characters
                                 </div>
                             </div>
                             `
@@ -650,7 +650,8 @@ $('#back_click').click(function(e){
                         var tag_div_html = `<div class="ui negative message" id="hidden_div_{{question.id}}">
                                                 <i class="close icon" onclick="remove_error('{{question.id}}')"></i>
                                                 <div class="header">
-                                                    Please enter valid {{question.profile_platform}} profile_link
+
+                                                    Please enter valid {{question.profile_platform}} profile link
                                                 </div>
                                             </div>`
                         $('#div_{{question.id}}').append(tag_div_html)
@@ -738,6 +739,8 @@ $('#back_click').click(function(e){
 
         {% endfor %}
 
+
+
         function csrfSafeMethod(method) {
         // these HTTP methods do not require CSRF protection
             return (/^(GET|HEAD|OPTIONS|TRACE)$/.test(method));
@@ -776,11 +779,13 @@ $('#back_click').click(function(e){
                 });
             })
         }
+
+        $("#loading_button").removeClass("dn");
         console.log(values_list);
         console.log(JSON.stringify(values_list));
 
 
-        $("#loading_button").removeClass("dn");
+
 
 
         $.ajax({
