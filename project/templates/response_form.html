@@ -584,7 +584,8 @@ $('#back_button').click(function(e){
                         values_dict['value'] = value;
                         values_list.push(values_dict)
                 {% else %}
-                    var numbers = /^[0-9]+$/;
+                    var numbers =/^[0-9]+$/
+                    console.log(numbers)
                     if(value.match(numbers)){
                         values_dict['value'] = value;
                         values_list.push(values_dict)
