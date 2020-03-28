@@ -236,6 +236,21 @@ def community(request, community_id):
 
     cta = ''
 
+    if aj:
+        member_state = 0
+        if request.user.is_authenticated:
+            member = Members.objects.filter(member_id=request.user, community_id=community)
+            member_state = member[0].state if member.exists() else 0
+
+        questions, validation_error, user, data, community, filled_answers = join_community(request, community_id, ref_id, aj=aj, member_state=member_state)
+        if questions:
+            if member_state == 0 or member_state == 5:
+                context = get_join_community_context(request, ref_id, aj, validation_error, user, data, community, filled_answers)
+                return render(request, 'response_form.html', context)
+
+        else:
+            pass
+
     if 'cta' in res:
 
         cta = res['cta']
@@ -278,10 +293,10 @@ def community(request, community_id):
                     }
 
                     context = {"data": data, 'usr': user, 'header': header,
-                                                                  'community': community, 'ref_id': ref_id,
-                                                                  'validation_error': validation_error,
-                                                                  'filled_answers': filled_answers,
-                                                                  'aj':aj,'header_showcase':header_showcase}
+                                'community': community, 'ref_id': ref_id,
+                                'validation_error': validation_error,
+                                'filled_answers': filled_answers,
+                                'aj':aj,'header_showcase':header_showcase}
                     #print(context)
                     return render(request, 'response_form.html', context)
                 else:
@@ -436,7 +451,28 @@ def community(request, community_id):
     return render(request, 'community.html', context)
 
 
+def get_join_community_context(request, ref_id, aj, validation_error, user, data, community, filled_answers):
+    header = {
+        'back': True,
+        'title': 'Welcome to LikeMinds!',
+        'subTitle': False,
+        'background': '_',
+        'color': 'F'
+    }
+    header_showcase = {
+        'image': 'https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Fresponse_header?alt=media',
+        'header': 'You are interested in joining this community:',
+        'subHeader': community.name,
+        'userImage': request.user.userinfo.image_link if request.user.is_authenticated else 'https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fuser%2F222%2Fimg_user_222?alt=media'
+    }
 
+    context = {"data": data, 'usr': user, 'header': header,
+               'community': community, 'ref_id': ref_id,
+               'validation_error': validation_error,
+               'filled_answers': filled_answers,
+               'aj': aj, 'header_showcase': header_showcase}
+
+    return context
 
 
 
@@ -685,6 +721,7 @@ def members_directory(request, community_id):
 
         member_set = set()
         member_string = ""
+
         for option in option_data:
             question_list = questionFilters.objects.filter(filter=option, question=question_id)
 
@@ -693,7 +730,7 @@ def members_directory(request, community_id):
                     member_string = member_string + "$" + str(member_instance.member.id)
                     member_set.add(member_instance.member.id)
 
-        return JsonResponse({'success': member_string, 'question_id': question_id})
+        return JsonResponse({'success': member_string, 'question_id': question_id,'option_data':option_data})
 
     community_instance = Community.objects.get(pk=community_id)
     filter_list = communityQuestions.objects.filter(community=community_instance).filter(
@@ -702,12 +739,16 @@ def members_directory(request, community_id):
     # for filter processing
     member_string = request.GET.get('members', None)
     filter_question_id = request.GET.get('filter', None)
+    selected_list = request.GET.get('option_data',None)
+    if selected_list:
+        selected_list = selected_list.split(",")
+
     filters = []
 
 
     for filter in filter_list:
         temp = {}
-        response_list = get_user_selected_option_list(filter.id)
+        response_list = get_user_selected_option_list(filter.id,selected_list=selected_list)
         if not response_list:
             continue
         temp['question_id'] = filter.id
@@ -764,13 +805,21 @@ def decode_option(value):
     return value_list
 
 
-def get_user_selected_option_list(question_id):
+def get_user_selected_option_list(question_id,selected_list=None):
 
     '''function to get user selected options'''
     filter_list = list(questionFilters.objects.filter(question=question_id).values_list('filter',flat=True).distinct())
+    response_list = []
+    for option in filter_list:
+        temp={}
+        temp['option'] = option
+        if selected_list and option in selected_list:
+            temp['is_selected'] = True
+        else:
+            temp['is_selected'] = False
 
-
-    return filter_list
+        response_list.append(temp)
+    return response_list
 
 
 def member_profile(request):
@@ -788,9 +837,20 @@ def member_profile(request):
     if user_instance.exists():
         member_name = user_instance[0].userinfo.name
         image_link = user_instance[0].userinfo.image_link
-        is_promoter = Members.objects.filter(community_id=community_id,member_id=request.user.id).filter(
-            state = member_states.ADMIN)
+        is_promoter = Members.objects.filter(community_id=community_id, member_id=request.user.id).filter(
+                      state = member_states.ADMIN)
+        # members = Members.objects.filter(community_id=community_id,member_id=request.user.id)
+        # is_promoter = members.filter(state = member_states.ADMIN)
         is_promoter=is_promoter.exists()
+        #
+        # is_member = members.filter(state=member_states.MEMBER)
+        # is_member = is_member.exists()
+        #
+        # if is_member and str(request.user.id) == str(member_id):
+        #     is_promoter = True
+    if not is_promoter and str(request.user.id) == str(member_id):
+        is_promoter = True
+
     answer_list = get_member_profile(community_id,member_id,is_promoter=is_promoter)
 
     json_response = {'answer_list':answer_list,'member_name':member_name,'image_link':image_link}
@@ -1032,7 +1092,6 @@ def logout_view(request):
     return redirect('signup')
 
 
-@login_required
 def join_community(request, community_id, ref_id, aj=False, member_state=None):
 
 
@@ -1050,10 +1109,11 @@ def join_community(request, community_id, ref_id, aj=False, member_state=None):
 
     member_id = request.user.id
     # calling similar communities api
-    similar_communitites_url = api_url + 'similar_communities/' + str(community_id)
-    res = rqst.get(similar_communitites_url, params={'member_id': member_id})
-    similar_communitites = json.loads(res.content)
-    similar_communities = similar_communitites['communities'][:10]
+    # similar_communitites_url = api_url + 'similar_communities/' + str(community_id)
+    # res = rqst.get(similar_communitites_url, params={'member_id': member_id})
+    # similar_communitites = json.loads(res.content)
+    # similar_communities = similar_communitites['communities'][:10]
+    similar_communities = []
 
     join_url = api_url + 'v1/join_community'
 
@@ -1192,11 +1252,22 @@ def get_community_questions(community_id):
             if 'Other' not in dropdown_list:
                 temp['dropdown_list'] = dropdown_list
                 temp['allowed_addition'] = False
+                if not each_question.help_text:
+                    temp['help_text'] = "Select a option"
+
 
             else:
                 dropdown_list.remove('Other')
                 temp['allowed_addition'] = True
                 temp['dropdown_list'] = dropdown_list
+                if not each_question.help_text:
+                    if len(dropdown_list) > 0:
+                        temp['help_text'] = "Select or enter a option"
+                    else:
+                        temp['help_text'] = "Enter a option"
+
+
+
 
             temp['data'] = each_question.question_title
         else:
@@ -1208,9 +1279,11 @@ def get_community_questions(community_id):
         if each_question.dropdown_selection_limit:
             temp['max_selections'] = each_question.dropdown_selection_limit
         temp['optional'] = each_question.optional
+        if each_question.help_text:
+            temp['help_text'] = each_question.help_text
         question_format.append(temp)
 
-    # print(question_format)
+ 
     return question_format
 
 
