@@ -306,9 +306,9 @@ textarea.noscrollbars {
                     <!--    TEXT = 0  PARAGRAPH = 4 INTRODUCTION = 7  -->
                     <label class="c4a fs15 fwR lh14 p10 m0">{{question.data}}</label>
                     {% if question.question_state == 4 or question.question_state == 7 %}
-                        <textarea id="{{question.id}}" class="noscrollbars bd0 br8 bxs2 p16" rows="4" cols="4" name="{{question.id}}" required oninput="remove_error('{{question.id}}')"  onchange="remove_error('{{question.id}}')"></textarea>
+                        <textarea id="{{question.id}}" class="noscrollbars bd0 br8 bxs2 p16" rows="4" cols="4" name="{{question.id}}" required oninput="remove_error('{{question.id}}')"  onchange="remove_error('{{question.id}}')" placeholder="{{question.help_text}}"></textarea>
                     {% else %}
-                        <textarea id="{{question.id}}" class="noscrollbars bd0 br8 bxs2 p16 h48" rows="2" cols="4" name="{{question.id}}" required oninput="remove_error('{{question.id}}')"  onchange="remove_error('{{question.id}}')"></textarea>
+                        <textarea id="{{question.id}}" class="noscrollbars bd0 br8 bxs2 p16 h48" rows="2" cols="4" name="{{question.id}}" required oninput="remove_error('{{question.id}}')"  onchange="remove_error('{{question.id}}')" placeholder="{{question.help_text}}"></textarea>
                     {% endif %}
 
                 {% elif question.question_state == 1 %}
@@ -317,7 +317,7 @@ textarea.noscrollbars {
                     <div class="ui fluid search selection dropdown single_select_{{question.id}} bd0 br8 bxs2 p16 h48">
                         <input id="{{question.id}}" type="hidden" name="{{question.id}}" oninput="remove_error('{{question.id}}')" onchange="remove_error('{{question.id}}')">
                         <i class="dropdown icon p16"></i>
-                        <div class="default text fs16 lh18">Select Option</div>
+                        <div class="default text fs16 lh18">{{question.help_text}}</div>
                         <div class="menu">
                             {% for option in question.dropdown_list %}
                                 <div class="item p16 bs" data-value="{{option}}">{{option}}</div>
@@ -330,7 +330,7 @@ textarea.noscrollbars {
                     <div class="ui fluid multiple search normal selection dropdown multi_select_{{question.id}} bd0 br8 bxs2 mnh48">
                         <input id="{{question.id}}" type="hidden" name="{{question.id}}" oninput="remove_error('{{question.id}}')"  onchange="remove_error('{{question.id}}')">
                         <i class="dropdown icon p16"></i>
-                        <div class="default text fs16 lh18">Select Option</div>
+                        <div class="default text fs16 lh18">{{question.help_text}}</div>
                         <div class="menu">
                             {% for option in question.dropdown_list %}
                                 <div class="item p16 bs" data-value="{{option}}">{{option}}</div>
@@ -340,7 +340,7 @@ textarea.noscrollbars {
                 {% elif question.question_state == 3 %}
                     <!--    TEXT_WITH_LIMIT = 3-->
                     <label class="c4a fs15 fwR lh14 p10 m0">{{question.data}}</label>
-                    <textarea id="{{question.id}}" class="noscrollbars bd0 br8 bxs2 p16 h48" rows="2" cols="4" name ="{{question.id}}" minlength="50" required placeholder=""  oninput="remove_error('{{question.id}}')"  onchange="remove_error('{{question.id}}')"></textarea>
+                    <textarea id="{{question.id}}" class="noscrollbars bd0 br8 bxs2 p16 h48" rows="2" cols="4" name ="{{question.id}}" minlength="50" required placeholder="{{question.help_text}}"  oninput="remove_error('{{question.id}}')"  onchange="remove_error('{{question.id}}')"></textarea>
                 {% elif question.question_state == 5 %}
                     <!--  FILE_UPLOAD = 5 -->
                     <label class="c4a fs15 fwR lh14 p10 m0">{{question.data}}</label>
@@ -355,22 +355,22 @@ textarea.noscrollbars {
                     <label class="c4a fs15 fwR lh14 p10 m0">{{question.data}}</label>
                     <div class="ui calendar" id="calendar_{{question.id}}">
                         <div class="ui input right icon">
-                            <input class="bd0 br8 bxs2 p16 h48 oH pR" id="{{question.id}}" type="text" placeholder="dd/mm/yyyy" name ="{{question.id}}" oninput="remove_error('{{question.id}}')" onchange="remove_error('{{question.id}}')" onsubmit="remove_error('{{question.id}}')">
+                            <input class="bd0 br8 bxs2 p16 h48 oH pR" id="{{question.id}}" type="text" placeholder="{{question.help_text}}" name ="{{question.id}}" oninput="remove_error('{{question.id}}')" onchange="remove_error('{{question.id}}')" onsubmit="remove_error('{{question.id}}')">
                             <i class="calendar alternate outline icon"></i>
                         </div>
                     </div>
                 {% elif question.question_state == 8 %}
                     <!--    PROFILE_LINK=8-->
                     <label class="c4a fs15 fwR lh14 p10 m0">{{question.data}}</label>
-                    <input id="{{question.id}}" class="noscrollbars bd0 br8 bxs2 p16" rows="2" cols="4" name ="{{question.id}}" minlength="50" required placeholder="" oninput="remove_error('{{question.id}}')" onchange="remove_error('{{question.id}}')">
+                    <input id="{{question.id}}" class="noscrollbars bd0 br8 bxs2 p16" rows="2" cols="4" name ="{{question.id}}" minlength="50" required placeholder="{{question.help_text}}" oninput="remove_error('{{question.id}}')" onchange="remove_error('{{question.id}}')">
                 {% elif question.question_state == 9 %}
                     <!--    MOBILE_NO = 9-->
                     <label class="c4a fs15 fwR lh14 p10 m0">{{question.data}}</label>
-                    <input id="{{question.id}}" class="noscrollbars bd0 br8 bxs2 p16"  rows="2" cols="4" name ="{{question.id}}" minlength="50" required placeholder="" oninput="remove_error('{{question.id}}')"  onchange="remove_error('{{question.id}}')">
+                    <input id="{{question.id}}" class="noscrollbars bd0 br8 bxs2 p16"  rows="2" cols="4" name ="{{question.id}}" minlength="50" required placeholder="{{question.help_text}}" oninput="remove_error('{{question.id}}')"  onchange="remove_error('{{question.id}}')">
                 {% elif question.question_state == 10 %}
                     <!--    EMAIL_ID = 10-->
                     <label class="c4a fs15 fwR lh14 p10 m0">{{question.data}}</label>
-                    <input id="{{question.id}}" class="noscrollbars bd0 br8 bxs2 p16" rows="2" cols="4" name ="{{question.id}}" minlength="50" required placeholder="" oninput="remove_error('{{question.id}}')"  onchange="remove_error('{{question.id}}')">
+                    <input id="{{question.id}}" class="noscrollbars bd0 br8 bxs2 p16" rows="2" cols="4" name ="{{question.id}}" minlength="50" required placeholder="{{question.help_text}}" oninput="remove_error('{{question.id}}')"  onchange="remove_error('{{question.id}}')">
                 {% endif %}
             </div>
         {% endfor %}
@@ -493,6 +493,9 @@ function isUrlValid(userInput,profile_platform) {
                   {% endif %}
               })
             ;
+
+
+
         {% else %}
             $('.ui.normal.dropdown.multi_select_{{question.id}}')
               .dropdown({
@@ -712,7 +715,7 @@ $('#back_click').click(function(e){
                             <div class="ui negative message" id="hidden_div_{{question.id}}">
                                 <i class="close icon" onclick="remove_error('{{question.id}}')"></i>
                                 <div class="header">
-                                
+
                                 {% if question.question_state == 0 %}
                                     Please enter the required field
                                 {% elif question.question_state == 1 %}
