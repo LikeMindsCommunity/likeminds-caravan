@@ -365,9 +365,10 @@ textarea.noscrollbars {
                     <input id="{{question.id}}" class="noscrollbars bd0 br8 bxs2 p16" rows="2" cols="4" name ="{{question.id}}" minlength="50" required placeholder="{{question.help_text}}" oninput="remove_error('{{question.id}}')" onchange="remove_error('{{question.id}}')">
                 {% elif question.question_state == 9 %}
                     <!--    MOBILE_NO = 9-->
+
                     <label class="c4a fs15 fwR lh14 p10 m0">{{question.data}}</label>
-                    <input id="{{question.id}}" class="noscrollbars bd0 br8 bxs2 p16"  rows="2" cols="4" name ="{{question.id}}" minlength="50" required placeholder="{{question.help_text}}" oninput="remove_error('{{question.id}}')"  onchange="remove_error('{{question.id}}')">
-                {% elif question.question_state == 10 %}
+                   <input id="{{question.id}}" style="display:inline" class="noscrollbars bd0 br8 bxs2 p16"  rows="2" cols="4" name ="{{question.id}}" minlength="50" required placeholder="{{question.help_text}}" oninput="remove_error('{{question.id}}')"  onchange="remove_error('{{question.id}}')">
+                    {% elif question.question_state == 10 %}
                     <!--    EMAIL_ID = 10-->
                     <label class="c4a fs15 fwR lh14 p10 m0">{{question.data}}</label>
                     <input id="{{question.id}}" class="noscrollbars bd0 br8 bxs2 p16" rows="2" cols="4" name ="{{question.id}}" minlength="50" required placeholder="{{question.help_text}}" oninput="remove_error('{{question.id}}')"  onchange="remove_error('{{question.id}}')">
@@ -621,9 +622,9 @@ $('#back_click').click(function(e){
                         values_dict['value'] = value;
                         values_list.push(values_dict)
                 {% else %}
-                    var numbers =/^[0-9]+$/
-                    console.log(numbers)
-                    if(value.match(numbers)){
+                    //var numbers = /^((\\+[1-9]{1,4}[ \\-]*)|(\\([0-9]{2,3}\\)[ \\-]*)|([0-9]{2,4})[ \\-]*)*?[0-9]{3,4}?[ \\-]*[0-9]{3,4}?$/;
+                    //console.log(numbers)
+                    if(value != ''){
                         values_dict['value'] = value;
                         values_list.push(values_dict)
 
