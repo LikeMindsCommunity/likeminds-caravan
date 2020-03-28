@@ -239,7 +239,10 @@ textarea.noscrollbars {
      <script>
 
     function showLoginPopup(){
-        $('#login_popup').modal('show');
+        $('#login_popup').modal({
+            backdrop: 'static',
+            keyboard: false  // to prevent closing with Esc button (if you want this too)
+        });
     }
 
 
@@ -419,8 +422,6 @@ textarea.noscrollbars {
                     </a>
                 </div>
             </div>
-        </div>
-    </div>
     <!-- -->
 
 </body>
