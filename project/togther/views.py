@@ -1081,7 +1081,6 @@ def logout_view(request):
     return redirect('signup')
 
 
-@login_required
 def join_community(request, community_id, ref_id, aj=False, member_state=None):
 
 
