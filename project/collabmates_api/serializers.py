@@ -165,7 +165,7 @@ def FormResponseSerilaizer(community_id, user_id,current_user_id=None,bl=False):
         return None
 
     member = Members.objects.filter(community_id=community_id, member_id=current_user_id)
-    member_state = member[0].state
+    member_state = member[0].state if member.exists() else 0
     user_response = []
     new_response = []
     for response in responses:
