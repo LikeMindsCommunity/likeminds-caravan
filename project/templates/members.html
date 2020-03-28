@@ -225,88 +225,98 @@ $('#test').hide()
 
 
 
-        {% if not request.user.is_authenticated %}
-            $('#login_popup').modal('show');
-            console.log("user is not authenticated");
-            return;
+            {% if not request.user.is_authenticated %}
+                $('#login_popup').modal('show');
+                console.log("user is not authenticated");
+                return;
 
-        {% elif not is_member %}
-            {% if member_state == 3 %}
-                $('#filter_unverified').modal('show');
+            {% elif not is_member %}
+                {% if member_state == 3 %}
+                    $('#filter_unverified').modal('show');
+                {% endif %}
+                console.log("user is not a member");
+                return;
+
             {% endif %}
-            console.log("user is not a member");
-            return;
-
-        {% endif %}
 
 
 
-        html=`
+            html=`
 
-        <div class="ui two column grid">
-              <div class="row">
-                 <div class="column RobotoMedium" style="padding-left:40px;padding-top:10px;padding-bottom:6px;font-size:17px;" >
-                   <p id="question_heading">{{filter.question_title}}</p>
-                 </div>
-
-                  <div class="column" style="padding-left:160px;padding-top:10px;padding-bottom:10px; font-size:17px;" >
-
-                      <i class="close icon" onclick="checking()"></i>
-
-                  </div>
-
-              </div>
-              `
-
-        {% for value in filter.values %}
-
-        html=html +`
-              <br/>
-                <div class="row">
-                     <div class="column Roboto" style="font-size:17px;padding-left:40px;text-align:left">
-                        {{value}}
+            <div class="ui two column grid">
+                  <div class="row">
+                     <div class="column RobotoMedium" style="padding-left:40px;padding-top:10px;padding-bottom:6px;font-size:17px;" >
+                       <p id="question_heading">{{filter.question_title}}</p>
                      </div>
 
-                      <div class="column Roboto" style="padding-left:160px;">
+                      <div class="column" style="padding-left:160px;padding-top:10px;padding-bottom:10px; font-size:17px;" >
 
-                          <div class="ui checkbox">
-                                <input type="checkbox" name="example" value="{{value}}" class="t1">
-                                <label></label>
-                            </div>
+                          <i class="close icon" onclick="checking()"></i>
 
                       </div>
+
                   </div>
+                  `
 
-             <hr style="border-style:solid;border-width:1px;border-color:white;">
+            {% for value in filter.values %}
 
+            html=html +`
+                  <br/>
+                    <div class="row">
+                         <div class="column Roboto" style="font-size:17px;padding-left:40px;text-align:left">
+                            {{value.option}}
+                         </div>
 
+                          <div class="column Roboto" style="padding-left:160px;">
+                              {% if value.is_selected %}
 
-
-        `
-        {% endfor %}
-
-        html=html+"</div> <br/>"
-        html=html+`
-        <div style="padding-left:30%;padding-bottom:5%;">
-                    <button style="z-index:2; background-color: #00897b; border-radius:20px;
-                                       color:#00897b;width:50%;white-space: nowrap; border: 1px solid #00897b;font-size:12px;"
-                                       class="apply_filter" value="{{filter.question_id}}">
-                                           <p class="Roboto" style="padding-top:5px;padding-bottom:5px;padding-left:10px;padding-right:5px;color:white;
-            ">APPLY FILTER</p>
-                    </button>
-        </div>
-
-
-        `
-
-        $('#filters').html(html)
+                              <div class="ui checkbox">
+                                    <input type="checkbox" name="example" value = "{{value.option}}"  class="t1" checked>
+                                    <label></label>
+                                </div>
+                              {% else %}
 
 
+                                   <div class="ui checkbox">
+                                    <input type="checkbox" name="example" value = "{{value.option}}"  class="t1">
+                                    <label></label>
+                                </div>
 
-             $('#test').animate({
-                height: 'toggle'
-                }, 300, function() {
-            });
+                              {% endif %}
+
+                          </div>
+                      </div>
+
+                 <hr style="border-style:solid;border-width:1px;border-color:white;">
+
+
+
+
+            `
+            {% endfor %}
+
+            html=html+"</div> <br/>"
+            html=html+`
+            <div style="padding-left:30%;padding-bottom:5%;">
+                        <button style="z-index:2; background-color: #00897b; border-radius:20px;
+                                           color:#00897b;width:50%;white-space: nowrap; border: 1px solid #00897b;font-size:12px;"
+                                           class="apply_filter" value="{{filter.question_id}}">
+                                               <p class="Roboto" style="padding-top:5px;padding-bottom:5px;padding-left:10px;padding-right:5px;color:white;
+                ">APPLY FILTER</p>
+                        </button>
+            </div>
+
+
+            `
+
+            $('#filters').html(html)
+
+
+
+                 $('#test').animate({
+                    height: 'toggle'
+                    }, 300, function() {
+                });
 
         })
 
@@ -358,9 +368,9 @@ $('.t1').each(function () {
             type:"POST",
             dataType:'json',
             success:function(data){
-
+             console.log(data)
              console.log(question_id)
-             url="/members_directory/"+"{{community_id}}?members="+data['success']+"&filter="+data['question_id']
+             url="/members_directory/"+"{{community_id}}?members="+data['success']+"&filter="+data['question_id']+ "&option_data=" + data['option_data']
              location.href=url
 
             }

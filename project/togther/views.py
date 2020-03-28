@@ -721,6 +721,7 @@ def members_directory(request, community_id):
 
         member_set = set()
         member_string = ""
+
         for option in option_data:
             question_list = questionFilters.objects.filter(filter=option, question=question_id)
 
@@ -729,7 +730,7 @@ def members_directory(request, community_id):
                     member_string = member_string + "$" + str(member_instance.member.id)
                     member_set.add(member_instance.member.id)
 
-        return JsonResponse({'success': member_string, 'question_id': question_id})
+        return JsonResponse({'success': member_string, 'question_id': question_id,'option_data':option_data})
 
     community_instance = Community.objects.get(pk=community_id)
     filter_list = communityQuestions.objects.filter(community=community_instance).filter(
@@ -738,12 +739,16 @@ def members_directory(request, community_id):
     # for filter processing
     member_string = request.GET.get('members', None)
     filter_question_id = request.GET.get('filter', None)
+    selected_list = request.GET.get('option_data',None)
+    if selected_list:
+        selected_list = selected_list.split(",")
+
     filters = []
 
 
     for filter in filter_list:
         temp = {}
-        response_list = get_user_selected_option_list(filter.id)
+        response_list = get_user_selected_option_list(filter.id,selected_list=selected_list)
         if not response_list:
             continue
         temp['question_id'] = filter.id
@@ -800,13 +805,21 @@ def decode_option(value):
     return value_list
 
 
-def get_user_selected_option_list(question_id):
+def get_user_selected_option_list(question_id,selected_list=None):
 
     '''function to get user selected options'''
     filter_list = list(questionFilters.objects.filter(question=question_id).values_list('filter',flat=True).distinct())
+    response_list = []
+    for option in filter_list:
+        temp={}
+        temp['option'] = option
+        if selected_list and option in selected_list:
+            temp['is_selected'] = True
+        else:
+            temp['is_selected'] = False
 
-
-    return filter_list
+        response_list.append(temp)
+    return response_list
 
 
 def member_profile(request):
