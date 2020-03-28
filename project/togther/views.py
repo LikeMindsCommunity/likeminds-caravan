@@ -791,6 +791,10 @@ def member_profile(request):
         is_promoter = Members.objects.filter(community_id=community_id,member_id=request.user.id).filter(
             state = member_states.ADMIN)
         is_promoter=is_promoter.exists()
+
+    if not is_promoter and str(request.user.id) == str(member_id):
+        is_promoter = True
+
     answer_list = get_member_profile(community_id,member_id,is_promoter=is_promoter)
 
     json_response = {'answer_list':answer_list,'member_name':member_name,'image_link':image_link}
