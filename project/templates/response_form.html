@@ -238,8 +238,13 @@ textarea.noscrollbars {
 
      <script>
 
+    function showLoginPopup(){
+        $('#login_popup').modal('show');
+    }
+
+
      {% if not request.user.is_authenticated %}
-         $('#login_popup').modal('show');
+        window.onload = showLoginPopup;
      {% endif %}
 
      function remove_warning(id) {
