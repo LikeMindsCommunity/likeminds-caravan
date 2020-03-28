@@ -242,9 +242,9 @@ def community(request, community_id):
             member = Members.objects.filter(member_id=request.user, community_id=community)
             member_state = member[0].state if member.exists() else 0
 
-        questions, validation_error, user, data, community, filled_answers = join_community(request, community_id,
-                                                                                            ref_id, aj=aj,
-                                                                                            member_state=member_state)
+        print(">>>  ",join_community(request, community_id, ref_id, aj=aj, member_state=member_state))
+
+        questions, validation_error, user, data, community, filled_answers = join_community(request, community_id, ref_id, aj=aj, member_state=member_state)
         if questions:
             if member_state == 0 or member_state == 5:
                 context = get_join_community_context(request, ref_id, aj, validation_error, user, data, community, filled_answers)
