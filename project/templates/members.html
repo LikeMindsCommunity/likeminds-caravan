@@ -97,6 +97,16 @@
 
             {% if members_length > 0 %}
                 <div class="bdbE bgF bs ffR fs15 ls05 mt56 oA p8 pl12 wsN">
+
+                    {% if selected %}
+
+                         <button class="bd0 bgF cT dIb fs15 h32 ls05 m04 p0 p08 pl16 vM" onclick="location.href='/members_directory/{{community_id}}'">
+                                <div class="dIb vM" id="clear">Clear</div>
+
+                            </button>
+
+                    {% endif %}
+
                     {% for i in filter_list %}
                         {% if not i.selected %}
                             <button class="bdT bgF br16 bs cT dIb fs15 h32 ls05 m04 p0 p08 pl16 vM">
@@ -217,8 +227,34 @@ $('#test').hide()
 }
 
 
+function getParamsFromUrl(){
+
+    let searchParams = new URLSearchParams(window.location.search)
+
+    var members=""
+    var filter=""
+    var option_data=""
+
+    if(searchParams.has('members'))
+        members = searchParams.get('members')
+
+    if(searchParams.has('filter'))
+        filter = searchParams.get('filter')
+
+    if(searchParams.has('option_data'))
+        option_data = searchParams.get('option_data')
+
+    return_value = [members,filter,option_data]
+    return return_value
+
+
+}
+
+
+
 
 //functionality to show filter list
+
     {% for filter in filter_list %}
 
         $('#{{filter.question_id}}').click(function(){
@@ -352,11 +388,18 @@ $('.t1').each(function () {
   });
 
 
+existing_filter = getParamsFromUrl()
 
+console.log(existing_filter)
+console.log(option_list)
  option_data={
     'data':JSON.stringify(option_list),
     'csrfmiddlewaretoken':'{{csrf_token}}',
-    'question_id':question_id
+    'question_id':question_id,
+    'member_ids':existing_filter[0],                            //for already selected members
+    'question_ids':existing_filter[1],                          //for already selected question ids
+    'options':existing_filter[2]                                //for already selected options
+
 
 
     }
@@ -369,13 +412,19 @@ $('.t1').each(function () {
             dataType:'json',
             success:function(data){
              console.log(data)
-             console.log(question_id)
-             url="/members_directory/"+"{{community_id}}?members="+data['success']+"&filter="+data['question_id']+ "&option_data=" + data['option_data']
+
+
+             url="/members_directory/"+"{{community_id}}?members="+data['members']+"&filter="+data['filter']+ "&option_data=" + data['option_data']
+             //url="/members_directory/"+"{{community_id}}?members="+data['members']
+
+             console.log(url)
              location.href=url
 
             }
 
          })
+
+
 
 
 })
