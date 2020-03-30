@@ -601,36 +601,47 @@ def get_admins_details(community):
     return admins
 
 
-def get_member_details(community,filter_list=None):
+def get_member_details(community):
     '''function to get member details of community'''
 
     members = []
+
+    member_list = Members.objects.filter(community_id=community).filter(Q(state=1) | Q(state=2) | Q(state=4))
+    for member in member_list:
+        temp = {}
+        temp['id'] = member.member_id.id
+        temp['name'] = member.member_id.userinfo.name
+        temp['image_link'] = member.member_id.userinfo.image_link
+        answer = get_introduction_answer(community, member)
+        temp['answer'] = answer
+        members.append(temp)
+
+    return members
+
+
+
+
+def get_filtered_members(community,filter_list):
+
+
+    '''function to get filteres members'''
+
+    members=[]
     if not filter_list:
-        member_list = Members.objects.filter(community_id=community).filter(Q(state=1) | Q(state=2) | Q(state=4))
-        for member in member_list:
+        return []
+
+    for member_id in filter_list:
+        if not member_id:
+            continue
+        member = Members.objects.filter(community_id=community, member_id=member_id)
+        if member.exists():
             temp = {}
-            temp['id'] = member.member_id.id
-            temp['name'] = member.member_id.userinfo.name
-            temp['image_link'] = member.member_id.userinfo.image_link
-            answer = get_introduction_answer(community, member)
+            temp['id'] = member[0].member_id.id
+            temp['name'] = member[0].member_id.userinfo.name
+            temp['image_link'] = member[0].member_id.userinfo.image_link
+            answer = get_introduction_answer(community, member[0])
             temp['answer'] = answer
             members.append(temp)
-    else:
-
-        for member_id in filter_list:
-            if not member_id:
-                continue
-            member=Members.objects.filter(community_id=community,member_id=member_id)
-            if member.exists():
-                temp = {}
-                temp['id'] = member[0].member_id.id
-                temp['name'] = member[0].member_id.userinfo.name
-                temp['image_link'] = member[0].member_id.userinfo.image_link
-                answer = get_introduction_answer(community, member[0])
-                temp['answer'] = answer
-                members.append(temp)
-
-
     return members
 
 
@@ -719,31 +730,104 @@ def members_directory(request, community_id):
         option_data = json.loads(option_data)
         question_id = request.POST.get('question_id')
 
+        member_ids = request.POST.get('member_ids')
+        question_ids = request.POST.get('question_ids')
+        options = request.POST.get('options')
+
+
         member_set = set()
-        member_string = ""
+
+        question_set = set()
+        option_set = set()
+
+        questions=[]
+        dropdowns=[]
+
+        is_selected = False
+
+        if member_ids:
+            member_list = member_ids.split("$")
+            for member in member_list:
+                if member:
+                    if member not in member_set:
+                        member_set.add(member)
+
+        if question_ids:
+            is_selected = True
+            question_list = question_ids.split("$")
+            for question in question_list:
+
+                if question not in question_set:
+                    questions.append(question)
+                    question_set.add(question)
+
+        if question_id not in question_set:
+            question_set.add(question_id)
+            questions.append(question_id)
+
+        if options:
+            option_list = options.split("$")
+            for option in option_list:
+                if option not in option_set:
+                    dropdowns.append(option)
+                    option_set.add(option)
 
         for option in option_data:
-            question_list = questionFilters.objects.filter(filter=option, question=question_id)
+            if option not in option_set:
+                dropdowns.append(option)
+                option_set.add(option)
 
-            for member_instance in question_list:
-                if member_instance.member.id not in member_set:
-                    member_string = member_string + "$" + str(member_instance.member.id)
-                    member_set.add(member_instance.member.id)
 
-        return JsonResponse({'success': member_string, 'question_id': question_id,'option_data':option_data})
+        # print("member_set---",member_set)
+        # print("question_list--",questions)
+        # print("dropdowns--",dropdowns)
+
+        filtered_members = get_member_string_for_filters(option_data,question_id)
+        if not is_selected:                     #if the first request is comming
+            member_string=filtered_members[0]
+        else:
+            filtered_member_list = filtered_members[1]
+            member_string = ""
+
+            for member in filtered_member_list:
+                if member in member_set:
+                    member_string = member_string+"$"+ member
+
+        if member_string == "$":
+            member_string = ""
+
+        context = {'members': member_string,'filter':questions,'option_data':dropdowns}
+
+        return JsonResponse(context)
 
     community_instance = Community.objects.get(pk=community_id)
     filter_list = communityQuestions.objects.filter(community=community_instance).filter(
         Q(question_state=question_states.CHOICE_SINGLE) | Q(question_state=question_states.CHOICE_MULTIPLE))
 
     # for filter processing
-    member_string = request.GET.get('members', None)
-    filter_question_id = request.GET.get('filter', None)
+    member_string = request.GET.get('members',None)
+
+    selected_options = request.GET.get('filter', None)
+    selected_filters=[]
+    if selected_options:
+        selected_filters = selected_options.split(",")
+
+
+
     selected_list = request.GET.get('option_data',None)
     if selected_list:
         selected_list = selected_list.split(",")
 
+
+
+
+    # print("member_string",member_string)
+    # print("selected filters",selected_filters)
+    # print("selected list",selected_list)
+
+    selected = False                #boolean to show clear button
     filters = []
+
 
 
     for filter in filter_list:
@@ -754,17 +838,18 @@ def members_directory(request, community_id):
         temp['question_id'] = filter.id
         temp['question_title'] = filter.question_title
         temp['values'] = response_list
-        if str(filter_question_id) == str(filter.id):
+        if str(filter.id) in selected_filters:
+            selected = True
             temp['selected'] = True
         else:
             temp['selected'] = False
         filters.append(temp)
 
-    if not member_string:
+    if member_string == None:
         members = get_member_details(community_instance)
     else:
-        filter_list = member_string.split("$")
-        members = get_member_details(community_instance, filter_list)
+        member_split = member_string.split("$")
+        members = get_filtered_members(community_instance,member_split)
     header = {
         'back': True,
         'title': 'Members',
@@ -782,7 +867,8 @@ def members_directory(request, community_id):
         'header': header,
         'user_email': user_email,
         'filter_list':filters,
-        'member_state':member_state
+        'member_state':member_state,
+        'selected':selected
     }
 
 
@@ -820,6 +906,27 @@ def get_user_selected_option_list(question_id,selected_list=None):
 
         response_list.append(temp)
     return response_list
+
+
+def get_member_string_for_filters(option_data,question_id):
+
+    '''function to get member string for  filters'''
+
+    member_set = set()
+
+    member_string = ""
+    filter_member_list = []
+    for option in option_data:
+        question_list = questionFilters.objects.filter(filter=option, question=question_id)
+
+        for member_instance in question_list:
+            member_id = str(member_instance.member.id)
+            if member_id not in member_set:
+                member_string = member_string + "$" + member_id
+                member_set.add(member_id)
+                filter_member_list.append(member_id)
+    return member_string,filter_member_list
+
 
 
 def member_profile(request):
@@ -922,11 +1029,14 @@ def get_member_profile(community_id,member_id,is_promoter=False):
             temp['answer'] = question_instance.question_title + ": " "File Link"
             temp['rank'] = 5
         else:
-            temp['answer'] = question_instance.question_title + ": " + answer.question_answer
+            response = answer.question_answer
+            if "$#" in response:
+                response = response.replace("$#",",")
+            temp['answer'] = question_instance.question_title + ": " + response
             temp['rank'] = 6
         answer_list.append(temp)
         answer_list = sorted(answer_list, key=lambda i: i['rank'])
-    
+        #print(answer_list)
     return answer_list
 
 def answer_privacy(answer,is_promoter=False):
@@ -1307,7 +1417,7 @@ def send_email(email):
     subject = email + " wants to be Notified"
     msg = EmailMultiAlternatives(subject,
                                  email,
-                                 "Collabmates<hello@collabmates.com>",
+                                 "LikeMinds<hello@collabmates.com>",
                                  [to, 'harsh.shukla@collabmates.com'],
                                  )
     if email:
