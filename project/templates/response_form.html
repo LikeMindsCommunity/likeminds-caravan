@@ -740,9 +740,43 @@ $('#back_click').click(function(e){
                 {% endif %}
 
 
+            {% elif question.question_state == 2 %}
+
+
+                values_dict = {'id':{{question.id}}};
+                value = $('#{{question.id}}').val();
+
+                {% if question.optional %}
+
+                    values_dict['value'] = value;
+                    values_list.push(values_dict)
+                {% else %}
+
+                    if(value != '' ){
+                        value=value.split(',').join(', ')
+                        values_dict['value'] = value;
+                        values_list.push(values_dict)
+                    }else{
+
+                    $("#div_{{question.id}}").addClass("error");
+
+                        var tag_div_html = `<div class="ui negative message" id="hidden_div_{{question.id}}">
+                                                <i class="close icon" onclick="remove_error('{{question.id}}')"></i>
+                                                <div class="header">
+
+                                                    Please select or enter option
+                                                </div>
+                                            </div>`
+                        $('#div_{{question.id}}').append(tag_div_html)
+                         $(window).scrollTop($('#div_{{question.id}}').offset().top-20)
+                        return;
+
+                    }
+
+                {% endif %}
 
             {% elif question.question_state != 5 %}
-
+                //console.log('check-2')
                 value = $('#{{question.id}}').val();
                 values_dict = {'id':{{question.id}}};
                 if (value == ''){
@@ -780,7 +814,7 @@ $('#back_click').click(function(e){
                             </div>
                             `
                         $('#div_{{question.id}}').append(tag_div_html)
-                         $(window).scrollTop($('#div_{{question.id}}').offset().top-20)
+                        $(window).scrollTop($('#div_{{question.id}}').offset().top-20)
                         return;
 
                     {% endif %}
