@@ -33,7 +33,7 @@ def send_email(subject, template, to_mails_list):
     fail_silently = True
     msg = EmailMultiAlternatives(subject,
                                  template,
-                                 "Collabmates<hello@collabmates.com>",
+                                 "LikeMinds<hello@collabmates.com>",
                                  to_mails_list, )
     msg.attach_alternative(template, "text/html")
     msg.send(fail_silently)
