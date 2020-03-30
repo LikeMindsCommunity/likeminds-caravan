@@ -1029,11 +1029,14 @@ def get_member_profile(community_id,member_id,is_promoter=False):
             temp['answer'] = question_instance.question_title + ": " "File Link"
             temp['rank'] = 5
         else:
-            temp['answer'] = question_instance.question_title + ": " + answer.question_answer
+            response = answer.question_answer
+            if "$#" in response:
+                response = response.replace("$#",",")
+            temp['answer'] = question_instance.question_title + ": " + response
             temp['rank'] = 6
         answer_list.append(temp)
         answer_list = sorted(answer_list, key=lambda i: i['rank'])
-    
+        #print(answer_list)
     return answer_list
 
 def answer_privacy(answer,is_promoter=False):
