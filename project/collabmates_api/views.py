@@ -7,7 +7,7 @@ import re
 import time
 from datetime import datetime
 from random import randint
-
+import requests as rqst
 import dateutil.relativedelta
 import googlemaps
 from celery import shared_task
@@ -67,6 +67,8 @@ from .notification import (send_follow_notification, send_notification_to_admins
                            send_notification_for_tool_unlocked_for_pilot)
 from .raw_queries import compute_rank
 from .tasks import send_email_to_nominated_admin, send_email_for_new_collabcard_posted, send_welcome_mail
+
+
 
 # CACHE_TTL = getattr(settings, 'CACHE_TTL', cache_timeout)
 
@@ -4405,6 +4407,16 @@ def login(request):
     ''' function to login a user '''
 
     if request.method == 'POST':
+
+        login_type = request.GET.get('type',None)
+
+        if login_type and login_type == "google":
+            google_id_token = request.GET.get('google_id_token',None)
+
+            context = login_with_google(google_id_token,request)
+            return JsonResponse(context)
+
+
         res = json.loads(request.body)
         dic_form = res
         json_to_save = json.dumps(dic_form)
@@ -4597,6 +4609,82 @@ def create_member_for_feedback_community(user_instance):
         engage.updated_at = time.time()
         engage.member_state = member_states.MEMBER
         engage.save()
+
+
+def fetch_google_auth_data(google_id_token):
+
+    '''function to fetch google auth token'''
+
+    params={'id_token':google_id_token}
+    response = rqst.get("https://oauth2.googleapis.com/tokeninfo",params=params)
+
+    response = response.text
+    json_to_save = json.dumps(response)
+    google_json = json.loads(response)
+
+    return (json_to_save,google_json)
+
+
+
+def login_with_google(google_id_token,request,login_type="google"):
+
+    '''function to login with google'''
+
+    google_json = fetch_google_auth_data(google_id_token)
+
+    json_to_save = google_json[0]
+    res = google_json[1]
+    created = False
+    context ={'success':False,'error_message':"please give permission to use your google account"}
+
+    if 'email' in res:
+        email = res['email']
+        email = email.lower().strip()
+        user = User.objects.filter(email=email)
+
+        if not user.exists():
+            # creating a user if no user is associated with that email
+            res['id'] = google_id_token
+
+            user = create_user(user_name=res['name'], email=res['email'], id=res['id'])
+
+            if 'picture' in res:
+                image_link = upload_image_to_firebase(res['picture']['data']['url'], user.id)
+            else:
+                image_link = 'https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fuser%2F222%2Fimg_user_222?alt=media'
+
+            userinfo = create_userinfo(user=user, email=res['email'], user_name=res['name'],
+                                       profile_picture=image_link, login_type=login_type,
+                                       json_to_save=json_to_save
+                                       )
+            created = True
+            mail_triger(str(user.id), request)  # both mail and notification will be sent here
+
+        if not created:
+            userinfo = user[0].userinfo
+
+        usr = UserinfoSerializer(userinfo)
+        # see if user has tags or not
+        has_tags = userinfo.has_tags
+
+        # saving the OS type of user (Android,iOS,WEB)
+        request_type = get_request_type(request)
+        if request_type:
+            Userinfo.objects.filter(user_id=usr['id']).update(mobile_os=request_type)
+
+        # User asscoaited tags if any present
+        if has_tags:
+            tags = get_user_lpig_tags(usr['id'])
+            usr['tags'] = tags
+
+        else:
+            create_member_for_feedback_community(userinfo.user_id)
+
+        context = {'user': usr, 'has_tags': has_tags}
+
+    return context
+
+
 
 
 def notify_referred_member_after_join(joined_member_id, joined_member_name, community_name, community_id):
