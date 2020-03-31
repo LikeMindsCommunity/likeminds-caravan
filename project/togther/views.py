@@ -1231,14 +1231,16 @@ def join_community(request, community_id, ref_id, aj=False, member_state=None):
     validation_error = False
     if request.method == "POST":
 
-        question_data = request.POST.dict()
+        # question_data = request.POST.dict()
 
-        for key, value in question_data.items():
-            if not key[-1] == ']':
-                question_data = key+"="+value
-            else:
-                question_data = key
-            break
+        # for key, value in question_data.items():
+        #     if not key[-1] == ']':
+        #         question_data = key+"="+value
+        #     else:
+        #         question_data = key
+        #     break
+
+        question_data = request.POST.dict().get("data")
 
         question_data = ast.literal_eval(question_data)
         response_list = []

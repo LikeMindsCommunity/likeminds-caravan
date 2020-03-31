@@ -146,14 +146,11 @@ def new_member_request(member_id, community_id, form_response, ref_id=None, ph_n
                 community_name) + ' community and is referred by ' + str(ref_name)
 
     res = {}
-    if form_response:
-        for response in form_response:
-            res[response['key']] = response['value']
-    else:
-        responses = Form_response.objects.filter(community=community_id).filter(user=member_id).order_by('id')
-        if responses.exists():
-            for response in responses:
-                res[response.data] = response.response
+
+    responses = communityAnswers.objects.filter(community=community_id).filter(member=member_id).order_by('id')
+    if responses.exists():
+        for response in responses:
+            res[response.question_title] = response.question_answer
 
     community_state = community.hide_community
 

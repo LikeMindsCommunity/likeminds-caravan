@@ -139,47 +139,38 @@
 
         <div class="bgF p16 bs mb10" id="purpose">
             <h5 class="fwB fs16 c0 m0 p0 lh20 ffR mb8">Purpose</h5>
-            <p class="fs15 p016 m0 c6 lh24">{{community.purpose}}</p>
+            <p class="fs15 m0 c6 lh24">{{community.purpose}}</p>
         </div>
 
         <!-- rendering multiple admins -->
         {% if admin_length > 0 %}
-            <div class="p16 bs mb10" id="promter_card">
-                {% if admin_length == 1 %}
-                    <h4 class="fwB fs16 c0 m0 p0 lh20 ffR">Promoter</h4>
-                    <div class="h96 mt20 taC pR z1">
+            <div class="bs mb10 p160" id="promter_card">
+                <h4 class="c0 ffR fs16 fwB lh20 m0 p0 p016">Promoter</h4>
+                <div class="oA">
+                    <div class="bs dT p8 mnwp100">
                         {% for admin in admins %}
-                            <div class="w96 h96 brp50 bd2F bs bxs oH dIb vM bgF">
-                                <img class="w96 h96 ofC" src="{{admin.image_link}}">
+                            <div class="bs dTc mnw296 mxwp100 p8 vT">
+                                <div class="h96 mt12 taC pR z1">
+                                    <div class="w96 h96 brp50 bd2F bs bxs oH dIb vM bgF">
+                                        <img class="w96 h96 ofC" src="{{admin.image_link}}">
+                                    </div>
+                                </div>
+                                <div class="pR mtn58 bxs br8 oH bgF">
+                                    <div class="h96">
+                                        <img class="wp100 ofC h96" src="https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Fprofile_header?alt=media">
+                                    </div>
+                                    <div class="h2"></div>
+                                    <p class="p0 m0 taC fwM fs16 c0 lh20">{{admin.name}}</p>
+                                    <p class="p0 m0 p18 pt28 fs15 c6 lh24 taC">{{admin.introduction_answer}}</p>
+                                </div>
                             </div>
                         {% endfor %}
                     </div>
-                    <div class="pR mtn58 bxs br8 oH bgF">
-                        {% for admin in admins %}
-                            <div class="h96">
-                                <img class="wp100 ofC h96" src="https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Fprofile_header?alt=media">
-                            </div>
-                            <div class="h2"></div>
-                            <p class="p0 m0 taC fwM fs16 c0 lh20">{{admin.name}}</p>
-                            <p class="p0 m0 p18 pt28 fs15 c6 lh24 taC">{{admin.introduction_answer}}</p>
-                        {% endfor %}
-                    </div>
-                {% else %}
-                    <h4 class="RobotoBold" style="padding-left:10px;padding-top:10px;margin-bottom:5px;" >Promoters</h4>
-                    <section class="horizontal-scroll">
-                        {% for admin in admins %}
-                        <div class="promoter_item_multiple">
-                            <img src="{{admin.image_link}}" alt="No Image"/>
-                            <p style="line-height:22px;font-size:1.1rem;font-family:roboto;sans-serif;">{{admin.name}}</p>
-                            <p style="line-height:22px;font-size:1.1rem;font-family:roboto;sans-serif;">{{admin.introduction_answer}}</p>
-                        </div>
-                        {% endfor %}
-                    </section>
-                {% endif %}
+                </div>
             </div>
         {% endif %}
 
-        {% if community.about %}`
+        {% if community.about %}
             <div class="p16 bs mb10">
                 <!-- printing community about -->
                 <div class="content ui fluid" id="about_card">

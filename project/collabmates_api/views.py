@@ -633,8 +633,7 @@ def join_lg_communities(request,res,community,user,ref_id):
 
         log = """Request in LG community where community_id=%s and member_id=%s""" % (community.id, user.id)
         print(log)
-    else:
-        member_instance.update(state=member_states.PENDING_MEMBER)
+
 
 
 def join_promoter_created_community(res,community,user):
@@ -687,8 +686,6 @@ def join_promoter_created_community(res,community,user):
         send_notification_to_admins.delay(community.id, name)
 
 
-    else:
-        member_instance.update(state=member_states.PENDING_MEMBER)
 
 
 
@@ -724,6 +721,7 @@ def join_community_responses_version_1(request):
     info_logger.info(res)
     info_logger.info("\n")
     community_id = res['community_id']
+    print(community_id)
     community_instance = Community.objects.get(id=community_id)
     community=community_instance
 
@@ -822,6 +820,7 @@ def join_community_responses_version_1(request):
             new_member_request.delay(member_id=user_id, community_id=community_id, ref_id=ref_id,
                                      form_response=res['questions'])
         return JsonResponse({'success': True})
+
     elif is_private:
         info_logger.info("Inside private\n")
         join_promoter_created_community_version_1(res, community, user)
@@ -907,9 +906,10 @@ def join_lg_communities_version_1(request,res,community,user,ref_id):
         introduction_answer=""
         # saving questions
         if 'questions' in res:
-            info_logger.info(res['questions'])
 
             for question in res['questions']:
+                if 'value' not in question:
+                    continue
                 question_instance = communityQuestions.objects.get(id=question['id'])
                 answer_instance = communityAnswers()
                 answer_instance.question = question_instance
@@ -945,7 +945,7 @@ def join_lg_communities_version_1(request,res,community,user,ref_id):
         is_verified = member_queryset.exists()
         if is_verified:
             member_queryset.update(pending_members=F('pending_members') + 1)
-        send_notification_to_referrer_of_lg_community(community_id=community.id, community_name=community.name,
+            send_notification_to_referrer_of_lg_community(community_id=community.id, community_name=community.name,
                                                       referrer_id=ref_id,
                                                       member_name=user.userinfo.name,
                                                       community_state=community.hide_community,
@@ -1720,9 +1720,12 @@ def create_community(request):
 
             # saving the questions to be asked while joining a community
             for questions in res['questions']:
-                question = Form_data()
-                question.data = questions["key"]
-                question.community_id = community
+                question = communityQuestions()
+                question.question_title = questions["key"]
+                question.question_state = 0
+                question.community = community
+                question.value = questions['value']
+                question.optional = False
                 question.save()
 
             # forming card dict
@@ -2592,7 +2595,7 @@ def request_response(request, req_dict=None):
 
         # check if member is already accepted to stop duplicate notifications and false member count
         member_queryset = Members.objects.filter(member_id=member_id, community_id=community).filter(Q(state=1)|Q(state=4))
-        if member_queryset.exists():
+        if not member_queryset.exists():
             # updating the approve state
             Members.objects.filter(member_id=member_id, community_id=community).update(state=4,
                                                                                        created_at=join_time)  # aprove state = 4
@@ -2626,7 +2629,7 @@ def request_response(request, req_dict=None):
         state = Members.objects.filter(member_id=member_id, community_id=community)[0].state
         if state == 3 or state == 8:
             # change user state to 5
-            Members.objects.filter(member_id=member_id, community_id=community).update(state=5)  # decline state = 5
+            Members.objects.filter(member_id=member_id, community_id=community).delete()  # decline state = 5
             # delete the member engage table record for the user
             Member_Engage.objects.filter(member_id=member_id, community_id=community).delete()
             # delete the responses of user to community questions, if any
