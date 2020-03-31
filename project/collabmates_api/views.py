@@ -633,7 +633,7 @@ def join_lg_communities(request,res,community,user,ref_id):
 
         log = """Request in LG community where community_id=%s and member_id=%s""" % (community.id, user.id)
         print(log)
- 
+
 
 
 def join_promoter_created_community(res,community,user):
@@ -1720,9 +1720,12 @@ def create_community(request):
 
             # saving the questions to be asked while joining a community
             for questions in res['questions']:
-                question = Form_data()
-                question.data = questions["key"]
-                question.community_id = community
+                question = communityQuestion()
+                question.question_title = questions["key"]
+                question.question_state = 0
+                question.community = community
+                question.value = questions['value']
+                question.optional = False
                 question.save()
 
             # forming card dict
