@@ -1720,7 +1720,7 @@ def create_community(request):
 
             # saving the questions to be asked while joining a community
             for questions in res['questions']:
-                question = communityQuestion()
+                question = communityQuestions()
                 question.question_title = questions["key"]
                 question.question_state = 0
                 question.community = community
