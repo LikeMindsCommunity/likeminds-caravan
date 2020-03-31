@@ -2595,7 +2595,7 @@ def request_response(request, req_dict=None):
 
         # check if member is already accepted to stop duplicate notifications and false member count
         member_queryset = Members.objects.filter(member_id=member_id, community_id=community).filter(Q(state=1)|Q(state=4))
-        if member_queryset.exists():
+        if not member_queryset.exists():
             # updating the approve state
             Members.objects.filter(member_id=member_id, community_id=community).update(state=4,
                                                                                        created_at=join_time)  # aprove state = 4
