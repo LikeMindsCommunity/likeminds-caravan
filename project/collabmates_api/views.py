@@ -724,6 +724,7 @@ def join_community_responses_version_1(request):
     info_logger.info(res)
     info_logger.info("\n")
     community_id = res['community_id']
+    print(community_id)
     community_instance = Community.objects.get(id=community_id)
     community=community_instance
 
@@ -822,6 +823,7 @@ def join_community_responses_version_1(request):
             new_member_request.delay(member_id=user_id, community_id=community_id, ref_id=ref_id,
                                      form_response=res['questions'])
         return JsonResponse({'success': True})
+
     elif is_private:
         info_logger.info("Inside private\n")
         join_promoter_created_community_version_1(res, community, user)
@@ -907,9 +909,10 @@ def join_lg_communities_version_1(request,res,community,user,ref_id):
         introduction_answer=""
         # saving questions
         if 'questions' in res:
-            info_logger.info(res['questions'])
 
             for question in res['questions']:
+                if 'value' not in question:
+                    continue
                 question_instance = communityQuestions.objects.get(id=question['id'])
                 answer_instance = communityAnswers()
                 answer_instance.question = question_instance
@@ -945,7 +948,7 @@ def join_lg_communities_version_1(request,res,community,user,ref_id):
         is_verified = member_queryset.exists()
         if is_verified:
             member_queryset.update(pending_members=F('pending_members') + 1)
-        send_notification_to_referrer_of_lg_community(community_id=community.id, community_name=community.name,
+            send_notification_to_referrer_of_lg_community(community_id=community.id, community_name=community.name,
                                                       referrer_id=ref_id,
                                                       member_name=user.userinfo.name,
                                                       community_state=community.hide_community,
