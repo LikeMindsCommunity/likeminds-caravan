@@ -1,32 +1,43 @@
-#script to update question text in a pre created community
 import time
-from togther.models import *
+from togther.models import Community,communityQuestions
 from django.db.models import Count
 
-def update_question_text():
 
-    '''function to update question text in a pre-created community'''
 
-    question_list=Form_data.objects.filter().values('community_id','id').annotate(question_count=Count('community_id'))
+#function to change the state of intoduction questions
+
+def get_count_of_communityQuestions(community_id):
+
+    '''function to get count of community questions'''
+
+    count=communityQuestions.objects.filter(community_id=community_id).count()
+    return count
+
+
+def change_state_of_introduction():
+
+    question_list = communityQuestions.objects.all()
 
     for question in question_list:
 
-        if question['question_count'] == 1 and question['community_id'] < 46975 :
-            community_instance=Community.objects.get(id=question['community_id'])
-            if community_instance.hide_community == '3' and community_instance.introduction_text:
-                form_data_instance=Form_data.objects.get(id=question['id'])
-                form_data_instance.data=community_instance.introduction_text
-                form_data_instance.save()
-                print("Question updated for")
-                print(community_instance)
+        community_filter = Community.objects.filter(id=question.community_id)
+        if community_filter.exists():
+            community_instance = community_filter[0]
+            question_count = get_count_of_communityQuestions(community_instance)
+            if community_instance.hide_community == '3' and question_count == 1:
+                question.question_state = 7
+                question.value = """[{"min_chars":"50","max_chars":"No limit"}]"""
+                question.optional = False
+                question.save()
+                print("Community Introduction Updated for community_id=",community_instance.id)
+
 
 
 
 
 
 start_time=time.time()
-update_question_text()
 end_time=time.time()
-
+change_state_of_introduction()
 diff = (end_time - start_time)
 print(diff)
