@@ -633,8 +633,7 @@ def join_lg_communities(request,res,community,user,ref_id):
 
         log = """Request in LG community where community_id=%s and member_id=%s""" % (community.id, user.id)
         print(log)
-    else:
-        member_instance.update(state=member_states.PENDING_MEMBER)
+ 
 
 
 def join_promoter_created_community(res,community,user):
@@ -687,8 +686,6 @@ def join_promoter_created_community(res,community,user):
         send_notification_to_admins.delay(community.id, name)
 
 
-    else:
-        member_instance.update(state=member_states.PENDING_MEMBER)
 
 
 
@@ -2629,7 +2626,7 @@ def request_response(request, req_dict=None):
         state = Members.objects.filter(member_id=member_id, community_id=community)[0].state
         if state == 3 or state == 8:
             # change user state to 5
-            Members.objects.filter(member_id=member_id, community_id=community).update(state=5)  # decline state = 5
+            Members.objects.filter(member_id=member_id, community_id=community).delete()  # decline state = 5
             # delete the member engage table record for the user
             Member_Engage.objects.filter(member_id=member_id, community_id=community).delete()
             # delete the responses of user to community questions, if any
