@@ -887,7 +887,9 @@
             })
     
             // google login
+
             function authServer(token, element){
+
                 $.ajax({
                     url: "/api/login",
                     data: {"type": "google", "google_id_token": token},
@@ -930,9 +932,14 @@
                             // Request scopes in addition to 'profile' and 'email'
                             // scope: 'additional_scope'
                         });
+
                         $(".googleSignin").removeClass("dN").each(function(){
                             attachSignin(this);
                         })
+
+
+                        attachSignin(document.getElementById('googleSignin'));
+
                     });
                 };
                 j.onerror = function(){};

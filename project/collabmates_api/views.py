@@ -4412,10 +4412,8 @@ def login_authenticate(request):
     if request.method == 'POST':
 
         login_type = request.POST.get('type',None)
-
         if login_type and login_type == "google":
             google_id_token = request.POST.get('google_id_token',None)
-
             context = login_with_google(google_id_token,request)
             return JsonResponse(context)
 
@@ -4640,6 +4638,13 @@ def login_with_google(google_id_token,request,login_type="google"):
     created = False
     context ={'success':False,'error_message':"please give permission to use your google account"}
 
+    is_request_web = False
+
+    platform_code = get_platform_code_from_headers(request)
+    
+    if not platform_code:
+        is_request_web = True
+
     if 'email' in res:
         email = res['email']
         email = email.lower().strip()
@@ -4666,6 +4671,8 @@ def login_with_google(google_id_token,request,login_type="google"):
         if not created:
             userinfo = user[0].userinfo
 
+
+
         usr = UserinfoSerializer(userinfo)
         # see if user has tags or not
         has_tags = userinfo.has_tags
@@ -4682,6 +4689,11 @@ def login_with_google(google_id_token,request,login_type="google"):
 
         else:
             create_member_for_feedback_community(userinfo.user_id)
+
+
+        if is_request_web:
+
+            login(request,user=userinfo.user_id,backend="django.contrib.auth.backends.ModelBackend")
 
         context = {'user': usr, 'has_tags': has_tags}
 
@@ -5278,6 +5290,18 @@ def get_member_id_from_headers(request):
         member_id = headers['HTTP_X_MEMBER_ID']
 
     return member_id
+
+
+
+def get_platform_code_from_headers(request):
+
+    headers = request.META
+
+    platform_code = 0
+    if 'HTTP_X_PLATFORM_CODE' in headers:
+        platform_code = headers['HTTP_X_PLATFORM_CODE']
+
+    return platform_code
 
 
 ################ functions for getting and setting of tags ##########################################
