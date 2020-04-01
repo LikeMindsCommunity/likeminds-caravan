@@ -225,8 +225,6 @@
             <div class="ui fluid card " style="margin:0 0 ; padding: 10px 10px;">
                 <h2 class="ui teal center aligned header">
                         <img src="https://beta.collabmates.com/media/media/ic_launcher_round.png" style="float:left;width:35px;"/>
-
-
                     <div class="content" style="color:#008577">
                         Login to continue
                     </div>
@@ -239,7 +237,6 @@
                 </div>
                 <div class="center aligned container">
                     <div class="content">
-
                         {% if ref_id != '' %}
                         <a href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join-ref_id-{{ref_id}}">
                         <button class="ui facebook button" style="width:130px;">
@@ -293,10 +290,53 @@
                         </a>
                     </div>
                     <br>
+
+                    <!-- accept invitation model -->
+                    <div class="ui modal accept" id="accept">
+
+                        <div class="ui fluid card " style="border: 2px solid #1ebea5; margin:0 0 ; padding: 10px 10px;">
+                            <h2 class="ui teal center aligned header">
+                                <div class="content">
+                                    Respond to Invitation
+                                </div>
+                            </h2>
+                            <div class="content">
+                                <p class="center aligned">
+                                    Send Response
+                                </p>
+                            </div>
+                            <div class="center aligned container">
+                                <div class="content">
+                                    <a href="../accept_admin/{{community.id}}?cta=accept_invitation&value=true">
+                                        <button class="ui button" style="width:130px; color:green;">
+
+                                            Accept
+                                        </button>
+                                    </a>
+                                    <br>
+                                    <br>
+
+                                    <br>
+                                    <br>
+                                    <div class="content">
+                                        <a href="../accept_admin/{{community.id}}?cta=accept_invitation&value=false">
+                                            <button class="ui button" style="width:130px; color:green;">
+
+                                                Decline
+                                            </button>
+                                        </a>
+                                    </div>
+                                </div>
+                                <br>
+
+                            </div>
+                        </div>
+                    </div>    
+
                 </div>
             </div>
         </div>
-
+        
         <!-- login model for exclusive communities -->
         <div class="ui modal image_container_login w300" id="whatsapp_login">
             <div class="h72 w72 brp50 bd2F bs bxs oH bgT mtn22 mA">
