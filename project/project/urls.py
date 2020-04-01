@@ -33,7 +33,7 @@ urlpatterns = [
     url(r'^oauth/', include('social_django.urls', namespace='social')),  # <--
     url(r'^collabmates_admin/', admin.site.urls),
     path('', include('togther.urls'),name= 'togther'),
-    path('accounts/login/', views.home, name='login'),
+    # path('accounts/login/', views.home, name='login'),
     path('api/', include('collabmates_api.urls'),name= 'api'),
     path('admin_dashboard/',include('dashboard.urls'),name='admin_dashboard'),
     path('utils/', include('utility.urls'), name='utils'),
