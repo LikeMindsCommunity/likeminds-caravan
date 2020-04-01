@@ -348,15 +348,15 @@
                 <div class="p160 ls05">
                     <div class="fs12 mb16">
                         {% if ref_id != '' %}
-                            <div id="googleSignin" class="p12 bs br20 bgF c79 ffR fwM bdE c79h" data-next="{{ request.path }}?cta=join-ref_id-{{ref_id}}">
+                            <div class="googleSignin p12 bs br20 bgF c79 ffR fwM bdE c79h dN" data-next="{{ request.path }}?cta=join-ref_id-{{ref_id}}">
                         {% elif aj  %}
-                            <div id="googleSignin" class="p12 bs br20 bgF c79 ffR fwM bdE c79h" data-next="{{ request.path }}?cta=join-aj-{{aj}}">
+                            <div class="googleSignin p12 bs br20 bgF c79 ffR fwM bdE c79h dN" data-next="{{ request.path }}?cta=join-aj-{{aj}}">
                         {% elif cta == 'share' %}
-                            <div id="googleSignin" class="p12 bs br20 bgF c79 ffR fwM bdE c79h" data-next="{{ request.path }}?cta=join">
+                            <div class="googleSignin p12 bs br20 bgF c79 ffR fwM bdE c79h dN" data-next="{{ request.path }}?cta=join">
                         {% elif cta != '' %}
-                            <div id="googleSignin" class="p12 bs br20 bgF c79 ffR fwM bdE c79h" data-next="{{ request.path }}?cta={{cta}}">
+                            <div class="googleSignin p12 bs br20 bgF c79 ffR fwM bdE c79h dN" data-next="{{ request.path }}?cta={{cta}}">
                         {% else %}
-                            <div id="googleSignin" class="p12 bs br20 bgF c79 ffR fwM bdE c79h" data-next="{{ request.path }}?cta=join">
+                            <div class="googleSignin p12 bs br20 bgF c79 ffR fwM bdE c79h dN" data-next="{{ request.path }}?cta=join">
                         {% endif %}
                                 <i class="dIb fa fa-google fs15 lh16 vM"></i>
                                 <span  class="dIb lh16 pl12 vM">LOGIN WITH GOOGLE</span>
@@ -887,7 +887,7 @@
             })
     
             // google login
-            function authServer(token){
+            function authServer(token, element){
                 $.ajax({
                     url: "/api/login",
                     data: {"type": "google", "google_id_token": token},
@@ -895,7 +895,7 @@
                     // dataType: "json",
                     success: function(data){
                         console.log("Google auth success", data);
-                        window.location.href = $('#googleSignin').attr("data-next");
+                        window.location.href = element.attr("data-next");
                     },
                     error: function(data){
                         console.log("Google auth failure", data);
@@ -911,7 +911,7 @@
                         console.log('Name: ' + profile.getName());
                         console.log('Image URL: ' + profile.getImageUrl());
                         console.log('Email: ' + profile.getEmail()); // This is null if the 'email' scope is not present.
-                        authServer(id_token);
+                        authServer(id_token, element);
                     }, function(error) {
                         console.log(JSON.stringify(error, undefined, 2));
                     });
@@ -930,8 +930,9 @@
                             // Request scopes in addition to 'profile' and 'email'
                             // scope: 'additional_scope'
                         });
-                        debugger;
-                        attachSignin(document.getElementById('googleSignin'));
+                        $(".googleSignin").removeClass("dN").each(function(){
+                            attachSignin(this);
+                        })
                     });
                 };
                 j.onerror = function(){};
