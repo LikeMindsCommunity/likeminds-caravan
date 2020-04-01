@@ -4408,10 +4408,10 @@ def login(request):
 
     if request.method == 'POST':
 
-        login_type = request.GET.get('type',None)
+        login_type = request.POST.get('type',None)
 
         if login_type and login_type == "google":
-            google_id_token = request.GET.get('google_id_token',None)
+            google_id_token = request.POST.get('google_id_token',None)
 
             context = login_with_google(google_id_token,request)
             return JsonResponse(context)

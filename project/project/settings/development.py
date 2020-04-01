@@ -33,3 +33,8 @@ IS_BETA = True
 ALLOWED_HOSTS = [os.getenv("BETA_ALLOWED_HOST_1"),os.getenv("BETA_ALLOWED_HOST_2")]
 
 FCM_SERVER_KEY=os.getenv('BETA_FCM_SERVER_KEY')
+
+# variable for google sign in oauth client ID
+# GOOGLE_OAUTH_CLIENT_ID=os.getenv('BETA_GOOGLE_OAUTH_CLIENT_ID')
+# hard coding here for prod unless key it is moved to beta env as above
+GOOGLE_OAUTH_CLIENT_ID="983690302378-vmcfu305q815j0n430t385to742s3epu.apps.googleusercontent.com"

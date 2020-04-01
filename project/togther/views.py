@@ -444,8 +444,8 @@ def community(request, community_id):
                'profile_list': profile_list,
                'is_member':is_member,
                'community_id':community.id,
-               'user_email' : request.user.userinfo.email if request.user.is_authenticated else ''
-
+               'user_email' : request.user.userinfo.email if request.user.is_authenticated else '',
+               'google_oauth_client_id': settings.GOOGLE_OAUTH_CLIENT_ID 
                }
     # user_email = True
     return render(request, 'community.html', context)
