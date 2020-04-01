@@ -534,11 +534,11 @@ def refer_members(request, community_id):
 
                 if not is_introduction:
                     temp['is_introduction'] = True
-                    temp['answer'] = form.response
+                    temp['answer'] = form.question_answer
                     is_introduction = True
                 else:
                     temp['is_introduction'] = False
-                    temp['answer'] = form.data + " : " + form.response
+                    temp['answer'] = form.question_title + " : " + form.question_answer
 
                 form_answers_list.append(temp)
 
