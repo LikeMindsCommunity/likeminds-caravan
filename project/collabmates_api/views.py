@@ -46,7 +46,7 @@ from utility.utils import (decode_meta_from_url, update_tag_image,
                            get_city_address,
                            update_user_geography_tags, insert_user_home_town_tags, is_IG_community,
                            ig_members_count, is_LG_or_LP_community, feedback_community_id, feedback_collabcard_id,
-                           is_member_verified
+                           is_member_verified,community_default_image,community_default_thumbnail
 
                            )
 
@@ -1812,20 +1812,27 @@ def create_community_version_1(request):
         community_serialized_object = update_community(res)
         return JsonResponse({'success':True,'community':community_serialized_object})
 
+    community_state = 0
     if 'state' in res:
         community_state = res['state']
+
+    about = None
+    if 'about' in res:
+        about = res['about']
 
 
     community_instance=Community()
     community_instance.name=community_name
     community_instance.purpose=purpose
     community_instance.members_count=1
-    community_instance.image_link="https://beta.collabmates.com/media/media/community/default.jpeg"
+    community_instance.about = about
+    community_instance.image_link = community_default_image
+    community_instance.thumbnail = community_default_thumbnail
     if community_type:
         community_instance.community_type=community_type
     community_instance.created_at=time.time()
     community_instance.updated_at=time.time()
-    community_instance.hide_community = '5'     #for whatsapp community
+    community_instance.hide_community = community_state    #for whatsapp community
     if sub_type:
         community_instance.sub_type = sub_type    #for whatsapp community
     community_instance.save()
