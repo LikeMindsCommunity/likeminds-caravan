@@ -586,8 +586,10 @@ $('#back_click').click(function(e){
                 var value=input.value;
 
                 {% if question.optional %}
-                    values_dict['value'] = value;
-                    values_list.push(values_dict)
+                    if(value!=''){
+                        values_dict['value'] = value;
+                        values_list.push(values_dict)
+                        }
                 {% else %}
                     if (value.length < 50) {
                         console.log("less than 50 characters");
@@ -621,13 +623,17 @@ $('#back_click').click(function(e){
                 var value=input.value;
 
                 {% if question.optional %}
-                    values_dict['value'] = value;
-                    values_list.push(values_dict)
+                    if(value!=''){
+                        values_dict['value'] = value;
+                        values_list.push(values_dict)
+                        }
                 {% else %}
                     if (value.length >= {{question.min_chars}} && value.length <= {{question.max_chars}}) {
 
-                      values_dict['value'] = value;
-                      values_list.push(values_dict)
+                      if(value!=''){
+                        values_dict['value'] = value;
+                        values_list.push(values_dict)
+                        }
 
                     }else {
                         console.log("less than 50 characters");
@@ -660,8 +666,10 @@ $('#back_click').click(function(e){
                 values_dict = {'id':{{question.id}}};
                 value = $('#{{question.id}}').val();
                 {% if question.optional %}
+                      if(value!=''){
                         values_dict['value'] = value;
                         values_list.push(values_dict)
+                        }
                 {% else %}
                     //var numbers = /^((\\+[1-9]{1,4}[ \\-]*)|(\\([0-9]{2,3}\\)[ \\-]*)|([0-9]{2,4})[ \\-]*)*?[0-9]{3,4}?[ \\-]*[0-9]{3,4}?$/;
                     //console.log(numbers)
@@ -688,8 +696,10 @@ $('#back_click').click(function(e){
                 values_dict = {'id':{{question.id}}};
                 value = $('#{{question.id}}').val();
                 {% if question.optional %}
-                    values_dict['value'] = value;
-                    values_list.push(values_dict)
+                        if(value!=''){
+                        values_dict['value'] = value;
+                        values_list.push(values_dict)
+                        }
                 {% else %}
                     var mailformat = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
                     if(value.match(mailformat)){
@@ -716,8 +726,10 @@ $('#back_click').click(function(e){
                 values_dict = {'id':{{question.id}}};
                 value = $('#{{question.id}}').val();
                 {% if question.optional %}
-                    values_dict['value'] = value;
-                    values_list.push(values_dict)
+                        if(value!=''){
+                        values_dict['value'] = value;
+                        values_list.push(values_dict)
+                        }
                 {% else %}
                     var valid =isUrlValid(value,"{{question.profile_platform}}")
                     if(valid){
@@ -749,8 +761,10 @@ $('#back_click').click(function(e){
 
                 {% if question.optional %}
 
-                    values_dict['value'] = value;
-                    values_list.push(values_dict)
+                       if(value!=''){
+                        values_dict['value'] = value;
+                        values_list.push(values_dict)
+                        }
                 {% else %}
 
                     if(value != '' ){
@@ -782,8 +796,10 @@ $('#back_click').click(function(e){
                 values_dict = {'id':{{question.id}}};
                 if (value == ''){
                     {% if question.optional %}
+                           if(value!=''){
                         values_dict['value'] = value;
                         values_list.push(values_dict)
+                        }
                     {% else %}
                         $("#div_{{question.id}}").addClass("error");
 
