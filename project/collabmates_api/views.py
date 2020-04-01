@@ -46,7 +46,7 @@ from utility.utils import (decode_meta_from_url, update_tag_image,
                            get_city_address,
                            update_user_geography_tags, insert_user_home_town_tags, is_IG_community,
                            ig_members_count, is_LG_or_LP_community, feedback_community_id, feedback_collabcard_id,
-                           is_member_verified
+                           is_member_verified,community_default_image,community_default_thumbnail
 
                            )
 
@@ -67,7 +67,7 @@ from .notification import (send_follow_notification, send_notification_to_admins
                            send_notification_for_tool_unlocked_for_pilot)
 from .raw_queries import compute_rank
 from .tasks import send_email_to_nominated_admin, send_email_for_new_collabcard_posted, send_welcome_mail
-
+from django.contrib.auth import login
 
 
 # CACHE_TTL = getattr(settings, 'CACHE_TTL', cache_timeout)
@@ -875,6 +875,8 @@ def join_ig_communities_version_1(request,res,community,user,ref_id):
             'create_intro':1
         }
         create_card(request,req_dict=req_dict)
+
+        #post_introduction_card_for_community(community_id,member_id,request)
         #saving the referal detail and sending notifications for refered members
 
         community.updated_at=time.time()
@@ -1060,7 +1062,7 @@ def join_whatsapp_community(res,request):
             info_logger.info(validate_time)
             if validate_time:
                 auto_join_community(community_instance,user_instance)
-                post_introduction_card_for_whatsapp_community(community_id, member_id, request)
+                post_introduction_card_for_community(community_id, member_id, request)
                 log="""Auto join community for community_id=%s for user=%s"""%(community_id,member_id)
                 info_logger.info(log)
                 return
@@ -1074,7 +1076,7 @@ def join_whatsapp_community(res,request):
         member_state = member_list[0].state
         if member_state == member_states.ADMIN:
 
-            post_introduction_card_for_whatsapp_community(community_id,member_id,request)
+            post_introduction_card_for_community(community_id,member_id,request)
 
             generate_private_link(community_instance,user_instance)
 
@@ -1146,7 +1148,7 @@ def auto_join_community(community_instance,user_instance):
     send_notification_for_join_requests.delay(community_instance.id,True, user_instance.id)
 
 
-def post_introduction_card_for_whatsapp_community(community_id,member_id,request):
+def post_introduction_card_for_community(community_id,member_id,request):
 
     '''fucntion to get introduction card of community'''
 
@@ -1810,18 +1812,27 @@ def create_community_version_1(request):
         community_serialized_object = update_community(res)
         return JsonResponse({'success':True,'community':community_serialized_object})
 
+    community_state = 0
+    if 'state' in res:
+        community_state = res['state']
+
+    about = None
+    if 'about' in res:
+        about = res['about']
 
 
     community_instance=Community()
     community_instance.name=community_name
     community_instance.purpose=purpose
     community_instance.members_count=1
-    community_instance.image_link="https://beta.collabmates.com/media/media/community/default.jpeg"
+    community_instance.about = about
+    community_instance.image_link = community_default_image
+    community_instance.thumbnail = community_default_thumbnail
     if community_type:
         community_instance.community_type=community_type
     community_instance.created_at=time.time()
     community_instance.updated_at=time.time()
-    community_instance.hide_community='5'     #for whatsapp community
+    community_instance.hide_community = community_state    #for whatsapp community
     if sub_type:
         community_instance.sub_type = sub_type    #for whatsapp community
     community_instance.save()
@@ -2442,6 +2453,7 @@ def accept_invitation(request):
         if member_state:
             state = member_state[0]['state']
             if state == 6:
+                purpose_card = None
                 if not is_member_engage(community, nom_admin[0].user_id):
                     try:
                         purpose_card = Collabcard.objects.get(id=community.purpose_collabcard)
@@ -2539,7 +2551,7 @@ def accept_invitation(request):
             print("member state == 7")
             # if he is previously not a member of this community , then make him member again
             Members.objects.filter(community_id=community, member_id=member_id).update(state=4)
-            Member_Engage.objects.filter(community_id=community, member_id=member_id).update(state=4)
+            Member_Engage.objects.filter(community_id=community, member_id=member_id).update(member_state=4)
 
         return JsonResponse({'success': True})
 
@@ -2605,18 +2617,8 @@ def request_response(request, req_dict=None):
             members_count = community.members_count + 1
             Community.objects.filter(id=community_id).update(members_count=members_count)
 
-            introduction_answer=auto_create_collabcard(user,community)
-            req_dict = {
-
-                'member_id': member_id,
-                'community_id': community_id,
-                'title': introduction_answer,
-                'type': 1,
-                'create_intro': 1
-            }
-
             request.method = "POST"
-            create_card(request, req_dict=req_dict)
+            post_introduction_card_for_community(community_id,member_id,request)
 
 
             send_notification_for_join_requests.delay(community_id, True, member_id)
@@ -2682,6 +2684,7 @@ def approve_or_decline_lg_community(request,req_dict,member_verification):
 
             request.method="POST"
             create_card(request,req_dict=req_dict)
+            #(community.id,member_id,request)
             # saving the referal detail and sending notifications for refered members
 
             community.updated_at = time.time()
@@ -2789,7 +2792,7 @@ def approve_or_decline_whatsapp_community(req_dict,request):
             Community.objects.filter(id=req_dict['community_id']).update(members_count=members_count)
 
             # posting a intro collabcard
-            post_introduction_card_for_whatsapp_community(req_dict['community_id'], req_dict['member_id'], request)
+            post_introduction_card_for_community(req_dict['community_id'], req_dict['member_id'], request)
 
 
             #sending mails and notifications
@@ -4403,7 +4406,7 @@ def get_request_type(request):
 
 # @ensure_csrf_cookie # with header X-CSRFToken
 @csrf_exempt
-def login(request):
+def login_authenticate(request):
     ''' function to login a user '''
 
     if request.method == 'POST':
@@ -4456,7 +4459,7 @@ def login(request):
                 userinfo = user[0].userinfo
 
         elif login_type == 'linkedIn':
-            
+
             print("res ==== ",res)
             # if user is logging in with linkedIn
             user_name = res['firstName']['localized']['en_US'] + " " + res['lastName']['localized']['en_US']
@@ -4621,8 +4624,8 @@ def fetch_google_auth_data(google_id_token):
     response = response.text
     json_to_save = json.dumps(response)
     google_json = json.loads(response)
-
-    return (json_to_save,google_json)
+    x = (json_to_save,google_json)
+    return x
 
 
 
@@ -4644,12 +4647,12 @@ def login_with_google(google_id_token,request,login_type="google"):
 
         if not user.exists():
             # creating a user if no user is associated with that email
-            res['id'] = google_id_token
+            res['id'] = res['azp']
 
             user = create_user(user_name=res['name'], email=res['email'], id=res['id'])
 
             if 'picture' in res:
-                image_link = upload_image_to_firebase(res['picture']['data']['url'], user.id)
+                image_link = upload_image_to_firebase(res['picture'], user.id)
             else:
                 image_link = 'https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fuser%2F222%2Fimg_user_222?alt=media'
 
@@ -4717,8 +4720,14 @@ def members_state(request):
     query_set = Members.objects.filter(member_id=member_id, community_id=community_id)
     community_instance=Community.objects.get(id=community_id)
     is_pilot_active = False
+
     if community_instance.hide_community == '4':
         is_pilot_active = True
+
+
+    if community_instance.hide_community == '0' or community_instance.hide_community == '5':
+
+        tool_state=1
 
     ref_members=[]
     for data in query_set:

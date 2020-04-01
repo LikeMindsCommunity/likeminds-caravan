@@ -86,7 +86,7 @@ def onboarding_mail_for_new_users(member_id, android, ios, pc):
             # msg.attach_alternative(template, "text/html")
             # return msg.send(fail_silently)
             to = [to]
-            send_email(subject, template, to)
+            # send_email(subject, template, to)
             notification_to_complete_onboarding(member_id)  # notification to complete onboarding
             return
 

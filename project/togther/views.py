@@ -81,12 +81,12 @@ def download_the_app(request):
         return redirect('signup')
 
 
-def home(request):
-    # users = User.objects.all()
-    if request.user.is_authenticated:
-        return redirect('dashboard')
-    else:
-        return render(request, 'home.html', {})
+# def home(request):
+#     # users = User.objects.all()
+#     if request.user.is_authenticated:
+#         return redirect('dashboard')
+#     else:
+#         return render(request, 'home.html', {})
 
 
 def signup(request):
