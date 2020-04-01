@@ -4416,7 +4416,6 @@ def login_authenticate(request):
 
         if login_type and login_type == "google":
             google_id_token = request.GET.get('google_id_token',None)
-
             context = login_with_google(google_id_token,request)
             return JsonResponse(context)
 
@@ -4625,8 +4624,8 @@ def fetch_google_auth_data(google_id_token):
     response = response.text
     json_to_save = json.dumps(response)
     google_json = json.loads(response)
-
-    return (json_to_save,google_json)
+    x = (json_to_save,google_json)
+    return x
 
 
 
@@ -4648,12 +4647,12 @@ def login_with_google(google_id_token,request,login_type="google"):
 
         if not user.exists():
             # creating a user if no user is associated with that email
-            res['id'] = google_id_token
+            res['id'] = res['azp']
 
             user = create_user(user_name=res['name'], email=res['email'], id=res['id'])
 
             if 'picture' in res:
-                image_link = upload_image_to_firebase(res['picture']['data']['url'], user.id)
+                image_link = upload_image_to_firebase(res['picture'], user.id)
             else:
                 image_link = 'https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fuser%2F222%2Fimg_user_222?alt=media'
 
