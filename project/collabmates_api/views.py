@@ -864,17 +864,19 @@ def join_ig_communities_version_1(request,res,community,user,ref_id):
         # creating an introduction card
         community_id = community.id
         member_id =user.id
-        introduction_question, introduction_answer = auto_create_collabcard(user, community)
-        print(introduction_answer)
-        req_dict={
+        # introduction_question, introduction_answer = auto_create_collabcard(user, community)
+        # print(introduction_answer)
+        # req_dict={
+        #
+        #     'member_id':member_id,
+        #     'community_id':community_id,
+        #     'title':introduction_answer,
+        #     'type':1,
+        #     'create_intro':1
+        # }
+        # create_card(request,req_dict=req_dict)
 
-            'member_id':member_id,
-            'community_id':community_id,
-            'title':introduction_answer,
-            'type':1,
-            'create_intro':1
-        }
-        create_card(request,req_dict=req_dict)
+        post_introduction_card_for_community(community_id,member_id,request)
         #saving the referal detail and sending notifications for refered members
 
         community.updated_at=time.time()
@@ -1060,7 +1062,7 @@ def join_whatsapp_community(res,request):
             info_logger.info(validate_time)
             if validate_time:
                 auto_join_community(community_instance,user_instance)
-                post_introduction_card_for_whatsapp_community(community_id, member_id, request)
+                post_introduction_card_for_community(community_id, member_id, request)
                 log="""Auto join community for community_id=%s for user=%s"""%(community_id,member_id)
                 info_logger.info(log)
                 return
@@ -1074,7 +1076,7 @@ def join_whatsapp_community(res,request):
         member_state = member_list[0].state
         if member_state == member_states.ADMIN:
 
-            post_introduction_card_for_whatsapp_community(community_id,member_id,request)
+            post_introduction_card_for_community(community_id,member_id,request)
 
             generate_private_link(community_instance,user_instance)
 
@@ -1146,7 +1148,7 @@ def auto_join_community(community_instance,user_instance):
     send_notification_for_join_requests.delay(community_instance.id,True, user_instance.id)
 
 
-def post_introduction_card_for_whatsapp_community(community_id,member_id,request):
+def post_introduction_card_for_community(community_id,member_id,request):
 
     '''fucntion to get introduction card of community'''
 
@@ -2605,18 +2607,7 @@ def request_response(request, req_dict=None):
             members_count = community.members_count + 1
             Community.objects.filter(id=community_id).update(members_count=members_count)
 
-            introduction_answer=auto_create_collabcard(user,community)
-            req_dict = {
-
-                'member_id': member_id,
-                'community_id': community_id,
-                'title': introduction_answer,
-                'type': 1,
-                'create_intro': 1
-            }
-
-            request.method = "POST"
-            create_card(request, req_dict=req_dict)
+            post_introduction_card_for_community(community_id,member_id,request)
 
 
             send_notification_for_join_requests.delay(community_id, True, member_id)
@@ -2669,19 +2660,20 @@ def approve_or_decline_lg_community(request,req_dict,member_verification):
 
 
             #creating a collabcard
-            introduction_question, introduction_answer = auto_create_collabcard(user, community)
-            print(introduction_answer)
-            req_dict = {
-
-                'member_id': member_id,
-                'community_id': community_id,
-                'title': introduction_answer,
-                'type': 1,
-                'create_intro': 1
-            }
-
-            request.method="POST"
-            create_card(request,req_dict=req_dict)
+            # introduction_question, introduction_answer = auto_create_collabcard(user, community)
+            # print(introduction_answer)
+            # req_dict = {
+            #
+            #     'member_id': member_id,
+            #     'community_id': community_id,
+            #     'title': introduction_answer,
+            #     'type': 1,
+            #     'create_intro': 1
+            # }
+            #
+            # request.method="POST"
+            # create_card(request,req_dict=req_dict)
+            post_introduction_card_for_community(community.id,member_id,request)
             # saving the referal detail and sending notifications for refered members
 
             community.updated_at = time.time()
@@ -2789,7 +2781,7 @@ def approve_or_decline_whatsapp_community(req_dict,request):
             Community.objects.filter(id=req_dict['community_id']).update(members_count=members_count)
 
             # posting a intro collabcard
-            post_introduction_card_for_whatsapp_community(req_dict['community_id'], req_dict['member_id'], request)
+            post_introduction_card_for_community(req_dict['community_id'], req_dict['member_id'], request)
 
 
             #sending mails and notifications
