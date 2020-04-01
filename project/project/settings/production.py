@@ -44,3 +44,8 @@ ALLOWED_HOSTS = [os.getenv("PROD_ALLOWED_HOST_1"),os.getenv("PROD_ALLOWED_HOST_2
 
 FCM_SERVER_KEY=os.getenv('PROD_FCM_SERVER_KEY')
 
+# variable for google sign in oauth client ID
+# GOOGLE_OAUTH_CLIENT_ID=os.getenv('PROD_GOOGLE_OAUTH_CLIENT_ID')
+# hard coding here for prod unless key it is moved to prod env as above
+GOOGLE_OAUTH_CLIENT_ID="645716458793-rprdna1adps5s7pigsrjasko3ot3ljfl.apps.googleusercontent.com"
+
