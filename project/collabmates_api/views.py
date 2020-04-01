@@ -2539,7 +2539,7 @@ def accept_invitation(request):
             print("member state == 7")
             # if he is previously not a member of this community , then make him member again
             Members.objects.filter(community_id=community, member_id=member_id).update(state=4)
-            Member_Engage.objects.filter(community_id=community, member_id=member_id).update(state=4)
+            Member_Engage.objects.filter(community_id=community, member_id=member_id).update(member_state=4)
 
         return JsonResponse({'success': True})
 
@@ -4717,8 +4717,14 @@ def members_state(request):
     query_set = Members.objects.filter(member_id=member_id, community_id=community_id)
     community_instance=Community.objects.get(id=community_id)
     is_pilot_active = False
+
     if community_instance.hide_community == '4':
         is_pilot_active = True
+
+
+    if community_instance.hide_community == '0' or community_instance.hide_community == '5':
+
+        tool_state=1
 
     ref_members=[]
     for data in query_set:
