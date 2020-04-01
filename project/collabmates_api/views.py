@@ -864,19 +864,19 @@ def join_ig_communities_version_1(request,res,community,user,ref_id):
         # creating an introduction card
         community_id = community.id
         member_id =user.id
-        # introduction_question, introduction_answer = auto_create_collabcard(user, community)
-        # print(introduction_answer)
-        # req_dict={
-        #
-        #     'member_id':member_id,
-        #     'community_id':community_id,
-        #     'title':introduction_answer,
-        #     'type':1,
-        #     'create_intro':1
-        # }
-        # create_card(request,req_dict=req_dict)
+        introduction_question, introduction_answer = auto_create_collabcard(user, community)
+        print(introduction_answer)
+        req_dict={
 
-        post_introduction_card_for_community(community_id,member_id,request)
+            'member_id':member_id,
+            'community_id':community_id,
+            'title':introduction_answer,
+            'type':1,
+            'create_intro':1
+        }
+        create_card(request,req_dict=req_dict)
+
+        #post_introduction_card_for_community(community_id,member_id,request)
         #saving the referal detail and sending notifications for refered members
 
         community.updated_at=time.time()
@@ -1812,6 +1812,8 @@ def create_community_version_1(request):
         community_serialized_object = update_community(res)
         return JsonResponse({'success':True,'community':community_serialized_object})
 
+    if 'state' in res:
+        community_state = res['state']
 
 
     community_instance=Community()
@@ -1823,7 +1825,7 @@ def create_community_version_1(request):
         community_instance.community_type=community_type
     community_instance.created_at=time.time()
     community_instance.updated_at=time.time()
-    community_instance.hide_community='5'     #for whatsapp community
+    community_instance.hide_community = '5'     #for whatsapp community
     if sub_type:
         community_instance.sub_type = sub_type    #for whatsapp community
     community_instance.save()
@@ -2608,6 +2610,7 @@ def request_response(request, req_dict=None):
             members_count = community.members_count + 1
             Community.objects.filter(id=community_id).update(members_count=members_count)
 
+            request.method = "POST"
             post_introduction_card_for_community(community_id,member_id,request)
 
 
@@ -2661,20 +2664,20 @@ def approve_or_decline_lg_community(request,req_dict,member_verification):
 
 
             #creating a collabcard
-            # introduction_question, introduction_answer = auto_create_collabcard(user, community)
-            # print(introduction_answer)
-            # req_dict = {
-            #
-            #     'member_id': member_id,
-            #     'community_id': community_id,
-            #     'title': introduction_answer,
-            #     'type': 1,
-            #     'create_intro': 1
-            # }
-            #
-            # request.method="POST"
-            # create_card(request,req_dict=req_dict)
-            post_introduction_card_for_community(community.id,member_id,request)
+            introduction_question, introduction_answer = auto_create_collabcard(user, community)
+            print(introduction_answer)
+            req_dict = {
+
+                'member_id': member_id,
+                'community_id': community_id,
+                'title': introduction_answer,
+                'type': 1,
+                'create_intro': 1
+            }
+
+            request.method="POST"
+            create_card(request,req_dict=req_dict)
+            #(community.id,member_id,request)
             # saving the referal detail and sending notifications for refered members
 
             community.updated_at = time.time()
