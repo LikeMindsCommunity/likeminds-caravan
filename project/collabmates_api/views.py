@@ -67,7 +67,7 @@ from .notification import (send_follow_notification, send_notification_to_admins
                            send_notification_for_tool_unlocked_for_pilot)
 from .raw_queries import compute_rank
 from .tasks import send_email_to_nominated_admin, send_email_for_new_collabcard_posted, send_welcome_mail
-
+from django.contrib.auth import login
 
 
 # CACHE_TTL = getattr(settings, 'CACHE_TTL', cache_timeout)
@@ -2444,6 +2444,7 @@ def accept_invitation(request):
         if member_state:
             state = member_state[0]['state']
             if state == 6:
+                purpose_card = None
                 if not is_member_engage(community, nom_admin[0].user_id):
                     try:
                         purpose_card = Collabcard.objects.get(id=community.purpose_collabcard)
@@ -4395,10 +4396,11 @@ def get_request_type(request):
 
 # @ensure_csrf_cookie # with header X-CSRFToken
 @csrf_exempt
-def login(request):
+def login_authenticate(request):
     ''' function to login a user '''
 
     if request.method == 'POST':
+
 
         login_type = request.GET.get('type',None)
 
@@ -4448,7 +4450,7 @@ def login(request):
                 userinfo = user[0].userinfo
 
         elif login_type == 'linkedIn':
-            
+
             print("res ==== ",res)
             # if user is logging in with linkedIn
             user_name = res['firstName']['localized']['en_US'] + " " + res['lastName']['localized']['en_US']
