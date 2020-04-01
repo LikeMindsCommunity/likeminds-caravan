@@ -888,6 +888,8 @@
     
             // google login
             function authServer(token){
+
+
                 $.ajax({
                     url: "/api/login",
                     data: {"type": "google", "google_id_token": token},
@@ -930,7 +932,7 @@
                             // Request scopes in addition to 'profile' and 'email'
                             // scope: 'additional_scope'
                         });
-                        debugger;
+
                         attachSignin(document.getElementById('googleSignin'));
                     });
                 };

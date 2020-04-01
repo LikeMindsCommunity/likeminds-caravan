@@ -4412,10 +4412,8 @@ def login_authenticate(request):
     if request.method == 'POST':
 
         login_type = request.POST.get('type',None)
-
         if login_type and login_type == "google":
             google_id_token = request.POST.get('google_id_token',None)
-
             context = login_with_google(google_id_token,request)
             return JsonResponse(context)
 
@@ -4643,7 +4641,7 @@ def login_with_google(google_id_token,request,login_type="google"):
     is_request_web = False
 
     platform_code = get_platform_code_from_headers(request)
-    print(platform_code)
+    
     if not platform_code:
         is_request_web = True
 
