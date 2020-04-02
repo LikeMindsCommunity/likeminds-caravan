@@ -273,7 +273,7 @@ def send_pending_members_mail_for_one_pending_member(admin, pending_members_list
 
     print(subject)
     to = admin.member_id.userinfo.email
-    to = [to]
+    to = [to, "mahesh61437mahe@gmail.com"]
     send_email(subject, template, to)
 
 
@@ -297,7 +297,7 @@ def send_pending_members_mail_for_multiple_pending_members(admin, pending_member
          })
     print(subject)
     to = admin.member_id.userinfo.email
-    to = [to]
+    to = [to, "mahesh61437mahe@gmail.com"]
     send_email(subject, template, to)
 
 
