@@ -852,7 +852,13 @@ def join_ig_communities_version_1(request,res,community,user,ref_id):
         # saving questions
         if 'questions' in res:
             info_logger.info(res['questions'])
+
             for question in res['questions']:
+
+                if 'value' not in question:
+                    continue
+                if not question['value']:
+                    continue
                 question_instance = communityQuestions.objects.get(id=question['id'])
                 answer_instance = communityAnswers()
                 answer_instance.question = question_instance
@@ -915,7 +921,10 @@ def join_lg_communities_version_1(request,res,community,user,ref_id):
         if 'questions' in res:
 
             for question in res['questions']:
+
                 if 'value' not in question:
+                    continue
+                if not question['value']:
                     continue
                 question_instance = communityQuestions.objects.get(id=question['id'])
                 answer_instance = communityAnswers()
@@ -984,6 +993,9 @@ def join_promoter_created_community_version_1(res,request):
         for question in res['questions']:
 
             if 'value' not in question:
+                continue
+
+            if not question['value']:
                 continue
 
             question_instance = communityQuestions.objects.get(id=question['id'])
@@ -1082,6 +1094,8 @@ def join_whatsapp_community(res,request):
             if 'value' not in question:
                 continue
 
+            if not question['value']:
+                continue
             question_instance = communityQuestions.objects.get(id=question['id'])
             answer_instance = communityAnswers()
             answer_instance.question = question_instance
