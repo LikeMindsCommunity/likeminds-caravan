@@ -225,7 +225,6 @@ def pending_members_mail_new(request=None):
                             if pending_members_list.count() == 1:
                                 send_pending_members_mail_for_one_pending_member(admin=member,
                                                                                  pending_members_list=pending_members)
-                                break
                             elif pending_members_list.count() > 1:
                                 send_pending_members_mail_for_multiple_pending_members(
                                                         admin=member,
@@ -242,7 +241,6 @@ def pending_members_mail_new(request=None):
                             if pending_members.count() == 1:
                                 send_pending_members_mail_for_one_pending_member(admin=admin,
                                                                                  pending_members_list=pending_members)
-                                break
                             elif pending_members.count() > 1:
                                 send_pending_members_mail_for_multiple_pending_members(
                                                         admin=admin,
