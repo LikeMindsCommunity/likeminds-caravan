@@ -31,7 +31,7 @@ from utility.celery_tasks import (save_community_purpose_card,
                                   )
 from utility.firebase import update_last_answer_id, upload_image_to_firebase, upload_community_thumbnail, \
     upload_community_files
-from utility.states import collabcard_states, member_states, question_states,community_states
+from utility.states import collabcard_states, member_states, question_states,community_states,deleted_members
 from utility.tasks import (mail_triger, new_member_request,
                            member_request_approval_or_denied,
                            send_mail_for_report_abuse,
@@ -46,7 +46,7 @@ from utility.utils import (decode_meta_from_url, update_tag_image,
                            get_city_address,
                            update_user_geography_tags, insert_user_home_town_tags, is_IG_community,
                            ig_members_count, is_LG_or_LP_community, feedback_community_id, feedback_collabcard_id,
-                           is_member_verified,community_default_image,community_default_thumbnail
+                           is_member_verified,community_default_image,community_default_thumbnail,
 
                            )
 
@@ -275,12 +275,36 @@ def get_community_card_details(each_community, user_id):
     return new_dict
 
 
+def get_leave_community_text():
+
+    leave_community = []
+
+    leave_community_title = "Leave community?"
+    leave_community.append(leave_community_title)
+
+    leave_community_subtitle = "Are you sure you want to leave this community permanently? Your community profile will be removed whereas any content created by you would remain."
+    leave_community.append(leave_community_subtitle)
+
+    leave_community_positive_title = "OK, LEAVE NOW"
+    leave_community.append(leave_community_positive_title)
+
+    leave_community_negative_title = "CANCEL"
+    leave_community.append(leave_community_negative_title)
+
+    # "leave_community_positive_action"
+    # "leave_community_negative_action"
+
+    return leave_community
+
+
 def community(request, community_id):
     ''' Community detail page '''
 
     community = Community.objects.get(id=community_id)
     member_id = get_member_id_from_headers(request)
-    serialized_object = CommunitySerializer(community)
+    is_member_admin = Members.objects.filter(community_id=community, member_id=member_id, state=1)
+
+    serialized_object = CommunitySerializer(community,is_promoter=is_member_admin)
     new_dict = {}
 
     community_state = get_state_of_community(community)
@@ -289,7 +313,7 @@ def community(request, community_id):
     elif community_state== community_states.PRIVATE or community_state == community_states.HIDDEN:
         serialized_object['share_url'] = serialized_object['share_url'] + "?cta=share"
 
-    is_member_admin = Members.objects.filter(community_id=community, member_id=member_id, state=1)
+
 
     if is_member_admin:
         serialized_object['private_link'] = generate_private_link(community_instance=community,
@@ -312,8 +336,19 @@ def community(request, community_id):
     if community.id == feedback_community_id:
         new_dict['share_url'] = ""
 
+    #leave community data
+    if not is_member_admin:
+        temp={}
+        leave_community = get_leave_community_text()
+        temp['leave_community_title'] = leave_community[0]
+        temp['leave_community_subtitle'] = leave_community[1]
+        temp['leave_community_positive_title'] = leave_community[2]
+        temp['leave_community_negative_title'] = leave_community[3]
+        return JsonResponse({'community': new_dict,'leave_community':temp})
 
     return JsonResponse({'community': new_dict})
+
+
 
 
 def similar_community(request, community_id):
@@ -1758,6 +1793,73 @@ def ask_approval(request):
 
     return JsonResponse({'success':True})
 
+@csrf_exempt
+def remove_from_member(request):
+
+    '''function to remove member of community'''
+
+    member_id = get_member_id_from_headers(request)
+
+    if not member_id:
+        return JsonResponse({'success':False,'error_message':"Send Member Id in header"})
+
+    community_id = request.POST.get('community_id')
+
+
+    member_ids = request.POST.get('member_ids', False)
+
+    is_promoter = Members.objects.filter(state=member_states.ADMIN, community_id=community_id, member_id=member_id)
+    is_promoter = is_promoter.exists()
+
+    if member_ids:
+       if is_promoter:
+           member_ids = member_ids.split(",")
+
+           for member in member_ids:
+
+                member_filter = Members.objects.filter(community_id=community_id,member_id=member)
+
+                if member_filter.exists():
+                    member_state = member_filter[0].state
+
+                    if member_state == member_states.MEMBER:
+                        remove_members(community_id,member_filter[0].member_id.id,removed_state=deleted_members.REMOVED)
+
+           return JsonResponse({'success': True})
+
+    #flow to leave the community
+
+    if not is_promoter and member_ids == False:
+        remove_members(community_id,member_id,removed_state=deleted_members.LEFT)
+        return JsonResponse({'success':True})
+
+    return JsonResponse({'success':False})
+
+
+def remove_members(community_id, member_id,removed_state):
+    '''function to remove member'''
+
+    try:
+        community_instance = Community.objects.get(id=community_id)
+        user_instance = User.objects.get(id=member_id)
+    except:
+        return
+
+
+    Member_Engage.objects.filter(community_id=community_id, member_id=member_id).delete()
+    communityAnswers.objects.filter(community=community_id, member=member_id).delete()
+
+    is_member_left = removedMembers.objects.filter(community=community_id, member=member_id)
+
+    if not is_member_left.exists() and community_instance:
+        instance = removedMembers(community=community_instance, member=user_instance,
+                                  removed_state=removed_state, created_at=time.time())
+        instance.save()
+    Members.objects.filter(community_id=community_id, member_id=member_id).delete()
+
+
+
+
 
 ############# functions for  create flow of card,community and members   ##########################
 
@@ -3097,9 +3199,16 @@ def collabcard(request, card_id):
     card = CollabcardSerializer(cards, user_id, cards.community)
 
     user = Userinfo.objects.get(user_id=cards.user.id)
+
     # serializing user object
     usr = UserinfoSerializer(user)
     usr['is_clickable']=feedback
+
+    #when the member is removed
+    removed_state = removedMembersSerializer(cards.community.id,usr['id'])
+    if removed_state != False:
+        usr['remove_state'] = removed_state
+
     # user form response serialzer
     form_response = FormResponseSerilaizer(cards.community.id, cards.user.id,bl=True,current_user_id=current_user_id)
     if form_response:
@@ -3126,6 +3235,12 @@ def get_answer_data(answer,feedback,community_id,current_user_id):
         user = Userinfo.objects.filter(user_id=ans.user.id)
         usr = UserinfoSerializer(user[0])
         usr['is_clickable']=feedback
+
+        removed_state = removedMembersSerializer(community_id, usr['id'])
+
+        if removed_state != False:
+            usr['remove_state'] = removed_state
+
         form_response = FormResponseSerilaizer(community_id, ans.user.id,bl=True,current_user_id=current_user_id)
         if form_response:
             usr['response'] = form_response[0]
@@ -4386,6 +4501,7 @@ def community_collabcard_id(request):
 
 
 def community_collabcard_meta(request):
+
     ''' function to get the collabcard details '''
 
     collabcard_ids = request.GET.get('collabcard_ids', False)
@@ -4409,7 +4525,14 @@ def community_collabcard_meta(request):
         if card_instance.community.id == feedback_community_id:
             feed_back=False
         usr = UserinfoSerializer(user)
+
         usr['is_clickable']=feed_back
+        removed_state = removedMembersSerializer(card_instance.community.id, usr['id'])
+
+        if removed_state != False:
+            usr['remove_state'] = removed_state
+
+
         # user form response serialzer
         form_response = FormResponseSerilaizer(card_instance.community.id, card_instance.user.id,bl=True,current_user_id=member_id)
 
