@@ -690,9 +690,6 @@ def join_promoter_created_community(res,community,user):
 
 
 
-
-
-
 def questions(request):
 
     '''api to send the questions for a particular community'''
@@ -710,6 +707,9 @@ def questions(request):
         questions.append(serialized_question)
 
     return JsonResponse({'questions': questions, 'community': community})
+
+
+
 
 #version support apis
 @csrf_exempt
@@ -1060,8 +1060,6 @@ def join_promoter_created_community_version_1(res,request):
         send_notification_to_admins.delay(community_id, user_instance.userinfo.name)
 
 
-
-
 def join_whatsapp_community(res,request):
 
     '''function to join whatsapp community'''
@@ -1330,16 +1328,6 @@ def generate_private_link(community_instance,promoter_instance):
 
 
 
-
-
-
-
-
-
-
-
-
-
 def generate_random(unique_code_list):
 
   '''function to generate a random number'''
@@ -1347,6 +1335,7 @@ def generate_random(unique_code_list):
   randInt = randint(1,100000)
 
   return generate_random(unique_code_list) if randInt in unique_code_list else randInt
+
 
 
 def category_filter(request, category):
@@ -1485,6 +1474,81 @@ def admins(request, community_id):
         return JsonResponse({'members': users, 'referred_members_count': referal_count})
     else:
         return JsonResponse({'members': users})
+
+@csrf_exempt
+def edit_member_profile(request):
+
+    '''api to udate member profile'''
+
+
+    res = json.loads(request.body)
+
+
+    community_id = res['community_id']
+    community_instance = Community.objects.get(id=community_id)
+
+    member_id = get_member_id_from_headers(request)
+    if not member_id:
+        member_id = request.GET.get('member_id', None)
+
+    user_instance = User.objects.get(id=member_id)
+
+    answer_filter = communityAnswers.objects.filter(community=community_instance,member=user_instance)
+
+
+    #getting the collabcard Id for introduction card
+    collabcard_id = 0
+    for answer in answer_filter:
+        if answer.question.question_state == question_states.INTRODUCTION:
+
+            collabcard_filter = Collabcard.objects.filter(community=community_instance,
+                                                          user=user_instance,title=answer.question_answer)
+
+            if collabcard_filter.exists():
+                collabcard_id = collabcard_filter[0].id
+
+
+    delete_filters = questionFilters.objects.filter(member=user_instance,community=community_instance).delete()
+    delete_answers = answer_filter.delete()
+
+
+    info_logger.info(delete_answers)
+    info_logger.info(delete_filters)
+    info_logger.info("\n")
+
+    if 'questions' in res:
+
+        for question in res['questions']:
+
+            #empty cases handling
+            if 'value' not in question:
+                continue
+            if not question['value']:
+                continue
+
+            question_instance = communityQuestions.objects.get(id=question['id'])
+            answer_instance = communityAnswers()
+            answer_instance.question = question_instance
+            answer_instance.member = user_instance
+            answer_instance.community = community_instance
+            answer_instance.question_answer = question['value']
+            answer_instance.question_title = question_instance.question_title
+            answer_instance.save()
+
+            if question_instance.question_state == question_states.CHOICE_SINGLE or question_instance.question_state == question_states.CHOICE_MULTIPLE:
+                if "$#" in question['value']:
+                    selected_choices = question['value'].split("$#")
+                else:
+                    selected_choices = question['value'].split(",")
+                for choice in selected_choices:
+                    filter_instance = questionFilters(question=question_instance, filter=choice.strip(),
+                                                      member=user_instance, community=community_instance)
+                    filter_instance.save()
+
+            if collabcard_id and question_instance.question_state == question_states.INTRODUCTION:
+                Collabcard.objects.filter(id=collabcard_id).update(title=question['value'])
+
+    return JsonResponse({'success': True})
 
 
 def get_user_lpig_tags(user_id):
