@@ -246,6 +246,7 @@ def community(request, community_id):
         if questions:
             if member_state == 0 or member_state == 5:
                 context = get_join_community_context(request, ref_id, aj, validation_error, user, data, community, filled_answers)
+                context['google_oauth_client_id'] = settings.GOOGLE_OAUTH_CLIENT_ID
                 return render(request, 'response_form.html', context)
 
         else:
@@ -296,7 +297,8 @@ def community(request, community_id):
                                 'community': community, 'ref_id': ref_id,
                                 'validation_error': validation_error,
                                 'filled_answers': filled_answers,
-                                'aj':aj,'header_showcase':header_showcase}
+                                'aj':aj,'header_showcase':header_showcase,
+                                'google_oauth_client_id': settings.GOOGLE_OAUTH_CLIENT_ID}
                     #print(context)
                     return render(request, 'response_form.html', context)
                 else:
@@ -868,7 +870,8 @@ def members_directory(request, community_id):
         'user_email': user_email,
         'filter_list':filters,
         'member_state':member_state,
-        'selected':selected
+        'selected':selected,
+        'google_oauth_client_id': settings.GOOGLE_OAUTH_CLIENT_ID
     }
 
 
