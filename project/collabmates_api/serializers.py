@@ -16,6 +16,32 @@ import ast
 #         model = Community
 #         fields = ('id','name', 'purpose', 'image_url' ,'about', 'location')
 
+
+
+def get_leave_community_text():
+
+    leave_community = []
+
+    leave_community_title = "Leave community?"
+    leave_community.append(leave_community_title)
+
+    leave_community_subtitle = "Are you sure you want to leave this community permanently? Your community profile will be removed whereas any content created by you would remain."
+    leave_community.append(leave_community_subtitle)
+
+    leave_community_positive_title = "OK, LEAVE NOW"
+    leave_community.append(leave_community_positive_title)
+
+    leave_community_negative_title = "CANCEL"
+    leave_community.append(leave_community_negative_title)
+
+    # "leave_community_positive_action"
+    # "leave_community_negative_action"
+
+    return leave_community
+
+
+
+
 def CommunitySerializer(community):
     # function to serialize a community object
     new_dict =  {
@@ -61,6 +87,12 @@ def CommunitySerializer(community):
         new_dict['type']=community.type
     if community.sub_type:
         new_dict['sub_type'] = community.sub_type
+
+    leave_community = get_leave_community_text()
+    new_dict['leave_community_title'] = leave_community[0]
+    new_dict['leave_community_subtitle'] = leave_community[1]
+    new_dict['leave_community_positive_title'] = leave_community[2]
+    new_dict['leave_community_negative_title'] = leave_community[3]
 
 
     return new_dict
