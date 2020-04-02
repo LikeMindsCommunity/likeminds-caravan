@@ -221,117 +221,102 @@
         </div>
 
         <!-- login model for non exclusive communities -->
-        <div class="ui modal test">
-            <div class="ui fluid card " style="margin:0 0 ; padding: 10px 10px;">
+        <div class="ui modal test w300">
+            <div class="h72 w72 brp50 bd2F bs bxs oH bgT mtn22 mA">
+                <img class="h86 w86 mtn8 mln8 ofC" src="https://beta.collabmates.com/media/media/ic_launcher_round.png">
+            </div>
+            <div class="p24 bs taC ffR">
+                <p class="p0 fs17 lh22 c0 mb10 fwM">Login to continue</p>
+                <p class="p0 fs15 lh22 c9 mb16">To join this community we need few basic information about you. This will help us to have relevant member in group.</p>
+                <div class="p160 ls05">
+                    <div class="fs12 mb16">
+                        {% if ref_id != '' %}
+                            <div class="googleSignin p12 bs br20 bgF c79 ffR fwM bdE c79h dN" data-next="{{ request.path }}?cta=join-ref_id-{{ref_id}}">
+                        {% elif aj  %}
+                            <div class="googleSignin p12 bs br20 bgF c79 ffR fwM bdE c79h dN" data-next="{{ request.path }}?cta=join-aj-{{aj}}">
+                        {% elif cta == 'share' %}
+                            <div class="googleSignin p12 bs br20 bgF c79 ffR fwM bdE c79h dN" data-next="{{ request.path }}?cta=join">
+                        {% elif cta != '' %}
+                            <div class="googleSignin p12 bs br20 bgF c79 ffR fwM bdE c79h dN" data-next="{{ request.path }}?cta={{cta}}">
+                        {% else %}
+                            <div class="googleSignin p12 bs br20 bgF c79 ffR fwM bdE c79h dN" data-next="{{ request.path }}?cta=join">
+                        {% endif %}
+                                <i class="dIb fa fa-google fs15 lh16 vM"></i>
+                                <span  class="dIb lh16 pl12 vM">LOGIN WITH GOOGLE</span>
+                            </div>
+                    </div>
+                    <div class="fs12 mb16">
+                        {% if ref_id != '' %}
+                            <a class="p12 bs dB br20 tdN bgLi cF ffR fwM cFh" href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join-ref_id-{{ref_id}}">
+                        {% elif aj  %}
+                            <a class="p12 bs dB br20 tdN bgLi cF ffR fwM cFh" href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}&cta=join-aj-{{aj}}">
+                        {% elif cta == 'share' %}
+                            <a class="p12 bs dB br20 tdN bgLi cF ffR fwM cFh" href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join">
+                        {% elif cta != '' %}
+                            <a class="p12 bs dB br20 tdN bgLi cF ffR fwM cFh" href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta={{cta}}">
+                        {% else %}
+                            <a class="p12 bs dB br20 tdN bgLi cF ffR fwM cFh" href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join">
+                        {% endif %}
+                                <i class="dIb fa fa-linkedin fs15 lh16 vM"></i>
+                                <span  class="dIb lh16 pl12 vM">LOGIN WITH LINKEDIN</span>
+                            </a>
+                    </div>
+                    <div class="fs12">
+                        {% if ref_id != '' %}
+                            <a class="p12 bs dB br20 tdN bgFb cF ffR fwM cFh" href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join-ref_id-{{ref_id}}">
+                        {% elif aj  %}
+                            <a class="p12 bs dB br20 tdN bgFb cF ffR fwM cFh" href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join-aj-{{aj}}">
+                        {% elif cta == 'share' %}
+                            <a class="p12 bs dB br20 tdN bgFb cF ffR fwM cFh" href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join">
+                        {% elif cta != '' %}
+                            <a class="p12 bs dB br20 tdN bgFb cF ffR fwM cFh" href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta={{cta}}">
+                        {% else %}
+                            <a class="p12 bs dB br20 tdN bgFb cF ffR fwM cFh" href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join">
+                        {% endif %}
+                                <i class="fa fa-facebook dIb fs15 lh16 vM" ></i>
+                                <span class="dIb lh16 pl12 vM">LOGIN WITH FACEBOOK</span>
+                            </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- accept invitation model -->
+        <div class="ui modal accept" id="accept">
+            <div class="ui fluid card " style="border: 2px solid #1ebea5; margin:0 0 ; padding: 10px 10px;">
                 <h2 class="ui teal center aligned header">
-                        <img src="https://beta.collabmates.com/media/media/ic_launcher_round.png" style="float:left;width:35px;"/>
-                    <div class="content" style="color:#008577">
-                        Login to continue
+                    <div class="content">
+                        Respond to Invitation
                     </div>
                 </h2>
                 <div class="content">
                     <p class="center aligned">
-                        To join this community we need few basic information about you. This will help us to have
-                        relevant member in group.
+                        Send Response
                     </p>
                 </div>
                 <div class="center aligned container">
                     <div class="content">
-                        {% if ref_id != '' %}
-                        <a href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join-ref_id-{{ref_id}}">
-                        <button class="ui facebook button" style="width:130px;">
-                        {% elif aj  %}
-                                <a href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join-aj-{{aj}}">
-                                <button class="ui facebook button" style="width:130px;">
-                        {% elif cta == 'share' %}
-                        <a href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join">
-                            <button class="ui facebook button" style="width:130px;">
-                        {% elif cta != '' %}
-                        <a href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta={{cta}}">
-                            <button class="ui facebook button" style="width:130px;">
-                                {% else %}
-                                <a href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join">
-                                    <button class="ui facebook button" style="width:200px;">
-                                        {% endif %}
-                                        <i class="fa fa-facebook" ></i>&nbsp;&nbsp;&nbsp;&nbsp;
-                                        Login with Facebook
-                                    </button>
-                                </a>
-                                <br>
-                                <br>
-                                OR
-                                <br>
-                                <br>
-                                <div class="content">
+                        <a href="../accept_admin/{{community.id}}?cta=accept_invitation&value=true">
+                            <button class="ui button" style="width:130px; color:green;">
 
-                                    {% if ref_id != '' %}
-                                    <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join-ref_id-{{ref_id}}">
-                                        <button class="ui linkedin button" style="width:130px;">
-                                    {% elif aj  %}
-                                            <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join-aj-{{aj}}">
-                                            <button class="ui linkedin button" style="width:130px;">
-                                    {% elif cta == 'share' %}
-                                    <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join">
-                                        <button class="ui linkedin button" style="width:130px;">
-                                    {% elif cta != '' %}
-                                    <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta={{cta}}">
-                                        <button class="ui linkedin button" style="width:130px;">
-                                    {% else %}
-                                        <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join">
-                                        <button class="ui linkedin button" style="width:200px;">
-                                    {% endif %}
-                                    <i class="fa fa-linkedin"></i>&nbsp;&nbsp;&nbsp;&nbsp;
-                                    Login with LinkedIn
-                                    </button>
-                                    </a></button>
-                                    </a>
-                                </div>
+                                Accept
                             </button>
                         </a>
+                        <br>
+                        <br>
+
+                        <br>
+                        <br>
+                        <div class="content">
+                            <a href="../accept_admin/{{community.id}}?cta=accept_invitation&value=false">
+                                <button class="ui button" style="width:130px; color:green;">
+
+                                    Decline
+                                </button>
+                            </a>
+                        </div>
                     </div>
                     <br>
-
-                    <!-- accept invitation model -->
-                    <div class="ui modal accept" id="accept">
-
-                        <div class="ui fluid card " style="border: 2px solid #1ebea5; margin:0 0 ; padding: 10px 10px;">
-                            <h2 class="ui teal center aligned header">
-                                <div class="content">
-                                    Respond to Invitation
-                                </div>
-                            </h2>
-                            <div class="content">
-                                <p class="center aligned">
-                                    Send Response
-                                </p>
-                            </div>
-                            <div class="center aligned container">
-                                <div class="content">
-                                    <a href="../accept_admin/{{community.id}}?cta=accept_invitation&value=true">
-                                        <button class="ui button" style="width:130px; color:green;">
-
-                                            Accept
-                                        </button>
-                                    </a>
-                                    <br>
-                                    <br>
-
-                                    <br>
-                                    <br>
-                                    <div class="content">
-                                        <a href="../accept_admin/{{community.id}}?cta=accept_invitation&value=false">
-                                            <button class="ui button" style="width:130px; color:green;">
-
-                                                Decline
-                                            </button>
-                                        </a>
-                                    </div>
-                                </div>
-                                <br>
-
-                            </div>
-                        </div>
-                    </div>    
 
                 </div>
             </div>
@@ -887,9 +872,7 @@
             })
     
             // google login
-
             function authServer(token, element){
-
                 $.ajax({
                     url: "/api/login",
                     data: {"type": "google", "google_id_token": token},
@@ -897,7 +880,7 @@
                     // dataType: "json",
                     success: function(data){
                         console.log("Google auth success", data);
-                        window.location.href = element.attr("data-next");
+                        window.location.href = $(element).attr("data-next");
                     },
                     error: function(data){
                         console.log("Google auth failure", data);
@@ -932,14 +915,9 @@
                             // Request scopes in addition to 'profile' and 'email'
                             // scope: 'additional_scope'
                         });
-
                         $(".googleSignin").removeClass("dN").each(function(){
                             attachSignin(this);
-                        })
-
-
-                        attachSignin(document.getElementById('googleSignin'));
-
+                        });
                     });
                 };
                 j.onerror = function(){};
