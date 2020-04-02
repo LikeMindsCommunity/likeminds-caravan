@@ -43,6 +43,8 @@ urlpatterns = [
     path('collabcard_attend', api_views.collabcard_attend, name='collabcard_attend'),
 
     path('members_state',api_views.members_state,name='members_state'),
+    path('edit_member_profile',api_views.edit_member_profile,name='edit_member_profile'),
+
     path('push', api_views.push, name='push'),
     path('collabcard_follow',api_views.collabcard_follow,name='collabcard_follow'),
     path('accept_invitation',views.accept_invitation,name='accept_invitation'),
