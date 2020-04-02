@@ -1555,7 +1555,7 @@ def edit_member_profile(request):
         question_answer = form_response[1]
 
     if question_answer:
-        return JsonResponse({'success': True,'question_answer':question_answer})
+        return JsonResponse({'success': True,'question_answers':question_answer})
 
     return JsonResponse({'success': True})
 
