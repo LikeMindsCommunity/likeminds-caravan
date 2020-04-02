@@ -31,7 +31,7 @@ from utility.celery_tasks import (save_community_purpose_card,
                                   )
 from utility.firebase import update_last_answer_id, upload_image_to_firebase, upload_community_thumbnail, \
     upload_community_files
-from utility.states import collabcard_states, member_states, question_states
+from utility.states import collabcard_states, member_states, question_states,community_states
 from utility.tasks import (mail_triger, new_member_request,
                            member_request_approval_or_denied,
                            send_mail_for_report_abuse,
@@ -4715,6 +4715,12 @@ def notify_referred_member_after_join(joined_member_id, joined_member_name, comm
                                      community_id=community_id)
 
 
+def get_state_of_community(community):
+
+    if community.hide_community:
+        return int(community.hide_community)
+    return 0
+
 def members_state(request):
     '''This function gives the state of user.Get Api'''
 
@@ -4731,15 +4737,13 @@ def members_state(request):
     tool_state = 0
     query_set = Members.objects.filter(member_id=member_id, community_id=community_id)
     community_instance=Community.objects.get(id=community_id)
-    is_pilot_active = False
 
-    if community_instance.hide_community == '4':
-        is_pilot_active = True
+    community_state = get_state_of_community(community_instance)
 
+    is_tool_state = False
 
-    if community_instance.hide_community == '0' or community_instance.hide_community == '5':
-
-        tool_state=1
+    if community_state == community_states.PRIVATE or community_state == community_states.PILOT_ACTIVE or community_state ==  community_states.WHATSAPP:
+        is_tool_state = True
 
     ref_members=[]
     for data in query_set:
@@ -4750,7 +4754,7 @@ def members_state(request):
         if state == 1 or state == 2 or state == 4 or state == 7:
             is_member = True
 
-        if is_member and is_pilot_active:
+        if is_member and is_tool_state:
             tool_state = 1
 
         ref_members = get_referred_members_of_a_member(community_id, member_id)
