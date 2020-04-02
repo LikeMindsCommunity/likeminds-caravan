@@ -1548,6 +1548,15 @@ def edit_member_profile(request):
             if collabcard_id and question_instance.question_state == question_states.INTRODUCTION:
                 Collabcard.objects.filter(id=collabcard_id).update(title=question['value'])
 
+    form_response = FormResponseSerilaizer(community_id,member_id, bl=True, current_user_id=member_id)
+
+    question_answer=""
+    if form_response:
+        question_answer = form_response[1]
+
+    if question_answer:
+        return JsonResponse({'success': True,'question_answer':question_answer})
+
     return JsonResponse({'success': True})
 
 
