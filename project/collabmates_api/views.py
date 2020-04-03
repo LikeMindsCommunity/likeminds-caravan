@@ -341,7 +341,7 @@ def community(request, community_id):
         temp={}
         leave_community = get_leave_community_text()
         temp['leave_community_title'] = leave_community[0]
-        temp['leave_community_subtitle'] = leave_community[1]
+        temp['leave_community_sub_title'] = leave_community[1]
         temp['leave_community_positive_title'] = leave_community[2]
         temp['leave_community_negative_title'] = leave_community[3]
         return JsonResponse({'community': new_dict,'leave_community':temp})
