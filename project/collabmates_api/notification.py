@@ -219,6 +219,17 @@ def send_notification(fcm_token,message,is_android):
     print(result)
 
 
+def get_tagged_members_list(answer):
+    tagged_users_list = re.findall("route://member/"'([0-9]+)', answer)
+    answer_text = re.split('>>', answer)[-1]
+
+    tagged_user_names = "@" + ' @'.join(re.findall('(?<=\<\<).+?(?=\|)', answer))
+    
+    return tagged_users_list, answer_text, tagged_user_names
+
+    # return {"tagged_users_list":tagged_users_list, "answer_text":answer_text, "tagged_user_names":tagged_user_names}
+
+
 
 @shared_task
 def send_follow_notification(card_id,user_id,answer):
@@ -238,10 +249,12 @@ def send_follow_notification(card_id,user_id,answer):
         connection.close()
         message={}
 
-        tagged_users_list = re.findall("route://member/"'([0-9]+)', answer)
-        answer_text = re.split('>>', answer)[-1]
+        # tagged_users_list = re.findall("route://member/"'([0-9]+)', answer)
+        # answer_text = re.split('>>', answer)[-1]
+        #
+        # user_names="@"+' @'.join(re.findall('(?<=\<\<).+?(?=\|)', answer))
 
-        user_names="@"+' @'.join(re.findall('(?<=\<\<).+?(?=\|)', answer))
+        tagged_users_list, answer_text, user_names = get_tagged_members_list(answer)
 
         message['payload']={
             "title":str(answerer_name[0]) + " responded",
