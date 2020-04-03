@@ -44,6 +44,7 @@ urlpatterns = [
 
     path('members_state',api_views.members_state,name='members_state'),
     path('edit_member_profile',api_views.edit_member_profile,name='edit_member_profile'),
+    path('remove_from_member',api_views.remove_from_member,name='remove_from_member'),
 
     path('push', api_views.push, name='push'),
     path('collabcard_follow',api_views.collabcard_follow,name='collabcard_follow'),

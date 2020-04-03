@@ -35,6 +35,13 @@ class MemberStates:
 member_states = MemberStates()
 
 
+class DeletedMembers:
+
+    LEFT = 0
+    REMOVED = 1
+
+deleted_members = DeletedMembers()
+
 # community types
 class CommunityTypes(enum.IntEnum):
     TYPE_NONE = -1

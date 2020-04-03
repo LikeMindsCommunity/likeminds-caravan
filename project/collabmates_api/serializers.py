@@ -18,31 +18,11 @@ import ast
 
 
 
-def get_leave_community_text():
-
-    leave_community = []
-
-    leave_community_title = "Leave community?"
-    leave_community.append(leave_community_title)
-
-    leave_community_subtitle = "Are you sure you want to leave this community permanently? Your community profile will be removed whereas any content created by you would remain."
-    leave_community.append(leave_community_subtitle)
-
-    leave_community_positive_title = "OK, LEAVE NOW"
-    leave_community.append(leave_community_positive_title)
-
-    leave_community_negative_title = "CANCEL"
-    leave_community.append(leave_community_negative_title)
-
-    # "leave_community_positive_action"
-    # "leave_community_negative_action"
-
-    return leave_community
 
 
 
 
-def CommunitySerializer(community):
+def CommunitySerializer(community,is_promoter=False):
     # function to serialize a community object
     new_dict =  {
         'id': community.id,
@@ -88,11 +68,7 @@ def CommunitySerializer(community):
     if community.sub_type:
         new_dict['sub_type'] = community.sub_type
 
-    leave_community = get_leave_community_text()
-    new_dict['leave_community_title'] = leave_community[0]
-    new_dict['leave_community_subtitle'] = leave_community[1]
-    new_dict['leave_community_positive_title'] = leave_community[2]
-    new_dict['leave_community_negative_title'] = leave_community[3]
+
 
 
     return new_dict
@@ -303,3 +279,13 @@ def masterQuestionSerializer(masterQuestionInstance):
         json_dict['help_text'] = masterQuestionInstance.help_text
 
     return json_dict
+
+def removedMembersSerializer(community_id,member_id):
+
+    removed_filter = removedMembers.objects.filter(community_id=community_id,member_id=member_id)
+
+    if removed_filter.exists():
+        removed_state = removed_filter[0].removed_state
+        return removed_state
+
+    return False
