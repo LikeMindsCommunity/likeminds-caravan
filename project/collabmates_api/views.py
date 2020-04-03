@@ -314,6 +314,7 @@ def community(request, community_id):
         if state == member_states.ADMIN:
             is_promoter = True
             block_leave_community = True
+            promoter_id = member_list[0].member_id
 
         if state == member_states.PENDING_MEMBER:
             block_leave_community = True
@@ -335,7 +336,7 @@ def community(request, community_id):
 
     if is_promoter:
         serialized_object['private_link'] = generate_private_link(community_instance=community,
-                                                                  promoter_instance=is_member_admin[0].member_id)
+                                                                  promoter_instance=promoter_id)
 
     # form a dictionary of community objects
     new_dict.update(serialized_object)
