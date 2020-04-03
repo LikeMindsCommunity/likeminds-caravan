@@ -1847,7 +1847,7 @@ def remove_members(community_id, member_id,removed_state):
 
 
     Member_Engage.objects.filter(community_id=community_id, member_id=member_id).delete()
-    communityAnswers.objects.filter(community=community_id, member=member_id).delete()
+    #communityAnswers.objects.filter(community=community_id, member=member_id).delete()
 
     is_member_left = removedMembers.objects.filter(community=community_id, member=member_id)
 
