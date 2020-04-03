@@ -220,6 +220,7 @@ def send_notification(fcm_token,message,is_android):
 
 
 def get_tagged_members_list(answer):
+
     tagged_users_list = re.findall("route://member/"'([0-9]+)', answer)
     answer_text = re.split('>>', answer)[-1]
 
@@ -294,8 +295,9 @@ def send_notification_for_join_requests(community_id,flag,member_id):
 
 @shared_task
 def send_notification_for_new_collabcard_posted(community_id, collabcard_title, card_creater_id, card_creater_name,
-                                                **kwargs):
+                                            **kwargs):
     '''function to send notification to all members when new collabcard is posted'''
+
     try:
         connection = get_connection()
         curr = connection.cursor()
@@ -313,9 +315,12 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title, 
             temp['mobile_os'] = notification_details[1]
             notification_list.append(temp)
 
+        tagged_users_list, collabcard_title, user_names = get_tagged_members_list(collabcard_title)
+
         community_name = kwargs['community_name']
         message = {}
         typ = kwargs['type'] if 'type' in kwargs else 0
+
         if typ == 2:
             sub_title = "Posted an event: " + str(collabcard_title)
         elif typ == 3:
@@ -331,6 +336,14 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title, 
         }
 
         notification_meta(notification_list, message)
+
+        # functionality to send notification to tagged users
+        for member_id in tagged_users_list:
+            if not str(member_id) == str(card_creater_id):
+                send_notification_to_tagged_users(card_id=kwargs['card_id'], answerer_name=card_creater_name,
+                                                  answer=collabcard_title,
+                                                  user_id=member_id, user_names=user_names)
+
 
         if typ == 2 or typ == 3:
             task_name = 'poll_with_id_' + str(kwargs['card_id']) if typ == 3 else 'event_with_id_' + str(
@@ -397,7 +410,7 @@ def send_follow_notification(card_id,user_id,answer):
             "sub_title":answer_text,
             "route":"route://collabcard?collabcard_id="+str(card_id)
         }
-        token_list=[]
+
         notification_list=[]
         for member in member_list:
             if str(member[0]) != user_id and str(member[0]) not in tagged_users_list:
@@ -456,6 +469,10 @@ def send_notification_to_tagged_users(card_id,answerer_name,answer,user_id,user_
 
     except (Exception, psycopg2.Error) as error:
         print ("Error while connecting to PostgreSQL", error)
+
+
+
+
 
 
 
