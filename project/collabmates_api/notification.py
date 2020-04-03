@@ -375,7 +375,7 @@ def send_follow_notification(card_id,user_id,answer):
     try:
         connection=get_connection()
         curr=connection.cursor()
-        sql="select user_id from togther_collabcardstate where card_id=%s and state=%s"
+        sql="select user_id from togther_collabcardstate where card_id=%s and state=%s and removed_status is null"
         parameter_list=[card_id, collabcard_states.COLLABCARD_STATE_FOLLOW]
         curr.execute(sql,parameter_list)
         member_list=curr.fetchall()
@@ -442,11 +442,17 @@ def send_notification_to_tagged_users(card_id,answerer_name,answer,user_id,user_
             "sub_title":str(user_names)+" "+answer,
             "route":"route://collabcard?collabcard_id="+str(card_id)
         }
-        token_list=[]
-        fcm_token=get_token_for_fcm(user_id)
-        token_list.append(fcm_token)
+        notification_list = []
 
-        send_notification_to_multiple_devices(token_list,message)
+        temp = {}
+        notification_details = get_token_for_fcm(user_id, True)
+        temp['id'] = user_id
+        temp['fcm_token'] = notification_details[0]
+        temp['mobile_os'] = notification_details[1]
+        notification_list.append(temp)
+
+        notification_meta(notification_list, message)
+
 
     except (Exception, psycopg2.Error) as error:
         print ("Error while connecting to PostgreSQL", error)
@@ -469,7 +475,8 @@ def send_poll_or_event_notification(card_id, user_id):
     if card.type == 2:
         sub_title = member_name + " is attending your event"
         time.sleep(60)
-        attending_state = collabcardState.objects.filter(card=card, user=member).filter(Q(state=3) | Q(state=4))
+        attending_state = collabcardState.objects.filter(card=card,
+                                                         user=member).filter(Q(state=3) | Q(state=4)).filter(removed_status=None)
         if not attending_state.exists():
             return
     else:
@@ -499,7 +506,7 @@ def poll_expiry_or_event_remainder_notification(community_name, community_id, ty
         if typ == 2:
             token_list = list(collabcardState.objects.filter(card=kwargs['card_id']).filter(
                                  Q(state=3) |
-                                 Q(state=4)).values_list('user__userinfo__fcm_token', flat=True))
+                                 Q(state=4)).filter(removed_status=None).values_list('user__userinfo__fcm_token', flat=True))
 
         else:
             token_list = list(MemberPollVotes.objects.filter(card=kwargs[
