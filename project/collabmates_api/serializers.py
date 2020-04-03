@@ -16,7 +16,13 @@ import ast
 #         model = Community
 #         fields = ('id','name', 'purpose', 'image_url' ,'about', 'location')
 
-def CommunitySerializer(community):
+
+
+
+
+
+
+def CommunitySerializer(community,is_promoter=False):
     # function to serialize a community object
     new_dict =  {
         'id': community.id,
@@ -61,6 +67,8 @@ def CommunitySerializer(community):
         new_dict['type']=community.type
     if community.sub_type:
         new_dict['sub_type'] = community.sub_type
+
+
 
 
     return new_dict
@@ -271,3 +279,13 @@ def masterQuestionSerializer(masterQuestionInstance):
         json_dict['help_text'] = masterQuestionInstance.help_text
 
     return json_dict
+
+def removedMembersSerializer(community_id,member_id):
+
+    removed_filter = removedMembers.objects.filter(community_id=community_id,member_id=member_id)
+
+    if removed_filter.exists():
+        removed_state = removed_filter[0].removed_state
+        return removed_state
+
+    return False
