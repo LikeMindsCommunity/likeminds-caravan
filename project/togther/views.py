@@ -39,7 +39,7 @@ import ast
 url = settings.URL
 
 if not url and settings.IS_BETA:
-    url = "https://beta.collabmates.com"
+    url = "https://beta.likeminds.com"
 
 if not url and not settings.IS_BETA:
     url = "https://www.collabmates.com"

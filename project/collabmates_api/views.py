@@ -1934,12 +1934,12 @@ def create_community(request):
 
             # uploading community image and thumbnail
             image_link = upload_community_files(community_id=group.id,
-                                                image='https://beta.collabmates.com/media/media/community/default.jpeg',
+                                                image='https://beta.likeminds.com/media/media/community/default.jpeg',
                                                 url=True)
             group.image_link = image_link
             group.save()
             upload_community_thumbnail.delay(group.id,
-                                             'https://beta.collabmates.com/media/media/community/default.jpeg')
+                                             'https://beta.likeminds.com/media/media/community/default.jpeg')
 
             # create user as a admin for the community as the user is creating the community as a admin
             user = User.objects.get(id=user_id)
@@ -2185,7 +2185,7 @@ def update_community(res):
         community_instance.name = community_name
         community_instance.purpose = purpose
         community_instance.members_count = 1
-        community_instance.image_link = "https://beta.collabmates.com/media/media/community/default.jpeg"
+        community_instance.image_link = "https://beta.likeminds.com/media/media/community/default.jpeg"
         if community_type:
             community_instance.community_type = community_type
         community_instance.created_at = time.time()
