@@ -545,12 +545,15 @@ class Report(models.Model):
 
 
 class collabcardState(models.Model):
+
     card = models.ForeignKey(Collabcard, on_delete=models.CASCADE)
     community = models.ForeignKey(Community, on_delete=models.CASCADE)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     state = models.IntegerField(null=True)
     created_at = models.BigIntegerField(default=-9223372036854775808, null=True)
     updated_at = models.BigIntegerField(default=-9223372036854775808, null=True)
+
+    removed_status = models.IntegerField(null=True)
     #
     # def save(self, *args, **kwargs):
     #     if self.created_at <= 0:

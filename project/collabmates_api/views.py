@@ -1852,9 +1852,15 @@ def remove_members(community_id, member_id,removed_state):
     is_member_left = removedMembers.objects.filter(community=community_id, member=member_id)
 
     if not is_member_left.exists() and community_instance:
+
         instance = removedMembers(community=community_instance, member=user_instance,
                                   removed_state=removed_state, created_at=time.time())
         instance.save()
+        #saving collabcard state in update status
+        update_staus = collabcardState.objects.filter(community=community_id,user=member_id).update(removed_status=instance.id)
+        print(update_staus)
+
+
     Members.objects.filter(community_id=community_id, member_id=member_id).delete()
 
 
