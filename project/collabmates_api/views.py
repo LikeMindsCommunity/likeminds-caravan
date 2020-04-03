@@ -302,9 +302,27 @@ def community(request, community_id):
 
     community = Community.objects.get(id=community_id)
     member_id = get_member_id_from_headers(request)
-    is_member_admin = Members.objects.filter(community_id=community, member_id=member_id, state=1)
 
-    serialized_object = CommunitySerializer(community,is_promoter=is_member_admin)
+    is_promoter = False
+    block_leave_community = False
+    member_list = Members.objects.filter(community_id=community, member_id=member_id)
+
+    if member_list.exists():
+
+        state = member_list[0].state
+
+        if state == member_states.ADMIN:
+            is_promoter = True
+            block_leave_community = True
+
+        if state == member_states.PENDING_MEMBER:
+            block_leave_community = True
+    else:
+        block_leave_community = True
+
+
+
+    serialized_object = CommunitySerializer(community)
     new_dict = {}
 
     community_state = get_state_of_community(community)
@@ -315,7 +333,7 @@ def community(request, community_id):
 
 
 
-    if is_member_admin:
+    if is_promoter:
         serialized_object['private_link'] = generate_private_link(community_instance=community,
                                                                   promoter_instance=is_member_admin[0].member_id)
 
@@ -337,7 +355,7 @@ def community(request, community_id):
         new_dict['share_url'] = ""
 
     #leave community data
-    if not is_member_admin:
+    if not block_leave_community:
         temp={}
         leave_community = get_leave_community_text()
         temp['leave_community_title'] = leave_community[0]
