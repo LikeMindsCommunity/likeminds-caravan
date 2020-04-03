@@ -304,7 +304,13 @@ def community(request, community_id):
                 else:
                     pass
             else:
-                return JsonResponse({'success': True})
+                if request.is_ajax:
+                    return JsonResponse({'success': True})
+                else:
+                    if community.hide_community == '5':
+                        return redirect("/community/"+str(community_id)+"?profile="+str(request.user.id))
+                    else:
+                        return redirect("refer_members", community_id)
         elif cta == 'share':
             cta = 'join'
 
