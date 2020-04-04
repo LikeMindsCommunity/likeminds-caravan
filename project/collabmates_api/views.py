@@ -5487,7 +5487,7 @@ def all_members(request):
 
     #sending all the users of community
 
-   
+
 
     if not is_filter:
         member_list=Members.objects.filter(community_id=community_id).filter(
@@ -5608,6 +5608,7 @@ def fetch_filters(request):
 
     community_options = communityAnswers.objects.filter(community_id=community_id)
 
+    question_set = set()
     #print("options===",community_options)
 
     option_list=[]
@@ -5618,23 +5619,32 @@ def fetch_filters(request):
         serialized_instance = CommunityQuestionsSerializer(question_instance)
 
         if serialized_instance['state'] == question_states.CHOICE_SINGLE or serialized_instance['state'] == question_states.CHOICE_MULTIPLE:
-            serialized_instance['value'] = parse_user_selected_options(data.question_answer)
-            option_list.append(serialized_instance)
 
 
+
+
+            if serialized_instance['id'] not in question_set:
+                serialized_instance['value'] = get_user_selected_option_list(serialized_instance['id'])
+                question_set.add(serialized_instance['id'])
+                option_list.append(serialized_instance)
 
     return JsonResponse({'questions':option_list})
 
 
-def parse_user_selected_options(options):
-
-    if '$#' in options:
-        return options
-
-    options = options.replace(",","$#")
 
 
-    return options
+def get_user_selected_option_list(question_id):
+
+    '''function to get user selected options'''
+    filter_list = list(questionFilters.objects.filter(question=question_id).values_list('filter',flat=True).distinct())
+    values=""
+    for option in filter_list:
+        values = values + option + "$#"
+
+    if len(values) >= 2:
+        values = values[:-2]
+    return values
+
 
 @csrf_exempt
 def push_email(request):
