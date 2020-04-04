@@ -5477,12 +5477,9 @@ def all_members(request):
 
     #functionality for user filteration based on options
     is_filter = False
-    member_set = set()
     if filter_list:
-
-        filter = json.loads(filter_list)
         is_filter = True
-        member_set = get_filtered_users(filter)
+
 
 
     #sending all the users of community
@@ -5505,6 +5502,9 @@ def all_members(request):
 
     else:                                                   #if user has selected filter
 
+        filter_list = json.loads(filter_list)
+        print(filter_list)
+        member_set = get_filtered_users(filter_list, member_list)
         members = get_member_instances(member_list, current_user_id,community_id,is_filter=is_filter,member_set=member_set)
 
 
@@ -5537,38 +5537,26 @@ def get_member_instances(member_list,current_user_id,community_id,is_filter=Fals
 
 
 
-def get_filtered_users(filter_list):
+def get_filtered_users(filter_list,member_list):
 
     '''function to get filtered users'''
 
-    member_set = set()
+
     option_data = filter_list
-    #member_list = []
+    member_set = set()
+    member_id_set = set()
+
+    for data in member_list:
+        member_id_set.add(data.member_id.id)
+
 
     for option in option_data:
-        question_list = questionFilters.objects.filter(filter=option['value'], question=option['question_id'])
-        for member_instance in question_list:
-            member_id =member_instance.member.id
-            if member_id not in member_set:
-                member_set.add(member_id)
-                #member_list.append(member_id)
 
-
-
-    # members = []
-    # for member in member_set:
-    #     member_list = Members.objects.filter(community_id=community_id, member_id=member)
-    #     if member_list.exists():
-    #         member_instance = member_list[0]
-    #         userinfo_serialized_object = UserinfoSerializer(member_instance.member_id.userinfo)
-    #         userinfo_serialized_object['state'] = member_instance.state
-    #
-    #         form_response = FormResponseSerilaizer(community_id, member_instance.member_id.id, bl=True,current_user_id=current_user_id)
-    #
-    #         if form_response:
-    #             userinfo_serialized_object['response'] = form_response[0]
-    #             userinfo_serialized_object['question_answers'] = form_response[1]
-    #         members.append(userinfo_serialized_object)
+        question_set = set(questionFilters.objects.filter(filter=option['value'],
+                                                           question=option['question_id']).values_list('member',
+                                                                                                flat=True).distinct())
+        #print(question_set)
+        member_set = intersect_sets(member_id_set,question_set)
 
     return member_set
 
@@ -5687,7 +5675,9 @@ Once verified, we will send an email on: """+str(email)
     return member_direction_lock
 
 
+def intersect_sets(set1,set2):
 
+    return set1.intersection(set2)
 
 def invite_members(request):
     ''' function to get members requested to join in a community '''
