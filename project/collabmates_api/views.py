@@ -4,6 +4,7 @@ import json
 import logging
 import os
 import re
+import ast
 import time
 from datetime import datetime
 from random import randint
@@ -5090,14 +5091,18 @@ def members_state(request):
     if community_state == community_states.PRIVATE or community_state == community_states.PILOT_ACTIVE or community_state ==  community_states.WHATSAPP:
         is_tool_state = True
 
+    user_email = ""
     ref_members=[]
     for data in query_set:
         is_member = False
         tool_state = 0
         state = data.state
 
-        if state == 1 or state == 2 or state == 4 or state == 7:
+        if state == member_states.ADMIN or state == 2 or state == member_states.MEMBER or state == 7:
             is_member = True
+
+        if state == member_states.PENDING_MEMBER:
+            user_email = data.member_id.userinfo.email
 
         if is_member and is_tool_state:
             tool_state = 1
@@ -5179,10 +5184,13 @@ def members_state(request):
                    }
 
 
+    if state == member_states.PENDING_MEMBER:
+        json_response['member_direction_lock'] = get_data_for_filter_pop_ups(email=user_email)
     return JsonResponse(json_response)
 
 
-#
+
+
 
 @csrf_exempt
 def push(request):
@@ -5461,78 +5469,212 @@ def all_members(request):
     page = request.GET.get('page',1)
     community_id = request.GET.get('community_id')
 
-    res=load_request_body(request)
+    filter_list = request.GET.get('filter',False)
+
+    print("filter--",filter_list)
 
     current_user_id = get_member_id_from_headers(request)
 
     #functionality for user filteration based on options
-    if res:
-        if 'filters' in res:
-            members=get_filtered_users(res,community_id,current_user_id)
-            JsonResponse({'members':members})
+    is_filter = False
+    member_set = set()
+    if filter_list:
+
+        filter = json.loads(filter_list)
+        is_filter = True
+        member_set = get_filtered_users(filter)
 
 
     #sending all the users of community
-    members=[]
 
-    member_list=Members.objects.filter(community_id=community_id).filter(Q(state=1)|Q(state=4)|Q(state=7)).order_by('id')
+   
+
+    if not is_filter:
+        member_list=Members.objects.filter(community_id=community_id).filter(
+            Q(state=member_states.ADMIN)|Q(state=member_states.MEMBER)|Q(state=member_states.KNOWN_NOMINATED_PROMOTER)).order_by('id')
+    else:
+        member_list = Members.objects.filter(community_id=community_id).filter(
+            Q(state=member_states.ADMIN) | Q(state=member_states.MEMBER) | Q(
+                state=member_states.KNOWN_NOMINATED_PROMOTER)|Q(state=member_states.PENDING_MEMBER)).order_by('id')
+
     member_list=pagination(member_list,page,paginate_by=20)
 
-    for member in member_list:
+    if not is_filter:                                       #if user has not selected filter
 
-        userinfo_serialized_object = UserinfoSerializer(member.member_id.userinfo)
-        userinfo_serialized_object['state']=member.state
+        members = get_member_instances(member_list,current_user_id,community_id)
 
-        form_response = FormResponseSerilaizer(community_id, member.member_id.id,bl=True,current_user_id=current_user_id)
+    else:                                                   #if user has selected filter
 
-        if form_response:
-            userinfo_serialized_object['response'] = form_response[0]
-            userinfo_serialized_object['question_answers'] = form_response[1]
-        members.append(userinfo_serialized_object)
+        members = get_member_instances(member_list, current_user_id,community_id,is_filter=is_filter,member_set=member_set)
+
 
     return JsonResponse({'members':members})
 
 
+def get_member_instances(member_list,current_user_id,community_id,is_filter=False,member_set=None):
 
-def load_request_body(request):
+    members = []
 
-    '''function to load json body'''
+    for member in member_list:
+        member_id = member.member_id.id
+        userinfo_serialized_object = UserinfoSerializer(member.member_id.userinfo)
+        userinfo_serialized_object['state'] = member.state
 
-    try:
-        res=json.loads(request.body)
-        return res
-    except:
-        print("Json can't be load")
-        return False
+        form_response = FormResponseSerilaizer(community_id,member_id , bl=True,
+                                               current_user_id=current_user_id)
+
+        if form_response:
+            userinfo_serialized_object['response'] = form_response[0]
+            userinfo_serialized_object['question_answers'] = form_response[1]
+
+        if not is_filter:
+            members.append(userinfo_serialized_object)
+        else:
+            if member_id in member_set:
+                members.append(userinfo_serialized_object)
+
+    return members
 
 
-def get_filtered_users(res,community_id,current_user_id):
+
+def get_filtered_users(filter_list):
 
     '''function to get filtered users'''
 
     member_set = set()
-    option_data = res['filter']
+    option_data = filter_list
+    #member_list = []
+
     for option in option_data:
-        question_list = questionFilters.objects.filter(filter=option['value'], question=option['id'])
+        question_list = questionFilters.objects.filter(filter=option['value'], question=option['question_id'])
         for member_instance in question_list:
-            if member_instance.member.id not in member_set:
-                member_set.add(member_instance.member.id)
-    members = []
-    for member in member_set:
-        member_list = Members.objects.filter(community_id=community_id, member_id=member)
-        if member_list.exists():
-            member_instance = member_list[0]
-            userinfo_serialized_object = UserinfoSerializer(member_instance.member_id.userinfo)
-            userinfo_serialized_object['state'] = member_instance.state
+            member_id =member_instance.member.id
+            if member_id not in member_set:
+                member_set.add(member_id)
+                #member_list.append(member_id)
 
-            form_response = FormResponseSerilaizer(community_id, member_instance.member_id.id, bl=True,current_user_id=current_user_id)
 
-            if form_response:
-                userinfo_serialized_object['response'] = form_response[0]
-                userinfo_serialized_object['question_answers'] = form_response[1]
-            members.append(userinfo_serialized_object)
 
-    return members
+    # members = []
+    # for member in member_set:
+    #     member_list = Members.objects.filter(community_id=community_id, member_id=member)
+    #     if member_list.exists():
+    #         member_instance = member_list[0]
+    #         userinfo_serialized_object = UserinfoSerializer(member_instance.member_id.userinfo)
+    #         userinfo_serialized_object['state'] = member_instance.state
+    #
+    #         form_response = FormResponseSerilaizer(community_id, member_instance.member_id.id, bl=True,current_user_id=current_user_id)
+    #
+    #         if form_response:
+    #             userinfo_serialized_object['response'] = form_response[0]
+    #             userinfo_serialized_object['question_answers'] = form_response[1]
+    #         members.append(userinfo_serialized_object)
+
+    return member_set
+
+
+
+
+#functionality for filters
+
+def fetch_filters(request):
+
+    '''api to get all the filtered data'''
+
+    community_id = request.GET.get('community_id')
+
+    member_id = get_member_id_from_headers(request)
+
+    if not member_id:
+        return JsonResponse({'success':False,'error_message':"Member id is not coming in header"})
+
+    send_empty_list = False
+
+    member_list = Members.objects.filter(community_id=community_id,member_id=member_id)
+    if member_list.exists():
+
+        member_state = member_list[0].state
+        if member_state == member_states.PENDING_MEMBER:
+            send_empty_list=True
+
+    else:
+        send_empty_list = True
+
+
+
+    if send_empty_list:
+        return JsonResponse({'questions': []})
+
+
+    community_options = communityAnswers.objects.filter(community_id=community_id)
+
+    #print("options===",community_options)
+
+    option_list=[]
+    for data in community_options:
+
+        question_instance = data.question
+
+        serialized_instance = CommunityQuestionsSerializer(question_instance)
+
+        if serialized_instance['state'] == question_states.CHOICE_SINGLE or serialized_instance['state'] == question_states.CHOICE_MULTIPLE:
+            serialized_instance['value'] = parse_user_selected_options(data.question_answer)
+            option_list.append(serialized_instance)
+
+
+
+    return JsonResponse({'questions':option_list})
+
+
+def parse_user_selected_options(options):
+
+    if '$#' in options:
+        return options
+
+    options = options.replace(",","$#")
+
+
+    return options
+
+@csrf_exempt
+def push_email(request):
+
+    '''api to save secondary email'''
+
+    member_id = get_member_id_from_headers(request)
+    email = request.POST.get('email')
+    if not member_id:
+        return JsonResponse({'success': False, 'error_message': "Member id is not coming in header"})
+
+    Userinfo.objects.filter(user_id=member_id).update(secondary_email = email)
+
+
+    return JsonResponse({'success':True})
+
+
+def get_data_for_filter_pop_ups(email):
+
+    '''function to get data for filtered pop-ups'''
+
+    member_direction_lock={}
+
+    member_direction_lock['member_directory_lock_title'] = "Member profile not accessible"
+    member_direction_lock['member_directory_lock_sub_title'] ="""Your account is pending for approval from the admin. Once the admin approves, you would be able to view the full communtity profile of the user.
+
+Once verified, we will send an email on: """+str(email)
+    member_direction_lock['member_directory_lock_negative_title'] = "DISMISS"
+    member_direction_lock['member_directory_lock_positive_title'] = "Change EMAIL ID"
+
+    #member_directory_lock_negative_action,member_directory_lock_positive_action
+
+    member_direction_lock['member_directory_lock_email_title'] = "Change Email ID"
+    member_direction_lock['member_directory_lock_email_sub_title'] = "Update your email ID below for further communications."
+    member_direction_lock['member_directory_lock_email_negative_title'] = "DISMISS"
+    member_direction_lock['member_directory_lock_email_positive_title'] = "SUBMIT"
+
+    #member_directory_lock_email_positive_action,member_directory_lock_email_negative_action
+
+    return member_direction_lock
 
 
 

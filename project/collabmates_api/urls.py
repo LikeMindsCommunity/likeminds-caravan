@@ -76,5 +76,10 @@ urlpatterns = [
     path('poll_notification', send_poll_notification_manually, name='poll_notification'),
     path('fetch_master_questions', api_views.fetch_master_questions, name='fetch_master_questions'),
 
+    path('fetch_filters', api_views.fetch_filters, name='fetch_filters'),
+    path('push_email', api_views.push_email, name='push_email'),
+
+
+
 
 ]
