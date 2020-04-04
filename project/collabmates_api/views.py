@@ -5537,6 +5537,71 @@ def get_filtered_users(res,community_id,current_user_id):
 
 
 
+def fetch_filters(request):
+
+    '''api to get all the filtered data'''
+
+    community_id = request.GET.get('community_id')
+
+    member_id = get_member_id_from_headers(request)
+
+    if not member_id:
+        return JsonResponse({'success':False,'error_message':"Member id is not coming in header"})
+
+    send_empty_list = False
+
+    member_list = Members.objects.filter(community_id=community_id,member_id=member_id)
+    if member_list.exists():
+
+        member_state = member_list[0].state
+        if member_state == member_states.PENDING_MEMBER:
+            send_empty_list=True
+
+    else:
+        send_empty_list = True
+
+
+
+
+    try:
+        community_instance = Community.objects.get(id=community_id)
+        community_serialized = CommunitySerializer(community_instance)
+    except:
+        return JsonResponse({'success':False,'error_message':"Community id is not comming in get params"})
+
+    if send_empty_list:
+        return JsonResponse({'questions': [],'community':community_serialized})
+
+
+    community_options = communityAnswers.objects.filter(community_id=community_id)
+
+    option_list=[]
+    for data in community_options:
+
+        question_instance = data.question
+
+        serialized_instance = CommunityQuestionsSerializer(question_instance)
+
+        if serialized_instance['state'] == question_states.CHOICE_SINGLE or serialized_instance['state'] == question_states.CHOICE_MULTIPLE:
+            serialized_instance['value'] = parse_user_selected_options(data.question_answer)
+            option_list.append(serialized_instance)
+
+
+
+    return JsonResponse({'questions':option_list,'community':community_serialized})
+
+
+def parse_user_selected_options(options):
+
+    if '$#' in options:
+        return options
+
+    options = options.replace(",","$#")
+
+
+    return options
+
+
 def invite_members(request):
     ''' function to get members requested to join in a community '''
 
