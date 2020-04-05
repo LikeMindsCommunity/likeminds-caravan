@@ -4761,13 +4761,13 @@ def login_authenticate(request):
         if login_type and login_type == "google":
             google_id_token = request.POST.get('google_id_token',None)
             context = login_with_google(google_id_token,request)
+            info_logger.info(context)
             return JsonResponse(context)
 
 
         res = json.loads(request.body)
         dic_form = res
         json_to_save = json.dumps(dic_form)
-        login_type = request.GET.get('type')
         # if user is logging in from facebook
         created = False
         if login_type == 'facebook':
@@ -4981,6 +4981,7 @@ def login_with_google(google_id_token,request,login_type="google"):
 
     json_to_save = google_json[0]
     res = google_json[1]
+    info_logger.info(res)
     created = False
     context ={'success':False,'error_message':"please give permission to use your google account"}
 
@@ -5543,21 +5544,26 @@ def get_filtered_users(filter_list,member_list):
 
 
     option_data = filter_list
+
     member_set = set()
-    member_id_set = set()
 
     for data in member_list:
-        member_id_set.add(data.member_id.id)
+        member_set.add(data.member_id.id)
 
 
     for option in option_data:
 
-        question_set = set(questionFilters.objects.filter(filter=option['value'],
-                                                           question=option['question_id']).values_list('member',
-                                                                                                flat=True).distinct())
-        #print(question_set)
-        member_set = intersect_sets(member_id_set,question_set)
+        question_set=set()
+        question_filters = questionFilters.objects.filter(filter=option['value'],
+                                                           question=option['question_id'])
 
+        for data in question_filters:
+
+            question_set.add(data.member.id)
+
+        member_set = intersect_sets(member_set,question_set)
+
+  
     return member_set
 
 
