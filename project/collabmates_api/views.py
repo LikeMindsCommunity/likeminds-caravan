@@ -4899,11 +4899,12 @@ def login_authenticate_version_1(request):
 
 
 
-        dic_form = res
+        dic_form = res['login_json']
         json_to_save = json.dumps(dic_form)
         # if user is logging in from facebook
         created = False
         if login_type == 'facebook':
+            res = res['login_json']
             email = res['email']
             # converting email to lower case and removing unwanted space
             email = email.lower().strip()
@@ -4937,7 +4938,7 @@ def login_authenticate_version_1(request):
 
         elif login_type == 'linkedIn':
 
-            print("res ==== ",res)
+            res = res['login_json']
             # if user is logging in with linkedIn
             user_name = res['firstName']['localized']['en_US'] + " " + res['lastName']['localized']['en_US']
             email = res['email']['elements'][0]['handle~']['emailAddress']
