@@ -64,6 +64,8 @@
                 padding: 12px;
                 padding-bottom: 0;
             }
+
+            .text .fR { display: none !important; }
         </style>
 
         {% include 'components/header.html' with data=header %}
@@ -154,10 +156,23 @@
                         <input id="{{question.id}}" class="bd0 br8 bxs2 p16" rows="2" cols="4" name ="{{question.id}}" minlength="50" required placeholder="{{question.help_text}}" oninput="remove_error('{{question.id}}')" onchange="remove_error('{{question.id}}')">
                     {% elif question.question_state == 9 %}
                         <!--    MOBILE_NO = 9-->
-
                         <label class="c4a fs15 fwR lh14 p10 m0">{{question.data}}</label>
-                    <input id="{{question.id}}" style="display:inline" class="bd0 br8 bxs2 p16"  rows="2" cols="4" name ="{{question.id}}" minlength="50" required placeholder="{{question.help_text}}" oninput="remove_error('{{question.id}}')"  onchange="remove_error('{{question.id}}')">
-                        {% elif question.question_state == 10 %}
+                        <div class="dT wp100">
+                            <div class="ui fluid search selection dropdown dTc vM w120 pR h48 bd0 br8 bxs2 country_codes">
+                                <input type="hidden" name="country">
+                                <i class="dropdown icon"></i>
+                                <div class="default text fs0">
+                                    <span class="fL fs14"><i class="in flag"></i>+91</span>
+                                </div>
+                                <div class="menu pA t48 l0 w280">
+                                    {% include 'components/country_codes.html' %}
+                                </div>
+                            </div>
+                            <div class="dTc vM pl12 wp100">
+                                <input id="{{question.id}}" class="bd0 br8 bxs2 p16"  name="{{question.id}}" required placeholder="{{question.help_text}}" oninput="remove_error('{{question.id}}')"  onchange="remove_error('{{question.id}}')">
+                            </div>
+                        </div>
+                    {% elif question.question_state == 10 %}
                         <!--    EMAIL_ID = 10-->
                         <label class="c4a fs15 fwR lh14 p10 m0">{{question.data}}</label>
                         <input id="{{question.id}}" class="bd0 br8 bxs2 p16" rows="2" cols="4" name ="{{question.id}}" minlength="50" required placeholder="{{question.help_text}}" oninput="remove_error('{{question.id}}')"  onchange="remove_error('{{question.id}}')">
@@ -304,6 +319,8 @@
                             {% endif %}
                         });
                     {% endif %}
+                {% elif question.question_state == 9 %}
+                    $('.country_codes').dropdown();
                 {% endif %}
             {% endfor %}
 
