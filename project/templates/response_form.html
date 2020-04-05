@@ -1,1001 +1,700 @@
-<html>
+<!DOCTYPE html>
 {% load static %}
- <head>
-
+<html>
+    <head>
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-
         <link rel="shortcut icon" href="https://beta.likeminds.community/media/media/favicon.ico">
-
-        <meta name="author" content="colorlib">
-
-
         <meta name="keywords" content="">
-
         <meta charset="UTF-8">
-
         <title>LikeMinds-Your virtual Neighbourhood</title>
-        <meta name="description"
-              content="Relevant Communities. Structured Conversations. Meaningful Relationships."/>
+        <meta name="description" content="Relevant Communities. Structured Conversations. Meaningful Relationships."/>
         <meta property="og:image" content='http://www.collabmates.com/cover.png'/>
         <meta property="og:title" content="LikeMinds-Your virtual Neighbourhood"/>
-        <meta property="og:description"
-              content="LikeMinds-Your virtual Neighbourhood"/>
-
+        <meta property="og:description" content="LikeMinds-Your virtual Neighbourhood"/>
         <meta name="viewport" content="width=device-width, initial-scale=1">
-<!--         <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/css/bootstrap.min.css">-->
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.css"/>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.js"></script>
         <script async src="https://www.googletagmanager.com/gtag/js?id=UA-130288684-1"></script>
         <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
         <link href="https://fonts.googleapis.com/css?family=Roboto:400,500,500i,700&display=swap" rel="stylesheet">
-
-     <script src="https://cdn.rawgit.com/mdehoog/Semantic-UI-Calendar/76959c6f7d33a527b49be76789e984a0a407350b/dist/calendar.min.js"></script>
-     <link href="https://cdn.rawgit.com/mdehoog/Semantic-UI-Calendar/76959c6f7d33a527b49be76789e984a0a407350b/dist/calendar.min.css" rel="stylesheet" type="text/css" />
-
-<!--<script src="https://cdn.rawgit.com/mdehoog/Semantic-UI/6e6d051d47b598ebab05857545f242caf2b4b48c/dist/semantic.min.js"></script>-->
-
-<link href="//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.min.css" rel="stylesheet" type="text/css" />
-<link rel="stylesheet" href="{% static 'css/mahaDev/mahaDev.css' %}">
-<style>
-
-
-
-
-
-/* font styling in css */
-
-.Roboto{font-family:'Roboto';font-weight:400;}
-
-.RobotoLight{font-familiy:'Roboto';font-weight:300;}
-
-.RobotoMedium{font-family:'Roboto';font-weight:500;font-size:13px;}
-
-.RobotoBold{font-family:'Roboto';font-weight:700;}
-
-
-
-
-#sub_header{
-    padding-left:250px;padding-bottom:0px;color:white;line-height:20px;font-family:'Roboto';font-weight:400;
-    font-size:1.15rem;
-}
-
-
-
-.image_container{
-
-margin-left:10px;
-margin-right:10px;
-
-
-}
-
-
-
-.header_image{
-
-width:100%;
-height:60%;
-
-}
-
-.top-left {
-  position: absolute;
-  top: 32px;
-  left: 276px;
-  color:white;
-
-}
-
-
-
-.top-middle {
-  position: absolute;
-  top: 32px;
-  left: 500px;
-  color:white;
-  font-size:24px;font-family:'Roboto';font-weight:700;
-
-}
-
-.subheader1{
-
-  position: absolute;
-  top: 100px;
-  left: 450px;
-  color:white;
-  font-size:19px;
-  font-family:Roboto;
-  line-height:24px;
-  font-weight:400;
-  opacity:80%;
-
-
-
-}
-
-.subheader2{
-
- position: absolute;
-  top: 130px;
-  left: 500px;
-  right:500px;
-  color:white;
-  font-size:19px;
-  font-family:Roboto;
-  line-height:24px;
-  font-weight:400;
-  text-align:center;
-  opacity:80%;
-
-
-
-
-}
-
-
-
-@media screen and (max-width: 768px){
-
-
-#sub_header{
-    padding-left:45px;padding-bottom:0px;color:white;line-height:20px;font-family:'Roboto';font-weight:400;
-    font-size:1.0rem;
-}
-
-
-.image_container{
-
-margin-left:0px;
-margin-right:0px;
-
-}
-
-.header_image{
-
-width:100%;
-height:35%;
-
-}
-
-
-
-.top-left {
-  position: absolute;
-  top: 32px;
-  left: 16px;
-  color:white;
-
-}
-
-
-
-.top-middle {
-  position: absolute;
-  top: 32px;
-  left: 72px;
-  color:white;
-  font-size:22px;font-family:'Roboto';font-weight:700;
-
-}
-
-.subheader1{
-
-  position: absolute;
-  top: 80px;
-  left: 10%;
-  color:white;
-  font-size:16px;
-  font-family:Roboto;
-  line-height:24px;
-  font-weight:400;
-  opacity:80%;
-
-
-
-
-}
-
-.subheader2{
-
- position: absolute;
-  top: 105px;
-  left: 15%;
-  right: 70px;
-  color:white;
-  font-size:16px;
-  font-family:Roboto;
-  line-height:24px;
-  font-weight:400;
-  opacity:80%;
-
-
-
-
-
-}
-
-
-}
-
-textarea.noscrollbars {
-  overflow: hidden;
-
-}
-
-/* create header selector partial */
-#header .dTc {color: #fff!important; text-align: center; font-weight: bold;}
-#header {background: #3bc19f}
-
-.ui.attached.negative.message, .ui.negative.message {
-    border: 0!important;
-    box-shadow: none!important;
-    background: transparent!important;
-    font-size: 12px!important;
-    margin: 0;
-    padding: 12px;
-    padding-bottom: 0;
-}
-</style>
-
-     <script>
-
-    function showLoginPopup(){
-        $('#login_popup').modal('show');
-        $('#login_popup').modal({
-            backdrop: 'static',
-            keyboard: false  // to prevent closing with Esc button (if you want this too)
-        });
-    };
-
-
-     {% if not request.user.is_authenticated %}
-        window.onload = showLoginPopup;
-     {% endif %}
-
-     function remove_warning(id) {
-            $(id).remove();
-            $("#div_{{question.id}}").removeClass("error");
-        };
-     function remove_error(id) {
-            var hidden_id = '#hidden_div_'+id
-            var div_id = '#div_'+id
-            $(hidden_id).remove();
-            $(div_id).removeClass("error");
-        };
-</script>
-
-
+        <script src="https://cdn.rawgit.com/mdehoog/Semantic-UI-Calendar/76959c6f7d33a527b49be76789e984a0a407350b/dist/calendar.min.js"></script>
+        <link href="https://cdn.rawgit.com/mdehoog/Semantic-UI-Calendar/76959c6f7d33a527b49be76789e984a0a407350b/dist/calendar.min.css" rel="stylesheet" type="text/css" />
+        <link href="//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.min.css" rel="stylesheet" type="text/css" />
+        <link rel="stylesheet" href="{% static 'css/mahaDev/mahaDev.css' %}">
+        <script>
+            function showLoginPopup(){
+                $('#login_popup').modal('show');
+                $('#login_popup').modal({
+                    backdrop: 'static',
+                    keyboard: false  // to prevent closing with Esc button (if you want this too)
+                });
+            };
+
+            {% if not request.user.is_authenticated %}
+                window.onload = showLoginPopup;
+            {% endif %}
+
+            function remove_warning(id) {
+                $(id).remove();
+                $("#div_{{question.id}}").removeClass("error");
+            };
+
+            function remove_error(id) {
+                var hidden_id = '#hidden_div_'+id
+                var div_id = '#div_'+id
+                $(hidden_id).remove();
+                $(div_id).removeClass("error");
+            };
+        </script>
     </head>
+    <body style="margin:0 auto; max-width:786px;background-color:#f2f2f2;">
 
+        <style>
+            /* create header selector partial */
+            #header .dTc {color: #fff!important; text-align: center; font-weight: bold;}
+            #header {background: #3bc19f}
+            
+            .ui.attached.negative.message, .ui.negative.message {
+                border: 0!important;
+                box-shadow: none!important;
+                background: transparent!important;
+                font-size: 12px!important;
+                margin: 0;
+                padding: 12px;
+                padding-bottom: 0;
+            }
+        </style>
 
+        {% include 'components/header.html' with data=header %}
 
+        {% include 'components/login_success_header_showcase.html' with data=header_showcase %}
 
+        <form class="ui form ffR fwR m16 mt72" onsubmit="return false" id="response_form" enctype="multipart/form-data">
+            {% csrf_token %}
+            <!--    TEXT = 0-->
+            <!--    CHOICE_SINGLE = 1-->
+            <!--    CHOICE_MULTIPLE = 2-->
+            <!--    TEXT_WITH_LIMIT = 3-->
+            <!--    PARAGRAPH = 4-->
+            <!--    FILE_UPLOAD = 5-->
+            <!--    DATE_TIME = 6-->
+            <!--    INTRODUCTION = 7-->
+            <!--    PROFILE_LINK=8-->
+            <!--    MOBILE_NO = 9-->
+            <!--    EMAIL_ID = 10-->
 
-<body style="margin:0 auto; max-width:786px;background-color:#f2f2f2;">
-
-    <!---webkit-clip-path: polygon(0 0, 100% 0, 100% 84%, 50% 100%, 0 84%, 0 0);-->
-
-    {% include 'components/header.html' with data=header %}
-
-    {% include 'components/login_success_header_showcase.html' with data=header_showcase %}
-
-    <!--    <div style="margin-bottom:80px;">-->
-    <!--          <div style="float:left;margin-top:5px;" >-->
-    <!--                          <i class="arrow left icon" style="font-size:24px;color:white;" id="back_button"></i>-->
-    <!--          </div>-->
-
-    <!--         <h2 class="ui center aligned header" style="margin-top:0px;color:white;font-size:1.60rem;font-family:'Roboto';font-weight:700;">-->
-    <!--              Welcome to Collabmates!-->
-    <!--         </h2>-->
-
-    <!--        <div class="ui center aligned header" style="font-size:1.12rem;color:white;font-family:Roboto ;sans-serif;">-->
-    <!--            <p>You are interested in joining this community:</p>-->
-    <!--            <p>{{community.name}}</p>-->
-
-    <!--        </div>-->
-    <!--    </div>-->
-
-    <form class="ui form ffR fwR m16 mt72" onsubmit="return false" id="response_form" enctype="multipart/form-data">
-        {% csrf_token %}
-        <!--    TEXT = 0-->
-        <!--    CHOICE_SINGLE = 1-->
-        <!--    CHOICE_MULTIPLE = 2-->
-        <!--    TEXT_WITH_LIMIT = 3-->
-        <!--    PARAGRAPH = 4-->
-        <!--    FILE_UPLOAD = 5-->
-        <!--    DATE_TIME = 6-->
-        <!--    INTRODUCTION = 7-->
-        <!--    PROFILE_LINK=8-->
-        <!--    MOBILE_NO = 9-->
-        <!--    EMAIL_ID = 10-->
-
-        {% for question in data %}
-            {% if question.optional %}
-                <div class="field mb30" id="div_{{question.id}}">
-            {% else %}
-                <div class="required field mb30" id="div_{{question.id}}">
-            {% endif %}
-
-                {% if question.question_state == 0 or question.question_state == 4 or question.question_state == 7 %}
-                    <!--    TEXT = 0  PARAGRAPH = 4 INTRODUCTION = 7  -->
-                    <label class="c4a fs15 fwR lh14 p10 m0">{{question.data}}</label>
-                    {% if question.question_state == 4 or question.question_state == 7 %}
-                        <textarea id="{{question.id}}" class="noscrollbars bd0 br8 bxs2 p16" rows="4" cols="4" name="{{question.id}}" required oninput="remove_error('{{question.id}}')"  onchange="remove_error('{{question.id}}')" placeholder="{{question.help_text}}"></textarea>
-                    {% else %}
-                        <textarea id="{{question.id}}" class="noscrollbars bd0 br8 bxs2 p16 h48" rows="2" cols="4" name="{{question.id}}" required oninput="remove_error('{{question.id}}')"  onchange="remove_error('{{question.id}}')" placeholder="{{question.help_text}}"></textarea>
-                    {% endif %}
-
-                {% elif question.question_state == 1 %}
-                    <!--    CHOICE_SINGLE = 1-->
-                    <label class="c4a fs15 fwR lh14 p10 m0">{{question.data}}</label>
-                    <div class="ui fluid search selection dropdown single_select_{{question.id}} bd0 br8 bxs2 p16 h48">
-                        <input id="{{question.id}}" type="hidden" name="{{question.id}}" oninput="remove_error('{{question.id}}')" onchange="remove_error('{{question.id}}')">
-                        <i class="dropdown icon p16"></i>
-                        <div class="default text fs16 lh18">{{question.help_text}}</div>
-                        <div class="menu">
-                            {% for option in question.dropdown_list %}
-                                <div class="item p16 bs" data-value="{{option}}">{{option}}</div>
-                            {% endfor %}
-                        </div>
-                    </div>
-                {% elif question.question_state == 2 %}
-                    <!--    CHOICE_MULTIPLE = 2-->
-                    <label class="c4a fs15 fwR lh14 p10 m0">{{question.data}}</label>
-                    <div class="ui fluid multiple search normal selection dropdown multi_select_{{question.id}} bd0 br8 bxs2 mnh48">
-                        <input id="{{question.id}}" type="hidden" name="{{question.id}}" oninput="remove_error('{{question.id}}')"  onchange="remove_error('{{question.id}}')">
-                        <i class="dropdown icon p16"></i>
-                        <div class="default text fs16 lh18">{{question.help_text}}</div>
-                        <div class="menu">
-                            {% for option in question.dropdown_list %}
-                                <div class="item p16 bs" data-value="{{option}}">{{option}}</div>
-                            {% endfor %}
-                        </div>
-                    </div>
-                {% elif question.question_state == 3 %}
-                    <!--    TEXT_WITH_LIMIT = 3-->
-                    <label class="c4a fs15 fwR lh14 p10 m0">{{question.data}}</label>
-                    <textarea id="{{question.id}}" class="noscrollbars bd0 br8 bxs2 p16 h48" rows="2" cols="4" name ="{{question.id}}" minlength="50" required placeholder="{{question.help_text}}"  oninput="remove_error('{{question.id}}')"  onchange="remove_error('{{question.id}}')"></textarea>
-                {% elif question.question_state == 5 %}
-                    <!--  FILE_UPLOAD = 5 -->
-                    <label class="c4a fs15 fwR lh14 p10 m0">{{question.data}}</label>
-                    <div class="ui action input bd0 br8 bxs2 h48 oH pR">
-                        <input class="bd0 h48" id="{{question.id}}" name ="{{question.id}}" type="file" formenctype="multipart/form-data" oninput="remove_error('{{question.id}}')"  onchange="remove_error('{{question.id}}')">
-                        <div class="b0 bgF button icon pA r0 t0 ui">
-                            <i class="attach icon"></i>
-                        </div>
-                    </div>
-                {% elif question.question_state == 6 %}
-                    <!--    DATE_TIME = 6-->
-                    <label class="c4a fs15 fwR lh14 p10 m0">{{question.data}}</label>
-                    <div class="ui calendar" id="calendar_{{question.id}}">
-                        <div class="ui input right icon">
-                            <input class="bd0 br8 bxs2 p16 h48 oH pR" id="{{question.id}}" type="text" placeholder="{{question.help_text}}" name ="{{question.id}}" oninput="remove_error('{{question.id}}')" onchange="remove_error('{{question.id}}')" onsubmit="remove_error('{{question.id}}')">
-                            <i class="calendar alternate outline icon"></i>
-                        </div>
-                    </div>
-                {% elif question.question_state == 8 %}
-                    <!--    PROFILE_LINK=8-->
-                    <label class="c4a fs15 fwR lh14 p10 m0">{{question.data}}</label>
-                    <input id="{{question.id}}" class="noscrollbars bd0 br8 bxs2 p16" rows="2" cols="4" name ="{{question.id}}" minlength="50" required placeholder="{{question.help_text}}" oninput="remove_error('{{question.id}}')" onchange="remove_error('{{question.id}}')">
-                {% elif question.question_state == 9 %}
-                    <!--    MOBILE_NO = 9-->
-
-                    <label class="c4a fs15 fwR lh14 p10 m0">{{question.data}}</label>
-                   <input id="{{question.id}}" style="display:inline" class="noscrollbars bd0 br8 bxs2 p16"  rows="2" cols="4" name ="{{question.id}}" minlength="50" required placeholder="{{question.help_text}}" oninput="remove_error('{{question.id}}')"  onchange="remove_error('{{question.id}}')">
-                    {% elif question.question_state == 10 %}
-                    <!--    EMAIL_ID = 10-->
-                    <label class="c4a fs15 fwR lh14 p10 m0">{{question.data}}</label>
-                    <input id="{{question.id}}" class="noscrollbars bd0 br8 bxs2 p16" rows="2" cols="4" name ="{{question.id}}" minlength="50" required placeholder="{{question.help_text}}" oninput="remove_error('{{question.id}}')"  onchange="remove_error('{{question.id}}')">
+            {% for question in data %}
+                {% if question.optional %}
+                    <div class="field mb30" id="div_{{question.id}}">
+                {% else %}
+                    <div class="required field mb30" id="div_{{question.id}}">
                 {% endif %}
-            </div>
-        {% endfor %}
-        <input type="hidden" name="ref_id" value="{{ref_id}}"/>
-    </form>
 
-    <div class="h60"></div>
+                    {% if question.question_state == 0 or question.question_state == 4 or question.question_state == 7 %}
+                        <!--    TEXT = 0  PARAGRAPH = 4 INTRODUCTION = 7  -->
+                        <label class="c4a fs15 fwR lh14 p10 m0">{{question.data}}</label>
+                        {% if question.question_state == 4 or question.question_state == 7 %}
+                            <textarea id="{{question.id}}" class="oH bd0 br8 bxs2 p16" rows="4" cols="4" name="{{question.id}}" required oninput="remove_error('{{question.id}}')"  onchange="remove_error('{{question.id}}')" placeholder="{{question.help_text}}"></textarea>
+                        {% else %}
+                            <textarea id="{{question.id}}" class="oH bd0 br8 bxs2 p16 h48" rows="2" cols="4" name="{{question.id}}" required oninput="remove_error('{{question.id}}')"  onchange="remove_error('{{question.id}}')" placeholder="{{question.help_text}}"></textarea>
+                        {% endif %}
+
+                    {% elif question.question_state == 1 %}
+                        <!--    CHOICE_SINGLE = 1-->
+                        <label class="c4a fs15 fwR lh14 p10 m0">{{question.data}}</label>
+                        <div class="ui fluid search selection dropdown single_select_{{question.id}} bd0 br8 bxs2 p16 h48">
+                            <input id="{{question.id}}" type="hidden" name="{{question.id}}" oninput="remove_error('{{question.id}}')" onchange="remove_error('{{question.id}}')">
+                            <i class="dropdown icon p16"></i>
+                            <div class="default text fs16 lh18">{{question.help_text}}</div>
+                            <div class="menu">
+                                {% for option in question.dropdown_list %}
+                                    <div class="item p16 bs" data-value="{{option}}">{{option}}</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    {% elif question.question_state == 2 %}
+                        <!--    CHOICE_MULTIPLE = 2-->
+                        <label class="c4a fs15 fwR lh14 p10 m0">{{question.data}}</label>
+                        <div class="ui fluid multiple search normal selection dropdown multi_select_{{question.id}} bd0 br8 bxs2 mnh48">
+                            <input id="{{question.id}}" type="hidden" name="{{question.id}}" oninput="remove_error('{{question.id}}')"  onchange="remove_error('{{question.id}}')">
+                            <i class="dropdown icon p16"></i>
+                            <div class="default text fs16 lh18">{{question.help_text}}</div>
+                            <div class="menu">
+                                {% for option in question.dropdown_list %}
+                                    <div class="item p16 bs" data-value="{{option}}">{{option}}</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    {% elif question.question_state == 3 %}
+                        <!--    TEXT_WITH_LIMIT = 3-->
+                        <label class="c4a fs15 fwR lh14 p10 m0">{{question.data}}</label>
+                        <textarea id="{{question.id}}" class="oH bd0 br8 bxs2 p16 h48" rows="2" cols="4" name ="{{question.id}}" minlength="50" required placeholder="{{question.help_text}}"  oninput="remove_error('{{question.id}}')"  onchange="remove_error('{{question.id}}')"></textarea>
+                    {% elif question.question_state == 5 %}
+                        <!--  FILE_UPLOAD = 5 -->
+                        <label class="c4a fs15 fwR lh14 p10 m0">{{question.data}}</label>
+                        <div class="ui action input bd0 br8 bxs2 h48 oH pR">
+                            <input class="bd0 h48" id="{{question.id}}" name ="{{question.id}}" type="file" formenctype="multipart/form-data" oninput="remove_error('{{question.id}}')"  onchange="remove_error('{{question.id}}')">
+                            <div class="b0 bgF button icon pA r0 t0 ui">
+                                <i class="attach icon"></i>
+                            </div>
+                        </div>
+                    {% elif question.question_state == 6 %}
+                        <!--    DATE_TIME = 6-->
+                        <label class="c4a fs15 fwR lh14 p10 m0">{{question.data}}</label>
+                        <div class="ui calendar" id="calendar_{{question.id}}">
+                            <div class="ui input right icon">
+                                <input class="bd0 br8 bxs2 p16 h48 oH pR" id="{{question.id}}" type="text" placeholder="{{question.help_text}}" name ="{{question.id}}" oninput="remove_error('{{question.id}}')" onchange="remove_error('{{question.id}}')" onsubmit="remove_error('{{question.id}}')">
+                                <i class="calendar alternate outline icon"></i>
+                            </div>
+                        </div>
+                    {% elif question.question_state == 8 %}
+                        <!--    PROFILE_LINK=8-->
+                        <label class="c4a fs15 fwR lh14 p10 m0">{{question.data}}</label>
+                        <input id="{{question.id}}" class="bd0 br8 bxs2 p16" rows="2" cols="4" name ="{{question.id}}" minlength="50" required placeholder="{{question.help_text}}" oninput="remove_error('{{question.id}}')" onchange="remove_error('{{question.id}}')">
+                    {% elif question.question_state == 9 %}
+                        <!--    MOBILE_NO = 9-->
+
+                        <label class="c4a fs15 fwR lh14 p10 m0">{{question.data}}</label>
+                    <input id="{{question.id}}" style="display:inline" class="bd0 br8 bxs2 p16"  rows="2" cols="4" name ="{{question.id}}" minlength="50" required placeholder="{{question.help_text}}" oninput="remove_error('{{question.id}}')"  onchange="remove_error('{{question.id}}')">
+                        {% elif question.question_state == 10 %}
+                        <!--    EMAIL_ID = 10-->
+                        <label class="c4a fs15 fwR lh14 p10 m0">{{question.data}}</label>
+                        <input id="{{question.id}}" class="bd0 br8 bxs2 p16" rows="2" cols="4" name ="{{question.id}}" minlength="50" required placeholder="{{question.help_text}}" oninput="remove_error('{{question.id}}')"  onchange="remove_error('{{question.id}}')">
+                    {% endif %}
+                </div>
+            {% endfor %}
+            <input type="hidden" name="ref_id" value="{{ref_id}}"/>
+        </form>
+
+        <div class="h60"></div>
+
         <!-- Displaying Buttons -->
-    <div class="p8 bs taC pF b0 l0 r0 h60 bdtE bgBg z1">
-        <button class="ui button h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU ls05" id="simple_button" type="submit">SUBMIT</button>
-    </div>
-
-    <div class="p8 bs taC pF b0 l0 r0 h60 bdtE bgBg z1 dN" id="loading_button">
-        <button class="ui button loading h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU ls05" type="submit">SUBMIT</button>
-    </div>
-
-    <!-- login model for exclusive communities -->
-    <div class="ui modal image_container_login w300" id="login_popup">
-        <div class="h72 w72 brp50 bd2F bs bxs oH bgT mtn22 mA">
-            <img class="h86 w86 mtn8 mln8 ofC" src="/media/main_website/like_minds_speaker.png">
+        <div class="p8 bs taC pF b0 l0 r0 h60 bdtE bgBg z1">
+            <button class="ui button h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU ls05" id="simple_button" type="submit">SUBMIT</button>
         </div>
-        <div class="p24 bs taC ffR">
-            <p class="m0 p0 fs17 lh22 c0 mb10 fwM">Login to continue</p>
-            <p class="m0 p0 fs15 lh22 c9 mb16">This is an exclusive community. To view member details please login/signup and join the community.</p>
-            <div class="p160 ls05">
-                <div class="fs12 mb16">
-                    <div class="googleSignin p12 bs br20 bgF c79 ffR fwM bdE c79h dN" data-next="{{ request.path }}?cta=join-aj-{{aj}}">
-                        <i class="dIb fa fa-google fs15 lh16 vM"></i>
-                        <span  class="dIb lh16 pl12 vM">LOGIN WITH GOOGLE</span>
+
+        <div class="p8 bs taC pF b0 l0 r0 h60 bdtE bgBg z1 dN" id="loading_button">
+            <button class="ui button loading h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU ls05" type="submit">SUBMIT</button>
+        </div>
+
+        <!-- login model for exclusive communities -->
+        <div class="ui modal image_container_login w300" id="login_popup">
+            <div class="h72 w72 brp50 bd2F bs bxs oH bgT mtn22 mA">
+                <img class="h86 w86 mtn8 mln8 ofC" src="/media/main_website/like_minds_speaker.png">
+            </div>
+            <div class="p24 bs taC ffR">
+                <p class="m0 p0 fs17 lh22 c0 mb10 fwM">Login to continue</p>
+                <p class="m0 p0 fs15 lh22 c9 mb16">This is an exclusive community. To view member details please login/signup and join the community.</p>
+                <div class="p160 ls05">
+                    <div class="fs12 mb16">
+                        <div class="googleSignin p12 bs br20 bgF c79 ffR fwM bdE c79h dN" data-next="{{ request.path }}?cta=join-aj-{{aj}}">
+                            <i class="dIb fa fa-google fs15 lh16 vM"></i>
+                            <span  class="dIb lh16 pl12 vM">LOGIN WITH GOOGLE</span>
+                        </div>
+                    </div>
+                    <div class="fs12 mb16">
+                        <a class="p12 bs dB br20 tdN bgLi cF ffR fwM cFh" href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join-aj-{{aj}}">
+                            <i class="dIb fa fa-linkedin fs15 lh16 vM"></i>
+                            <span  class="dIb lh16 pl12 vM">LOGIN WITH LINKEDIN</span>
+                        </a>
+                    </div>
+                    <div class="fs12">
+                        <a class="p12 bs dB br20 tdN bgFb cF ffR fwM cFh" href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join-aj-{{aj}}">
+                            <i class="fa fa-facebook dIb fs15 lh16 vM" ></i>
+                            <span class="dIb lh16 pl12 vM">LOGIN WITH FACEBOOK</span>
+                        </a>
                     </div>
                 </div>
-                <div class="fs12 mb16">
-                    <a class="p12 bs dB br20 tdN bgLi cF ffR fwM cFh" href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join-aj-{{aj}}">
-                        <i class="dIb fa fa-linkedin fs15 lh16 vM"></i>
-                        <span  class="dIb lh16 pl12 vM">LOGIN WITH LINKEDIN</span>
-                    </a>
-                </div>
-                <div class="fs12">
-                    <a class="p12 bs dB br20 tdN bgFb cF ffR fwM cFh" href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join-aj-{{aj}}">
-                        <i class="fa fa-facebook dIb fs15 lh16 vM" ></i>
-                        <span class="dIb lh16 pl12 vM">LOGIN WITH FACEBOOK</span>
-                    </a>
-                </div>
             </div>
-    <!-- -->
+        </div>
+        <!-- -->
 
-</body>
-</html>
+        <!-- Scripts -->
+        <script>
 
-<script>
-
-function autoGrow (oField) {
-  if (oField.scrollHeight > oField.clientHeight) {
-    oField.style.height = oField.scrollHeight + "px";
-  }
-}
-
-
-function isUrlValid(userInput,profile_platform) {
-
-
-    var res = userInput.match(/(http(s)?:\/\/.)?(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)/g);
-    if(res == null)
-        return false;
-    else{
-
-        console.log(profile_platform.localeCompare("facebook"))
-        console.log(profile_platform.localeCompare("linkedin"))
-        if(profile_platform == "facebook"){
-
-
-                let fb = userInput.toLowerCase();
-                console.log(fb)
-                console.log("hello")
-                if(fb.search("facebook") != -1)
-                    return true
-                return false
-        }else if(profile_platform == "linkedin"){
-
-                let lin = userInput.toLowerCase();
-                console.log(lin)
-                console.log("kk")
-                if(lin.search("linkedin") != -1)
-                    return true
-                return false
-        }
-
-        return true
-
-    }
-
-}
-
-
-{% for question in data %}
-    {% if question.question_state == 6 %}
-        $('#calendar_{{question.id}}').calendar({
-            type: '{{question.date_format}}',
-            monthFirst: false,
-            formatter: {
-                date: function (date, settings) {
-                    var month_shorts = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
-                    if (!date) return '';
-                    var day = date.getDate() + '';
-                    if (day.length < 2) {
-                            day = '0' + day;
-                        }
-                    var month = date.getMonth() + 1;
-                    var year = date.getFullYear();
-                    {% if question.date_format == 'year' %}
-                        return year;
-
-                    {% elif question.date_format == 'month' and question.month_format == 'full' %}
-                        return month_shorts[date.getMonth()] + ' ' + year;
-
-                    {% elif question.date_format == 'month' %}
-                        var month = (date.getMonth() + 1) + '';
-                        if (month.length < 2) {
-                            month = '0' + month;
-                        }
-                        return month + ' ' + year;
-                    {% elif question.date_format == 'date' and question.date_format_full == 'full' %}
-                        return day + ' ' + month_shorts[date.getMonth()] + ' ' + year;
-
-                    {% else %}
-
-                        var month = (date.getMonth() + 1) + '';
-                        if (month.length < 2) {
-                            month = '0' + month;
-                        }
-                        return day + ' ' + month + ' ' + year;
-                    {% endif %}
+            function autoGrow (oField) {
+                if (oField.scrollHeight > oField.clientHeight) {
+                    oField.style.height = oField.scrollHeight + "px";
                 }
             }
-        });
-    {% elif question.question_state == 1 %}
-        {% if question.allowed_addition %}
-            $('.ui.dropdown.single_select_{{question.id}}').dropdown({allowAdditions: true,hideAdditions:false});
-        {% else %}
-            $('.ui.dropdown.single_select_{{question.id}}').dropdown({allowAdditions: false});
-        {% endif %}
 
-    {% elif question.question_state == 2 %}
-        {% if question.allowed_addition %}
-            $('.ui.normal.dropdown.multi_select_{{question.id}}')
-              .dropdown({
-              allowAdditions: true,
-              hideAdditions: false,
-                  {% if question.max_selections > 0 and question.max_selections != ''  %}
-                      maxSelections: {{question.max_selections}}
-                  {% endif %}
-              })
-            ;
-
-
-
-        {% else %}
-            $('.ui.normal.dropdown.multi_select_{{question.id}}')
-              .dropdown({
-              allowAdditions: false,
-                  {% if question.max_selections > 0 and question.max_selections != ''  %}
-                      maxSelections: {{question.max_selections}}
-                  {% endif %}
-              })
-            ;
-        {% endif %}
-
-    {% endif %}
-{% endfor %}
-
-
-$('#back_click').click(function(e){
-    window.history.back();
-})
-
-//form submit click handling
-    $('#simple_button').click(function(e){
-
-
-
-
-        var values = $('#response_form').serialize();
-        var community_id='{{community.id}}'
-        {% if aj %}
-            url="/community/"+community_id+"?cta=join-aj-{{aj}}";
-        {% else %}
-            url="/community/"+community_id+"?cta=join";
-        {% endif %}
-
-        var files_exist = false;
-        var files_array = [];
-
-        var values_list = [];
-        {% for question in data %}
-
-            $("#div_{{question.id}}").removeClass("error");
-            remove_warning('#hidden_div_{{question.id}}');
-
-            {% if question.question_state == 3 %}
-                values_dict = {'id':{{question.id}}};
-                var input=document.getElementById('{{question.id}}');
-                var value=input.value;
-
-                {% if question.optional %}
-                    if(value!=''){
-                        values_dict['value'] = value;
-                        values_list.push(values_dict)
-                        }
-                {% else %}
-                    if (value.length < 50) {
-                        console.log("less than 50 characters");
-                          $("#div_{{question.id}}").addClass("error");
-
-
-                        var tag_div_html = `
-                            <div class="ui negative message" id="hidden_div_{{question.id}}">
-                                <i class="close icon" onclick="remove_error('{{question.id}}')"></i>
-                                <div class="header">
-                                    Please write your answer in bit more detail
-
-                                </div>
-                            </div>
-                            `
-                        $('#div_{{question.id}}').append(tag_div_html)
-                         $(window).scrollTop($('#div_{{question.id}}').offset().top-20)
-                        return;
+            function isUrlValid(userInput,profile_platform) {
+                var res = userInput.match(/(http(s)?:\/\/.)?(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)/g);
+                if(res == null)
+                    return false;
+                else{
+                    console.log(profile_platform.localeCompare("facebook"))
+                    console.log(profile_platform.localeCompare("linkedin"))
+                    if(profile_platform == "facebook"){
+                        let fb = userInput.toLowerCase();
+                        console.log(fb)
+                        console.log("hello")
+                        if(fb.search("facebook") != -1) return true
+                        return false
+                    }else if(profile_platform == "linkedin"){
+                        let lin = userInput.toLowerCase();
+                        console.log(lin)
+                        console.log("kk")
+                        if(lin.search("linkedin") != -1) return true
+                        return false
                     }
-                    else if(value.length >= 50){
-                        console.log("more than 50 characters");
-                        values_dict['value'] = value;
-                        values_list.push(values_dict)
-
-                    }
-                {% endif %}
-            {% elif question.question_state == 7 %}
-
-                values_dict = {'id':{{question.id}}};
-                var input=document.getElementById('{{question.id}}');
-                var value=input.value;
-
-                {% if question.optional %}
-                    if(value!=''){
-                        values_dict['value'] = value;
-                        values_list.push(values_dict)
-                        }
-                {% else %}
-                    if (value.length >= {{question.min_chars}} && value.length <= {{question.max_chars}}) {
-
-                      if(value!=''){
-                        values_dict['value'] = value;
-                        values_list.push(values_dict)
-                        }
-
-                    }else {
-                        console.log("less than 50 characters");
-                          $("#div_{{question.id}}").addClass("error");
+                    return true
+                }
+            }
 
 
-                        var tag_div_html = `
-                            <div class="ui negative message" id="hidden_div_{{question.id}}">
-                                <i class="close icon" onclick="remove_error('{{question.id}}')"></i>
-                                <div class="header">
-                                    {% if not question.no_limit %}
-                                        Please enter valid introduction with atleast {{question.min_chars}} characters but not more than {{question.max_chars}} characters
+            {% for question in data %}
+                {% if question.question_state == 6 %}
+                    $('#calendar_{{question.id}}').calendar({
+                        type: '{{question.date_format}}',
+                        monthFirst: false,
+                        formatter: {
+                            date: function (date, settings) {
+                                var month_shorts = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+                                if (!date) return '';
+                                    var day = date.getDate() + '';
+                                    if (day.length < 2) {
+                                        day = '0' + day;
+                                    }
+                                    var month = date.getMonth() + 1;
+                                    var year = date.getFullYear();
+                                    {% if question.date_format == 'year' %}
+                                        return year;
+                                    {% elif question.date_format == 'month' and question.month_format == 'full' %}
+                                        return month_shorts[date.getMonth()] + ' ' + year;
+                                    {% elif question.date_format == 'month' %}
+                                        var month = (date.getMonth() + 1) + '';
+                                        if (month.length < 2) {
+                                            month = '0' + month;
+                                        }
+                                        return month + ' ' + year;
+                                    {% elif question.date_format == 'date' and question.date_format_full == 'full' %}
+                                        return day + ' ' + month_shorts[date.getMonth()] + ' ' + year;
                                     {% else %}
-                                        Please enter valid introduction with atleast {{question.min_chars}} characters
+                                        var month = (date.getMonth() + 1) + '';
+                                        if (month.length < 2) {
+                                            month = '0' + month;
+                                        }
+                                        return day + ' ' + month + ' ' + year;
                                     {% endif %}
-                                </div>
-                            </div>
-                            `
-                        $('#div_{{question.id}}').append(tag_div_html)
-
-                        $(window).scrollTop($('#div_{{question.id}}').offset().top-20)
-
-                        return;
-
-                    }
-                {% endif %}
-
-
-            {% elif question.question_state == 9 %}
-                values_dict = {'id':{{question.id}}};
-                value = $('#{{question.id}}').val();
-                {% if question.optional %}
-                      if(value!=''){
-                        values_dict['value'] = value;
-                        values_list.push(values_dict)
+                            }
                         }
-                {% else %}
-                    //var numbers = /^((\\+[1-9]{1,4}[ \\-]*)|(\\([0-9]{2,3}\\)[ \\-]*)|([0-9]{2,4})[ \\-]*)*?[0-9]{3,4}?[ \\-]*[0-9]{3,4}?$/;
-                    //console.log(numbers)
-                    if(value != ''){
-                        values_dict['value'] = value;
-                        values_list.push(values_dict)
-
-                    } else{
-                        $("#div_{{question.id}}").addClass("error");
-
-                        var tag_div_html = `<div class="ui negative message" id="hidden_div_{{question.id}}">
-                                                <i class="close icon" onclick="remove_error('{{question.id}}')"></i>
-                                                <div class="header">
-                                                    Please enter valid mobile no
-                                                </div>
-                                            </div>`
-                        $('#div_{{question.id}}').append(tag_div_html)
-                         $(window).scrollTop($('#div_{{question.id}}').offset().top-20)
-                        return;
-                    }
-                {% endif %}
-
-            {% elif question.question_state == 10 %}
-                values_dict = {'id':{{question.id}}};
-                value = $('#{{question.id}}').val();
-                {% if question.optional %}
-                        if(value!=''){
-                        values_dict['value'] = value;
-                        values_list.push(values_dict)
-                        }
-                {% else %}
-                    var mailformat = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
-                    if(value.match(mailformat)){
-                        values_dict['value'] = value;
-                        values_list.push(values_dict)
-
-                    } else{
-                        $("#div_{{question.id}}").addClass("error");
-
-                        var tag_div_html = `<div class="ui negative message" id="hidden_div_{{question.id}}">
-                                                <i class="close icon" onclick="remove_error('{{question.id}}')"></i>
-                                                <div class="header">
-                                                    Please enter valid email address
-                                                </div>
-                                            </div>`
-                        $('#div_{{question.id}}').append(tag_div_html)
-                         $(window).scrollTop($('#div_{{question.id}}').offset().top-20)
-                        return;
-                    }
-                {% endif %}
-
-            {% elif question.question_state == 8 %}
-
-                values_dict = {'id':{{question.id}}};
-                value = $('#{{question.id}}').val();
-                {% if question.optional %}
-                        if(value!=''){
-                        values_dict['value'] = value;
-                        values_list.push(values_dict)
-                        }
-                {% else %}
-                    var valid =isUrlValid(value,"{{question.profile_platform}}")
-                    if(valid){
-                        values_dict['value'] = value;
-                        values_list.push(values_dict)
-
-                    } else{
-                        $("#div_{{question.id}}").addClass("error");
-
-                        var tag_div_html = `<div class="ui negative message" id="hidden_div_{{question.id}}">
-                                                <i class="close icon" onclick="remove_error('{{question.id}}')"></i>
-                                                <div class="header">
-
-                                                    Please enter valid {{question.profile_platform}} profile link
-                                                </div>
-                                            </div>`
-                        $('#div_{{question.id}}').append(tag_div_html)
-                         $(window).scrollTop($('#div_{{question.id}}').offset().top-20)
-                        return;
-                    }
-                {% endif %}
-
-
-            {% elif question.question_state == 2 %}
-
-
-                values_dict = {'id':{{question.id}}};
-                value = $('#{{question.id}}').val();
-
-                {% if question.optional %}
-
-                       if(value!=''){
-                        values_dict['value'] = value;
-                        values_list.push(values_dict)
-                        }
-                {% else %}
-
-                    if(value != '' ){
-                        value=value.split(',').join(', ')
-                        values_dict['value'] = value;
-                        values_list.push(values_dict)
-                    }else{
-
-                    $("#div_{{question.id}}").addClass("error");
-
-                        var tag_div_html = `<div class="ui negative message" id="hidden_div_{{question.id}}">
-                                                <i class="close icon" onclick="remove_error('{{question.id}}')"></i>
-                                                <div class="header">
-
-                                                    Please select or enter option
-                                                </div>
-                                            </div>`
-                        $('#div_{{question.id}}').append(tag_div_html)
-                         $(window).scrollTop($('#div_{{question.id}}').offset().top-20)
-                        return;
-
-                    }
-
-                {% endif %}
-
-            {% elif question.question_state != 5 %}
-                //console.log('check-2')
-                value = $('#{{question.id}}').val();
-                values_dict = {'id':{{question.id}}};
-                if (value == ''){
-                    {% if question.optional %}
-                           if(value!=''){
-                        values_dict['value'] = value;
-                        values_list.push(values_dict)
-                        }
+                    });
+                {% elif question.question_state == 1 %}
+                    {% if question.allowed_addition %}
+                        $('.ui.dropdown.single_select_{{question.id}}').dropdown({allowAdditions: true,hideAdditions:false});
                     {% else %}
-                        $("#div_{{question.id}}").addClass("error");
-
-                        var tag_div_html = `
-                            <div class="ui negative message" id="hidden_div_{{question.id}}">
-                                <i class="close icon" onclick="remove_error('{{question.id}}')"></i>
-                                <div class="header">
-
-                                {% if question.question_state == 0 %}
-                                    Please enter the required field
-                                {% elif question.question_state == 1 %}
-                                    Please select an option
-                                {% elif question.question_state == 2 %}
-                                    Please select or enter option
-                                {% elif question.question_state == 4 %}
-                                   Please enter the required field
-                                {% elif question.question_state == 5 %}
-                                    Please upload a file
-                                {% elif question.question_state == 6 %}
-                                    Please enter valid date
-                                {% elif question.question_state == 7 %}
-                                    Please write your introduction in bit more detail
-                                {% elif question.question_state == 8 %}
-                                    Please fill this detail
-                                {% else %}
-                                    Please write your answer in bit more detail
-                                {% endif %}
-                                </div>
-                            </div>
-                            `
-                        $('#div_{{question.id}}').append(tag_div_html)
-                        $(window).scrollTop($('#div_{{question.id}}').offset().top-20)
-                        return;
-
+                        $('.ui.dropdown.single_select_{{question.id}}').dropdown({allowAdditions: false});
                     {% endif %}
-                }else{
-                    values_dict['value'] = value;
-                    values_list.push(values_dict)
-                }
-            {% elif question.question_state == 5 %}
-
-                if ($('#{{question.id}}')[0].files.length === 0){
-                    {% if question.optional %}
-                        file =$('#{{question.id}}').prop('files')[0];
+                {% elif question.question_state == 2 %}
+                    {% if question.allowed_addition %}
+                        $('.ui.normal.dropdown.multi_select_{{question.id}}').dropdown({
+                            allowAdditions: true,
+                            hideAdditions: false,
+                            {% if question.max_selections > 0 and question.max_selections != ''  %}
+                                maxSelections: {{question.max_selections}}
+                            {% endif %}
+                        });
                     {% else %}
-                        $("#div_{{question.id}}").addClass("error");
-
-                        var tag_div_html = `
-                            <div class="ui negative message" id="hidden_div_{{question.id}}">
-                                <i class="close icon" onclick="remove_error('{{question.id}}')"></i>
-                                <div class="header">
-                                    Please attach file
-                                </div>
-                            </div>
-                            `
-                        $('#div_{{question.id}}').append(tag_div_html)
-                         $(window).scrollTop($('#div_{{question.id}}').offset().top-20)
-                        return;
+                        $('.ui.normal.dropdown.multi_select_{{question.id}}').dropdown({
+                            allowAdditions: false,
+                            {% if question.max_selections > 0 and question.max_selections != ''  %}
+                                maxSelections: {{question.max_selections}}
+                            {% endif %}
+                        });
                     {% endif %}
-                }else if($('#{{question.id}}')[0].files.length > 0) {
-                    file =$('#{{question.id}}').prop('files')[0];
+                {% endif %}
+            {% endfor %}
 
-                    files_exist = true;
-                    file_dict = {'id':{{question.id}},'value': file};
-                    files_array.push(file_dict)
+            $('#back_click').click(function(e){
+                window.history.back();
+            });
 
+            //form submit click handling
+            $('#simple_button').click(function(e){
+                var values = $('#response_form').serialize();
+                var community_id='{{community.id}}';
+                var url;
+
+                {% if aj %}
+                    url="/community/"+community_id+"?cta=join-aj-{{aj}}";
+                {% else %}
+                    url="/community/"+community_id+"?cta=join";
+                {% endif %}
+
+                var files_exist = false;
+                var files_array = [];
+                var values_list = [];
+
+                {% for question in data %}
+
+                    $("#div_{{question.id}}").removeClass("error");
+                    remove_warning('#hidden_div_{{question.id}}');
+
+                    {% if question.question_state == 3 %}
+                        values_dict = {'id':{{question.id}}};
+                        var input=document.getElementById('{{question.id}}');
+                        var value=input.value;
+                        {% if question.optional %}
+                            if(value!=''){
+                                values_dict['value'] = value;
+                                values_list.push(values_dict)
+                            }
+                        {% else %}
+                            if (value.length < 50) {
+                                console.log("less than 50 characters");
+                                $("#div_{{question.id}}").addClass("error");
+                                var tag_div_html = `
+                                    <div class="ui negative message" id="hidden_div_{{question.id}}">
+                                        <i class="close icon" onclick="remove_error('{{question.id}}')"></i>
+                                        <div class="header">
+                                            Please write your answer in bit more detail
+
+                                        </div>
+                                    </div>
+                                    `
+                                $('#div_{{question.id}}').append(tag_div_html)
+                                $(window).scrollTop($('#div_{{question.id}}').offset().top-20)
+                                return;
+                            }
+                            else if(value.length >= 50){
+                                console.log("more than 50 characters");
+                                values_dict['value'] = value;
+                                values_list.push(values_dict);
+                            }
+                        {% endif %}
+                    {% elif question.question_state == 7 %}
+                        values_dict = {'id':{{question.id}}};
+                        var input=document.getElementById('{{question.id}}');
+                        var value=input.value;
+
+                        {% if question.optional %}
+                            if(value!=''){
+                                values_dict['value'] = value;
+                                values_list.push(values_dict);
+                            }
+                        {% else %}
+                            if (value.length >= {{question.min_chars}} && value.length <= {{question.max_chars}}) {
+                                if(value!=''){
+                                    values_dict['value'] = value;
+                                    values_list.push(values_dict)
+                                }
+                            }else {
+                                console.log("less than 50 characters");
+                                $("#div_{{question.id}}").addClass("error");
+                                var tag_div_html = `
+                                    <div class="ui negative message" id="hidden_div_{{question.id}}">
+                                        <i class="close icon" onclick="remove_error('{{question.id}}')"></i>
+                                        <div class="header">
+                                            {% if not question.no_limit %}
+                                                Please enter valid introduction with atleast {{question.min_chars}} characters but not more than {{question.max_chars}} characters
+                                            {% else %}
+                                                Please enter valid introduction with atleast {{question.min_chars}} characters
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    `
+                                $('#div_{{question.id}}').append(tag_div_html);
+                                $(window).scrollTop($('#div_{{question.id}}').offset().top-20);
+                                return;
+                            }
+                        {% endif %}
+                    {% elif question.question_state == 9 %}
+                        values_dict = {'id':{{question.id}}};
+                        value = $('#{{question.id}}').val();
+                        {% if question.optional %}
+                            if(value!=''){
+                                values_dict['value'] = value;
+                                values_list.push(values_dict)
+                            }
+                        {% else %}
+                            if(value != ''){
+                                values_dict['value'] = value;
+                                values_list.push(values_dict)
+                            } else{
+                                $("#div_{{question.id}}").addClass("error");
+                                var tag_div_html = `<div class="ui negative message" id="hidden_div_{{question.id}}">
+                                                        <i class="close icon" onclick="remove_error('{{question.id}}')"></i>
+                                                        <div class="header">
+                                                            Please enter valid mobile no
+                                                        </div>
+                                                    </div>`
+                                $('#div_{{question.id}}').append(tag_div_html)
+                                $(window).scrollTop($('#div_{{question.id}}').offset().top-20)
+                                return;
+                            }
+                        {% endif %}
+                    {% elif question.question_state == 10 %}
+                        values_dict = {'id':{{question.id}}};
+                        value = $('#{{question.id}}').val();
+                        {% if question.optional %}
+                            if(value!=''){
+                                values_dict['value'] = value;
+                                values_list.push(values_dict)
+                            }
+                        {% else %}
+                            var mailformat = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
+                            if(value.match(mailformat)){
+                                values_dict['value'] = value;
+                                values_list.push(values_dict)
+                            } else{
+                                $("#div_{{question.id}}").addClass("error");
+                                var tag_div_html = `<div class="ui negative message" id="hidden_div_{{question.id}}">
+                                                        <i class="close icon" onclick="remove_error('{{question.id}}')"></i>
+                                                        <div class="header">
+                                                            Please enter valid email address
+                                                        </div>
+                                                    </div>`
+                                $('#div_{{question.id}}').append(tag_div_html)
+                                $(window).scrollTop($('#div_{{question.id}}').offset().top-20)
+                                return;
+                            }
+                        {% endif %}
+                    {% elif question.question_state == 8 %}
+                        values_dict = {'id':{{question.id}}};
+                        value = $('#{{question.id}}').val();
+                        {% if question.optional %}
+                            if(value!=''){
+                                values_dict['value'] = value;
+                                values_list.push(values_dict)
+                            }
+                        {% else %}
+                            var valid =isUrlValid(value,"{{question.profile_platform}}")
+                            if(valid){
+                                values_dict['value'] = value;
+                                values_list.push(values_dict);
+                            } else{
+                                $("#div_{{question.id}}").addClass("error");
+                                var tag_div_html = `<div class="ui negative message" id="hidden_div_{{question.id}}">
+                                                        <i class="close icon" onclick="remove_error('{{question.id}}')"></i>
+                                                        <div class="header">
+
+                                                            Please enter valid {{question.profile_platform}} profile link
+                                                        </div>
+                                                    </div>`
+                                $('#div_{{question.id}}').append(tag_div_html)
+                                $(window).scrollTop($('#div_{{question.id}}').offset().top-20)
+                                return;
+                            }
+                        {% endif %}
+                    {% elif question.question_state == 2 %}
+                        values_dict = {'id':{{question.id}}};
+                        value = $('#{{question.id}}').val();
+                        {% if question.optional %}
+                            if(value!=''){
+                                values_dict['value'] = value;
+                                values_list.push(values_dict);
+                            }
+                        {% else %}
+                            if(value != '' ){
+                                value=value.split(',').join(', ');
+                                values_dict['value'] = value;
+                                values_list.push(values_dict);
+                            }else{
+                                $("#div_{{question.id}}").addClass("error");
+                                var tag_div_html = `<div class="ui negative message" id="hidden_div_{{question.id}}">
+                                                        <i class="close icon" onclick="remove_error('{{question.id}}')"></i>
+                                                        <div class="header">
+
+                                                            Please select or enter option
+                                                        </div>
+                                                    </div>`
+                                $('#div_{{question.id}}').append(tag_div_html)
+                                $(window).scrollTop($('#div_{{question.id}}').offset().top-20)
+                                return;
+                            }
+                        {% endif %}
+                    {% elif question.question_state != 5 %}
+                        //console.log('check-2')
+                        value = $('#{{question.id}}').val();
+                        values_dict = {'id':{{question.id}}};
+                        if (value == ''){
+                            {% if question.optional %}
+                                if(value!=''){
+                                    values_dict['value'] = value;
+                                    values_list.push(values_dict)
+                                }
+                            {% else %}
+                                $("#div_{{question.id}}").addClass("error");
+                                var tag_div_html = `
+                                    <div class="ui negative message" id="hidden_div_{{question.id}}">
+                                        <i class="close icon" onclick="remove_error('{{question.id}}')"></i>
+                                        <div class="header">
+
+                                        {% if question.question_state == 0 %}
+                                            Please enter the required field
+                                        {% elif question.question_state == 1 %}
+                                            Please select an option
+                                        {% elif question.question_state == 2 %}
+                                            Please select or enter option
+                                        {% elif question.question_state == 4 %}
+                                        Please enter the required field
+                                        {% elif question.question_state == 5 %}
+                                            Please upload a file
+                                        {% elif question.question_state == 6 %}
+                                            Please enter valid date
+                                        {% elif question.question_state == 7 %}
+                                            Please write your introduction in bit more detail
+                                        {% elif question.question_state == 8 %}
+                                            Please fill this detail
+                                        {% else %}
+                                            Please write your answer in bit more detail
+                                        {% endif %}
+                                        </div>
+                                    </div>
+                                    `
+                                $('#div_{{question.id}}').append(tag_div_html)
+                                $(window).scrollTop($('#div_{{question.id}}').offset().top-20)
+                                return;
+                            {% endif %}
+                        }else{
+                            values_dict['value'] = value;
+                            values_list.push(values_dict)
+                        }
+                    {% elif question.question_state == 5 %}
+                        if ($('#{{question.id}}')[0].files.length === 0){
+                            {% if question.optional %}
+                                file =$('#{{question.id}}').prop('files')[0];
+                            {% else %}
+                                $("#div_{{question.id}}").addClass("error");
+                                var tag_div_html = `
+                                    <div class="ui negative message" id="hidden_div_{{question.id}}">
+                                        <i class="close icon" onclick="remove_error('{{question.id}}')"></i>
+                                        <div class="header">
+                                            Please attach file
+                                        </div>
+                                    </div>
+                                    `
+                                $('#div_{{question.id}}').append(tag_div_html)
+                                $(window).scrollTop($('#div_{{question.id}}').offset().top-20)
+                                return;
+                            {% endif %}
+                        }else if($('#{{question.id}}')[0].files.length > 0) {
+                            file =$('#{{question.id}}').prop('files')[0];
+                            files_exist = true;
+                            file_dict = {'id':{{question.id}},'value': file};
+                            files_array.push(file_dict);
+                        }
+                    {% endif %}
+                {% endfor %}
+
+                function csrfSafeMethod(method) {
+                    // these HTTP methods do not require CSRF protection
+                    return (/^(GET|HEAD|OPTIONS|TRACE)$/.test(method));
                 }
 
-            {% endif %}
+                $.ajaxSetup({
+                    beforeSend: function(xhr, settings) {
+                        xhr.setRequestHeader("X-CSRFToken", '{{csrf_token}}');
+                    }
+                });
 
-        {% endfor %}
+                // uploading files
+                if(files_exist){
+                    files_array.forEach((element) => {
+                        console.log(element)
+                        console.log(element.id)
+                        console.log(element.value)
+                        var file_data = new FormData();
+                        file_data.append("file", element.value);
+                        $.ajax({
+                            url:"/utils/upload_question_file/"+ community_id +"/" + element.id,
+                            type:"POST",
+                            async: false,
+                            data:file_data,
+                            processData:false,
+                            contentType: false,
+                            cache: false,
+                            success:function(data){
+                                console.log("image_url : ");
+                                var image_url = data.image_url;
+                                console.log(image_url);
+                                file_dict = {'id':element.id,'value': ''+image_url};
+                                values_list.push(file_dict);
+                            }
+                        });
+                    })
+                }
 
+                $("#loading_button").removeClass("dN");
+                console.log(values_list);
+                console.log(JSON.stringify(values_list));
 
-        function csrfSafeMethod(method) {
-        // these HTTP methods do not require CSRF protection
-            return (/^(GET|HEAD|OPTIONS|TRACE)$/.test(method));
-        }
-
-        $.ajaxSetup({
-            beforeSend: function(xhr, settings) {
-                xhr.setRequestHeader("X-CSRFToken", '{{csrf_token}}');
-            }
-        });
-
-        // uploading files
-        if(files_exist){
-            files_array.forEach((element) => {
-                console.log(element)
-                console.log(element.id)
-                console.log(element.value)
-                var file_data = new FormData();
-                file_data.append("file", element.value);
                 $.ajax({
-                    url:"/utils/upload_question_file/"+ community_id +"/" + element.id,
+                    url:url,
                     type:"POST",
-                    async: false,
-                    data:file_data,
-                    processData:false,
-                    contentType: false,
-                    cache: false,
+                    data:{"data": JSON.stringify(values_list)},
+                    dataType:'json',
                     success:function(data){
-                        console.log("image_url : ");
-                        var image_url = data.image_url;
-                        console.log(image_url);
-                        file_dict = {'id':element.id,'value': ''+image_url};
-                        values_list.push(file_dict);
-
+                        console.log(data)
+                        {% if community.hide_community == '5' %}
+                            location.href="/community/"+'{{community.id}}?profile='+{{request.user.id}};
+                        {% else %}
+                            location.href="/refer_members/"+'{{community.id}}';
+                        {% endif %}
                     }
                 });
             })
-        }
 
-        $("#loading_button").removeClass("dN");
-        console.log(values_list);
-        console.log(JSON.stringify(values_list));
-
-
-
-
-
-        $.ajax({
-            url:url,
-            type:"POST",
-            data:{"data": JSON.stringify(values_list)},
-            dataType:'json',
-            success:function(data){
-                console.log(data)
-                {% if community.hide_community == '5' %}
-                    location.href="/community/"+'{{community.id}}?profile='+{{request.user.id}};
-                {% else %}
-                    location.href="/refer_members/"+'{{community.id}}';
-                {% endif %}
-            }
-        });
-
-    })
-
-    // google login
-    function authServer(token, element){
-        $.ajax({
-            url: "/api/login",
-            data: {"type": "google", "google_id_token": token},
-            type: "POST",
-            // dataType: "json",
-            success: function(data){
-                console.log("Google auth success", data);
-                window.location.href = $(element).attr("data-next");
-            },
-            error: function(data){
-                console.log("Google auth failure", data);
-            }
-        });
-    }
-    function attachSignin(element) {
-        auth2.attachClickHandler(element, {},
-            function(googleUser) {
-                var profile = googleUser.getBasicProfile();
-                var id_token = googleUser.getAuthResponse().id_token;
-                console.log('ID: ' + profile.getId()); // Do not send to your backend! Use an ID token instead.
-                console.log('Name: ' + profile.getName());
-                console.log('Image URL: ' + profile.getImageUrl());
-                console.log('Email: ' + profile.getEmail()); // This is null if the 'email' scope is not present.
-                authServer(id_token, element);
-            }, function(error) {
-                console.log(JSON.stringify(error, undefined, 2));
-            });
-    }
-    (function(w,d,s){
-        var f = d.getElementsByTagName(s)[0],
-            j = d.createElement(s);
-        j.async = true;
-        j.defer = true;
-        j.onload = function(){
-            gapi.load('auth2', function(){
-                // Retrieve the singleton for the GoogleAuth library and set up the client.
-                auth2 = gapi.auth2.init({
-                    client_id: "{{ google_oauth_client_id }}",
-                    cookiepolicy: 'single_host_origin',
-                    // Request scopes in addition to 'profile' and 'email'
-                    // scope: 'additional_scope'
+            // google login
+            function authServer(token, element){
+                $.ajax({
+                    url: "/api/login",
+                    data: {"type": "google", "google_id_token": token},
+                    type: "POST",
+                    // dataType: "json",
+                    success: function(data){
+                        console.log("Google auth success", data);
+                        window.location.href = $(element).attr("data-next");
+                    },
+                    error: function(data){
+                        console.log("Google auth failure", data);
+                    }
                 });
-                $(".googleSignin").removeClass("dN").each(function(){
-                    attachSignin(this);
-                });
-            });
-        };
-        j.onerror = function(){};
-        j.src = 'https://apis.google.com/js/api:client.js';
-        f.parentNode.insertBefore(j,f);
-    })(window,document,'script');
+            }
 
-</script>
+            function attachSignin(element) {
+                auth2.attachClickHandler(element, {},
+                    function(googleUser) {
+                        var profile = googleUser.getBasicProfile();
+                        var id_token = googleUser.getAuthResponse().id_token;
+                        console.log('ID: ' + profile.getId()); // Do not send to your backend! Use an ID token instead.
+                        console.log('Name: ' + profile.getName());
+                        console.log('Image URL: ' + profile.getImageUrl());
+                        console.log('Email: ' + profile.getEmail()); // This is null if the 'email' scope is not present.
+                        authServer(id_token, element);
+                    }, function(error) {
+                        console.log(JSON.stringify(error, undefined, 2));
+                    });
+            }
+            
+            (function(w,d,s){
+                var f = d.getElementsByTagName(s)[0],
+                    j = d.createElement(s);
+                j.async = true;
+                j.defer = true;
+                j.onload = function(){
+                    gapi.load('auth2', function(){
+                        // Retrieve the singleton for the GoogleAuth library and set up the client.
+                        auth2 = gapi.auth2.init({
+                            client_id: "{{ google_oauth_client_id }}",
+                            cookiepolicy: 'single_host_origin',
+                            // Request scopes in addition to 'profile' and 'email'
+                            // scope: 'additional_scope'
+                        });
+                        $(".googleSignin").removeClass("dN").each(function(){
+                            attachSignin(this);
+                        });
+                    });
+                };
+                j.onerror = function(){};
+                j.src = 'https://apis.google.com/js/api:client.js';
+                f.parentNode.insertBefore(j,f);
+            })(window,document,'script');
+
+        </script>
+
+    </body>
+</html>
 
