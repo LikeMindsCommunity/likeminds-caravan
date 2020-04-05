@@ -4887,14 +4887,14 @@ def login_authenticate_version_1(request):
 
     if request.method == 'POST':
         res = json.loads(request.body)
-        
+
         login_type = res['type']
         if login_type == "google":
             if 'google_id_token' in res:
                 google_id_token = res['google_id_token']
                 context = login_with_google(google_id_token,request)
                 info_logger.info(context)
-                return JsonResponse({})
+                return JsonResponse(context)
             return JsonResponse({'success':False,'error_message':"send google id token in body"})
 
 
