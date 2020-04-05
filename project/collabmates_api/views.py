@@ -4966,7 +4966,7 @@ def login_authenticate_version_1(request):
 
         else:
             # if user is logging in with Apple
-
+            res = res['login_json']
             userinfo = Userinfo.objects.filter(apple_id=res['id'])
 
             if not userinfo.exists():
