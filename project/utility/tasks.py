@@ -8,8 +8,9 @@ from django.template.loader import get_template
 from togther.models import *
 from togther.models import *
 
-from .utils import is_request_android, is_request_ios, is_request_pc, android_app_download_link, is_IG_community
-
+from .utils import (is_request_android, is_request_ios, is_request_pc,
+                    android_app_download_link,ios_app_download_link,
+                    is_IG_community,user_onbaord_new)
 url = settings.URL
 
 is_beta = settings.IS_BETA
@@ -45,14 +46,9 @@ def onboarding_mail_for_new_users(member_id, android, ios, pc):
     print('member_id ===>>>> ', member_id)
 
     user = User.objects.get(pk=member_id)
-    user_legacy = User_Legacy.objects.filter(user_id=user)
-    user_prof = User_Profession.objects.filter(user_id=user)
-    user_int = User_Interest.objects.filter(user_id=user)
-    user_gro = User_Geography.objects.filter(user_id=user)
 
     # if user does not have any tags , user has to do on-boarding
-    if user_legacy.exists() and user_prof.exists() and user_int.exists() and user_gro.exists():
-
+    if user_onbaord_new(user):
         ''' if user comes back in the middle of on-baording flow,
         make sure he continues the on-boarding'''
         return
@@ -70,7 +66,7 @@ def onboarding_mail_for_new_users(member_id, android, ios, pc):
                 if android:
                     link = android_app_download_link
                 elif ios:
-                    link = url + "/communities"
+                    link = ios_app_download_link
                 else:
                     link = url + "/onboarding"
             to = user.email
@@ -78,13 +74,6 @@ def onboarding_mail_for_new_users(member_id, android, ios, pc):
             template = get_template("mails/onboarding_mail.html").render({"name": user.userinfo.name,
                                                                           'subject': subject, 'url': link,
                                                                           })
-            # msg = EmailMultiAlternatives(subject,
-            #                                  template,
-            #                                  "Collabmates<hello@collabmates.com>",
-            #                                  [to],
-            #                                  )
-            # msg.attach_alternative(template, "text/html")
-            # return msg.send(fail_silently)
             to = [to]
             # send_email(subject, template, to)
             notification_to_complete_onboarding(member_id)  # notification to complete onboarding

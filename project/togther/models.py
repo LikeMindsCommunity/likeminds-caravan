@@ -545,12 +545,15 @@ class Report(models.Model):
 
 
 class collabcardState(models.Model):
+
     card = models.ForeignKey(Collabcard, on_delete=models.CASCADE)
     community = models.ForeignKey(Community, on_delete=models.CASCADE)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     state = models.IntegerField(null=True)
     created_at = models.BigIntegerField(default=-9223372036854775808, null=True)
     updated_at = models.BigIntegerField(default=-9223372036854775808, null=True)
+
+    removed_status = models.IntegerField(null=True)
     #
     # def save(self, *args, **kwargs):
     #     if self.created_at <= 0:
@@ -689,3 +692,13 @@ class communityExpiryCodes(models.Model):
     unique_code = models.IntegerField(default=0)
     private_link = models.CharField(max_length=2048, null=True)
     expire_duration = models.BigIntegerField(default=0, null=True)
+
+
+class removedMembers(models.Model):
+
+    '''model for saving removed or members who left the community details'''
+
+    community = models.ForeignKey(Community, on_delete=models.CASCADE)
+    member = models.ForeignKey(User, on_delete=models.CASCADE)
+    removed_state = models.IntegerField(default=0)
+    created_at = models.BigIntegerField(default=0, null=True)

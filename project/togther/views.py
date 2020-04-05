@@ -39,14 +39,14 @@ import ast
 url = settings.URL
 
 if not url and settings.IS_BETA:
-    url = "https://beta.collabmates.com"
+    url = "https://beta.likeminds.community"
 
 if not url and not settings.IS_BETA:
     url = "https://www.collabmates.com"
 
 # uncomment to run it in localhost
 #
-#url='http://localhost:8000'
+# url='http://localhost:8000'
 
 api_url = url + '/api/'
 error_logger = logging.getLogger("error_logger")
@@ -246,6 +246,7 @@ def community(request, community_id):
         if questions:
             if member_state == 0 or member_state == 5:
                 context = get_join_community_context(request, ref_id, aj, validation_error, user, data, community, filled_answers)
+                context['google_oauth_client_id'] = settings.GOOGLE_OAUTH_CLIENT_ID
                 return render(request, 'response_form.html', context)
 
         else:
@@ -296,13 +297,20 @@ def community(request, community_id):
                                 'community': community, 'ref_id': ref_id,
                                 'validation_error': validation_error,
                                 'filled_answers': filled_answers,
-                                'aj':aj,'header_showcase':header_showcase}
+                                'aj':aj,'header_showcase':header_showcase,
+                                'google_oauth_client_id': settings.GOOGLE_OAUTH_CLIENT_ID}
                     #print(context)
                     return render(request, 'response_form.html', context)
                 else:
                     pass
             else:
-                return JsonResponse({'success': True})
+                if request.is_ajax:
+                    return JsonResponse({'success': True})
+                else:
+                    if community.hide_community == '5':
+                        return redirect("/community/"+str(community_id)+"?profile="+str(request.user.id))
+                    else:
+                        return redirect("refer_members", community_id)
         elif cta == 'share':
             cta = 'join'
 
@@ -444,8 +452,8 @@ def community(request, community_id):
                'profile_list': profile_list,
                'is_member':is_member,
                'community_id':community.id,
-               'user_email' : request.user.userinfo.email if request.user.is_authenticated else ''
-
+               'user_email' : request.user.userinfo.email if request.user.is_authenticated else '',
+               'google_oauth_client_id': settings.GOOGLE_OAUTH_CLIENT_ID 
                }
     # user_email = True
     return render(request, 'community.html', context)
@@ -868,7 +876,8 @@ def members_directory(request, community_id):
         'user_email': user_email,
         'filter_list':filters,
         'member_state':member_state,
-        'selected':selected
+        'selected':selected,
+        'google_oauth_client_id': settings.GOOGLE_OAUTH_CLIENT_ID
     }
 
 
@@ -1575,7 +1584,7 @@ def update_member_count(community_id):
 
 
 def pending_list(request, community_id):
-    '''function to show pending list in html'''
+    ''' function to show pending list in html '''
 
     if request.user.is_authenticated:
         try:
@@ -1584,6 +1593,8 @@ def pending_list(request, community_id):
             user = update_user_info(request)
 
     link = api_url + 'pending_members/' + str(community_id)
+
+    link = link if not request.user.is_authenticated else link + "?member_id=" + str(request.user.id)
 
     res = rqst.get(link)
     user_image_url = ""
@@ -1594,9 +1605,9 @@ def pending_list(request, community_id):
             userinfo = Userinfo.objects.get(user_id=request.user.id)
         except:
             user, request_user_email = update_user_info(request)
-        # userinfo=Userinfo.objects.get(user_id=request.user.id)
+        userinfo=Userinfo.objects.get(user_id=request.user.id)
         if not userinfo.image_link:
-            user_image_url = userinfo.image_file.url
+            user_image_url = url + userinfo.image_file.url
         else:
             user_image_url = userinfo.image_link
         link = api_url + 'members_state?member_id=' + str(request.user.id) + '&community_id=' + str(community_id)
@@ -1618,7 +1629,7 @@ def pending_list(request, community_id):
     context = {
         'pending_list': pending_list,
         'community_id': community_id,
-        'user_image_url': url + user_image_url,
+        'user_image_url': user_image_url,
         'is_promoter': is_promoter,
         'list_length': len(pending_list),
         'error': error,

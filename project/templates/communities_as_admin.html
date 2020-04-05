@@ -22,7 +22,7 @@
                     {% for i in admins_communities %}
                     <div class="card" style=" margin-left: 0.5em; margin-right:0.5em; width: calc(50% - 1em) !important;" >
                       <div class="image">
-                        <img src="http://beta.collabmates.com/media/{{i.image_url}}" onclick="open_comm('{{i.id}}');">
+                        <img src="http://beta.likeminds.community/media/{{i.image_url}}" onclick="open_comm('{{i.id}}');">
                       </div>
                       <div class="extra">
                         <a href="{% url 'community' i.id%}">

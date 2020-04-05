@@ -1,12 +1,8 @@
 <!DOCTYPE html>
 {% load static %}
 <html>
-<head>
-
-    <html lang="zxx" class="no-js">
     <head>
-
-    <!-- Global site tag (gtag.js) - Google Analytics -->
+        <!-- Global site tag (gtag.js) - Google Analytics -->
         <script async src="https://www.googletagmanager.com/gtag/js?id=UA-155700742-1"></script>
         <script>
           window.dataLayer = window.dataLayer || [];
@@ -15,496 +11,456 @@
 
           gtag('config', 'UA-155700742-1');
         </script>
+        <!-- Google Analytics Code -->
 
-<!-- Google Analytics Code -->
-
-    <!-- Google Tag Manager -->
+        <!-- Google Tag Manager -->
         <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
         new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
         j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
         'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
         })(window,document,'script','dataLayer','GTM-KSF3G6T');</script>
-    <!-- End Google Tag Manager -->
-
+        <!-- End Google Tag Manager -->
 
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-
-        <link rel="shortcut icon" href="https://beta.collabmates.com/media/media/ic_launcher_round.png">
-
-        <meta name="author" content="colorlib">
-
-
+        <link rel="shortcut icon" href="https://beta.likeminds.community/media/media/ic_launcher_round.png">
         <meta name="keywords" content="">
-
         <meta charset="UTF-8">
-
         <title>{{community.name}}</title>
-        <meta name="description"
-              content={{community.name}}/>
+        <meta name="description" content={{community.name}}/>
         {% if not community.thumbnail %}
-        <meta property="og:image" itemprop="image"
-              content='https://beta.collabmates.com/media/media/ic_launcher_round.png'/>
+        <meta property="og:image" itemprop="image" content='https://beta.likeminds.community/media/media/ic_launcher_round.png'/>
         {% else %}
-            <meta property="og:image" itemprop="image"
-              content='{{community.thumbnail}}'/>
+        <meta property="og:image" itemprop="image" content='{{community.thumbnail}}'/>
         {% endif %}
         <meta property="og:title" content="{{community.name}}"/>
-        <meta property="og:description"
-              content="{{community.purpose}}"/>
+        <meta property="og:description" content="{{community.purpose}}"/>
         <meta property="og:type" content="website"/>
-
-
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.css"/>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.js"></script>
         <script async src="https://www.googletagmanager.com/gtag/js?id=UA-130288684-1"></script>
         <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
-
-
         <link rel="stylesheet" href="{% static 'css/mahaDev/mahaDev.css' %}">
-
         <link href="https://fonts.googleapis.com/css?family=Roboto:400,500,500i,700&display=swap" rel="stylesheet">
-
-
-
     </head>
-
-<body class="bgBg">
-
-    <!-- Google Tag Manager (noscript) -->
-    <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-KSF3G6T" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
-    <!-- End Google Tag Manager (noscript) -->
+    <body class="bgBg">
+        <!-- Google Tag Manager (noscript) -->
+        <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-KSF3G6T" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+        <!-- End Google Tag Manager (noscript) -->
     
-    <!-- email popup -->
-    <div class="ui modal" id="email_login">
-        <div class="header">Please provide your email id in order to continue</div>
-        <div class="image content">
-            <div class="description">
-                <div class="ui  form">
-                  <div class="field">
-                    <label>E-mail</label>
-                    <input type="email" placeholder="Enter your email id" id="email_input">
-                  </div>
-                </div>
-            </div>
-        </div>
-        <div class="actions">
-            <div class="ui positive right labeled icon button" style="background-color:#00897b;" id="email_submit">Submit</div>
-        </div>
-    </div>
-
-    <!-- back button popup -->
-    <div class="ui modal" id="back">
-        <div class="header">{{community.name}}</div>
-        <div class="image content">
-            <div class="description">
-                <div class="ui header">Are you sure you don't want to join this community?</div>
-            </div>
-        </div>
-        <div class="actions">
-            <div class="ui black deny button">No</div>
-            <div class="ui positive button" id="yes">Yes</div>
-        </div>
-    </div>
-
-    <div style="margin:0 auto; max-width:786px;background-color:#f0f5f5;">
-        
-        {% block content %}
-
-        {% include 'components/header.html' with data=header %}
-
-        {% include 'components/community_header_showcase.html' with data=header_showcase %}
-
-        <div class="bgE h2"></div>
-
-        <div class="oA ffR fwM taC fs13 bgF">
-            <div class="dT tlF mnwp100">
-                <a class="dTc vM p16 bs mnwp20 tdN c0 bdb2F hSel bs" id="purpose_header">PURPOSE</a>
-                {% if community.about %}
-                <a href="#about" class="dTc vM p16 bs mnwp20 tdN c0 bdb2F hSel bs">ABOUT</a>
-                {% endif%}
-                {% if members_length > 0 %}
-                    {% if community.hide_community == '3' %}
-                    <a class="dTc vM p16 bs mnwp20 tdN c0 bdb2F hSel bs">WAIT LIST</a>
-                    {% else %}
-                    <a  class="dTc vM p16 bs mnwp20 tdN c0 bdb2F hSel bs" id="member_header">MEMBERS</a>
-                    {% endif %}
-                {% endif %}
-                <div id="conv" class="dTc vM p16 bs mnwp20 c0">CONVERSATIONS</div>
-            </div>
-        </div>
-
-        <div class="bgE h10"></div>
-
-        <div class="bgF p16 bs mb10" id="purpose">
-            <h5 class="fwB fs16 c0 m0 p0 lh20 ffR mb8">Purpose</h5>
-            <p class="fs15 m0 c6 lh24">{{community.purpose}}</p>
-        </div>
-
-        <!-- rendering multiple admins -->
-        {% if admin_length > 0 %}
-            <div class="bs mb10 p160" id="promter_card">
-                <h4 class="c0 ffR fs16 fwB lh20 m0 p0 p016">Promoter</h4>
-                <div class="oA">
-                    <div class="bs dT p8 mnwp100">
-                        {% for admin in admins %}
-                            <div class="bs dTc mnw296 mxwp100 p8 vT">
-                                <div class="h96 mt12 taC pR z1">
-                                    <div class="w96 h96 brp50 bd2F bs bxs oH dIb vM bgF">
-                                        <img class="w96 h96 ofC" src="{{admin.image_link}}">
-                                    </div>
-                                </div>
-                                <div class="pR mtn58 bxs br8 oH bgF">
-                                    <div class="h96">
-                                        <img class="wp100 ofC h96" src="https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Fprofile_header?alt=media">
-                                    </div>
-                                    <div class="h2"></div>
-                                    <p class="p0 m0 taC fwM fs16 c0 lh20">{{admin.name}}</p>
-                                    <p class="p0 m0 p18 pt28 fs15 c6 lh24 taC">{{admin.introduction_answer}}</p>
-                                </div>
-                            </div>
-                        {% endfor %}
-                    </div>
-                </div>
-            </div>
-        {% endif %}
-
-        {% if community.about %}
-            <div class="p16 bs mb10">
-                <!-- printing community about -->
-                <div class="content ui fluid" id="about_card">
-                    <div class="content" id="about">
-                        <h4 class="m0 p0 fwB ffR">   About Community  </h4>
-                        <p  id="more" class="Roboto">
-                            {{about_1}} <span><i class="ellipsis horizontal icon" id="show_more" style="color:white;"></i></span>
-                        </p>
-                    </div>
-                </div>
-            </div>
-        {% endif %}
-
-        <!-- members rendering -->
-        {% if members_length > 0 %}
-            <div class="bgF" id="members">
-                <div class="dT wp100 p16 bs">
-                    <h4 class="dTc vM taL m0 p0 fs16 c0 lh20">Members {{members_length}}</h4>
-                    <div id="filter_icon" class="dTc vM taC w96 cT bd2T bs p6 br16" ><i class="filter icon lh16"></i> <span class="lh16 fs14">Filter</span></div>
-                </div>
-
-             {% include 'components/member_card_list.html' with data=members is_member=is_member %}
-
-
-            </div>
-        {% endif %}
-        
-        <div class="h60"></div>
-        <!-- Displaying Buttons -->
-        <div class="p8 bs taC pF b0 l0 r0 h60 bdtE bgBg z1">
-            {% if Nom_mem_state == 6 %}
-                <button class="h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" onclick="accept_admin('{{cta}}','{{community.id}}','{{Nom_mem_state}}');">Respond to invitation</button>
-            {% elif Nom_mem_state == 7 %}
-                <button class="h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" onclick="accept_admin('{{cta}}','{{community.id}}','{{Nom_mem_state}}');"> Respond to invitation</button>
-            {% elif Nom_mem_state == 8 %}
-                <button class="h44 bgT cF br22 fwM ffR fs13" id="down_ref">Invite members</button>
-            {% elif Nom_mem_state == 3 %}
-                <button class="h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" disabled>Pending Approval</button>
-            {% elif Nom_mem_state == 1%}
-                <button class="h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" disabled>You are a promoter</button>
-            {% elif Nom_mem_state == 2 %}
-                <button class="h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" disabled>You are a promoter</button>
-            {% elif Nom_mem_state == 4 %}
-                <button class="h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" disabled>Already a Member</button>
-            {% elif Nom_mem_state == 5 %}
-                <button class="h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" onclick="join('{{community.id}}')">Join Community(Declined)</button>
-            {% elif source == 'email' %}
-                <button class="h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" onclick="accept_admin();">Respond to invitation</button>
-            {% elif Nom_mem_state == 0 %}
-                <button class="h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" onclick="join('{{community.id}}')"> Join Community</button>
-            {% endif %}
-        </div>
-    </div>
-
-    <!-- models to display on clicks -->
-
-    <!-- download the app pop-up -->
-    <div class="ui modal" id="download_app_popup">
-        <div class="header">
-            Download the app
-        </div>
-        <div class="image content">
-
-            <div class="description">
-                <div class="ui  form">
+        <!-- email popup -->
+        <div class="ui modal" id="email_login">
+            <div class="header">Please provide your email id in order to continue</div>
+            <div class="image content">
+                <div class="description">
+                    <div class="ui  form">
                     <div class="field">
-                    In order to view the conversations of this community, please download the app
+                        <label>E-mail</label>
+                        <input type="email" placeholder="Enter your email id" id="email_input">
+                    </div>
                     </div>
                 </div>
             </div>
-        </div>
-        <div class="actions">
-            <div class="ui positive right labeled icon button" style="background-color:#00897b;" id="Download" onclick="window.location.href = '{{android_app_link}}';">
-                Download
-                <i class="arrow alternate circle down icon"></i>
-
+            <div class="actions">
+                <div class="ui positive right labeled icon button" style="background-color:#00897b;" id="email_submit">Submit</div>
             </div>
         </div>
-    </div>
 
-    <!-- login model for non exclusive communities -->
-     <div class="ui modal test">
-        <div class="ui fluid card " style="margin:0 0 ; padding: 10px 10px;">
-            <h2 class="ui teal center aligned header">
-                    <img src="https://beta.collabmates.com/media/media/ic_launcher_round.png" style="float:left;width:35px;"/>
-
-
-                <div class="content" style="color:#008577">
-                    Login to continue
+        <!-- back button popup -->
+        <div class="ui modal" id="back">
+            <div class="header">{{community.name}}</div>
+            <div class="image content">
+                <div class="description">
+                    <div class="ui header">Are you sure you don't want to join this community?</div>
                 </div>
-            </h2>
-            <div class="content">
-                <p class="center aligned">
-                    To join this community we need few basic information about you. This will help us to have
-                    relevant member in group.
-                </p>
             </div>
-            <div class="center aligned container">
-                <div class="content">
+            <div class="actions">
+                <div class="ui black deny button">No</div>
+                <div class="ui positive button" id="yes">Yes</div>
+            </div>
+        </div>
 
-                    {% if ref_id != '' %}
-                    <a href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join-ref_id-{{ref_id}}">
-                    <button class="ui facebook button" style="width:130px;">
-                    {% elif aj  %}
-                            <a href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join-aj-{{aj}}">
-                            <button class="ui facebook button" style="width:130px;">
-                    {% elif cta == 'share' %}
-                    <a href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join">
-                        <button class="ui facebook button" style="width:130px;">
-                    {% elif cta != '' %}
-                    <a href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta={{cta}}">
-                        <button class="ui facebook button" style="width:130px;">
-                            {% else %}
-                            <a href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join">
-                                <button class="ui facebook button" style="width:200px;">
-                                    {% endif %}
-                                    <i class="fa fa-facebook" ></i>&nbsp;&nbsp;&nbsp;&nbsp;
-                                    Login with Facebook
-                                </button>
-                            </a>
-                            <br>
-                            <br>
-                            OR
-                            <br>
-                            <br>
-                            <div class="content">
+        <div style="margin:0 auto; max-width:786px;background-color:#f0f5f5;">
 
-                                {% if ref_id != '' %}
-                                <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join-ref_id-{{ref_id}}">
-                                    <button class="ui linkedin button" style="width:130px;">
-                                {% elif aj  %}
-                                        <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join-aj-{{aj}}">
-                                        <button class="ui linkedin button" style="width:130px;">
-                                {% elif cta == 'share' %}
-                                <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join">
-                                    <button class="ui linkedin button" style="width:130px;">
-                                {% elif cta != '' %}
-                                <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta={{cta}}">
-                                    <button class="ui linkedin button" style="width:130px;">
-                                {% else %}
-                                    <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join">
-                                    <button class="ui linkedin button" style="width:200px;">
-                                {% endif %}
-                                <i class="fa fa-linkedin"></i>&nbsp;&nbsp;&nbsp;&nbsp;
-                                Login with LinkedIn
-                                </button>
-                                </a></button>
-                                </a>
-                            </div>
-                        </button>
-                    </a>
+            {% include 'components/header.html' with data=header %}
+
+            {% include 'components/community_header_showcase.html' with data=header_showcase %}
+
+            <div class="bgE h2"></div>
+
+            <div class="oA ffR fwM taC fs13 bgF">
+                <div class="dT tlF mnwp100">
+                    <a class="dTc vM p16 bs mnwp20 tdN c0 bdb2F hSel bs" id="purpose_header">PURPOSE</a>
+                    {% if community.about %}
+                        <a href="#about" class="dTc vM p16 bs mnwp20 tdN c0 bdb2F hSel bs">ABOUT</a>
+                    {% endif %}
+                    {% if members_length > 0 %}
+                        {% if community.hide_community == '3' %}
+                        <a class="dTc vM p16 bs mnwp20 tdN c0 bdb2F hSel bs">WAIT LIST</a>
+                        {% else %}
+                        <a  class="dTc vM p16 bs mnwp20 tdN c0 bdb2F hSel bs" id="member_header">MEMBERS</a>
+                        {% endif %}
+                    {% endif %}
+                    <div id="conv" class="dTc vM p16 bs mnwp20 c0">CONVERSATIONS</div>
                 </div>
-                <br>
+            </div>
 
-<!-- accept invitation model -->
-                <div class="ui modal accept" id="accept">
+            <div class="bgE h10"></div>
 
-                    <div class="ui fluid card " style="border: 2px solid #1ebea5; margin:0 0 ; padding: 10px 10px;">
-                        <h2 class="ui teal center aligned header">
-                            <div class="content">
-                                Respond to Invitation
-                            </div>
-                        </h2>
-                        <div class="content">
-                            <p class="center aligned">
-                                Send Response
+            <div class="bgF p16 bs mb10" id="purpose">
+                <h5 class="fwB fs16 c0 m0 p0 lh20 ffR mb8">Purpose</h5>
+                <p class="fs15 m0 c6 lh24">{{community.purpose}}</p>
+            </div>
+
+            <!-- rendering multiple admins -->
+            {% if admin_length > 0 %}
+                <div class="bs mb10 p160" id="promter_card">
+                    <h4 class="c0 ffR fs16 fwB lh20 m0 p0 p016">Promoter</h4>
+                    <div class="oA">
+                        <div class="bs dT p8 mnwp100">
+                            {% for admin in admins %}
+                                <div class="bs dTc mnw296 mxwp100 p8 vT">
+                                    <div class="h96 mt12 taC pR z1">
+                                        <div class="w96 h96 brp50 bd2F bs bxs oH dIb vM bgF">
+                                            <img class="w96 h96 ofC" src="{{admin.image_link}}">
+                                        </div>
+                                    </div>
+                                    <div class="pR mtn58 bxs br8 oH bgF">
+                                        <div class="h96">
+                                            <img class="wp100 ofC h96" src="https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Fprofile_header?alt=media">
+                                        </div>
+                                        <div class="h2"></div>
+                                        <p class="p0 m0 taC fwM fs16 c0 lh20">{{admin.name}}</p>
+                                        <p class="p0 m0 p18 pt28 fs15 c6 lh24 taC">{{admin.introduction_answer}}</p>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+
+            {% if community.about %}
+                <div class="p16 bs mb10">
+                    <!-- printing community about -->
+                    <div class="content ui fluid" id="about_card">
+                        <div class="content" id="about">
+                            <h4 class="m0 p0 fwB ffR">   About Community  </h4>
+                            <p  id="more" class="Roboto">
+                                {{about_1}} <span><i class="ellipsis horizontal icon" id="show_more" style="color:white;"></i></span>
                             </p>
                         </div>
-                        <div class="center aligned container">
-                            <div class="content">
-                                <a href="../accept_admin/{{community.id}}?cta=accept_invitation&value=true">
-                                    <button class="ui button" style="width:130px; color:green;">
+                    </div>
+                </div>
+            {% endif %}
 
-                                        Accept
-                                    </button>
-                                </a>
-                                <br>
-                                <br>
+            <!-- members rendering -->
+            {% if members_length > 0 %}
+                <div class="bgF" id="members">
+                    <div class="dT wp100 p16 bs">
+                        <h4 class="dTc vM taL m0 p0 fs16 c0 lh20">Members {{members_length}}</h4>
+                        <div id="filter_icon" class="dTc vM taC w96 cT bd2T bs p6 br16" ><i class="filter icon lh16"></i> <span class="lh16 fs14">Filter</span></div>
+                    </div>
 
-                                <br>
-                                <br>
-                                <div class="content">
-                                    <a href="../accept_admin/{{community.id}}?cta=accept_invitation&value=false">
-                                        <button class="ui button" style="width:130px; color:green;">
+                {% include 'components/member_card_list.html' with data=members is_member=is_member %}
 
-                                            Decline
-                                        </button>
-                                    </a>
-                                </div>
-                            </div>
-                            <br>
 
+                </div>
+            {% endif %}
+            
+            <div class="h60"></div>
+            <!-- Displaying Buttons -->
+            <div class="p8 bs taC pF b0 l0 r0 h60 bdtE bgBg z1">
+                {% if Nom_mem_state == 6 %}
+                    <button class="h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" onclick="accept_admin('{{cta}}','{{community.id}}','{{Nom_mem_state}}');">Respond to invitation</button>
+                {% elif Nom_mem_state == 7 %}
+                    <button class="h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" onclick="accept_admin('{{cta}}','{{community.id}}','{{Nom_mem_state}}');"> Respond to invitation</button>
+                {% elif Nom_mem_state == 8 %}
+                    <button class="h44 bgT cF br22 fwM ffR fs13" id="down_ref">Invite members</button>
+                {% elif Nom_mem_state == 3 %}
+                    <button class="h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" disabled>Pending Approval</button>
+                {% elif Nom_mem_state == 1%}
+                    <button class="h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" disabled>You are a promoter</button>
+                {% elif Nom_mem_state == 2 %}
+                    <button class="h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" disabled>You are a promoter</button>
+                {% elif Nom_mem_state == 4 %}
+                    <button class="h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" disabled>Already a Member</button>
+                {% elif Nom_mem_state == 5 %}
+                    <button class="h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" onclick="join('{{community.id}}')">Join Community(Declined)</button>
+                {% elif source == 'email' %}
+                    <button class="h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" onclick="accept_admin();">Respond to invitation</button>
+                {% elif Nom_mem_state == 0 %}
+                    <button class="h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" onclick="join('{{community.id}}')"> Join Community</button>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- download the app pop-up -->
+        <div class="ui modal" id="download_app_popup">
+            <div class="header">
+                Download the app
+            </div>
+            <div class="image content">
+
+                <div class="description">
+                    <div class="ui  form">
+                        <div class="field">
+                        In order to view the conversations of this community, please download the app
                         </div>
                     </div>
                 </div>
+            </div>
+            <div class="actions">
+                <div class="ui positive right labeled icon button" style="background-color:#00897b;" id="Download" onclick="window.location.href = '{{android_app_link}}';">
+                    Download
+                    <i class="arrow alternate circle down icon"></i>
 
-
+                </div>
             </div>
         </div>
-    </div>
-    <!-- -->
-    <!-- login model for exclusive communities -->
-    <div class="ui modal image_container_login w300" id="whatsapp_login">
-        <div class="h72 w72 brp50 bd2F bs bxs oH bgT mtn22 mA">
-            <img class="h86 w86 mtn8 mln8 ofC" src="/media/main_website/like_minds_speaker.png">
-        </div>
-        <div class="p24 bs taC ffR">
-            <p class="m0 p0 fs17 lh22 c0 mb10 fwM">Login to continue</p>
-            <p class="m0 p0 fs15 lh22 c9 mb16">This is an exclusive community. To view member details please login/signup and join the community.</p>
-            <div class="p160 ls05">
-                <div class="fs12 mb16">
-                    {% if ref_id != '' %}
 
-                        <a class="p12 bs dB br20 tdN bgLi cF ffR fwM" href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join-ref_id-{{ref_id}}">
-
-                    {% elif aj  %}
-                        <a class="p12 bs dB br20 tdN bgLi cF ffR fwM" href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}&cta=join-aj-{{aj}}">
-
-                    {% elif cta == 'share' %}
-                        <a class="p12 bs dB br20 tdN bgLi cF ffR fwM cFh" href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join">
-                    {% elif cta != '' %}
-                        <a class="p12 bs dB br20 tdN bgLi cF ffR fwM cFh" href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta={{cta}}">
-                    {% else %}
-                        <a class="p12 bs dB br20 tdN bgLi cF ffR fwM cFh" href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join">
-                    {% endif %}
-                            <i class="dIb fa fa-linkedin fs15 lh16 vM"></i>
-                            <span  class="dIb lh16 pl12 vM">LOGIN WITH LINKEDIN</span>
-                        </a>
-                </div>
-                <div class="fs12">
-                    {% if ref_id != '' %}
-
-                        <a class="p12 bs dB br20 tdN bgFb cF ffR fwM" href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join-ref_id-{{ref_id}}">
-
-                    {% elif aj  %}
-
-                        <a class="p12 bs dB br20 tdN bgFb cF ffR fwM" href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join-aj-{{aj}}">
-|
-                    {% elif cta == 'share' %}
-                        <a class="p12 bs dB br20 tdN bgFb cF ffR fwM cFh" href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join">
-                    {% elif cta != '' %}
-                        <a class="p12 bs dB br20 tdN bgFb cF ffR fwM cFh" href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta={{cta}}">
-                    {% else %}
-                        <a class="p12 bs dB br20 tdN bgFb cF ffR fwM cFh" href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join">
-                    {% endif %}
-                            <i class="fa fa-facebook dIb fs15 lh16 vM" ></i>
-                            <span class="dIb lh16 pl12 vM">LOGIN WITH FACEBOOK</span>
-                        </a>
+        <!-- login model for non exclusive communities -->
+        <div class="ui modal test w300">
+            <div class="h72 w72 brp50 bd2F bs bxs oH bgT mtn22 mA">
+                <img class="h86 w86 mtn8 mln8 ofC" src="https://beta.likeminds.community/media/media/ic_launcher_round.png">
+            </div>
+            <div class="p24 bs taC ffR">
+                <p class="p0 fs17 lh22 c0 mb10 fwM">Login to continue</p>
+                <p class="p0 fs15 lh22 c9 mb16">To join this community we need few basic information about you. This will help us to have relevant member in group.</p>
+                <div class="p160 ls05">
+                    <div class="fs12 mb16">
+                        {% if ref_id != '' %}
+                            <div class="googleSignin p12 bs br20 bgF c79 ffR fwM bdE c79h dN" data-next="{{ request.path }}?cta=join-ref_id-{{ref_id}}">
+                        {% elif aj  %}
+                            <div class="googleSignin p12 bs br20 bgF c79 ffR fwM bdE c79h dN" data-next="{{ request.path }}?cta=join-aj-{{aj}}">
+                        {% elif cta == 'share' %}
+                            <div class="googleSignin p12 bs br20 bgF c79 ffR fwM bdE c79h dN" data-next="{{ request.path }}?cta=join">
+                        {% elif cta != '' %}
+                            <div class="googleSignin p12 bs br20 bgF c79 ffR fwM bdE c79h dN" data-next="{{ request.path }}?cta={{cta}}">
+                        {% else %}
+                            <div class="googleSignin p12 bs br20 bgF c79 ffR fwM bdE c79h dN" data-next="{{ request.path }}?cta=join">
+                        {% endif %}
+                                <i class="dIb fa fa-google fs15 lh16 vM"></i>
+                                <span  class="dIb lh16 pl12 vM">LOGIN WITH GOOGLE</span>
+                            </div>
+                    </div>
+                    <div class="fs12 mb16">
+                        {% if ref_id != '' %}
+                            <a class="p12 bs dB br20 tdN bgLi cF ffR fwM cFh" href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join-ref_id-{{ref_id}}">
+                        {% elif aj  %}
+                            <a class="p12 bs dB br20 tdN bgLi cF ffR fwM cFh" href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}&cta=join-aj-{{aj}}">
+                        {% elif cta == 'share' %}
+                            <a class="p12 bs dB br20 tdN bgLi cF ffR fwM cFh" href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join">
+                        {% elif cta != '' %}
+                            <a class="p12 bs dB br20 tdN bgLi cF ffR fwM cFh" href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta={{cta}}">
+                        {% else %}
+                            <a class="p12 bs dB br20 tdN bgLi cF ffR fwM cFh" href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join">
+                        {% endif %}
+                                <i class="dIb fa fa-linkedin fs15 lh16 vM"></i>
+                                <span  class="dIb lh16 pl12 vM">LOGIN WITH LINKEDIN</span>
+                            </a>
+                    </div>
+                    <div class="fs12">
+                        {% if ref_id != '' %}
+                            <a class="p12 bs dB br20 tdN bgFb cF ffR fwM cFh" href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join-ref_id-{{ref_id}}">
+                        {% elif aj  %}
+                            <a class="p12 bs dB br20 tdN bgFb cF ffR fwM cFh" href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join-aj-{{aj}}">
+                        {% elif cta == 'share' %}
+                            <a class="p12 bs dB br20 tdN bgFb cF ffR fwM cFh" href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join">
+                        {% elif cta != '' %}
+                            <a class="p12 bs dB br20 tdN bgFb cF ffR fwM cFh" href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta={{cta}}">
+                        {% else %}
+                            <a class="p12 bs dB br20 tdN bgFb cF ffR fwM cFh" href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join">
+                        {% endif %}
+                                <i class="fa fa-facebook dIb fs15 lh16 vM" ></i>
+                                <span class="dIb lh16 pl12 vM">LOGIN WITH FACEBOOK</span>
+                            </a>
+                    </div>
                 </div>
             </div>
-
-        </div>
-    </div>
-    <!-- -->
-    <!-- pop-up to show member profile -->
-    <div class="ui modal image_container_profile w320 p16 bs" id="member_profile">
-        <div class="cT ffR fs16 fwM lh24 p160 taC">
-            <div class="">Awesome !</div>
-            <div class="">Your community profile is created.!</div>
         </div>
 
-        <div class="bd2F bgBg brp50 bs bxs h86 mA mb10 oH profile_name w86">
-            <img class="centered circular h82 image ofC tiny ui w82" src="{{request.user.userinfo.image_link}}">
+        <!-- accept invitation model -->
+        <div class="ui modal accept" id="accept">
+            <div class="ui fluid card " style="border: 2px solid #1ebea5; margin:0 0 ; padding: 10px 10px;">
+                <h2 class="ui teal center aligned header">
+                    <div class="content">
+                        Respond to Invitation
+                    </div>
+                </h2>
+                <div class="content">
+                    <p class="center aligned">
+                        Send Response
+                    </p>
+                </div>
+                <div class="center aligned container">
+                    <div class="content">
+                        <a href="../accept_admin/{{community.id}}?cta=accept_invitation&value=true">
+                            <button class="ui button" style="width:130px; color:green;">
+
+                                Accept
+                            </button>
+                        </a>
+                        <br>
+                        <br>
+
+                        <br>
+                        <br>
+                        <div class="content">
+                            <a href="../accept_admin/{{community.id}}?cta=accept_invitation&value=false">
+                                <button class="ui button" style="width:130px; color:green;">
+
+                                    Decline
+                                </button>
+                            </a>
+                        </div>
+                    </div>
+                    <br>
+
+                </div>
+            </div>
+        </div>
+        
+        <!-- login model for exclusive communities -->
+        <div class="ui modal image_container_login w300" id="whatsapp_login">
+            <div class="h72 w72 brp50 bd2F bs bxs oH bgT mtn22 mA">
+                <img class="h86 w86 mtn8 mln8 ofC" src="/media/main_website/like_minds_speaker.png">
+            </div>
+            <div class="p24 bs taC ffR">
+                <p class="p0 fs17 lh22 c0 mb10 fwM">Login to continue</p>
+                <p class="p0 fs15 lh22 c9 mb16">This is an exclusive community. To view member details please login/signup and join the community.</p>
+                <div class="p160 ls05">
+                    <div class="fs12 mb16">
+                        {% if ref_id != '' %}
+                            <div class="googleSignin p12 bs br20 bgF c79 ffR fwM bdE c79h dN" data-next="{{ request.path }}?cta=join-ref_id-{{ref_id}}">
+                        {% elif aj  %}
+                            <div class="googleSignin p12 bs br20 bgF c79 ffR fwM bdE c79h dN" data-next="{{ request.path }}?cta=join-aj-{{aj}}">
+                        {% elif cta == 'share' %}
+                            <div class="googleSignin p12 bs br20 bgF c79 ffR fwM bdE c79h dN" data-next="{{ request.path }}?cta=join">
+                        {% elif cta != '' %}
+                            <div class="googleSignin p12 bs br20 bgF c79 ffR fwM bdE c79h dN" data-next="{{ request.path }}?cta={{cta}}">
+                        {% else %}
+                            <div class="googleSignin p12 bs br20 bgF c79 ffR fwM bdE c79h dN" data-next="{{ request.path }}?cta=join">
+                        {% endif %}
+                                <i class="dIb fa fa-google fs15 lh16 vM"></i>
+                                <span  class="dIb lh16 pl12 vM">LOGIN WITH GOOGLE</span>
+                            </div>
+                    </div>
+                    <div class="fs12 mb16">
+                        {% if ref_id != '' %}
+                            <a class="p12 bs dB br20 tdN bgLi cF ffR fwM cFh" href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join-ref_id-{{ref_id}}">
+                        {% elif aj  %}
+                            <a class="p12 bs dB br20 tdN bgLi cF ffR fwM cFh" href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}&cta=join-aj-{{aj}}">
+                        {% elif cta == 'share' %}
+                            <a class="p12 bs dB br20 tdN bgLi cF ffR fwM cFh" href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join">
+                        {% elif cta != '' %}
+                            <a class="p12 bs dB br20 tdN bgLi cF ffR fwM cFh" href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta={{cta}}">
+                        {% else %}
+                            <a class="p12 bs dB br20 tdN bgLi cF ffR fwM cFh" href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join">
+                        {% endif %}
+                                <i class="dIb fa fa-linkedin fs15 lh16 vM"></i>
+                                <span  class="dIb lh16 pl12 vM">LOGIN WITH LINKEDIN</span>
+                            </a>
+                    </div>
+                    <div class="fs12">
+                        {% if ref_id != '' %}
+                            <a class="p12 bs dB br20 tdN bgFb cF ffR fwM cFh" href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join-ref_id-{{ref_id}}">
+                        {% elif aj  %}
+                            <a class="p12 bs dB br20 tdN bgFb cF ffR fwM cFh" href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join-aj-{{aj}}">
+                        {% elif cta == 'share' %}
+                            <a class="p12 bs dB br20 tdN bgFb cF ffR fwM cFh" href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join">
+                        {% elif cta != '' %}
+                            <a class="p12 bs dB br20 tdN bgFb cF ffR fwM cFh" href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta={{cta}}">
+                        {% else %}
+                            <a class="p12 bs dB br20 tdN bgFb cF ffR fwM cFh" href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join">
+                        {% endif %}
+                                <i class="fa fa-facebook dIb fs15 lh16 vM" ></i>
+                                <span class="dIb lh16 pl12 vM">LOGIN WITH FACEBOOK</span>
+                            </a>
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <p class="c0 fs17 mb16 taC">{{request.user.userinfo.name}}</p>
+        <!-- pop-up to show member profile -->
+        <div class="ui modal image_container_profile w320 p16 bs" id="member_profile">
+            <div class="cT ffR fs16 fwM lh24 p160 taC">
+                <div class="">Awesome !</div>
+                <div class="">Your community profile is created.!</div>
+            </div>
 
-        {% regroup profile_list by rank as answer_list_by_rank %}
+            <div class="bd2F bgBg brp50 bs bxs h86 mA mb10 oH profile_name w86">
+                <img class="centered circular h82 image ofC tiny ui w82" src="{{request.user.userinfo.image_link}}">
+            </div>
 
-        {% for profile in answer_list_by_rank %}
-            {% if profile.grouper == 1 %}
-                <div class="dT mb10 tlF wp100">
-                    <div class="dTc h24 vM w24 taC"><img class="dIb mxh24 mxw24 vM" src="/media/main_website/ic_email_48_px.png" /></div>
-                    <div class="c9b dTc fs13 vM lh16 p08 bs">
+            <p class="c0 fs17 mb16 taC">{{request.user.userinfo.name}}</p>
+
+            {% regroup profile_list by rank as answer_list_by_rank %}
+
+            {% for profile in answer_list_by_rank %}
+                {% if profile.grouper == 1 %}
+                    <div class="dT mb10 tlF wp100">
+                        <div class="dTc h24 vM w24 taC"><img class="dIb mxh24 mxw24 vM" src="/media/main_website/ic_email_48_px.png" /></div>
+                        <div class="c9b dTc fs13 vM lh16 p08 bs">
+                            {% for answer in profile.list %}
+                                {{ answer.answer }}
+                                {% if not forloop.last %}, {% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% elif profile.grouper == 2 %}
+                    <div class="dT mb10 tlF wp100">
+                        <div class="dTc h24 vM w24 taC"><img class="dIb mxh24 mxw24 vM" src="/media/main_website/mobile_alt.png"/></div>
+                        <div class="c9b dTc fs13 vM lh16 p08 bs">
+                            {% for answer in profile.list %}
+                                {{ answer.answer }}
+                                {% if not forloop.last %}, {% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% elif profile.grouper == 3 %}
+                    <div class="dT mb10 tlF wp100">
+                        <div class="dTc h24 vM w24 taC"><img class="dIb mxh24 mxw24 vM" src="/media/main_website/link.png"/></div>
+                        <div class="dTc fs13 vM c9b lh16 p08 bs">
+                            {% for answer in profile.list %}
+                                <a class="cT tdN" href="//{{answer.profile_link}}">
+                                    {{ answer.answer }}
+                                </a>
+                                {% if not forloop.last %}, {% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% elif profile.grouper == 4 %}
+                    <p class="c4a fs15 lh24 m160">
                         {% for answer in profile.list %}
                             {{ answer.answer }}
-                            {% if not forloop.last %}, {% endif %}
                         {% endfor %}
-                    </div>
-                </div>
-            {% elif profile.grouper == 2 %}
-                <div class="dT mb10 tlF wp100">
-                    <div class="dTc h24 vM w24 taC"><img class="dIb mxh24 mxw24 vM" src="/media/main_website/mobile_alt.png"/></div>
-                    <div class="c9b dTc fs13 vM lh16 p08 bs">
+                    </p>
+                {% elif profile.grouper == 5 %}
+                    <p class="c4a fs15 lh24 m160">
                         {% for answer in profile.list %}
-                            {{ answer.answer }}
-                            {% if not forloop.last %}, {% endif %}
+                            <a class="cT tdN" href="//{{answer.file_link}}">
+                                    {{ answer.answer }}
+                                </a>
+
                         {% endfor %}
-                    </div>
-                </div>
-            {% elif profile.grouper == 3 %}
-                <div class="dT mb10 tlF wp100">
-                    <div class="dTc h24 vM w24 taC"><img class="dIb mxh24 mxw24 vM" src="/media/main_website/link.png"/></div>
-                    <div class="dTc fs13 vM c9b lh16 p08 bs">
+                    </p>
+
+
+                {% else %}
+                    <p class="c9b fs15 lh24 m160 m80">
                         {% for answer in profile.list %}
-                            <a class="cT tdN" href="//{{answer.profile_link}}">
-                                {{ answer.answer }}
-                            </a>
-                            {% if not forloop.last %}, {% endif %}
+                            <p class="c9b fs15 lh24 m160 m80">{{ answer.answer }}</p>
                         {% endfor %}
-                    </div>
-                </div>
-            {% elif profile.grouper == 4 %}
-                <p class="c4a fs15 lh24 m160">
-                    {% for answer in profile.list %}
-                        {{ answer.answer }}
-                    {% endfor %}
-                </p>
-            {% elif profile.grouper == 5 %}
-                <p class="c4a fs15 lh24 m160">
-                    {% for answer in profile.list %}
-                         <a class="cT tdN" href="//{{answer.file_link}}">
-                                {{ answer.answer }}
-                            </a>
+                    </p>
+                {% endif %}
+            {% endfor %}
+            <!-- efqefqfq -->
+            <div class="fs13 p12 taC fwM" id="dismiss">DISMISS</div>
+        </div>
 
-                    {% endfor %}
-                </p>
-
-
-            {% else %}
-                <p class="c9b fs15 lh24 m160 m80">
-                    {% for answer in profile.list %}
-                        <p class="c9b fs15 lh24 m160 m80">{{ answer.answer }}</p>
-                    {% endfor %}
-                </p>
-            {% endif %}
-        {% endfor %}
-        <!-- efqefqfq -->
-        <div class="fs13 p12 taC fwM" id="dismiss">DISMISS</div>
-    </div>
-    <!-- -->
-
-
-     <!-- unverified member profile pop-up-->
+        <!-- unverified member profile pop-up-->
         <div class="ui modal ffR p24 bs w280" id="unverified_member">
             <p class="c0 fs16 fwM lh24 mb16">Member profile not accessible</p>
             <p class="c9 fs15 fwR lh22 mb16">
@@ -516,583 +472,459 @@
             <div class="cT fs13 fwM ls05 p12 taC" id="change_email">CHANGE EMAIL ID</div>
             <div class="c9 fs13 fwM ls05 p12 pb0 taC" id="dismiss_email">DISMISS</div>
         </div>
-        <!-- -->
 
+        <!-- profile pop-up -->
+        <div class="ui modal image_container_verified w320" id="display"></div>
 
-    <!-- verifief member profile pop-up -->
+        <!-- update secondary email -->
+        <div class="ui modal" id="secondary_email" style="width:65%;">
+            <div class="profile_name" style="margin-top:6%;margin-left:20px;">
+                <p align="left" style="font-family:Roboto;sans-serif;font-weight:500;color:black;font-size:17px;line-height:22px;opacity:.87;">Change Email ID</p>
+            </div>
+            <br/>
+            <div style="margin-top:5%;margin-left:20px;margin-right:18px;text-align:left;">
+                <p style="font-size:15px;line-height:22px;font-family:Roboto;sans-serif;font-weight:400;color:#000000;opacity:54%;">Update your email ID below for further communications.</p>
+            </div>
+            <div style="margin-top:5%;margin-left:20px;margin-right:18px;text-align:left;">
+                <form class="ui form">
+                    <div class="field">
+                        <input type="text" name="first-name" placeholder="Enter your email id" id="secondary_email_text">
+                    </div>
+                </form>
+            </div>
+            <br/>
+            <div style="margin-top:5%;margin-left:16px;margin-right:16px;text-align:right">
+                <p class="Roboto" style="font-size:13px;font-weight:500;color:#009688;letter-spacing:0.46px;opacity:100%" id="update_secondary_email">SUBMIT</p>
+            </div>
+            <br/>
+        </div>
 
-    <!-- profile pop-up -->
-    <div class="ui modal image_container_verified w320" id="display"></div>
-    <!-- -->
+        <!-- scripts for the page -->
+        <script>
 
-
-    <!-- update secondary email -->
-
- <div class="ui modal" id="secondary_email" style="width:65%;">
-
-<!--             <img src="/media/main_website/profile_header.png" style="width:100%;height:70%;">-->
-
-
-      <div class="profile_name" style="margin-top:6%;margin-left:20px;">
-          <p align="left" style="font-family:Roboto;sans-serif;font-weight:500;color:black;font-size:17px;line-height:22px;opacity:.87;">Change Email ID</p>
-
-      </div>
-       <br/>
-     <div style="margin-top:5%;margin-left:20px;margin-right:18px;text-align:left;">
-           <p style="font-size:15px;line-height:22px;font-family:Roboto;sans-serif;font-weight:400;color:#000000;opacity:54%;">Update your email ID below for further communications.</p>
-       </div>
-
-
-     <div style="margin-top:5%;margin-left:20px;margin-right:18px;text-align:left;">
-           <form class="ui form">
-               <div class="field">
-                    <input type="text" name="first-name" placeholder="Enter your email id" id="secondary_email_text">
-              </div>
-           </form>
-
-       </div>
-       <br/>
-
-     <div style="margin-top:5%;margin-left:16px;margin-right:16px;text-align:right">
-
-           <p class="Roboto" style="font-size:13px;font-weight:500;color:#009688;letter-spacing:0.46px;opacity:100%" id="update_secondary_email">SUBMIT</p>
-
-       </div>
-
-
-
-
-
-
-
-    <br/>
-   </div>
-
-    <!-- -->
-
-
-    <!-- -->
-
-<!-- -->
-
-
-
-
-
-
-
-</body>
-
-    </html>
-
-
-
-    <script>
-
-
-        function open_community(id){
-
-           console.log(id);
-            window.location.href ="../community/"+id;
-            console.log(window.location.href)
-          }
-
-                function join(community_id){
-                    console.log(1);
-                    {% if user.is_authenticated %}
-                        {% if ref_id != '' %}
-                           window.open("/"+"community/"+community_id+"?cta=join&ref_id={{ref_id}}",'_self');
-                        {% elif aj %}
-                            window.open("/"+"community/"+community_id+"?cta=join&aj={{aj}}",'_self');
-                        {% else %}
-                           window.open("/"+"community/"+community_id+"?cta=join",'_self');
+            function open_community(id){
+               console.log(id);
+                window.location.href ="../community/"+id;
+                console.log(window.location.href)
+            }
+    
+            function join(community_id){
+                console.log(1);
+                {% if user.is_authenticated %}
+                    {% if ref_id != '' %}
+                        window.open("/"+"community/"+community_id+"?cta=join&ref_id={{ref_id}}",'_self');
+                    {% elif aj %}
+                        window.open("/"+"community/"+community_id+"?cta=join&aj={{aj}}",'_self');
+                    {% else %}
+                        window.open("/"+"community/"+community_id+"?cta=join",'_self');
+                    {% endif %}
+                {% else %}
+                        model_show();
+                {% endif %}
+            }
+    
+            function accept_admin(cta,community_id,Nom_mem_state){
+                {% if user.is_authenticated %}
+                    if (Nom_mem_state!=6 & Nom_mem_state!=7){
+                        alert("Sorry!You are not the Nominated Promoter of this Community");
+                        return;
+                    }
+                    $('.accept').modal('show');
+                {% else %}
+                    $('.test').modal('show');
+                {% endif %}
+            }
+    
+            function referal(ref_id){
+                {% if user.is_authenticated %}
+                    window.location.href ="../refer_members/"+{{community.id}}+"?ref_id="+ref_id;
+                {% else %}
+                    model_show();
+                {% endif %}
+            }
+    
+            function model_show(){
+                //function to show the model
+                $('#whatsapp_login').modal('show');
+            }
+    
+            //jquery
+    
+            $(document).ready(function() {
+                for(var i=0;i<={{similar_community_length}};i++){
+                    ans=$('#'+i).text();
+                    ans=ans.substring(0,42)
+                    ans=ans+'...';
+                    $('#'+i).html(ans)
+                }
+    
+                //function to auto accept the invitation
+                var community_id={{community.id}};
+                console.log(community_id);
+                {% if request.user.is_authenticated and cta == 'accept_admin' %}
+                    if(localStorage.getItem('community_id') != community_id+""){
+                        $(window).load(function(){
+                            $('#accept').modal('show');
+                        });
+                        localStorage.setItem('community_id',community_id+"")
+                    }
+                {% endif %}
+                console.log(localStorage)
+                //localStorage.clear()
+                //showing not interested popup when back button is clicked
+                $('#back_click').click(function(){
+                    ct=false;
+                    {% if ref_id %}
+                        ct=true;
+                    {% endif %}
+                    if(ct){
+                        $('#back').modal('show');
+                    }else{
+                        location.href="/communities";
+                    }
+                })
+    
+                $("#yes").click(function(){
+                    location.href="/communities";
+                })
+            });
+    
+            {% if request_user_email %}
+                //email_login popup start
+                $('#email_login').modal('show');
+                $('#email_login').modal({
+                    backdrop:'static',
+                    keyboard: false,
+                });
+                $('#email_submit').click(function(){
+                    var email=$('#email_input').val();
+                    console.log(email)
+                    $.ajax({
+                        url:'/update_user_info/'+email,
+                        success:function(data){
+                            console.log(data)
+                        }
+                    })
+                })
+                //email_login popup end
+            {% endif %}
+    
+            //download the app popup
+            $('#conv').click(function(){
+                {% if android_app_link %}
+                    $('#download_app_popup').modal('show');
+                {% endif %}
+            })
+    
+            // share pop-up to share community link
+            $('#ref').click(function(e){
+                if (navigator.share) {
+                    navigator.share({
+                        title: '{{community.name}}',
+                        text:'{{share_text}}',
+                        url: '{{share_url}}'
+                    })
+                    .then(() => {
+                        console.log('Thanks for sharing!');
+                    })
+                    .catch(console.error);
+                } else {
+                    console.log('test');
+                }
+            })
+    
+            $('#down_ref').click(function(e){
+                if (navigator.share) {
+                    navigator.share({
+                        title: '{{community.name}}',
+                        text:'{{share_text}}',
+                        url: '{{share_url}}'
+                    })
+                    .then(() => {
+                        console.log('Thanks for sharing!');
+                    })
+                    .catch(console.error);
+                } else {
+                    console.log('test');
+                }
+            })
+    
+            // about show more
+            $('#show_more').click(function(){
+                $('#show_more').css("display","none");
+                var display=`{{community.about|linebreaks}}`;
+                $('#more').html(display);
+            })
+    
+            $('#filter_icon').click(function(e){
+                location.href="/members_directory/"+'{{community.id}}';
+            })
+    
+            //member profile pop-up
+            {% if profile_list %}
+                $('#member_profile').modal('show');
+                $(".dimmer").css("background-color","rgba(40,40,40,0.5)");
+            {% endif %}
+    
+            //dismiss pop-up
+            $('#dismiss').click(function(){
+                $('#member_profile').modal('hide');
+            })
+    
+            //dismiss email popup
+            $('#dismiss_email').click(function(){
+                $('#unverified_member').modal('hide');
+            })
+    
+            $('#change_email').click(function(){
+                $('#unverified_member').modal('hide');
+                $('#secondary_email').modal('show');
+            })
+    
+            update_email();
+    
+            $('.member_link').click(function(){
+                var member_id=$(this).attr('member_id');
+                console.log(member_id);
+                //unverified member pop-up
+                {% if not is_member %}
+                    {% if request.user.is_authenticated %}
+                        {% if Nom_mem_state == 3 %}
+                            $('#unverified_member').modal('show');
                         {% endif %}
                     {% else %}
-                          model_show();
+                        model_show();
                     {% endif %}
-                }
-
-
-                function accept_admin(cta,community_id,Nom_mem_state){
-
-                    {% if user.is_authenticated %}
-                    if (Nom_mem_state!=6 & Nom_mem_state!=7)
-                    {
-                      alert("Sorry!You are not the Nominated Promoter of this Community");
-                      return;
-                    }
-                     $('.accept')
-                    .modal('show')
-                  ;
-                    {% else %}
-                    $('.test')
-                    .modal('show')
-                  ;
-                    {% endif %}
-
-                }
-
-
-                function referal(ref_id){
-
-                    {% if user.is_authenticated %}
-
-                     window.location.href ="../refer_members/"+{{community.id}}+"?ref_id="+ref_id;
-
-                    {% else %}
-
-                      model_show()
-
-                    {% endif %}
-
-                }
-
-
-
-function model_show(){
-
-//function to show the model
-
-
-$('#whatsapp_login').modal('show');
-
-
-}
-
-
-  //jquery
-
-$(document).ready(function() {
-
-
-
-       for(var i=0;i<={{similar_community_length}};i++)
-       {
-       ans=$('#'+i).text();
-
-       ans=ans.substring(0,42)
-       ans=ans+'...'
-       $('#'+i).html(ans)
-       }
-
-
-    //function to auto accept the invitation
-       var community_id={{community.id}}
-       console.log(community_id)
-       {% if request.user.is_authenticated and cta == 'accept_admin' %}
-
-         if(localStorage.getItem('community_id') != community_id+""){
-            $(window).load(function(){
-               $('#accept').modal('show');
-                });
-            localStorage.setItem('community_id',community_id+"")
-        }
-       {% endif %}
-
-        console.log(localStorage)
-        //localStorage.clear()
-
-
-
-     //showing not interested popup when back button is clicked
-
-     $('#back_click').click(function(){
-
-     ct=false;
-
-     {% if ref_id %}
-        ct=true
-     {% endif %}
-
-
-     if(ct)
-     {
-       $('#back').modal('show');
-     }else{
-        location.href="/communities"
-     }
-
-
-     })
-
-      $("#yes").click(function(){
-
-        location.href="/communities"
-
-       })
-
-
-
-});
-
-
-
-
-{% if request_user_email %}
-  //email_login popup start
-      $('#email_login').modal('show');
-        $('#email_login').modal({
-      backdrop:'static',
-      keyboard: false,
-      });
-      $('#email_submit').click(function(){
-      email=$('#email_input').val()
-      console.log(email)
-      $.ajax({
-            url:'/update_user_info/'+email,
-            success:function(data){
-               console.log(data)
-            }
-         })
-      })
-  //email_login popup end
-{% endif %}
-
-
-
-
-//download the app popup
-
-
-$('#conv').click(function(){
-    {% if android_app_link %}
-        $('#download_app_popup').modal('show');
-    {% endif %}
-})
-
-
-
-
-
-
-
-// share pop-up to share community link
-
-
-$('#ref').click(function(e){
-
-if (navigator.share) {
-    navigator.share({
-
-     title: '{{community.name}}',
-      text:'{{share_text}}',
-      url: '{{share_url}}'
-
-    }).then(() => {
-      console.log('Thanks for sharing!');
-    })
-    .catch(console.error);
-  } else {
-    console.log('test')
-
-  }
-
-})
-
-
-$('#down_ref').click(function(e){
-
-if (navigator.share) {
-    navigator.share({
-
-     title: '{{community.name}}',
-      text:'{{share_text}}',
-      url: '{{share_url}}'
-
-    }).then(() => {
-      console.log('Thanks for sharing!');
-    })
-    .catch(console.error);
-  } else {
-    console.log('test')
-
-  }
-
-})
-
-// about show more
-
-$('#show_more').click(function(){
-
-$('#show_more').css("display","none")
-
-display=`{{community.about|linebreaks}}`
-
-$('#more').html(display)
-
-})
-
-
-$('#filter_icon').click(function(e){
-
-    location.href="/members_directory/"+'{{community.id}}'
-
-})
-
-
-
-
-//member profile pop-up
-{% if profile_list %}
-    $('#member_profile').modal('show');
-    $(".dimmer").css("background-color","rgba(40,40,40,0.5)");
-{% endif %}
-
-
-//dismiss pop-up
-
-$('#dismiss').click(function(){
-
- $('#member_profile').modal('hide');
-
-})
-
-
-//dismiss email popup
-$('#dismiss_email').click(function(){
-
- $('#unverified_member').modal('hide');
-
-})
-
-
-$('#change_email').click(function(){
-
-    $('#unverified_member').modal('hide');
-    $('#secondary_email').modal('show');
-
-
-})
-
-
-update_email()
-
-
-
-$('.member_link').click(function(){
-
-
-
-member_id=$(this).attr('member_id')
-console.log(member_id)
-//unverified member pop-up
-{% if not is_member %}
-
-    {% if request.user.is_authenticated %}
-        {% if Nom_mem_state == 3 %}
-            $('#unverified_member').modal('show');
-        {% endif %}
-    {% else %}
-        model_show();
-     {% endif %}
-
-{% else %}
-    showMemberProfile(member_id);
-{% endif %}
-
-
-
-})
-
-
-
-
-
-function update_email(){
-
-
-
-
-    $('#update_secondary_email').click(function(e){
-
-    email=$('#secondary_email_text').val()
-
-     json_data={
-        'data':'{{request.user.id}}',
-        'email':email,
-        'csrfmiddlewaretoken':'{{csrf_token}}',
-        }
-
-     $.ajax({
-
-                url:"/update_email",
-                data:json_data,
-                type:"POST",
-                dataType:'json',
-                success:function(data){
-
-                if(data['success']){
-
-                    $('#secondary_email').modal('hide');
-                    alert("updated")
-                }
-                }
-
+                {% else %}
+                    showMemberProfile(member_id);
+                {% endif %}
             })
-
-
-
-    })
-}
-
-function showMemberProfile(member_id){
-        community_id = {{community_id}};
-        json_data = {
-            'data':member_id,
-            'community_id':community_id,
-            'csrfmiddlewaretoken':'{{csrf_token}}',
-        }
-        console.log(json_data);
-        $.ajax({
-            url:"/member_profile",
-            data:json_data,
-            type:"POST",
-            dataType:'json',
-            success:function(data){
-                console.log(data['answer_list'])
-                html = `
-                    <div class="h96 mtn38 taC pR z1">
-                        <div class="w96 h96 brp50 bd2F bs bxs oH dIb vM bgF">
-                            <img class="w96 h96 ofC" src=${data['image_link']} >
-                        </div>
-                    </div>
-                    <div class="pR mtn58 br8 oH bgF">
-                        <div class="h96">
-                            <img class="wp100 ofC h96" src="https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Fprofile_header?alt=media&token=fa838851-244c-4cbc-81da-3d2125536e18">
-                        </div>
-                        <div class="h2"></div>
-                        <p class="p0 m0 taC fwM fs16 c0 lh20">${data['member_name']}</p>
-                    </div>
-                    <div class="p18 bs">
-                `
-                var refined_answer_obj = data['answer_list'].reduce(function(returnValue, answer) {
-                    if(answer.answer_privacy !== false){
-                        (returnValue[answer.rank] = returnValue[answer.rank] || []).push(answer);
+    
+            function update_email(){
+                $('#update_secondary_email').click(function(e){
+                    var email=$('#secondary_email_text').val();
+                    json_data={
+                        'data':'{{request.user.id}}',
+                        'email':email,
+                        'csrfmiddlewaretoken':'{{csrf_token}}',
                     }
-                    return returnValue;
-                }, {});
-
-                console.log('refined_answer_obj', refined_answer_obj);
-
-                // var refined_answer_array = Object.keys(refined_answer_obj).map(function (answer) {
-                //     return f[answer]; 
-                // });
-
-                $.each( refined_answer_obj, function( index, value ) {
-                    segment = ""
-                    if (index == 1) {
-                        segment = `
-                                <div class="dT mb10 tlF wp100">
-                                    <div class="dTc h24 vM w24 taC"><img class="dIb mxh24 mxw24 vM" src="/media/main_website/ic_email_48_px.png" /></div>
-                                    <div class="c9b dTc fs13 vM lh16 p08 bs">
-                        `;
-                                        $.each( value, function( index2, value2 ){
-                                            segment = segment + value2.answer;
-                                            if ( index2 != value.length - 1 ) {
-                                                segment = segment + ', ';
-                                            }
-                                        });
-                        segment = segment + `
-                                    </div>
-                                </div>
-                        `;
-                        html = html + segment;
-                    }else if(index == 2 ){
-                        segment = `
-                                <div class="dT mb10 tlF wp100">
-                                    <div class="dTc h24 vM w24 taC"><img class="dIb mxh24 mxw24 vM" src="/media/main_website/mobile_alt.png"/></div>
-                                    <div class="c9b dTc fs13 vM lh16 p08 bs">
-                        `;
-                                        $.each( value, function( index2, value2 ){
-                                            segment = segment + value2.answer;
-                                            if ( index2 != value.length - 1 ) {
-                                                segment = segment + ', ';
-                                            }
-                                        });
-                        segment = segment + `
-                                    </div>
-                                </div>
-                        `;
-                        html = html + segment
-                    }else if(index == 3 ){
-                        segment = `
-                                <div class="dT mb10 tlF wp100">
-                                    <div class="dTc h24 vM w24 taC"><img class="dIb mxh24 mxw24 vM" src="/media/main_website/link.png"/></div>
-                                    <div class="c9b dTc fs13 vM lh16 p08 bs">
-                        `;
-                                        $.each( value, function( index2, value2 ){
-                                            segment = segment + `<a class="cT tdN" href="${value2['profile_link']}">${value2['answer']}</a>`;
-                                            if ( index2 != value.length - 1 ) {
-                                                segment = segment + ', ';
-                                            }
-                                        });
-                        segment = segment + `
-                                    </div>
-                                </div>
-                        `;
-                        html = html + segment
-                    }else if(index == 4){
-                        segment = ''
-                        $.each( value, function( index2, value2 ){
-                            segment = segment + `<p class="c4a fs15 lh24 m160">${value2['answer']}</p>`;
-                            if ( index2 != value.length - 1 ) {
-                                segment = segment + ', ';
+                    $.ajax({
+                        url:"/update_email",
+                        data:json_data,
+                        type:"POST",
+                        dataType:'json',
+                        success:function(data){
+                            if(data['success']){
+                                $('#secondary_email').modal('hide');
+                                alert("updated");
                             }
-                        });
-                        html = html + segment
-                    }else if(index == 5){
-                        segment = ''
-                        $.each( value, function( index2, value2 ){
-                            segment = segment + `
-                                <a class="cT dB m160 tdN" href="//${value2['file_link']}">
-                                    ${value2['answer']}
-                                </a>
-                            `;
-                            if ( index2 != value.length - 1 ) {
-                                segment = segment + ', ';
-                            }
-                        });
-                        html = html + segment
-                    }else{
-                        segment = ''
-                        $.each( value, function( index2, value2 ){
-                            segment = segment + `<p class="c9b fs15 lh24 m160 m80 ">${value2['answer']}</p>`;
-
-                        });
-                        html = html + segment
-                    }
-                })
-                $('#display').html(html + '</div><div class="fs13 p12 taC fwM" id="dismiss1">DISMISS</div>')
-                $('#display').modal('show');
-                $(".dimmer").css("background-color","rgba(40,40,40,0.5)");
-                $('#dismiss1').click(function(){
-                    $('#display').modal('hide');
+                        }
+                    })
                 })
             }
-        })
-    }
+    
+            function showMemberProfile(member_id){
+                var community_id = {{community_id}};
+                json_data = {
+                    'data':member_id,
+                    'community_id':community_id,
+                    'csrfmiddlewaretoken':'{{csrf_token}}',
+                }
+                console.log(json_data);
+                $.ajax({
+                    url:"/member_profile",
+                    data:json_data,
+                    type:"POST",
+                    dataType:'json',
+                    success:function(data){
+                        console.log(data['answer_list'])
+                        html = `
+                            <div class="h96 mtn38 taC pR z1">
+                                <div class="w96 h96 brp50 bd2F bs bxs oH dIb vM bgF">
+                                    <img class="w96 h96 ofC" src=${data['image_link']} >
+                                </div>
+                            </div>
+                            <div class="pR mtn58 br8 oH bgF">
+                                <div class="h96">
+                                    <img class="wp100 ofC h96" src="https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Fprofile_header?alt=media&token=fa838851-244c-4cbc-81da-3d2125536e18">
+                                </div>
+                                <div class="h2"></div>
+                                <p class="p0 m0 taC fwM fs16 c0 lh20">${data['member_name']}</p>
+                            </div>
+                            <div class="p18 bs">
+                        `
+                        var refined_answer_obj = data['answer_list'].reduce(function(returnValue, answer) {
+                            if(answer.answer_privacy !== false){
+                                (returnValue[answer.rank] = returnValue[answer.rank] || []).push(answer);
+                            }
+                            return returnValue;
+                        }, {});
+    
+                        console.log('refined_answer_obj', refined_answer_obj);
+    
+                        // var refined_answer_array = Object.keys(refined_answer_obj).map(function (answer) {
+                        //     return f[answer]; 
+                        // });
+    
+                        $.each( refined_answer_obj, function( index, value ) {
+                            segment = ""
+                            if (index == 1) {
+                                segment = `
+                                        <div class="dT mb10 tlF wp100">
+                                            <div class="dTc h24 vM w24 taC"><img class="dIb mxh24 mxw24 vM" src="/media/main_website/ic_email_48_px.png" /></div>
+                                            <div class="c9b dTc fs13 vM lh16 p08 bs">
+                                `;
+                                                $.each( value, function( index2, value2 ){
+                                                    segment = segment + value2.answer;
+                                                    if ( index2 != value.length - 1 ) {
+                                                        segment = segment + ', ';
+                                                    }
+                                                });
+                                segment = segment + `
+                                            </div>
+                                        </div>
+                                `;
+                                html = html + segment;
+                            }else if(index == 2 ){
+                                segment = `
+                                        <div class="dT mb10 tlF wp100">
+                                            <div class="dTc h24 vM w24 taC"><img class="dIb mxh24 mxw24 vM" src="/media/main_website/mobile_alt.png"/></div>
+                                            <div class="c9b dTc fs13 vM lh16 p08 bs">
+                                `;
+                                                $.each( value, function( index2, value2 ){
+                                                    segment = segment + value2.answer;
+                                                    if ( index2 != value.length - 1 ) {
+                                                        segment = segment + ', ';
+                                                    }
+                                                });
+                                segment = segment + `
+                                            </div>
+                                        </div>
+                                `;
+                                html = html + segment
+                            }else if(index == 3 ){
+                                segment = `
+                                        <div class="dT mb10 tlF wp100">
+                                            <div class="dTc h24 vM w24 taC"><img class="dIb mxh24 mxw24 vM" src="/media/main_website/link.png"/></div>
+                                            <div class="c9b dTc fs13 vM lh16 p08 bs">
+                                `;
+                                                $.each( value, function( index2, value2 ){
+                                                    segment = segment + `<a class="cT tdN" href="${value2['profile_link']}">${value2['answer']}</a>`;
+                                                    if ( index2 != value.length - 1 ) {
+                                                        segment = segment + ', ';
+                                                    }
+                                                });
+                                segment = segment + `
+                                            </div>
+                                        </div>
+                                `;
+                                html = html + segment
+                            }else if(index == 4){
+                                segment = ''
+                                $.each( value, function( index2, value2 ){
+                                    segment = segment + `<p class="c4a fs15 lh24 m160">${value2['answer']}</p>`;
+                                    if ( index2 != value.length - 1 ) {
+                                        segment = segment + ', ';
+                                    }
+                                });
+                                html = html + segment
+                            }else if(index == 5){
+                                segment = ''
+                                $.each( value, function( index2, value2 ){
+                                    segment = segment + `
+                                        <a class="cT dB m160 tdN" href="//${value2['file_link']}">
+                                            ${value2['answer']}
+                                        </a>
+                                    `;
+                                    if ( index2 != value.length - 1 ) {
+                                        segment = segment + ', ';
+                                    }
+                                });
+                                html = html + segment
+                            }else{
+                                segment = ''
+                                $.each( value, function( index2, value2 ){
+                                    segment = segment + `<p class="c9b fs15 lh24 m160 m80 ">${value2['answer']}</p>`;
+    
+                                });
+                                html = html + segment
+                            }
+                        })
+                        $('#display').html(html + '</div><div class="fs13 p12 taC fwM" id="dismiss1">DISMISS</div>')
+                        $('#display').modal('show');
+                        $(".dimmer").css("background-color","rgba(40,40,40,0.5)");
+                        $('#dismiss1').click(function(){
+                            $('#display').modal('hide');
+                        })
+                    }
+                })
+            }
+    
+            //menu bar clicks
+            $('#purpose_header').click(function(){
+                $("#purpose").addClass('bxs2');
+            })
+    
+            $('#member_header').click(function(){
+                $("#purpose").removeClass('bxs2');
+                $('#members').addClass('bxs2');
+                location.href ="#members"
+            })
+    
+            // google login
+            function authServer(token, element){
+                $.ajax({
+                    url: "/api/login",
+                    data: {"type": "google", "google_id_token": token},
+                    type: "POST",
+                    // dataType: "json",
+                    success: function(data){
+                        console.log("Google auth success", data);
+                        window.location.href = $(element).attr("data-next");
+                    },
+                    error: function(data){
+                        console.log("Google auth failure", data);
+                    }
+                });
+            }
+            function attachSignin(element) {
+                auth2.attachClickHandler(element, {},
+                    function(googleUser) {
+                        var profile = googleUser.getBasicProfile();
+                        var id_token = googleUser.getAuthResponse().id_token;
+                        console.log('ID: ' + profile.getId()); // Do not send to your backend! Use an ID token instead.
+                        console.log('Name: ' + profile.getName());
+                        console.log('Image URL: ' + profile.getImageUrl());
+                        console.log('Email: ' + profile.getEmail()); // This is null if the 'email' scope is not present.
+                        authServer(id_token, element);
+                    }, function(error) {
+                        console.log(JSON.stringify(error, undefined, 2));
+                    });
+            }
+            (function(w,d,s){
+                var f = d.getElementsByTagName(s)[0],
+                    j = d.createElement(s);
+                j.async = true;
+                j.defer = true;
+                j.onload = function(){
+                    gapi.load('auth2', function(){
+                        // Retrieve the singleton for the GoogleAuth library and set up the client.
+                        auth2 = gapi.auth2.init({
+                            client_id: "{{ google_oauth_client_id }}",
+                            cookiepolicy: 'single_host_origin',
+                            // Request scopes in addition to 'profile' and 'email'
+                            // scope: 'additional_scope'
+                        });
+                        $(".googleSignin").removeClass("dN").each(function(){
+                            attachSignin(this);
+                        });
+                    });
+                };
+                j.onerror = function(){};
+                j.src = 'https://apis.google.com/js/api:client.js';
+                f.parentNode.insertBefore(j,f);
+            })(window,document,'script');
+        </script>
 
-
-//menu bar clicks
-
-$('#purpose_header').click(function(){
-
-$("#purpose").addClass('bxs2')
-
-})
-
-$('#member_header').click(function(){
-
-$("#purpose").removeClass('bxs2');
-$('#members').addClass('bxs2');
-location.href ="#members"
-
-})
-
-
-</script>
-
-
-
-
-    {% endblock %}
+    </body>
+</html>

@@ -10,7 +10,9 @@ from django.db.models import Q
 from togther.models import *
 from project.celery import app
 from utility.tasks import send_email
-from utility.utils import android_app_download_link,ios_app_download_link
+from utility.utils import (android_app_download_link, ios_app_download_link,
+                           is_LG_or_LP_community, is_IG_community)
+from django.http import JsonResponse
 
 url  = settings.URL
 
@@ -194,6 +196,109 @@ def pending_members_mail():
                 to = [to]
                 send_email(subject, template, to)
     return
+
+
+@app.task
+def pending_members_mail_new(request=None):
+    '''24 hour mail'''
+
+    communities = Community.objects.all()
+
+    for community in communities:
+        all_members = Members.objects.select_related('community_id', 'member_id').filter(community_id=community)
+        if all_members.exists():
+            pending_members = all_members.filter(state=3)
+            if pending_members.exists():
+                is_lg = is_LG_or_LP_community(community)
+                if is_lg:
+                    # print("is ig ====  ",community.id)
+                    for member in all_members:
+
+                        is_member_verified = all_members.filter(member_id=member.member_id).filter(state=4)
+                        if not is_member_verified.exists():
+                            print("member not verified ===  ",member.member_id.id)
+                            continue
+                        # print("member is verified ===  ", member.member_id.id)
+                        pending_members_list = all_members.filter(ask_member_id=member.member_id.id).filter(state=3)
+                        if pending_members_list.exists():
+                            # print("pending members list === ",pending_members_list)
+                            if pending_members_list.count() == 1:
+                                send_pending_members_mail_for_one_pending_member(admin=member,
+                                                                                 pending_members_list=pending_members)
+                            elif pending_members_list.count() > 1:
+                                send_pending_members_mail_for_multiple_pending_members(
+                                                        admin=member,
+                                                        pending_members_list=pending_members_list,
+                                                        pending_count=pending_members.count())
+
+                else:
+                    # print("community ====  ", community.id)
+                    admins_of_community = all_members.filter(Q(state=1) | Q(state=2))
+                    if admins_of_community.exists():
+                        for admin in admins_of_community:
+                            # print("admin ====  ", admin.member_id.id)
+                            # print("pending members === ",pending_members)
+                            if pending_members.count() == 1:
+                                send_pending_members_mail_for_one_pending_member(admin=admin,
+                                                                                 pending_members_list=pending_members)
+                            elif pending_members.count() > 1:
+                                send_pending_members_mail_for_multiple_pending_members(
+                                                        admin=admin,
+                                                        pending_members_list=pending_members,
+                                                        pending_count=pending_members.count())
+        time.sleep(1)
+        # print("\n")
+    return  # JsonResponse({"success":True}) #for testing purpose
+
+
+def send_pending_members_mail_for_one_pending_member(admin, pending_members_list):
+    if not admin.member_id.userinfo.image_link:
+        promoter_image = url + admin.member_id.userinfo.image_file.url
+    else:
+        promoter_image = admin.member_id.userinfo.image_link
+    template = get_template("mails/single_pending_member.html").render(
+        {'promoter': admin.member_id.userinfo.name,
+         'promoter_image': promoter_image,
+         'pending_members': pending_members_list[0],
+         'pending_member_count': 1,
+         'community': admin.community_id,
+         'community_name': admin.community_id.name,
+         'community_id': admin.community_id.id,
+         'url': url,
+         'android_app_download_link': android_app_download_link,
+         'ios_app_download_link': ios_app_download_link
+         })
+    subject = str(pending_members_list[0].member_id.userinfo.name) + " has requested to join " + str(
+        admin.community_id.name)
+
+    print(subject)
+    to = admin.member_id.userinfo.email
+    to = [to]
+    send_email(subject, template, to)
+
+
+def send_pending_members_mail_for_multiple_pending_members(admin, pending_members_list, pending_count):
+    if not admin.member_id.userinfo.image_link:
+        promoter_image = url + admin.member_id.userinfo.image_file.url
+    else:
+        promoter_image = admin.member_id.userinfo.image_link
+    subject = str(pending_count) + ' new members have requested to join ' + str(admin.community_id.name)
+    template = get_template("mails/multiple_pending_members_mail.html").render(
+        {'promoter': admin.member_id.userinfo.name,
+         'promoter_image': promoter_image,
+         'pending_members': pending_members_list[:4],
+         'pending_member_count': pending_count,
+         'remaining_pending_requests': pending_count - 4,
+         'community_name': admin.community_id.name,
+         'community_id': admin.community_id.id,
+         'url': url,
+         'android_app_download_link': android_app_download_link,
+         'ios_app_download_link': ios_app_download_link
+         })
+    print(subject)
+    to = admin.member_id.userinfo.email
+    to = [to]
+    send_email(subject, template, to)
 
 
 @shared_task

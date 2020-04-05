@@ -78,7 +78,7 @@ body ::-webkit-scrollbar { display: none; }
 .fwR { font-weight:400!important; }
 .fwM { font-weight:500!important; }
 
-.cF { color: #fff!important; }
+.cF, .cFh:hover { color: #fff!important; }
 .c0 { color: #000; }
 .c9b { color: #9b9b9b; }
 .c4 { color: #444; }
@@ -87,10 +87,7 @@ body ::-webkit-scrollbar { display: none; }
 .c9 { color: #999; }
 .c4a { color: #4a4a4a!important; }
 .c007aff { color: #007aff; }
-
-.cFh:hover {
-    color: #fff;
-}
+.c79, .c79h:hover { color: #797979; }
 
 .ffR { font-family:'Roboto'; }
 
@@ -196,6 +193,7 @@ body ::-webkit-scrollbar { display: none; }
 .bd2T { border: 2px solid teal; }
 .bdb2F { border-bottom: 2px solid #fff; }
 .bdT { border: 1px solid teal; }
+.bdE { border: 1px solid #eee; }
 
 .bgFo05 { background: rgba(255, 255, 255, 0.5); }
 

@@ -35,6 +35,13 @@ class MemberStates:
 member_states = MemberStates()
 
 
+class DeletedMembers:
+
+    LEFT = 0
+    REMOVED = 1
+
+deleted_members = DeletedMembers()
+
 # community types
 class CommunityTypes(enum.IntEnum):
     TYPE_NONE = -1
@@ -90,3 +97,16 @@ class QuestionStates:
     EMAIL_ID = 10
 
 question_states=QuestionStates()
+
+
+
+class CommunityStates:
+
+    PRIVATE = 0
+    HIDDEN = 1
+    DELETED = 2
+    PILOT = 3
+    PILOT_ACTIVE = 4
+    WHATSAPP = 5
+
+community_states = CommunityStates()

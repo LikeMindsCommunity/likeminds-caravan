@@ -30,6 +30,10 @@ android_app_download_link="https://play.google.com/apps/testing/com.collabmates"
 
 ios_app_download_link="https://apps.apple.com/us/app/collabmates/id1481298195"
 
+community_default_image = "https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fcommunity%2Fimage_community_default?alt=media"
+
+community_default_thumbnail = "https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fcommunity%2Fimage_community_default_thumbnail?alt=media"
+
 url=settings.URL
 
 if settings.IS_BETA:
@@ -643,6 +647,50 @@ def user_onbaord(member_id):
         return True
     else:
         return False
+
+def user_onbaord_new(user_instance):
+    ''' checking if user has gone through on-boarding flow or not'''
+    user_legacy = User_Legacy.objects.filter(user_id=user_instance).select_related('tags_id')
+    user_profession = User_Profession.objects.filter(user_id=user_instance).select_related('tags_id')
+    user_interest = User_Interest.objects.filter(user_id=user_instance).select_related('tags_id')
+    user_geography = User_Geography.objects.filter(user_id=user_instance).select_related('tags_id')
+
+    # if user does not have any tags , user has to do on-boarding
+
+    first_condition = (user_legacy.exists() and user_geography.exists()) and (user_profession.exists() or user_interest.exists())
+
+    second_condition = (legacy_exists(user_legacy) and geography_exists(user_geography)) and (interest_exists(user_interest) or profession_exists(user_profession))
+    # print("first condition === ", first_condition)
+    #
+    # print("second_condition === ", second_condition)
+
+    if first_condition:
+        if second_condition:
+            return True
+        return False
+    else:
+        return False
+
+def legacy_exists(user_legacy):
+
+    condition = not (user_legacy.count() == 1 and user_legacy[0].tags_id.tag_id == 15)
+    # print("legacy_exists === ",condition)
+    return condition
+
+def profession_exists(user_profession):
+    condition = not (user_profession.count() == 1 and user_profession[0].tags_id.tag_id == 16)
+    # print("profession_exists === ", condition)
+    return condition
+
+def interest_exists(user_interest):
+    condition = not (user_interest.count() == 1 and user_interest[0].tags_id.tag_id == 17)
+    # print("interest_exists === ", condition)
+    return condition
+
+def geography_exists(user_geography):
+    condition = not (user_geography.count() == 1 and user_geography[0].tags_id.tag_id == 18)
+    # print("geography_exists === ", condition)
+    return condition
 
 
 def update_community_tags_to_user(user_id,community_id):

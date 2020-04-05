@@ -43,6 +43,9 @@ urlpatterns = [
     path('collabcard_attend', api_views.collabcard_attend, name='collabcard_attend'),
 
     path('members_state',api_views.members_state,name='members_state'),
+    path('edit_member_profile',api_views.edit_member_profile,name='edit_member_profile'),
+    path('remove_from_member',api_views.remove_from_member,name='remove_from_member'),
+
     path('push', api_views.push, name='push'),
     path('collabcard_follow',api_views.collabcard_follow,name='collabcard_follow'),
     path('accept_invitation',views.accept_invitation,name='accept_invitation'),
@@ -72,6 +75,11 @@ urlpatterns = [
     path('questions', api_views.questions, name='questions'),
     path('poll_notification', send_poll_notification_manually, name='poll_notification'),
     path('fetch_master_questions', api_views.fetch_master_questions, name='fetch_master_questions'),
+
+    path('fetch_filters', api_views.fetch_filters, name='fetch_filters'),
+    path('push_email', api_views.push_email, name='push_email'),
+
+
 
 
 ]

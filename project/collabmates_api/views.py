@@ -4,6 +4,7 @@ import json
 import logging
 import os
 import re
+import ast
 import time
 from datetime import datetime
 from random import randint
@@ -31,7 +32,7 @@ from utility.celery_tasks import (save_community_purpose_card,
                                   )
 from utility.firebase import update_last_answer_id, upload_image_to_firebase, upload_community_thumbnail, \
     upload_community_files
-from utility.states import collabcard_states, member_states, question_states
+from utility.states import collabcard_states, member_states, question_states,community_states,deleted_members
 from utility.tasks import (mail_triger, new_member_request,
                            member_request_approval_or_denied,
                            send_mail_for_report_abuse,
@@ -46,7 +47,7 @@ from utility.utils import (decode_meta_from_url, update_tag_image,
                            get_city_address,
                            update_user_geography_tags, insert_user_home_town_tags, is_IG_community,
                            ig_members_count, is_LG_or_LP_community, feedback_community_id, feedback_collabcard_id,
-                           is_member_verified
+                           is_member_verified,community_default_image,community_default_thumbnail,
 
                            )
 
@@ -275,24 +276,68 @@ def get_community_card_details(each_community, user_id):
     return new_dict
 
 
+def get_leave_community_text():
+
+    leave_community = []
+
+    leave_community_title = "Leave community?"
+    leave_community.append(leave_community_title)
+
+    leave_community_subtitle = "Are you sure you want to leave this community permanently? Your community profile will be removed whereas any content created by you would remain."
+    leave_community.append(leave_community_subtitle)
+
+    leave_community_positive_title = "OK, LEAVE NOW"
+    leave_community.append(leave_community_positive_title)
+
+    leave_community_negative_title = "CANCEL"
+    leave_community.append(leave_community_negative_title)
+
+    # "leave_community_positive_action"
+    # "leave_community_negative_action"
+
+    return leave_community
+
+
 def community(request, community_id):
     ''' Community detail page '''
 
     community = Community.objects.get(id=community_id)
     member_id = get_member_id_from_headers(request)
+
+    is_promoter = False
+    block_leave_community = False
+    member_list = Members.objects.filter(community_id=community, member_id=member_id)
+
+    if member_list.exists():
+
+        state = member_list[0].state
+
+        if state == member_states.ADMIN:
+            is_promoter = True
+            block_leave_community = True
+            promoter_id = member_list[0].member_id
+
+        if state == member_states.PENDING_MEMBER:
+            block_leave_community = True
+    else:
+        block_leave_community = True
+
+
+
     serialized_object = CommunitySerializer(community)
     new_dict = {}
 
-    if member_id and (community.hide_community == '3' or community.hide_community == '4'):
+    community_state = get_state_of_community(community)
+    if member_id and (community_state== community_states.PILOT or community_state == community_states.PILOT_ACTIVE):
         serialized_object['share_url'] = serialized_object['share_url'] + "?ref_id=" + str(member_id)
-    elif community.hide_community == '0' or community.hide_community == '1':
+    elif community_state== community_states.PRIVATE or community_state == community_states.HIDDEN:
         serialized_object['share_url'] = serialized_object['share_url'] + "?cta=share"
 
-    is_member_admin = Members.objects.filter(community_id=community, member_id=member_id, state=1)
 
-    if is_member_admin:
+
+    if is_promoter:
         serialized_object['private_link'] = generate_private_link(community_instance=community,
-                                                                  promoter_instance=is_member_admin[0].member_id)
+                                                                  promoter_instance=promoter_id)
 
     # form a dictionary of community objects
     new_dict.update(serialized_object)
@@ -311,8 +356,19 @@ def community(request, community_id):
     if community.id == feedback_community_id:
         new_dict['share_url'] = ""
 
+    #leave community data
+    if not block_leave_community:
+        temp={}
+        leave_community = get_leave_community_text()
+        temp['leave_community_title'] = leave_community[0]
+        temp['leave_community_sub_title'] = leave_community[1]  #fix
+        temp['leave_community_positive_title'] = leave_community[2]
+        temp['leave_community_negative_title'] = leave_community[3]
+        return JsonResponse({'community': new_dict,'leave_community':temp})
 
     return JsonResponse({'community': new_dict})
+
+
 
 
 def similar_community(request, community_id):
@@ -689,9 +745,6 @@ def join_promoter_created_community(res,community,user):
 
 
 
-
-
-
 def questions(request):
 
     '''api to send the questions for a particular community'''
@@ -709,6 +762,9 @@ def questions(request):
         questions.append(serialized_question)
 
     return JsonResponse({'questions': questions, 'community': community})
+
+
+
 
 #version support apis
 @csrf_exempt
@@ -734,14 +790,16 @@ def join_community_responses_version_1(request):
 
     #for whatsapp community
 
-    if community_instance.hide_community == '5':
+    community_state = get_state_of_community(community_instance)
+
+    if community_state == community_states.WHATSAPP:
         info_logger.info("whats app communtiy")
 
         join_whatsapp_community(res,request)
         return JsonResponse({'success': True})
 
     is_private = False
-    if community.hide_community == '0' or community.hide_community == '1':
+    if community_state == community_states.PRIVATE or community_state == community_states.HIDDEN:
         is_private = True
 
     is_ig = is_IG_community(community)
@@ -825,7 +883,7 @@ def join_community_responses_version_1(request):
 
     elif is_private:
         info_logger.info("Inside private\n")
-        join_promoter_created_community_version_1(res, community, user)
+        join_promoter_created_community_version_1(res, request)
         new_member_request.delay(member_id=user_id, community_id=community_id, ref_id=ref_id,
                                  form_response=res['questions'])
 
@@ -849,7 +907,13 @@ def join_ig_communities_version_1(request,res,community,user,ref_id):
         # saving questions
         if 'questions' in res:
             info_logger.info(res['questions'])
+
             for question in res['questions']:
+
+                if 'value' not in question:
+                    continue
+                if not question['value']:
+                    continue
                 question_instance = communityQuestions.objects.get(id=question['id'])
                 answer_instance = communityAnswers()
                 answer_instance.question = question_instance
@@ -912,7 +976,10 @@ def join_lg_communities_version_1(request,res,community,user,ref_id):
         if 'questions' in res:
 
             for question in res['questions']:
+
                 if 'value' not in question:
+                    continue
+                if not question['value']:
                     continue
                 question_instance = communityQuestions.objects.get(id=question['id'])
                 answer_instance = communityAnswers()
@@ -961,56 +1028,103 @@ def join_lg_communities_version_1(request,res,community,user,ref_id):
         member_instance.update(state=member_states.PENDING_MEMBER)
 
 
-def join_promoter_created_community_version_1(res,community,user):
+def join_promoter_created_community_version_1(res,request):
 
     '''function to join promoter created community'''
 
-    member_instance = Members.objects.filter(member_id=user, community_id=community)
-    if not member_instance:
-        # making a member instance
-        member = Members()
-        member.member_id = user
-        member.community_id = community
-        member.state = member_states.PENDING_MEMBER
-        member.created_at = time.time()
-        member.save()
+    community_id = res['community_id']
+    community_instance = Community.objects.get(id=community_id)
 
-        introduction_answer = ""
-        # saving questions
-        if 'questions' in res:
-            info_logger.info(res['questions'])
+    member_id = get_member_id_from_headers(request)
+    if not member_id:
+        member_id = request.GET.get('member_id', None)
+    else:
+        res['timestamp'] = res['timestamp'] / 1000  # for android timestamp
 
-            for question in res['questions']:
-                question_instance = communityQuestions.objects.get(id=question['id'])
-                answer_instance = communityAnswers()
-                answer_instance.question = question_instance
-                answer_instance.member = user
-                answer_instance.community = community
-                answer_instance.question_answer = question['value']
-                answer_instance.question_title = question_instance.question_title
-                answer_instance.save()
+    user_instance = User.objects.get(id=member_id)
 
-                if not introduction_answer:
-                    introduction_answer = question['value']
+    if 'questions' in res:
+
+        for question in res['questions']:
+
+            if 'value' not in question:
+                continue
+
+            if not question['value']:
+                continue
+
+            question_instance = communityQuestions.objects.get(id=question['id'])
+            answer_instance = communityAnswers()
+            answer_instance.question = question_instance
+            answer_instance.member = user_instance
+            answer_instance.community = community_instance
+            answer_instance.question_answer = question['value']
+            answer_instance.question_title = question_instance.question_title
+            answer_instance.save()
+
+            if question_instance.question_state == question_states.CHOICE_SINGLE or question_instance.question_state == question_states.CHOICE_MULTIPLE:
+
+                if "$#" in question['value']:
+                    selected_choices = question['value'].split("$#")
+                else:
+                    selected_choices = question['value'].split(",")
+
+                for choice in selected_choices:
+                    filter_instance = questionFilters(question=question_instance, filter=choice.strip(),
+                                                      member=user_instance, community=community_instance)
+                    filter_instance.save()
+
+    #saving data directly
+    if 'aj' in res:
+        if res['aj']:
+            validate_time = is_joining_time_valid(community_instance, res['timestamp'], res['aj'])
+            info_logger.info(validate_time)
+            if validate_time:
+                auto_join_community(community_instance, user_instance)
+                post_introduction_card_for_community(community_id, member_id, request)
+                log = """Auto join community for community_id=%s for user=%s""" % (community_id, member_id)
+                info_logger.info(log)
+                return
+
+    member_list = Members.objects.filter(member_id=user_instance, community_id=community_instance)
+
+    if member_list:
+        member_state = member_list[0].state
+        if member_state == member_states.ADMIN:
+
+            post_introduction_card_for_community(community_id, member_id, request)
+
+            generate_private_link(community_instance, user_instance)
+
+            Member_Engage.objects.filter(member_id=user_instance, community_id=community_instance).update(
+                member_referral="")
         else:
-            res['questions'] = [{}]
 
+            Members.objects.filter(member_id=user_instance, community_id=community_instance).update(
+                state=member_states.PENDING_MEMBER)
+
+            Member_Engage.objects.filter(member_id=user_instance, community_id=community_instance).update(
+                member_state=member_states.PENDING_MEMBER)
+
+        return JsonResponse({'success': True})
+    else:
+
+        # creating a member instance
+        member_instance = Members()
+        member_instance.member_id = user_instance
+        member_instance.community_id = community_instance
+        member_instance.state = member_states.PENDING_MEMBER
+        member_instance.save()
+
+        # creating a member engage instance
         engage = Member_Engage()
-        engage.member_id = user
-        engage.community_id = community
+        engage.member_id = user_instance
+        engage.community_id = community_instance
         engage.updated_at = time.time()
         engage.member_state = member_states.PENDING_MEMBER
         engage.save()
-        update_pending_member_count_in_engage(community)
 
-        #sending notifications to the admin of the community
-        name=user.userinfo.name
-        send_notification_to_admins.delay(community.id, name)
-
-
-    else:
-        member_instance.update(state=member_states.PENDING_MEMBER)
-
+        send_notification_to_admins.delay(community_id, user_instance.userinfo.name)
 
 
 def join_whatsapp_community(res,request):
@@ -1035,6 +1149,8 @@ def join_whatsapp_community(res,request):
             if 'value' not in question:
                 continue
 
+            if not question['value']:
+                continue
             question_instance = communityQuestions.objects.get(id=question['id'])
             answer_instance = communityAnswers()
             answer_instance.question = question_instance
@@ -1281,16 +1397,6 @@ def generate_private_link(community_instance,promoter_instance):
 
 
 
-
-
-
-
-
-
-
-
-
-
 def generate_random(unique_code_list):
 
   '''function to generate a random number'''
@@ -1298,6 +1404,7 @@ def generate_random(unique_code_list):
   randInt = randint(1,100000)
 
   return generate_random(unique_code_list) if randInt in unique_code_list else randInt
+
 
 
 def category_filter(request, category):
@@ -1436,6 +1543,90 @@ def admins(request, community_id):
         return JsonResponse({'members': users, 'referred_members_count': referal_count})
     else:
         return JsonResponse({'members': users})
+
+@csrf_exempt
+def edit_member_profile(request):
+
+    '''api to udate member profile'''
+
+
+    res = json.loads(request.body)
+
+
+    community_id = res['community_id']
+    community_instance = Community.objects.get(id=community_id)
+
+    member_id = get_member_id_from_headers(request)
+    if not member_id:
+        member_id = request.GET.get('member_id', None)
+
+    user_instance = User.objects.get(id=member_id)
+
+    answer_filter = communityAnswers.objects.filter(community=community_instance,member=user_instance)
+
+
+    #getting the collabcard Id for introduction card
+    collabcard_id = 0
+    for answer in answer_filter:
+        if answer.question.question_state == question_states.INTRODUCTION:
+
+            collabcard_filter = Collabcard.objects.filter(community=community_instance,
+                                                          user=user_instance,title=answer.question_answer)
+
+            if collabcard_filter.exists():
+                collabcard_id = collabcard_filter[0].id
+
+
+    delete_filters = questionFilters.objects.filter(member=user_instance,community=community_instance).delete()
+    delete_answers = answer_filter.delete()
+
+
+    info_logger.info(delete_answers)
+    info_logger.info(delete_filters)
+    info_logger.info("\n")
+
+    if 'questions' in res:
+
+        for question in res['questions']:
+
+            #empty cases handling
+            if 'value' not in question:
+                continue
+            if not question['value']:
+                continue
+
+            question_instance = communityQuestions.objects.get(id=question['id'])
+            answer_instance = communityAnswers()
+            answer_instance.question = question_instance
+            answer_instance.member = user_instance
+            answer_instance.community = community_instance
+            answer_instance.question_answer = question['value']
+            answer_instance.question_title = question_instance.question_title
+            answer_instance.save()
+
+            if question_instance.question_state == question_states.CHOICE_SINGLE or question_instance.question_state == question_states.CHOICE_MULTIPLE:
+                if "$#" in question['value']:
+                    selected_choices = question['value'].split("$#")
+                else:
+                    selected_choices = question['value'].split(",")
+                for choice in selected_choices:
+                    filter_instance = questionFilters(question=question_instance, filter=choice.strip(),
+                                                      member=user_instance, community=community_instance)
+                    filter_instance.save()
+
+            if collabcard_id and question_instance.question_state == question_states.INTRODUCTION:
+                Collabcard.objects.filter(id=collabcard_id).update(title=question['value'])
+
+    form_response = FormResponseSerilaizer(community_id,member_id, bl=True, current_user_id=member_id)
+
+    question_answer=""
+    if form_response:
+        question_answer = form_response[1]
+
+    if question_answer:
+        return JsonResponse({'success': True,'question_answers':question_answer})
+
+    return JsonResponse({'success': True})
 
 
 def get_user_lpig_tags(user_id):
@@ -1622,6 +1813,79 @@ def ask_approval(request):
 
     return JsonResponse({'success':True})
 
+@csrf_exempt
+def remove_from_member(request):
+
+    '''function to remove member of community'''
+
+    member_id = get_member_id_from_headers(request)
+
+    if not member_id:
+        return JsonResponse({'success':False,'error_message':"Send Member Id in header"})
+
+    community_id = request.POST.get('community_id')
+
+
+    member_ids = request.POST.get('member_ids', False)
+
+    is_promoter = Members.objects.filter(state=member_states.ADMIN, community_id=community_id, member_id=member_id)
+    is_promoter = is_promoter.exists()
+
+    if member_ids:
+       if is_promoter:
+           member_ids = member_ids.split(",")
+
+           for member in member_ids:
+
+                member_filter = Members.objects.filter(community_id=community_id,member_id=member)
+
+                if member_filter.exists():
+                    member_state = member_filter[0].state
+
+                    if member_state == member_states.MEMBER:
+                        remove_members(community_id,member_filter[0].member_id.id,removed_state=deleted_members.REMOVED)
+
+           return JsonResponse({'success': True})
+
+    #flow to leave the community
+
+    if not is_promoter and member_ids == False:
+        remove_members(community_id,member_id,removed_state=deleted_members.LEFT)
+        return JsonResponse({'success':True})
+
+    return JsonResponse({'success':False})
+
+
+def remove_members(community_id, member_id,removed_state):
+    '''function to remove member'''
+
+    try:
+        community_instance = Community.objects.get(id=community_id)
+        user_instance = User.objects.get(id=member_id)
+    except:
+        return
+
+
+    Member_Engage.objects.filter(community_id=community_id, member_id=member_id).delete()
+    #communityAnswers.objects.filter(community=community_id, member=member_id).delete()
+
+    is_member_left = removedMembers.objects.filter(community=community_id, member=member_id)
+
+    if not is_member_left.exists() and community_instance:
+
+        instance = removedMembers(community=community_instance, member=user_instance,
+                                  removed_state=removed_state, created_at=time.time())
+        instance.save()
+        #saving collabcard state in update status
+        update_staus = collabcardState.objects.filter(community=community_id,user=member_id).update(removed_status=instance.id)
+        print(update_staus)
+
+
+    Members.objects.filter(community_id=community_id, member_id=member_id).delete()
+
+
+
+
 
 ############# functions for  create flow of card,community and members   ##########################
 
@@ -1671,12 +1935,12 @@ def create_community(request):
 
             # uploading community image and thumbnail
             image_link = upload_community_files(community_id=group.id,
-                                                image='https://beta.collabmates.com/media/media/community/default.jpeg',
+                                                image='https://beta.likeminds.community/media/media/community/default.jpeg',
                                                 url=True)
             group.image_link = image_link
             group.save()
             upload_community_thumbnail.delay(group.id,
-                                             'https://beta.collabmates.com/media/media/community/default.jpeg')
+                                             'https://beta.likeminds.community/media/media/community/default.jpeg')
 
             # create user as a admin for the community as the user is creating the community as a admin
             user = User.objects.get(id=user_id)
@@ -1812,20 +2076,27 @@ def create_community_version_1(request):
         community_serialized_object = update_community(res)
         return JsonResponse({'success':True,'community':community_serialized_object})
 
+    community_state = 0
     if 'state' in res:
         community_state = res['state']
+
+    about = None
+    if 'about' in res:
+        about = res['about']
 
 
     community_instance=Community()
     community_instance.name=community_name
     community_instance.purpose=purpose
     community_instance.members_count=1
-    community_instance.image_link="https://beta.collabmates.com/media/media/community/default.jpeg"
+    community_instance.about = about
+    community_instance.image_link = community_default_image
+    community_instance.thumbnail = community_default_thumbnail
     if community_type:
         community_instance.community_type=community_type
     community_instance.created_at=time.time()
     community_instance.updated_at=time.time()
-    community_instance.hide_community = '5'     #for whatsapp community
+    community_instance.hide_community = community_state    #for whatsapp community
     if sub_type:
         community_instance.sub_type = sub_type    #for whatsapp community
     community_instance.save()
@@ -1915,7 +2186,7 @@ def update_community(res):
         community_instance.name = community_name
         community_instance.purpose = purpose
         community_instance.members_count = 1
-        community_instance.image_link = "https://beta.collabmates.com/media/media/community/default.jpeg"
+        community_instance.image_link = "https://beta.likeminds.community/media/media/community/default.jpeg"
         if community_type:
             community_instance.community_type = community_type
         community_instance.created_at = time.time()
@@ -2269,7 +2540,9 @@ def pending_members(request, community_id):
 
     ''' function to get members requested to join in a community '''
 
-    member_id = get_member_id_from_headers(request)
+    member_id = request.GET.get('member_id',None)
+    if not member_id:
+        member_id = get_member_id_from_headers(request)
     pending_requests=get_pending_members_of_community(community_id,requested_member_id=member_id)
     return JsonResponse({'pending_members': pending_requests})
 
@@ -2298,6 +2571,7 @@ def get_pending_members_of_community(community_id,requested_member_id):
         is_verified = True
     pending_requests = []
     is_lg = is_LG_or_LP_community(community)
+
     for i in pend_requests:
         if is_lg and is_verified:
             if str(i.ask_member_id) == str(member_id):
@@ -2559,6 +2833,7 @@ def request_response(request, req_dict=None):
         res = json.loads(request.body)
     else:
         res = req_dict
+
     if 'member_id' in res:
         member_id = res['member_id']
     if 'community_id' in res:
@@ -2583,18 +2858,31 @@ def request_response(request, req_dict=None):
         approve_or_decline_lg_community(request,req_dict,member_verification)
         return JsonResponse({'success': True})
 
+    community_state = get_state_of_community(community)
 
-    if community.hide_community == '5':
+    if community_state == community_states.WHATSAPP:
 
         req_dict = {
             'member_id': member_id,
             'community_id': community_id,
             'accepted': accepted
         }
-        print("checking flow")
+        info_logger.info("whatsapp community")
         approve_or_decline_whatsapp_community(req_dict,request)
 
         return  JsonResponse({'success': True})
+
+    if community_state == community_states.PRIVATE or community_state == community_states.HIDDEN:
+        req_dict = {
+            'member_id': member_id,
+            'community_id': community_id,
+            'accepted': accepted
+        }
+        info_logger.info("private_community")
+        approve_or_decline_private_community(req_dict, request)
+        return  JsonResponse({'success': True})
+
+
 
     if accepted or accepted == 'true':
         # if accepted , then make him a member of the community
@@ -2809,7 +3097,51 @@ def approve_or_decline_whatsapp_community(req_dict,request):
         send_notification_for_join_requests.delay(req_dict['community_id'], False, req_dict['member_id'])
 
 
+def approve_or_decline_private_community(req_dict,request):
 
+    '''function to approve the whatsapp community'''
+
+    if req_dict['accepted'] or req_dict['accepted'] == 'true':
+
+        is_member = is_member_verified(community=req_dict['community_id'], user_instance=req_dict['member_id'])
+
+        if not is_member:
+            Members.objects.filter(member_id=req_dict['member_id'],
+                                   community_id=req_dict['community_id']).update(state=member_states.MEMBER,
+                                                                                 created_at=time.time())
+
+            Member_Engage.objects.filter(member_id=req_dict['member_id'],
+                                         community_id=req_dict['community_id']).update(member_state=member_states.MEMBER,
+                                                                                       updated_at=time.time())
+
+            # updating pending member count
+            community = Community.objects.get(id=req_dict['community_id'])
+            members_count = community.members_count + 1
+            Community.objects.filter(id=req_dict['community_id']).update(members_count=members_count)
+
+            # posting a intro collabcard
+            post_introduction_card_for_community(req_dict['community_id'], req_dict['member_id'], request)
+
+
+            #sending mails and notifications
+
+            #send notification
+            send_notification_for_join_requests.delay(req_dict['community_id'], True, req_dict['member_id'])
+
+            # sending email to the user that his request is accepted for this community
+            member_request_approval_or_denied.delay(user_id = req_dict['member_id'],community_id = req_dict['community_id'], approved = True)
+
+    else:
+
+        Members.objects.filter(member_id=req_dict['member_id'], community_id=req_dict['community_id']).delete()
+
+            # delete the member engage table record for the user
+        Member_Engage.objects.filter(member_id=req_dict['member_id'],community_id = req_dict['community_id']).delete()
+
+        # delete the responses of user to community questions, if any
+        communityAnswers.objects.filter(member_id=req_dict['member_id'],community_id = req_dict['community_id']).delete()
+
+        send_notification_for_join_requests.delay(req_dict['community_id'], False, req_dict['member_id'])
 
 
 
@@ -2896,9 +3228,16 @@ def collabcard(request, card_id):
     card = CollabcardSerializer(cards, user_id, cards.community)
 
     user = Userinfo.objects.get(user_id=cards.user.id)
+
     # serializing user object
     usr = UserinfoSerializer(user)
     usr['is_clickable']=feedback
+
+    #when the member is removed
+    removed_state = removedMembersSerializer(cards.community.id,usr['id'])
+    if removed_state != False:
+        usr['remove_state'] = removed_state
+
     # user form response serialzer
     form_response = FormResponseSerilaizer(cards.community.id, cards.user.id,bl=True,current_user_id=current_user_id)
     if form_response:
@@ -2925,6 +3264,12 @@ def get_answer_data(answer,feedback,community_id,current_user_id):
         user = Userinfo.objects.filter(user_id=ans.user.id)
         usr = UserinfoSerializer(user[0])
         usr['is_clickable']=feedback
+
+        removed_state = removedMembersSerializer(community_id, usr['id'])
+
+        if removed_state != False:
+            usr['remove_state'] = removed_state
+
         form_response = FormResponseSerilaizer(community_id, ans.user.id,bl=True,current_user_id=current_user_id)
         if form_response:
             usr['response'] = form_response[0]
@@ -4185,6 +4530,7 @@ def community_collabcard_id(request):
 
 
 def community_collabcard_meta(request):
+
     ''' function to get the collabcard details '''
 
     collabcard_ids = request.GET.get('collabcard_ids', False)
@@ -4208,7 +4554,14 @@ def community_collabcard_meta(request):
         if card_instance.community.id == feedback_community_id:
             feed_back=False
         usr = UserinfoSerializer(user)
+
         usr['is_clickable']=feed_back
+        removed_state = removedMembersSerializer(card_instance.community.id, usr['id'])
+
+        if removed_state != False:
+            usr['remove_state'] = removed_state
+
+
         # user form response serialzer
         form_response = FormResponseSerilaizer(card_instance.community.id, card_instance.user.id,bl=True,current_user_id=member_id)
 
@@ -4404,20 +4757,17 @@ def login_authenticate(request):
 
     if request.method == 'POST':
 
-
-        login_type = request.GET.get('type',None)
-
+        login_type = request.POST.get('type',None)
         if login_type and login_type == "google":
-            google_id_token = request.GET.get('google_id_token',None)
-
+            google_id_token = request.POST.get('google_id_token',None)
             context = login_with_google(google_id_token,request)
+            info_logger.info(context)
             return JsonResponse(context)
 
 
         res = json.loads(request.body)
         dic_form = res
         json_to_save = json.dumps(dic_form)
-        login_type = request.GET.get('type')
         # if user is logging in from facebook
         created = False
         if login_type == 'facebook':
@@ -4618,8 +4968,8 @@ def fetch_google_auth_data(google_id_token):
     response = response.text
     json_to_save = json.dumps(response)
     google_json = json.loads(response)
-
-    return (json_to_save,google_json)
+    x = (json_to_save,google_json)
+    return x
 
 
 
@@ -4631,8 +4981,16 @@ def login_with_google(google_id_token,request,login_type="google"):
 
     json_to_save = google_json[0]
     res = google_json[1]
+    info_logger.info(res)
     created = False
     context ={'success':False,'error_message':"please give permission to use your google account"}
+
+    is_request_web = False
+
+    platform_code = get_platform_code_from_headers(request)
+    
+    if not platform_code:
+        is_request_web = True
 
     if 'email' in res:
         email = res['email']
@@ -4641,12 +4999,12 @@ def login_with_google(google_id_token,request,login_type="google"):
 
         if not user.exists():
             # creating a user if no user is associated with that email
-            res['id'] = google_id_token
+            res['id'] = res['azp']
 
             user = create_user(user_name=res['name'], email=res['email'], id=res['id'])
 
             if 'picture' in res:
-                image_link = upload_image_to_firebase(res['picture']['data']['url'], user.id)
+                image_link = upload_image_to_firebase(res['picture'], user.id)
             else:
                 image_link = 'https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fuser%2F222%2Fimg_user_222?alt=media'
 
@@ -4659,6 +5017,8 @@ def login_with_google(google_id_token,request,login_type="google"):
 
         if not created:
             userinfo = user[0].userinfo
+
+
 
         usr = UserinfoSerializer(userinfo)
         # see if user has tags or not
@@ -4676,6 +5036,11 @@ def login_with_google(google_id_token,request,login_type="google"):
 
         else:
             create_member_for_feedback_community(userinfo.user_id)
+
+
+        if is_request_web:
+
+            login(request,user=userinfo.user_id,backend="django.contrib.auth.backends.ModelBackend")
 
         context = {'user': usr, 'has_tags': has_tags}
 
@@ -4697,6 +5062,12 @@ def notify_referred_member_after_join(joined_member_id, joined_member_name, comm
                                      community_id=community_id)
 
 
+def get_state_of_community(community):
+
+    if community.hide_community:
+        return int(community.hide_community)
+    return 0
+
 def members_state(request):
     '''This function gives the state of user.Get Api'''
 
@@ -4713,26 +5084,28 @@ def members_state(request):
     tool_state = 0
     query_set = Members.objects.filter(member_id=member_id, community_id=community_id)
     community_instance=Community.objects.get(id=community_id)
-    is_pilot_active = False
 
-    if community_instance.hide_community == '4':
-        is_pilot_active = True
+    community_state = get_state_of_community(community_instance)
 
+    is_tool_state = False
 
-    if community_instance.hide_community == '0' or community_instance.hide_community == '5':
+    if community_state == community_states.PRIVATE or community_state == community_states.PILOT_ACTIVE or community_state ==  community_states.WHATSAPP:
+        is_tool_state = True
 
-        tool_state=1
-
+    user_email = ""
     ref_members=[]
     for data in query_set:
         is_member = False
         tool_state = 0
         state = data.state
 
-        if state == 1 or state == 2 or state == 4 or state == 7:
+        if state == member_states.ADMIN or state == 2 or state == member_states.MEMBER or state == 7:
             is_member = True
 
-        if is_member and is_pilot_active:
+        if state == member_states.PENDING_MEMBER:
+            user_email = data.member_id.userinfo.email
+
+        if is_member and is_tool_state:
             tool_state = 1
 
         ref_members = get_referred_members_of_a_member(community_id, member_id)
@@ -4812,10 +5185,13 @@ def members_state(request):
                    }
 
 
+    if state == member_states.PENDING_MEMBER:
+        json_response['member_direction_lock'] = get_data_for_filter_pop_ups(email=user_email)
     return JsonResponse(json_response)
 
 
-#
+
+
 
 @csrf_exempt
 def push(request):
@@ -5094,81 +5470,220 @@ def all_members(request):
     page = request.GET.get('page',1)
     community_id = request.GET.get('community_id')
 
-    res=load_request_body(request)
+    filter_list = request.GET.get('filter',False)
+
+    print("filter--",filter_list)
 
     current_user_id = get_member_id_from_headers(request)
 
     #functionality for user filteration based on options
-    if res:
-        if 'filters' in res:
-            members=get_filtered_users(res,community_id,current_user_id)
-            JsonResponse({'members':members})
+    is_filter = False
+    if filter_list:
+        is_filter = True
+
 
 
     #sending all the users of community
-    members=[]
 
-    member_list=Members.objects.filter(community_id=community_id).filter(Q(state=1)|Q(state=4)|Q(state=7)).order_by('id')
+
+
+    if not is_filter:
+        member_list=Members.objects.filter(community_id=community_id).filter(
+            Q(state=member_states.ADMIN)|Q(state=member_states.MEMBER)|Q(state=member_states.KNOWN_NOMINATED_PROMOTER)).order_by('id')
+    else:
+        member_list = Members.objects.filter(community_id=community_id).filter(
+            Q(state=member_states.ADMIN) | Q(state=member_states.MEMBER) | Q(
+                state=member_states.KNOWN_NOMINATED_PROMOTER)|Q(state=member_states.PENDING_MEMBER)).order_by('id')
+
     member_list=pagination(member_list,page,paginate_by=20)
 
-    for member in member_list:
+    if not is_filter:                                       #if user has not selected filter
 
-        userinfo_serialized_object = UserinfoSerializer(member.member_id.userinfo)
-        userinfo_serialized_object['state']=member.state
+        members = get_member_instances(member_list,current_user_id,community_id)
 
-        form_response = FormResponseSerilaizer(community_id, member.member_id.id,bl=True,current_user_id=current_user_id)
+    else:                                                   #if user has selected filter
 
-        if form_response:
-            userinfo_serialized_object['response'] = form_response[0]
-            userinfo_serialized_object['question_answers'] = form_response[1]
-        members.append(userinfo_serialized_object)
+        filter_list = json.loads(filter_list)
+        print(filter_list)
+        member_set = get_filtered_users(filter_list, member_list)
+        members = get_member_instances(member_list, current_user_id,community_id,is_filter=is_filter,member_set=member_set)
+
 
     return JsonResponse({'members':members})
 
 
+def get_member_instances(member_list,current_user_id,community_id,is_filter=False,member_set=None):
 
-def load_request_body(request):
-
-    '''function to load json body'''
-
-    try:
-        res=json.loads(request.body)
-        return res
-    except:
-        print("Json can't be load")
-        return False
-
-
-def get_filtered_users(res,community_id,current_user_id):
-
-    '''function to get filtered users'''
-
-    member_set = set()
-    option_data = res['filter']
-    for option in option_data:
-        question_list = questionFilters.objects.filter(filter=option['value'], question=option['id'])
-        for member_instance in question_list:
-            if member_instance.member.id not in member_set:
-                member_set.add(member_instance.member.id)
     members = []
-    for member in member_set:
-        member_list = Members.objects.filter(community_id=community_id, member_id=member)
-        if member_list.exists():
-            member_instance = member_list[0]
-            userinfo_serialized_object = UserinfoSerializer(member_instance.member_id.userinfo)
-            userinfo_serialized_object['state'] = member_instance.state
 
-            form_response = FormResponseSerilaizer(community_id, member_instance.member_id.id, bl=True,current_user_id=current_user_id)
+    for member in member_list:
+        member_id = member.member_id.id
+        userinfo_serialized_object = UserinfoSerializer(member.member_id.userinfo)
+        userinfo_serialized_object['state'] = member.state
 
-            if form_response:
-                userinfo_serialized_object['response'] = form_response[0]
-                userinfo_serialized_object['question_answers'] = form_response[1]
+        form_response = FormResponseSerilaizer(community_id,member_id , bl=True,
+                                               current_user_id=current_user_id)
+
+        if form_response:
+            userinfo_serialized_object['response'] = form_response[0]
+            userinfo_serialized_object['question_answers'] = form_response[1]
+
+        if not is_filter:
             members.append(userinfo_serialized_object)
+        else:
+            if member_id in member_set:
+                members.append(userinfo_serialized_object)
 
     return members
 
 
 
+def get_filtered_users(filter_list,member_list):
+
+    '''function to get filtered users'''
+
+
+    option_data = filter_list
+
+    member_set = set()
+
+    for data in member_list:
+        member_set.add(data.member_id.id)
+
+
+    for option in option_data:
+
+        question_set=set()
+        question_filters = questionFilters.objects.filter(filter=option['value'],
+                                                           question=option['question_id'])
+
+        for data in question_filters:
+
+            question_set.add(data.member.id)
+
+        member_set = intersect_sets(member_set,question_set)
+
+  
+    return member_set
+
+
+
+
+#functionality for filters
+
+def fetch_filters(request):
+
+    '''api to get all the filtered data'''
+
+    community_id = request.GET.get('community_id')
+
+    member_id = get_member_id_from_headers(request)
+
+    if not member_id:
+        return JsonResponse({'success':False,'error_message':"Member id is not coming in header"})
+
+    send_empty_list = False
+
+    member_list = Members.objects.filter(community_id=community_id,member_id=member_id)
+    if member_list.exists():
+
+        member_state = member_list[0].state
+        if member_state == member_states.PENDING_MEMBER:
+            send_empty_list=True
+
+    else:
+        send_empty_list = True
+
+
+
+    if send_empty_list:
+        return JsonResponse({'questions': []})
+
+
+    community_options = communityAnswers.objects.filter(community_id=community_id)
+
+    question_set = set()
+    #print("options===",community_options)
+
+    option_list=[]
+    for data in community_options:
+
+        question_instance = data.question
+
+        serialized_instance = CommunityQuestionsSerializer(question_instance)
+
+        if serialized_instance['state'] == question_states.CHOICE_SINGLE or serialized_instance['state'] == question_states.CHOICE_MULTIPLE:
+
+
+
+
+            if serialized_instance['id'] not in question_set:
+                serialized_instance['value'] = get_user_selected_option_list(serialized_instance['id'])
+                question_set.add(serialized_instance['id'])
+                option_list.append(serialized_instance)
+
+    return JsonResponse({'questions':option_list})
+
+
+
+
+def get_user_selected_option_list(question_id):
+
+    '''function to get user selected options'''
+    filter_list = list(questionFilters.objects.filter(question=question_id).values_list('filter',flat=True).distinct())
+    values=""
+    for option in filter_list:
+        values = values + option + "$#"
+
+    if len(values) >= 2:
+        values = values[:-2]
+    return values
+
+
+@csrf_exempt
+def push_email(request):
+
+    '''api to save secondary email'''
+
+    member_id = get_member_id_from_headers(request)
+    email = request.POST.get('email')
+    if not member_id:
+        return JsonResponse({'success': False, 'error_message': "Member id is not coming in header"})
+
+    Userinfo.objects.filter(user_id=member_id).update(secondary_email = email)
+
+
+    return JsonResponse({'success':True})
+
+
+def get_data_for_filter_pop_ups(email):
+
+    '''function to get data for filtered pop-ups'''
+
+    member_direction_lock={}
+
+    member_direction_lock['member_directory_lock_title'] = "Member profile not accessible"
+    member_direction_lock['member_directory_lock_sub_title'] ="""Your account is pending for approval from the admin. Once the admin approves, you would be able to view the full communtity profile of the user.
+
+Once verified, we will send an email on: """+str(email)
+    member_direction_lock['member_directory_lock_negative_title'] = "DISMISS"
+    member_direction_lock['member_directory_lock_positive_title'] = "Change EMAIL ID"
+
+    #member_directory_lock_negative_action,member_directory_lock_positive_action
+
+    member_direction_lock['member_directory_lock_email_title'] = "Change Email ID"
+    member_direction_lock['member_directory_lock_email_sub_title'] = "Update your email ID below for further communications."
+    member_direction_lock['member_directory_lock_email_negative_title'] = "DISMISS"
+    member_direction_lock['member_directory_lock_email_positive_title'] = "SUBMIT"
+
+    #member_directory_lock_email_positive_action,member_directory_lock_email_negative_action
+
+    return member_direction_lock
+
+
+def intersect_sets(set1,set2):
+
+    return set1.intersection(set2)
 
 def invite_members(request):
     ''' function to get members requested to join in a community '''
@@ -5272,6 +5787,18 @@ def get_member_id_from_headers(request):
         member_id = headers['HTTP_X_MEMBER_ID']
 
     return member_id
+
+
+
+def get_platform_code_from_headers(request):
+
+    headers = request.META
+
+    platform_code = 0
+    if 'HTTP_X_PLATFORM_CODE' in headers:
+        platform_code = headers['HTTP_X_PLATFORM_CODE']
+
+    return platform_code
 
 
 ################ functions for getting and setting of tags ##########################################
