@@ -5644,11 +5644,7 @@ def all_members(request):
 
         filter_list = json.loads(filter_list)
         info_logger.info(filter_list)
-        # filter_list =[
-        #     {'question_id':"48219",'value':"Spinner"},{'question_id':"48219",'value':"Medium pacer"},
-        #     {'question_id': "48220", 'value': "Opener"}, {'question_id': "48220", 'value': "Tail hander"}
-        #
-        # ]
+        #filter_list =[{'question_id': '48219', 'value': 'Not Bowler'}, {'question_id': '48220', 'value': 'Middle order'}, {'question_id': '48219', 'value': 'Fast bowler'}, {'question_id': '48220', 'value': 'Tail hander'}]
         member_set = get_filtered_users(filter_list, member_list)
         members = get_member_instances(member_list, current_user_id,community_id,is_filter=is_filter,member_set=member_set)
 
@@ -5708,20 +5704,22 @@ def get_filtered_users(filter_list,member_list):
             key_list.append(data['value'])
             filter_map[question_id] = key_list
 
+    info_logger.info(filter_map)
     distinct_members = {}
 
     for key,value in filter_map.items():
 
         question_id = key
-        question_set = set()
+
         for option in value:
+            question_set = set()
             question_filters = questionFilters.objects.filter(filter=option,
                                                               question=question_id)
             for instance in question_filters:
                 question_set.add(instance.member.id)
         distinct_members[question_id] = question_set
 
-
+    info_logger.info(distinct_members)
     for key,value  in distinct_members.items():
 
        member_set = intersect_sets(member_set,value)
@@ -5729,7 +5727,7 @@ def get_filtered_users(filter_list,member_list):
 
 
 
-    print(member_set)
+
     return member_set
 
 
