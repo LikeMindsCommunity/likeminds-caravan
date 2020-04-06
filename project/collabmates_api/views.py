@@ -5616,37 +5616,38 @@ def all_members(request):
 
     if is_filter == 'true':
         is_filter = True
-    else:
-        is_filter = False
-
-    if is_filter:
-        filter_list = request.GET.get('filter',None)
-
-    #sending all the users of community
-
-
-
-    if not is_filter:
-        member_list=Members.objects.filter(community_id=community_id).filter(
-            Q(state=member_states.ADMIN)|Q(state=member_states.MEMBER)|Q(state=member_states.KNOWN_NOMINATED_PROMOTER)).order_by('id')
-    else:
         member_list = Members.objects.filter(community_id=community_id).filter(
             Q(state=member_states.ADMIN) | Q(state=member_states.MEMBER) | Q(
-                state=member_states.KNOWN_NOMINATED_PROMOTER)|Q(state=member_states.PENDING_MEMBER)).order_by('id')
+                state=member_states.KNOWN_NOMINATED_PROMOTER) | Q(state=member_states.PENDING_MEMBER)).order_by('id')
+        member_list = pagination(member_list, page, paginate_by=20)
+        filter_list = request.GET.get('filter', None)
 
-    member_list=pagination(member_list,page,paginate_by=20)
+        if filter_list:
+            filter_list = json.loads(filter_list)
+            info_logger.info(filter_list)
+            # filter_list =[{'question_id': '48219', 'value': 'Not Bowler'}, {'question_id': '48220', 'value': 'Middle order'}, {'question_id': '48219', 'value': 'Fast bowler'}, {'question_id': '48220', 'value': 'Tail hander'}]
+            member_set = get_filtered_users(filter_list, member_list)
+            members = get_member_instances(member_list, current_user_id, community_id, is_filter=is_filter,
+                                           member_set=member_set)
+        else:
+            is_filter = False
+            member_list = Members.objects.filter(community_id=community_id).filter(
+                Q(state=member_states.ADMIN) | Q(state=member_states.MEMBER) | Q(
+                    state=member_states.KNOWN_NOMINATED_PROMOTER)).order_by('id')
+            member_list = pagination(member_list, page, paginate_by=20)
+            members = get_member_instances(member_list, current_user_id, community_id)
 
-    if not is_filter:                                       #if user has not selected filter
 
-        members = get_member_instances(member_list,current_user_id,community_id)
+    else:
+        is_filter = False
+        member_list = Members.objects.filter(community_id=community_id).filter(
+            Q(state=member_states.ADMIN) | Q(state=member_states.MEMBER) | Q(
+                state=member_states.KNOWN_NOMINATED_PROMOTER)).order_by('id')
+        member_list = pagination(member_list, page, paginate_by=20)
+        members = get_member_instances(member_list, current_user_id, community_id)
 
-    else:                                                   #if user has selected filter
 
-        filter_list = json.loads(filter_list)
-        info_logger.info(filter_list)
-        #filter_list =[{'question_id': '48219', 'value': 'Not Bowler'}, {'question_id': '48220', 'value': 'Middle order'}, {'question_id': '48219', 'value': 'Fast bowler'}, {'question_id': '48220', 'value': 'Tail hander'}]
-        member_set = get_filtered_users(filter_list, member_list)
-        members = get_member_instances(member_list, current_user_id,community_id,is_filter=is_filter,member_set=member_set)
+
 
 
     return JsonResponse({'members':members})
