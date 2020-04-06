@@ -5678,7 +5678,7 @@ def get_member_instances(member_list,current_user_id,community_id,is_filter=Fals
         else:
             if member_id in member_set:
                 members.append(userinfo_serialized_object)
-                members.append(member_id)
+                #members.append(member_id)
 
     return members
 
