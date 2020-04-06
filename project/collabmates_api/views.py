@@ -5612,6 +5612,7 @@ def all_members(request):
 
     #functionality for user filteration based on options
     is_filter = request.GET.get('is_filter',False)
+    filter_list = request.GET.get('filter', None)
 
     if is_filter == 'true':
         is_filter = True
@@ -5642,7 +5643,12 @@ def all_members(request):
     else:                                                   #if user has selected filter
 
         filter_list = json.loads(filter_list)
-        print(filter_list)
+        info_logger.info(filter_list)
+        # filter_list =[
+        #     {'question_id':"48219",'value':"Spinner"},{'question_id':"48219",'value':"Medium pacer"},
+        #     {'question_id': "48220", 'value': "Opener"}, {'question_id': "48220", 'value': "Tail hander"}
+        #
+        # ]
         member_set = get_filtered_users(filter_list, member_list)
         members = get_member_instances(member_list, current_user_id,community_id,is_filter=is_filter,member_set=member_set)
 
@@ -5668,9 +5674,11 @@ def get_member_instances(member_list,current_user_id,community_id,is_filter=Fals
 
         if not is_filter:
             members.append(userinfo_serialized_object)
+            #pass
         else:
             if member_id in member_set:
                 members.append(userinfo_serialized_object)
+                #members.append(member_id)
 
     return members
 
@@ -5681,27 +5689,47 @@ def get_filtered_users(filter_list,member_list):
     '''function to get filtered users'''
 
 
-    option_data = filter_list
 
     member_set = set()
 
     for data in member_list:
         member_set.add(data.member_id.id)
 
+    filter_map={}
+    for data in filter_list:
+        key_list = []
+        question_id = data['question_id']
+        if question_id in filter_map:
 
-    for option in option_data:
+            key_list = filter_map[question_id]
+            key_list.append(data['value'])
+            filter_map[question_id] = key_list
+        else:
+            key_list.append(data['value'])
+            filter_map[question_id] = key_list
 
-        question_set=set()
-        question_filters = questionFilters.objects.filter(filter=option['value'],
-                                                           question=option['question_id'])
+    distinct_members = {}
 
-        for data in question_filters:
+    for key,value in filter_map.items():
 
-            question_set.add(data.member.id)
+        question_id = key
+        question_set = set()
+        for option in value:
+            question_filters = questionFilters.objects.filter(filter=option,
+                                                              question=question_id)
+            for instance in question_filters:
+                question_set.add(instance.member.id)
+        distinct_members[question_id] = question_set
 
-        member_set = intersect_sets(member_set,question_set)
 
-  
+    for key,value  in distinct_members.items():
+
+       member_set = intersect_sets(member_set,value)
+
+
+
+
+    print(member_set)
     return member_set
 
 
