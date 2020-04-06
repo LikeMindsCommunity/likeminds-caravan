@@ -525,7 +525,8 @@ function isUrlValid(userInput,profile_platform) {
         });
     {% elif question.question_state == 1 %}
         {% if question.allowed_addition %}
-            $('.ui.dropdown.single_select_{{question.id}}').dropdown({allowAdditions: true,hideAdditions:false});
+            $('.ui.dropdown.single_select_{{question.id}}').dropdown({allowAdditions: true,
+                                                                      hideAdditions:false});
         {% else %}
             $('.ui.dropdown.single_select_{{question.id}}').dropdown({allowAdditions: false});
         {% endif %}
@@ -534,6 +535,7 @@ function isUrlValid(userInput,profile_platform) {
         {% if question.allowed_addition %}
             $('.ui.normal.dropdown.multi_select_{{question.id}}')
               .dropdown({
+              delimiter : "$#",
               allowAdditions: true,
               hideAdditions: false,
                   {% if question.max_selections > 0 and question.max_selections != ''  %}
@@ -547,6 +549,7 @@ function isUrlValid(userInput,profile_platform) {
         {% else %}
             $('.ui.normal.dropdown.multi_select_{{question.id}}')
               .dropdown({
+              delimiter : "$#",
               allowAdditions: false,
                   {% if question.max_selections > 0 and question.max_selections != ''  %}
                       maxSelections: {{question.max_selections}}
