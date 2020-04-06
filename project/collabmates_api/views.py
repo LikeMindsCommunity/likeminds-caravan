@@ -5612,7 +5612,7 @@ def all_members(request):
 
     #functionality for user filteration based on options
     is_filter = request.GET.get('is_filter',False)
-    filter_list = request.GET.get('filter', None)
+
 
     if is_filter == 'true':
         is_filter = True
@@ -5621,6 +5621,7 @@ def all_members(request):
                 state=member_states.KNOWN_NOMINATED_PROMOTER) | Q(state=member_states.PENDING_MEMBER)).order_by('id')
         member_list = pagination(member_list, page, paginate_by=20)
         filter_list = request.GET.get('filter', None)
+
 
         if filter_list:
             filter_list = json.loads(filter_list)
@@ -5705,22 +5706,22 @@ def get_filtered_users(filter_list,member_list):
             key_list.append(data['value'])
             filter_map[question_id] = key_list
 
-    info_logger.info(filter_map)
+
     distinct_members = {}
 
     for key,value in filter_map.items():
 
         question_id = key
-
+        question_set = set()
         for option in value:
-            question_set = set()
+
             question_filters = questionFilters.objects.filter(filter=option,
                                                               question=question_id)
             for instance in question_filters:
                 question_set.add(instance.member.id)
         distinct_members[question_id] = question_set
 
-    info_logger.info(distinct_members)
+
     for key,value  in distinct_members.items():
 
        member_set = intersect_sets(member_set,value)
