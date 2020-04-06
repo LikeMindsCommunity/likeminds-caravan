@@ -151,6 +151,7 @@ body ::-webkit-scrollbar { display: none; }
 .wsN { white-space: nowrap; }
 
 .toE { text-overflow: ellipsis; }
+.lc2 { -webkit-line-clamp: 3; }
 
 .oA { overflow: auto; }
 .oH { overflow: hidden; }
@@ -161,6 +162,8 @@ body ::-webkit-scrollbar { display: none; }
 .dIb { display: inline-block; }
 .dB { display: block; }
 .dN { display: none; }
+.dwB { display: -webkit-box; }
+.wboV { -webkit-box-orient: vertical; }
 
 .vM { vertical-align: middle; }
 .vT { vertical-align: top; }
