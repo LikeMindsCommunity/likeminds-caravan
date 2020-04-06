@@ -430,7 +430,6 @@ def community(request, community_id):
     }
 
     aj = request.GET.get('aj', False)
-
     context = {'usr': user, 'similar_communities': communities,
                'community': community, 'admins': admin_details,
                'header': header, 'header_showcase': header_showcase,
@@ -602,7 +601,10 @@ def get_admins_details(community):
         temp['image_link'] = admin.member_id.userinfo.image_link
         form_response = communityAnswers.objects.filter(member=admin.member_id, community=community).order_by('id')
         if form_response:
-            temp['introduction_answer'] = form_response[0].question_answer
+            answer = form_response[0].question_answer
+            if "$#" in answer:
+                answer = answer.replace("$#",",")
+            temp['introduction_answer'] = answer
 
         admins.append(temp)
 
