@@ -184,7 +184,7 @@ def your_communities(request, user_id):
     for each_community in communities:
 
         community = CommunitySerializer(each_community.community_id)
-        community['pending_members_count'] = len(get_pending_members_of_community(each_community.community_id.id,member_id))
+        community['pending_members_count'] = each_community.pending_members
         community['updated_at'] = get_time_text(each_community.updated_at)
         if each_community.last_unseen_conversation:
             collabcard = CollabcardSerializer(each_community.last_unseen_conversation, user=member_id)
@@ -1015,7 +1015,9 @@ def join_lg_communities_version_1(request,res,community,user,ref_id):
             Q(member_state=member_states.ADMIN) | Q(member_state=member_states.MEMBER))
         is_verified = member_queryset.exists()
         if is_verified:
-            member_queryset.update(pending_members=F('pending_members') + 1)
+
+            pending_member= len(get_pending_members_of_community(community,ref_id))
+            Member_Engage.objects.filter(community_id=community,member_id=ref_id).update(pending_members=pending_member)
             send_notification_to_referrer_of_lg_community(community_id=community.id, community_name=community.name,
                                                       referrer_id=ref_id,
                                                       member_name=user.userinfo.name,
@@ -1105,7 +1107,7 @@ def join_promoter_created_community_version_1(res,request):
 
             Member_Engage.objects.filter(member_id=user_instance, community_id=community_instance).update(
                 member_state=member_states.PENDING_MEMBER)
-
+        update_pending_member_count_in_engage(community_instance)
         return JsonResponse({'success': True})
     else:
 
@@ -1123,7 +1125,7 @@ def join_promoter_created_community_version_1(res,request):
         engage.updated_at = time.time()
         engage.member_state = member_states.PENDING_MEMBER
         engage.save()
-
+        update_pending_member_count_in_engage(community_instance)
         send_notification_to_admins.delay(community_id, user_instance.userinfo.name)
 
 
@@ -1205,7 +1207,7 @@ def join_whatsapp_community(res,request):
 
             Member_Engage.objects.filter(member_id=user_instance,community_id=community_instance).update(
                 member_state=member_states.PENDING_MEMBER)
-
+        update_pending_member_count_in_engage(community_instance)
         return JsonResponse({'success': True})
     else:
 
@@ -1223,7 +1225,7 @@ def join_whatsapp_community(res,request):
         engage.updated_at = time.time()
         engage.member_state = member_states.PENDING_MEMBER
         engage.save()
-
+        update_pending_member_count_in_engage(community_instance)
         send_notification_to_admins.delay(community_id,user_instance.userinfo.name)
 
 
@@ -2869,7 +2871,7 @@ def request_response(request, req_dict=None):
         }
         info_logger.info("whatsapp community")
         approve_or_decline_whatsapp_community(req_dict,request)
-
+        update_pending_member_count_in_engage(req_dict['community_id'])
         return  JsonResponse({'success': True})
 
     if community_state == community_states.PRIVATE or community_state == community_states.HIDDEN:
@@ -2880,6 +2882,7 @@ def request_response(request, req_dict=None):
         }
         info_logger.info("private_community")
         approve_or_decline_private_community(req_dict, request)
+        update_pending_member_count_in_engage(req_dict['community_id'])
         return  JsonResponse({'success': True})
 
 
@@ -3035,7 +3038,7 @@ def approve_or_decline_lg_community(request,req_dict,member_verification):
 
         else:
             # change user state to 5
-            Members.objects.filter(member_id=member_id, community_id=community).update(state=5)  # decline state = 5
+            Members.objects.filter(member_id=member_id, community_id=community).delete() # decline state = 5
             # delete the member engage table record for the user
             Member_Engage.objects.filter(member_id=member_id, community_id=community).delete()
             # delete the responses of user to community questions, if any
@@ -3043,8 +3046,9 @@ def approve_or_decline_lg_community(request,req_dict,member_verification):
             collabcardTemp.objects.filter(member=member_id, community=community).delete()
             if member_verification:
                 header_member_id = get_member_id_from_headers(request)
+                pending_members = len(get_pending_members_of_community(community,header_member_id))
                 Member_Engage.objects.filter(member_id=header_member_id, community_id=community).update(
-                    pending_members=F('pending_members') - 1)
+                    pending_members=pending_members)
                 Referal.objects.filter(member=header_member_id, community=community).delete()
             send_notification_for_join_requests.delay(community_id, False, member_id)
 
