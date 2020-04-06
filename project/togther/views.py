@@ -1361,7 +1361,8 @@ def get_community_questions(community_id):
                         item = item[1:]
                     if item[-1] == '"':
                         item = item[:-1]
-                    if each_question.community.hide_community == '5':
+                    community_state = each_question.community.hide_community
+                    if community_state == '5' or community_state == '0'or community_state == '1':
                         find_index = item.find(":")
                         if find_index != -1:
                             item = item[find_index+1:-1].strip()
