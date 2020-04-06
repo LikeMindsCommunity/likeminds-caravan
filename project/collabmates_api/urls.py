@@ -33,7 +33,10 @@ urlpatterns = [
          name="community_cards_version_1"),
 
     path('create_answer', api_views.create_answer, name="create_answer"),
+
     path('login',api_views.login_authenticate,name = 'login'),
+    path('v1/login',api_views.login_authenticate_version_1,name = 'v1/login'),
+
     path('image_upload',api_views.image_upload,name = 'image'),
     path('add_admin/<int:community_id>',api_views.create_admin,name = 'create_admin'),
     path('pending_members/<int:community_id>',api_views.pending_members,name = 'pending_members'),

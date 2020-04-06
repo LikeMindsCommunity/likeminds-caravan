@@ -873,11 +873,14 @@
     
             // google login
             function authServer(token, element){
+
+                var temp = {"type": "google", "google_id_token": token}
+
                 $.ajax({
-                    url: "/api/login",
-                    data: {"type": "google", "google_id_token": token},
+                    url: "/api/v1/login",
+                    data: JSON.stringify(temp),
                     type: "POST",
-                    // dataType: "json",
+                    dataType: "json",
                     success: function(data){
                         console.log("Google auth success", data);
                         window.location.href = $(element).attr("data-next");

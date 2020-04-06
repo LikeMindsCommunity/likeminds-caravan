@@ -26,7 +26,7 @@ import time
 # cache_timeout=3600
 
 #link to download the android app
-android_app_download_link="https://play.google.com/apps/testing/com.collabmates"
+android_app_download_link="https://play.google.com/store/apps/details?id=com.collabmates"
 
 ios_app_download_link="https://apps.apple.com/us/app/collabmates/id1481298195"
 
