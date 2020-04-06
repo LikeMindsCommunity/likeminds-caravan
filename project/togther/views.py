@@ -430,7 +430,6 @@ def community(request, community_id):
     }
 
     aj = request.GET.get('aj', False)
-
     context = {'usr': user, 'similar_communities': communities,
                'community': community, 'admins': admin_details,
                'header': header, 'header_showcase': header_showcase,
@@ -602,7 +601,10 @@ def get_admins_details(community):
         temp['image_link'] = admin.member_id.userinfo.image_link
         form_response = communityAnswers.objects.filter(member=admin.member_id, community=community).order_by('id')
         if form_response:
-            temp['introduction_answer'] = form_response[0].question_answer
+            answer = form_response[0].question_answer
+            if "$#" in answer:
+                answer = answer.replace("$#",",")
+            temp['introduction_answer'] = answer
 
         admins.append(temp)
 
@@ -698,7 +700,7 @@ def get_introduction_answer(community_instance, member_instance):
                                                                    question_id=question_id)
         if introduction_answer_list.exists():
             introduction_answer = introduction_answer_list[0].question_answer
-            return introduction_answer[:30]
+            return introduction_answer
 
     if not introduction_answer:
         epoch_time = member_instance.created_at
@@ -1361,7 +1363,8 @@ def get_community_questions(community_id):
                         item = item[1:]
                     if item[-1] == '"':
                         item = item[:-1]
-                    if each_question.community.hide_community == '5':
+                    community_state = each_question.community.hide_community
+                    if community_state == '5' or community_state == '0'or community_state == '1':
                         find_index = item.find(":")
                         if find_index != -1:
                             item = item[find_index+1:-1].strip()

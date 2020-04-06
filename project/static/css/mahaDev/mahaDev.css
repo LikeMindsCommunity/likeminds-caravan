@@ -43,6 +43,8 @@ body ::-webkit-scrollbar { display: none; }
 .h82 { height: 82px!important; }
 .w82 { width: 82px!important; }
 
+.w120 { width: 120px!important; }
+
 .w24 { width: 24px; }
 .w48 { width: 48px; }
 .w56 { width: 56px; }
@@ -50,7 +52,7 @@ body ::-webkit-scrollbar { display: none; }
 .w54 { width: 54px; }
 .w70 { width: 70px; }
 .w72 { width: 72px; }
-.w280, .w280.w280  { width: 280px; }
+.w280 { width: 280px!important; }
 .w300, .w300.w300  { width: 300px; }
 .w320, .w320.w320  { width: 300px; }
 
@@ -67,16 +69,21 @@ body ::-webkit-scrollbar { display: none; }
 .lh22 { line-height: 22px; }
 .lh24 { line-height: 24px; }
 
+.fs0 { font-size: 0; }
 .fs24, .fs24.fs24 { font-size: 24px; }
 .fs20 { font-size: 20px; }
 .fs18 { font-size: 18px; }
 .fs17 { font-size: 17px; }
 .fs16 { font-size: 16px; }
 .fs15 { font-size: 15px!important; }
+.fs14 { font-size: 14px; }
 .fs12 { font-size: 12px; }
 
 .fwR { font-weight:400!important; }
 .fwM { font-weight:500!important; }
+
+.fR { float: right; }
+.fL { float: left; }
 
 .cF, .cFh:hover { color: #fff!important; }
 .c0 { color: #000; }
@@ -144,6 +151,7 @@ body ::-webkit-scrollbar { display: none; }
 .wsN { white-space: nowrap; }
 
 .toE { text-overflow: ellipsis; }
+.lc2 { -webkit-line-clamp: 2; }
 
 .oA { overflow: auto; }
 .oH { overflow: hidden; }
@@ -154,6 +162,8 @@ body ::-webkit-scrollbar { display: none; }
 .dIb { display: inline-block; }
 .dB { display: block; }
 .dN { display: none; }
+.dwB { display: -webkit-box; }
+.wboV { -webkit-box-orient: vertical; }
 
 .vM { vertical-align: middle; }
 .vT { vertical-align: top; }
@@ -164,7 +174,7 @@ body ::-webkit-scrollbar { display: none; }
 .mxwp100 { max-width: 100%; }
 
 .taC { text-align: center; }
-.taR { text-align: right; }
+.taR { text-align: right!important; }
 .taL { text-align: left; }
 
 .pR { position: relative; }
@@ -183,6 +193,7 @@ body ::-webkit-scrollbar { display: none; }
 .r0 { right: 0; }
 .b0 { bottom: 0; }
 .t0 { top: 0; }
+.t48 { top: 48px; }
 
 .bn24 { bottom: -24px; }
 
@@ -215,3 +226,5 @@ body ::-webkit-scrollbar { display: none; }
 .mxh240 { max-height: 240px; }
 
 .flrB3 { filter:blur(3px); }
+
+input.search { padding: 16px; box-sizing: border; }
