@@ -5642,9 +5642,9 @@ def all_members(request):
 
     else:                                                   #if user has selected filter
 
-        # filter_list = json.loads(filter_list)
-        # info_logger.info(filter_list)
-        filter_list =[{'question_id': '48219', 'value': 'Not Bowler'}, {'question_id': '48220', 'value': 'Middle order'}, {'question_id': '48219', 'value': 'Fast bowler'}, {'question_id': '48220', 'value': 'Tail hander'}]
+        filter_list = json.loads(filter_list)
+        info_logger.info(filter_list)
+        #filter_list =[{'question_id': '48219', 'value': 'Not Bowler'}, {'question_id': '48220', 'value': 'Middle order'}, {'question_id': '48219', 'value': 'Fast bowler'}, {'question_id': '48220', 'value': 'Tail hander'}]
         member_set = get_filtered_users(filter_list, member_list)
         members = get_member_instances(member_list, current_user_id,community_id,is_filter=is_filter,member_set=member_set)
 
@@ -5727,7 +5727,7 @@ def get_filtered_users(filter_list,member_list):
 
 
 
-    
+
     return member_set
 
 
