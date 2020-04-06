@@ -5604,18 +5604,22 @@ def all_members(request):
     page = request.GET.get('page',1)
     community_id = request.GET.get('community_id')
 
-    filter_list = request.GET.get('filter',False)
 
-    print("filter--",filter_list)
+
+
 
     current_user_id = get_member_id_from_headers(request)
 
     #functionality for user filteration based on options
-    is_filter = False
-    if filter_list:
+    is_filter = request.GET.get('is_filter',False)
+
+    if is_filter == 'true':
         is_filter = True
+    else:
+        is_filter = False
 
-
+    if is_filter:
+        filter_list = request.GET.get('filter',None)
 
     #sending all the users of community
 
