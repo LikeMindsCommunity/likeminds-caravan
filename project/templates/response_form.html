@@ -159,10 +159,10 @@
                         <label class="c4a fs15 fwR lh14 p10 m0">{{question.data}}</label>
                         <div class="dT wp100">
                             <div class="ui fluid search selection dropdown dTc vM w120 pR h48 bd0 br8 bxs2 country_codes">
-                                <input type="hidden" name="country" id="{{question.id}}_country_code">
+                                <input type="hidden" name="country" id="{{question.id}}_country_code" value="India | 91">
                                 <i class="dropdown icon"></i>
                                 <div class="default text fs0">
-                                    <span class="fL fs14"><i class="in flag"></i>+91</span>
+                                    <span class="fL fs14"><i class="in flag"></i>91</span>
                                 </div>
                                 <div class="menu pA t48 l0 w280">
                                     {% include 'components/country_codes.html' %}
@@ -427,17 +427,19 @@
                                 country_code = country_code[1] + "-";
                             }
                         }
-                        value = country_code + $('#{{question.id}}').val();
+                        value = $('#{{question.id}}').val();
                         {% if question.optional %}
                             if(value!=''){
-                                values_dict['value'] = value;
+                                values_dict['value'] = country_code + value;
                                 values_list.push(values_dict)
                             }
                         {% else %}
                             if(value != ''){
-                                values_dict['value'] = value;
+                                values_dict['value'] = country_code + value;
                                 values_list.push(values_dict)
                             } else{
+                                // country code default value set to 91 => india, 
+                                // when not set to default, check is required here for showing error in case of required input
                                 $("#div_{{question.id}}").addClass("error");
                                 var tag_div_html = `<div class="ui negative message" id="hidden_div_{{question.id}}">
                                                         <i class="close icon" onclick="remove_error('{{question.id}}')"></i>
