@@ -698,7 +698,7 @@ def get_introduction_answer(community_instance, member_instance):
                                                                    question_id=question_id)
         if introduction_answer_list.exists():
             introduction_answer = introduction_answer_list[0].question_answer
-            return introduction_answer[:30]
+            return introduction_answer
 
     if not introduction_answer:
         epoch_time = member_instance.created_at
