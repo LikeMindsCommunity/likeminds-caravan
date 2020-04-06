@@ -151,7 +151,7 @@ body ::-webkit-scrollbar { display: none; }
 .wsN { white-space: nowrap; }
 
 .toE { text-overflow: ellipsis; }
-.lc2 { -webkit-line-clamp: 3; }
+.lc2 { -webkit-line-clamp: 2; }
 
 .oA { overflow: auto; }
 .oH { overflow: hidden; }
