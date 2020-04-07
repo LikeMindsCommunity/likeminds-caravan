@@ -2,75 +2,47 @@
 {% load static %}
 <html>
     <head>
-
-
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-
         <link rel="shortcut icon" href="https://beta.likeminds.community/media/media/ic_launcher_round.png">
-
-        <meta name="author" content="colorlib">
-
-
         <meta name="keywords" content="">
-
         <meta charset="UTF-8">
-
         <title>{{community.name}}</title>
-        <meta name="description"
-              content={{community.name}}/>
+        <meta name="description" content={{community.name}}/>
         {% if not community.thumbnail %}
-        <meta property="og:image" itemprop="image"
-              content='https://beta.likeminds.community/media/media/ic_launcher_round.png'/>
+        <meta property="og:image" itemprop="image" content='https://beta.likeminds.community/media/media/ic_launcher_round.png'/>
         {% else %}
-            <meta property="og:image" itemprop="image"
-              content='{{community.thumbnail}}'/>
+        <meta property="og:image" itemprop="image" content='{{community.thumbnail}}'/>
         {% endif %}
         <meta property="og:title" content="{{community.name}}"/>
-        <meta property="og:description"
-              content="{{community.purpose}}"/>
+        <meta property="og:description" content="{{community.purpose}}"/>
         <meta property="og:type" content="website"/>
-
-
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.css"/>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.js"></script>
         <script async src="https://www.googletagmanager.com/gtag/js?id=UA-130288684-1"></script>
         <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
-
         <link rel="stylesheet" href="{% static 'css/community.css' %}">
         <link rel="stylesheet" href="{% static 'css/main_css/community.css' %}">
         <link rel="stylesheet" href="{% static 'css/mahaDev/mahaDev.css' %}">
         <link href="https://fonts.googleapis.com/css?family=Roboto:400,500,500i,700&display=swap" rel="stylesheet">
-
-
         <style>
-
             #test{
                 display: none; position:absolute; bottom:0; left:0;bottom:0%;
             }
-
             .ui.checkbox input:checked ~ label:before {
-            background-color: #00897b !important;
+                background-color: #00897b !important;
             }
-
-
             .ui.checkbox input:checked ~ label:after {
-            color: white !important;
-
-
+                color: white !important;
             }
-
             .checkbox label:before {
-            transform: scale(1.1); !important
+                transform: scale(1.1) !important;
             }
             .checkbox label:after {
-            transform: scale(1); !important
+                transform: scale(1) !important;
             }
-
-
             .profile_pic{
-
                 content: '';
                 position: absolute ;
                 top: 2% ;
@@ -87,26 +59,19 @@
                 box-shadow: 0 0 6px rgba(0, 0, 0, .3);
             }
         </style>
-
     </head>
-
     <body>
         <div style="margin:0 auto; max-width:786px;background-color:#f0f5f5;position:relative;">
             
             {% include 'components/header.html' with data=header %}
 
-            {% if members_length > 0 %}
+            {% if (members_length > 0) && (selected || len(filter_list) > 0) %}
                 <div class="bdbE bgF bs ffR fs15 ls05 mt56 oA p8 pl12 wsN">
-
                     {% if selected %}
-
-                         <button class="bd0 bgF cT dIb fs15 h32 ls05 m04 p0 p08 pl16 vM" onclick="location.href='/members_directory/{{community_id}}'">
-                                <div class="dIb vM" id="clear">Clear</div>
-
-                            </button>
-
+                        <button class="bd0 bgF cT dIb fs15 h32 ls05 m04 p0 p08 pl16 vM" onclick="location.href='/members_directory/{{community_id}}'">
+                            <div class="dIb vM" id="clear">Clear</div>
+                        </button>
                     {% endif %}
-
                     {% for i in filter_list %}
                         {% if not i.selected %}
                             <button class="bdT bgF br16 bs cT dIb fs15 h32 ls05 m04 p0 p08 pl16 vM">
@@ -129,17 +94,13 @@
             </div>
         </div>
 
-
-
         <!-- pop-up for dropdowns -->
         <div id="test">
             <div class="ui fluid card" style="max-width:786px;" id="filters"></div>
         </div>
-        <!-- -->
 
         <!-- profile pop-up -->
         <div class="ui modal w320" id="display"></div>
-        <!-- -->
 
         <!-- unverified member profile pop-up-->
         <div class="ui modal ffR p24 bs w280" id="unverified_member">
@@ -153,8 +114,6 @@
             <div class="cT fs13 fwM ls05 p12 taC change_email">CHANGE EMAIL ID</div>
             <div class="c9 fs13 fwM ls05 p12 pb0 taC dismiss_email">DISMISS</div>
         </div>
-        <!-- -->
-
 
          <!-- unverified filter profile pop-up-->
         <div class="ui modal ffR p24 bs w280" id="filter_unverified">
@@ -168,8 +127,6 @@
             <div  class="cT fs13 fwM ls05 p12 taC change_email">CHANGE EMAIL ID</div>
             <div  class="c9 fs13 fwM ls05 p12 pb0 taC dismiss_email">DISMISS</div>
         </div>
-        <!-- -->
-
 
         <!-- update secondary email -->
         <div class="ui modal ffR p24 bs w280 pb12" id="secondary_email">
@@ -184,7 +141,6 @@
                 <div class="bs cT dIb fs13 fwM ls05 p120 taC vM" id="update_secondary_email">SUBMIT</div>
             </div>
         </div>
-        <!-- -->
 
         <!-- login model for exclusive communities -->
         <div class="ui modal image_container_login w300" id="login_popup">
@@ -214,511 +170,399 @@
                         </a>
                     </div>
                 </div>
-            <!-- -->
-
-    </body>
-
-</html>
-
-
-
-
-
-<script>
-
-function checking(){
-
-$('#test').hide()
-
-}
-
-
-function getParamsFromUrl(){
-
-    let searchParams = new URLSearchParams(window.location.search)
-
-    var members=""
-    var filter=""
-    var option_data=""
-
-    if(searchParams.has('members'))
-        members = searchParams.get('members')
-
-    if(searchParams.has('filter'))
-        filter = searchParams.get('filter')
-
-    if(searchParams.has('option_data'))
-        option_data = searchParams.get('option_data')
-
-    return_value = [members,filter,option_data]
-    return return_value
-
-
-}
-
-
-
-
-//functionality to show filter list
-
-    {% for filter in filter_list %}
-
-        $('#{{filter.question_id}}').click(function(){
-
-
-
-            {% if not request.user.is_authenticated %}
-                $('#login_popup').modal('show');
-                console.log("user is not authenticated");
-                return;
-
-            {% elif not is_member %}
-                {% if member_state == 3 %}
-                    $('#filter_unverified').modal('show');
-                {% endif %}
-                console.log("user is not a member");
-                return;
-
-            {% endif %}
-
-
-
-            html=`
-
-            <div class="ui two column grid">
-                  <div class="row">
-                     <div class="column RobotoMedium" style="padding-left:40px;padding-top:10px;padding-bottom:6px;font-size:17px;" >
-                       <p id="question_heading">{{filter.question_title}}</p>
-                     </div>
-
-                      <div class="column" style="padding-left:160px;padding-top:10px;padding-bottom:10px; font-size:17px;" >
-
-                          <i class="close icon" onclick="checking()"></i>
-
-                      </div>
-
-                  </div>
-                  `
-
-            {% for value in filter.values %}
-
-            html=html +`
-                  <br/>
-                    <div class="row">
-                         <div class="column Roboto" style="font-size:17px;padding-left:40px;text-align:left">
-                            {{value.option}}
-                         </div>
-
-                          <div class="column Roboto" style="padding-left:160px;">
-                              {% if value.is_selected %}
-
-                              <div class="ui checkbox">
-                                    <input type="checkbox" name="example" value = "{{value.option}}"  class="t1" checked>
-                                    <label></label>
-                                </div>
-                              {% else %}
-
-
-                                   <div class="ui checkbox">
-                                    <input type="checkbox" name="example" value = "{{value.option}}"  class="t1">
-                                    <label></label>
-                                </div>
-
-                              {% endif %}
-
-                          </div>
-                      </div>
-
-                 <hr style="border-style:solid;border-width:1px;border-color:white;">
-
-
-
-
-            `
-            {% endfor %}
-
-            html=html+"</div> <br/>"
-            html=html+`
-            <div style="padding-left:30%;padding-bottom:5%;">
-                        <button style="z-index:2; background-color: #00897b; border-radius:20px;
-                                           color:#00897b;width:50%;white-space: nowrap; border: 1px solid #00897b;font-size:12px;"
-                                           class="apply_filter" value="{{filter.question_id}}">
-                                               <p class="Roboto" style="padding-top:5px;padding-bottom:5px;padding-left:10px;padding-right:5px;color:white;
-                ">APPLY FILTER</p>
-                        </button>
             </div>
+        </div>
 
-
-            `
-
-            $('#filters').html(html)
-
-
-
-                 $('#test').animate({
-                    height: 'toggle'
-                    }, 300, function() {
+        <!-- scripts -->
+        <script>
+            function checking(){
+                $('#test').hide();
+            }
+        
+            function getParamsFromUrl(){
+                let searchParams = new URLSearchParams(window.location.search);
+                var members="";
+                var filter="";
+                var option_data="";
+        
+                if(searchParams.has('members')){
+                    members = searchParams.get('members');
+                }
+        
+                if(searchParams.has('filter')){
+                    filter = searchParams.get('filter');
+                }
+        
+                if(searchParams.has('option_data')){
+                    option_data = searchParams.get('option_data');
+                }
+        
+                return_value = [members, filter, option_data];
+                return return_value;
+        
+            }
+        
+            //functionality to show filter list
+            {% for filter in filter_list %}
+                $('#{{filter.question_id}}').click(function(){
+                    {% if not request.user.is_authenticated %}
+                        $('#login_popup').modal('show');
+                        console.log("user is not authenticated");
+                        return;
+                    {% elif not is_member %}
+                        {% if member_state == 3 %}
+                            $('#filter_unverified').modal('show');
+                        {% endif %}
+                        console.log("user is not a member");
+                        return;
+                    {% endif %}
+                    html=`
+                        <div class="ui two column grid">
+                            <div class="row">
+                                <div class="column RobotoMedium" style="padding-left:40px;padding-top:10px;padding-bottom:6px;font-size:17px;" >
+                                    <p id="question_heading">{{filter.question_title}}</p>
+                                </div>
+                                <div class="column" style="padding-left:160px;padding-top:10px;padding-bottom:10px; font-size:17px;" >
+                                    <i class="close icon" onclick="checking()"></i>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+        
+                    {% for value in filter.values %}
+                        html=html +`
+                            <br/>
+                            <div class="row">
+                                <div class="column Roboto" style="font-size:17px;padding-left:40px;text-align:left">
+                                    {{value.option}}
+                                </div>
+                                <div class="column Roboto" style="padding-left:160px;">
+                                    {% if value.is_selected %}
+                                        <div class="ui checkbox">
+                                            <input type="checkbox" name="example" value = "{{value.option}}"  class="t1" checked>
+                                            <label></label>
+                                        </div>
+                                    {% else %}
+                                        <div class="ui checkbox">
+                                            <input type="checkbox" name="example" value = "{{value.option}}"  class="t1">
+                                            <label></label>
+                                        </div>
+                                    {% endif %}
+        
+                                </div>
+                            </div>
+                            <hr style="border-style:solid;border-width:1px;border-color:white;">
+                        `;
+                    {% endfor %}
+        
+                    html=html+"</div> <br/>";
+                    html=html+`
+                        <div style="padding-left:30%;padding-bottom:5%;">
+                            <button style="z-index:2; background-color: #00897b; border-radius:20px;color:#00897b;width:50%;white-space: nowrap; border: 1px solid #00897b;font-size:12px;" class="apply_filter" value="{{filter.question_id}}">
+                                <p class="Roboto" style="padding-top:5px;padding-bottom:5px;padding-left:10px;padding-right:5px;color:white;">APPLY FILTER</p>
+                            </button>
+                        </div>
+                    `;
+        
+                    $('#filters').html(html);
+                    $('#test').animate({
+                        height: 'toggle'
+                    }, 300, function() {});
                 });
-
-        })
-
-
-
-
-    {% endfor %}
-
-
-
-
-
-
-
-
-
-
-//functionality to apply filter
-$(document.body).on('click', '.apply_filter' ,function(){
-
-var option_list=[]
-
-var question_id = $('.apply_filter').val()
-
-$('.t1').each(function () {
-       var sThisVal = (this.checked ? $(this).val() : "");
-
-       if(sThisVal)
-       {
-            option_list.push(sThisVal)
-
-       }
-  });
-
-
-existing_filter = getParamsFromUrl()
-
-console.log(existing_filter)
-console.log(option_list)
- option_data={
-    'data':JSON.stringify(option_list),
-    'csrfmiddlewaretoken':'{{csrf_token}}',
-    'question_id':question_id,
-    'member_ids':existing_filter[0],                            //for already selected members
-    'question_ids':existing_filter[1],                          //for already selected question ids
-    'options':existing_filter[2]                                //for already selected options
-
-
-
-    }
-
-  $.ajax({
-
-            url:"/members_directory/"+"{{community_id}}",
-            data:option_data,
-            type:"POST",
-            dataType:'json',
-            success:function(data){
-             console.log(data)
-
-
-             url="/members_directory/"+"{{community_id}}?members="+data['members']+"&filter="+data['filter']+ "&option_data=" + data['option_data']
-             //url="/members_directory/"+"{{community_id}}?members="+data['members']
-
-             console.log(url)
-             location.href=url
-
+            {% endfor %}
+        
+        
+            //functionality to apply filter
+            $(document.body).on('click', '.apply_filter' ,function(){
+                var option_list=[];
+                var question_id = $('.apply_filter').val();
+                $('.t1').each(function () {
+                    var sThisVal = (this.checked ? $(this).val() : "");
+                    if(sThisVal){
+                        option_list.push(sThisVal);
+                    }
+                });
+        
+                existing_filter = getParamsFromUrl();
+        
+                console.log(existing_filter);
+                console.log(option_list);
+        
+                option_data={
+                    'data':JSON.stringify(option_list),
+                    'csrfmiddlewaretoken':'{{csrf_token}}',
+                    'question_id':question_id,
+                    'member_ids':existing_filter[0],                            //for already selected members
+                    'question_ids':existing_filter[1],                          //for already selected question ids
+                    'options':existing_filter[2]                                //for already selected options
+                };
+        
+                $.ajax({
+                    url:"/members_directory/"+"{{community_id}}",
+                    data:option_data,
+                    type:"POST",
+                    dataType:'json',
+                    success:function(data){
+                        console.log(data);
+                        url="/members_directory/"+"{{community_id}}?members="+data['members']+"&filter="+data['filter']+ "&option_data=" + data['option_data'];
+                        //url="/members_directory/"+"{{community_id}}?members="+data['members']
+                        console.log(url);
+                        location.href=url;
+                    }
+                });
+            });
+        
+            //functionality to show back button click
+            $('#back_click').click(function(e){
+                location.href="/community/"+"{{community_id}}";
+            });
+        
+            // functionality to show member pop-up
+            $(document.body).on('click','.member_link',function(e){
+                member_id=$(this).attr('member_id');
+                {% if not request.user.is_authenticated %}
+                    $('#login_popup').modal('show');
+                    console.log("user is not authenticated");
+                {% elif not is_member %}
+                    {% if member_state == 3 %}
+                        $('#unverified_member').modal('show');
+                    {% endif %}
+                    console.log("test");
+                {% else %}
+                    showMemberProfile(member_id);
+                {% endif %}
+            });
+        
+            $(document.body).on('click','.dismiss_email',function(e){
+                $('#unverified_member').modal('hide');
+            })
+        
+            $(document.body).on('click','.change_email',function(e){
+                $('#unverified_member').modal('hide');
+                $('#secondary_email').modal('show');
+            })
+        
+            update_email();
+        
+            function update_email(){
+                $('#update_secondary_email').click(function(e){
+                    email=$('#secondary_email_text').val();
+                    console.log(email);
+                    json_data={
+                        'data':'{{request.user.id}}',
+                        'email':email,
+                        'csrfmiddlewaretoken':'{{csrf_token}}',
+                    }
+                    $.ajax({
+                        url:"/update_email",
+                        data:json_data,
+                        type:"POST",
+                        dataType:'json',
+                        success:function(data){
+                            console.log('hello');
+                            if(data['success']){
+                                alert("updated");
+                            }
+                            $('#secondary_email').modal('hide');
+                        }
+                    })
+                })
             }
-
-         })
-
-
-
-
-})
-
-
-
-    //functionality to show back button click
-    $('#back_click').click(function(e){
-
-location.href="/community/"+"{{community_id}}"
-
-})
-
-
-
-
-
-
-// functionality to show member pop-up
-
-
-
-    // functionality to show member pop-up
-    $(document.body).on('click','.member_link',function(e){
-
-    member_id=$(this).attr('member_id')
-
-
-    {% if not request.user.is_authenticated %}
-        $('#login_popup').modal('show');
-        console.log("user is not authenticated");
-
-    {% elif not is_member %}
-        {% if member_state == 3 %}
-            $('#unverified_member').modal('show');
-        {% endif %}
-        console.log("test")
-
-    {% else %}
-        showMemberProfile(member_id);
-    {% endif %}
-
-    })
-
-
-
-
-    $(document.body).on('click','.dismiss_email',function(e){
-        $('#unverified_member').modal('hide');
-    })
-
-    $(document.body).on('click','.change_email',function(e){
-        $('#unverified_member').modal('hide');
-        $('#secondary_email').modal('show');
-    })
-
-    update_email();
-
-    function update_email(){
-
-
-        $('#update_secondary_email').click(function(e){
-
-        email=$('#secondary_email_text').val()
-        console.log(email)
-        json_data={
-            'data':'{{request.user.id}}',
-            'email':email,
-            'csrfmiddlewaretoken':'{{csrf_token}}',
-            }
-
-        $.ajax({
-
-                    url:"/update_email",
+        
+            function showMemberProfile(member_id){
+                community_id = {{community_id}};
+                json_data = {
+                    'data':member_id,
+                    'community_id':community_id,
+                    'csrfmiddlewaretoken':'{{csrf_token}}',
+                }
+                console.log(json_data);
+                $.ajax({
+                    url:"/member_profile",
                     data:json_data,
                     type:"POST",
                     dataType:'json',
                     success:function(data){
-                    console.log('hello');
-                    if(data['success']){
-
-                        alert("updated")
-                    }
-
-                    $('#secondary_email').modal('hide');
-
-                    }
-
-                })
-
-
-
-        })
-    }
-
-
-
-    function showMemberProfile(member_id){
-        community_id = {{community_id}};
-        json_data = {
-            'data':member_id,
-            'community_id':community_id,
-            'csrfmiddlewaretoken':'{{csrf_token}}',
-        }
-        console.log(json_data);
-        $.ajax({
-            url:"/member_profile",
-            data:json_data,
-            type:"POST",
-            dataType:'json',
-            success:function(data){
-                console.log(data['answer_list'])
-                html = `
-                    <div class="h96 mtn38 taC pR z1">
-                        <div class="w96 h96 brp50 bd2F bs bxs oH dIb vM bgF">
-                            <img class="w96 h96 ofC" src=${data['image_link']} >
-                        </div>
-                    </div>
-                    <div class="pR mtn58 br8 oH bgF">
-                        <div class="h96">
-                            <img class="wp100 ofC h96" src="https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Fprofile_header?alt=media&token=fa838851-244c-4cbc-81da-3d2125536e18">
-                        </div>
-                        <div class="h2"></div>
-                        <p class="p0 m0 taC fwM fs16 c0 lh20">${data['member_name']}</p>
-                    </div>
-                    <div class="p18 bs">
-                `
-                var refined_answer_obj = data['answer_list'].reduce(function(returnValue, answer) {
-                    if(answer.answer_privacy !== false){
-                        (returnValue[answer.rank] = returnValue[answer.rank] || []).push(answer);
-                    }
-                    return returnValue;
-                }, {});
-
-                console.log('refined_answer_obj', refined_answer_obj);
-
-                // var refined_answer_array = Object.keys(refined_answer_obj).map(function (answer) {
-                //     return f[answer]; 
-                // });
-                
-                $.each( refined_answer_obj, function( index, value ) {
-                    segment = ""
-                    if (index == 1) {
-                        segment = `
-                                <div class="dT mb10 tlF wp100">
-                                    <div class="dTc h24 vM w24 taC"><img class="dIb mxh24 mxw24 vM" src="/media/main_website/ic_email_48_px.png" /></div>
-                                    <div class="c9b dTc fs13 vM lh1h16 p08 bs">
-                        `;
-                                        $.each( value, function( index2, value2 ){
-                                            segment = segment + value2.answer;
-                                            if ( index2 != value.length - 1 ) {
-                                                segment = segment + ', ';
-                                            }
-                                        });
-                        segment = segment + `
-                                    </div>
+                        console.log(data['answer_list'])
+                        html = `
+                            <div class="h96 mtn38 taC pR z1">
+                                <div class="w96 h96 brp50 bd2F bs bxs oH dIb vM bgF">
+                                    <img class="w96 h96 ofC" src=${data['image_link']} >
                                 </div>
-                        `;
-                        html = html + segment;
-                    }else if(index == 2 ){
-                        segment = `
-                                <div class="dT mb10 tlF wp100">
-                                    <div class="dTc h24 vM w24 taC"><img class="dIb mxh24 mxw24 vM" src="/media/main_website/mobile_alt.png"/></div>
-                                    <div class="c9b dTc fs13 vM lh1h16 p08 bs">
-                        `;
-                                        $.each( value, function( index2, value2 ){
-                                            segment = segment + value2.answer;
-                                            if ( index2 != value.length - 1 ) {
-                                                segment = segment + ', ';
-                                            }
-                                        });
-                        segment = segment + `
-                                    </div>
+                            </div>
+                            <div class="pR mtn58 br8 oH bgF">
+                                <div class="h96">
+                                    <img class="wp100 ofC h96" src="https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Fprofile_header?alt=media&token=fa838851-244c-4cbc-81da-3d2125536e18">
                                 </div>
+                                <div class="h2"></div>
+                                <p class="p0 m0 taC fwM fs16 c0 lh20">${data['member_name']}</p>
+                            </div>
+                            <div class="p18 bs">
                         `;
-                        html = html + segment
-                    }else if(index == 3 ){
-                        segment = `
-                                <div class="dT mb10 tlF wp100">
-                                    <div class="dTc h24 vM w24 taC"><img class="dIb mxh24 mxw24 vM" src="/media/main_website/link.png"/></div>
-                                    <div class="c9b dTc fs13 vM lh1h16 p08 bs">
-                        `;
-                                        $.each( value, function( index2, value2 ){
-                                            segment = segment + `<a class="cT tdN" href="//${value2['profile_link']}">${value2['answer']}</a>`;
-                                            if ( index2 != value.length - 1 ) {
-                                                segment = segment + ', ';
-                                            }
-                                        });
-                        segment = segment + `
-                                    </div>
-                                </div>
-                        `;
-                        html = html + segment
-                    }else if(index == 4){
-                        segment = ''
-                        $.each( value, function( index2, value2 ){
-                            segment = segment + `<p class="c4a fs15 lh24 m160">${value2['answer']}</p>`;
-                            if ( index2 != value.length - 1 ) {
-                                segment = segment + ', ';
+                        var refined_answer_obj = data['answer_list'].reduce(function(returnValue, answer) {
+                            if(answer.answer_privacy !== false){
+                                (returnValue[answer.rank] = returnValue[answer.rank] || []).push(answer);
                             }
-                        });
-                        html = html + segment
-                    }else if(index == 5){
-                        segment = ''
-                        $.each( value, function( index2, value2 ){
-                            segment = segment + `
-                                <a class="cT dB m160 tdN" href="//${value2['file_link']}">
-                                    ${value2['answer']}
-                                </a>
-                            `;
-                            if ( index2 != value.length - 1 ) {
-                                segment = segment + ', ';
+                            return returnValue;
+                        }, {});
+        
+                        console.log('refined_answer_obj', refined_answer_obj);
+        
+                        // var refined_answer_array = Object.keys(refined_answer_obj).map(function (answer) {
+                        //     return f[answer]; 
+                        // });
+                        
+                        $.each( refined_answer_obj, function( index, value ) {
+                            segment = ""
+                            if (index == 1) {
+                                segment = `
+                                        <div class="dT mb10 tlF wp100">
+                                            <div class="dTc h24 vM w24 taC"><img class="dIb mxh24 mxw24 vM" src="/media/main_website/ic_email_48_px.png" /></div>
+                                            <div class="c9b dTc fs13 vM lh1h16 p08 bs">
+                                `;
+                                                $.each( value, function( index2, value2 ){
+                                                    segment = segment + value2.answer;
+                                                    if ( index2 != value.length - 1 ) {
+                                                        segment = segment + ', ';
+                                                    }
+                                                });
+                                segment = segment + `
+                                            </div>
+                                        </div>
+                                `;
+                                html = html + segment;
+                            }else if(index == 2 ){
+                                segment = `
+                                        <div class="dT mb10 tlF wp100">
+                                            <div class="dTc h24 vM w24 taC"><img class="dIb mxh24 mxw24 vM" src="/media/main_website/mobile_alt.png"/></div>
+                                            <div class="c9b dTc fs13 vM lh1h16 p08 bs">
+                                `;
+                                                $.each( value, function( index2, value2 ){
+                                                    segment = segment + value2.answer;
+                                                    if ( index2 != value.length - 1 ) {
+                                                        segment = segment + ', ';
+                                                    }
+                                                });
+                                segment = segment + `
+                                            </div>
+                                        </div>
+                                `;
+                                html = html + segment
+                            }else if(index == 3 ){
+                                segment = `
+                                        <div class="dT mb10 tlF wp100">
+                                            <div class="dTc h24 vM w24 taC"><img class="dIb mxh24 mxw24 vM" src="/media/main_website/link.png"/></div>
+                                            <div class="c9b dTc fs13 vM lh1h16 p08 bs">
+                                `;
+                                                $.each( value, function( index2, value2 ){
+                                                    segment = segment + `<a class="cT tdN" href="//${value2['profile_link']}">${value2['answer']}</a>`;
+                                                    if ( index2 != value.length - 1 ) {
+                                                        segment = segment + ', ';
+                                                    }
+                                                });
+                                segment = segment + `
+                                            </div>
+                                        </div>
+                                `;
+                                html = html + segment
+                            }else if(index == 4){
+                                segment = ''
+                                $.each( value, function( index2, value2 ){
+                                    segment = segment + `<p class="c4a fs15 lh24 m160">${value2['answer']}</p>`;
+                                    if ( index2 != value.length - 1 ) {
+                                        segment = segment + ', ';
+                                    }
+                                });
+                                html = html + segment
+                            }else if(index == 5){
+                                segment = ''
+                                $.each( value, function( index2, value2 ){
+                                    segment = segment + `
+                                        <a class="cT dB m160 tdN" href="//${value2['file_link']}">
+                                            ${value2['answer']}
+                                        </a>
+                                    `;
+                                    if ( index2 != value.length - 1 ) {
+                                        segment = segment + ', ';
+                                    }
+                                });
+                                html = html + segment
+                            }else{
+                                segment = ''
+                                $.each( value, function( index2, value2 ){
+                                    segment = segment + `<p class="c9b fs15 lh24 m160 m80 ">${value2['answer']}</p>`;
+                                   
+                                });
+                                html = html + segment
                             }
-                        });
-                        html = html + segment
-                    }else{
-                        segment = ''
-                        $.each( value, function( index2, value2 ){
-                            segment = segment + `<p class="c9b fs15 lh24 m160 m80 ">${value2['answer']}</p>`;
-                           
-                        });
-                        html = html + segment
+                        })
+                        $('#display').html(html + '</div><div class="fs13 p12 taC fwM" id="dismiss1">DISMISS</div>')
+                        $('#display').modal('show');
+                        $(".dimmer").css("background-color","rgba(40,40,40,0.5)");
+                        $('#dismiss1').click(function(){
+                            $('#display').modal('hide');
+                        })
                     }
-                })
-                $('#display').html(html + '</div><div class="fs13 p12 taC fwM" id="dismiss1">DISMISS</div>')
-                $('#display').modal('show');
-                $(".dimmer").css("background-color","rgba(40,40,40,0.5)");
-                $('#dismiss1').click(function(){
-                    $('#display').modal('hide');
                 })
             }
-        })
-    }
-
-    // google login
-    function authServer(token, element){
-        $.ajax({
-            url: "/api/login",
-            data: {"type": "google", "google_id_token": token},
-            type: "POST",
-            // dataType: "json",
-            success: function(data){
-                console.log("Google auth success", data);
-                window.location.href = $(element).attr("data-next");
-            },
-            error: function(data){
-                console.log("Google auth failure", data);
+        
+            // google login
+            function authServer(token, element){
+                $.ajax({
+                    url: "/api/login",
+                    data: {"type": "google", "google_id_token": token},
+                    type: "POST",
+                    // dataType: "json",
+                    success: function(data){
+                        console.log("Google auth success", data);
+                        window.location.href = $(element).attr("data-next");
+                    },
+                    error: function(data){
+                        console.log("Google auth failure", data);
+                    }
+                });
             }
-        });
-    }
-    function attachSignin(element) {
-        auth2.attachClickHandler(element, {},
-            function(googleUser) {
-                var profile = googleUser.getBasicProfile();
-                var id_token = googleUser.getAuthResponse().id_token;
-                console.log('ID: ' + profile.getId()); // Do not send to your backend! Use an ID token instead.
-                console.log('Name: ' + profile.getName());
-                console.log('Image URL: ' + profile.getImageUrl());
-                console.log('Email: ' + profile.getEmail()); // This is null if the 'email' scope is not present.
-                authServer(id_token, element);
-            }, function(error) {
-                console.log(JSON.stringify(error, undefined, 2));
-            });
-    }
-    (function(w,d,s){
-        var f = d.getElementsByTagName(s)[0],
-            j = d.createElement(s);
-        j.async = true;
-        j.defer = true;
-        j.onload = function(){
-            gapi.load('auth2', function(){
-                // Retrieve the singleton for the GoogleAuth library and set up the client.
-                auth2 = gapi.auth2.init({
-                    client_id: "{{ google_oauth_client_id }}",
-                    cookiepolicy: 'single_host_origin',
-                    // Request scopes in addition to 'profile' and 'email'
-                    // scope: 'additional_scope'
-                });
-                $(".googleSignin").removeClass("dN").each(function(){
-                    attachSignin(this);
-                });
-            });
-        };
-        j.onerror = function(){};
-        j.src = 'https://apis.google.com/js/api:client.js';
-        f.parentNode.insertBefore(j,f);
-    })(window,document,'script');
-</script>
+            function attachSignin(element) {
+                auth2.attachClickHandler(element, {},
+                    function(googleUser) {
+                        var profile = googleUser.getBasicProfile();
+                        var id_token = googleUser.getAuthResponse().id_token;
+                        console.log('ID: ' + profile.getId()); // Do not send to your backend! Use an ID token instead.
+                        console.log('Name: ' + profile.getName());
+                        console.log('Image URL: ' + profile.getImageUrl());
+                        console.log('Email: ' + profile.getEmail()); // This is null if the 'email' scope is not present.
+                        authServer(id_token, element);
+                    }, function(error) {
+                        console.log(JSON.stringify(error, undefined, 2));
+                    });
+            }
+            (function(w,d,s){
+                var f = d.getElementsByTagName(s)[0],
+                    j = d.createElement(s);
+                j.async = true;
+                j.defer = true;
+                j.onload = function(){
+                    gapi.load('auth2', function(){
+                        // Retrieve the singleton for the GoogleAuth library and set up the client.
+                        auth2 = gapi.auth2.init({
+                            client_id: "{{ google_oauth_client_id }}",
+                            cookiepolicy: 'single_host_origin',
+                            // Request scopes in addition to 'profile' and 'email'
+                            // scope: 'additional_scope'
+                        });
+                        $(".googleSignin").removeClass("dN").each(function(){
+                            attachSignin(this);
+                        });
+                    });
+                };
+                j.onerror = function(){};
+                j.src = 'https://apis.google.com/js/api:client.js';
+                f.parentNode.insertBefore(j,f);
+            })(window,document,'script');
+        </script>
+        
+    </body>
+</html>
 
 
 
