@@ -181,17 +181,17 @@
                 {% elif Nom_mem_state == 3 %}
                     <button class="h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" disabled>Pending Approval</button>
                 {% elif Nom_mem_state == 1%}
-                    <button class="h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" disabled>You are a promoter</button>
+                    <button class="h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" onclick="window.location.href='/download_the_app'">Open in App<!-- You are a promoter --></button>
                 {% elif Nom_mem_state == 2 %}
-                    <button class="h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" disabled>You are a promoter</button>
+                    <button class="h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" onclick="window.location.href='/download_the_app'">Open in App<!-- You are a promoter --></button>
                 {% elif Nom_mem_state == 4 %}
-                    <button class="h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" disabled>Already a Member</button>
+                    <button class="h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" onclick="window.location.href='/download_the_app'">Open in App<!-- Already a Member --></button>
                 {% elif Nom_mem_state == 5 %}
-                    <button class="h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" onclick="join('{{community.id}}')">Join Community(Declined)</button>
+                    <button class="h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" onclick="join('{{community.id}}')">Join Community (Declined)</button>
                 {% elif source == 'email' %}
                     <button class="h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" onclick="accept_admin();">Respond to invitation</button>
                 {% elif Nom_mem_state == 0 %}
-                    <button class="h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" onclick="join('{{community.id}}')"> Join Community</button>
+                    <button class="h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" onclick="join('{{community.id}}')">Join Community</button>
                 {% endif %}
             </div>
         </div>
@@ -212,7 +212,7 @@
                 </div>
             </div>
             <div class="actions">
-                <div class="ui positive right labeled icon button" style="background-color:#00897b;" id="Download" onclick="window.location.href = '{{android_app_link}}';">
+                <div class="ui positive right labeled icon button" style="background-color:#00897b;" id="Download" onclick="window.location.href='{{android_app_link}}';">
                     Download
                     <i class="arrow alternate circle down icon"></i>
 
@@ -526,7 +526,7 @@
             function accept_admin(cta,community_id,Nom_mem_state){
                 {% if user.is_authenticated %}
                     if (Nom_mem_state!=6 & Nom_mem_state!=7){
-                        alert("Sorry!You are not the Nominated Promoter of this Community");
+                        alert("Sorry! You are not the Nominated Promoter of this Community");
                         return;
                     }
                     $('.accept').modal('show');
