@@ -1377,7 +1377,7 @@ def get_community_questions(community_id):
                     temp['dropdown_list'] = dropdown_list
                     temp['allowed_addition'] = False
                     if not each_question.help_text:
-                        temp['help_text'] = "Select a option"
+                        temp['help_text'] = "Select an option"
 
 
                 else:
@@ -1386,9 +1386,9 @@ def get_community_questions(community_id):
                     temp['dropdown_list'] = dropdown_list
                     if not each_question.help_text:
                         if len(dropdown_list) > 0:
-                            temp['help_text'] = "Select or enter a option"
+                            temp['help_text'] = "Select or enter an option"
                         else:
-                            temp['help_text'] = "Enter a option"
+                            temp['help_text'] = "Enter an option"
 
 
 
