@@ -1373,22 +1373,22 @@ def get_community_questions(community_id):
 
                     dropdown_list[index] = item
 
-            if 'Other' not in dropdown_list:
-                temp['dropdown_list'] = dropdown_list
-                temp['allowed_addition'] = False
-                if not each_question.help_text:
-                    temp['help_text'] = "Select a option"
+                if 'Other' not in dropdown_list:
+                    temp['dropdown_list'] = dropdown_list
+                    temp['allowed_addition'] = False
+                    if not each_question.help_text:
+                        temp['help_text'] = "Select a option"
 
 
-            else:
-                dropdown_list.remove('Other')
-                temp['allowed_addition'] = True
-                temp['dropdown_list'] = dropdown_list
-                if not each_question.help_text:
-                    if len(dropdown_list) > 0:
-                        temp['help_text'] = "Select or enter a option"
-                    else:
-                        temp['help_text'] = "Enter a option"
+                else:
+                    dropdown_list.remove('Other')
+                    temp['allowed_addition'] = True
+                    temp['dropdown_list'] = dropdown_list
+                    if not each_question.help_text:
+                        if len(dropdown_list) > 0:
+                            temp['help_text'] = "Select or enter a option"
+                        else:
+                            temp['help_text'] = "Enter a option"
 
 
 
@@ -1407,7 +1407,7 @@ def get_community_questions(community_id):
             temp['help_text'] = each_question.help_text
         question_format.append(temp)
 
- 
+    #print(question_format)
     return question_format
 
 
