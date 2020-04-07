@@ -151,12 +151,14 @@ def is_member_engage(community, member):
 
 def update_pending_member_count_in_engage(community):
     '''function to update the member count in engage'''
-    pending_members_count = Members.objects.filter(community_id=community, state=3).count()
+    pending_members_count = Members.objects.filter(community_id=community, state=member_states.PENDING_MEMBER).count()
     all_members = Members.objects.filter(community_id=community)
     current_time = time.time()
+
+    #update pending members in case of multiple promoters
     for member in all_members:
 
-        if member.state == 1 or member.state == 2:
+        if member.state == member_states.ADMIN or member.state == member_states.TEMP_ADMIN:
             Member_Engage.objects.filter(community_id=community, member_id=member.member_id
                                          ).update(pending_members=pending_members_count,
                                          updated_at=current_time, member_state=member.state)

@@ -1,8 +1,8 @@
 import time
 from togther.models import Community,communityQuestions
-from django.db.models import Count
-
-
+from django.db.models import Count,Q
+import json
+import ast
 
 #function to change the state of intoduction questions
 
@@ -33,11 +33,59 @@ def change_state_of_introduction():
 
 
 
+#function to change the format of dropdown questions
+
+def get_dropdown_questions():
+
+    dropdown_questions = communityQuestions.objects.filter(Q(question_state=1)|Q(question_state=2))
+
+    for question in dropdown_questions:
+
+
+        if question.community.hide_community == '3' or question.community.hide_community == '4' :
+
+            if question.value:
+                index = question.value.find("value")
+
+                if index == -1:
+    
+                    value = change_structure_of_question(question.value)
+                    #print("value--",value)
+                    print("community_id",question.community.id)
+                    #print("value--",value)
+                    print("\n")
+                    question.value = value
+                    question.save()
+
+
+
+
+
+#[{"value":"Engineering"},{"value":"Design \/ Product"},{"value":"Growth \/ Marketing"},{"value":"Community \/ Partnerships"},{"value":"Other"},{"value":"Hiring \/ Legal \/ Finance"},{"value":"Other"}]
+
+def change_structure_of_question(value_list):
+
+
+    try:
+        value_list = json.loads(value_list)
+    except:
+        return
+    ans=[]
+    for value in value_list:
+        temp={}
+        temp['value'] = value
+        ans.append(temp)
+
+    json_dump=json.dumps(ans)
+
+    return json_dump
+
+
 
 
 
 start_time=time.time()
 end_time=time.time()
-change_state_of_introduction()
+get_dropdown_questions()
 diff = (end_time - start_time)
 print(diff)

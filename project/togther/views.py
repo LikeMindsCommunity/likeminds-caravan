@@ -1364,31 +1364,31 @@ def get_community_questions(community_id):
                     if item[-1] == '"':
                         item = item[:-1]
                     community_state = each_question.community.hide_community
-                    if community_state == '5' or community_state == '0'or community_state == '1':
-                        find_index = item.find(":")
-                        if find_index != -1:
-                            item = item[find_index+1:-1].strip()
-                            if item[0] == '"' or item[0] == "'":
-                                item = item[1:-1]
+
+                    find_index = item.find(":")
+                    if find_index != -1:
+                        item = item[find_index+1:-1].strip()
+                        if item[0] == '"' or item[0] == "'":
+                            item = item[1:-1]
 
                     dropdown_list[index] = item
 
-            if 'Other' not in dropdown_list:
-                temp['dropdown_list'] = dropdown_list
-                temp['allowed_addition'] = False
-                if not each_question.help_text:
-                    temp['help_text'] = "Select a option"
+                if 'Other' not in dropdown_list:
+                    temp['dropdown_list'] = dropdown_list
+                    temp['allowed_addition'] = False
+                    if not each_question.help_text:
+                        temp['help_text'] = "Select an option"
 
 
-            else:
-                dropdown_list.remove('Other')
-                temp['allowed_addition'] = True
-                temp['dropdown_list'] = dropdown_list
-                if not each_question.help_text:
-                    if len(dropdown_list) > 0:
-                        temp['help_text'] = "Select or enter a option"
-                    else:
-                        temp['help_text'] = "Enter a option"
+                else:
+                    dropdown_list.remove('Other')
+                    temp['allowed_addition'] = True
+                    temp['dropdown_list'] = dropdown_list
+                    if not each_question.help_text:
+                        if len(dropdown_list) > 0:
+                            temp['help_text'] = "Select or enter an option"
+                        else:
+                            temp['help_text'] = "Enter an option"
 
 
 
@@ -1407,7 +1407,7 @@ def get_community_questions(community_id):
             temp['help_text'] = each_question.help_text
         question_format.append(temp)
 
- 
+    #print(question_format)
     return question_format
 
 
@@ -1431,7 +1431,7 @@ def send_email(email):
     subject = email + " wants to be Notified"
     msg = EmailMultiAlternatives(subject,
                                  email,
-                                 "LikeMinds<hello@collabmates.com>",
+                                 "LikeMinds<hello@likeminds.community>",
                                  [to, 'harsh.shukla@collabmates.com'],
                                  )
     if email:
