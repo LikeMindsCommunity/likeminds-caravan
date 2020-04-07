@@ -39,7 +39,9 @@ FIREBASE_CONFIG = {
 IS_BETA = False
 
 
-ALLOWED_HOSTS = [os.getenv("PROD_ALLOWED_HOST_1"),os.getenv("PROD_ALLOWED_HOST_2"),os.getenv("PROD_ALLOWED_HOST_3")]
+ALLOWED_HOSTS = [os.getenv("PROD_ALLOWED_HOST_1"),os.getenv("PROD_ALLOWED_HOST_2"),
+                 os.getenv("PROD_ALLOWED_HOST_3"), os.getenv("PROD_ALLOWED_HOST_4"),
+                 os.getenv("PROD_ALLOWED_HOST_5")]
 
 
 FCM_SERVER_KEY=os.getenv('PROD_FCM_SERVER_KEY')
