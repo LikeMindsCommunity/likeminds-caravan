@@ -1431,7 +1431,7 @@ def send_email(email):
     subject = email + " wants to be Notified"
     msg = EmailMultiAlternatives(subject,
                                  email,
-                                 "LikeMinds<hello@collabmates.com>",
+                                 "LikeMinds<hello@likeminds.community>",
                                  [to, 'harsh.shukla@collabmates.com'],
                                  )
     if email:
