@@ -44,17 +44,18 @@ def get_dropdown_questions():
 
         if question.community.hide_community == '3' or question.community.hide_community == '4' :
 
-            index = question.value.find("value")
+            if question.value:
+                index = question.value.find("value")
 
-            if index == -1:
-
-                value = change_structure_of_question(question.value)
-                #print("value--",value)
-                print("community_id",question.community.id)
-                print("value--",value)
-                print("\n")
-                question.value = value
-                question.save()
+                if index == -1:
+    
+                    value = change_structure_of_question(question.value)
+                    #print("value--",value)
+                    print("community_id",question.community.id)
+                    #print("value--",value)
+                    print("\n")
+                    question.value = value
+                    question.save()
 
 
 
