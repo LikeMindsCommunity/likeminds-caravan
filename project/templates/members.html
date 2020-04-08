@@ -194,7 +194,7 @@
         //functionality to apply filter
         $(document.body).on('click', '.apply_filter' ,function(){
             var option_list=[];
-            var question_id = $('.apply_filter').val();
+            var question_id = $(this).val();
             var filtersSlected = [];
             $('.t1').each(function () {
                 var sThisVal = (this.checked ? $(this).val() : "");
