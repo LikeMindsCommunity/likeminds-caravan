@@ -663,7 +663,7 @@
             // google login
             function authServer(token, element){
                 $.ajax({
-                    url: "/api/login",
+                    url: "/api/v1/login",
                     data: json.stringify({"type": "google", "google_id_token": token}),
                     type: "POST",
                     dataType: "json",
