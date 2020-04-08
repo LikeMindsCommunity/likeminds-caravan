@@ -805,9 +805,8 @@ def members_directory(request, community_id):
 
         if member_string == "$":
             member_string = ""
-
+        
         context = {'members': member_string,'filter':questions,'option_data':dropdowns}
-
         return JsonResponse(context)
 
     community_instance = Community.objects.get(pk=community_id)
@@ -881,7 +880,6 @@ def members_directory(request, community_id):
         'selected':selected,
         'google_oauth_client_id': settings.GOOGLE_OAUTH_CLIENT_ID
     }
-
 
     return render(request, 'members.html', context)
 
