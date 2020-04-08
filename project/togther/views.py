@@ -1374,12 +1374,12 @@ def get_community_questions(community_id):
                     if item[-1] == '"':
                         item = item[:-1]
                     community_state = each_question.community.hide_community
-                    if community_state == '5' or community_state == '0'or community_state == '1':
-                        find_index = item.find(":")
-                        if find_index != -1:
-                            item = item[find_index+1:-1].strip()
-                            if item[0] == '"' or item[0] == "'":
-                                item = item[1:-1]
+
+                    find_index = item.find(":")
+                    if find_index != -1:
+                        item = item[find_index+1:-1].strip()
+                        if item[0] == '"' or item[0] == "'":
+                            item = item[1:-1]
 
                     dropdown_list[index] = item
 
