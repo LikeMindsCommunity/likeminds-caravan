@@ -669,7 +669,7 @@ location.href="/community/"+"{{community_id}}"
     function authServer(token, element){
         $.ajax({
             url: "/api/v1/login",
-            data: {"type": "google", "google_id_token": token},
+            data: json.stringify({"type": "google", "google_id_token": token}),
             type: "POST",
             dataType: "json",
             success: function(data){
