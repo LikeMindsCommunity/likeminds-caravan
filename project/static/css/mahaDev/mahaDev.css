@@ -1,5 +1,10 @@
 @-ms-viewport{width: device-width}
 
+body, html {
+    height: auto !important;
+    min-height: 100vh;
+}
+
 html { 
     scroll-behavior: smooth; 
     -webkit-user-select: none;
