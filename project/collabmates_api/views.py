@@ -2293,6 +2293,9 @@ def create_card(request,req_dict=None):
         card.pdf_count = res['pdf_count'] if ('pdf_count' in res) else 0
         card.date_time = date_time
         card.duration = res['duration'] if ('duration' in res) else 0
+        card.location = res['location'] if ('location' in res) else None
+        card.location_lat = res['location_lat'] if ('location_lat' in res) else None
+        card.location_long = res['location_long'] if ('location_long' in res) else None
 
         if 'share_link' in res:
             card.share_link = res['share_link']

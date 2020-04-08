@@ -182,6 +182,11 @@ class Collabcard(models.Model):
     polls_count = models.IntegerField(default=0)
     attending_count = models.IntegerField(default=0)
 
+    #for event cards
+    location = models.TextField(null=True)
+    location_lat = models.FloatField(null=True)
+    location_long = models.FloatField(null=True)
+
     # def save(self, *args, **kwargs):
     #     self.date_epoch = time.time()
     #     super(Collabcard, self).save(*args, **kwargs)
