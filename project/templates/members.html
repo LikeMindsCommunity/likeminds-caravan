@@ -10,19 +10,17 @@
 
         {% if selected or filter_list|length > 0 and members_length > 0 %}
             <div class="bdbE bgF bs ffR fs15 ls05 oA p8 pl12 wsN">
-                {% if selected %}
-                    <button class="bd0 bgF cT dIb fs15 h32 ls05 m04 p0 p08 pl16 vM" onclick="location.href='/members_directory/{{community_id}}'">
-                        <div class="dIb vM" id="clear">Clear</div>
-                    </button>
-                {% endif %}
+                <button class="bd0 bgF cT dIb fs15 h32 ls05 m04 p0 p08 pl16 vM {% if selected %}{% else %}dN{% endif %}" id="clearFilter" onclick="location.href='/members_directory/{{community_id}}'">
+                    <div class="dIb vM" id="clear">Clear</div>
+                </button>
                 {% for i in filter_list %}
                     {% if not i.selected %}
-                        <button class="bdT bgF br16 bs cT dIb fs15 h32 ls05 m04 p0 p08 pl16 vM filter_tab" data-filter="{{i.question_id}}">
+                        <button class="bdT bgF br16 bs cT dIb fs15 h32 ls05 m04 p0 p08 pl16 vM tab_filter" data-filter="{{i.question_id}}" id="tab_filter_{{i.question_id}}">
                             <div class="dIb vM">{{i.question_title}}</div>
                             <i class="caret dIb down icon m0 vM"></i>
                         </button>
                     {% else %}
-                        <button class="bdT bgT br16 bs cF dIb fs15 h32 ls05 m04 p0 p08 pl16 vM">
+                        <button class="bdT bgT br16 bs cF dIb fs15 h32 ls05 m04 p0 p08 pl16 vM tab_filter">
                             <div class="dIb vM" id="{{i.question_id}}">{{i.question_title}}</div>
                             <i class="caret dIb down icon m0 vM"></i>
                         </button>
@@ -103,19 +101,18 @@
             <div class="pF l0 r0 t0 b0 dN z12" id="filters">
                 <div onclick="$('#filters').hide()" class="pA t0 b0 l0 r0 bg0o05 fadeIn ad04 o0"></div>
                 <div class="pF b0 mxw640 mA l0 r0 fadeInUp bgF ad04 btlr8 btrr8 oH bxs">
+                    <div class="bgE br8 h8 mA mt8 w100"></div>
+                    <div class="h20 p016 taR vM" onclick="$('#filters').hide()">
+                        <svg viewBox="0 0 24 24" class="h20 w20"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path></svg>
+                    </div>
                     {% for filter in filter_list %}
-                        <div class="dN filter" id="filter_{{filter.question_id}}">
-                            <div class="bgBg bs c0 dT fs15 p16 wp100">
-                                <div class="dTc vM">{{filter.question_title}}</div>
-                                <div class="dTc vM w24">
-                                    <i class="close icon" onclick="$('#filters').hide()"></i>
-                                </div>
-                            </div>
-                            <div class="bs mxhv50 oA p016 pt0">
+                        <div class="bs c0 dN ffR filter fs16" id="filter_{{filter.question_id}}">
+                            <div class="bs fwM lh18 p024">{{filter.question_title}}</div>
+                            <div class="bs lh24 mxhv50 oA p024">
                                 {% for value in filter.values %}
-                                    <div class="bdbE bs p12">
+                                    <div class="bdbE bs p160">
                                         {% if value.is_selected %}
-                                            <input type="checkbox" id="option_{{filter.question_id}}_{{ forloop.counter0 }}" value="{{value.option}}"  class="t1" checked>
+                                            <input type="checkbox" id="option_{{filter.question_id}}_{{ forloop.counter0 }}" value="{{value.option}}" class="t1" checked>
                                             <label for="option_{{filter.question_id}}_{{ forloop.counter0 }}" class="bs pR dB">{{value.option}}</label>
                                         {% else %}
                                             <input type="checkbox" id="option_{{filter.question_id}}_{{ forloop.counter0 }}" value="{{value.option}}"  class="t1">
@@ -124,8 +121,8 @@
                                     </div>
                                 {% endfor %}
                             </div>
-                            <div class="bdtE bgBg bs p12 taC">
-                                <button class="apply_filter h36 bgT cF br22 fwM ffR fs12 w228 bd0 ttU ls05" value="{{filter.question_id}}">
+                            <div class="bdtE bs p8 taC">
+                                <button class="apply_filter bd0 bgT br22 cF ffR fs13 fwM h44 ls05 ttU w150" value="{{filter.question_id}}">
                                     APPLY FILTER
                                 </button>
                             </div>
@@ -178,7 +175,7 @@
         }
     
         //functionality to show filter list
-        $('.filter_tab').click(function(){
+        $('.tab_filter').click(function(){
             {% if not request.user.is_authenticated %}
                 $('#login_popup').modal('show');
                 console.log("user is not authenticated");
@@ -198,17 +195,17 @@
         $(document.body).on('click', '.apply_filter' ,function(){
             var option_list=[];
             var question_id = $('.apply_filter').val();
+            var filtersSlected = [];
             $('.t1').each(function () {
                 var sThisVal = (this.checked ? $(this).val() : "");
                 if(sThisVal){
+                    var filterTab = "tab_" + $(this).parents('.filter').attr('id');
+                    !filtersSlected[filterTab] && filtersSlected.push(filterTab);
                     option_list.push(sThisVal);
                 }
             });
 
-            // to do
-            // select filter label
-    
-            existing_filter = getParamsFromUrl();
+            var existing_filter = getParamsFromUrl();
     
             console.log(existing_filter);
             console.log(option_list);
@@ -230,8 +227,15 @@
                 success:function(data){
                     console.log(data);
                     $("#members").html(data);
-                    $('#filters').hide();
-                    $('#loader').hide();
+                    $('#filters, #loader, #clearFilter').hide();
+                    // select unselect filter label and show hide clear filter
+                    $(".tab_filter").removeClass('bgT cF').addClass('bgF cT');
+                    if(filtersSlected.length > 0){
+                        filtersSlected.forEach(function(filterSelect){
+                            $('#' + filterSelect).addClass('bgT cF').removeClass('bgF cT');
+                        });
+                        $('#clearFilter').show();
+                    };
                     // url="/members_directory/"+"{{community_id}}?members="+data['members']+"&filter="+data['filter']+ "&option_data=" + data['option_data'];
                     // to do
                     // push state in history for browser back
