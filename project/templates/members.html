@@ -151,28 +151,28 @@
     <!-- scripts -->
     <script>
     
-        function getParamsFromUrl(){
-            let searchParams = new URLSearchParams(window.location.search);
-            var members="";
-            var filter="";
-            var option_data="";
+        // function getParamsFromUrl(){
+        //     let searchParams = new URLSearchParams(window.location.search);
+        //     var members="";
+        //     var filter="";
+        //     var option_data="";
     
-            if(searchParams.has('members')){
-                members = searchParams.get('members');
-            }
+        //     if(searchParams.has('members')){
+        //         members = searchParams.get('members');
+        //     }
     
-            if(searchParams.has('filter')){
-                filter = searchParams.get('filter');
-            }
+        //     if(searchParams.has('filter')){
+        //         filter = searchParams.get('filter');
+        //     }
     
-            if(searchParams.has('option_data')){
-                option_data = searchParams.get('option_data');
-            }
+        //     if(searchParams.has('option_data')){
+        //         option_data = searchParams.get('option_data');
+        //     }
     
-            return_value = [members, filter, option_data];
-            return return_value;
+        //     return_value = [members, filter, option_data];
+        //     return return_value;
     
-        }
+        // }
     
         //functionality to show filter list
         $('.tab_filter').click(function(){
@@ -193,36 +193,46 @@
     
         //functionality to apply filter
         $(document.body).on('click', '.apply_filter' ,function(){
-            var option_list=[];
-            var question_id = $(this).val();
+            // var option_list=[];
+            // var question_id = $(this).val();
             var filtersSlected = [];
+            var filter = [];
             $('.t1').each(function () {
                 var sThisVal = (this.checked ? $(this).val() : "");
                 if(sThisVal){
-                    var filterTab = "tab_" + $(this).parents('.filter').attr('id');
+                    var filterID = $(this).parents('.filter').attr('id');
+                    var filterTab = "tab_" + filterID;
                     !filtersSlected[filterTab] && filtersSlected.push(filterTab);
-                    option_list.push(sThisVal);
+                    filter.push({
+                        question_id:  filterID.split("filter_")[1],
+                        value: sThisVal
+                    });
+                    // option_list.push(sThisVal);
                 }
             });
 
-            var existing_filter = getParamsFromUrl();
+            // var existing_filter = getParamsFromUrl();
     
-            console.log(existing_filter);
-            console.log(option_list);
+            // console.log(existing_filter);
+            // console.log(option_list);
     
-            option_data={
-                'data':JSON.stringify(option_list),
-                'csrfmiddlewaretoken':'{{csrf_token}}',
-                'question_id':question_id,
-                'member_ids':existing_filter[0],                            //for already selected members
-                'question_ids':existing_filter[1],                          //for already selected question ids
-                'options':existing_filter[2]                                //for already selected options
-            };
+            // option_data={
+            //     'data':JSON.stringify(option_list),
+            //     'csrfmiddlewaretoken':'{{csrf_token}}',
+            //     'question_id':question_id,
+            //     'member_ids':existing_filter[0],                            //for already selected members
+            //     'question_ids':existing_filter[1],                          //for already selected question ids
+            //     'options':existing_filter[2]                                //for already selected options
+            // };
+
             $('#loader').show();
+
+            var url = "/api/all_members?page=1&community_id={{community_id}}&is_filter=true&filter=";
+            url = url + encodeURI(JSON.stringify(filter));
             $.ajax({
-                url:"/members_directory/"+"{{community_id}}",
-                data:option_data,
-                type:"POST",
+                url: url,
+                // data:option_data,
+                type:"GET",
                 dataType:'html',
                 success:function(data){
                     console.log(data);
