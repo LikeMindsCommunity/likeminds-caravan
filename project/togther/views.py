@@ -36,6 +36,9 @@ from utility.states import collabcard_states, member_states, question_states
 import re
 import ast
 
+from rest_framework.renderers import JSONRenderer, TemplateHTMLRenderer
+from rest_framework.decorators import api_view, renderer_classes
+
 url = settings.URL
 
 if not url and settings.IS_BETA:
@@ -712,7 +715,8 @@ def get_introduction_answer(community_instance, member_instance):
             return time_string
     return ""
 
-
+@api_view(['GET', 'POST'])
+@renderer_classes([JSONRenderer, TemplateHTMLRenderer])
 def members_directory(request, community_id):
 
     '''function to see members directory'''
@@ -805,10 +809,17 @@ def members_directory(request, community_id):
 
         if member_string == "$":
             member_string = ""
-
-        context = {'members': member_string,'filter':questions,'option_data':dropdowns}
-
-        return JsonResponse(context)
+        
+        if request.accepted_renderer.format == 'html':
+            print('request was html')
+            member_split = member_string.split("$")
+            community_instance = Community.objects.get(pk=community_id)
+            filtered_members = get_filtered_members(community_instance,member_split)
+            context = {'filtered_members': filtered_members}
+            return render(request, 'filtered_members.html', context)
+        else:
+            context = {'members': member_string,'filter':questions,'option_data':dropdowns}
+            return JsonResponse(context)
 
     community_instance = Community.objects.get(pk=community_id)
     filter_list = communityQuestions.objects.filter(community=community_instance).filter(
@@ -881,7 +892,6 @@ def members_directory(request, community_id):
         'selected':selected,
         'google_oauth_client_id': settings.GOOGLE_OAUTH_CLIENT_ID
     }
-
 
     return render(request, 'members.html', context)
 
