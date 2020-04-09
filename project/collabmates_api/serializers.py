@@ -6,7 +6,7 @@ from django.db.models import Q
 from togther.models import *
 from togther.models import *
 from utility.utils import is_IG_community,is_LG_or_LP_community,feedback_community_id
-
+from utility.states import card_types
 url = settings.URL
 import ast
 
@@ -114,13 +114,24 @@ def CollabcardSerializer(card,user,community=None):
         'polls_count': card.polls_count
     }
 
-    if card.type == 3:
+    if card.type == card_types.CARD_POLL:
         polls = []
         cardPolls = CollabcardPolls.objects.filter(card=card)
         for poll in cardPolls:
             polls.append(CollabcardPollsSerializer(poll, user, card))
 
         collabcard['polls'] = polls
+
+    if card.type == card_types.CARD_EVENT:
+
+        if card.location:
+            collabcard['location'] = card.location
+
+        if card.location_lat:
+            collabcard['location_lat'] = card.location_lat
+
+        if card.location_long:
+            collabcard['location_long'] = card.location_long
 
     if card.og_tags:
         og_tags = json.loads(card.og_tags)
