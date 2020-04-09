@@ -20,7 +20,7 @@ from django.db.models import F
 from django.db.models import Q
 from django.http import HttpResponse
 from django.http.response import JsonResponse
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, render
 from django.views.decorators.csrf import csrf_exempt
 from togther.forms import *
 from togther.models import *
@@ -69,6 +69,10 @@ from .notification import (send_follow_notification, send_notification_to_admins
 from .raw_queries import compute_rank
 from .tasks import send_email_to_nominated_admin, send_email_for_new_collabcard_posted, send_welcome_mail
 from django.contrib.auth import login
+
+from rest_framework.renderers import JSONRenderer, TemplateHTMLRenderer
+from rest_framework.decorators import api_view, renderer_classes
+
 
 
 # CACHE_TTL = getattr(settings, 'CACHE_TTL', cache_timeout)
@@ -5606,9 +5610,10 @@ def get_user_location(request, user_id, type=None):
 
     return JsonResponse(response, safe=False)
 
-
+@api_view(['GET', 'POST'])
+@renderer_classes([JSONRenderer, TemplateHTMLRenderer])
 def all_members(request):
-
+    print('in all members')
     '''function to send all members of community '''
     page = request.GET.get('page',1)
     community_id = request.GET.get('community_id')
@@ -5657,10 +5662,11 @@ def all_members(request):
         members = get_member_instances(member_list, current_user_id, community_id)
 
 
-
-
-
-    return JsonResponse({'members':members})
+    if request.accepted_renderer.format == 'html':
+        print('in html')
+        return render(request, 'filtered_members.html', {'members':members})
+    else:
+        return JsonResponse({'members':members})
 
 
 def get_member_instances(member_list,current_user_id,community_id,is_filter=False,member_set=None):
