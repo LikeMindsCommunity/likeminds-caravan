@@ -5629,13 +5629,18 @@ def all_members(request):
     page = request.GET.get('page',1)
     community_id = request.GET.get('community_id')
 
-
-
-
+    collabcard_id = request.GET.get('collabcard_id',None)
 
     current_user_id = get_member_id_from_headers(request)
 
     #functionality for user filteration based on options
+
+    if collabcard_id:
+
+        members = get_members_data_for_collabcard(collabcard_id,community_id,current_user_id)
+        #print(members)
+        return JsonResponse({'members':members})
+
     is_filter = request.GET.get('is_filter',False)
 
 
@@ -5681,6 +5686,8 @@ def all_members(request):
 
 
 def get_member_instances(member_list,current_user_id,community_id,is_filter=False,member_set=None):
+
+    '''function to get members instances from members table'''
 
     members = []
 
@@ -5759,6 +5766,28 @@ def get_filtered_users(filter_list,member_list):
     return member_set
 
 
+def get_members_data_for_collabcard(card_id,community_id,current_user_id):
+
+    collabcard_state_list = collabcardState.objects.filter(card=card_id)
+    members = []
+
+    for instance in collabcard_state_list:
+
+        user_instance = instance.user
+
+        userinfo_serialized_object = UserinfoSerializer(user_instance.userinfo)
+        userinfo_serialized_object['collabcard_state'] = instance.state
+        form_response = FormResponseSerilaizer(community_id, user_instance.id, bl=True,
+                                               current_user_id=current_user_id)
+
+        if form_response:
+            userinfo_serialized_object['response'] = form_response[0]
+            userinfo_serialized_object['question_answers'] = form_response[1]
+
+        members.append(userinfo_serialized_object)
+
+
+    return members
 
 
 #functionality for filters
