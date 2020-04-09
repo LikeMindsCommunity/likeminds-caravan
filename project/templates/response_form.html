@@ -41,11 +41,53 @@
             };
 
             function remove_error(id) {
+                // debugger;
                 var hidden_id = '#hidden_div_'+id
                 var div_id = '#div_'+id
                 $(hidden_id).remove();
                 $(div_id).removeClass("error");
             };
+
+            function setProgress(percent, circumference, circle, max) {
+                const offset = circumference - percent / max * circumference;
+                circle.style.strokeDashoffset = offset;
+            }
+
+            function textareaBlur(id, min, max) {
+                if($("#" + id).addClass("blurred").val().length < min){
+                    $(".chatBubble_" + id).removeClass('bg06C3AF dN').addClass('bgd0021b').text("Minimum characters: " + min);
+                }else if($("#" + id).val().length > max){
+                    $(".chatBubble_" + id).removeClass('bg06C3AF dN').addClass('bgd0021b').text("Maximum characters: " + max);
+                }
+            }
+            function textareaInput(id, min, max) {
+                var svg = $("#svg_" + id);
+                var circle = $('.progressCircle' , svg[0])[0];
+                var radius = circle.r.baseVal.value;
+                var circumference = radius * 2 * Math.PI;
+                var input = $("#" + id);
+                circle.style.strokeDasharray = `${circumference} ${circumference}`;
+                circle.style.strokeDashoffset = `${circumference}`;
+                setProgress(input.val().length, circumference, circle, max);
+                $(".bg06C3AF.chatBubble_" + id).addClass('dN');
+                if(input.val().length > max){
+                    $(".chatBubble_" + id).removeClass('bg06C3AF dN').addClass('bgd0021b').text("Maximum characters: " + max);
+                }else if(input.val().length < min){
+                    $(".bgd0021b.chatBubble_" + id).text("Minimum characters: " + min).removeClass('dN');
+                    if($("#" + id).hasClass("blurred")){
+                        $(".chatBubble_" + id).removeClass('bg06C3AF dN').addClass('bgd0021b').text("Minimum characters: " + min);
+                    }
+                }else{
+                    $(".chatBubble_" + id).removeClass('bgd0021b').addClass('bg06C3AF dN');
+                }
+                input.next().text(input.val().length);
+
+                // auto height textarea
+                input[0].style.height = "auto";
+                input[0].style.height = (input[0].scrollHeight)+"px";
+                
+                remove_error(id);
+            }
         </script>
     </head>
     <body style="margin:0 auto; max-width:786px;background-color:#f2f2f2;">
@@ -95,11 +137,28 @@
 
                     {% if question.question_state == 0 or question.question_state == 4 or question.question_state == 7 %}
                         <!--    TEXT = 0  PARAGRAPH = 4 INTRODUCTION = 7  -->
-                        <label class="c4a fs15 fwR lh22 p10 m0">{{question.data}}</label>
-                        {% if question.question_state == 4 or question.question_state == 7 %}
-                            <textarea id="{{question.id}}" class="oH bd0 br8 bxs2 p16" rows="4" cols="4" name="{{question.id}}" required oninput="remove_error('{{question.id}}')"  onchange="remove_error('{{question.id}}')" placeholder="{{question.help_text}}"></textarea>
+                        {% if question.question_state == 7 %}
+                            <div class="ffR fR dIb bg06C3AF cF wsN p48 lh17 fs12 ls05 chatBubble_{{question.id}} pR rn16 br8 chatBubbleDown">Minimum characters: {{question.min_chars}}</div>
+                            <div class="dT wp100">
+                                <label class="dTc vT c4a fs15 fwR lh22 p10 m0">{{question.data}}</label>
+                                <div class="dTc vT w16 pR p10 bs">
+                                    {% include 'components/counter_progress_ring.html' with data=question  %}
+                                </div>
+                            </div>
                         {% else %}
-                            <textarea id="{{question.id}}" class="oH bd0 br8 bxs2 p16 h48" rows="2" cols="4" name="{{question.id}}" required oninput="remove_error('{{question.id}}')"  onchange="remove_error('{{question.id}}')" placeholder="{{question.help_text}}"></textarea>
+                            <label class="c4a fs15 fwR lh22 p10 m0">{{question.data}}</label>
+                        {% endif %}
+                        {% if question.question_state == 4 or question.question_state == 7 %}
+                            {% if question.question_state == 7 %}
+                                <div class="pR">
+                                    <textarea id="{{question.id}}" class="oH bd0 br8 bxs2 p16 pb24" rows="4" cols="4" name="{{question.id}}" required oninput="textareaInput('{{question.id}}', {{question.min_chars}}, {{question.max_chars}})" onblur="textareaBlur('{{question.id}}', {{question.min_chars}}, {{question.max_chars}})" onpaste="textareaInput('{{question.id}}', {{question.min_chars}}, {{question.max_chars}})" placeholder="{{question.help_text}}"></textarea>
+                                    <div class="b0 fs12 lh14 p6 pA r0 c9"></div>
+                                </div>
+                            {% else %}
+                                <textarea id="{{question.id}}" class="oH bd0 br8 bxs2 p16" rows="4" cols="4" name="{{question.id}}" required oninput="remove_error('{{question.id}}')" onchange="remove_error('{{question.id}}')" placeholder="{{question.help_text}}"></textarea>
+                            {% endif %}
+                        {% else %}
+                            <textarea id="{{question.id}}" class="oH bd0 br8 bxs2 p16 h48" rows="2" cols="4" name="{{question.id}}" required oninput="remove_error('{{question.id}}')" onchange="remove_error('{{question.id}}')" placeholder="{{question.help_text}}"></textarea>
                         {% endif %}
 
                     {% elif question.question_state == 1 %}
