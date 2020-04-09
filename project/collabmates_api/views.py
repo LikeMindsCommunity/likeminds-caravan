@@ -104,9 +104,14 @@ def communities(request):
         community_list = []
         for community in queryset:
             if state:
-                community_list.append(serializer(Community.objects.get(pk=community['community_id'])))
+                community_instance = Community.objects.get(pk=community['community_id'])
+                serilialized_object = serializer(community_instance)
+                if serilialized_object['state'] != community_states.DELETED:
+                    community_list.append(serilialized_object)
             else:
-                community_list.append(serializer(community))
+                serilialized_object = serializer(community)
+                if serilialized_object['state'] != community_states.DELETED:
+                    community_list.append(serilialized_object)
         # custom_cache.set(cache_key,community,timeout=CACHE_TTL)
         # custom_cache.clear()
 
@@ -211,7 +216,8 @@ def your_communities(request, user_id):
             community['collabcard_unseen'] = each_community.last_unseen_count
         else:
             community['collabcard_unseen'] = 0
-        my_community.append(community)
+        if community['state'] != community_states.DELETED:
+            my_community.append(community)
 
     return JsonResponse({'your_communities': my_community})
 
