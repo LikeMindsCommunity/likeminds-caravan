@@ -96,14 +96,19 @@ def communities(request):
         queryset, state = get_user_communities_by_rank(page_number=page_number, user_id=user_id)
 
         serializer = CommunitySerializer
-        community = [serializer(Community.objects.get(pk=community['community_id']) if state else community) for community in queryset]
-
+        # community = [serializer(Community.objects.get(pk=community['community_id']) if state else community) for community in queryset]
+        community_list = []
+        for community in queryset:
+            if state:
+                community_list.append(serializer(Community.objects.get(pk=community['community_id'])))
+            else:
+                community_list.append(serializer(community))
         # custom_cache.set(cache_key,community,timeout=CACHE_TTL)
         # custom_cache.clear()
 
         state = 1 if state else 0
 
-        return JsonResponse({'communities': community, 'state': state})
+        return JsonResponse({'communities': community_list, 'state': state})
     else:
 
         return JsonResponse({'success': False})
