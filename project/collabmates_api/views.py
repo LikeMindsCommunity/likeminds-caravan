@@ -897,6 +897,7 @@ def join_community_responses_version_1(request):
                                      form_response=res['questions'])
 
         return JsonResponse({'success': True})
+
     elif is_private:
         info_logger.info("Inside private\n")
         join_promoter_created_community_version_1(res, request)
@@ -3012,7 +3013,8 @@ def approve_or_decline_lg_community(request,req_dict,member_verification):
             pending_members=get_pending_members_of_community(community.id,requested_member_id=member_id)
             info_logger.info("\n")
             info_logger.info(pending_members)
-            check=Member_Engage.objects.filter(member_id=user,community_id=community).update(pending_members=len(pending_members))
+            check=Member_Engage.objects.filter(member_id=user,community_id=community).update(pending_members=len(pending_members),
+                                                                                             member_referral="")
             info_logger.info(check)
 
             if member_instance.ask_member_id:
