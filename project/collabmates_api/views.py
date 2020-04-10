@@ -921,6 +921,7 @@ def join_ig_communities_version_1(request,res,community,user,ref_id):
         member.save()
 
         # saving questions
+
         if 'questions' in res:
             info_logger.info(res['questions'])
 
@@ -944,19 +945,19 @@ def join_ig_communities_version_1(request,res,community,user,ref_id):
         # creating an introduction card
         community_id = community.id
         member_id =user.id
-        introduction_question, introduction_answer = auto_create_collabcard(user, community)
-        print(introduction_answer)
-        req_dict={
+        # introduction_question, introduction_answer = auto_create_collabcard(user, community)
+        # print(introduction_answer)
+        # req_dict={
+        #
+        #     'member_id':member_id,
+        #     'community_id':community_id,
+        #     'title':introduction_answer,
+        #     'type':1,
+        #     'create_intro':1
+        # }
+        # create_card(request,req_dict=req_dict)
 
-            'member_id':member_id,
-            'community_id':community_id,
-            'title':introduction_answer,
-            'type':1,
-            'create_intro':1
-        }
-        create_card(request,req_dict=req_dict)
-
-        #post_introduction_card_for_community(community_id,member_id,request)
+        post_introduction_card_for_community(community_id,member_id,request)
         #saving the referal detail and sending notifications for refered members
 
         community.updated_at=time.time()
@@ -988,6 +989,7 @@ def join_lg_communities_version_1(request,res,community,user,ref_id):
         member.save()
 
         introduction_answer=""
+        has_intro = False
         # saving questions
         if 'questions' in res:
 
@@ -1006,12 +1008,12 @@ def join_lg_communities_version_1(request,res,community,user,ref_id):
                 answer_instance.question_title = question_instance.question_title
                 answer_instance.save()
 
-                if not introduction_answer:
+                if question_instance.question_state == question_states.INTRODUCTION:
                     introduction_answer = question['value']
-        else:
-            res['questions'] = [{}]
+                    has_intro = True
 
-        creating_collabcard_for_lg_communities(community, user, introduction_answer, ref_id=ref_id)
+        if has_intro:
+            creating_collabcard_for_lg_communities(community, user, introduction_answer, ref_id=ref_id)
 
 
        #creating members engage
@@ -1287,7 +1289,6 @@ def post_introduction_card_for_community(community_id,member_id,request):
     '''fucntion to get introduction card of community'''
 
     check_intro=communityQuestions.objects.filter(community=community_id,question_state=question_states.INTRODUCTION)
-
     if check_intro.exists():
         question_id=check_intro[0].id
         introduction_answer_list=communityAnswers.objects.filter(community=community_id,member=member_id,question_id=question_id)
