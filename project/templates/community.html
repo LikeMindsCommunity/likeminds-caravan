@@ -45,6 +45,7 @@
         <link href="https://fonts.googleapis.com/css?family=Roboto:400,500,500i,700&display=swap" rel="stylesheet">
     </head>
     <body class="bgBg">
+        {% include 'components/loader.html' %}
         <!-- Google Tag Manager (noscript) -->
         <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-KSF3G6T" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         <!-- End Google Tag Manager (noscript) -->
@@ -873,7 +874,8 @@
     
             // google login
             function authServer(token, element){
-
+                $(".ldrT", $('#loader')[0]).text("Login you in...");
+                $('#loader').show();
                 var temp = {"type": "google", "google_id_token": token}
 
                 $.ajax({
@@ -886,6 +888,7 @@
                         window.location.href = $(element).attr("data-next");
                     },
                     error: function(data){
+                        $('#loader').hide();
                         console.log("Google auth failure", data);
                     }
                 });

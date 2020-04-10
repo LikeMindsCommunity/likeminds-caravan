@@ -95,7 +95,7 @@
         </script>
     </head>
     <body style="margin:0 auto; max-width:786px;background-color:#f2f2f2;">
-
+        {% include 'components/loader.html' %}
         <style>
             /* create header selector partial */
             #header .dTc {color: #fff!important; text-align: center; font-weight: bold;}
@@ -726,6 +726,8 @@
 
             // google login
             function authServer(token, element){
+                $(".ldrT", $('#loader')[0]).text("Login you in...");
+                $('#loader').show();
                 $.ajax({
                     url: "/api/v1/login",
                     data: JSON.stringify({"type": "google", "google_id_token": token}),
@@ -736,6 +738,7 @@
                         window.location.href = $(element).attr("data-next");
                     },
                     error: function(data){
+                        $('#loader').hide();
                         console.log("Google auth failure", data);
                     }
                 });
