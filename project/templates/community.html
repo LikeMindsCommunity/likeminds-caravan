@@ -249,7 +249,7 @@
                         {% if ref_id != '' %}
                             <a class="p12 bs dB br20 tdN bgLi cF ffR fwM cFh" href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join-ref_id-{{ref_id}}">
                         {% elif aj  %}
-                            <a class="p12 bs dB br20 tdN bgLi cF ffR fwM cFh" href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}&cta=join-aj-{{aj}}">
+                            <a class="p12 bs dB br20 tdN bgLi cF ffR fwM cFh" href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join-aj-{{aj}}">
                         {% elif cta == 'share' %}
                             <a class="p12 bs dB br20 tdN bgLi cF ffR fwM cFh" href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join">
                         {% elif cta != '' %}
@@ -351,7 +351,7 @@
                         {% if ref_id != '' %}
                             <a class="p12 bs dB br20 tdN bgLi cF ffR fwM cFh" href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join-ref_id-{{ref_id}}">
                         {% elif aj  %}
-                            <a class="p12 bs dB br20 tdN bgLi cF ffR fwM cFh" href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}&cta=join-aj-{{aj}}">
+                            <a class="p12 bs dB br20 tdN bgLi cF ffR fwM cFh" href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join-aj-{{aj}}">
                         {% elif cta == 'share' %}
                             <a class="p12 bs dB br20 tdN bgLi cF ffR fwM cFh" href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join">
                         {% elif cta != '' %}
@@ -512,9 +512,9 @@
                 console.log(1);
                 {% if user.is_authenticated %}
                     {% if ref_id != '' %}
-                        window.open("/"+"community/"+community_id+"?cta=join&ref_id={{ref_id}}",'_self');
+                        window.open("/"+"community/"+community_id+"?cta=join-ref_id-{{ref_id}}",'_self');
                     {% elif aj %}
-                        window.open("/"+"community/"+community_id+"?cta=join&aj={{aj}}",'_self');
+                        window.open("/"+"community/"+community_id+"?cta=join-aj-{{aj}}",'_self');
                     {% else %}
                         window.open("/"+"community/"+community_id+"?cta=join",'_self');
                     {% endif %}
