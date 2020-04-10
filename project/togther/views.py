@@ -78,7 +78,7 @@ def download_the_app(request):
     elif os_type == "iOS":
         return redirect(ios_app_download_link)
     else:
-        return redirect('signup')
+        return redirect(android_app_download_link)
 
 
 # def home(request):

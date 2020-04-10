@@ -829,7 +829,21 @@ def join_community_responses_version_1(request):
     else:
         ref_id = request.GET.get('ref_id', None)
 
-    if is_ig or is_lg == None:  # if the community is ig community or is_lg hometown community
+    if is_lg:  # if the community is ig community or is_lg hometown community
+        print("LG community")
+        join_lg_communities_version_1(request, res, community, user, ref_id)
+
+        if not ref_id:
+            # sending mail to nipun and harsh
+            new_member_request.delay(member_id=user_id, community_id=community_id, ref_id=None,
+                                     form_response=res['questions'])
+        else:
+            # sending mail to nipun and harsh
+            new_member_request.delay(member_id=user_id, community_id=community_id, ref_id=ref_id,
+                                     form_response=res['questions'])
+        return JsonResponse({'success': True})
+    elif is_ig or is_lg == None:
+
         print("Inside IG")
         join_ig_communities_version_1(request, res, community, user, ref_id)
         if ref_id:
@@ -845,9 +859,9 @@ def join_community_responses_version_1(request):
 
             # send notification for joining community
             send_notification_to_referrer_of_ig_community(community_id=community_id, community_name=community.name,
-                                                              referrer_id=ref_id,
-                                                              member_name=user.userinfo.name,
-                                                              community_state=community.hide_community)
+                                                          referrer_id=ref_id,
+                                                          member_name=user.userinfo.name,
+                                                          community_state=community.hide_community)
 
             total_referals = Referal.objects.filter(member=referer_instance,
                                                     community=community)
@@ -884,20 +898,6 @@ def join_community_responses_version_1(request):
 
         return JsonResponse({'success': True})
 
-    elif is_lg:
-        print("LG community")
-        join_lg_communities_version_1(request, res, community, user, ref_id)
-
-        if not ref_id:
-            # sending mail to nipun and harsh
-            new_member_request.delay(member_id=user_id, community_id=community_id, ref_id=None,
-                                     form_response=res['questions'])
-        else:
-            # sending mail to nipun and harsh
-            new_member_request.delay(member_id=user_id, community_id=community_id, ref_id=ref_id,
-                                     form_response=res['questions'])
-        return JsonResponse({'success': True})
-
     elif is_private:
         info_logger.info("Inside private\n")
         join_promoter_created_community_version_1(res, request)
@@ -905,7 +905,6 @@ def join_community_responses_version_1(request):
                                  form_response=res['questions'])
 
     return JsonResponse({'success': True})
-
 
 def join_ig_communities_version_1(request,res,community,user,ref_id):
 
@@ -3014,7 +3013,8 @@ def approve_or_decline_lg_community(request,req_dict,member_verification):
             pending_members=get_pending_members_of_community(community.id,requested_member_id=member_id)
             info_logger.info("\n")
             info_logger.info(pending_members)
-            check=Member_Engage.objects.filter(member_id=user,community_id=community).update(pending_members=len(pending_members))
+            check=Member_Engage.objects.filter(member_id=user,community_id=community).update(pending_members=len(pending_members),
+                                                                                             member_referral="")
             info_logger.info(check)
 
             if member_instance.ask_member_id:

@@ -932,7 +932,8 @@ def add_dropdown_responses(request,question_id):
                     item = item[1:]
                 if item[-1] == '"':
                     item = item[:-1]
-                if form_data.community.hide_community == '5':
+                community_state = form_data.community.hide_community
+                if community_state:
                     find_index = item.find(":")
                     if find_index != -1:
                         item = item[find_index + 1:-1].strip()
@@ -956,8 +957,8 @@ def add_dropdown_responses(request,question_id):
         dropdown_state=request.POST.get('dropdown_state')
         dropdown_limit=request.POST.get('dropdown_selection_limit')
 
-        if form_data.community.hide_community == '5':
-            return JsonResponse({"success": True})
+        # if form_data.community.hide_community == '5':
+        #     return JsonResponse({"success": True})
 
         dropdown_list=[]
 
@@ -968,7 +969,14 @@ def add_dropdown_responses(request,question_id):
                 dropdown_list[0] = dropdown_list[0][1:]
                 dropdown_list[-1] = dropdown_list[-1][:-1]
 
-            dropdown_list=" $# ".join(dropdown_list)
+            # dropdown_list=" $# ".join(dropdown_list)
+            ans = []
+            for value in dropdown_list:
+                temp = {}
+                temp['value'] = value
+                ans.append(temp)
+            dropdown_list = json.dumps(ans)
+
             form_data.value=dropdown_list
             form_data.question_state=dropdown_state
             form_data.dropdown_selection_limit=dropdown_limit if dropdown_limit else None

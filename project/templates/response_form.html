@@ -127,7 +127,6 @@
             <!--    PROFILE_LINK=8-->
             <!--    MOBILE_NO = 9-->
             <!--    EMAIL_ID = 10-->
-
             {% for question in data %}
                 {% if question.optional %}
                     <div class="field mb30" id="div_{{question.id}}">
@@ -397,6 +396,8 @@
 
                 {% if aj %}
                     url="/community/"+community_id+"?cta=join-aj-{{aj}}";
+                {% elif ref_id %}
+                    url="/community/"+community_id+"?cta=join-ref_id-{{ref_id}}";
                 {% else %}
                     url="/community/"+community_id+"?cta=join";
                 {% endif %}
