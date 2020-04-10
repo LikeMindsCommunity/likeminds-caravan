@@ -56,7 +56,7 @@
             function textareaBlur(id, min, max) {
                 if($("#" + id).addClass("blurred").val().length < min){
                     $(".chatBubble_" + id).removeClass('bg06C3AF dN').addClass('bgd0021b').text("Minimum characters: " + min);
-                }else if($("#" + id).val().length > max){
+                }else if(max && ($("#" + id).val().length > max)){
                     $(".chatBubble_" + id).removeClass('bg06C3AF dN').addClass('bgd0021b').text("Maximum characters: " + max);
                 }
             }
@@ -68,9 +68,13 @@
                 var input = $("#" + id);
                 circle.style.strokeDasharray = `${circumference} ${circumference}`;
                 circle.style.strokeDashoffset = `${circumference}`;
-                setProgress(input.val().length, circumference, circle, max);
+                if(max){
+                    setProgress(input.val().length, circumference, circle, max);
+                }else{
+                    setProgress(Math.min(input.val().length, min), circumference, circle, min);
+                }
                 $(".bg06C3AF.chatBubble_" + id).addClass('dN');
-                if(input.val().length > max){
+                if(max && (input.val().length > max)){
                     $(".chatBubble_" + id).removeClass('bg06C3AF dN').addClass('bgd0021b').text("Maximum characters: " + max);
                 }else if(input.val().length < min){
                     $(".bgd0021b.chatBubble_" + id).text("Minimum characters: " + min).removeClass('dN');
