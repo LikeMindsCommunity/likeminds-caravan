@@ -5692,8 +5692,8 @@ def all_members(request):
             is_filter = False
             member_list = Members.objects.filter(community_id=community_id).filter(
                 Q(state=member_states.ADMIN) | Q(state=member_states.MEMBER) | Q(
-                    state=member_states.KNOWN_NOMINATED_PROMOTER)).order_by('id')
-            member_list = pagination(member_list, page, paginate_by=20)
+                    state=member_states.KNOWN_NOMINATED_PROMOTER) | Q(state=member_states.PENDING_MEMBER)).order_by(
+                'id')
             members = get_member_instances(member_list, current_user_id, community_id)
 
 
