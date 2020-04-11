@@ -1405,11 +1405,20 @@ def get_community_questions(community_id):
         if each_question.dropdown_selection_limit:
             temp['max_selections'] = each_question.dropdown_selection_limit
         temp['optional'] = each_question.optional
+
         if each_question.help_text:
             temp['help_text'] = each_question.help_text
+
+        if each_question.question_state == question_states.INTRODUCTION:
+            temp['rank'] = 0
+        else:
+            temp['rank'] = 1
+
+
         question_format.append(temp)
 
     #print(question_format)
+    question_format = sorted(question_format, key=lambda i: i['rank'])
     return question_format
 
 
