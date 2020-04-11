@@ -2881,6 +2881,7 @@ def request_response(request, req_dict=None):
                 'community_id': community_id,
                 'accepted':accepted
             }
+        print("member verification--",member_verification)
         approve_or_decline_lg_community(request,req_dict,member_verification)
         return JsonResponse({'success': True})
 
@@ -3039,10 +3040,12 @@ def approve_or_decline_lg_community(request,req_dict,member_verification):
                 header_member_id=get_member_id_from_headers(request)
                 Members.objects.filter(member_id=member_id, community_id=community).update(approved_member_id=header_member_id)
 
-                pending_members = len(get_pending_members_of_community(community, header_member_id))
-
+                pending_members = len(get_pending_members_of_community(community.id, header_member_id))
+                print("pending members",pending_members)
                 update_status = Member_Engage.objects.filter(member_id=header_member_id, community_id=community).update(
                     pending_members=pending_members,member_referral="")
+
+                print("update_status---",update_status)
 
 
                 #info_logger.info("update_status",update_status)
@@ -3087,7 +3090,7 @@ def approve_or_decline_lg_community(request,req_dict,member_verification):
             collabcardTemp.objects.filter(member=member_id, community=community).delete()
             if member_verification:
                 header_member_id = get_member_id_from_headers(request)
-                pending_members = len(get_pending_members_of_community(community,header_member_id))
+                pending_members = len(get_pending_members_of_community(community.id,header_member_id))
                 Member_Engage.objects.filter(member_id=header_member_id, community_id=community).update(
                     pending_members=pending_members)
                 Referal.objects.filter(member=header_member_id, community=community).delete()
