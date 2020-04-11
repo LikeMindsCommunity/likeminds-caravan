@@ -267,6 +267,7 @@ body ::-webkit-scrollbar { display: none; }
 .o0 { opacity: 0; }
 
 .mxh240 { max-height: 240px; }
+.mnh200 { min-height: 200px; }
 
 .flrB3 { filter:blur(3px); }
 

@@ -74,6 +74,9 @@
                     setProgress(Math.min(input.val().length, min), circumference, circle, min);
                 }
                 $(".bg06C3AF.chatBubble_" + id).addClass('dN');
+                if(input.val().length > min){
+                    $("#" + id).addClass("blurred");
+                }
                 if(max && (input.val().length > max)){
                     $(".chatBubble_" + id).removeClass('bg06C3AF dN').addClass('bgd0021b').text("Maximum characters: " + max);
                 }else if(input.val().length < min){
@@ -457,7 +460,11 @@
                                 values_list.push(values_dict);
                             }
                         {% else %}
+                            {% if not question.no_limit %}
                             if (value.length >= {{question.min_chars}} && value.length <= {{question.max_chars}}) {
+                            {% else %}
+                            if (value.length >= {{question.min_chars}}) {
+                            {% endif %}
                                 if(value!=''){
                                     values_dict['value'] = value;
                                     values_list.push(values_dict)
