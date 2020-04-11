@@ -2980,7 +2980,7 @@ def approve_or_decline_lg_community(request,req_dict,member_verification):
             pending_members_count = len(pending_members)
 
             update_status = Member_Engage.objects.filter(member_id=member_id,community_id=community).update(
-                member_state=member_states.MEMBER,updated_at=time.time(),member_referral="",pending_members_count=pending_members_count)
+                member_state=member_states.MEMBER,updated_at=time.time(),member_referral="",pending_members=pending_members_count)
             #info_logger.info("update_status",update_status)
 
 
