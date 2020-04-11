@@ -1036,10 +1036,13 @@ def join_lg_communities_version_1(request,res,community,user,ref_id):
         member_queryset = Member_Engage.objects.filter(community_id=community, member_id=ref_id).filter(
             Q(member_state=member_states.ADMIN) | Q(member_state=member_states.MEMBER))
         is_verified = member_queryset.exists()
+
+
         if is_verified:
 
-            pending_member= len(get_pending_members_of_community(community,ref_id))
-            Member_Engage.objects.filter(community_id=community,member_id=ref_id).update(pending_members=pending_member)
+            pending_member= len(get_pending_members_of_community(community.id,ref_id))
+            update_status=Member_Engage.objects.filter(community_id=community,member_id=ref_id).update(pending_members=pending_member)
+            
             send_notification_to_referrer_of_lg_community(community_id=community.id, community_name=community.name,
                                                       referrer_id=ref_id,
                                                       member_name=user.userinfo.name,
@@ -1050,6 +1053,7 @@ def join_lg_communities_version_1(request,res,community,user,ref_id):
         print(log)
     else:
         member_instance.update(state=member_states.PENDING_MEMBER)
+
 
 
 def join_promoter_created_community_version_1(res,request):
@@ -2642,7 +2646,6 @@ def get_pending_members_of_community(community_id,requested_member_id):
     info_logger.info(pending_requests)
     info_logger.info("\n\n")
     return pending_requests
-
 
 
 def check_for_member_eligibiity(community_id, member_id):
