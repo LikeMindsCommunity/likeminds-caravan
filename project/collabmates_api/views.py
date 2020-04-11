@@ -5694,6 +5694,7 @@ def all_members(request):
                 Q(state=member_states.ADMIN) | Q(state=member_states.MEMBER) | Q(
                     state=member_states.KNOWN_NOMINATED_PROMOTER) | Q(state=member_states.PENDING_MEMBER)).order_by(
                 'id')
+            member_list = pagination(member_list, page, paginate_by=20)
             members = get_member_instances(member_list, current_user_id, community_id)
 
 
