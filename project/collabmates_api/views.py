@@ -1042,7 +1042,7 @@ def join_lg_communities_version_1(request,res,community,user,ref_id):
 
             pending_member= len(get_pending_members_of_community(community.id,ref_id))
             update_status=Member_Engage.objects.filter(community_id=community,member_id=ref_id).update(pending_members=pending_member)
-            
+
             send_notification_to_referrer_of_lg_community(community_id=community.id, community_name=community.name,
                                                       referrer_id=ref_id,
                                                       member_name=user.userinfo.name,
@@ -1310,6 +1310,7 @@ def post_introduction_card_for_community(community_id,member_id,request):
                 'type': 1,
                 'create_intro': 1
             }
+            request.method = "POST"
             create_card(request, req_dict=req_dict)
             return True
 
