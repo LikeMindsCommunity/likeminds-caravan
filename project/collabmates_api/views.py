@@ -776,8 +776,12 @@ def questions(request):
 
     for question in data:
         serialized_question = CommunityQuestionsSerializer(question)
+        if serialized_question['state'] == question_states.INTRODUCTION:
+            serialized_question['rank'] = 0
+        else:
+            serialized_question['rank'] = 1
         questions.append(serialized_question)
-
+    questions = sorted(questions, key=lambda i: i['rank'])
     return JsonResponse({'questions': questions, 'community': community})
 
 
