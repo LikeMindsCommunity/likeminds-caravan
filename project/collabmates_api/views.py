@@ -2976,24 +2976,32 @@ def approve_or_decline_lg_community(request,req_dict,member_verification):
             Members.objects.filter(member_id=member_id, community_id=community).update(state=member_states.MEMBER,
                                                                                        created_at=join_time)  # aprove state = 4
 
+            pending_members = get_pending_members_of_community(community_id,member_id)
+            pending_members_count = len(pending_members)
+
+            update_status = Member_Engage.objects.filter(member_id=member_id,community_id=community).update(
+                member_state=member_states.MEMBER,updated_at=time.time(),member_referral="",pending_members_count=pending_members_count)
+            #info_logger.info("update_status",update_status)
+
 
 
             #creating a collabcard
-            introduction_question, introduction_answer = auto_create_collabcard(user, community)
-            print(introduction_answer)
-            req_dict = {
-
-                'member_id': member_id,
-                'community_id': community_id,
-                'title': introduction_answer,
-                'type': 1,
-                'create_intro': 1
-            }
-
-            request.method="POST"
-            create_card(request,req_dict=req_dict)
+            # introduction_question, introduction_answer = auto_create_collabcard(user, community)
+            # print(introduction_answer)
+            # req_dict = {
+            #
+            #     'member_id': member_id,
+            #     'community_id': community_id,
+            #     'title': introduction_answer,
+            #     'type': 1,
+            #     'create_intro': 1
+            # }
+            #
+            # request.method="POST"
+            # create_card(request,req_dict=req_dict)
             #(community.id,member_id,request)
             # saving the referal detail and sending notifications for refered members
+            post_introduction_card_for_community(community_id,member_id,request)
 
             community.updated_at = time.time()
             community.members_count = community.members_count + 1
@@ -3015,12 +3023,12 @@ def approve_or_decline_lg_community(request,req_dict,member_verification):
             member_instance=Members.objects.get(member_id=user,community_id=community)
 
             #getting pending members who was refered by me
-            pending_members=get_pending_members_of_community(community.id,requested_member_id=member_id)
-            info_logger.info("\n")
-            info_logger.info(pending_members)
-            check=Member_Engage.objects.filter(member_id=user,community_id=community).update(pending_members=len(pending_members),
-                                                                                             member_referral="")
-            info_logger.info(check)
+            # pending_members=get_pending_members_of_community(community.id,requested_member_id=member_id)
+            # info_logger.info("\n")
+            # info_logger.info(pending_members)
+            # check=Member_Engage.objects.filter(member_id=user,community_id=community).update(pending_members=len(pending_members),
+            #                                                                                  member_referral="")
+            # info_logger.info(check)
 
             if member_instance.ask_member_id:
                 collabcardTemp.objects.filter(member=member_instance.ask_member_id, community=community,show_member=user).delete()
@@ -3030,6 +3038,14 @@ def approve_or_decline_lg_community(request,req_dict,member_verification):
             if member_verification:
                 header_member_id=get_member_id_from_headers(request)
                 Members.objects.filter(member_id=member_id, community_id=community).update(approved_member_id=header_member_id)
+
+                pending_members = len(get_pending_members_of_community(community, header_member_id))
+
+                update_status = Member_Engage.objects.filter(member_id=header_member_id, community_id=community).update(
+                    pending_members=pending_members,member_referral="")
+
+
+                #info_logger.info("update_status",update_status)
 
                 # making the referer promoter if his referal count becomes equal to eligibility count
                 header_member_instance=User.objects.get(id=header_member_id)
