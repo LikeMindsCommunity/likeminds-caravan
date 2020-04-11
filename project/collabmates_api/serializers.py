@@ -56,11 +56,12 @@ def CommunitySerializer(community,is_promoter=False):
     new_dict['state']=int(community.hide_community)
 
 
-    if is_IG_community(community):
-        community_type=0
-        new_dict['community_type'] = community_type
-    elif is_LG_or_LP_community(community):
+
+    if is_LG_or_LP_community(community):
         community_type=1
+        new_dict['community_type'] = community_type
+    elif is_IG_community(community):
+        community_type=0
         new_dict['community_type'] = community_type
 
     if community.type:
