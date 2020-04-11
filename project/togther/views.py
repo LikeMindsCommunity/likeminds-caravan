@@ -1375,21 +1375,25 @@ def get_community_questions(community_id):
                     temp['dropdown_list'] = dropdown_list
                     temp['allowed_addition'] = False
                     if not each_question.help_text:
-                        temp['help_text'] = "Select an option"
-
-
+                        if len(dropdown_list) > 1:
+                            temp['help_text'] = "Select from options"
+                        else:
+                            temp['help_text'] = "Select from option"
                 else:
                     dropdown_list.remove('Other')
                     temp['allowed_addition'] = True
                     temp['dropdown_list'] = dropdown_list
                     if not each_question.help_text:
-                        if len(dropdown_list) > 0:
-                            temp['help_text'] = "Select or enter an option"
+                        if len(dropdown_list) > 1:
+                            if temp['question_state'] == 1:
+                                temp['help_text'] = "Select from options or add a new option"
+                            else:
+                                temp['help_text'] = "Select from options or add new options"
                         else:
-                            temp['help_text'] = "Enter an option"
-
-
-
+                            if temp['question_state'] == 1:
+                                temp['help_text'] = "Add a new option"
+                            else:
+                                temp['help_text'] = "Add new options"
 
             temp['data'] = each_question.question_title
         else:
@@ -1401,11 +1405,20 @@ def get_community_questions(community_id):
         if each_question.dropdown_selection_limit:
             temp['max_selections'] = each_question.dropdown_selection_limit
         temp['optional'] = each_question.optional
+
         if each_question.help_text:
             temp['help_text'] = each_question.help_text
+
+        if each_question.question_state == question_states.INTRODUCTION:
+            temp['rank'] = 0
+        else:
+            temp['rank'] = 1
+
+
         question_format.append(temp)
 
     #print(question_format)
+    question_format = sorted(question_format, key=lambda i: i['rank'])
     return question_format
 
 

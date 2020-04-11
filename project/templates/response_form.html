@@ -41,15 +41,61 @@
             };
 
             function remove_error(id) {
+                // debugger;
                 var hidden_id = '#hidden_div_'+id
                 var div_id = '#div_'+id
                 $(hidden_id).remove();
                 $(div_id).removeClass("error");
             };
+
+            function setProgress(percent, circumference, circle, max) {
+                const offset = circumference - percent / max * circumference;
+                circle.style.strokeDashoffset = offset;
+            }
+
+            function textareaBlur(id, min, max) {
+                if($("#" + id).addClass("blurred").val().length < min){
+                    $(".chatBubble_" + id).removeClass('bg06C3AF dN').addClass('bgd0021b').text("Minimum characters: " + min);
+                }else if(max && ($("#" + id).val().length > max)){
+                    $(".chatBubble_" + id).removeClass('bg06C3AF dN').addClass('bgd0021b').text("Maximum characters: " + max);
+                }
+            }
+            function textareaInput(id, min, max) {
+                var svg = $("#svg_" + id);
+                var circle = $('.progressCircle' , svg[0])[0];
+                var radius = circle.r.baseVal.value;
+                var circumference = radius * 2 * Math.PI;
+                var input = $("#" + id);
+                circle.style.strokeDasharray = `${circumference} ${circumference}`;
+                circle.style.strokeDashoffset = `${circumference}`;
+                if(max){
+                    setProgress(input.val().length, circumference, circle, max);
+                }else{
+                    setProgress(Math.min(input.val().length, min), circumference, circle, min);
+                }
+                $(".bg06C3AF.chatBubble_" + id).addClass('dN');
+                if(max && (input.val().length > max)){
+                    $(".chatBubble_" + id).removeClass('bg06C3AF dN').addClass('bgd0021b').text("Maximum characters: " + max);
+                }else if(input.val().length < min){
+                    $(".bgd0021b.chatBubble_" + id).text("Minimum characters: " + min).removeClass('dN');
+                    if($("#" + id).hasClass("blurred")){
+                        $(".chatBubble_" + id).removeClass('bg06C3AF dN').addClass('bgd0021b').text("Minimum characters: " + min);
+                    }
+                }else{
+                    $(".chatBubble_" + id).removeClass('bgd0021b').addClass('bg06C3AF dN');
+                }
+                input.next().text(input.val().length);
+
+                // auto height textarea
+                input[0].style.height = "auto";
+                input[0].style.height = (input[0].scrollHeight)+"px";
+                
+                remove_error(id);
+            }
         </script>
     </head>
     <body style="margin:0 auto; max-width:786px;background-color:#f2f2f2;">
-
+        {% include 'components/loader.html' %}
         <style>
             /* create header selector partial */
             #header .dTc {color: #fff!important; text-align: center; font-weight: bold;}
@@ -85,7 +131,6 @@
             <!--    PROFILE_LINK=8-->
             <!--    MOBILE_NO = 9-->
             <!--    EMAIL_ID = 10-->
-
             {% for question in data %}
                 {% if question.optional %}
                     <div class="field mb30" id="div_{{question.id}}">
@@ -95,11 +140,28 @@
 
                     {% if question.question_state == 0 or question.question_state == 4 or question.question_state == 7 %}
                         <!--    TEXT = 0  PARAGRAPH = 4 INTRODUCTION = 7  -->
-                        <label class="c4a fs15 fwR lh22 p10 m0">{{question.data}}</label>
-                        {% if question.question_state == 4 or question.question_state == 7 %}
-                            <textarea id="{{question.id}}" class="oH bd0 br8 bxs2 p16" rows="4" cols="4" name="{{question.id}}" required oninput="remove_error('{{question.id}}')"  onchange="remove_error('{{question.id}}')" placeholder="{{question.help_text}}"></textarea>
+                        {% if question.question_state == 7 %}
+                            <div class="ffR fR dIb bg06C3AF cF wsN p48 lh17 fs12 ls05 chatBubble_{{question.id}} pR rn16 br8 chatBubbleDown">Minimum characters: {{question.min_chars}}</div>
+                            <div class="dT wp100">
+                                <label class="dTc vT c4a fs15 fwR lh22 p10 m0">{{question.data}}</label>
+                                <div class="dTc vT w16 pR p10 bs">
+                                    {% include 'components/counter_progress_ring.html' with data=question  %}
+                                </div>
+                            </div>
                         {% else %}
-                            <textarea id="{{question.id}}" class="oH bd0 br8 bxs2 p16 h48" rows="2" cols="4" name="{{question.id}}" required oninput="remove_error('{{question.id}}')"  onchange="remove_error('{{question.id}}')" placeholder="{{question.help_text}}"></textarea>
+                            <label class="c4a fs15 fwR lh22 p10 m0">{{question.data}}</label>
+                        {% endif %}
+                        {% if question.question_state == 4 or question.question_state == 7 %}
+                            {% if question.question_state == 7 %}
+                                <div class="pR">
+                                    <textarea id="{{question.id}}" class="oH bd0 br8 bxs2 p16 pb24" rows="4" cols="4" name="{{question.id}}" required oninput="textareaInput('{{question.id}}', {{question.min_chars}}, {{question.max_chars}})" onblur="textareaBlur('{{question.id}}', {{question.min_chars}}, {{question.max_chars}})" onpaste="textareaInput('{{question.id}}', {{question.min_chars}}, {{question.max_chars}})" placeholder="{{question.help_text}}"></textarea>
+                                    <div class="b0 fs12 lh14 p6 pA r0 c9"></div>
+                                </div>
+                            {% else %}
+                                <textarea id="{{question.id}}" class="oH bd0 br8 bxs2 p16" rows="4" cols="4" name="{{question.id}}" required oninput="remove_error('{{question.id}}')" onchange="remove_error('{{question.id}}')" placeholder="{{question.help_text}}"></textarea>
+                            {% endif %}
+                        {% else %}
+                            <textarea id="{{question.id}}" class="oH bd0 br8 bxs2 p16 h48" rows="2" cols="4" name="{{question.id}}" required oninput="remove_error('{{question.id}}')" onchange="remove_error('{{question.id}}')" placeholder="{{question.help_text}}"></textarea>
                         {% endif %}
 
                     {% elif question.question_state == 1 %}
@@ -338,6 +400,8 @@
 
                 {% if aj %}
                     url="/community/"+community_id+"?cta=join-aj-{{aj}}";
+                {% elif ref_id %}
+                    url="/community/"+community_id+"?cta=join-ref_id-{{ref_id}}";
                 {% else %}
                     url="/community/"+community_id+"?cta=join";
                 {% endif %}
@@ -522,7 +586,7 @@
                                 var tag_div_html = `<div class="ui negative message" id="hidden_div_{{question.id}}">
                                                         <i class="close icon" onclick="remove_error('{{question.id}}')"></i>
                                                         <div class="header">
-                                                            Please select or enter option
+                                                            Please ${$(".default.text", $("#div_{{question.id}}")[0]).text().toLowerCase()}
                                                         </div>
                                                     </div>`
                                 $('#div_{{question.id}}').append(tag_div_html)
@@ -548,10 +612,8 @@
                                         <div class="header">
                                         {% if question.question_state == 0 %}
                                             Please enter the required field
-                                        {% elif question.question_state == 1 %}
-                                            Please select an option
-                                        {% elif question.question_state == 2 %}
-                                            Please select or enter option
+                                        {% elif question.question_state == 1 or question.question_state == 2 %}
+                                            Please ${$(".default.text", $("#div_{{question.id}}")[0]).text().toLowerCase()}
                                         {% elif question.question_state == 4 %}
                                         Please enter the required field
                                         {% elif question.question_state == 5 %}
@@ -662,6 +724,8 @@
 
             // google login
             function authServer(token, element){
+                $(".ldrT", $('#loader')[0]).text("Login you in...");
+                $('#loader').show();
                 $.ajax({
                     url: "/api/v1/login",
                     data: JSON.stringify({"type": "google", "google_id_token": token}),
@@ -672,6 +736,7 @@
                         window.location.href = $(element).attr("data-next");
                     },
                     error: function(data){
+                        $('#loader').hide();
                         console.log("Google auth failure", data);
                     }
                 });

@@ -45,6 +45,7 @@
         <link href="https://fonts.googleapis.com/css?family=Roboto:400,500,500i,700&display=swap" rel="stylesheet">
     </head>
     <body class="bgBg">
+        {% include 'components/loader.html' %}
         <!-- Google Tag Manager (noscript) -->
         <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-KSF3G6T" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         <!-- End Google Tag Manager (noscript) -->
@@ -249,7 +250,7 @@
                         {% if ref_id != '' %}
                             <a class="p12 bs dB br20 tdN bgLi cF ffR fwM cFh" href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join-ref_id-{{ref_id}}">
                         {% elif aj  %}
-                            <a class="p12 bs dB br20 tdN bgLi cF ffR fwM cFh" href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}&cta=join-aj-{{aj}}">
+                            <a class="p12 bs dB br20 tdN bgLi cF ffR fwM cFh" href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join-aj-{{aj}}">
                         {% elif cta == 'share' %}
                             <a class="p12 bs dB br20 tdN bgLi cF ffR fwM cFh" href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join">
                         {% elif cta != '' %}
@@ -351,7 +352,7 @@
                         {% if ref_id != '' %}
                             <a class="p12 bs dB br20 tdN bgLi cF ffR fwM cFh" href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join-ref_id-{{ref_id}}">
                         {% elif aj  %}
-                            <a class="p12 bs dB br20 tdN bgLi cF ffR fwM cFh" href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}&cta=join-aj-{{aj}}">
+                            <a class="p12 bs dB br20 tdN bgLi cF ffR fwM cFh" href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join-aj-{{aj}}">
                         {% elif cta == 'share' %}
                             <a class="p12 bs dB br20 tdN bgLi cF ffR fwM cFh" href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join">
                         {% elif cta != '' %}
@@ -512,9 +513,9 @@
                 console.log(1);
                 {% if user.is_authenticated %}
                     {% if ref_id != '' %}
-                        window.open("/"+"community/"+community_id+"?cta=join&ref_id={{ref_id}}",'_self');
+                        window.open("/"+"community/"+community_id+"?cta=join-ref_id-{{ref_id}}",'_self');
                     {% elif aj %}
-                        window.open("/"+"community/"+community_id+"?cta=join&aj={{aj}}",'_self');
+                        window.open("/"+"community/"+community_id+"?cta=join-aj-{{aj}}",'_self');
                     {% else %}
                         window.open("/"+"community/"+community_id+"?cta=join",'_self');
                     {% endif %}
@@ -873,7 +874,8 @@
     
             // google login
             function authServer(token, element){
-
+                $(".ldrT", $('#loader')[0]).text("Login you in...");
+                $('#loader').show();
                 var temp = {"type": "google", "google_id_token": token}
 
                 $.ajax({
@@ -886,6 +888,7 @@
                         window.location.href = $(element).attr("data-next");
                     },
                     error: function(data){
+                        $('#loader').hide();
                         console.log("Google auth failure", data);
                     }
                 });
