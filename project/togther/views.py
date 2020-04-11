@@ -1311,7 +1311,7 @@ def get_community_questions(community_id):
                     if item['max_chars'] != "No limit":
                         temp['max_chars'] = int(item['max_chars'])
                     else:
-                        temp['max_chars'] = 10000
+                        # temp['max_chars'] = 10000
                         temp['no_limit'] = True
                 temp['data'] = each_question.question_title
 
