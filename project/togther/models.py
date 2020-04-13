@@ -52,8 +52,14 @@ class Members(models.Model):
     state = models.IntegerField(null=True)
     created_at = models.BigIntegerField(default=-9223372036854775808)
     tool_state = models.IntegerField(default=0)
+
+    #columns for referal in LG communities
     ask_member_id = models.IntegerField(null=True)
     approved_member_id = models.IntegerField(null=True)
+
+
+    #columns for edit member profile required
+    edit_required = models.BooleanField(default=False)
 
     def __str__(self):
         return self.community_id.name
@@ -620,6 +626,9 @@ class communityQuestions(models.Model):
     dropdown_selection_limit = models.IntegerField(null=True)
     optional=models.BooleanField(default=False)
     help_text = models.TextField(null=True)
+
+    #when the promoter deletes a question from v1/edit_questions api
+    remove_state = models.BooleanField(default=False)
 
 
 class communityAnswers(models.Model):
