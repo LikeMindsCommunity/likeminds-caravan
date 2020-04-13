@@ -780,7 +780,10 @@ def questions(request):
             serialized_question['rank'] = 0
         else:
             serialized_question['rank'] = 1
-        questions.append(serialized_question)
+
+        # if the question is not deleted
+        if not question.remove_state:
+            questions.append(serialized_question)
     questions = sorted(questions, key=lambda i: i['rank'])
     return JsonResponse({'questions': questions, 'community': community})
 
@@ -1646,6 +1649,10 @@ def edit_member_profile(request):
                 Collabcard.objects.filter(id=collabcard_id).update(title=question['value'])
 
     form_response = FormResponseSerilaizer(community_id,member_id, bl=True, current_user_id=member_id)
+
+    #setting edit status in members table
+    Members.objects.filter(community_id=community_instance,member_id=user_instance).update(edit_required=False)
+
 
     question_answer=""
     if form_response:
@@ -5280,6 +5287,7 @@ def members_state(request):
 
     user_email = ""
     ref_members=[]
+    edit_required = False
     for data in query_set:
         is_member = False
         tool_state = 0
@@ -5293,6 +5301,9 @@ def members_state(request):
 
         if is_member and is_tool_state:
             tool_state = 1
+
+        if data.edit_required:
+            edit_required = data.edit_required
 
         ref_members = get_referred_members_of_a_member(community_id, member_id)
 
@@ -5344,7 +5355,8 @@ def members_state(request):
                          'unlock_title':unlock_title,
                          'unlock_sub_title':unlock_sub_title,
                          'unlock_action':unlock_action,
-                         'unlock_action_title':unlock_action_title
+                         'unlock_action_title':unlock_action_title,
+                         'edit_required' : edit_required
                          }
     else:
 
@@ -5366,7 +5378,8 @@ def members_state(request):
                    'unlock_title': unlock_title,
                    'unlock_sub_title': unlock_sub_title,
                    'unlock_action': unlock_action,
-                   'unlock_action_title':unlock_action_title
+                   'unlock_action_title':unlock_action_title,
+                   'edit_required': edit_required
 
                    }
 
@@ -5459,9 +5472,9 @@ def edit_community(request):
 
     if key == 'purpose':
         value = json_body['value']
-        purpose_collabcard = Community.objects.filter(id=community_id).values('purpose_collabcard')
-        purpose_collabcard = purpose_collabcard[0]['purpose_collabcard']
-        Collabcard.objects.filter(id=purpose_collabcard).update(title=value)
+        # purpose_collabcard = Community.objects.filter(id=community_id).values('purpose_collabcard')
+        # purpose_collabcard = purpose_collabcard[0]['purpose_collabcard']
+        # Collabcard.objects.filter(id=purpose_collabcard).update(title=value)
         Community.objects.filter(id=community_id).update(purpose=value)
 
     elif key == 'questions':
@@ -5495,6 +5508,95 @@ def edit_questions(questions, community_id):
         question_object.save()
 
     print('questions updated successfully')
+
+
+@csrf_exempt
+def edit_questions_version_1(request):
+
+    '''function to edit questions in a community'''
+
+    member_id = get_member_id_from_headers(request)
+    if not member_id:
+        return JsonResponse({'success':False,'error_message':"Send member id in headers"})
+
+    user_instance = User.objects.get(pk=member_id)
+    res = json.loads(request.body)
+
+    # error messages
+
+    if 'community_id' not in res:
+        return JsonResponse({'success': False, 'error_message': "send community id in request body"})
+
+    if 'questions' not in res:
+        return JsonResponse({'success': False, 'error_message': "send questions list"})
+
+    questions_list = res['questions']
+    community_instance = Community.objects.get(id=res['community_id'])
+
+    current_questionId_set = set(communityQuestions.objects.filter(community=community_instance).values_list('id',flat=True))
+    latest_questionId_set  = set()
+
+    major_change = False
+    for question in questions_list:
+
+        if 'id' in question:
+            question_instance =communityQuestions.objects.get(pk=question['id'])
+
+            #checking current question for major change
+            if question_instance.question_state != question['state']:
+                major_change = True
+
+            elif question_instance.value != question['value']:
+                major_change = True
+
+            elif (question_instance.optional is True and question['optional'] is False):
+                major_change = True
+
+
+
+            latest_questionId_set.add(question['id'])
+
+            #updating the question instance
+            question_instance.community = community_instance
+            question_instance.question_title = question['question_title']
+            question_instance.question_state = question['state']
+            question_instance.value = question['value'] if 'value' in question else None
+            question_instance.optional = question['optional']
+            question_instance.help_text = question['help_text'] if 'help_text' in question else None
+            question_instance.save()
+
+        else:
+            question_instance = communityQuestions()
+            question_instance.community = community_instance
+            question_instance.question_title = question['question_title']
+            question_instance.question_state = question['state']
+            question_instance.value = question['value'] if 'value' in question else None
+            question_instance.optional = question['optional']
+            question_instance.help_text = question['help_text'] if 'help_text' in question else None
+            question_instance.save()
+
+            major_change = True
+
+    print(major_change)
+
+    if not major_change:
+
+        diff = current_questionId_set - latest_questionId_set
+        print(diff)
+
+        #set is not an empty set major change
+
+        if len(diff) > 0:
+            major_change = True
+            #updating the removed_state to True if the question is deleted
+            communityQuestions.objects.filter(pk__in=diff).update(remove_state=True)
+
+    #updating members state table for editing
+    if major_change:
+        Members.objects.filter(community_id=community_instance).update(edit_required=True)
+
+    return JsonResponse({'success':True})
+
 
 
 ############# functions to update user location and city    ##########################
@@ -6026,6 +6128,9 @@ def get_profile(request):
     return JsonResponse({'user': []})
 
 
+
+#getting data from headers
+
 def get_member_id_from_headers(request):
     '''function to get member id from headers'''
     headers = request.META
@@ -6049,6 +6154,8 @@ def get_platform_code_from_headers(request):
         platform_code = headers['HTTP_X_PLATFORM_CODE']
 
     return platform_code
+
+
 
 
 ################ functions for getting and setting of tags ##########################################

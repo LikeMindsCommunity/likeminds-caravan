@@ -18,6 +18,8 @@ urlpatterns = [
 
     path('create_community', api_views.create_community, name="create_community"),
     path('v1/create_community',api_views.create_community_version_1,name='create_community_version_1'),
+    path('v1/edit_questions', api_views.edit_questions_version_1,
+         name="edit_questions_version_1"),
 
     path('community/<str:category>', api_views.category_filter, name="category_filter"),
     path('user/<int:user_id>', api_views.user, name="user"),
@@ -31,6 +33,7 @@ urlpatterns = [
     path('community_collabcard_invite/<int:community_id>', api_views.community_collabcard_invite, name="community_collabcard_invite"),
     path('v1/community_collabcard/<int:community_id>', api_views.community_cards_version_1,
          name="community_cards_version_1"),
+
 
     path('create_answer', api_views.create_answer, name="create_answer"),
 
