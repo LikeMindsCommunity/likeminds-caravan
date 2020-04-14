@@ -616,7 +616,6 @@ def get_member_details(community):
 
     members = []
     member_list = Members.objects.filter(community_id=community).filter(Q(state=1) | Q(state=2) | Q(state=4))
-    
     for member in member_list:
         temp = {}
         temp['id'] = member.member_id.id
@@ -650,6 +649,7 @@ def get_filtered_members(community,filter_list):
             temp['id'] = member[0].member_id.id
             temp['name'] = member[0].member_id.userinfo.name
             temp['image_link'] = member[0].member_id.userinfo.image_link
+            temp['state'] = member[0].state
             answer = get_introduction_answer(community, member[0])
             temp['answer'] = answer
             members.append(temp)

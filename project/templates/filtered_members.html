@@ -1,5 +1,4 @@
-{% for member in members %}    
-    {{member}}
+{% for member in members %}
     <div class="dT wp100 bgF members member_link" member_id={{member.id}}>
         <div class="dTc vM w70 p16 pr0">
             <img class="w54 h54 oH bd2F bs brp50 bxs" src="{{member.image_url}}"/>
@@ -7,11 +6,11 @@
         <div class="dTc vM p16 bs pl12 bdbE">
             <div class="ffR lh20 fs16 c0">{{member.name}}</div>
             {% for i in member.question_answers %}
-                {% if i.state === 7 %}
+                {% if i.state == 7 %}
                     <p class="ffR p0 m0 fs15 lh20 lc2 dwB wboV oH">{{i.value}}</p>
                 {% endif %}
             {% endfor %}
-            {% if member.state === 3 %}
+            {% if member.state == 3 %}
                 <p class="ffR p0 m0 fs13 lh17 cd0021b ls025">Verification Pending</p>
             {% endif %}
         </div>
