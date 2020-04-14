@@ -615,13 +615,14 @@ def get_member_details(community):
     '''function to get member details of community'''
 
     members = []
-
     member_list = Members.objects.filter(community_id=community).filter(Q(state=1) | Q(state=2) | Q(state=4))
+    
     for member in member_list:
         temp = {}
         temp['id'] = member.member_id.id
         temp['name'] = member.member_id.userinfo.name
         temp['image_link'] = member.member_id.userinfo.image_link
+        temp['state'] = member.state
         answer = get_introduction_answer(community, member)
         temp['answer'] = answer
         members.append(temp)

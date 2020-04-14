@@ -1,4 +1,5 @@
-{% for i in data %}    
+{% for i in data %}
+    {{data}}
     <div class="dT wp100 bgF members member_link" member_id={{i.id}}>
         <div class="dTc vM w70 p16 pr0">
             <img class="w54 h54 oH bd2F bs brp50 bxs" src="{{i.image_link}}"/>
@@ -9,6 +10,9 @@
                 <p class="ffR p0 m0 fs15 lh20 flrB3 lc2 dwB wboV oH">{{i.answer}}</p>
             {% else %}
                 <p class="ffR p0 m0 fs15 lh20 lc2 dwB wboV oH">{{i.answer}}</p>
+            {% endif %}
+            {% if i.state === 3 %}
+                <p class="ffR p0 m0 fs13 lh17 cd0021b ls025">Verification Pending</p>
             {% endif %}
         </div>
     </div>
