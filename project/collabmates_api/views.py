@@ -6494,6 +6494,8 @@ def save_geography_and_hometown_tags_of_user_from_onboarding(address_input, user
     user_address = get_city_address(city=address_input)
 
     city = user_address['city']
+    if not city:
+        return
     if category_id == 4:
         city_tag = Tags_lpig.objects.filter(attribute_id=attribute_id, name=city)
         if city_tag:
