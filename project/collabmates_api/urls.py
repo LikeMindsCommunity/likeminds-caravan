@@ -10,6 +10,7 @@ urlpatterns = [
 
     path('community/<int:community_id>', api_views.community, name="community"),
     path('v1/community/<int:community_id>', api_views.community_version_1, name="community_version_1"),
+    #path('v2/community/<int:community_id>', api_views.community_version_2, name="community_version_2"),
 
     path('similar_communities/<int:community_id>', api_views.similar_community, name="similar_community"),
     path('community/<int:community_id>/questions', api_views.join_community, name="join"),
