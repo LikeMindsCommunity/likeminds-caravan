@@ -489,20 +489,97 @@ def admins(request, community_id):
 def community_version_1(request,community_id):
 
     '''api to club data in community detail screen'''
+    start_time=time.time()
 
     response={}
+    member_id=get_member_id_from_headers(request)
+    headers={'x-member-id':member_id}
+    #print(headers)
 
     #community detail api
     community_url=url+"/api/community/"+str(community_id)
-    community_detail_response=rqst.get(community_url)
+    community_detail_response=rqst.get(community_url,headers=headers)
     if community_detail_response.status_code == 200:
         community_detail_response = community_detail_response.json()
-        print(community_detail_response)
-        response['community'] = community_detail_response['community']
+        #print(community_detail_response)
+
+        response['community_api'] = community_detail_response
+
+    #admins api
+
+    admin_url = url + "/api/admins/" + str(community_id)
+    admin_response = rqst.get(admin_url, headers=headers,params={'member_id':member_id})
+    if admin_response.status_code == 200:
+        admin_response = admin_response.json()
+        # print(community_detail_response)
+
+        response['admins_api'] = admin_response
 
 
-    #admins
-    #admins_url = url +
+    #members api
+    member_url = url + "/api/all_members"
+    member_response = rqst.get(member_url, headers=headers, params={'community_id': community_id})
+    if member_response.status_code == 200:
+        member_response = member_response.json()
+        # print(community_detail_response)
+
+        response['all-member-api'] = member_response
+
+
+    #members_state
+    member_url = url + "/api/members_state"
+    member_state = rqst.get(member_url, headers=headers, params={'community_id': community_id,'member_id':member_id})
+    if member_state.status_code == 200:
+        member_state = member_state.json()
+        # print(community_detail_response)
+
+        response['member-state-api'] = member_state
+
+
+
+    # pending-members
+    pending_url = url + "/api/pending_members/"+str(community_id)
+    pending_response = rqst.get(pending_url, headers=headers, params={'community_id': community_id, 'member_id': member_id})
+
+    if pending_response.status_code == 200:
+        pending_response = pending_response.json()
+        # print(community_detail_response)
+
+        response['pending-members-api'] = pending_response
+
+    # collabcard url
+    collabcard = url + "/api/v1/community_collabcard/" + str(community_id)
+    collabcard = rqst.get(collabcard, headers=headers,
+                                params={'community_id': community_id, 'member_id': member_id})
+
+    if collabcard.status_code == 200:
+        collabcard = collabcard.json()
+        # print(community_detail_response)
+
+        response['v1/collabcard-api'] = collabcard
+
+
+
+    # collabcard url
+    similar_communities = url + "/api/similar_communities/" + str(community_id)
+    similar_communities = rqst.get(similar_communities, headers=headers,
+                                params={'community_id': community_id, 'member_id': member_id})
+
+    if similar_communities.status_code == 200:
+        similar_communities = similar_communities.json()
+        # print(community_detail_response)
+
+        response['similar_communities'] = similar_communities
+
+    end_time = time.time()
+
+    diff = end_time-start_time
+
+    info_logger.info("community-version-api")
+    info_logger.info(diff)
+    info_logger.info("\n\n")
+
+
     return JsonResponse(response)
 
 ############# functions for  join community  screen ##########################
