@@ -25,6 +25,7 @@ body ::-webkit-scrollbar { display: none; }
 .bgE { background: #eee; }
 .bg06C3AF { background: #06C3AF; }
 .bgd0021b { background: #d0021b; }
+.bgf2 { background: #f2f2f2; }
 
 .wp100 { width: 100%; }
 
@@ -53,6 +54,7 @@ body ::-webkit-scrollbar { display: none; }
 .mxh24 { max-height: 24px; }
 .mxw24 { max-width: 24px; }
 
+.h64 { height: 64px; }
 .h86 { height: 86px!important; }
 .w86 {width: 86px!important; }
 .h82 { height: 82px!important; }
@@ -66,6 +68,7 @@ body ::-webkit-scrollbar { display: none; }
 .w36 { width: 36px; }
 .w48 { width: 48px; }
 .w56 { width: 56px; }
+.w64 { width: 64px; }
 .w96 { width: 96px; }
 .w54 { width: 54px; }
 .w70 { width: 70px; }
@@ -89,6 +92,8 @@ body ::-webkit-scrollbar { display: none; }
 .lh20 { line-height: 20px; }
 .lh22 { line-height: 22px; }
 .lh24 { line-height: 24px; }
+.lh30 { line-height: 30px; }
+.lh36 { line-height: 36px; }
 
 .fs0 { font-size: 0; }
 .fs24, .fs24.fs24 { font-size: 24px; }
@@ -101,6 +106,7 @@ body ::-webkit-scrollbar { display: none; }
 .fs13 { font-size: 13px; }
 .fs12 { font-size: 12px; }
 
+.fwL { font-weight:100!important; }
 .fwR { font-weight:400!important; }
 .fwM { font-weight:500!important; }
 
@@ -112,12 +118,14 @@ body ::-webkit-scrollbar { display: none; }
 .c9b { color: #9b9b9b; }
 .c4 { color: #444; }
 .c6 { color: #666; }
-.cT { color: teal; }
+.cT { color: teal; fill: teal; }
 .c9 { color: #999; }
 .c4a { color: #4a4a4a!important; }
 .c007aff { color: #007aff; }
 .c79, .c79h:hover { color: #797979; }
-.c06C3AF { color: #06C3AF }
+.c06C3AF { color: #06C3AF;fill: #06C3AF }
+.cfe7e8d { color: #fe7e8d;fill: #fe7e8d; }
+.cd0021b { color: #d0021b; }
 
 
 .ffR { font-family:'Roboto'; }
@@ -166,13 +174,19 @@ body ::-webkit-scrollbar { display: none; }
 .p160 { padding: 16px 0; }
 .p016 { padding: 0 16px; }
 .p18 { padding: 18px; }
-.p24 { padding: 24PX; }
+.p24 { padding: 24px; }
+.p200 { padding: 20px 0;; }
 .pr0 { padding-right: 0; }
 .pl12 { padding-left: 12px!important; }
+.pt2 { padding-top: 2px; }
+.pt4 { padding-top: 4px; }
+.pt16 { padding-top: 16px; }
+.pt24 { padding-top: 24px; }
 .pt48 { padding-top: 48px; }
 .p024 { padding: 0 24px; }
 .pt56 { padding-top: 56px; }
 .pl16 { padding-left: 16px!important; }
+.pl30 { padding-left: 30px; }
 .pb12 { padding-bottom: 12px!important; }
 .p120 { padding: 12px 0; }
 .p48 { padding: 4px 8px; }

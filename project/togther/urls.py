@@ -1,5 +1,9 @@
+import sys
+sys.path.append("..")
+
 from django.urls import path, include
 from . import views
+from collabmates_api import views as new_views
 
 urlpatterns = [
     # path('login/', views.home, name="home"),
@@ -10,7 +14,8 @@ urlpatterns = [
     path('community/<int:community_id>', views.community, name="comunity"),
     path('logout',views.logout_view, name = "logout_view"),
     path('thankyou', views.thankyou, name="thankyou"),
-    path('collabcard/<int:card_id>', views.collabcard, name="card"),
+    # path('collabcard/<int:card_id>', views.collabcard, name="card"),
+    path('collabcard/<int:card_id>', new_views.collabcard, name="collabcard"),
     path('view_answers/<int:card_id>',views.view_answers,name = 'view_answers'),
     path('accept_admin/<int:community_id>',views.accept_admin,name='accept_admin'),
     path('', views.index, name='index'),

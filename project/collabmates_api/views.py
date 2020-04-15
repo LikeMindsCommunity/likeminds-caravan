@@ -3250,12 +3250,14 @@ def send_email_for_collabcard(community, user, card, type):
                     context['community_name']) + " community"
             send_email_for_new_collabcard_posted.delay(context)
 
-
+@api_view(['GET', 'POST'])
+@renderer_classes([JSONRenderer, TemplateHTMLRenderer])
 def collabcard(request, card_id):
     ''' function to get card details, answers and images '''
     # get the card object
 
     cards = Collabcard.objects.get(id=card_id)
+
     page = request.GET.get('page', 1)
 
     current_user_id = get_member_id_from_headers(request)
@@ -3312,7 +3314,65 @@ def collabcard(request, card_id):
     # get tine stamp for card
     time_text = get_time_text(cards.date_epoch)
     card['created_at'] = time_text
-    return JsonResponse({"collabcard": card, 'answers': answers})
+    if request.accepted_renderer.format == 'html':
+        print('in html')
+        # check for event card
+        if card['type'] in (2, 3):
+            print('event card')
+
+            # get community for community name, image, etc
+            community = Community.objects.get(id=cards.community.id)
+
+            # set default event banner image
+            card['banner_image'] = "//firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Fevent_banner.jpg?alt=media&token=4f6709df-8918-4227-8606-c11607d2d31b"
+
+            # set time
+            card['start_time'] = card['date_time']
+            card['end_time'] = card['duration']
+            card['duration'] = card['start_time'] - card['end_time']
+
+            card['start_time'] = time.strftime('%A, %b %y, %H:%M', time.gmtime(card['start_time']/1000.0))
+            card['duration'] = time.strftime('%H hours %M minutes', time.gmtime(card['duration']/1000.0))
+            card['end_time'] = time.strftime('%A, %b %y', time.gmtime(card['end_time']/1000.0))
+
+            # get members
+            members = get_members_data_for_collabcard(card_id, cards.community.id, current_user_id)
+                
+            # set header
+            header = {
+                'back': False,
+                'title': community.name,
+                'subTitle': False,
+                'background': 'Wa',
+                'color': 'F'
+            }
+
+            context = {
+                # "community": community,
+                "collabcard": card, 
+                "members": members,
+                'answers': answers, 
+                'header': header
+            }
+            return render(request, 'event.html', context)
+        else:
+            print('collab card')
+            if request.user.is_authenticated:
+                header_back_link = "/dashboard"
+            else:
+                header_back_link = ""
+        
+            header = {
+                'back': True,
+                # 'title': collabcard_dict['collabcard']['member']['name'] + "'s Collabcard",
+                'backLink': header_back_link,
+                'subTitle': False,
+                'background': 'Wa',
+                'color': 'F'
+            }
+            return render(request, 'collabcard.html', {"collabcard": card, 'answers': answers, 'header': header})
+    else:
+        return JsonResponse({"collabcard": card, 'answers': answers})
 
 
 def get_answer_data(answer,feedback,community_id,current_user_id):

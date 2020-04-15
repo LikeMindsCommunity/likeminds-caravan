@@ -2,7 +2,13 @@
     <div class="dT wp100 h56 tlF">
         <div class="bs dTc h56 taC vM w56">
             {% if data.back %}
-                <i class="arrow left icon fs24 c{{ data.color }}" id="back_click"></i>
+                {% if data.title %}
+                    <a href="{{ data.backLink }}">
+                        <i class="arrow left icon fs24 c{{ data.color }}"></i>
+                    </a>
+                {% else %}
+                    <i class="arrow left icon fs24 c{{ data.color }}" id="back_click"></i>
+                {% endif %}
             {% endif %}
         </div>
         <div class="dTc fs18 fwB vM c{{ data.color }}">

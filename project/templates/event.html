@@ -1,0 +1,222 @@
+{% extends request.is_ajax|yesno:"layouts/ajax.html,layouts/layout.html" %}
+
+{% block yeild %}
+
+    {% include 'components/loader.html' %}
+    
+    <div class="container mxw960 mA mt56">
+        
+        {% include 'components/header.html' with data=header %}
+        
+        <div class="mxh240 mb12 hv33 pR mnh200">
+            <img class="wp100 pA l0 r0 b0" src="{{ collabcard.banner_image }}">
+        </div>
+        <div class="p024 ffR">
+            <div class="p120 ffR fwL fs24 lh36 c4a bdbE bs">
+                {{collabcard.title}}
+            </div>
+            <div class="p160 bdbE bs dT wp100 fwR">
+                <div class="dTc vM w24 c06C3AF">
+                    {% include 'svgs/calendar.html' %}
+                </div>
+                <div class="dTc vM pl30 bs">
+                    <div class="fs16 c4a">{{ collabcard.start_time }}</div>
+                    <div class="fs13 c9b pt2 bs">For {{ collabcard.duration }}</div>
+                </div>
+            </div>
+            <div class="p160 bdbE bs dT wp100 fwR">
+                <div class="dTc vM w24 cfe7e8d">
+                    {% include 'svgs/calendar.html' %}
+                </div>
+                <div class="dTc vM pl30 bs">
+                    <div class="fs16 c4a">Ends on</div>
+                    <div class="fs13 cd0021b pt2 bs">{{ collabcard.end_time }}</div>
+                </div>
+            </div>
+            <div class="p160 bdbE bs dT wp100 fwR">
+                <div class="dTc vM w24">
+                    {% include 'svgs/location.html' %}
+                </div>
+                <div class="dTc vM pl30 bs">
+                    <div class="fs16 c4a"></div>
+                </div>
+            </div>
+            <div class="p160 bdbE bs dT wp100 fwR">
+                <div class="dTc vM w24 c06C3AF">
+                    {% include 'svgs/click.html' %}
+                </div>
+                <div class="dTc vM pl30 bs">
+                    <div class="fs16 c4a lh21 cT"></div>
+                </div>
+            </div>
+            <div class="pt24 pb24 bs bdbE bs">
+                <div class="fs14 fwR c9b">Posted By</div>
+                <div class="pt16 bs">
+                    <div class="dT wp100 bs">
+                        <div class="bs dTc h64 w64">
+                            <img src="{{ collabcard.member.image_url }}" class="bd2F brp50 bxs dB h64 w64">
+                        </div>
+                        <div class="dTc vM pl16 bs fs15">
+                            <div class="c0 fwM">{{ collabcard.member.name }}</div>
+                            <div class="lh20 c9 fwR pt4 bs">
+                                {% for i in collabcard.member.question_answers %}
+                                    {% if i.state == 7 %}
+                                        <p class="ffR p0 m0 fs15 lh20 lc2 dwB wboV oH">{{i.value}}</p>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="pt24 pb24 bs bdbE bs">
+                <div class="fs14 fwR c9b lh30">About Event</div>
+                <div class="lh20 c4a fs15 fwR pt16">
+                    About event here. Event description here. This is demo description.
+                </div>
+            </div>
+            <div class="pt24 pb24 bs bdbE bs">
+                <div class="fs14 fwR c9b lh30">Hosts</div>
+                <div class="pt16 bs">
+                    <!-- each host -->
+                    <div class="dT wp100 bs">
+                        <div class="bs dTc h64 w64">
+                            <img src="{{ collabcard.member.image_url }}" class="bd2F brp50 bxs dB h64 w64">
+                        </div>
+                        <div class="dTc vM pl16 bs fs15">
+                            <div class="c0 fwM">{{ collabcard.member.name }}</div>
+                            <div class="lh20 c9 fwR pt4 bs">
+                                {% for i in collabcard.member.question_answers %}
+                                    {% if i.state == 7 %}
+                                        <p class="ffR p0 m0 fs15 lh20 lc2 dwB wboV oH">{{i.value}}</p>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="pt24 pb24 bs bdbE bs">
+                <div class="dT wp100">
+                    <div class="dTc vM w24 h24">
+                        {% include 'svgs/user_outline.html' %}
+                    </div>
+                    <div class="dTc vM wp100 pl12 bs fwR fs14 c9b">Members Attending</div>
+                    <div class="dTc vM c06C3AF wsN">{{ collabcard.attending_count }} attending</div>
+                </div>
+                <div class="pt24">
+                    <!-- each member attending -->
+                    {% for i in members %}
+                        {% if i.collabcard_state == 3 or i.collabcard_state == 4 %}
+                            <div class="dIb vM w64 h64">
+                                <img src="{{ i.image_url }}" class="dB w64 h64 brp50" />
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="pt24 pb24 bs bdbE bs">
+                <div class="fs14 fwR c9b lh30">Comments . {{ answers|length }}</div>
+                <div class="h40 pt16 bs">
+                    <input class="h40 p12 bs bgf2 br20 bd0 wp100 c9b" placeholder="Type your comment" />
+                </div>
+                {% for answer in answers %}
+                    <div class="dT wp100 p200 bs">
+                        <div class="dTc vT w48 h48">
+                            <img class="dB w48 h48 brp50" src="{{ answer.member.image_url }}">
+                        </div>
+                        <div class="dTc vT pl12 bs">
+                            <div class="dT wp100 tlF">
+                                <div class="dTc vM c0 lh18 fs14 fwM">{{ answer.member.name }}</div>
+                                <div class="dTc vM taR fs12 c9b">{{ answer.created_at }}</div>
+                            </div>
+                            <div class="pt8 bs fs13 lh20 c4a">
+                                {{ answer.answer }}
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <div class="h60"></div>
+        <!-- Displaying Buttons -->
+        <div class="p8 bs taC pF b0 l0 r0 h60 bdtE bgF z1">
+            <button class="h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU ls05">
+                <div class="dIb vM">
+                    {% include 'svgs/calendar_outline.html' %}
+                </div>
+                <div class="dIb vM">ATTEND</div>
+            </button>
+        </div>
+
+        <!-- login model for exclusive communities -->
+        <div class="ui modal image_container_login w300" id="whatsapp_login">
+            <div class="h72 w72 brp50 bd2F bs bxs oH bgT mtn22 mA">
+                <img class="h86 w86 mtn8 mln8 ofC" src="/media/main_website/like_minds_speaker.png">
+            </div>
+            <div class="p24 bs taC ffR">
+                <p class="p0 fs17 lh22 c0 mb10 fwM">Login to continue</p>
+                <p class="p0 fs15 lh22 c9 mb16">please login/signup and join the community.</p>
+                <div class="p160 ls05">
+                    <div class="fs12 mb16">
+                        {% if ref_id != '' %}
+                            <div class="googleSignin p12 bs br20 bgF c79 ffR fwM bdE c79h dN" data-next="{{ request.path }}?cta=join-ref_id-{{ref_id}}">
+                        {% elif aj  %}
+                            <div class="googleSignin p12 bs br20 bgF c79 ffR fwM bdE c79h dN" data-next="{{ request.path }}?cta=join-aj-{{aj}}">
+                        {% elif cta == 'share' %}
+                            <div class="googleSignin p12 bs br20 bgF c79 ffR fwM bdE c79h dN" data-next="{{ request.path }}?cta=join">
+                        {% elif cta != '' %}
+                            <div class="googleSignin p12 bs br20 bgF c79 ffR fwM bdE c79h dN" data-next="{{ request.path }}?cta={{cta}}">
+                        {% else %}
+                            <div class="googleSignin p12 bs br20 bgF c79 ffR fwM bdE c79h dN" data-next="{{ request.path }}?cta=join">
+                        {% endif %}
+                                <i class="dIb fa fa-google fs15 lh16 vM"></i>
+                                <span  class="dIb lh16 pl12 vM">LOGIN WITH GOOGLE</span>
+                            </div>
+                    </div>
+                    <div class="fs12 mb16">
+                        {% if ref_id != '' %}
+                            <a class="p12 bs dB br20 tdN bgLi cF ffR fwM cFh" href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join-ref_id-{{ref_id}}">
+                        {% elif aj  %}
+                            <a class="p12 bs dB br20 tdN bgLi cF ffR fwM cFh" href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join-aj-{{aj}}">
+                        {% elif cta == 'share' %}
+                            <a class="p12 bs dB br20 tdN bgLi cF ffR fwM cFh" href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join">
+                        {% elif cta != '' %}
+                            <a class="p12 bs dB br20 tdN bgLi cF ffR fwM cFh" href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta={{cta}}">
+                        {% else %}
+                            <a class="p12 bs dB br20 tdN bgLi cF ffR fwM cFh" href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join">
+                        {% endif %}
+                                <i class="dIb fa fa-linkedin fs15 lh16 vM"></i>
+                                <span  class="dIb lh16 pl12 vM">LOGIN WITH LINKEDIN</span>
+                            </a>
+                    </div>
+                    <div class="fs12">
+                        {% if ref_id != '' %}
+                            <a class="p12 bs dB br20 tdN bgFb cF ffR fwM cFh" href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join-ref_id-{{ref_id}}">
+                        {% elif aj  %}
+                            <a class="p12 bs dB br20 tdN bgFb cF ffR fwM cFh" href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join-aj-{{aj}}">
+                        {% elif cta == 'share' %}
+                            <a class="p12 bs dB br20 tdN bgFb cF ffR fwM cFh" href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join">
+                        {% elif cta != '' %}
+                            <a class="p12 bs dB br20 tdN bgFb cF ffR fwM cFh" href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta={{cta}}">
+                        {% else %}
+                            <a class="p12 bs dB br20 tdN bgFb cF ffR fwM cFh" href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join">
+                        {% endif %}
+                                <i class="fa fa-facebook dIb fs15 lh16 vM" ></i>
+                                <span class="dIb lh16 pl12 vM">LOGIN WITH FACEBOOK</span>
+                            </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="dN">{{collabcard}}</div>
+        <div class="dN">{{community}}</div>
+        <div class="dN">{{members}}</div>
+        <div class="dN">{{answers}}</div>
+
+    </div>
+{% endblock %}
+
+
