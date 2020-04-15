@@ -319,7 +319,7 @@ def get_leave_community_text():
     return leave_community
 
 
-def community(request, community_id):
+def community(request, community_id,req_dict=None):
     ''' Community detail page '''
 
     community = Community.objects.get(id=community_id)
@@ -386,6 +386,9 @@ def community(request, community_id):
         temp['leave_community_negative_title'] = leave_community[3]
         return JsonResponse({'community': new_dict,'leave_community':temp})
 
+    if req_dict:
+        return new_dict
+
     return JsonResponse({'community': new_dict})
 
 
@@ -426,8 +429,14 @@ def pending_members(request, community_id):
     return JsonResponse({'pending_members': pending_requests})
 
 def admins(request, community_id):
+
     ''' function to get admins of a community '''
+
+
+
     member_id = request.GET.get('member_id', None)
+
+
     current_user_id = get_member_id_from_headers(request)
     admins = Members.objects.filter(community_id=community_id).filter(Q(state=1) | Q(state=2))
     users = []
@@ -463,7 +472,7 @@ def admins(request, community_id):
     if member_id and community.hide_community == '3':
         ref_members = get_referred_members_of_a_member(community_id, member_id)
         referred_members_count = len(ref_members)
-        return JsonResponse({'members': users, 'referred_members_count': referred_members_count})
+        context = {'members': users, 'referred_members_count': referred_members_count}
     elif member_id:
 
         #print(">>>>>>>>>>> ", member_id)
@@ -480,15 +489,18 @@ def admins(request, community_id):
         #         if member[0].state == 4:
         #             count += 1
 
-        return JsonResponse({'members': users, 'referred_members_count': referal_count})
+        context = {'members': users, 'referred_members_count': referal_count}
     else:
-        return JsonResponse({'members': users})
+        context = {'members': users}
+
+
+    return JsonResponse(context)
 
 
 
 def community_version_1(request,community_id):
 
-    '''api to club data in community detail screen'''
+    '''api to club data in community detail screen by calling apis from backend'''
     start_time=time.time()
 
     response={}
@@ -581,6 +593,25 @@ def community_version_1(request,community_id):
 
 
     return JsonResponse(response)
+
+
+
+# def community_version_2(request,community_id):
+#
+#
+#     response={}
+#     member_id=get_member_id_from_headers(request)
+#     #community_detail_api
+#     community_detail = community(request,community_id,req_dict=True)
+#     response['community'] = community_detail
+#     #
+#     # #admins api
+#     # admins_api=admins(request,community_id,req_dict={'member_id':member_id})
+#     # response['admins-api'] = admins_api
+#
+#     return JsonResponse(response)
+
+
 
 ############# functions for  join community  screen ##########################
 
