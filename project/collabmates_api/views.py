@@ -69,6 +69,8 @@ from .notification import (send_follow_notification, send_notification_to_admins
 from .raw_queries import compute_rank
 from .tasks import send_email_to_nominated_admin, send_email_for_new_collabcard_posted, send_welcome_mail
 from django.contrib.auth import login
+from urllib.parse import unquote
+
 
 from rest_framework.renderers import JSONRenderer, TemplateHTMLRenderer
 from rest_framework.decorators import api_view, renderer_classes
@@ -78,7 +80,7 @@ from rest_framework.decorators import api_view, renderer_classes
 # CACHE_TTL = getattr(settings, 'CACHE_TTL', cache_timeout)
 
 url = settings.URL
-# url='http://localhost:8000'
+#url='http://localhost:8000'
 error_logger = logging.getLogger("error_logger")
 info_logger = logging.getLogger("info_logger")
 
@@ -189,6 +191,7 @@ def your_communities(request, user_id):
 
     member_id = request.GET.get('member_id')
     current_user_id = get_member_id_from_headers(request)
+
     page_number = request.GET.get('page', '')
     if str(member_id) != str(user_id):
         member_id = user_id
@@ -320,7 +323,6 @@ def community(request, community_id):
 
     community = Community.objects.get(id=community_id)
     member_id = get_member_id_from_headers(request)
-
     is_promoter = False
     block_leave_community = False
     member_list = Members.objects.filter(community_id=community, member_id=member_id)
@@ -386,8 +388,6 @@ def community(request, community_id):
     return JsonResponse({'community': new_dict})
 
 
-
-
 def similar_community(request, community_id):
     '''function to return similar communitites'''
     body = request.GET
@@ -414,6 +414,95 @@ def similar_community(request, community_id):
             community.append(new_dict)
     return JsonResponse({'communities': community})
 
+def pending_members(request, community_id):
+
+    ''' function to get members requested to join in a community '''
+
+    member_id = request.GET.get('member_id',None)
+    if not member_id:
+        member_id = get_member_id_from_headers(request)
+    pending_requests=get_pending_members_of_community(community_id,requested_member_id=member_id)
+    return JsonResponse({'pending_members': pending_requests})
+
+def admins(request, community_id):
+    ''' function to get admins of a community '''
+    member_id = request.GET.get('member_id', None)
+    current_user_id = get_member_id_from_headers(request)
+    admins = Members.objects.filter(community_id=community_id).filter(Q(state=1) | Q(state=2))
+    users = []
+
+    for admin in admins:
+        user = Userinfo.objects.filter(user_id=admin.member_id.id)
+        # get user serialized
+        usr = UserinfoSerializer(user[0])
+
+        if int(community_id) != feedback_community_id:
+            form_response = FormResponseSerilaizer(community_id, admin.member_id.id,bl=True,current_user_id=current_user_id)
+            if form_response:
+                usr['response'] = form_response[0]
+                usr['question_answers'] = form_response[1]
+        else:
+            form_response =[
+                {
+                    'key':"",
+                    'value':"founder of LikeMinds"
+                }
+
+            ]
+            usr['response'] = form_response
+        ref_members = get_referred_members_of_a_member(community_id, admin.member_id.id)
+        usr['referred_members_count']=len(ref_members)
+
+
+        users.append(usr)
+
+
+    community = Community.objects.get(pk=community_id)
+    referred_members_count = 0
+    if member_id and community.hide_community == '3':
+        ref_members = get_referred_members_of_a_member(community_id, member_id)
+        referred_members_count = len(ref_members)
+        return JsonResponse({'members': users, 'referred_members_count': referred_members_count})
+    elif member_id:
+
+        #print(">>>>>>>>>>> ", member_id)
+        referals = get_referred_members_of_a_member(community_id=community_id, member_id=member_id)
+        referal_count = len(referals)
+        # print(referals)
+        # count = 0
+        # print("referal count === ", referal_count)
+        #
+        # for mem_id in referals:
+        #     member = Members.objects.filter(member_id=mem_id, community_id=community_id)
+        #     if member.exists():
+        #
+        #         if member[0].state == 4:
+        #             count += 1
+
+        return JsonResponse({'members': users, 'referred_members_count': referal_count})
+    else:
+        return JsonResponse({'members': users})
+
+
+
+def community_version_1(request,community_id):
+
+    '''api to club data in community detail screen'''
+
+    response={}
+
+    #community detail api
+    community_url=url+"/api/community/"+str(community_id)
+    community_detail_response=rqst.get(community_url)
+    if community_detail_response.status_code == 200:
+        community_detail_response = community_detail_response.json()
+        print(community_detail_response)
+        response['community'] = community_detail_response['community']
+
+
+    #admins
+    #admins_url = url +
+    return JsonResponse(response)
 
 ############# functions for  join community  screen ##########################
 
@@ -1516,64 +1605,7 @@ def members(request, community_id):
     return JsonResponse({'members': members})
 
 
-def admins(request, community_id):
-    ''' function to get admins of a community '''
-    member_id = request.GET.get('member_id', None)
-    current_user_id = get_member_id_from_headers(request)
-    admins = Members.objects.filter(community_id=community_id).filter(Q(state=1) | Q(state=2))
-    users = []
 
-    for admin in admins:
-        user = Userinfo.objects.filter(user_id=admin.member_id.id)
-        # get user serialized
-        usr = UserinfoSerializer(user[0])
-
-        if int(community_id) != feedback_community_id:
-            form_response = FormResponseSerilaizer(community_id, admin.member_id.id,bl=True,current_user_id=current_user_id)
-            if form_response:
-                usr['response'] = form_response[0]
-                usr['question_answers'] = form_response[1]
-        else:
-            form_response =[
-                {
-                    'key':"",
-                    'value':"founder of LikeMinds"
-                }
-
-            ]
-            usr['response'] = form_response
-        ref_members = get_referred_members_of_a_member(community_id, admin.member_id.id)
-        usr['referred_members_count']=len(ref_members)
-
-
-        users.append(usr)
-
-
-    community = Community.objects.get(pk=community_id)
-    referred_members_count = 0
-    if member_id and community.hide_community == '3':
-        ref_members = get_referred_members_of_a_member(community_id, member_id)
-        referred_members_count = len(ref_members)
-        return JsonResponse({'members': users, 'referred_members_count': referred_members_count})
-    elif member_id:
-
-        #print(">>>>>>>>>>> ", member_id)
-        referals = get_referred_members_of_a_member(community_id=community_id, member_id=member_id)
-        referal_count = len(referals)
-        # print(referals)
-        # count = 0
-        # print("referal count === ", referal_count)
-        #
-        # for mem_id in referals:
-        #     member = Members.objects.filter(member_id=mem_id, community_id=community_id)
-        #     if member.exists():
-        #
-        #         if member[0].state == 4:
-        #             count += 1
-
-        return JsonResponse({'members': users, 'referred_members_count': referal_count})
-    else:
-        return JsonResponse({'members': users})
 
 @csrf_exempt
 def edit_member_profile(request):
@@ -1848,6 +1880,9 @@ def ask_approval(request):
 
     return JsonResponse({'success':True})
 
+
+
+
 @csrf_exempt
 def remove_from_member(request):
 
@@ -1860,33 +1895,42 @@ def remove_from_member(request):
 
     community_id = request.POST.get('community_id')
 
-
     member_ids = request.POST.get('member_ids', False)
 
     is_promoter = Members.objects.filter(state=member_states.ADMIN, community_id=community_id, member_id=member_id)
     is_promoter = is_promoter.exists()
-
     if member_ids:
        if is_promoter:
-           member_ids = member_ids.split(",")
+
+           member_ids = unquote(member_ids)
+           member_ids = json.loads(member_ids)
+
+           print(member_ids)
 
            for member in member_ids:
-
                 member_filter = Members.objects.filter(community_id=community_id,member_id=member)
 
                 if member_filter.exists():
                     member_state = member_filter[0].state
-
                     if member_state == member_states.MEMBER:
                         remove_members(community_id,member_filter[0].member_id.id,removed_state=deleted_members.REMOVED)
 
            return JsonResponse({'success': True})
+       else:
+           return JsonResponse({'success':False,'error_message':"You are not the promoter of this community"})
+
+
 
     #flow to leave the community
 
     if not is_promoter and member_ids == False:
-        remove_members(community_id,member_id,removed_state=deleted_members.LEFT)
-        return JsonResponse({'success':True})
+
+        is_member=Members.objects.filter(community_id=community_id,member_id=member_id,state=member_states.MEMBER)
+        if is_member.exists():
+            remove_members(community_id,member_id,removed_state=deleted_members.LEFT)
+            return JsonResponse({'success':True})
+        else:
+            return JsonResponse({'success':False,'error_message':"You are not the member of this community"})
 
     return JsonResponse({'success':False})
 
@@ -1906,10 +1950,10 @@ def remove_members(community_id, member_id,removed_state):
 
     is_member_left = removedMembers.objects.filter(community=community_id, member=member_id)
 
-    if not is_member_left.exists() and community_instance:
+    if not is_member_left.exists():
 
         instance = removedMembers(community=community_instance, member=user_instance,
-                                  removed_state=removed_state, created_at=time.time())
+                                  removed_state=deleted_members.REMOVED, created_at=time.time())
         instance.save()
         #saving collabcard state in update status
         update_staus = collabcardState.objects.filter(community=community_id,user=member_id).update(removed_status=instance.id)
@@ -2574,15 +2618,7 @@ def check_member(email, community_id, member_id, res):
     return False
 
 
-def pending_members(request, community_id):
 
-    ''' function to get members requested to join in a community '''
-
-    member_id = request.GET.get('member_id',None)
-    if not member_id:
-        member_id = get_member_id_from_headers(request)
-    pending_requests=get_pending_members_of_community(community_id,requested_member_id=member_id)
-    return JsonResponse({'pending_members': pending_requests})
 
 
 def get_pending_members_of_community(community_id,requested_member_id):
