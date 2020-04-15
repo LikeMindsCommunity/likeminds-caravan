@@ -47,7 +47,8 @@ from utility.utils import (decode_meta_from_url, update_tag_image,
                            get_city_address,
                            update_user_geography_tags, insert_user_home_town_tags, is_IG_community,
                            ig_members_count, is_LG_or_LP_community, feedback_community_id, feedback_collabcard_id,
-                           is_member_verified,community_default_image,community_default_thumbnail,
+                           is_member_verified,community_default_image,community_default_thumbnail,is_member_promoter,
+                           is_member_pending,is_member_present
 
                            )
 
@@ -1912,7 +1913,7 @@ def remove_from_member(request):
 
                 if member_filter.exists():
                     member_state = member_filter[0].state
-                    if member_state == member_states.MEMBER:
+                    if member_state == member_states.MEMBER or member_state == member_states.KNOWN_NOMINATED_PROMOTER:
                         remove_members(community_id,member_filter[0].member_id.id,removed_state=deleted_members.REMOVED)
 
            return JsonResponse({'success': True})
@@ -1925,7 +1926,8 @@ def remove_from_member(request):
 
     if not is_promoter and member_ids == False:
 
-        is_member=Members.objects.filter(community_id=community_id,member_id=member_id,state=member_states.MEMBER)
+        is_member=Members.objects.filter(community_id=community_id,member_id=member_id).filter(
+            Q(state=member_states.KNOWN_NOMINATED_PROMOTER)|Q(state=member_states.MEMBER))
         if is_member.exists():
             remove_members(community_id,member_id,removed_state=deleted_members.LEFT)
             return JsonResponse({'success':True})
@@ -2496,49 +2498,68 @@ def create_admin(request, community_id):
     ''' saving admin details given by user of a community
      when the user is creating a community as a member '''
     if request.method == 'POST':
-        res = json.loads(request.body)
-        # saving the nominated promoter details
-        admin = temp_admin()
-        if 'member_id' in res:
-            member_id = res['member_id']
-            promoter = Userinfo.objects.get(user_id=member_id)
-            promoter_email = promoter.email
-        if 'nominate_member_id' in res:
-            nominated_member_id = res['nominate_member_id']
-            try:
-                user_data = Userinfo.objects.get(user_id=nominated_member_id)
-                res['name'] = user_data.name
-                res['email_id'] = user_data.email
-            except:
-                print("Error in object")
-        if 'name' in res:
-            admin.name = res['name']
-        if 'email_id' in res:
-            try:
-                if res['email_id'] == promoter_email:
-                    return JsonResponse({'success': True})
-            except:
-                pass
-            admin.email = res['email_id']
-        if 'contact_no' in res:
-            admin.contact_number = res['contact_no']
-        if 'member_id' in res:
-            member_id = res['member_id']
-        community = Community.objects.get(id=community_id)
-        admin.community = community
-        admin.member_id = member_id
-        admin.save()
-        # checking if there is any person with given mail , and make him nominated promoter
-        check = check_member(res['email_id'], community_id, res['member_id'], res)
+        response = json.loads(request.body)
+        member_id=get_member_id_from_headers(request)
+
+        if 'community_id' in response:
+            community_id = response['community_id']
+            community_instance = Community.objects.get(id=community_id)
+        else:
+            return JsonResponse({'success':False,'error_message':"Send community_id in request body"})
+
+
+        if not member_id:
+            return JsonResponse({'success':False,'error_message':"Send member id in headers"})
+
+        if not is_member_promoter(member_id=member_id,community_id=community_id):
+            return JsonResponse({'success':False,'error_message':"You are not a promoter"})
+
+        if 'nominate_member_ids' in response:
+            nominate_member_ids = response['nominate_member_ids']
+        else:
+            return JsonResponse({'success': False, 'error_message': "Send nominated member id list"})
+
+
+        try:
+            user_instance = User.objects.get(id=member_id)      #current logged in user object
+        except:
+            return JsonResponse({'success': False, 'error_message': "User is not registered"})
+
+        for member in nominate_member_ids:
+
+            if is_member_present(community_id=community_id,member_id=member):
+
+                try:
+                    nominated_member = User.objects.get(id=member)
+                    print(nominated_member)
+                except:
+                    continue
+
+                is_present = temp_admin.objects.filter(email=nominated_member.userinfo.email,
+                                                       member_id=user_instance.id,community_id=community_id)
+
+                if not is_present.exists():
+                    instance=temp_admin()
+                    instance.name = nominated_member.userinfo.name
+                    instance.member_id = user_instance.id
+                    instance.email = nominated_member.userinfo.email
+                    instance.community=community_instance
+                    instance.save()
+                nominated_member_email = nominated_member.userinfo.email
+                nominated_member_name = nominated_member.userinfo.name
+                check_member(nominated_member_email,community_id,user_instance.id,
+                             nominated_member_name,community_instance)
+
+
         return JsonResponse({'success': True})
     return HttpResponse('Add Admin Api')
 
 
-def check_member(email, community_id, member_id, res):
+def check_member(email, community_id, member_id, nominated_member_name,community_instance):
     """ check if the user is already a member of the invited community and make user as nominated promoter
      if he is registered in collabmates and if the user is not registered just send the user a invitation email """
     ProposedAdmin = Userinfo.objects.get(user_id=member_id)
-    community = Community.objects.get(id=community_id)
+    community = community_instance
     proposedAdminState = Members.objects.filter(member_id=ProposedAdmin.user_id, community_id=community)
     proposedAdminState = proposedAdminState[0].state
     CommunityName = community.name
@@ -2554,13 +2575,13 @@ def check_member(email, community_id, member_id, res):
             NominatedAdmin = user[0].name
         else:
             """ if the user is not present just user a email"""
-            send_email_to_nominated_admin.delay(NominatedAdmin=res['name'], email=email, ProposedAdmin=ProposedAdmin,
+            send_email_to_nominated_admin.delay(NominatedAdmin=nominated_member_name, email=email, ProposedAdmin=ProposedAdmin,
                                                 proposedAdminState=proposedAdminState, CommunityName=CommunityName,
                                                 community_id=community.id)
             return False
     except:
         """ if any error trying fetch the user details , then user is not registered , send an email"""
-        send_email_to_nominated_admin.delay(NominatedAdmin=res['name'], email=email, ProposedAdmin=ProposedAdmin,
+        send_email_to_nominated_admin.delay(NominatedAdmin=nominated_member_name, email=email, ProposedAdmin=ProposedAdmin,
                                             proposedAdminState=proposedAdminState, CommunityName=CommunityName,
                                             community_id=community.id)
         return False
@@ -2572,7 +2593,9 @@ def check_member(email, community_id, member_id, res):
         if member and member[0].state == 4:
             # if the user is already a member , give him state 7
             # state 7 is nominted promoter who is already a member of thet community
-            Members.objects.filter(community_id=community, member_id=user[0].user_id.id).update(state=7)
+            Members.objects.filter(community_id=community, member_id=user[0].user_id.id).update(state=member_states.KNOWN_NOMINATED_PROMOTER)
+            Member_Engage.objects.filter(community_id=community,member_id=user[0].user_id.id).update(
+                member_state=member_states.KNOWN_NOMINATED_PROMOTER)
             # send mail and notification
             send_email_to_nominated_admin.delay(NominatedAdmin=NominatedAdmin, email=email, ProposedAdmin=ProposedAdmin,
                                                 proposedAdminState=proposedAdminState, CommunityName=CommunityName,

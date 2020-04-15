@@ -20,6 +20,7 @@ from django.conf import settings
 from user_agents import parse
 import time
 
+from .states import *
 # cache details
 # from django.core.cache import cache
 # custom_cache=cache
@@ -73,11 +74,30 @@ def is_member_verified(community,user_instance):
     '''function to check whether the member is verified or not'''
 
     is_verified=Members.objects.filter(community_id=community,member_id=user_instance).filter(
-        Q(state=1)|Q(state=4)|Q(state=2))
+        Q(state=member_states.ADMIN)|Q(state=member_states.TEMP_ADMIN)|
+        Q(state=member_states.MEMBER)|Q(state=member_states.KNOWN_NOMINATED_PROMOTER))
 
-    if is_verified:
-        return True
-    return False
+    return is_verified.exists()
+
+def is_member_promoter(community_id,member_id):
+
+    is_promoter = Members.objects.filter(community_id=community_id,member_id=member_id,state=member_states.ADMIN)
+
+    return is_promoter.exists()
+
+def is_member_pending(community_id, member_id):
+
+    is_pending = Members.objects.filter(community_id=community_id, member_id=member_id, state=member_states.PENDING_MEMBER)
+
+    return is_pending.exists()
+
+def is_member_present(community_id,member_id):
+
+    is_member = Members.objects.filter(community_id=community_id,
+                                       member_id=member_id).filter(Q(state=member_states.MEMBER)
+                                                                   |Q(state=member_states.KNOWN_NOMINATED_PROMOTER))
+    return is_member.exists()
+
 
 def decode_meta_from_url(url):
 
