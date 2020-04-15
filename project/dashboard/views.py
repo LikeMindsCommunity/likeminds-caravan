@@ -539,8 +539,8 @@ def all_user(request):
         else:
             user_dic['os'] = 'Web'
 
-        tags = userinfo_tags.objects.filter(user_id=i.user_id.id)
-        tags_count = tags.count()
+        tags = []
+        #tags_count = tags.count()
         tags_list=[]
         for t in tags:
             tag = Tags.objects.get(id = t.tag_id)
