@@ -392,10 +392,14 @@ def community(request, community_id,req_dict=None):
     return JsonResponse({'community': new_dict})
 
 
-def similar_community(request, community_id):
+def similar_community(request, community_id,req_dict=None):
     '''function to return similar communitites'''
-    body = request.GET
-    user_id = body['member_id']
+
+    if not req_dict:
+        body = request.GET
+        user_id = body['member_id']
+    else:
+        user_id=req_dict['member_id']
     user_tag = 0
     # getting communities based on user hidden tags
     queryset, state = get_user_communities_by_rank(user_id=user_id)[:11]
@@ -416,6 +420,9 @@ def similar_community(request, community_id):
             new_dict.update(serialized_object)
 
             community.append(new_dict)
+
+    if req_dict:
+        return community
     return JsonResponse({'communities': community})
 
 def pending_members(request, community_id):
@@ -428,7 +435,7 @@ def pending_members(request, community_id):
     pending_requests=get_pending_members_of_community(community_id,requested_member_id=member_id)
     return JsonResponse({'pending_members': pending_requests})
 
-def admins(request, community_id):
+def admins(request, community_id,req_dict=None):
 
     ''' function to get admins of a community '''
 
@@ -494,6 +501,9 @@ def admins(request, community_id):
         context = {'members': users}
 
 
+    if req_dict:
+        return context
+
     return JsonResponse(context)
 
 
@@ -543,6 +553,7 @@ def community_version_1(request,community_id):
     member_state = rqst.get(member_url, headers=headers, params={'community_id': community_id,'member_id':member_id})
     if member_state.status_code == 200:
         member_state = member_state.json()
+        state=member_state['state']
         # print(community_detail_response)
 
         response['member-state-api'] = member_state
@@ -559,29 +570,31 @@ def community_version_1(request,community_id):
 
         response['pending-members-api'] = pending_response
 
-    # collabcard url
-    collabcard = url + "/api/v1/community_collabcard/" + str(community_id)
-    collabcard = rqst.get(collabcard, headers=headers,
-                                params={'community_id': community_id, 'member_id': member_id})
+    if member_state['state'] == member_states.ADMIN or member_state['state'] == member_states.MEMBER or member_state['state'] == member_states.KNOWN_NOMINATED_PROMOTER:
 
-    if collabcard.status_code == 200:
-        collabcard = collabcard.json()
-        # print(community_detail_response)
+        # collabcard url
+        collabcard = url + "/api/v1/community_collabcard/" + str(community_id)
+        collabcard = rqst.get(collabcard, headers=headers,
+                                    params={'community_id': community_id, 'member_id': member_id})
 
-        response['v1/collabcard-api'] = collabcard
+        if collabcard.status_code == 200:
+            collabcard = collabcard.json()
+            # print(community_detail_response)
 
+            response['v1/collabcard-api'] = collabcard
 
+    else:
 
-    # collabcard url
-    similar_communities = url + "/api/similar_communities/" + str(community_id)
-    similar_communities = rqst.get(similar_communities, headers=headers,
-                                params={'community_id': community_id, 'member_id': member_id})
+        # similar communities
+        similar_communities = url + "/api/similar_communities/" + str(community_id)
+        similar_communities = rqst.get(similar_communities, headers=headers,
+                                    params={'community_id': community_id, 'member_id': member_id})
 
-    if similar_communities.status_code == 200:
-        similar_communities = similar_communities.json()
-        # print(community_detail_response)
+        if similar_communities.status_code == 200:
+            similar_communities = similar_communities.json()
+            # print(community_detail_response)
 
-        response['similar_communities'] = similar_communities
+            response['similar_communities'] = similar_communities
 
     end_time = time.time()
 
@@ -596,20 +609,50 @@ def community_version_1(request,community_id):
 
 
 
-# def community_version_2(request,community_id):
-#
-#
-#     response={}
-#     member_id=get_member_id_from_headers(request)
-#     #community_detail_api
-#     community_detail = community(request,community_id,req_dict=True)
-#     response['community'] = community_detail
-#     #
-#     # #admins api
-#     # admins_api=admins(request,community_id,req_dict={'member_id':member_id})
-#     # response['admins-api'] = admins_api
-#
-#     return JsonResponse(response)
+def community_version_2(request,community_id):
+
+
+    start_time = time.time()
+    response={}
+    member_id=get_member_id_from_headers(request)
+    #community_detail_api
+    community_detail = community(request,community_id,req_dict=True)
+    response['community'] = community_detail
+
+    #admins api
+    admins_api=admins(request,community_id,req_dict={'member_id':member_id})
+    response['admins-api'] = admins_api
+
+    #all_members api
+    all_members_api=get_all_members(request,req_dict={'community_id':community_id})
+    response['all_members_api'] = all_members_api
+
+    #member_state api
+
+    member_state=members_state(request,req_dict={'community_id':community_id,'member_id':member_id})
+    response['members_state_api'] = member_state
+
+    #pending members api
+    pending_members=get_pending_members_of_community(community_id,member_id)
+    response['pending_members_api'] = pending_members
+
+
+    if member_state['state'] == member_states.ADMIN or member_state['state'] == member_states.MEMBER or member_state['state'] == member_states.KNOWN_NOMINATED_PROMOTER:
+        #community_collabcard
+        community_collabcard=community_cards_version_1(request,community_id,{'member_id':member_id})
+        response['community_collabcard_api']=community_collabcard
+    else:
+        # suggested_communities api
+        suggested_community = similar_community(request, community_id, {'member_id': member_id})
+        response['similar_communities_api'] = suggested_community
+
+    end_time=time.time()
+
+    info_logger.info("Community Detail version 2")
+    diff= end_time-start_time
+    info_logger.info(diff)
+
+    return JsonResponse(response)
 
 
 
@@ -1711,7 +1754,8 @@ def members(request, community_id):
 
         members.append(usr)
 
-    return JsonResponse({'members': members})
+    context={'members': members}
+    return JsonResponse(context)
 
 
 
@@ -4140,16 +4184,22 @@ def compute_community_live_subtitle_for_lg(total_count,count_of_verified_members
 
 
 
-def community_cards_version_1(request,community_id):
+def community_cards_version_1(request,community_id,req_dict=None):
 
     '''Version 1 community cards for ig communities'''
 
     community = Community.objects.get(id=community_id)
-    member_id = request.GET.get('member_id')
+
+    if req_dict:
+        member_id=req_dict['member_id']
+        size=10
+    else:
+        member_id = request.GET.get('member_id')
+        size = request.GET.get('size', '')
 
     current_user_id = get_member_id_from_headers(request)
 
-    size = request.GET.get('size', '')
+
     if size:
         size = int(size)
         collabcard_instance_list = Collabcard.objects.filter(community=community_id).order_by('id')[:size]
@@ -4188,6 +4238,10 @@ def community_cards_version_1(request,community_id):
         'collabcards': card_list,
         'size': size,
     }
+
+    if req_dict:
+        return json_response
+
     return JsonResponse(json_response)
 
 
@@ -5428,17 +5482,25 @@ def get_state_of_community(community):
         return int(community.hide_community)
     return 0
 
-def members_state(request):
+def members_state(request,req_dict=None):
+
     '''This function gives the state of user.Get Api'''
 
-    member_id = request.GET.get('member_id')
-    community_id = request.GET.get('community_id')
-    collabcard_id = request.GET.get('collabcard_id')
+    if not req_dict:
+        member_id = request.GET.get('member_id')
+        community_id = request.GET.get('community_id')
+        collabcard_id = request.GET.get('collabcard_id')
+
+        if collabcard_id and not community_id:
+            card = Collabcard.objects.get(pk=collabcard_id)
+            community_id = card.community.id
+
+    else:
+        member_id=req_dict['member_id']
+        community_id = req_dict['community_id']
     # if not collabcard_id.isdigit():
     #     return JsonResponse({'state':0})
-    if collabcard_id and not community_id:
-        card = Collabcard.objects.get(pk=collabcard_id)
-        community_id = card.community.id
+
 
     state = 0
     tool_state = 0
@@ -5449,7 +5511,7 @@ def members_state(request):
 
     is_tool_state = False
 
-    if community_state == community_states.PRIVATE or community_state == community_states.PILOT_ACTIVE or community_state ==  community_states.WHATSAPP:
+    if community_state == community_states.PRIVATE or community_state == community_states.PILOT_ACTIVE or community_state ==  community_states.WHATSAPP or community_state == community_states.HIDDEN:
         is_tool_state = True
 
     user_email = ""
@@ -5474,23 +5536,23 @@ def members_state(request):
 
         ref_members = get_referred_members_of_a_member(community_id, member_id)
 
-    if state == 0:
-        '''checking if user DETAILS EXIST in temp admin table in case he is a newly registered user'''
-        user = Userinfo.objects.get(user_id=member_id)
-        community = get_object_or_404(Community, pk=community_id)
-        check = get_nominated_admin_details(community_id=community_id, email=user.email)
-        if check:
-            '''creating a new row in members table making current
-            user a nominated promoter of this community,if he is a newly
-            registered user and his details are present in temp admin table'''
-            member = Members()
-            member.member_id = user.user_id
-            member.community_id = community
-            member.state = 6
-            member.save()
-            state = 6
-        else:
-            state = 0
+    # if state == 0:
+    #     '''checking if user DETAILS EXIST in temp admin table in case he is a newly registered user'''
+    #     user = Userinfo.objects.get(user_id=member_id)
+    #     community = get_object_or_404(Community, pk=community_id)
+    #     check = get_nominated_admin_details(community_id=community_id, email=user.email)
+    #     if check:
+    #         '''creating a new row in members table making current
+    #         user a nominated promoter of this community,if he is a newly
+    #         registered user and his details are present in temp admin table'''
+    #         member = Members()
+    #         member.member_id = user.user_id
+    #         member.community_id = community
+    #         member.state = 6
+    #         member.save()
+    #         state = 6
+    #     else:
+    #         state = 0
     referred_members_count=len(ref_members)
     tool_unlock_sub_title=""
     if referred_members_count == 0:
@@ -5553,6 +5615,9 @@ def members_state(request):
 
     if state == member_states.PENDING_MEMBER:
         json_response['member_direction_lock'] = get_data_for_filter_pop_ups(email=user_email)
+
+    if req_dict:
+        return json_response
     return JsonResponse(json_response)
 
 
@@ -5921,25 +5986,41 @@ def get_user_location(request, user_id, type=None):
 @api_view(['GET', 'POST'])
 @renderer_classes([JSONRenderer, TemplateHTMLRenderer])
 def all_members(request):
-    print('in all members')
+    #print('in all members')
     '''function to send all members of community '''
-    page = request.GET.get('page',1)
-    community_id = request.GET.get('community_id')
 
-    collabcard_id = request.GET.get('collabcard_id',None)
+    context=get_all_members(request)
+
+    if request.accepted_renderer.format == 'html':
+        print('in html')
+        return render(request, 'filtered_members.html',context)
+    else:
+        return JsonResponse(context)
+
+
+def get_all_members(request, req_dict=None):
+    '''function to get all members of the community'''
+
+    page = request.GET.get('page', 1)
+
+    if not req_dict:
+        community_id = request.GET.get('community_id')
+    else:
+        community_id = req_dict['community_id']
+
+    collabcard_id = request.GET.get('collabcard_id', None)
 
     current_user_id = get_member_id_from_headers(request)
 
-    #functionality for user filteration based on options
-
+    # functionality for user filteration based on options
+    context = {}
     if collabcard_id:
+        members = get_members_data_for_collabcard(collabcard_id, community_id, current_user_id)
+        # print(members)
+        context = {'members': members}
+        return context
 
-        members = get_members_data_for_collabcard(collabcard_id,community_id,current_user_id)
-        #print(members)
-        return JsonResponse({'members':members})
-
-    is_filter = request.GET.get('is_filter',False)
-
+    is_filter = request.GET.get('is_filter', False)
 
     if is_filter == 'true':
         is_filter = True
@@ -5949,7 +6030,6 @@ def all_members(request):
         member_list = pagination(member_list, page, paginate_by=20)
         filter_list = request.GET.get('filter', None)
 
-
         if filter_list:
             filter_list = json.loads(filter_list)
             info_logger.info(filter_list)
@@ -5958,7 +6038,7 @@ def all_members(request):
             members = get_member_instances(member_list, current_user_id, community_id, is_filter=is_filter,
                                            member_set=member_set)
         else:
-            is_filter = False
+            # is_filter = False
             member_list = Members.objects.filter(community_id=community_id).filter(
                 Q(state=member_states.ADMIN) | Q(state=member_states.MEMBER) | Q(
                     state=member_states.KNOWN_NOMINATED_PROMOTER) | Q(state=member_states.PENDING_MEMBER)).order_by(
@@ -5968,20 +6048,15 @@ def all_members(request):
 
 
     else:
-        is_filter = False
+        # is_filter = False
         member_list = Members.objects.filter(community_id=community_id).filter(
             Q(state=member_states.ADMIN) | Q(state=member_states.MEMBER) | Q(
                 state=member_states.KNOWN_NOMINATED_PROMOTER)).order_by('id')
         member_list = pagination(member_list, page, paginate_by=20)
         members = get_member_instances(member_list, current_user_id, community_id)
 
-
-    if request.accepted_renderer.format == 'html':
-        print('in html')
-        return render(request, 'filtered_members.html', {'members':members})
-    else:
-        return JsonResponse({'members':members})
-
+    context = {'members': members}
+    return context
 
 def get_member_instances(member_list,current_user_id,community_id,is_filter=False,member_set=None):
 
@@ -6086,6 +6161,8 @@ def get_members_data_for_collabcard(card_id,community_id,current_user_id):
 
 
     return members
+
+
 
 
 #functionality for filters
