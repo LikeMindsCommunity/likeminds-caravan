@@ -5716,7 +5716,7 @@ def members_state(request,req_dict=None):
     if state == member_states.PENDING_MEMBER:
         json_response['member_direction_lock'] = get_data_for_filter_pop_ups(email=user_email)
 
-    if state == member_states.ADMIN:
+    if state == member_states.ADMIN and (community_state == community_states.PRIVATE or community_state ==  community_states.WHATSAPP or community_state == community_states.HIDDEN):
         json_response['create_community_action'] = get_create_community_actions(community_id)
 
     if req_dict:
