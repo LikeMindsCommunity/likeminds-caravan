@@ -301,3 +301,18 @@ def removedMembersSerializer(community_id,member_id):
         return removed_state
 
     return False
+
+
+def createCommunityActionSerializer(instance):
+
+    temp = {
+    'step_no': instance.step_no,
+    'step_title' : instance.step_title,
+    'max_point' : instance.max_point,
+    'current_point' : instance.current_point
+    }
+
+    if instance.step_subtitle:
+        temp['step_subtitle'] = instance.step_subtitle
+
+    return temp
