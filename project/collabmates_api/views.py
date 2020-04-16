@@ -1299,7 +1299,6 @@ def join_lg_communities_version_1(request,res,community,user,ref_id):
         member_instance.update(state=member_states.PENDING_MEMBER)
 
 
-
 def join_promoter_created_community_version_1(res,request):
 
     '''function to join promoter created community'''
@@ -1364,6 +1363,7 @@ def join_promoter_created_community_version_1(res,request):
         member_state = member_list[0].state
         if member_state == member_states.ADMIN:
 
+            post_purpose_collabcard_for_community(request, community_instance, member_id)
             post_introduction_card_for_community(community_id, member_id, request)
 
             generate_private_link(community_instance, user_instance)
@@ -1464,6 +1464,7 @@ def join_whatsapp_community(res,request):
         member_state = member_list[0].state
         if member_state == member_states.ADMIN:
 
+            post_purpose_collabcard_for_community(request,community_instance,member_id)
             post_introduction_card_for_community(community_id,member_id,request)
 
             generate_private_link(community_instance,user_instance)
@@ -1518,20 +1519,22 @@ def is_joining_time_valid(community_instance, time_stamp, unique_code):
 def auto_join_community(community_instance,user_instance):
 
     # updating the member instance
-    member_instance = Members()
-    member_instance.member_id = user_instance
-    member_instance.community_id = community_instance
-    member_instance.state = member_states.MEMBER
-    member_instance.created_at=time.time()
-    member_instance.save()
+    if not is_member_verified(community_instance,user_instance):
+        member_instance = Members()
+        member_instance.member_id = user_instance
+        member_instance.community_id = community_instance
+        member_instance.state = member_states.MEMBER
+        member_instance.created_at=time.time()
+        member_instance.save()
 
     # updating the member engage instance
-    engage = Member_Engage()
-    engage.member_id = user_instance
-    engage.community_id = community_instance
-    engage.updated_at = time.time()
-    engage.member_state = member_states.MEMBER
-    engage.save()
+    if not is_member_engage(community_instance,user_instance):
+        engage = Member_Engage()
+        engage.member_id = user_instance
+        engage.community_id = community_instance
+        engage.updated_at = time.time()
+        engage.member_state = member_states.MEMBER
+        engage.save()
 
     send_notification_for_join_requests.delay(community_instance.id,True, user_instance.id)
 
@@ -1560,6 +1563,22 @@ def post_introduction_card_for_community(community_id,member_id,request):
 
     return False
 
+def post_purpose_collabcard_for_community(request,community_instance,member_id):
+
+    '''function to post purpose card for community'''
+
+    introduction_answer=community_instance.purpose
+    if not introduction_answer:
+        return
+    req_dict = {
+
+        'member_id': member_id,
+        'community_id': community_instance.id,
+        'title': introduction_answer,
+        'type': 0,
+    }
+    request.method = "POST"
+    create_card(request, req_dict=req_dict)
 
 
 def creating_collabcard_for_lg_communities(community,user,introduction_answer,ref_id=None):
