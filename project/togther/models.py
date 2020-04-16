@@ -716,3 +716,17 @@ class removedMembers(models.Model):
     member = models.ForeignKey(User, on_delete=models.CASCADE)
     removed_state = models.IntegerField(default=0)
     created_at = models.BigIntegerField(default=0, null=True)
+
+
+
+class createCommunityAction(models.Model):
+
+    '''model to save create community actions'''
+
+    step_no = models.TextField(null=True)
+    step_title = models.TextField(null=True)
+    max_point = models.IntegerField(null=True)
+    current_point = models.IntegerField(null=True)
+    step_subtitle = models.TextField(null=True)
+    step_action = models.TextField(null=True)
+    community = models.ForeignKey(Community, on_delete=models.CASCADE)

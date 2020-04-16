@@ -1353,6 +1353,11 @@ def join_promoter_created_community_version_1(res,request):
             if validate_time:
                 auto_join_community(community_instance, user_instance)
                 post_introduction_card_for_community(community_id, member_id, request)
+
+                # saving create community action step 3
+                createCommunityAction.objects.filter(community=community_instance,
+                                                     step_no="Step 3").update(current_point=F('current_point') + 5)
+
                 log = """Auto join community for community_id=%s for user=%s""" % (community_id, member_id)
                 info_logger.info(log)
                 return
@@ -1451,6 +1456,11 @@ def join_whatsapp_community(res,request):
             if validate_time:
                 auto_join_community(community_instance,user_instance)
                 post_introduction_card_for_community(community_id, member_id, request)
+
+                #saving create community action step 3
+                createCommunityAction.objects.filter(community=community_instance,
+                                                     step_no="Step 3").update(current_point=F('current_point') + 5)
+
                 log="""Auto join community for community_id=%s for user=%s"""%(community_id,member_id)
                 info_logger.info(log)
                 return
@@ -2348,13 +2358,16 @@ def create_community_version_1(request):
         community_instance.community_type=community_type
     community_instance.created_at=time.time()
     community_instance.updated_at=time.time()
-    community_instance.hide_community = community_state    #for whatsapp community
+    community_instance.hide_community = community_state
     if sub_type:
-        community_instance.sub_type = sub_type    #for whatsapp community
+        community_instance.sub_type = sub_type
     community_instance.save()
 
     log = """%s community created in community table"""%(community_name)
     info_logger.info(log)
+
+    #for setting community actions
+    set_community_actions(community_instance)
 
 
     #making the member instance for created community
@@ -2374,6 +2387,8 @@ def create_community_version_1(request):
     engage.member_referral = "Finish setting up your community"
     engage.save()
 
+    #completing the first community action
+    createCommunityAction.objects.filter(community=community_instance,step_no="Step 1").update(current_point=10)
 
     log = """%s is the promoter of %s"""%(user_instance.userinfo.name,community_instance.name)
     info_logger.info(log)
@@ -2402,6 +2417,8 @@ def create_community_version_1(request):
     #     communityExpireInstance.save()
 
     communty_serailized_object = CommunitySerializer(community_instance)
+
+
     return JsonResponse({'success':True,'community':communty_serailized_object})
 
 
@@ -2474,10 +2491,63 @@ def update_community(res):
     return "Not a valid community"
 
 
+def set_community_actions(community_instance):
 
+    '''function to set community action for community profiling'''
 
+    action_status = createCommunityAction.objects.filter(community=community_instance)
 
+    if not action_status:
 
+        #first step
+        instance = createCommunityAction()
+        instance.community = community_instance
+        instance.step_no = "Step 1"
+        instance.step_title = "Create community with basic details"
+        instance.max_point = 10
+        instance.current_point = 0
+        instance.step_subtitle = None
+        instance.save()
+
+        #second step
+        instance = createCommunityAction()
+        instance.community = community_instance
+        instance.step_no = "Step 2"
+        instance.step_title = "Add Banner to your community"
+        instance.max_point = 10
+        instance.current_point = 0
+        instance.step_subtitle = None
+        instance.save()
+
+        #third step
+        instance = createCommunityAction()
+        instance.community = community_instance
+        instance.step_no = "Step 3"
+        instance.step_title = "Invite your inner circle"
+        instance.max_point = 25
+        instance.current_point = 0
+        instance.step_subtitle = "Add at-least 5 pre-approved members privately."
+        instance.save()
+
+        #fourth step
+        instance = createCommunityAction()
+        instance.community = community_instance
+        instance.step_no = "Step 4"
+        instance.step_title = "Invite new member applications"
+        instance.max_point = 40
+        instance.current_point = 0
+        instance.step_subtitle = "Share on social media & approve 10+ relevant members."
+        instance.save()
+
+        #fifth step
+        instance = createCommunityAction()
+        instance.community = community_instance
+        instance.step_no = "Step 5"
+        instance.step_title = "Add ‘About Community’"
+        instance.max_point = 15
+        instance.current_point = 0
+        instance.step_subtitle = None
+        instance.save()
 
 
 
@@ -3364,6 +3434,9 @@ def approve_or_decline_whatsapp_community(req_dict,request):
             # posting a intro collabcard
             post_introduction_card_for_community(req_dict['community_id'], req_dict['member_id'], request)
 
+            # saving create community action step 4
+            createCommunityAction.objects.filter(community = req_dict['community_id'],
+                                                 step_no="Step 4").update(current_point=F('current_point') + 8)
 
             #sending mails and notifications
 
@@ -3411,6 +3484,9 @@ def approve_or_decline_private_community(req_dict,request):
             # posting a intro collabcard
             post_introduction_card_for_community(req_dict['community_id'], req_dict['member_id'], request)
 
+            # saving create community action step 4
+            createCommunityAction.objects.filter(community=req_dict['community_id'],
+                                                 step_no="Step 4").update(current_point=F('current_point') + 8)
 
             #sending mails and notifications
 
@@ -5007,6 +5083,11 @@ def upload_files(request):
             community = Community.objects.get(id=community_id)
             community.image_link = body['url']
             upload_community_thumbnail.delay(community_id, body['url'])
+
+            #updating the create community second step
+            createCommunityAction.objects.filter(community=community, step_no="Step 2").update(
+                current_point=10)
+
             community.save()
         elif 'collabcard_id' in body:
             attachment_type = body['type']
@@ -5635,10 +5716,37 @@ def members_state(request,req_dict=None):
     if state == member_states.PENDING_MEMBER:
         json_response['member_direction_lock'] = get_data_for_filter_pop_ups(email=user_email)
 
+    if state == member_states.ADMIN:
+        json_response['create_community_action'] = get_create_community_actions(community_id)
+
     if req_dict:
         return json_response
     return JsonResponse(json_response)
 
+
+def get_create_community_actions(community_id):
+
+
+    step_list = createCommunityAction.objects.filter(community=community_id).order_by('id')
+    actions = []
+
+    for step in step_list:
+        temp = createCommunityActionSerializer(step)
+        actions.append(temp)
+
+
+    create_community_action={
+        'community_id': community_id,
+        'toast_title': "Actions needed for community.",
+        'toast_message': "TAKE ACTION",
+
+        'header' : "Community actions needed",
+        'actions': actions,
+        'bottom_bar_title':"We recommend you to complete all the steps above."
+
+    }
+
+    return create_community_action
 
 
 
@@ -5734,6 +5842,12 @@ def edit_community(request):
     else:
         value = json_body['value']
         Community.objects.filter(id=community_id).update(**{key: value})
+
+        if value == "about":
+            # saving create community action step 5
+            createCommunityAction.objects.filter(community=community_id,
+                                                 step_no="Step 5").update(current_point=15)
+
 
     community = Community.objects.get(id=community_id)
 
