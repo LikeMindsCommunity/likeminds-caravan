@@ -318,6 +318,6 @@ def createCommunityActionSerializer(instance):
     }
 
     if instance.step_subtitle:
-        temp['step_subtitle'] = instance.step_subtitle
+        temp['step_sub_title'] = instance.step_subtitle
 
     return temp
