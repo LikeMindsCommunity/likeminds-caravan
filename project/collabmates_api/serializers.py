@@ -5,7 +5,7 @@ from django.conf import settings
 from django.db.models import Q
 from togther.models import *
 from togther.models import *
-from utility.utils import is_IG_community,is_LG_or_LP_community,feedback_community_id
+from utility.utils import is_IG_community,is_LG_or_LP_community,feedback_community_id,generate_private_link,generate_random
 from utility.states import card_types
 url = settings.URL
 import ast
@@ -22,7 +22,7 @@ import ast
 
 
 
-def CommunitySerializer(community,is_promoter=False):
+def CommunitySerializer(community,promoter_id=0):
     # function to serialize a community object
     new_dict =  {
         'id': community.id,
@@ -54,6 +54,11 @@ def CommunitySerializer(community,is_promoter=False):
     new_dict['date'] = community.active_since
     new_dict['members_count'] = get_member_count(community)
     new_dict['state']=int(community.hide_community)
+
+    #generating private link
+    if promoter_id:
+        new_dict['private_link'] = generate_private_link(community_instance=community,
+                                                                  promoter_instance=promoter_id)
 
 
 
