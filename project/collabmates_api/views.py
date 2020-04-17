@@ -3453,7 +3453,7 @@ def approve_or_decline_whatsapp_community(req_dict,request):
             post_introduction_card_for_community(req_dict['community_id'], req_dict['member_id'], request)
 
             # saving create community action step 4
-            update_community_actions(community_instance=community, step_no="Step 4", increment=8)
+            update_community_actions(community_instance=community, step_no="Step 4", increment=4)
 
             #sending mails and notifications
 
@@ -3502,7 +3502,7 @@ def approve_or_decline_private_community(req_dict,request):
             post_introduction_card_for_community(req_dict['community_id'], req_dict['member_id'], request)
 
             # saving create community action step 4
-            update_community_actions(community_instance=community, step_no="Step 4", increment=8)
+            update_community_actions(community_instance=community, step_no="Step 4", increment=4)
 
             #sending mails and notifications
 
