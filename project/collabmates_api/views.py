@@ -5910,7 +5910,7 @@ def edit_community(request):
         value = json_body['value']
         Community.objects.filter(id=community_id).update(**{key: value})
 
-        if value == "about":
+        if key == "about":
             # saving create community action step 5
             createCommunityAction.objects.filter(community=community_id,
                                                  step_no="Step 5").update(current_point=15)
