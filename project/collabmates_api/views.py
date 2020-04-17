@@ -7,7 +7,6 @@ import re
 import ast
 import time
 from datetime import datetime
-from random import randint
 import requests as rqst
 import dateutil.relativedelta
 import googlemaps
@@ -48,7 +47,7 @@ from utility.utils import (decode_meta_from_url, update_tag_image,
                            update_user_geography_tags, insert_user_home_town_tags, is_IG_community,
                            ig_members_count, is_LG_or_LP_community, feedback_community_id, feedback_collabcard_id,
                            is_member_verified,community_default_image,community_default_thumbnail,is_member_promoter,
-                           is_member_pending,is_member_present
+                           is_member_pending,is_member_present,generate_private_link,generate_random
 
                            )
 
@@ -335,7 +334,7 @@ def community(request, community_id,req_dict=None):
         if state == member_states.ADMIN:
             is_promoter = True
             block_leave_community = True
-            promoter_id = member_list[0].member_id
+
 
         if state == member_states.PENDING_MEMBER:
             block_leave_community = True
@@ -343,8 +342,10 @@ def community(request, community_id,req_dict=None):
         block_leave_community = True
 
 
-
-    serialized_object = CommunitySerializer(community)
+    if is_promoter:
+        serialized_object = CommunitySerializer(community,promoter_id=member_id)
+    else:
+        serialized_object = CommunitySerializer(community)
     new_dict = {}
 
     community_state = get_state_of_community(community)
@@ -353,11 +354,6 @@ def community(request, community_id,req_dict=None):
     elif community_state== community_states.PRIVATE or community_state == community_states.HIDDEN:
         serialized_object['share_url'] = serialized_object['share_url'] + "?cta=share"
 
-
-
-    if is_promoter:
-        serialized_object['private_link'] = generate_private_link(community_instance=community,
-                                                                  promoter_instance=promoter_id)
 
     # form a dictionary of community objects
     new_dict.update(serialized_object)
@@ -1654,58 +1650,7 @@ def creating_collabcard_for_lg_communities(community,user,introduction_answer,re
 
 
 
-def generate_private_link(community_instance,promoter_instance):
 
-    '''function to generate private links of community'''
-
-    community_expire_filter = communityExpiryCodes.objects.filter(community=community_instance).order_by('-id')
-    unique_code_list = list(community_expire_filter.values_list('unique_code',flat=True))
-
-
-
-    if not unique_code_list:
-
-        unique_code = generate_random(unique_code_list)
-        expireInstance = communityExpiryCodes()
-        expireInstance.community = community_instance
-        expireInstance.promoter = promoter_instance
-        expireInstance.created_at = time.time()
-        expireInstance.unique_code = unique_code
-        expireInstance.private_link = url + '/community/' + str(community_instance.id) + "?aj="+ str(unique_code)
-        expireInstance.expire_duration = 86400
-        expireInstance.save()
-
-        return expireInstance.private_link
-
-    else:
-
-        current_time = int(time.time())
-        last_created_time = community_expire_filter[0].created_at
-
-        if current_time - last_created_time > 3600:
-            unique_code = generate_random(unique_code_list)
-            expireInstance = communityExpiryCodes()
-            expireInstance.community = community_instance
-            expireInstance.promoter = promoter_instance
-            expireInstance.created_at = time.time()
-            expireInstance.unique_code = unique_code
-            expireInstance.private_link = url + '/community/' + str(community_instance.id) + "?aj=" + str(unique_code)
-            expireInstance.expire_duration = 86400
-            expireInstance.save()
-
-            return expireInstance.private_link
-
-    return community_expire_filter[0].private_link
-
-
-
-def generate_random(unique_code_list):
-
-  '''function to generate a random number'''
-
-  randInt = randint(1,100000)
-
-  return generate_random(unique_code_list) if randInt in unique_code_list else randInt
 
 
 def update_community_actions(community_instance,step_no,increment):
@@ -3823,10 +3768,13 @@ def community_collabcard_invite(request,community_id):
     community = Community.objects.get(id=community_id)
     member_id = request.GET.get('member_id')
 
-    community_serializer_instance = CommunitySerializer(community)
+    if is_member_promoter(community_id=community_id,member_id=member_id):
+        community_serializer_instance = CommunitySerializer(community,promoter_id=member_id)
+    else:
+        community_serializer_instance = CommunitySerializer(community)
 
     #if the community is a user-created community
-    if community_serializer_instance['state'] == 0 or community_serializer_instance['state'] == 1 or community_serializer_instance['state'] == 5:
+    if community_serializer_instance['state'] == community_states.PRIVATE or community_serializer_instance['state'] == community_states.HIDDEN or community_serializer_instance['state'] == community_states.WHATSAPP:
         json_response = {
 
             'community': community_serializer_instance,
@@ -5778,7 +5726,8 @@ def get_create_community_actions(community_id):
 
             'header' : "Community actions needed",
             'actions': actions,
-            'bottom_bar_title':"We recommend you to complete all the steps above."
+            'bottom_bar_title':"We recommend you to complete all the steps above.",
+            'current_point_sum' : current_point_sum
 
         }
     return create_community_action
