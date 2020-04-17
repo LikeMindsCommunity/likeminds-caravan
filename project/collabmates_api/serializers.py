@@ -128,16 +128,30 @@ def CollabcardSerializer(card,user,community=None):
 
         collabcard['polls'] = polls
 
-    if card.type == card_types.CARD_EVENT:
 
-        if card.location:
-            collabcard['location'] = card.location
+    if card.location:
+        collabcard['location'] = card.location
 
-        if card.location_lat:
-            collabcard['location_lat'] = card.location_lat
+    if card.location_lat:
+        collabcard['location_lat'] = card.location_lat
 
-        if card.location_long:
-            collabcard['location_long'] = card.location_long
+    if card.location_long:
+        collabcard['location_long'] = card.location_long
+
+    if card.start_date:
+        collabcard['start_date'] = card.start_date
+
+    if card.end_state:
+        collabcard['end_date'] = card.end_state
+
+    if card.about:
+        collabcard['about'] = card.about
+
+    if card.co_hosts:
+        collabcard['co_hosts'] = json.loads(card.co_hosts)
+
+    if card.online_link:
+        collabcard['online_link'] = card.online_link
 
     if card.og_tags:
         og_tags = json.loads(card.og_tags)
