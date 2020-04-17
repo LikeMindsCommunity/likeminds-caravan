@@ -141,8 +141,8 @@ def CollabcardSerializer(card,user,community=None):
     if card.start_date:
         collabcard['start_date'] = card.start_date
 
-    if card.end_state:
-        collabcard['end_date'] = card.end_state
+    if card.end_date:
+        collabcard['end_date'] = card.end_date
 
     if card.about:
         collabcard['about'] = card.about

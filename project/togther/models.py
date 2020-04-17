@@ -198,7 +198,7 @@ class Collabcard(models.Model):
     location_lat = models.FloatField(null=True)
     location_long = models.FloatField(null=True)
     start_date = models.BigIntegerField(default=0)
-    end_state = models.BigIntegerField(default=0)
+    end_date = models.BigIntegerField(default=0)
     about = models.TextField(null=True)
     co_hosts = models.TextField(null=True)
     online_link = models.TextField(null=True)
