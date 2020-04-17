@@ -5633,7 +5633,7 @@ def members_state(request,req_dict=None):
     user_email = ""
     ref_members=[]
     edit_required = False
-    action_required = False
+    actions_required = False
     for data in query_set:
         is_member = False
         tool_state = 0
@@ -5651,8 +5651,8 @@ def members_state(request,req_dict=None):
         if data.edit_required:
             edit_required = data.edit_required
 
-        if data.action_required:
-            action_required = True
+        if data.actions_required:
+            actions_required = True
 
         ref_members = get_referred_members_of_a_member(community_id, member_id)
 
@@ -5737,7 +5737,7 @@ def members_state(request,req_dict=None):
         json_response['member_direction_lock'] = get_data_for_filter_pop_ups(email=user_email)
 
     if state == member_states.ADMIN and (community_state == community_states.PRIVATE or community_state ==  community_states.WHATSAPP or community_state == community_states.HIDDEN):
-        if action_required:
+        if actions_required:
             json_response['create_community_action'] = get_create_community_actions(community_id)
 
     if req_dict:
@@ -5754,6 +5754,10 @@ def get_create_community_actions(community_id):
     max_point_sum = 0
     for step in step_list:
         temp = createCommunityActionSerializer(step)
+
+        if temp['step_no'] == "Step 3" or temp['step_no'] == "Step 4":
+            temp['current_point_value'] = step.current_point_value
+
         current_point_sum = current_point_sum + temp['current_point']
         max_point_sum = max_point_sum + temp['max_point']
         actions.append(temp)
