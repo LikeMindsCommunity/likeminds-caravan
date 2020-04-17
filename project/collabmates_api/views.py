@@ -5808,7 +5808,10 @@ def dismiss(request):
         context['error_message'] = "Send type as post params"
         return JsonResponse(context)
 
-    if type == "community_actions":
+
+    is_promoter = is_member_promoter(community_id=community_id,member_id=member_id)
+    
+    if type == "community_actions" and is_promoter:
         Members.objects.filter(community_id=community_id,member_id=member_id).update(actions_required=False)
         context['success'] = True
         return JsonResponse(context)
