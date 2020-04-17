@@ -24,6 +24,8 @@ urlpatterns = [
     path('v1/create_community',api_views.create_community_version_1,name='create_community_version_1'),
     path('v1/edit_questions', api_views.edit_questions_version_1,
          name="edit_questions_version_1"),
+    path('v1/dismiss', api_views.dismiss,
+         name="dismiss"),
 
     path('community/<str:category>', api_views.category_filter, name="category_filter"),
     path('user/<int:user_id>', api_views.user, name="user"),

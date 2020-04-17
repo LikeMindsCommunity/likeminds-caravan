@@ -658,6 +658,8 @@ def community_version_2(request,community_id):
 
 ############# functions for  join community  screen ##########################
 
+
+#############################Apis to be removed##########################################################
 # /api/community/264/questions
 def join_community(request, community_id):
 
@@ -1001,7 +1003,7 @@ def join_promoter_created_community(res,community,user):
         name=user.userinfo.name
         send_notification_to_admins.delay(community.id, name)
 
-
+########################################################################################################
 
 def questions(request):
 
@@ -1355,8 +1357,7 @@ def join_promoter_created_community_version_1(res,request):
                 post_introduction_card_for_community(community_id, member_id, request)
 
                 # saving create community action step 3
-                createCommunityAction.objects.filter(community=community_instance,
-                                                     step_no="Step 3").update(current_point=F('current_point') + 5)
+                update_community_actions(community_instance, step_no="Step 3", increment=5)
 
                 log = """Auto join community for community_id=%s for user=%s""" % (community_id, member_id)
                 info_logger.info(log)
@@ -1458,8 +1459,8 @@ def join_whatsapp_community(res,request):
                 post_introduction_card_for_community(community_id, member_id, request)
 
                 #saving create community action step 3
-                createCommunityAction.objects.filter(community=community_instance,
-                                                     step_no="Step 3").update(current_point=F('current_point') + 5)
+                update_community_actions(community_instance,step_no="Step 3",increment=5)
+
 
                 log="""Auto join community for community_id=%s for user=%s"""%(community_id,member_id)
                 info_logger.info(log)
@@ -1705,6 +1706,22 @@ def generate_random(unique_code_list):
   randInt = randint(1,100000)
 
   return generate_random(unique_code_list) if randInt in unique_code_list else randInt
+
+
+def update_community_actions(community_instance,step_no,increment):
+
+    '''function to update community actions steps'''
+
+    instance_list = createCommunityAction.objects.filter(community=community_instance,
+                                                         step_no=step_no)
+    if instance_list.exists():
+        instance = instance_list[0]
+        instance.current_point = instance.current_point + increment if (
+                    instance.current_point < instance.max_point) else instance.current_point
+        instance.current_point_value = instance.current_point_value + 1
+        instance.save()
+
+
 
 
 
@@ -2374,7 +2391,8 @@ def create_community_version_1(request):
     member_instance=Members()
     member_instance.member_id=user_instance
     member_instance.community_id=community_instance
-    member_instance.state=member_states.ADMIN
+    member_instance.state = member_states.ADMIN
+    member_instance.actions_required = True
     member_instance.created_at=time.time()
     member_instance.save()
 
@@ -3435,8 +3453,7 @@ def approve_or_decline_whatsapp_community(req_dict,request):
             post_introduction_card_for_community(req_dict['community_id'], req_dict['member_id'], request)
 
             # saving create community action step 4
-            createCommunityAction.objects.filter(community = req_dict['community_id'],
-                                                 step_no="Step 4").update(current_point=F('current_point') + 8)
+            update_community_actions(community_instance=community, step_no="Step 4", increment=8)
 
             #sending mails and notifications
 
@@ -3485,8 +3502,7 @@ def approve_or_decline_private_community(req_dict,request):
             post_introduction_card_for_community(req_dict['community_id'], req_dict['member_id'], request)
 
             # saving create community action step 4
-            createCommunityAction.objects.filter(community=req_dict['community_id'],
-                                                 step_no="Step 4").update(current_point=F('current_point') + 8)
+            update_community_actions(community_instance=community, step_no="Step 4", increment=8)
 
             #sending mails and notifications
 
@@ -5617,6 +5633,7 @@ def members_state(request,req_dict=None):
     user_email = ""
     ref_members=[]
     edit_required = False
+    action_required = False
     for data in query_set:
         is_member = False
         tool_state = 0
@@ -5633,6 +5650,9 @@ def members_state(request,req_dict=None):
 
         if data.edit_required:
             edit_required = data.edit_required
+
+        if data.action_required:
+            action_required = True
 
         ref_members = get_referred_members_of_a_member(community_id, member_id)
 
@@ -5717,7 +5737,8 @@ def members_state(request,req_dict=None):
         json_response['member_direction_lock'] = get_data_for_filter_pop_ups(email=user_email)
 
     if state == member_states.ADMIN and (community_state == community_states.PRIVATE or community_state ==  community_states.WHATSAPP or community_state == community_states.HIDDEN):
-        json_response['create_community_action'] = get_create_community_actions(community_id)
+        if action_required:
+            json_response['create_community_action'] = get_create_community_actions(community_id)
 
     if req_dict:
         return json_response
@@ -5729,26 +5750,68 @@ def get_create_community_actions(community_id):
 
     step_list = createCommunityAction.objects.filter(community=community_id).order_by('id')
     actions = []
-
+    current_point_sum = 0
+    max_point_sum = 0
     for step in step_list:
         temp = createCommunityActionSerializer(step)
+        current_point_sum = current_point_sum + temp['current_point']
+        max_point_sum = max_point_sum + temp['max_point']
         actions.append(temp)
 
+    if current_point_sum == max_point_sum:
+        create_community_action = {
+            'community_id': community_id,
+            'toast_title': "Congrats! Community actions completed",
+            'toast_message': "DISMISS",
 
-    create_community_action={
-        'community_id': community_id,
-        'toast_title': "Actions needed for community.",
-        'toast_message': "TAKE ACTION",
+        }
 
-        'header' : "Community actions needed",
-        'actions': actions,
-        'bottom_bar_title':"We recommend you to complete all the steps above."
+    else:
+        create_community_action={
+            'community_id': community_id,
+            'toast_title': "Actions needed for community.",
+            'toast_message': "TAKE ACTION",
 
-    }
+            'header' : "Community actions needed",
+            'actions': actions,
+            'bottom_bar_title':"We recommend you to complete all the steps above."
 
+        }
     return create_community_action
 
+@csrf_exempt
+def dismiss(request):
 
+    '''api to handle dismiss cases '''
+    context={}
+
+    member_id=get_member_id_from_headers(request)
+    if not member_id:
+        context['success'] = False
+        context['error_message'] = "Send member id in headers"
+        return JsonResponse(context)
+
+
+    community_id = request.POST.get('community_id',None)
+    if not community_id:
+        context['success'] = False
+        context['error_message'] = "Send community_id as post params"
+        return JsonResponse(context)
+
+    type = request.POST.get('type',None)
+    if not type:
+        context['success'] = False
+        context['error_message'] = "Send type as post params"
+        return JsonResponse(context)
+
+    if type == "community_actions":
+        Members.objects.filter(community_id=community_id,member_id=member_id).update(actions_required=False)
+        context['success'] = True
+        return JsonResponse(context)
+
+    #handling false case
+    context['success'] = False
+    return JsonResponse(context)
 
 
 @csrf_exempt
