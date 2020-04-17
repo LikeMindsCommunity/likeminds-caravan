@@ -5766,7 +5766,7 @@ def get_create_community_actions(community_id):
         create_community_action = {
             'community_id': community_id,
             'toast_title': "Congrats! Community actions completed",
-            'toast_message': "DISMISS",
+            'toast_action': "DISMISS",
 
         }
 
@@ -5774,7 +5774,7 @@ def get_create_community_actions(community_id):
         create_community_action={
             'community_id': community_id,
             'toast_title': "Actions needed for community.",
-            'toast_message': "TAKE ACTION",
+            'toast_action': "TAKE ACTION",
 
             'header' : "Community actions needed",
             'actions': actions,
