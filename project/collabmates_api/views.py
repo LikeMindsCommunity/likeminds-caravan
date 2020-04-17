@@ -3767,9 +3767,9 @@ def community_collabcard_invite(request,community_id):
 
     community = Community.objects.get(id=community_id)
     member_id = request.GET.get('member_id')
-
+    member_instance = User.objects.get(id=member_id)
     if is_member_promoter(community_id=community_id,member_id=member_id):
-        community_serializer_instance = CommunitySerializer(community,promoter_id=member_id)
+        community_serializer_instance = CommunitySerializer(community,promoter_id=member_instance)
     else:
         community_serializer_instance = CommunitySerializer(community)
 
