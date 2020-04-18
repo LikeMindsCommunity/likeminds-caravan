@@ -15,11 +15,12 @@ from collabmates_api.notification import (send_notification_to_eligible_member,
                                           )
 from .tasks import *
 from .firebase import upload_tag_files
-from django.http.response import JsonResponse
+from random import randint
 from django.conf import settings
 from user_agents import parse
 import time
 
+from .states import *
 # cache details
 # from django.core.cache import cache
 # custom_cache=cache
@@ -56,7 +57,7 @@ tutorial_count=3
 
 
 
-
+#member related functions
 def is_member_engage(community,member):
 
     '''function to check if data is presnt in member engage table or not'''
@@ -73,11 +74,88 @@ def is_member_verified(community,user_instance):
     '''function to check whether the member is verified or not'''
 
     is_verified=Members.objects.filter(community_id=community,member_id=user_instance).filter(
-        Q(state=1)|Q(state=4)|Q(state=2))
+        Q(state=member_states.ADMIN)|Q(state=member_states.TEMP_ADMIN)|
+        Q(state=member_states.MEMBER)|Q(state=member_states.KNOWN_NOMINATED_PROMOTER))
 
-    if is_verified:
-        return True
-    return False
+    return is_verified.exists()
+
+def is_member_promoter(community_id,member_id):
+
+    is_promoter = Members.objects.filter(community_id=community_id,member_id=member_id,state=member_states.ADMIN)
+
+    return is_promoter.exists()
+
+def is_member_pending(community_id, member_id):
+
+    is_pending = Members.objects.filter(community_id=community_id, member_id=member_id, state=member_states.PENDING_MEMBER)
+
+    return is_pending.exists()
+
+def is_member_present(community_id,member_id):
+
+    is_member = Members.objects.filter(community_id=community_id,
+                                       member_id=member_id).filter(Q(state=member_states.MEMBER)
+                                                                   |Q(state=member_states.KNOWN_NOMINATED_PROMOTER))
+    return is_member.exists()
+
+
+
+#community related functions
+def generate_private_link(community_instance,promoter_instance):
+
+    '''function to generate private links of community'''
+
+    community_expire_filter = communityExpiryCodes.objects.filter(community=community_instance).order_by('-id')
+    unique_code_list = list(community_expire_filter.values_list('unique_code',flat=True))
+
+
+
+    if not unique_code_list:
+
+        unique_code = generate_random(unique_code_list)
+        expireInstance = communityExpiryCodes()
+        expireInstance.community = community_instance
+        expireInstance.promoter = promoter_instance
+        expireInstance.created_at = time.time()
+        expireInstance.unique_code = unique_code
+        expireInstance.private_link = url + '/community/' + str(community_instance.id) + "?aj="+ str(unique_code)
+        expireInstance.expire_duration = 86400
+        expireInstance.save()
+
+        return expireInstance.private_link
+
+    else:
+
+        current_time = int(time.time())
+        last_created_time = community_expire_filter[0].created_at
+
+        if current_time - last_created_time > 3600:
+            unique_code = generate_random(unique_code_list)
+            expireInstance = communityExpiryCodes()
+            expireInstance.community = community_instance
+            expireInstance.promoter = promoter_instance
+            expireInstance.created_at = time.time()
+            expireInstance.unique_code = unique_code
+            expireInstance.private_link = url + '/community/' + str(community_instance.id) + "?aj=" + str(unique_code)
+            expireInstance.expire_duration = 86400
+            expireInstance.save()
+
+            return expireInstance.private_link
+
+    return community_expire_filter[0].private_link
+
+
+
+def generate_random(unique_code_list):
+
+  '''function to generate a random number'''
+
+  randInt = randint(1,100000)
+
+  return generate_random(unique_code_list) if randInt in unique_code_list else randInt
+
+
+
 
 def decode_meta_from_url(url):
 

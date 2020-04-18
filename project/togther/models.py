@@ -61,6 +61,9 @@ class Members(models.Model):
     #columns for edit member profile required
     edit_required = models.BooleanField(default=False)
 
+    #column to edit actions required
+    actions_required = models.BooleanField(null=True)
+
     def __str__(self):
         return self.community_id.name
 
@@ -716,3 +719,18 @@ class removedMembers(models.Model):
     member = models.ForeignKey(User, on_delete=models.CASCADE)
     removed_state = models.IntegerField(default=0)
     created_at = models.BigIntegerField(default=0, null=True)
+
+
+
+class createCommunityAction(models.Model):
+
+    '''model to save create community actions'''
+
+    step_no = models.TextField(null=True)
+    step_title = models.TextField(null=True)
+    max_point = models.IntegerField(null=True)
+    current_point = models.IntegerField(null=True)
+    step_subtitle = models.TextField(null=True)
+    step_action = models.TextField(null=True)
+    community = models.ForeignKey(Community, on_delete=models.CASCADE)
+    current_point_value = models.IntegerField(default=0)
