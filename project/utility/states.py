@@ -6,6 +6,7 @@ class CollabcardTypes:
     CARD_INTRO = 1
     CARD_EVENT = 2
     CARD_POLL = 3
+    CARD_PUBLIC_EVENT = 6
 
 card_types = CollabcardTypes()
 # collabcard states
@@ -16,6 +17,7 @@ class CollabcardStates:
     COLLABCARD_STATE_UNATTEND_FOLLOWING = COLLABCARD_STATE_FOLLOW
     COLLABCARD_STATE_ATTEND_FOLLOWING = 3
     COLLABCARD_STATE_ATTEND_UNFOLLOWING = 4
+
 
 collabcard_states = CollabcardStates()
 

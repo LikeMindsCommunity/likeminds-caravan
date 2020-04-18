@@ -188,6 +188,8 @@ class Collabcard(models.Model):
     type = models.IntegerField(default=0)  # state=0 (Normal Collabcard);state=1(Introduction Collabcard)
     date_time = models.BigIntegerField(default=0)  # for saving date of event and due date for polling
     duration = models.BigIntegerField(default=0)  # for saving duration of event
+
+    #for polls count
     polls_count = models.IntegerField(default=0)
     attending_count = models.IntegerField(default=0)
 
@@ -195,6 +197,14 @@ class Collabcard(models.Model):
     location = models.TextField(null=True)
     location_lat = models.FloatField(null=True)
     location_long = models.FloatField(null=True)
+    start_date = models.BigIntegerField(default=0)
+    end_date = models.BigIntegerField(default=0)
+    about = models.TextField(null=True)
+    co_hosts = models.TextField(null=True)
+    online_link = models.TextField(null=True)
+
+
+
 
     # def save(self, *args, **kwargs):
     #     self.date_epoch = time.time()
