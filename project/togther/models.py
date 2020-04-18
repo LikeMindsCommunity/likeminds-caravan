@@ -204,6 +204,11 @@ class Collabcard(models.Model):
     online_link = models.TextField(null=True)
 
 
+    #for purpose card edit
+    updated_member = models.ForeignKey(User,on_delete=models.CASCADE,null=True,related_name='purpose_card_updater')
+    updated_time = models.BigIntegerField(default=0)
+
+
 
 
     # def save(self, *args, **kwargs):
@@ -744,3 +749,12 @@ class createCommunityAction(models.Model):
     step_action = models.TextField(null=True)
     community = models.ForeignKey(Community, on_delete=models.CASCADE)
     current_point_value = models.IntegerField(default=0)
+
+
+class communityUpdate(models.Model):
+
+    '''table to set updating details for user and community'''
+    updated_member = models.ForeignKey(User, on_delete=models.CASCADE)
+    updated_field = models.TextField(null=True)
+    updated_time = models.BigIntegerField(default=0)
+    community = models.ForeignKey(Community, on_delete=models.CASCADE)

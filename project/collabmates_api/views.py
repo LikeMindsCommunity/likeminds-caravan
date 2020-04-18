@@ -31,7 +31,7 @@ from utility.celery_tasks import (save_community_purpose_card,
                                   )
 from utility.firebase import update_last_answer_id, upload_image_to_firebase, upload_community_thumbnail, \
     upload_community_files
-from utility.states import collabcard_states, member_states, question_states,community_states,deleted_members
+from utility.states import collabcard_states, member_states, question_states,community_states,deleted_members,card_types
 from utility.tasks import (mail_triger, new_member_request,
                            member_request_approval_or_denied,
                            send_mail_for_report_abuse,
@@ -1583,7 +1583,7 @@ def post_purpose_collabcard_for_community(request,community_instance,member_id):
         'member_id': member_id,
         'community_id': community_instance.id,
         'title': introduction_answer,
-        'type': 0,
+        'type': card_types.CARD_PURPOSE,
     }
     request.method = "POST"
     create_card(request, req_dict=req_dict)
@@ -5047,6 +5047,7 @@ def upload_files(request):
     '''function to upload files'''
 
     body = request.GET
+    member_id=get_member_id_from_headers(request)
     if request.method == 'POST':
 
         if 'community_id' in body:
@@ -5055,12 +5056,26 @@ def upload_files(request):
             community = Community.objects.get(id=community_id)
             community.image_link = body['url']
             upload_community_thumbnail.delay(community_id, body['url'])
-
+            community.save()
             #updating the create community second step
             createCommunityAction.objects.filter(community=community, step_no="Step 2").update(
                 current_point=10)
 
-            community.save()
+            #saving the update image details if the image is updated
+            edit = request.GET.get('edit',False)
+            if edit == 'true':
+                if not member_id:
+                    return JsonResponse({'success': False, 'error_message': "Send member id in headers"})
+                else:
+                    member_instance = User.objects.get(id=member_id)
+
+                instance = communityUpdate()
+                instance.updated_field = "image"
+                instance.updated_time = time.time()
+                instance.updated_member = member_instance
+                instance.community = community
+                instance.save()
+
         elif 'collabcard_id' in body:
             attachment_type = body['type']
             collabcard_id = body['collabcard_id']
@@ -5851,6 +5866,12 @@ def edit_community(request):
     '''function to edit the community'''
 
     community_id = request.GET.get('community_id')
+    member_id = get_member_id_from_headers(request)
+    community = Community.objects.get(id=community_id)
+    if not member_id:
+        return JsonResponse({'success':False,'error_message':"Send member id in headers"})
+    else:
+        member_instance = User.objects.get(id=member_id)
 
     json_body = json.loads(request.body)
 
@@ -5858,10 +5879,7 @@ def edit_community(request):
 
     if key == 'purpose':
         value = json_body['value']
-        # purpose_collabcard = Community.objects.filter(id=community_id).values('purpose_collabcard')
-        # purpose_collabcard = purpose_collabcard[0]['purpose_collabcard']
-        # Collabcard.objects.filter(id=purpose_collabcard).update(title=value)
-        Community.objects.filter(id=community_id).update(purpose=value)
+        edit_community_purpose_collabcard(community_instance=community, member_instance=member_instance, purpose=value)
 
     elif key == 'questions':
         questions = json_body['questions']
@@ -5876,7 +5894,15 @@ def edit_community(request):
                                                  step_no="Step 5").update(current_point=15)
 
 
-    community = Community.objects.get(id=community_id)
+
+    #saving the updating details for history
+
+    instance = communityUpdate()
+    instance.updated_field = key
+    instance.updated_time = time.time()
+    instance.updated_member = member_instance
+    instance.community = community
+    instance.save()
 
     serialized_object = CommunitySerializer(community)
     new_dict = {}
@@ -5989,7 +6015,16 @@ def edit_questions_version_1(request):
 
     return JsonResponse({'success':True})
 
+def edit_community_purpose_collabcard(community_instance,member_instance,purpose):
 
+    '''function to update the purpose collabcard of community'''
+    update_status = Collabcard.objects.filter(community=community_instance,
+                                              type=card_types.CARD_PURPOSE).update(title=purpose,
+                                                                                   updated_member=member_instance,
+                                                                                   updated_time=time.time())
+    log="""purpose card updated for community=%s by user=%s"""%(str(community_instance.id),str(member_instance.id))
+    info_logger.info(log)
+    info_logger.info(update_status)
 
 ############# functions to update user location and city    ##########################
 

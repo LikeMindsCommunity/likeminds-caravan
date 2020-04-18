@@ -6,7 +6,9 @@ class CollabcardTypes:
     CARD_INTRO = 1
     CARD_EVENT = 2
     CARD_POLL = 3
+    CARD_FEEDBACK = 4
     CARD_PUBLIC_EVENT = 6
+    CARD_PURPOSE = 7
 
 card_types = CollabcardTypes()
 # collabcard states

@@ -161,6 +161,14 @@ def CollabcardSerializer(card,user,community=None):
         og_tags = json.loads(card.og_tags)
         collabcard['og_tags'] = og_tags
 
+    #FOR PURPOSE CARD
+    if card.updated_member:
+        member_ids = card.updated_member
+        collabcard['updated_member'] = get_members_profile(member_ids=member_ids,community_id=card.community_id,current_user_id=user)
+
+    if card.updated_time:
+        collabcard['updated_time'] = card.updated_time
+
     return collabcard
 
 
