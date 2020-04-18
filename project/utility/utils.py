@@ -15,11 +15,12 @@ from collabmates_api.notification import (send_notification_to_eligible_member,
                                           )
 from .tasks import *
 from .firebase import upload_tag_files
-from django.http.response import JsonResponse
+from random import randint
 from django.conf import settings
 from user_agents import parse
 import time
-
+from datetime import datetime
+import dateutil.relativedelta
 from .states import *
 # cache details
 # from django.core.cache import cache
@@ -57,7 +58,7 @@ tutorial_count=3
 
 
 
-
+#member related functions
 def is_member_engage(community,member):
 
     '''function to check if data is presnt in member engage table or not'''
@@ -99,6 +100,63 @@ def is_member_present(community_id,member_id):
     return is_member.exists()
 
 
+#community related functions
+def generate_private_link(community_instance,promoter_instance):
+
+    '''function to generate private links of community'''
+
+    community_expire_filter = communityExpiryCodes.objects.filter(community=community_instance).order_by('-id')
+    unique_code_list = list(community_expire_filter.values_list('unique_code',flat=True))
+
+
+
+    if not unique_code_list:
+
+        unique_code = generate_random(unique_code_list)
+        expireInstance = communityExpiryCodes()
+        expireInstance.community = community_instance
+        expireInstance.promoter = promoter_instance
+        expireInstance.created_at = time.time()
+        expireInstance.unique_code = unique_code
+        expireInstance.private_link = url + '/community/' + str(community_instance.id) + "?aj="+ str(unique_code)
+        expireInstance.expire_duration = 86400
+        expireInstance.save()
+
+        return expireInstance.private_link
+
+    else:
+
+        current_time = int(time.time())
+        last_created_time = community_expire_filter[0].created_at
+
+        if current_time - last_created_time > 3600:
+            unique_code = generate_random(unique_code_list)
+            expireInstance = communityExpiryCodes()
+            expireInstance.community = community_instance
+            expireInstance.promoter = promoter_instance
+            expireInstance.created_at = time.time()
+            expireInstance.unique_code = unique_code
+            expireInstance.private_link = url + '/community/' + str(community_instance.id) + "?aj=" + str(unique_code)
+            expireInstance.expire_duration = 86400
+            expireInstance.save()
+
+            return expireInstance.private_link
+
+    return community_expire_filter[0].private_link
+
+
+
+def generate_random(unique_code_list):
+
+  '''function to generate a random number'''
+
+  randInt = randint(1,100000)
+
+  return generate_random(unique_code_list) if randInt in unique_code_list else randInt
+
+
+
+#collabcard related functions
 def decode_meta_from_url(url):
 
     '''function to take meta tags from url'''
@@ -135,6 +193,52 @@ def decode_meta_from_url(url):
         pass
     og_tags['url']=url
     return og_tags
+
+def get_time_text(created_time):
+    """ function to get time stamp """
+
+    # get current time and convert it into epoch time
+    present_time = str(datetime.now())
+    current_time = datetime.strptime(present_time.strip(' \t\r\n'), "%Y-%m-%d %H:%M:%S.%f").strftime('%s')
+    created = datetime.fromtimestamp(created_time)
+    current = datetime.fromtimestamp(int(current_time))
+    difference = dateutil.relativedelta.relativedelta(current, created)
+    # print("diffrence ======== ",difference)
+    if difference.years:
+        # if difference is more than one week return created date
+        return time.strftime('%d/%m/%Y', time.localtime(created_time))
+    elif difference.months:
+        # if difference is more than one week return created date
+        return time.strftime('%d/%m/%Y', time.localtime(created_time))
+    elif difference.days:
+        # if difference is in days
+        if difference.days == 1:
+            return str(difference.days) + " day ago"
+
+        elif difference.days < 7:
+            return str(difference.days) + " days ago"
+
+        elif difference.days == 7:
+            return "1 week ago"
+        # if difference is more than one week return created date
+        return time.strftime('%d/%m/%Y', time.localtime(created_time))
+
+    elif difference.hours:
+        # if difference is in hours
+        if difference.hours == 1:
+            return str(difference.hours) + " hour ago"
+
+        return str(difference.hours) + " hours ago"
+    elif difference.minutes:
+        # if difference is in hours
+        if difference.minutes == 1:
+            return str(difference.minutes) + " min ago"
+
+        return str(difference.minutes) + " mins ago"
+    else:
+        # if difference is in seconds
+        return "Just Now"
+
 
 def get_nominated_admin_details(community_id,email):
     '''fetching nominated promoter details from temp admin table'''

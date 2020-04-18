@@ -61,6 +61,9 @@ class Members(models.Model):
     #columns for edit member profile required
     edit_required = models.BooleanField(default=False)
 
+    #column to edit actions required
+    actions_required = models.BooleanField(null=True)
+
     def __str__(self):
         return self.community_id.name
 
@@ -185,6 +188,8 @@ class Collabcard(models.Model):
     type = models.IntegerField(default=0)  # state=0 (Normal Collabcard);state=1(Introduction Collabcard)
     date_time = models.BigIntegerField(default=0)  # for saving date of event and due date for polling
     duration = models.BigIntegerField(default=0)  # for saving duration of event
+
+    #for polls count
     polls_count = models.IntegerField(default=0)
     attending_count = models.IntegerField(default=0)
 
@@ -192,6 +197,19 @@ class Collabcard(models.Model):
     location = models.TextField(null=True)
     location_lat = models.FloatField(null=True)
     location_long = models.FloatField(null=True)
+    start_date = models.BigIntegerField(default=0)
+    end_date = models.BigIntegerField(default=0)
+    about = models.TextField(null=True)
+    co_hosts = models.TextField(null=True)
+    online_link = models.TextField(null=True)
+
+
+    #for purpose card edit
+    updated_member = models.ForeignKey(User,on_delete=models.CASCADE,null=True,related_name='purpose_card_updater')
+    updated_time = models.BigIntegerField(default=0)
+
+
+
 
     # def save(self, *args, **kwargs):
     #     self.date_epoch = time.time()
@@ -716,3 +734,27 @@ class removedMembers(models.Model):
     member = models.ForeignKey(User, on_delete=models.CASCADE)
     removed_state = models.IntegerField(default=0)
     created_at = models.BigIntegerField(default=0, null=True)
+
+
+
+class createCommunityAction(models.Model):
+
+    '''model to save create community actions'''
+
+    step_no = models.TextField(null=True)
+    step_title = models.TextField(null=True)
+    max_point = models.IntegerField(null=True)
+    current_point = models.IntegerField(null=True)
+    step_subtitle = models.TextField(null=True)
+    step_action = models.TextField(null=True)
+    community = models.ForeignKey(Community, on_delete=models.CASCADE)
+    current_point_value = models.IntegerField(default=0)
+
+
+class communityUpdate(models.Model):
+
+    '''table to set updating details for user and community'''
+    updated_member = models.ForeignKey(User, on_delete=models.CASCADE)
+    updated_field = models.TextField(null=True)
+    updated_time = models.BigIntegerField(default=0)
+    community = models.ForeignKey(Community, on_delete=models.CASCADE)
