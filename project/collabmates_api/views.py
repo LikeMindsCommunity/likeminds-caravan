@@ -47,7 +47,7 @@ from utility.utils import (decode_meta_from_url, update_tag_image,
                            update_user_geography_tags, insert_user_home_town_tags, is_IG_community,
                            ig_members_count, is_LG_or_LP_community, feedback_community_id, feedback_collabcard_id,
                            is_member_verified,community_default_image,community_default_thumbnail,is_member_promoter,
-                           is_member_pending,is_member_present,generate_private_link,generate_random,
+                           is_member_pending,is_member_present,generate_private_link,generate_random,get_time_text
 
 
                            )
@@ -358,17 +358,17 @@ def community(request, community_id,req_dict=None):
 
     # form a dictionary of community objects
     new_dict.update(serialized_object)
-    if community:
-        community_type = is_IG_community(community)
-        if not community_type:
-            new_dict['share_text_admin'] = """Hi, I am trying to gather %s community on LikeMinds. It will be good if you can join it.\n""" % (new_dict['name'])
-            new_dict['share_text_member'] = """I recently joined %s community on LikeMinds. It will be good if you also join this community.\n""" % (new_dict['name'])
-            new_dict['share_text_anonymous'] = """I recently discovered %s community on LikeMinds. You can join this community using this link.\n""" % (new_dict['name'])
-        else:
-            new_dict['share_text_admin'] = """Hi, I am trying to gather %s community on CollabMates. It will be fun if you can join it.\n""" % (new_dict['name'])
-            new_dict['share_text_member'] = """I recently joined %s community on CollabMates. It will be fun if you also join this community.\n""" % (new_dict['name'])
-            new_dict['share_text_anonymous'] = """I recently discovered %s community on CollabMates. You can join this community using this link.\n""" % (new_dict['name'])
-    new_dict['min_referrer_member'] = eligibility_count
+    # if community:
+    #     community_type = is_IG_community(community)
+    #     if not community_type:
+    #         new_dict['share_text_admin'] = """Hi, I am trying to gather %s community on LikeMinds. It will be good if you can join it.\n""" % (new_dict['name'])
+    #         new_dict['share_text_member'] = """I recently joined %s community on LikeMinds. It will be good if you also join this community.\n""" % (new_dict['name'])
+    #         new_dict['share_text_anonymous'] = """I recently discovered %s community on LikeMinds. You can join this community using this link.\n""" % (new_dict['name'])
+    #     else:
+    #         new_dict['share_text_admin'] = """Hi, I am trying to gather %s community on CollabMates. It will be fun if you can join it.\n""" % (new_dict['name'])
+    #         new_dict['share_text_member'] = """I recently joined %s community on CollabMates. It will be fun if you also join this community.\n""" % (new_dict['name'])
+    #         new_dict['share_text_anonymous'] = """I recently discovered %s community on CollabMates. You can join this community using this link.\n""" % (new_dict['name'])
+    #new_dict['min_referrer_member'] = eligibility_count
 
     if community.id == feedback_community_id:
         new_dict['share_url'] = ""
@@ -3662,50 +3662,6 @@ def get_answer_files(answer_id):
     return (img_list, pdf)
 
 
-def get_time_text(created_time):
-    """ function to get time stamp """
-
-    # get current time and convert it into epoch time
-    present_time = str(datetime.now())
-    current_time = datetime.strptime(present_time.strip(' \t\r\n'), "%Y-%m-%d %H:%M:%S.%f").strftime('%s')
-    created = datetime.fromtimestamp(created_time)
-    current = datetime.fromtimestamp(int(current_time))
-    difference = dateutil.relativedelta.relativedelta(current, created)
-    # print("diffrence ======== ",difference)
-    if difference.years:
-        # if difference is more than one week return created date
-        return time.strftime('%d/%m/%Y', time.localtime(created_time))
-    elif difference.months:
-        # if difference is more than one week return created date
-        return time.strftime('%d/%m/%Y', time.localtime(created_time))
-    elif difference.days:
-        # if difference is in days
-        if difference.days == 1:
-            return str(difference.days) + " day ago"
-
-        elif difference.days < 7:
-            return str(difference.days) + " days ago"
-
-        elif difference.days == 7:
-            return "1 week ago"
-        # if difference is more than one week return created date
-        return time.strftime('%d/%m/%Y', time.localtime(created_time))
-
-    elif difference.hours:
-        # if difference is in hours
-        if difference.hours == 1:
-            return str(difference.hours) + " hour ago"
-
-        return str(difference.hours) + " hours ago"
-    elif difference.minutes:
-        # if difference is in hours
-        if difference.minutes == 1:
-            return str(difference.minutes) + " min ago"
-
-        return str(difference.minutes) + " mins ago"
-    else:
-        # if difference is in seconds
-        return "Just Now"
 
 
 def community_cards(request, community_id):
