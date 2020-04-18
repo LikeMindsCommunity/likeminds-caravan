@@ -19,7 +19,8 @@ from random import randint
 from django.conf import settings
 from user_agents import parse
 import time
-
+from datetime import datetime
+import dateutil.relativedelta
 from .states import *
 # cache details
 # from django.core.cache import cache

@@ -6,7 +6,7 @@ from django.db.models import Q
 from togther.models import *
 from togther.models import *
 from utility.utils import is_IG_community,is_LG_or_LP_community,feedback_community_id,\
-    generate_private_link,generate_random,get_time_text
+    generate_private_link,generate_random,get_time_text,eligibility_count
 from utility.states import card_types
 url = settings.URL
 import ast
@@ -62,7 +62,7 @@ def CommunitySerializer(community,promoter_id=0):
                                                                   promoter_instance=promoter_id)
 
 
-
+    is_ig = is_IG_community(community)
     if is_LG_or_LP_community(community):
         community_type=1
         new_dict['community_type'] = community_type
@@ -74,6 +74,29 @@ def CommunitySerializer(community,promoter_id=0):
         new_dict['type']=community.type
     if community.sub_type:
         new_dict['sub_type'] = community.sub_type
+
+    if not is_ig:
+        new_dict[
+            'share_text_admin'] = """Hi, I am trying to gather %s community on LikeMinds. It will be good if you can join it.\n""" % (
+        new_dict['name'])
+        new_dict[
+            'share_text_member'] = """I recently joined %s community on LikeMinds. It will be good if you also join this community.\n""" % (
+        new_dict['name'])
+        new_dict[
+            'share_text_anonymous'] = """I recently discovered %s community on LikeMinds. You can join this community using this link.\n""" % (
+        new_dict['name'])
+    else:
+        new_dict[
+            'share_text_admin'] = """Hi, I am trying to gather %s community on CollabMates. It will be fun if you can join it.\n""" % (
+        new_dict['name'])
+        new_dict[
+            'share_text_member'] = """I recently joined %s community on CollabMates. It will be fun if you also join this community.\n""" % (
+        new_dict['name'])
+        new_dict[
+            'share_text_anonymous'] = """I recently discovered %s community on CollabMates. You can join this community using this link.\n""" % (
+        new_dict['name'])
+
+    new_dict['min_referrer_member'] = eligibility_count
 
 
 
