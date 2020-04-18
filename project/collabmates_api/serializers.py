@@ -5,7 +5,8 @@ from django.conf import settings
 from django.db.models import Q
 from togther.models import *
 from togther.models import *
-from utility.utils import is_IG_community,is_LG_or_LP_community,feedback_community_id,generate_private_link,generate_random
+from utility.utils import is_IG_community,is_LG_or_LP_community,feedback_community_id,\
+    generate_private_link,generate_random,get_time_text
 from utility.states import card_types
 url = settings.URL
 import ast
@@ -167,7 +168,7 @@ def CollabcardSerializer(card,user,community=None):
         collabcard['updated_member'] = get_members_profile(member_ids=member_ids,community_id=card.community_id,current_user_id=user)
 
     if card.updated_time:
-        collabcard['updated_time'] = card.updated_time
+        collabcard['updated_time'] = get_time_text(card.updated_time)
 
     return collabcard
 
