@@ -47,7 +47,8 @@ from utility.utils import (decode_meta_from_url, update_tag_image,
                            update_user_geography_tags, insert_user_home_town_tags, is_IG_community,
                            ig_members_count, is_LG_or_LP_community, feedback_community_id, feedback_collabcard_id,
                            is_member_verified,community_default_image,community_default_thumbnail,is_member_promoter,
-                           is_member_pending,is_member_present,generate_private_link,generate_random
+                           is_member_pending,is_member_present,generate_private_link,generate_random,
+
 
                            )
 

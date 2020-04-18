@@ -99,7 +99,6 @@ def is_member_present(community_id,member_id):
     return is_member.exists()
 
 
-
 #community related functions
 def generate_private_link(community_instance,promoter_instance):
 

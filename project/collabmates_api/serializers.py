@@ -148,7 +148,11 @@ def CollabcardSerializer(card,user,community=None):
         collabcard['about'] = card.about
 
     if card.co_hosts:
-        collabcard['co_hosts'] = json.loads(card.co_hosts)
+        co_host_list = json.loads(card.co_hosts)
+        #co_host_list = list(map(int, co_host_list))
+
+        collabcard['co_hosts'] = get_members_profile(member_ids=co_host_list,community_id=card.community.id,
+                                                     current_user_id=user)
 
     if card.online_link:
         collabcard['online_link'] = card.online_link
@@ -196,6 +200,29 @@ def get_member_count(community):
     return Members.objects.filter(community_id=community).filter(
         Q(state=1) | Q(state=2) | Q(state=4) | Q(state=7) | Q(state = 8)).count()
 
+def get_members_profile(member_ids,community_id,current_user_id):
+
+    '''function to get member profile from list of members ids'''
+    member_profile_list = []
+    for id in member_ids:
+        member_filter = Members.objects.filter(member_id=id,community_id=community_id)
+
+        if member_filter.exists():
+            member_id = member_filter[0].member_id.id
+            member=member_filter[0]
+            userinfo_serialized_object = UserinfoSerializer(member.member_id.userinfo)
+            userinfo_serialized_object['state'] = member.state
+
+            form_response = FormResponseSerilaizer(community_id, member_id, bl=True,
+                                                   current_user_id=current_user_id)
+
+            if form_response:
+                userinfo_serialized_object['response'] = form_response[0]
+                userinfo_serialized_object['question_answers'] = form_response[1]
+
+            member_profile_list.append(userinfo_serialized_object)
+
+    return member_profile_list
 
 def FormResponseSerilaizer(community_id, user_id,current_user_id=None,bl=False):
 
