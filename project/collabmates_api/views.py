@@ -3584,7 +3584,9 @@ def collabcard(request, card_id):
     if request.accepted_renderer.format == 'html':
         print('in html')
         # check for event card
-        if card['type'] in (2, 3):
+        # type 2 => private
+        # type 6 => public
+        if card['type'] in (2, 6):
             print('event card')
 
             # get community for community name, image, etc
@@ -3594,16 +3596,16 @@ def collabcard(request, card_id):
             card['banner_image'] = "//firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Fevent_banner.jpg?alt=media&token=4f6709df-8918-4227-8606-c11607d2d31b"
 
             # set time
-            card['start_time'] = card['date_time']
-            card['end_time'] = card['duration']
-            card['duration'] = card['start_time'] - card['end_time']
+            card['start_time'] = card['duration']
+            card['end_time'] = card['date_time']
+            card['duration'] =  card['end_time'] - card['start_time']
 
             card['start_time'] = time.strftime('%A, %b %y, %H:%M', time.gmtime(card['start_time']/1000.0))
             card['duration'] = time.strftime('%H hours %M minutes', time.gmtime(card['duration']/1000.0))
             card['end_time'] = time.strftime('%A, %b %y', time.gmtime(card['end_time']/1000.0))
 
             # get members
-            members = get_members_data_for_collabcard(card_id, cards.community.id, current_user_id)
+            members = get_members_data_for_collabcard(card_id, card.community.id, current_user_id)
                 
             # set header
             header = {
@@ -3619,7 +3621,8 @@ def collabcard(request, card_id):
                 "collabcard": card, 
                 "members": members,
                 'answers': answers, 
-                'header': header
+                'header': header,
+                'google_oauth_client_id': settings.GOOGLE_OAUTH_CLIENT_ID,
             }
             return render(request, 'event.html', context)
         else:
@@ -3637,7 +3640,13 @@ def collabcard(request, card_id):
                 'background': 'Wa',
                 'color': 'F'
             }
-            return render(request, 'collabcard.html', {"collabcard": card, 'answers': answers, 'header': header})
+            context = {
+                'collabcard': card, 
+                'answers': answers, 
+                'header': header, 
+                'google_oauth_client_id': settings.GOOGLE_OAUTH_CLIENT_ID,
+            }
+            return render(request, 'collabcard.html', context)
     else:
         return JsonResponse({"collabcard": card, 'answers': answers})
 
