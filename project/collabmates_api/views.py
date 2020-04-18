@@ -3340,7 +3340,7 @@ def collabcard(request, card_id):
                 
             # set header
             header = {
-                'back': False,
+                'back': True,
                 'title': community.name,
                 'subTitle': False,
                 'background': 'Wa',

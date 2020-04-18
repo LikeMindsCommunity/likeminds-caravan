@@ -117,8 +117,13 @@
             </div>
             <div class="pt24 pb24 bs bdbE bs">
                 <div class="fs14 fwR c9b lh30">Comments . {{ answers|length }}</div>
-                <div class="h40 pt16 bs">
-                    <input class="h40 p12 bs bgf2 br20 bd0 wp100 c9b" placeholder="Type your comment" />
+                <div class="h40 pt16 bs dT wp100">
+                    <div class="dTc vM">
+                        <input class="h40 p12 bs bgf2 br20 bd0 wp100 c9b" placeholder="Type your comment" />
+                    </div>
+                    <div class="dTc vM bgT" id="send">
+                        SEND
+                    </div>
                 </div>
                 {% for answer in answers %}
                     <div class="dT wp100 p200 bs">
@@ -150,66 +155,67 @@
             </button>
         </div>
 
-        <!-- login model for exclusive communities -->
-        <div class="ui modal image_container_login w300" id="whatsapp_login">
-            <div class="h72 w72 brp50 bd2F bs bxs oH bgT mtn22 mA">
-                <img class="h86 w86 mtn8 mln8 ofC" src="/media/main_website/like_minds_speaker.png">
-            </div>
-            <div class="p24 bs taC ffR">
-                <p class="p0 fs17 lh22 c0 mb10 fwM">Login to continue</p>
-                <p class="p0 fs15 lh22 c9 mb16">please login/signup and join the community.</p>
-                <div class="p160 ls05">
-                    <div class="fs12 mb16">
-                        {% if ref_id != '' %}
-                            <div class="googleSignin p12 bs br20 bgF c79 ffR fwM bdE c79h dN" data-next="{{ request.path }}?cta=join-ref_id-{{ref_id}}">
-                        {% elif aj  %}
-                            <div class="googleSignin p12 bs br20 bgF c79 ffR fwM bdE c79h dN" data-next="{{ request.path }}?cta=join-aj-{{aj}}">
-                        {% elif cta == 'share' %}
-                            <div class="googleSignin p12 bs br20 bgF c79 ffR fwM bdE c79h dN" data-next="{{ request.path }}?cta=join">
-                        {% elif cta != '' %}
-                            <div class="googleSignin p12 bs br20 bgF c79 ffR fwM bdE c79h dN" data-next="{{ request.path }}?cta={{cta}}">
-                        {% else %}
-                            <div class="googleSignin p12 bs br20 bgF c79 ffR fwM bdE c79h dN" data-next="{{ request.path }}?cta=join">
-                        {% endif %}
-                                <i class="dIb fa fa-google fs15 lh16 vM"></i>
-                                <span  class="dIb lh16 pl12 vM">LOGIN WITH GOOGLE</span>
+        {% if request.user.is_authenticated %}
+            {% if not request.user.email and request.user.id != 37 and request.user.id != 176 %} 
+                <div class="ui modal ffR p24 bs w280" id="email_login">
+                    <p class="c0 fs16 fwM lh24 mb16">Please provide your email id in order to continue</p>
+                    <div class="field">
+                        <label>E-mail</label>
+                        <input type="email" placeholder="Enter your email id" id="email_input">
+                    </div>
+                    <div class="ui positive right labeled icon button" style="background-color:#00897b;" id="email_submit">Submit</div>
+                </div>
+            {% endif %}
+        {% else %}
+            <div class="ui modal test">
+                <div class="ui fluid card " style="#1ebea5; margin:0 0 ; padding: 10px 10px;">
+                    <h2 class="ui teal center aligned header">
+                        <img src="https://beta.likeminds.community/media/media/ic_launcher_round.png" style="float:left;width:35px;"/>
+                        <div class="content" style="color:#008577">
+                            Login to continue
+                        </div>
+                    </h2>
+                    <div class="content">
+                        <p class="center aligned" id="login_text">
+                            To join this community we
+                        </p>
+                    </div>
+                    <div class="center aligned container">
+                        {% if request.user.is_authenticated %}
+                            <div class="content">
+                                <button class="ui fluid button " style=" z-index:2;width:60%; left:20%;  margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;"
+                                    onclick="join('{{community_id}}')">Join this community</button>
                             </div>
-                    </div>
-                    <div class="fs12 mb16">
-                        {% if ref_id != '' %}
-                            <a class="p12 bs dB br20 tdN bgLi cF ffR fwM cFh" href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join-ref_id-{{ref_id}}">
-                        {% elif aj  %}
-                            <a class="p12 bs dB br20 tdN bgLi cF ffR fwM cFh" href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join-aj-{{aj}}">
-                        {% elif cta == 'share' %}
-                            <a class="p12 bs dB br20 tdN bgLi cF ffR fwM cFh" href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join">
-                        {% elif cta != '' %}
-                            <a class="p12 bs dB br20 tdN bgLi cF ffR fwM cFh" href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta={{cta}}">
-                        {% else %}
-                            <a class="p12 bs dB br20 tdN bgLi cF ffR fwM cFh" href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join">
+                            <div style="height:10px"></div>
+                        {% elif not request.user.is_authenticated%}
+                            <div class="content">
+                                <a href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}">
+                                    <button class="ui facebook button" style="width:200px;">
+                                        <i class="fa fa-facebook" ></i>&nbsp;&nbsp;&nbsp;&nbsp;
+                                        Login with Facebook
+                                    </button>
+                                </a>
+                            </div>
                         {% endif %}
-                                <i class="dIb fa fa-linkedin fs15 lh16 vM"></i>
-                                <span  class="dIb lh16 pl12 vM">LOGIN WITH LINKEDIN</span>
-                            </a>
-                    </div>
-                    <div class="fs12">
-                        {% if ref_id != '' %}
-                            <a class="p12 bs dB br20 tdN bgFb cF ffR fwM cFh" href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join-ref_id-{{ref_id}}">
-                        {% elif aj  %}
-                            <a class="p12 bs dB br20 tdN bgFb cF ffR fwM cFh" href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join-aj-{{aj}}">
-                        {% elif cta == 'share' %}
-                            <a class="p12 bs dB br20 tdN bgFb cF ffR fwM cFh" href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join">
-                        {% elif cta != '' %}
-                            <a class="p12 bs dB br20 tdN bgFb cF ffR fwM cFh" href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta={{cta}}">
-                        {% else %}
-                            <a class="p12 bs dB br20 tdN bgFb cF ffR fwM cFh" href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join">
+
+                        {% if not request.user.is_authenticated %}
+                            OR
                         {% endif %}
-                                <i class="fa fa-facebook dIb fs15 lh16 vM" ></i>
-                                <span class="dIb lh16 pl12 vM">LOGIN WITH FACEBOOK</span>
-                            </a>
+
+                        {% if not request.user.is_authenticated %}
+                            <div class="content">
+                                <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}">
+                                    <button class="ui linkedin button" style="width:200px;">
+                                        <i class="fa fa-linkedin"></i>&nbsp;&nbsp;&nbsp;&nbsp;
+                                            Login with LinkedIn
+                                    </button>
+                                </a>
+                            </div>
+                        {% endif %}
                     </div>
                 </div>
             </div>
-        </div>
+        {% endif %}
 
         <div class="dN">{{collabcard}}</div>
         <div class="dN">{{community}}</div>
@@ -217,6 +223,124 @@
         <div class="dN">{{answers}}</div>
 
     </div>
+
+    <script>
+        {% if request.user.is_authenticated %}
+            {% if not request.user.email and request.user.id != 37 and request.user.id != 176 %}        //admin handling case
+                //email_login popup start
+                $('#email_login').modal('show');
+                $('#email_login').modal({
+                    backdrop:'static',
+                    keyboard: false,
+                });
+                $('#email_submit').click(function(){
+                    email=$('#email_input').val()
+                    console.log(email);
+                    $.ajax({
+                        url:'/update_user_info/'+email,
+                        success:function(data){
+                            console.log(data)
+                        }
+                    })
+                })
+                //email_login popup end
+            {% endif %}
+        {% endif %}
+
+        $('#back_click').click(function(){
+            {% if user.is_authenticated %}
+                window.open("/communities");
+            {% else %}
+                $('.test').modal('show');
+            {% endif %}
+        });
+
+        function join(community_id){
+            console.log(1);
+            {% if user.is_authenticated %}
+                window.open("/"+"community/"+community_id+"?cta=join",'_self');
+            {% else %}
+                $('.test').modal('show');
+            {% endif %}
+        }
+
+        $(document).ready(function(){
+
+            // setInterval(function(){
+            //     console.log('hit')
+            //     location.reload(true);
+            // },120000);
+
+            $('#send').click(function(){
+                {% if user.is_authenticated %}
+                    create_new_message();
+                {% else %}
+                    var element = document.getElementById("login_text");
+                    element.innerHTML = "Your answer has been successfully saved. However to ensure privacy of the community, you need to be part of the <b>{{community_name}}</b> on LikeMinds before your answer gets posted.";
+                    $('.test').modal('show');
+                {% endif %}
+            });
+
+            {% if request.user.is_authenticated %}
+                {% if not is_member %}
+                    $('#view_answer').click(function(){
+                        var element = document.getElementById("login_text");
+                        {% if request.user.is_anonymous %}
+                            element.innerHTML = "To view answers, you need to be part of the <b>{{community_name}}</b> on LikeMinds";
+                            $('.test').modal('show');
+                        {% elif not is_member and request.user.is_authenticated%}
+                            element.innerHTML = "To view answers, you need to be part of the <b>{{community_name}}</b> on LikeMinds";
+                            $('.test').modal('show');
+                        {% endif %}
+                    });
+                {% endif %}
+            {% endif %}
+
+            {% if user.is_authenticated %}
+                function create_new_message(){
+                    var member_id={{request.user.id}};
+                    var collabcard_id={{card_id}};
+                    var msg=$('#msg').val();
+                    if(msg == ''){return}
+
+                    var html=`
+                            <div class="card">
+                            <div class="ui raised padded text container segment" style="margin: 1em 1em !important;background:rgba(0,137,123,0.5)" id="show" >
+                                <div class="card">
+                                    <div class="content">
+                                        <div ><img class="ui left aligned avatar image"  src="{{user_image_url}}">{{request.user}}</div>
+                                        <div class="meta"></div>
+                                        <div class="description" style="font-size:14px;overflow-wrap: break-word;">
+                                            <br>
+                                            ${msg}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            `
+                    $('#answer').append(html);
+                    $('#msg').val('');
+                    message={
+                        'collabcard_id':collabcard_id,
+                        'member_id':member_id,
+                        'message':msg
+                    }
+                    $.ajax({
+                        url:'/create_message',
+                        data:message,
+                        dataType:'json',
+                        success:function(data){
+                            console.log('success')
+                        }
+                    })
+                }
+            {% endif %}
+            // $('#refresh').click(function(){
+            //     location.reload(true)
+            // })
+        })
+
+    </script>
 {% endblock %}
 
 
