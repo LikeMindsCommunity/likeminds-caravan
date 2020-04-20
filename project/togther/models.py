@@ -32,6 +32,10 @@ class Community(models.Model):
     thumbnail = models.CharField(max_length=500, null=True)
     introduction_text_state = models.IntegerField(default=0)
     attribute_type = models.IntegerField(default=0)
+
+    #for  purpose collabcard image
+    image_link_round = models.TextField(null=True)
+
     # for whats app community
     type=models.IntegerField(null=True)
     sub_type = models.IntegerField(null=True)

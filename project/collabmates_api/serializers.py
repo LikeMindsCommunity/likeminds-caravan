@@ -30,6 +30,7 @@ def CommunitySerializer(community,promoter_id=0):
         'name': community.name,
         'purpose': community.purpose,
         'location': community.location if community.location else "",
+
     }
 
     if community.about:
@@ -41,6 +42,9 @@ def CommunitySerializer(community,promoter_id=0):
         new_dict['image_url'] = community.image_url.url
     else:
         new_dict['image_url'] = '/media/media/community/default.jpeg'
+
+    if community.image_link_round:
+        new_dict['image_link_round'] = community.image_link.round
 
 
     if new_dict['image_url'] == "/media/https%3A/upload.wikimedia.org/wikipedia/en/0/09/Community_title.jpg":
@@ -143,6 +147,9 @@ def CollabcardSerializer(card,user,community=None):
         'attending_count': card.attending_count,
         'polls_count': card.polls_count
     }
+
+    if card.community.image_link_round:
+        collabcard['image_link_round'] = card.community.image_link_round
 
     if card.type == card_types.CARD_POLL:
         polls = []

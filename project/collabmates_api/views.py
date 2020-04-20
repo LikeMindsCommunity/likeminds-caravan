@@ -46,7 +46,8 @@ from utility.utils import (decode_meta_from_url, update_tag_image,
                            update_user_geography_tags, insert_user_home_town_tags, is_IG_community,
                            ig_members_count, is_LG_or_LP_community, feedback_community_id, feedback_collabcard_id,
                            is_member_verified,community_default_image,community_default_thumbnail,is_member_promoter,
-                           is_member_pending,is_member_present,generate_private_link,generate_random,get_time_text
+                           is_member_pending,is_member_present,generate_private_link,generate_random,get_time_text,
+                           community_default_image_round
 
 
                            )
@@ -2316,6 +2317,7 @@ def create_community_version_1(request):
     community_instance.about = about
     community_instance.image_link = community_default_image
     community_instance.thumbnail = community_default_thumbnail
+    community_instance.image_link_round = community_default_image_round
     if community_type:
         community_instance.community_type=community_type
     community_instance.created_at=time.time()
@@ -5010,6 +5012,7 @@ def upload_files(request):
             community_id = body['community_id']
             community = Community.objects.get(id=community_id)
             community.image_link = body['url']
+            community.image_link_round = body['url']
             upload_community_thumbnail.delay(community_id, body['url'])
             community.save()
             #updating the create community second step
