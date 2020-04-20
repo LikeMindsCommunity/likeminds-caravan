@@ -1,27 +1,202 @@
-<!DOCTYPE html>
-{% load static %}
-<html>
-    <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-        <link rel="shortcut icon" href="https://beta.likeminds.community/media/media/favicon.ico">
-        <meta name="keywords" content="">
-        <meta charset="UTF-8">
-        <title>LikeMinds-Your virtual Neighbourhood</title>
-        <meta name="description" content="Relevant Communities. Structured Conversations. Meaningful Relationships."/>
-        <meta property="og:image" content='http://www.collabmates.com/cover.png'/>
-        <meta property="og:title" content="LikeMinds-Your virtual Neighbourhood"/>
-        <meta property="og:description" content="LikeMinds-Your virtual Neighbourhood"/>
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.css"/>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.js"></script>
-        <script async src="https://www.googletagmanager.com/gtag/js?id=UA-130288684-1"></script>
-        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
-        <link href="https://fonts.googleapis.com/css?family=Roboto:400,500,500i,700&display=swap" rel="stylesheet">
-        <script src="https://cdn.rawgit.com/mdehoog/Semantic-UI-Calendar/76959c6f7d33a527b49be76789e984a0a407350b/dist/calendar.min.js"></script>
-        <link href="https://cdn.rawgit.com/mdehoog/Semantic-UI-Calendar/76959c6f7d33a527b49be76789e984a0a407350b/dist/calendar.min.css" rel="stylesheet" type="text/css" />
-        <link href="//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.min.css" rel="stylesheet" type="text/css" />
-        <link rel="stylesheet" href="{% static 'css/mahaDev/mahaDev.css' %}">
+{% extends request.is_ajax|yesno:"layouts/ajax.html,layouts/layout.html" %}
+{% block yeild %}
+
+        {% include 'components/loader.html' %}
+
+        {% include 'components/login_success_header_showcase.html' with data=header_showcase %}
+
+        <div class="container mxw960 mA ffR">
+            <style>
+                /* create header selector partial */
+                #header .dTc {color: #fff!important; text-align: center; font-weight: bold;}
+                #header {background: #3bc19f}
+
+                .ui.attached.negative.message, .ui.negative.message {
+                    border: 0!important;
+                    box-shadow: none!important;
+                    background: transparent!important;
+                    font-size: 12px!important;
+                    margin: 0;
+                    padding: 12px;
+                    padding-bottom: 0;
+                }
+
+                .text .fR { display: none !important; }
+            </style>
+
+            {% include 'components/header.html' with data=header %}
+
+            <form class="ui form ffR fwR m16 mt72" onsubmit="return false" id="response_form" enctype="multipart/form-data">
+                {% csrf_token %}
+                <!--    TEXT = 0-->
+                <!--    CHOICE_SINGLE = 1-->
+                <!--    CHOICE_MULTIPLE = 2-->
+                <!--    TEXT_WITH_LIMIT = 3-->
+                <!--    PARAGRAPH = 4-->
+                <!--    FILE_UPLOAD = 5-->
+                <!--    DATE_TIME = 6-->
+                <!--    INTRODUCTION = 7-->
+                <!--    PROFILE_LINK=8-->
+                <!--    MOBILE_NO = 9-->
+                <!--    EMAIL_ID = 10-->
+                {% for question in data %}
+                    {% if question.optional %}
+                        <div class="field mb30" id="div_{{question.id}}">
+                    {% else %}
+                        <div class="required field mb30" id="div_{{question.id}}">
+                    {% endif %}
+
+                        {% if question.question_state == 0 or question.question_state == 4 or question.question_state == 7 %}
+                            <!--    TEXT = 0  PARAGRAPH = 4 INTRODUCTION = 7  -->
+                            {% if question.question_state == 7 %}
+                                <div class="ffR fR dIb bg06C3AF cF wsN p48 lh17 fs12 ls05 chatBubble_{{question.id}} pR rn16 br8 chatBubbleDown">Minimum characters: {{question.min_chars}}</div>
+                                <div class="dT wp100">
+                                    <label class="dTc vT c4a fs15 fwR lh22 p10 m0">{{question.data}}</label>
+                                    <div class="dTc vT w16 pR p10 bs">
+                                        {% include 'components/counter_progress_ring.html' with data=question  %}
+                                    </div>
+                                </div>
+                            {% else %}
+                                <label class="c4a fs15 fwR lh22 p10 m0">{{question.data}}</label>
+                            {% endif %}
+                            {% if question.question_state == 4 or question.question_state == 7 %}
+                                {% if question.question_state == 7 %}
+                                    <div class="pR">
+                                        <textarea id="{{question.id}}" class="oH bd0 br8 bxs2 p16 pb24" rows="4" cols="4" name="{{question.id}}" required oninput="textareaInput('{{question.id}}', {{question.min_chars}}, {{question.max_chars}})" onblur="textareaBlur('{{question.id}}', {{question.min_chars}}, {{question.max_chars}})" onpaste="textareaInput('{{question.id}}', {{question.min_chars}}, {{question.max_chars}})" placeholder="{{question.help_text}}"></textarea>
+                                        <div class="b0 fs12 lh14 p6 pA r0 c9"></div>
+                                    </div>
+                                {% else %}
+                                    <textarea id="{{question.id}}" class="oH bd0 br8 bxs2 p16" rows="4" cols="4" name="{{question.id}}" required oninput="remove_error('{{question.id}}')" onchange="remove_error('{{question.id}}')" placeholder="{{question.help_text}}"></textarea>
+                                {% endif %}
+                            {% else %}
+                                <textarea id="{{question.id}}" class="oH bd0 br8 bxs2 p16 h48" rows="2" cols="4" name="{{question.id}}" required oninput="remove_error('{{question.id}}')" onchange="remove_error('{{question.id}}')" placeholder="{{question.help_text}}"></textarea>
+                            {% endif %}
+
+                        {% elif question.question_state == 1 %}
+                            <!--    CHOICE_SINGLE = 1-->
+                            <label class="c4a fs15 fwR lh22 p10 m0">{{question.data}}</label>
+                            <div class="ui fluid search selection dropdown single_select_{{question.id}} bd0 br8 bxs2 p16 h48">
+                                <input id="{{question.id}}" type="hidden" name="{{question.id}}" oninput="remove_error('{{question.id}}')" onchange="remove_error('{{question.id}}')">
+                                <i class="dropdown icon p16"></i>
+                                <div class="default text fs16 lh18">{{question.help_text}}</div>
+                                <div class="menu">
+                                    {% for option in question.dropdown_list %}
+                                        <div class="item p16 bs" data-value="{{option}}">{{option}}</div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        {% elif question.question_state == 2 %}
+                            <!--    CHOICE_MULTIPLE = 2-->
+                            <label class="c4a fs15 fwR lh22 p10 m0">{{question.data}}</label>
+                            <div class="ui fluid multiple search normal selection dropdown multi_select_{{question.id}} bd0 br8 bxs2 mnh48">
+                                <input id="{{question.id}}" type="hidden" name="{{question.id}}" oninput="remove_error('{{question.id}}')"  onchange="remove_error('{{question.id}}')">
+                                <i class="dropdown icon p16"></i>
+                                <div class="default text fs16 lh18">{{question.help_text}}</div>
+                                <div class="menu">
+                                    {% for option in question.dropdown_list %}
+                                        <div class="item p16 bs" data-value="{{option}}">{{option}}</div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        {% elif question.question_state == 3 %}
+                            <!--    TEXT_WITH_LIMIT = 3-->
+                            <label class="c4a fs15 fwR lh22 p10 m0">{{question.data}}</label>
+                            <textarea id="{{question.id}}" class="oH bd0 br8 bxs2 p16 h48" rows="2" cols="4" name ="{{question.id}}" minlength="50" required placeholder="{{question.help_text}}"  oninput="remove_error('{{question.id}}')"  onchange="remove_error('{{question.id}}')"></textarea>
+                        {% elif question.question_state == 5 %}
+                            <!--  FILE_UPLOAD = 5 -->
+                            <label class="c4a fs15 fwR lh22 p10 m0">{{question.data}}</label>
+                            <div class="ui action input bd0 br8 bxs2 h48 oH pR">
+                                <input class="bd0 h48" id="{{question.id}}" name ="{{question.id}}" type="file" formenctype="multipart/form-data" oninput="remove_error('{{question.id}}')"  onchange="remove_error('{{question.id}}')">
+                                <div class="b0 bgF button icon pA r0 t0 ui">
+                                    <i class="attach icon"></i>
+                                </div>
+                            </div>
+                        {% elif question.question_state == 6 %}
+                            <!--    DATE_TIME = 6-->
+                            <label class="c4a fs15 fwR lh22 p10 m0">{{question.data}}</label>
+                            <div class="ui calendar" id="calendar_{{question.id}}">
+                                <div class="ui input right icon">
+                                    <input class="bd0 br8 bxs2 p16 h48 oH pR" id="{{question.id}}" type="text" placeholder="{{question.help_text}}" name ="{{question.id}}" oninput="remove_error('{{question.id}}')" onchange="remove_error('{{question.id}}')" onsubmit="remove_error('{{question.id}}')">
+                                    <i class="calendar alternate outline icon"></i>
+                                </div>
+                            </div>
+                        {% elif question.question_state == 8 %}
+                            <!--    PROFILE_LINK=8-->
+                            <label class="c4a fs15 fwR lh22 p10 m0">{{question.data}}</label>
+                            <input id="{{question.id}}" class="bd0 br8 bxs2 p16" rows="2" cols="4" name ="{{question.id}}" minlength="50" required placeholder="{{question.help_text}}" oninput="remove_error('{{question.id}}')" onchange="remove_error('{{question.id}}')">
+                        {% elif question.question_state == 9 %}
+                            <!--    MOBILE_NO = 9-->
+                            <label class="c4a fs15 fwR lh22 p10 m0">{{question.data}}</label>
+                            <div class="dT wp100">
+                                <div class="ui fluid search selection dropdown dTc vM w120 pR h48 bd0 br8 bxs2 country_codes">
+                                    <input type="hidden" name="country" id="{{question.id}}_country_code" value="India | 91">
+                                    <i class="dropdown icon p16"></i>
+                                    <div class="default text fs0">
+                                        <span class="fL fs14"><i class="in flag"></i>91</span>
+                                    </div>
+                                    <div class="menu pA t48 l0 w280">
+                                        {% include 'components/country_codes.html' %}
+                                    </div>
+                                </div>
+                                <div class="dTc vM pl12 wp100">
+                                    <input id="{{question.id}}" class="bd0 br8 bxs2 p16"  name="{{question.id}}" required placeholder="{{question.help_text}}" oninput="remove_error('{{question.id}}')"  onchange="remove_error('{{question.id}}')">
+                                </div>
+                            </div>
+                        {% elif question.question_state == 10 %}
+                            <!--    EMAIL_ID = 10-->
+                            <label class="c4a fs15 fwR lh22 p10 m0">{{question.data}}</label>
+                            <input id="{{question.id}}" class="bd0 br8 bxs2 p16" rows="2" cols="4" name ="{{question.id}}" minlength="50" required placeholder="{{question.help_text}}" oninput="remove_error('{{question.id}}')"  onchange="remove_error('{{question.id}}')">
+                        {% endif %}
+                    </div>
+                {% endfor %}
+                <input type="hidden" name="ref_id" value="{{ref_id}}"/>
+            </form>
+
+            <div class="h60"></div>
+
+            <!-- Displaying Buttons -->
+            <div class="p8 bs taC pF b0 l0 r0 h60 bdtE bgBg z1">
+                <button class="ui button h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU ls05" id="simple_button" type="submit">SUBMIT</button>
+            </div>
+
+            <div class="p8 bs taC pF b0 l0 r0 h60 bdtE bgBg z1 dN" id="loading_button">
+                <button class="ui button loading h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU ls05" type="submit">SUBMIT</button>
+            </div>
+
+            <!-- login model for exclusive communities -->
+            <div class="ui modal image_container_login w300" id="login_popup">
+                <div class="h72 w72 brp50 bd2F bs bxs oH bgT mtn22 mA">
+                    <img class="h86 w86 mtn8 mln8 ofC" src="/media/main_website/like_minds_speaker.png">
+                </div>
+                <div class="p24 bs taC ffR">
+                    <p class="m0 p0 fs17 lh22 c0 mb10 fwM">Login to continue</p>
+                    <p class="m0 p0 fs15 lh22 c9 mb16">This is an exclusive community. To view member details please login/signup and join the community.</p>
+                    <div class="p160 ls05">
+                        <div class="fs12 mb16">
+                            <div class="googleSignin p12 bs br20 bgF c79 ffR fwM bdE c79h dN" data-next="{{ request.path }}?cta=join-aj-{{aj}}">
+                                <i class="dIb fa fa-google fs15 lh16 vM"></i>
+                                <span  class="dIb lh16 pl12 vM">LOGIN WITH GOOGLE</span>
+                            </div>
+                        </div>
+                        <div class="fs12 mb16">
+                            <a class="p12 bs dB br20 tdN bgLi cF ffR fwM cFh" href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join-aj-{{aj}}">
+                                <i class="dIb fa fa-linkedin fs15 lh16 vM"></i>
+                                <span  class="dIb lh16 pl12 vM">LOGIN WITH LINKEDIN</span>
+                            </a>
+                        </div>
+                        <div class="fs12">
+                            <a class="p12 bs dB br20 tdN bgFb cF ffR fwM cFh" href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join-aj-{{aj}}">
+                                <i class="fa fa-facebook dIb fs15 lh16 vM" ></i>
+                                <span class="dIb lh16 pl12 vM">LOGIN WITH FACEBOOK</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- -->
+        </div>
+
+        <!-- Scripts -->
         <script>
             function showLoginPopup(){
                 $('#login_popup').modal('show');
@@ -95,203 +270,6 @@
                 
                 remove_error(id);
             }
-        </script>
-    </head>
-    <body style="margin:0 auto; max-width:786px;background-color:#f2f2f2;">
-        {% include 'components/loader.html' %}
-        <style>
-            /* create header selector partial */
-            #header .dTc {color: #fff!important; text-align: center; font-weight: bold;}
-            #header {background: #3bc19f}
-
-            .ui.attached.negative.message, .ui.negative.message {
-                border: 0!important;
-                box-shadow: none!important;
-                background: transparent!important;
-                font-size: 12px!important;
-                margin: 0;
-                padding: 12px;
-                padding-bottom: 0;
-            }
-
-            .text .fR { display: none !important; }
-        </style>
-
-        {% include 'components/header.html' with data=header %}
-
-        {% include 'components/login_success_header_showcase.html' with data=header_showcase %}
-
-        <form class="ui form ffR fwR m16 mt72" onsubmit="return false" id="response_form" enctype="multipart/form-data">
-            {% csrf_token %}
-            <!--    TEXT = 0-->
-            <!--    CHOICE_SINGLE = 1-->
-            <!--    CHOICE_MULTIPLE = 2-->
-            <!--    TEXT_WITH_LIMIT = 3-->
-            <!--    PARAGRAPH = 4-->
-            <!--    FILE_UPLOAD = 5-->
-            <!--    DATE_TIME = 6-->
-            <!--    INTRODUCTION = 7-->
-            <!--    PROFILE_LINK=8-->
-            <!--    MOBILE_NO = 9-->
-            <!--    EMAIL_ID = 10-->
-            {% for question in data %}
-                {% if question.optional %}
-                    <div class="field mb30" id="div_{{question.id}}">
-                {% else %}
-                    <div class="required field mb30" id="div_{{question.id}}">
-                {% endif %}
-
-                    {% if question.question_state == 0 or question.question_state == 4 or question.question_state == 7 %}
-                        <!--    TEXT = 0  PARAGRAPH = 4 INTRODUCTION = 7  -->
-                        {% if question.question_state == 7 %}
-                            <div class="ffR fR dIb bg06C3AF cF wsN p48 lh17 fs12 ls05 chatBubble_{{question.id}} pR rn16 br8 chatBubbleDown">Minimum characters: {{question.min_chars}}</div>
-                            <div class="dT wp100">
-                                <label class="dTc vT c4a fs15 fwR lh22 p10 m0">{{question.data}}</label>
-                                <div class="dTc vT w16 pR p10 bs">
-                                    {% include 'components/counter_progress_ring.html' with data=question  %}
-                                </div>
-                            </div>
-                        {% else %}
-                            <label class="c4a fs15 fwR lh22 p10 m0">{{question.data}}</label>
-                        {% endif %}
-                        {% if question.question_state == 4 or question.question_state == 7 %}
-                            {% if question.question_state == 7 %}
-                                <div class="pR">
-                                    <textarea id="{{question.id}}" class="oH bd0 br8 bxs2 p16 pb24" rows="4" cols="4" name="{{question.id}}" required oninput="textareaInput('{{question.id}}', {{question.min_chars}}, {{question.max_chars}})" onblur="textareaBlur('{{question.id}}', {{question.min_chars}}, {{question.max_chars}})" onpaste="textareaInput('{{question.id}}', {{question.min_chars}}, {{question.max_chars}})" placeholder="{{question.help_text}}"></textarea>
-                                    <div class="b0 fs12 lh14 p6 pA r0 c9"></div>
-                                </div>
-                            {% else %}
-                                <textarea id="{{question.id}}" class="oH bd0 br8 bxs2 p16" rows="4" cols="4" name="{{question.id}}" required oninput="remove_error('{{question.id}}')" onchange="remove_error('{{question.id}}')" placeholder="{{question.help_text}}"></textarea>
-                            {% endif %}
-                        {% else %}
-                            <textarea id="{{question.id}}" class="oH bd0 br8 bxs2 p16 h48" rows="2" cols="4" name="{{question.id}}" required oninput="remove_error('{{question.id}}')" onchange="remove_error('{{question.id}}')" placeholder="{{question.help_text}}"></textarea>
-                        {% endif %}
-
-                    {% elif question.question_state == 1 %}
-                        <!--    CHOICE_SINGLE = 1-->
-                        <label class="c4a fs15 fwR lh22 p10 m0">{{question.data}}</label>
-                        <div class="ui fluid search selection dropdown single_select_{{question.id}} bd0 br8 bxs2 p16 h48">
-                            <input id="{{question.id}}" type="hidden" name="{{question.id}}" oninput="remove_error('{{question.id}}')" onchange="remove_error('{{question.id}}')">
-                            <i class="dropdown icon p16"></i>
-                            <div class="default text fs16 lh18">{{question.help_text}}</div>
-                            <div class="menu">
-                                {% for option in question.dropdown_list %}
-                                    <div class="item p16 bs" data-value="{{option}}">{{option}}</div>
-                                {% endfor %}
-                            </div>
-                        </div>
-                    {% elif question.question_state == 2 %}
-                        <!--    CHOICE_MULTIPLE = 2-->
-                        <label class="c4a fs15 fwR lh22 p10 m0">{{question.data}}</label>
-                        <div class="ui fluid multiple search normal selection dropdown multi_select_{{question.id}} bd0 br8 bxs2 mnh48">
-                            <input id="{{question.id}}" type="hidden" name="{{question.id}}" oninput="remove_error('{{question.id}}')"  onchange="remove_error('{{question.id}}')">
-                            <i class="dropdown icon p16"></i>
-                            <div class="default text fs16 lh18">{{question.help_text}}</div>
-                            <div class="menu">
-                                {% for option in question.dropdown_list %}
-                                    <div class="item p16 bs" data-value="{{option}}">{{option}}</div>
-                                {% endfor %}
-                            </div>
-                        </div>
-                    {% elif question.question_state == 3 %}
-                        <!--    TEXT_WITH_LIMIT = 3-->
-                        <label class="c4a fs15 fwR lh22 p10 m0">{{question.data}}</label>
-                        <textarea id="{{question.id}}" class="oH bd0 br8 bxs2 p16 h48" rows="2" cols="4" name ="{{question.id}}" minlength="50" required placeholder="{{question.help_text}}"  oninput="remove_error('{{question.id}}')"  onchange="remove_error('{{question.id}}')"></textarea>
-                    {% elif question.question_state == 5 %}
-                        <!--  FILE_UPLOAD = 5 -->
-                        <label class="c4a fs15 fwR lh22 p10 m0">{{question.data}}</label>
-                        <div class="ui action input bd0 br8 bxs2 h48 oH pR">
-                            <input class="bd0 h48" id="{{question.id}}" name ="{{question.id}}" type="file" formenctype="multipart/form-data" oninput="remove_error('{{question.id}}')"  onchange="remove_error('{{question.id}}')">
-                            <div class="b0 bgF button icon pA r0 t0 ui">
-                                <i class="attach icon"></i>
-                            </div>
-                        </div>
-                    {% elif question.question_state == 6 %}
-                        <!--    DATE_TIME = 6-->
-                        <label class="c4a fs15 fwR lh22 p10 m0">{{question.data}}</label>
-                        <div class="ui calendar" id="calendar_{{question.id}}">
-                            <div class="ui input right icon">
-                                <input class="bd0 br8 bxs2 p16 h48 oH pR" id="{{question.id}}" type="text" placeholder="{{question.help_text}}" name ="{{question.id}}" oninput="remove_error('{{question.id}}')" onchange="remove_error('{{question.id}}')" onsubmit="remove_error('{{question.id}}')">
-                                <i class="calendar alternate outline icon"></i>
-                            </div>
-                        </div>
-                    {% elif question.question_state == 8 %}
-                        <!--    PROFILE_LINK=8-->
-                        <label class="c4a fs15 fwR lh22 p10 m0">{{question.data}}</label>
-                        <input id="{{question.id}}" class="bd0 br8 bxs2 p16" rows="2" cols="4" name ="{{question.id}}" minlength="50" required placeholder="{{question.help_text}}" oninput="remove_error('{{question.id}}')" onchange="remove_error('{{question.id}}')">
-                    {% elif question.question_state == 9 %}
-                        <!--    MOBILE_NO = 9-->
-                        <label class="c4a fs15 fwR lh22 p10 m0">{{question.data}}</label>
-                        <div class="dT wp100">
-                            <div class="ui fluid search selection dropdown dTc vM w120 pR h48 bd0 br8 bxs2 country_codes">
-                                <input type="hidden" name="country" id="{{question.id}}_country_code" value="India | 91">
-                                <i class="dropdown icon p16"></i>
-                                <div class="default text fs0">
-                                    <span class="fL fs14"><i class="in flag"></i>91</span>
-                                </div>
-                                <div class="menu pA t48 l0 w280">
-                                    {% include 'components/country_codes.html' %}
-                                </div>
-                            </div>
-                            <div class="dTc vM pl12 wp100">
-                                <input id="{{question.id}}" class="bd0 br8 bxs2 p16"  name="{{question.id}}" required placeholder="{{question.help_text}}" oninput="remove_error('{{question.id}}')"  onchange="remove_error('{{question.id}}')">
-                            </div>
-                        </div>
-                    {% elif question.question_state == 10 %}
-                        <!--    EMAIL_ID = 10-->
-                        <label class="c4a fs15 fwR lh22 p10 m0">{{question.data}}</label>
-                        <input id="{{question.id}}" class="bd0 br8 bxs2 p16" rows="2" cols="4" name ="{{question.id}}" minlength="50" required placeholder="{{question.help_text}}" oninput="remove_error('{{question.id}}')"  onchange="remove_error('{{question.id}}')">
-                    {% endif %}
-                </div>
-            {% endfor %}
-            <input type="hidden" name="ref_id" value="{{ref_id}}"/>
-        </form>
-
-        <div class="h60"></div>
-
-        <!-- Displaying Buttons -->
-        <div class="p8 bs taC pF b0 l0 r0 h60 bdtE bgBg z1">
-            <button class="ui button h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU ls05" id="simple_button" type="submit">SUBMIT</button>
-        </div>
-
-        <div class="p8 bs taC pF b0 l0 r0 h60 bdtE bgBg z1 dN" id="loading_button">
-            <button class="ui button loading h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU ls05" type="submit">SUBMIT</button>
-        </div>
-
-        <!-- login model for exclusive communities -->
-        <div class="ui modal image_container_login w300" id="login_popup">
-            <div class="h72 w72 brp50 bd2F bs bxs oH bgT mtn22 mA">
-                <img class="h86 w86 mtn8 mln8 ofC" src="/media/main_website/like_minds_speaker.png">
-            </div>
-            <div class="p24 bs taC ffR">
-                <p class="m0 p0 fs17 lh22 c0 mb10 fwM">Login to continue</p>
-                <p class="m0 p0 fs15 lh22 c9 mb16">This is an exclusive community. To view member details please login/signup and join the community.</p>
-                <div class="p160 ls05">
-                    <div class="fs12 mb16">
-                        <div class="googleSignin p12 bs br20 bgF c79 ffR fwM bdE c79h dN" data-next="{{ request.path }}?cta=join-aj-{{aj}}">
-                            <i class="dIb fa fa-google fs15 lh16 vM"></i>
-                            <span  class="dIb lh16 pl12 vM">LOGIN WITH GOOGLE</span>
-                        </div>
-                    </div>
-                    <div class="fs12 mb16">
-                        <a class="p12 bs dB br20 tdN bgLi cF ffR fwM cFh" href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join-aj-{{aj}}">
-                            <i class="dIb fa fa-linkedin fs15 lh16 vM"></i>
-                            <span  class="dIb lh16 pl12 vM">LOGIN WITH LINKEDIN</span>
-                        </a>
-                    </div>
-                    <div class="fs12">
-                        <a class="p12 bs dB br20 tdN bgFb cF ffR fwM cFh" href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join-aj-{{aj}}">
-                            <i class="fa fa-facebook dIb fs15 lh16 vM" ></i>
-                            <span class="dIb lh16 pl12 vM">LOGIN WITH FACEBOOK</span>
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <!-- -->
-
-        <!-- Scripts -->
-        <script>
 
             function autoGrow (oField) {
                 if (oField.scrollHeight > oField.clientHeight) {
@@ -732,3 +710,4 @@
         {% include 'scripts/google_auth.html' with client_id=google_oauth_client_id  %}
     </body>
 </html>
+{% endblock %}

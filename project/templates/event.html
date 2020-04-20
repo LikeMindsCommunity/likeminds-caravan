@@ -14,6 +14,24 @@
         <div class="p1224 ffR fwL fs24 lh36 c4a bdbE bs">
             {{collabcard.title}}
         </div>
+        {% if request.user.is_authenticated %}
+            {% if member_state.state == 3 %}
+                <div class="p1624 bdbE bs dT wp100 fwR">
+                    <div class="dT wp100 bs">
+                        <div class="bs dTc h64 w64">
+                            <img src="{{current_user.image_link}}" class="bd2F brp50 bxs dB h64 w64">
+                        </div>
+                        <div class="dTc vM pl16 bs fs15">
+                            <div class="c0 fwM">State</div>
+                            <div class="lh20 c9 fwR pt4 bs">
+                                Approval Pending. Get notified as soon as you are approved.
+                            </div>
+                            <div class="mt8 bdT bs br22 p12 fs12 fwM ls05 w150 cT taC">DOWNLOAD APP</div>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        {% endif %}
         <div class="p1624 bdbE bs dT wp100 fwR">
             <div class="dTc vM w24 c06C3AF">
                 {% include 'svgs/calendar.html' %}
@@ -41,14 +59,14 @@
             </div>
         </div>
         {% if collabcard.online_link %}
-        <div class="p1624 bdbE bs dT wp100 fwR">
-            <div class="dTc vM w24 c06C3AF">
-                {% include 'svgs/click.html' %}
+            <div class="p1624 bdbE bs dT wp100 fwR">
+                <div class="dTc vM w24 c06C3AF">
+                    {% include 'svgs/click.html' %}
+                </div>
+                <div class="dTc vM pl30 bs">
+                    <div class="fs16 lh21"><a class="tdN cT" href="#">{{ collabcard.online_link }}</a></div>
+                </div>
             </div>
-            <div class="dTc vM pl30 bs">
-                <div class="fs16 lh21"><a class="tdN cT" href="#">{{ collabcard.online_link }}</a></div>
-            </div>
-        </div>
         {% endif %}
         <div class="p24 bs bdbE bs">
             <div class="fs14 fwR c9b">Posted By</div>
@@ -105,9 +123,9 @@
                 <div class="dTc vM wp100 pl12 bs fwR fs14 c9b">Members Attending</div>
                 <div class="dTc vM c06C3AF wsN">{{ collabcard.attending_count }} attending</div>
             </div>
-            <div class="pt24 pR">
+            <div class="mnh200 pt24 pR">
                 <!-- if not member -->
-                <div class="pA t0 b0 l0 r0 bgFo96 z1" onclick="attend()">
+                <div class="pA t0 b0 l0 r0 bgFo96 z1" onclick="attend(true)">
                     <div class="dT wp100 hp100 taC">
                         <div class="c0 fs15 lh21 dTc vM">You must be a member of the community to view the conversations.</div>
                     </div>
@@ -132,9 +150,9 @@
                     <input class="h40 p12 bs bgf2 br20 bd0 wp100 c9b" placeholder="Type your comment" />
                 </div>
             </form>
-            <div class="pR">
+            <div class="mnh200 pR">
                 <!-- if not member -->
-                <div class="pA t0 b0 l0 r0 bgFo96 z1" onclick="attend()">
+                <div class="pA t0 b0 l0 r0 bgFo96 z1" onclick="attend(true)">
                     <div class="dT wp100 hp100 taC">
                         <div class="c0 fs15 lh21 dTc vM">You must be a member of the community to view the conversations.</div>
                     </div>
@@ -161,7 +179,7 @@
         <div class="h60"></div>
         <!-- Displaying Buttons -->
         <div class="p8 bs taC pF b0 l0 r0 h60 bdtE bgF z1">
-            <button class="h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU ls05" id="bottom_button" onclick="attend()">
+            <button class="h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU ls05" id="bottom_button" onclick="attend(true)">
                 <div class="dIb vM">
                     {% include 'svgs/calendar_outline.html' %}
                 </div>
@@ -178,6 +196,19 @@
                         <input type="email" placeholder="Enter your email id" id="email_input">
                     </div>
                     <div class="ui positive right labeled icon button" style="background-color:#00897b;" id="email_submit">Submit</div>
+                </div>
+            {% elif member_state.state == 3 %}
+                <!-- pending member -->
+                <div class="ui modal test w300" id="add_email_pop">
+                    <div class="h72 w72 brp50 bd2F bs bxs oH bgT mtn22 mA">
+                        <img class="h86 w86 mtn12 mln8 ofC" src="https://beta.likeminds.community/media/media/ic_launcher_round.png">
+                    </div>
+                    <div class="p24 bs taC ffR">
+                        <div class="fs17 lh22 c0 fwM">Congrats!</div>
+                        <p class="c9 fs15 lh22 mb16 mt8 p0">Your application has been submitted successfully. You will receive a confirmation on your email ID : <span class="c007aff">{{request.user.email}}</span></p>
+                        <div class="fs13 ls05 fwM p12 bs cT" id="add_email">ADD ANOTHER EMAIL</div>
+                        <div class="bs c9 fs13 fwM ls05 p12" id="dismiss_add_email">DISMISS</div>
+                    </div>
                 </div>
             {% endif %}
         {% else %}
@@ -198,19 +229,19 @@
                     {% elif not request.user.is_authenticated %}
                         <div class="p160 ls05">
                             <div class="fs12 mb16">
-                                <div class="googleSignin p12 bs br20 bgF c79 ffR fwM bdE c79h dN" data-next="/community/{{card.community.id}}?cta=join">
+                                <div class="googleSignin p12 bs br20 bgF c79 ffR fwM bdE c79h dN" data-next="/community/{{community.id}}?cta=join&event={{collabcard.id}}">
                                     <i class="dIb fa fa-google fs15 lh16 vM"></i>
                                     <span  class="dIb lh16 pl12 vM">LOGIN WITH GOOGLE</span>
                                 </div>
                             </div>
                             <div class="fs12 mb16">
-                                <a class="p12 bs dB br20 tdN bgLi cF ffR fwM cFh" href="{% url 'social:begin' 'linkedin-oauth2' %}?next=/community/{{card.community.id}}?cta=join">
+                                <a class="p12 bs dB br20 tdN bgLi cF ffR fwM cFh" href="{% url 'social:begin' 'linkedin-oauth2' %}?next=/community/{{community.id}}?cta=join&event={{collabcard.id}}">
                                     <i class="dIb fa fa-linkedin fs15 lh16 vM"></i>
                                     <span  class="dIb lh16 pl12 vM">LOGIN WITH LINKEDIN</span>
                                 </a>
                             </div>
                             <div class="fs12">
-                                <a class="p12 bs dB br20 tdN bgFb cF ffR fwM cFh" href="{% url 'social:begin' 'facebook' %}?next=/community/{{card.community.id}}?cta=join">
+                                <a class="p12 bs dB br20 tdN bgFb cF ffR fwM cFh" href="{% url 'social:begin' 'facebook' %}?next=/community/{{community.id}}?cta=join&event={{collabcard.id}}">
                                     <i class="fa fa-facebook dIb fs15 lh16 vM" ></i>
                                     <span class="dIb lh16 pl12 vM">LOGIN WITH FACEBOOK</span>
                                 </a>
@@ -221,6 +252,7 @@
             </div>
         {% endif %}
 
+        <div class="dN">{{member_state}}</div>
         <div class="dN">{{collabcard}}</div>
         <div class="dN">{{community}}</div>
         <div class="dN">{{members}}</div>
@@ -248,6 +280,12 @@
                     })
                 })
                 //email_login popup end
+            {% elif member_state.state == 3 %}
+                // pending member approval
+                $('#add_email_pop').modal('show');
+                $('#dismiss_add_email').click(function(e){
+                    $('#add_email_pop').modal('hide');
+                });
             {% endif %}
         {% endif %}
 
@@ -268,9 +306,21 @@
             {% endif %}
         }
 
-        function attend(){
+        function attend(isAttending){
             {% if user.is_authenticated %}
-                console.log("attend api")
+                $(".ldrT", $('#loader')[0]).text("Making request...");
+                $('#loader').show();
+                $.ajax({
+                    url: '/api/collabcard_attend?collabcard_id={{collabcard.id}}&value='+isAttending,
+                    success:function(data){
+                        console.log('attend api success');
+                        $('#loader').hide();
+                    },
+                    error: function(data){
+                        console.log('attend api fail');
+                        $('#loader').hide();
+                    }
+                })
             {% else %}
                 $('.test').modal('show');
             {% endif %}

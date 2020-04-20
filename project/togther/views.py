@@ -302,7 +302,12 @@ def community(request, community_id):
                     #print(context)
                     return render(request, 'response_form.html', context)
                 else:
-                    pass
+                    isFromEvent = request.GET.get('event', '')
+                    # if from event page and already a member redirect to event page
+                    if isFromEvent:
+                        return redirect("/collabcard/"+isFromEvent)
+                    else:
+                        pass
             else:
                 if request.is_ajax:
                     return JsonResponse({'success': True})

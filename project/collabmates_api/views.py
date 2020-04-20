@@ -3527,7 +3527,7 @@ def collabcard(request, card_id):
 
     page = request.GET.get('page', 1)
 
-    current_user_id = get_member_id_from_headers(request)
+    current_user_id = get_member_id_from_headers(request) | request.user.id
 
     feedback=True
     if cards.community.id == feedback_community_id:
@@ -3556,6 +3556,7 @@ def collabcard(request, card_id):
     card = CollabcardSerializer(cards, user_id, cards.community)
 
     user = Userinfo.objects.get(user_id=cards.user.id)
+    current_user = Userinfo.objects.get(user_id=current_user_id)
 
     # serializing user object
     usr = UserinfoSerializer(user)
@@ -3592,21 +3593,22 @@ def collabcard(request, card_id):
             # get community for community name, image, etc
             community = Community.objects.get(id=cards.community.id)
 
+            member_state = members_state(request,req_dict={'community_id':cards.community.id,'member_id':current_user_id})
+
             # set default event banner image
             card['banner_image'] = "//firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Fevent_banner.jpg?alt=media&token=4f6709df-8918-4227-8606-c11607d2d31b"
 
             # set time
-            card['start_time'] = card['duration']
-            card['end_time'] = card['date_time']
-            card['duration'] =  card['end_time'] - card['start_time']
+            card['start_time'] = card['date_time']
+            card['end_time'] = card['duration']
 
             card['start_time'] = time.strftime('%A, %b %y, %H:%M', time.gmtime(card['start_time']/1000.0))
             card['duration'] = time.strftime('%H hours %M minutes', time.gmtime(card['duration']/1000.0))
             card['end_time'] = time.strftime('%A, %b %y', time.gmtime(card['end_time']/1000.0))
 
             # get members
-            members = get_members_data_for_collabcard(card_id, card.community.id, current_user_id)
-                
+            members = get_members_data_for_collabcard(card_id, cards.community.id, current_user_id)
+
             # set header
             header = {
                 'back': True,
@@ -3617,7 +3619,9 @@ def collabcard(request, card_id):
             }
 
             context = {
-                # "community": community,
+                "current_user": current_user,
+                "member_state": member_state,
+                "community": community,
                 "collabcard": card, 
                 "members": members,
                 'answers': answers, 
@@ -4750,12 +4754,16 @@ def collabcards_seen(request):
 
 @csrf_exempt
 def collabcard_attend(request):
+
     '''attending a event on a event card'''
 
-    member_id = get_member_id_from_headers(request)
+    member_id = get_member_id_from_headers(request) | request.user.id
+
     collabcard_id = request.GET.get('collabcard_id')
     status = request.GET.get('value', 'true')
+
     collabcard_instance = Collabcard.objects.get(id=collabcard_id)
+
     user_instance = User.objects.get(id=member_id)
 
     if status != 'true':
@@ -4764,7 +4772,6 @@ def collabcard_attend(request):
         status = True
 
     if status:
-
         # if the user clicks on attend but not following collabcard
         collabcard_state_instance = collabcardState.objects.get(card=collabcard_instance, user=user_instance)
         if collabcard_state_instance.state == collabcard_states.COLLABCARD_STATE_SEEN:
@@ -4791,11 +4798,9 @@ def collabcard_attend(request):
             collabcard_state_instance.state = collabcard_states.COLLABCARD_STATE_UNATTEND_FOLLOWING
             collabcard_state_instance.updated_at = time.time()
             collabcard_state_instance.save()
-
     update_event_answer_text(collabcard_id)  # function to update the text when a user attends an event
     if not str(member_id) == str(collabcard_instance.user.id) and status:
         send_poll_or_event_notification.delay(card_id=collabcard_id, user_id=member_id)
-
     return JsonResponse({'success': True})
 
 
