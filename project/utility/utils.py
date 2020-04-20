@@ -36,6 +36,8 @@ community_default_image = "https://firebasestorage.googleapis.com/v0/b/collabmat
 
 community_default_thumbnail = "https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fcommunity%2Fimage_community_default_thumbnail?alt=media"
 
+community_default_image_round = "https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Fmain_website%2Fgeneric_community_banner.png?alt=media&token=044d32ff-3da7-4d8d-9c83-d3c486b61f7a"
+
 url=settings.URL
 
 if settings.IS_BETA:
