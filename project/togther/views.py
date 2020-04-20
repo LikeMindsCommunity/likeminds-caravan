@@ -14,11 +14,10 @@ from django.http import HttpResponseRedirect
 from .tasks import send_mail_after_rank_computation, send_email_to_proposed_admin
 from django.core.mail import EmailMultiAlternatives
 from collabmates_api.serializers import *
-from django.template.loader import get_template
+from collabmates_api.views import *
 import traceback
 from collabmates_api.raw_queries import compute_rank
 from collabmates_api.notification import notification_after_compute_rank
-from django.urls import reverse
 from utility.utils import (get_city_address, update_tag_image,
                            update_user_geography_tags, create_or_categorize_tag,
                            referal, insert_user_home_town_tags, user_onbaord,
@@ -31,10 +30,9 @@ from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from user_agents import parse
 import time
 import logging
-import itertools
 from utility.states import collabcard_states, member_states, question_states
-import re
 import ast
+
 
 url = settings.URL
 
@@ -722,14 +720,15 @@ def members_directory(request, community_id):
     member_state = 0
     if request.user.is_authenticated:
         #is_member=is_member_verified(community_id,request.user)
-        member_instance_list = Members.objects.filter(community_id=community_id,member_id=request.user)
-
-        if member_instance_list.exists():
-
-            member_state = member_instance_list[0].state
-
-            if member_state == member_states.ADMIN or member_state == member_states.MEMBER:
-                is_member = True
+        # member_instance_list = Members.objects.filter(community_id=community_id,member_id=request.user)
+        #
+        # if member_instance_list.exists():
+        #
+        #     member_state = member_instance_list[0].state
+        temp = members_state(request,req_dict={'member_id':request.user.id,'community_id':community_id})
+        member_state = temp['state']
+        if member_state == member_states.ADMIN or member_state == member_states.MEMBER:
+            is_member = True
 
 
         user_email = request.user.userinfo.email
