@@ -5,7 +5,8 @@ from django.conf import settings
 from django.db.models import Q
 from togther.models import *
 from togther.models import *
-from utility.utils import is_IG_community,is_LG_or_LP_community,feedback_community_id,generate_private_link,generate_random
+from utility.utils import is_IG_community,is_LG_or_LP_community,feedback_community_id,\
+    generate_private_link,generate_random,get_time_text,eligibility_count
 from utility.states import card_types
 url = settings.URL
 import ast
@@ -61,7 +62,7 @@ def CommunitySerializer(community,promoter_id=0):
                                                                   promoter_instance=promoter_id)
 
 
-
+    is_ig = is_IG_community(community)
     if is_LG_or_LP_community(community):
         community_type=1
         new_dict['community_type'] = community_type
@@ -73,6 +74,29 @@ def CommunitySerializer(community,promoter_id=0):
         new_dict['type']=community.type
     if community.sub_type:
         new_dict['sub_type'] = community.sub_type
+
+    if not is_ig:
+        new_dict[
+            'share_text_admin'] = """Hi, I am trying to gather %s community on LikeMinds. It will be good if you can join it.\n""" % (
+        new_dict['name'])
+        new_dict[
+            'share_text_member'] = """I recently joined %s community on LikeMinds. It will be good if you also join this community.\n""" % (
+        new_dict['name'])
+        new_dict[
+            'share_text_anonymous'] = """I recently discovered %s community on LikeMinds. You can join this community using this link.\n""" % (
+        new_dict['name'])
+    else:
+        new_dict[
+            'share_text_admin'] = """Hi, I am trying to gather %s community on CollabMates. It will be fun if you can join it.\n""" % (
+        new_dict['name'])
+        new_dict[
+            'share_text_member'] = """I recently joined %s community on CollabMates. It will be fun if you also join this community.\n""" % (
+        new_dict['name'])
+        new_dict[
+            'share_text_anonymous'] = """I recently discovered %s community on CollabMates. You can join this community using this link.\n""" % (
+        new_dict['name'])
+
+    new_dict['min_referrer_member'] = eligibility_count
 
 
 
@@ -128,20 +152,46 @@ def CollabcardSerializer(card,user,community=None):
 
         collabcard['polls'] = polls
 
-    if card.type == card_types.CARD_EVENT:
 
-        if card.location:
-            collabcard['location'] = card.location
+    if card.location:
+        collabcard['location'] = card.location
 
-        if card.location_lat:
-            collabcard['location_lat'] = card.location_lat
+    if card.location_lat:
+        collabcard['location_lat'] = card.location_lat
 
-        if card.location_long:
-            collabcard['location_long'] = card.location_long
+    if card.location_long:
+        collabcard['location_long'] = card.location_long
+
+    if card.start_date:
+        collabcard['start_date'] = card.start_date
+
+    if card.end_date:
+        collabcard['end_date'] = card.end_date
+
+    if card.about:
+        collabcard['about'] = card.about
+
+    if card.co_hosts:
+        co_host_list = json.loads(card.co_hosts)
+        #co_host_list = list(map(int, co_host_list))
+
+        collabcard['co_hosts'] = get_members_profile(member_ids=co_host_list,community_id=card.community.id,
+                                                     current_user_id=user)
+
+    if card.online_link:
+        collabcard['online_link'] = card.online_link
 
     if card.og_tags:
         og_tags = json.loads(card.og_tags)
         collabcard['og_tags'] = og_tags
+
+    #FOR PURPOSE CARD
+    if card.updated_member:
+        member_ids = [card.updated_member]
+        collabcard['updated_member'] = get_members_profile(member_ids=member_ids,community_id=card.community_id,current_user_id=user)
+
+    if card.updated_time:
+        collabcard['updated_time'] = get_time_text(card.updated_time)
 
     return collabcard
 
@@ -182,6 +232,29 @@ def get_member_count(community):
     return Members.objects.filter(community_id=community).filter(
         Q(state=1) | Q(state=2) | Q(state=4) | Q(state=7) | Q(state = 8)).count()
 
+def get_members_profile(member_ids,community_id,current_user_id):
+
+    '''function to get member profile from list of members ids'''
+    member_profile_list = []
+    for id in member_ids:
+        member_filter = Members.objects.filter(member_id=id,community_id=community_id)
+
+        if member_filter.exists():
+            member_id = member_filter[0].member_id.id
+            member=member_filter[0]
+            userinfo_serialized_object = UserinfoSerializer(member.member_id.userinfo)
+            userinfo_serialized_object['state'] = member.state
+
+            form_response = FormResponseSerilaizer(community_id, member_id, bl=True,
+                                                   current_user_id=current_user_id)
+
+            if form_response:
+                userinfo_serialized_object['response'] = form_response[0]
+                userinfo_serialized_object['question_answers'] = form_response[1]
+
+            member_profile_list.append(userinfo_serialized_object)
+
+    return member_profile_list
 
 def FormResponseSerilaizer(community_id, user_id,current_user_id=None,bl=False):
 

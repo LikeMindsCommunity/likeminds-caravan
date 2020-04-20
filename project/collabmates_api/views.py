@@ -31,7 +31,7 @@ from utility.celery_tasks import (save_community_purpose_card,
                                   )
 from utility.firebase import update_last_answer_id, upload_image_to_firebase, upload_community_thumbnail, \
     upload_community_files
-from utility.states import collabcard_states, member_states, question_states,community_states,deleted_members
+from utility.states import collabcard_states, member_states, question_states,community_states,deleted_members,card_types
 from utility.tasks import (mail_triger, new_member_request,
                            member_request_approval_or_denied,
                            send_mail_for_report_abuse,
@@ -47,7 +47,8 @@ from utility.utils import (decode_meta_from_url, update_tag_image,
                            update_user_geography_tags, insert_user_home_town_tags, is_IG_community,
                            ig_members_count, is_LG_or_LP_community, feedback_community_id, feedback_collabcard_id,
                            is_member_verified,community_default_image,community_default_thumbnail,is_member_promoter,
-                           is_member_pending,is_member_present,generate_private_link,generate_random
+                           is_member_pending,is_member_present,generate_private_link,generate_random,get_time_text
+
 
                            )
 
@@ -357,17 +358,17 @@ def community(request, community_id,req_dict=None):
 
     # form a dictionary of community objects
     new_dict.update(serialized_object)
-    if community:
-        community_type = is_IG_community(community)
-        if not community_type:
-            new_dict['share_text_admin'] = """Hi, I am trying to gather %s community on LikeMinds. It will be good if you can join it.\n""" % (new_dict['name'])
-            new_dict['share_text_member'] = """I recently joined %s community on LikeMinds. It will be good if you also join this community.\n""" % (new_dict['name'])
-            new_dict['share_text_anonymous'] = """I recently discovered %s community on LikeMinds. You can join this community using this link.\n""" % (new_dict['name'])
-        else:
-            new_dict['share_text_admin'] = """Hi, I am trying to gather %s community on CollabMates. It will be fun if you can join it.\n""" % (new_dict['name'])
-            new_dict['share_text_member'] = """I recently joined %s community on CollabMates. It will be fun if you also join this community.\n""" % (new_dict['name'])
-            new_dict['share_text_anonymous'] = """I recently discovered %s community on CollabMates. You can join this community using this link.\n""" % (new_dict['name'])
-    new_dict['min_referrer_member'] = eligibility_count
+    # if community:
+    #     community_type = is_IG_community(community)
+    #     if not community_type:
+    #         new_dict['share_text_admin'] = """Hi, I am trying to gather %s community on LikeMinds. It will be good if you can join it.\n""" % (new_dict['name'])
+    #         new_dict['share_text_member'] = """I recently joined %s community on LikeMinds. It will be good if you also join this community.\n""" % (new_dict['name'])
+    #         new_dict['share_text_anonymous'] = """I recently discovered %s community on LikeMinds. You can join this community using this link.\n""" % (new_dict['name'])
+    #     else:
+    #         new_dict['share_text_admin'] = """Hi, I am trying to gather %s community on CollabMates. It will be fun if you can join it.\n""" % (new_dict['name'])
+    #         new_dict['share_text_member'] = """I recently joined %s community on CollabMates. It will be fun if you also join this community.\n""" % (new_dict['name'])
+    #         new_dict['share_text_anonymous'] = """I recently discovered %s community on CollabMates. You can join this community using this link.\n""" % (new_dict['name'])
+    #new_dict['min_referrer_member'] = eligibility_count
 
     if community.id == feedback_community_id:
         new_dict['share_url'] = ""
@@ -1582,7 +1583,7 @@ def post_purpose_collabcard_for_community(request,community_instance,member_id):
         'member_id': member_id,
         'community_id': community_instance.id,
         'title': introduction_answer,
-        'type': 0,
+        'type': card_types.CARD_PURPOSE,
     }
     request.method = "POST"
     create_card(request, req_dict=req_dict)
@@ -2574,9 +2575,16 @@ def create_card(request,req_dict=None):
         card.pdf_count = res['pdf_count'] if ('pdf_count' in res) else 0
         card.date_time = date_time
         card.duration = res['duration'] if ('duration' in res) else 0
+
+        #for event card
         card.location = res['location'] if ('location' in res) else None
         card.location_lat = res['location_lat'] if ('location_lat' in res) else None
         card.location_long = res['location_long'] if ('location_long' in res) else None
+        card.start_date = res['start_date'] if ('start_date' in res) else 0
+        card.end_date = res['end_date'] if ('end_date' in res) else 0
+        card.about = res['about'] if ('about' in res) else None
+        card.co_hosts = json.dumps(res['co_hosts']) if ('co_hosts' in res) else None
+        card.online_link = res['online_link'] if ('online_link' in res) else None
 
         if 'share_link' in res:
             card.share_link = res['share_link']
@@ -3727,50 +3735,6 @@ def get_answer_files(answer_id):
     return (img_list, pdf)
 
 
-def get_time_text(created_time):
-    """ function to get time stamp """
-
-    # get current time and convert it into epoch time
-    present_time = str(datetime.now())
-    current_time = datetime.strptime(present_time.strip(' \t\r\n'), "%Y-%m-%d %H:%M:%S.%f").strftime('%s')
-    created = datetime.fromtimestamp(created_time)
-    current = datetime.fromtimestamp(int(current_time))
-    difference = dateutil.relativedelta.relativedelta(current, created)
-    # print("diffrence ======== ",difference)
-    if difference.years:
-        # if difference is more than one week return created date
-        return time.strftime('%d/%m/%Y', time.localtime(created_time))
-    elif difference.months:
-        # if difference is more than one week return created date
-        return time.strftime('%d/%m/%Y', time.localtime(created_time))
-    elif difference.days:
-        # if difference is in days
-        if difference.days == 1:
-            return str(difference.days) + " day ago"
-
-        elif difference.days < 7:
-            return str(difference.days) + " days ago"
-
-        elif difference.days == 7:
-            return "1 week ago"
-        # if difference is more than one week return created date
-        return time.strftime('%d/%m/%Y', time.localtime(created_time))
-
-    elif difference.hours:
-        # if difference is in hours
-        if difference.hours == 1:
-            return str(difference.hours) + " hour ago"
-
-        return str(difference.hours) + " hours ago"
-    elif difference.minutes:
-        # if difference is in hours
-        if difference.minutes == 1:
-            return str(difference.minutes) + " min ago"
-
-        return str(difference.minutes) + " mins ago"
-    else:
-        # if difference is in seconds
-        return "Just Now"
 
 
 def community_cards(request, community_id):
@@ -5113,6 +5077,7 @@ def upload_files(request):
     '''function to upload files'''
 
     body = request.GET
+    member_id=get_member_id_from_headers(request)
     if request.method == 'POST':
 
         if 'community_id' in body:
@@ -5121,12 +5086,26 @@ def upload_files(request):
             community = Community.objects.get(id=community_id)
             community.image_link = body['url']
             upload_community_thumbnail.delay(community_id, body['url'])
-
+            community.save()
             #updating the create community second step
             createCommunityAction.objects.filter(community=community, step_no="Step 2").update(
                 current_point=10)
 
-            community.save()
+            #saving the update image details if the image is updated
+            edit = request.GET.get('edit',False)
+            if edit == 'true':
+                if not member_id:
+                    return JsonResponse({'success': False, 'error_message': "Send member id in headers"})
+                else:
+                    member_instance = User.objects.get(id=member_id)
+
+                instance = communityUpdate()
+                instance.updated_field = "image"
+                instance.updated_time = time.time()
+                instance.updated_member = member_instance
+                instance.community = community
+                instance.save()
+
         elif 'collabcard_id' in body:
             attachment_type = body['type']
             collabcard_id = body['collabcard_id']
@@ -5917,6 +5896,12 @@ def edit_community(request):
     '''function to edit the community'''
 
     community_id = request.GET.get('community_id')
+    member_id = get_member_id_from_headers(request)
+    community = Community.objects.get(id=community_id)
+    if not member_id:
+        return JsonResponse({'success':False,'error_message':"Send member id in headers"})
+    else:
+        member_instance = User.objects.get(id=member_id)
 
     json_body = json.loads(request.body)
 
@@ -5924,10 +5909,7 @@ def edit_community(request):
 
     if key == 'purpose':
         value = json_body['value']
-        # purpose_collabcard = Community.objects.filter(id=community_id).values('purpose_collabcard')
-        # purpose_collabcard = purpose_collabcard[0]['purpose_collabcard']
-        # Collabcard.objects.filter(id=purpose_collabcard).update(title=value)
-        Community.objects.filter(id=community_id).update(purpose=value)
+        edit_community_purpose_collabcard(community_instance=community, member_instance=member_instance, purpose=value)
 
     elif key == 'questions':
         questions = json_body['questions']
@@ -5942,7 +5924,15 @@ def edit_community(request):
                                                  step_no="Step 5").update(current_point=15)
 
 
-    community = Community.objects.get(id=community_id)
+
+    #saving the updating details for history
+
+    instance = communityUpdate()
+    instance.updated_field = key
+    instance.updated_time = time.time()
+    instance.updated_member = member_instance
+    instance.community = community
+    instance.save()
 
     serialized_object = CommunitySerializer(community)
     new_dict = {}
@@ -6055,7 +6045,16 @@ def edit_questions_version_1(request):
 
     return JsonResponse({'success':True})
 
+def edit_community_purpose_collabcard(community_instance,member_instance,purpose):
 
+    '''function to update the purpose collabcard of community'''
+    update_status = Collabcard.objects.filter(community=community_instance,
+                                              type=card_types.CARD_PURPOSE).update(title=purpose,
+                                                                                   updated_member=member_instance,
+                                                                                   updated_time=time.time())
+    log="""purpose card updated for community=%s by user=%s"""%(str(community_instance.id),str(member_instance.id))
+    info_logger.info(log)
+    info_logger.info(update_status)
 
 ############# functions to update user location and city    ##########################
 
