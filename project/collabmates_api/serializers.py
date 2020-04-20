@@ -195,7 +195,8 @@ def CollabcardSerializer(card,user,community=None):
     #FOR PURPOSE CARD
     if card.updated_member:
         member_ids = [card.updated_member]
-        collabcard['updated_member'] = get_members_profile(member_ids=member_ids,community_id=card.community_id,current_user_id=user)
+        temp=get_members_profile(member_ids=member_ids,community_id=card.community_id,current_user_id=user)
+        collabcard['updated_member'] = temp[0]
 
     if card.updated_time:
         collabcard['updated_time'] = get_time_text(card.updated_time)
