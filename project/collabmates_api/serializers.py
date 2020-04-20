@@ -44,7 +44,7 @@ def CommunitySerializer(community,promoter_id=0):
         new_dict['image_url'] = '/media/media/community/default.jpeg'
 
     if community.image_link_round:
-        new_dict['image_link_round'] = community.image_link.round
+        new_dict['image_link_round'] = community.image_link_round
 
 
     if new_dict['image_url'] == "/media/https%3A/upload.wikimedia.org/wikipedia/en/0/09/Community_title.jpg":
