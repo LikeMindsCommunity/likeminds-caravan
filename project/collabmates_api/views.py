@@ -226,6 +226,20 @@ def your_communities(request, user_id):
     return JsonResponse({'your_communities': my_community})
 
 
+######################function for api utility#################################
+
+
+def get_error_context(success,error_message):
+
+    '''function to get error context for apis'''
+
+    context={
+        'success':success,
+        'error_message':error_message
+    }
+    return context
+
+
 ############# functions for  community detail screen ##########################
 
 def get_community_card_details(each_community, user_id):
@@ -2587,6 +2601,11 @@ def create_card(request,req_dict=None):
         card.co_hosts = json.dumps(res['co_hosts']) if ('co_hosts' in res) else None
         card.online_link = res['online_link'] if ('online_link' in res) else None
 
+
+        #for poll card
+        card.multiple_select = res['multiple_select'] if ('multiple_select' in res) else False
+        card.multiple_select_no = res['multiple_select_no'] if ('multiple_select_no' in res) else 0
+
         if 'share_link' in res:
             card.share_link = res['share_link']
             og_tags = decode_meta_from_url(res['share_link'])
@@ -2600,6 +2619,7 @@ def create_card(request,req_dict=None):
             collabcardpolls_instance = CollabcardPolls()
             collabcardpolls_instance.card = card
             collabcardpolls_instance.text = poll['text']
+            collabcardpolls_instance.sub_text = poll['sub_text']
             collabcardpolls_instance.save()
 
 
@@ -2703,6 +2723,115 @@ def create_collabcard_state_for_user(card, user, state, community):
     collabcard_state_instance.created_at = time.time()
     collabcard_state_instance.updated_at = time.time()
     collabcard_state_instance.save()
+
+
+#api to deprecate
+@csrf_exempt
+def collabcard_poll(request):
+    """ function to update polls of a card for user """
+    if request.method == 'POST':
+        collabcard_id = request.GET.get('collabcard_id', None)
+        poll_id = request.GET.get('poll_id', None)
+        member_id = get_member_id_from_headers(request)
+
+        if not collabcard_id or not poll_id:
+            return JsonResponse({"success": False})
+
+        card_instance = Collabcard.objects.get(pk=collabcard_id)
+        poll_instance = CollabcardPolls.objects.get(pk=poll_id)
+        user_instance = User.objects.get(pk=member_id)
+        # check if user has already voted for the card or not
+        memberpolls_instance = MemberPollVotes.objects.filter(card=card_instance, user=user_instance)
+
+        if not memberpolls_instance.exists():
+            # if not voted, create new row for user and card with opted poll by user
+            memberpolls_instance = MemberPollVotes()
+            memberpolls_instance.card = card_instance
+            memberpolls_instance.poll = poll_instance
+            memberpolls_instance.user = user_instance
+            memberpolls_instance.save()
+        else:
+            # if voted, update the poll if user optes different poll than previous
+            if str(memberpolls_instance[0].poll.id) == poll_id:
+                # if same poll is opted again
+                return JsonResponse({"success": True})
+            # if user changes the poll
+            memberpolls_instance.update(poll=poll_instance)
+        # update the card answer text according to no of polls
+        update_poll_card_text(collabcard_id)
+
+        if not str(member_id) == str(card_instance.user.id):
+            send_poll_or_event_notification.delay(card_id=collabcard_id, user_id=member_id)
+
+        return JsonResponse({"success": True})
+
+    return JsonResponse({"success": False})
+
+@csrf_exempt
+def collabcard_poll_version_1(request):
+    """ function to update polls of a card for user """
+    if request.method == 'POST':
+        collabcard_id = request.POST.get('collabcard_id', None)
+
+        if not collabcard_id:
+            context = get_error_context(success=False,error_message="Send the correct collabcard id")
+            return JsonResponse(context)
+
+        member_id = get_member_id_from_headers(request)
+        if not member_id:
+            context = get_error_context(success=False, error_message="Send member id in headers")
+            return JsonResponse(context)
+
+        poll_ids = request.POST.get('poll_ids', None)
+        if not poll_ids:
+            context = get_error_context(success=False, error_message="Send array of polls_id in post params")
+            return JsonResponse(context)
+
+
+        user_instance = User.objects.get(pk=member_id)
+
+        card_instance = Collabcard.objects.get(pk=collabcard_id)
+
+        poll_ids = unquote(poll_ids)
+        poll_ids = json.loads(poll_ids)
+        print(poll_ids)
+
+        for poll_id in poll_ids:
+            vote_poll(poll_id,card_instance,user_instance,collabcard_id)
+
+        if not str(member_id) == str(card_instance.user.id):
+            send_poll_or_event_notification.delay(card_id=collabcard_id, user_id=member_id)
+
+        return JsonResponse({"success": True})
+
+    return JsonResponse({"success": False})
+
+
+def vote_poll(poll_id,card_instance,user_instance,collabcard_id):
+
+    '''function to vote on poll'''
+    poll_instance = CollabcardPolls.objects.get(pk=poll_id)
+
+    # check if user has already voted for the card or not
+    memberpolls_instance = MemberPollVotes.objects.filter(card=card_instance, user=user_instance)
+
+    if not memberpolls_instance.exists():
+        # if not voted, create new row for user and card with opted poll by user
+        memberpolls_instance = MemberPollVotes()
+        memberpolls_instance.card = card_instance
+        memberpolls_instance.poll = poll_instance
+        memberpolls_instance.user = user_instance
+        memberpolls_instance.save()
+    else:
+        # if voted, update the poll if user optes different poll than previous
+        if str(memberpolls_instance[0].poll.id) == poll_id:
+            # if same poll is opted again
+            return
+
+        # if user changes the poll
+        memberpolls_instance.update(poll=poll_instance)
+    # update the card answer text according to no of polls
+    update_poll_card_text(collabcard_id)
 
 
 # /api/add_admin/community_id
@@ -5055,6 +5184,19 @@ def upload_files(request):
             file.type = attachment_type
             file.file_url = body['url']
             file.save()
+        elif 'poll_id' in body:
+
+            try:
+                instance = CollabcardPolls.objects.get(id=body['poll_id'])
+                instance.image_url = body['url']
+                instance.save()
+            except:
+                return JsonResponse({'success':False,'error_message':"Send valid poll id"})
+
+
+
+
+
 
         return JsonResponse({'success': True})
     return JsonResponse({'success': False})
@@ -7018,47 +7160,6 @@ def push_report(request):
         return JsonResponse({'success': True})
     return JsonResponse({'success': False})
 
-
-@csrf_exempt
-def collabcard_poll(request):
-    """ function to update polls of a card for user """
-    if request.method == 'POST':
-        collabcard_id = request.GET.get('collabcard_id', None)
-        poll_id = request.GET.get('poll_id', None)
-        member_id = get_member_id_from_headers(request)
-
-        if not collabcard_id or not poll_id:
-            return JsonResponse({"success": False})
-
-        card_instance = Collabcard.objects.get(pk=collabcard_id)
-        poll_instance = CollabcardPolls.objects.get(pk=poll_id)
-        user_instance = User.objects.get(pk=member_id)
-        # check if user has already voted for the card or not
-        memberpolls_instance = MemberPollVotes.objects.filter(card=card_instance, user=user_instance)
-
-        if not memberpolls_instance.exists():
-            # if not voted, create new row for user and card with opted poll by user
-            memberpolls_instance = MemberPollVotes()
-            memberpolls_instance.card = card_instance
-            memberpolls_instance.poll = poll_instance
-            memberpolls_instance.user = user_instance
-            memberpolls_instance.save()
-        else:
-            # if voted, update the poll if user optes different poll than previous
-            if str(memberpolls_instance[0].poll.id) == poll_id:
-                # if same poll is opted again
-                return JsonResponse({"success": True})
-            # if user changes the poll
-            memberpolls_instance.update(poll=poll_instance)
-        # update the card answer text according to no of polls
-        update_poll_card_text(collabcard_id)
-
-        if not str(member_id) == str(card_instance.user.id):
-            send_poll_or_event_notification.delay(card_id=collabcard_id, user_id=member_id)
-
-        return JsonResponse({"success": True})
-
-    return JsonResponse({"success": False})
 
 
 def update_poll_card_text(card_id):
