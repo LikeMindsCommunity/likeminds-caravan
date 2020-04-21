@@ -32,6 +32,11 @@ class Community(models.Model):
     thumbnail = models.CharField(max_length=500, null=True)
     introduction_text_state = models.IntegerField(default=0)
     attribute_type = models.IntegerField(default=0)
+
+    #for  purpose collabcard image
+    image_link_round = models.TextField(null=True)
+
+
     # for whats app community
     type=models.IntegerField(null=True)
     sub_type = models.IntegerField(null=True)
@@ -39,11 +44,7 @@ class Community(models.Model):
     def __str__(self):
         return self.name
 
-    # def save(self, *args, **kwargs):
-    #     if self.created_at <= 0:
-    #         self.created_at = time.time()
-    #     self.updated_at = time.time()
-    #     super(Community, self).save(*args, **kwargs)
+
 
 
 class Members(models.Model):
@@ -207,6 +208,10 @@ class Collabcard(models.Model):
     #for purpose card edit
     updated_member = models.ForeignKey(User,on_delete=models.CASCADE,null=True,related_name='purpose_card_updater')
     updated_time = models.BigIntegerField(default=0)
+
+    # for poll functionality
+    multiple_select = models.BooleanField(default=False)
+    multiple_select_no = models.IntegerField(null=True)
 
 
 
@@ -596,6 +601,8 @@ class CollabcardPolls(models.Model):
     text = models.CharField(max_length=2048, null=True)
     created_at = models.BigIntegerField(default=0, null=True)
     updated_at = models.BigIntegerField(default=0, null=True)
+    sub_text = models.TextField(null=True)
+    image_url = models.TextField(null=True)
 
     def save(self, *args, **kwargs):
         if self.created_at == 0:

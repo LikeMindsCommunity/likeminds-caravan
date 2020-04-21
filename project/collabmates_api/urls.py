@@ -80,7 +80,9 @@ urlpatterns = [
 
     path('community_collabcard_id', api_views.community_collabcard_id, name='community_collabcard_id'),
     path('community_collabcard_meta', api_views.community_collabcard_meta, name='community_collabcard_meta'),
+
     path('collabcard_poll', api_views.collabcard_poll, name='collabcard_poll'),
+    path('v1/collabcard_poll', api_views.collabcard_poll_version_1, name='collabcard_poll_version_1'),
 
     path('fetch_whatsapp_tool', api_views.fetch_whatsapp_tool, name='fetch_whatsapp_tool'),
     path('questions', api_views.questions, name='questions'),

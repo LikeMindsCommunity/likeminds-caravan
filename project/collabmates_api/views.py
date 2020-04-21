@@ -24,7 +24,6 @@ from django.views.decorators.csrf import csrf_exempt
 from togther.forms import *
 from togther.models import *
 from togther.tasks import send_email_to_proposed_admin, send_mail_after_rank_computation
-from togther.views import get_nominated_admin_details
 from utility.celery_tasks import (save_community_purpose_card,
                                   update_last_unseen_in_engage_on_card_creation,
                                   update_last_unseen_in_engage,
@@ -47,7 +46,8 @@ from utility.utils import (decode_meta_from_url, update_tag_image,
                            update_user_geography_tags, insert_user_home_town_tags, is_IG_community,
                            ig_members_count, is_LG_or_LP_community, feedback_community_id, feedback_collabcard_id,
                            is_member_verified,community_default_image,community_default_thumbnail,is_member_promoter,
-                           is_member_pending,is_member_present,generate_private_link,generate_random,get_time_text
+                           is_member_pending,is_member_present,generate_private_link,generate_random,get_time_text,
+                           community_default_image_round
 
 
                            )
@@ -224,6 +224,20 @@ def your_communities(request, user_id):
             my_community.append(community)
 
     return JsonResponse({'your_communities': my_community})
+
+
+######################function for api utility#################################
+
+
+def get_error_context(success,error_message):
+
+    '''function to get error context for apis'''
+
+    context={
+        'success':success,
+        'error_message':error_message
+    }
+    return context
 
 
 ############# functions for  community detail screen ##########################
@@ -2317,6 +2331,7 @@ def create_community_version_1(request):
     community_instance.about = about
     community_instance.image_link = community_default_image
     community_instance.thumbnail = community_default_thumbnail
+    community_instance.image_link_round = community_default_image_round
     if community_type:
         community_instance.community_type=community_type
     community_instance.created_at=time.time()
@@ -2586,6 +2601,11 @@ def create_card(request,req_dict=None):
         card.co_hosts = json.dumps(res['co_hosts']) if ('co_hosts' in res) else None
         card.online_link = res['online_link'] if ('online_link' in res) else None
 
+
+        #for poll card
+        card.multiple_select = res['multiple_select'] if ('multiple_select' in res) else False
+        card.multiple_select_no = res['multiple_select_no'] if ('multiple_select_no' in res) else 0
+
         if 'share_link' in res:
             card.share_link = res['share_link']
             og_tags = decode_meta_from_url(res['share_link'])
@@ -2599,6 +2619,7 @@ def create_card(request,req_dict=None):
             collabcardpolls_instance = CollabcardPolls()
             collabcardpolls_instance.card = card
             collabcardpolls_instance.text = poll['text']
+            collabcardpolls_instance.sub_text = poll['sub_text']
             collabcardpolls_instance.save()
 
 
@@ -2704,6 +2725,145 @@ def create_collabcard_state_for_user(card, user, state, community):
     collabcard_state_instance.save()
 
 
+#api to deprecate
+@csrf_exempt
+def collabcard_poll(request):
+    """ function to update polls of a card for user """
+    if request.method == 'POST':
+        collabcard_id = request.GET.get('collabcard_id', None)
+        poll_id = request.GET.get('poll_id', None)
+        member_id = get_member_id_from_headers(request)
+
+        if not collabcard_id or not poll_id:
+            return JsonResponse({"success": False})
+
+        card_instance = Collabcard.objects.get(pk=collabcard_id)
+        poll_instance = CollabcardPolls.objects.get(pk=poll_id)
+        user_instance = User.objects.get(pk=member_id)
+        # check if user has already voted for the card or not
+        memberpolls_instance = MemberPollVotes.objects.filter(card=card_instance, user=user_instance)
+
+        if not memberpolls_instance.exists():
+            # if not voted, create new row for user and card with opted poll by user
+            memberpolls_instance = MemberPollVotes()
+            memberpolls_instance.card = card_instance
+            memberpolls_instance.poll = poll_instance
+            memberpolls_instance.user = user_instance
+            memberpolls_instance.save()
+        else:
+            # if voted, update the poll if user optes different poll than previous
+            if str(memberpolls_instance[0].poll.id) == poll_id:
+                # if same poll is opted again
+                return JsonResponse({"success": True})
+            # if user changes the poll
+            memberpolls_instance.update(poll=poll_instance)
+        # update the card answer text according to no of polls
+        update_poll_card_text(collabcard_id)
+
+        if not str(member_id) == str(card_instance.user.id):
+            send_poll_or_event_notification.delay(card_id=collabcard_id, user_id=member_id)
+
+        return JsonResponse({"success": True})
+
+    return JsonResponse({"success": False})
+
+@csrf_exempt
+def collabcard_poll_version_1(request):
+    """ function to update polls of a card for user """
+    if request.method == 'POST':
+        collabcard_id = request.POST.get('collabcard_id', None)
+
+        if not collabcard_id:
+            context = get_error_context(success=False,error_message="Send the correct collabcard id")
+            return JsonResponse(context)
+
+        member_id = get_member_id_from_headers(request)
+        if not member_id:
+            context = get_error_context(success=False, error_message="Send member id in headers")
+            return JsonResponse(context)
+
+        poll_ids = request.POST.get('poll_ids', None)
+        if not poll_ids:
+            context = get_error_context(success=False, error_message="Send array of polls_id in post params")
+            return JsonResponse(context)
+
+
+        user_instance = User.objects.get(pk=member_id)
+
+        card_instance = Collabcard.objects.get(pk=collabcard_id)
+
+        poll_ids = unquote(poll_ids)
+        poll_ids = json.loads(poll_ids)
+        print(poll_ids)
+
+
+        #deleting the previous votes
+        memberpolls_filter = MemberPollVotes.objects.filter(card=card_instance, user=user_instance)
+        memberpolls_filter.delete()
+
+
+        for poll_id in poll_ids:
+            vote_poll(poll_id,card_instance,user_instance,collabcard_id)
+
+        if not str(member_id) == str(card_instance.user.id):
+            send_poll_or_event_notification.delay(card_id=collabcard_id, user_id=member_id)
+
+        return JsonResponse({"success": True})
+
+    return JsonResponse({"success": False})
+
+
+def vote_poll(poll_id,card_instance,user_instance,collabcard_id):
+
+    '''function to vote on poll'''
+    poll_instance = CollabcardPolls.objects.get(pk=poll_id)
+
+    # check if user has already voted for the card or not
+
+
+    # if not voted, create new row for user and card with opted poll by user
+    memberpolls_instance = MemberPollVotes()
+    memberpolls_instance.card = card_instance
+    memberpolls_instance.poll = poll_instance
+    memberpolls_instance.user = user_instance
+    memberpolls_instance.save()
+
+    # update the card answer text according to no of polls
+    update_poll_card_text(collabcard_id)
+
+def update_poll_card_text(card_id):
+    """ function to update the answer text of card when someone polls in the card """
+
+    poll_filter = MemberPollVotes.objects.filter(card=card_id).order_by('-id')
+    total_polls = set()
+
+    for poll in poll_filter:
+        total_polls.add(poll.user)
+
+    total_polls = list(total_polls)
+    card = Collabcard.objects.get(pk=card_id)
+    poll_text = ''
+    total_polls_count = len(total_polls)
+
+    if total_polls_count <= 0:
+        card.answer_text = poll_text
+        card.save()
+        return
+
+    elif total_polls_count == 1:
+        user_names = total_polls[0].userinfo.name
+
+    elif total_polls_count == 2:
+        user_names = total_polls[0].userinfo.name + " and " + total_polls[1].userinfo.name
+
+    else:
+        user_names = total_polls[0].userinfo.name + ", " + total_polls[1].userinfo.name + " & " + str(
+            total_polls_count - 2) + " others"
+
+    poll_text += user_names + " voted on this poll"
+    card.answer_text = poll_text
+    card.polls_count = total_polls_count
+    card.save()
 # /api/add_admin/community_id
 @csrf_exempt
 def create_admin(request, community_id):
@@ -5085,6 +5245,7 @@ def upload_files(request):
             community_id = body['community_id']
             community = Community.objects.get(id=community_id)
             community.image_link = body['url']
+            community.image_link_round = body['url']
             upload_community_thumbnail.delay(community_id, body['url'])
             community.save()
             #updating the create community second step
@@ -5127,6 +5288,19 @@ def upload_files(request):
             file.type = attachment_type
             file.file_url = body['url']
             file.save()
+        elif 'poll_id' in body:
+
+            try:
+                instance = CollabcardPolls.objects.get(id=body['poll_id'])
+                instance.image_url = body['url']
+                instance.save()
+            except:
+                return JsonResponse({'success':False,'error_message':"Send valid poll id"})
+
+
+
+
+
 
         return JsonResponse({'success': True})
     return JsonResponse({'success': False})
@@ -7091,77 +7265,6 @@ def push_report(request):
     return JsonResponse({'success': False})
 
 
-@csrf_exempt
-def collabcard_poll(request):
-    """ function to update polls of a card for user """
-    if request.method == 'POST':
-        collabcard_id = request.GET.get('collabcard_id', None)
-        poll_id = request.GET.get('poll_id', None)
-        member_id = get_member_id_from_headers(request)
-
-        if not collabcard_id or not poll_id:
-            return JsonResponse({"success": False})
-
-        card_instance = Collabcard.objects.get(pk=collabcard_id)
-        poll_instance = CollabcardPolls.objects.get(pk=poll_id)
-        user_instance = User.objects.get(pk=member_id)
-        # check if user has already voted for the card or not
-        memberpolls_instance = MemberPollVotes.objects.filter(card=card_instance, user=user_instance)
-
-        if not memberpolls_instance.exists():
-            # if not voted, create new row for user and card with opted poll by user
-            memberpolls_instance = MemberPollVotes()
-            memberpolls_instance.card = card_instance
-            memberpolls_instance.poll = poll_instance
-            memberpolls_instance.user = user_instance
-            memberpolls_instance.save()
-        else:
-            # if voted, update the poll if user optes different poll than previous
-            if str(memberpolls_instance[0].poll.id) == poll_id:
-                # if same poll is opted again
-                return JsonResponse({"success": True})
-            # if user changes the poll
-            memberpolls_instance.update(poll=poll_instance)
-        # update the card answer text according to no of polls
-        update_poll_card_text(collabcard_id)
-
-        if not str(member_id) == str(card_instance.user.id):
-            send_poll_or_event_notification.delay(card_id=collabcard_id, user_id=member_id)
-
-        return JsonResponse({"success": True})
-
-    return JsonResponse({"success": False})
-
-
-def update_poll_card_text(card_id):
-    """ function to update the answer text of card when someone polls in the card """
-
-    total_polls = MemberPollVotes.objects.filter(card=card_id).order_by('-id')
-
-    card = Collabcard.objects.get(pk=card_id)
-    poll_text = ''
-    total_polls_count = total_polls.count()
-
-    if total_polls_count <= 0:
-        card.answer_text = poll_text
-        card.save()
-        return
-
-    elif total_polls_count == 1:
-        user_names = total_polls[0].user.userinfo.name
-
-    elif total_polls_count == 2:
-        user_names = total_polls[0].user.userinfo.name + " and " + total_polls[1].user.userinfo.name
-
-    else:
-        user_names = total_polls[0].user.userinfo.name + ", " + total_polls[1].user.userinfo.name + " & " + str(
-            total_polls_count - 2) + " others"
-
-    poll_text += user_names + " voted on this poll"
-
-    card.answer_text = poll_text
-    card.polls_count = total_polls_count
-    card.save()
 
 def fetch_whatsapp_tool(request):
 
