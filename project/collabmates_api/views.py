@@ -24,14 +24,13 @@ from django.views.decorators.csrf import csrf_exempt
 from togther.forms import *
 from togther.models import *
 from togther.tasks import send_email_to_proposed_admin, send_mail_after_rank_computation
-from togther.views import get_nominated_admin_details
 from utility.celery_tasks import (save_community_purpose_card,
                                   update_last_unseen_in_engage_on_card_creation,
                                   update_last_unseen_in_engage,
                                   )
 from utility.firebase import update_last_answer_id, upload_image_to_firebase, upload_community_thumbnail, \
     upload_community_files
-from utility.states import collabcard_states, member_states, question_states,community_states,deleted_members
+from utility.states import collabcard_states, member_states, question_states,community_states,deleted_members,card_types
 from utility.tasks import (mail_triger, new_member_request,
                            member_request_approval_or_denied,
                            send_mail_for_report_abuse,
@@ -47,7 +46,9 @@ from utility.utils import (decode_meta_from_url, update_tag_image,
                            update_user_geography_tags, insert_user_home_town_tags, is_IG_community,
                            ig_members_count, is_LG_or_LP_community, feedback_community_id, feedback_collabcard_id,
                            is_member_verified,community_default_image,community_default_thumbnail,is_member_promoter,
-                           is_member_pending,is_member_present,generate_private_link,generate_random
+                           is_member_pending,is_member_present,generate_private_link,generate_random,get_time_text,
+                           community_default_image_round
+
 
                            )
 
@@ -225,6 +226,20 @@ def your_communities(request, user_id):
     return JsonResponse({'your_communities': my_community})
 
 
+######################function for api utility#################################
+
+
+def get_error_context(success,error_message):
+
+    '''function to get error context for apis'''
+
+    context={
+        'success':success,
+        'error_message':error_message
+    }
+    return context
+
+
 ############# functions for  community detail screen ##########################
 
 def get_community_card_details(each_community, user_id):
@@ -357,17 +372,17 @@ def community(request, community_id,req_dict=None):
 
     # form a dictionary of community objects
     new_dict.update(serialized_object)
-    if community:
-        community_type = is_IG_community(community)
-        if not community_type:
-            new_dict['share_text_admin'] = """Hi, I am trying to gather %s community on LikeMinds. It will be good if you can join it.\n""" % (new_dict['name'])
-            new_dict['share_text_member'] = """I recently joined %s community on LikeMinds. It will be good if you also join this community.\n""" % (new_dict['name'])
-            new_dict['share_text_anonymous'] = """I recently discovered %s community on LikeMinds. You can join this community using this link.\n""" % (new_dict['name'])
-        else:
-            new_dict['share_text_admin'] = """Hi, I am trying to gather %s community on CollabMates. It will be fun if you can join it.\n""" % (new_dict['name'])
-            new_dict['share_text_member'] = """I recently joined %s community on CollabMates. It will be fun if you also join this community.\n""" % (new_dict['name'])
-            new_dict['share_text_anonymous'] = """I recently discovered %s community on CollabMates. You can join this community using this link.\n""" % (new_dict['name'])
-    new_dict['min_referrer_member'] = eligibility_count
+    # if community:
+    #     community_type = is_IG_community(community)
+    #     if not community_type:
+    #         new_dict['share_text_admin'] = """Hi, I am trying to gather %s community on LikeMinds. It will be good if you can join it.\n""" % (new_dict['name'])
+    #         new_dict['share_text_member'] = """I recently joined %s community on LikeMinds. It will be good if you also join this community.\n""" % (new_dict['name'])
+    #         new_dict['share_text_anonymous'] = """I recently discovered %s community on LikeMinds. You can join this community using this link.\n""" % (new_dict['name'])
+    #     else:
+    #         new_dict['share_text_admin'] = """Hi, I am trying to gather %s community on CollabMates. It will be fun if you can join it.\n""" % (new_dict['name'])
+    #         new_dict['share_text_member'] = """I recently joined %s community on CollabMates. It will be fun if you also join this community.\n""" % (new_dict['name'])
+    #         new_dict['share_text_anonymous'] = """I recently discovered %s community on CollabMates. You can join this community using this link.\n""" % (new_dict['name'])
+    #new_dict['min_referrer_member'] = eligibility_count
 
     if community.id == feedback_community_id:
         new_dict['share_url'] = ""
@@ -1582,7 +1597,7 @@ def post_purpose_collabcard_for_community(request,community_instance,member_id):
         'member_id': member_id,
         'community_id': community_instance.id,
         'title': introduction_answer,
-        'type': 0,
+        'type': card_types.CARD_PURPOSE,
     }
     request.method = "POST"
     create_card(request, req_dict=req_dict)
@@ -2316,6 +2331,7 @@ def create_community_version_1(request):
     community_instance.about = about
     community_instance.image_link = community_default_image
     community_instance.thumbnail = community_default_thumbnail
+    community_instance.image_link_round = community_default_image_round
     if community_type:
         community_instance.community_type=community_type
     community_instance.created_at=time.time()
@@ -2574,9 +2590,21 @@ def create_card(request,req_dict=None):
         card.pdf_count = res['pdf_count'] if ('pdf_count' in res) else 0
         card.date_time = date_time
         card.duration = res['duration'] if ('duration' in res) else 0
+
+        #for event card
         card.location = res['location'] if ('location' in res) else None
         card.location_lat = res['location_lat'] if ('location_lat' in res) else None
         card.location_long = res['location_long'] if ('location_long' in res) else None
+        card.start_date = res['start_date'] if ('start_date' in res) else 0
+        card.end_date = res['end_date'] if ('end_date' in res) else 0
+        card.about = res['about'] if ('about' in res) else None
+        card.co_hosts = json.dumps(res['co_hosts']) if ('co_hosts' in res) else None
+        card.online_link = res['online_link'] if ('online_link' in res) else None
+
+
+        #for poll card
+        card.multiple_select = res['multiple_select'] if ('multiple_select' in res) else False
+        card.multiple_select_no = res['multiple_select_no'] if ('multiple_select_no' in res) else 0
 
         if 'share_link' in res:
             card.share_link = res['share_link']
@@ -2591,6 +2619,7 @@ def create_card(request,req_dict=None):
             collabcardpolls_instance = CollabcardPolls()
             collabcardpolls_instance.card = card
             collabcardpolls_instance.text = poll['text']
+            collabcardpolls_instance.sub_text = poll['sub_text']
             collabcardpolls_instance.save()
 
 
@@ -2696,6 +2725,145 @@ def create_collabcard_state_for_user(card, user, state, community):
     collabcard_state_instance.save()
 
 
+#api to deprecate
+@csrf_exempt
+def collabcard_poll(request):
+    """ function to update polls of a card for user """
+    if request.method == 'POST':
+        collabcard_id = request.GET.get('collabcard_id', None)
+        poll_id = request.GET.get('poll_id', None)
+        member_id = get_member_id_from_headers(request)
+
+        if not collabcard_id or not poll_id:
+            return JsonResponse({"success": False})
+
+        card_instance = Collabcard.objects.get(pk=collabcard_id)
+        poll_instance = CollabcardPolls.objects.get(pk=poll_id)
+        user_instance = User.objects.get(pk=member_id)
+        # check if user has already voted for the card or not
+        memberpolls_instance = MemberPollVotes.objects.filter(card=card_instance, user=user_instance)
+
+        if not memberpolls_instance.exists():
+            # if not voted, create new row for user and card with opted poll by user
+            memberpolls_instance = MemberPollVotes()
+            memberpolls_instance.card = card_instance
+            memberpolls_instance.poll = poll_instance
+            memberpolls_instance.user = user_instance
+            memberpolls_instance.save()
+        else:
+            # if voted, update the poll if user optes different poll than previous
+            if str(memberpolls_instance[0].poll.id) == poll_id:
+                # if same poll is opted again
+                return JsonResponse({"success": True})
+            # if user changes the poll
+            memberpolls_instance.update(poll=poll_instance)
+        # update the card answer text according to no of polls
+        update_poll_card_text(collabcard_id)
+
+        if not str(member_id) == str(card_instance.user.id):
+            send_poll_or_event_notification.delay(card_id=collabcard_id, user_id=member_id)
+
+        return JsonResponse({"success": True})
+
+    return JsonResponse({"success": False})
+
+@csrf_exempt
+def collabcard_poll_version_1(request):
+    """ function to update polls of a card for user """
+    if request.method == 'POST':
+        collabcard_id = request.POST.get('collabcard_id', None)
+
+        if not collabcard_id:
+            context = get_error_context(success=False,error_message="Send the correct collabcard id")
+            return JsonResponse(context)
+
+        member_id = get_member_id_from_headers(request)
+        if not member_id:
+            context = get_error_context(success=False, error_message="Send member id in headers")
+            return JsonResponse(context)
+
+        poll_ids = request.POST.get('poll_ids', None)
+        if not poll_ids:
+            context = get_error_context(success=False, error_message="Send array of polls_id in post params")
+            return JsonResponse(context)
+
+
+        user_instance = User.objects.get(pk=member_id)
+
+        card_instance = Collabcard.objects.get(pk=collabcard_id)
+
+        poll_ids = unquote(poll_ids)
+        poll_ids = json.loads(poll_ids)
+        print(poll_ids)
+
+
+        #deleting the previous votes
+        memberpolls_filter = MemberPollVotes.objects.filter(card=card_instance, user=user_instance)
+        memberpolls_filter.delete()
+
+
+        for poll_id in poll_ids:
+            vote_poll(poll_id,card_instance,user_instance,collabcard_id)
+
+        if not str(member_id) == str(card_instance.user.id):
+            send_poll_or_event_notification.delay(card_id=collabcard_id, user_id=member_id)
+
+        return JsonResponse({"success": True})
+
+    return JsonResponse({"success": False})
+
+
+def vote_poll(poll_id,card_instance,user_instance,collabcard_id):
+
+    '''function to vote on poll'''
+    poll_instance = CollabcardPolls.objects.get(pk=poll_id)
+
+    # check if user has already voted for the card or not
+
+
+    # if not voted, create new row for user and card with opted poll by user
+    memberpolls_instance = MemberPollVotes()
+    memberpolls_instance.card = card_instance
+    memberpolls_instance.poll = poll_instance
+    memberpolls_instance.user = user_instance
+    memberpolls_instance.save()
+
+    # update the card answer text according to no of polls
+    update_poll_card_text(collabcard_id)
+
+def update_poll_card_text(card_id):
+    """ function to update the answer text of card when someone polls in the card """
+
+    poll_filter = MemberPollVotes.objects.filter(card=card_id).order_by('-id')
+    total_polls = set()
+
+    for poll in poll_filter:
+        total_polls.add(poll.user)
+
+    total_polls = list(total_polls)
+    card = Collabcard.objects.get(pk=card_id)
+    poll_text = ''
+    total_polls_count = len(total_polls)
+
+    if total_polls_count <= 0:
+        card.answer_text = poll_text
+        card.save()
+        return
+
+    elif total_polls_count == 1:
+        user_names = total_polls[0].userinfo.name
+
+    elif total_polls_count == 2:
+        user_names = total_polls[0].userinfo.name + " and " + total_polls[1].userinfo.name
+
+    else:
+        user_names = total_polls[0].userinfo.name + ", " + total_polls[1].userinfo.name + " & " + str(
+            total_polls_count - 2) + " others"
+
+    poll_text += user_names + " voted on this poll"
+    card.answer_text = poll_text
+    card.polls_count = total_polls_count
+    card.save()
 # /api/add_admin/community_id
 @csrf_exempt
 def create_admin(request, community_id):
@@ -3654,50 +3822,6 @@ def get_answer_files(answer_id):
     return (img_list, pdf)
 
 
-def get_time_text(created_time):
-    """ function to get time stamp """
-
-    # get current time and convert it into epoch time
-    present_time = str(datetime.now())
-    current_time = datetime.strptime(present_time.strip(' \t\r\n'), "%Y-%m-%d %H:%M:%S.%f").strftime('%s')
-    created = datetime.fromtimestamp(created_time)
-    current = datetime.fromtimestamp(int(current_time))
-    difference = dateutil.relativedelta.relativedelta(current, created)
-    # print("diffrence ======== ",difference)
-    if difference.years:
-        # if difference is more than one week return created date
-        return time.strftime('%d/%m/%Y', time.localtime(created_time))
-    elif difference.months:
-        # if difference is more than one week return created date
-        return time.strftime('%d/%m/%Y', time.localtime(created_time))
-    elif difference.days:
-        # if difference is in days
-        if difference.days == 1:
-            return str(difference.days) + " day ago"
-
-        elif difference.days < 7:
-            return str(difference.days) + " days ago"
-
-        elif difference.days == 7:
-            return "1 week ago"
-        # if difference is more than one week return created date
-        return time.strftime('%d/%m/%Y', time.localtime(created_time))
-
-    elif difference.hours:
-        # if difference is in hours
-        if difference.hours == 1:
-            return str(difference.hours) + " hour ago"
-
-        return str(difference.hours) + " hours ago"
-    elif difference.minutes:
-        # if difference is in hours
-        if difference.minutes == 1:
-            return str(difference.minutes) + " min ago"
-
-        return str(difference.minutes) + " mins ago"
-    else:
-        # if difference is in seconds
-        return "Just Now"
 
 
 def community_cards(request, community_id):
@@ -5039,6 +5163,7 @@ def upload_files(request):
     '''function to upload files'''
 
     body = request.GET
+    member_id=get_member_id_from_headers(request)
     if request.method == 'POST':
 
         if 'community_id' in body:
@@ -5046,13 +5171,28 @@ def upload_files(request):
             community_id = body['community_id']
             community = Community.objects.get(id=community_id)
             community.image_link = body['url']
+            community.image_link_round = body['url']
             upload_community_thumbnail.delay(community_id, body['url'])
-
+            community.save()
             #updating the create community second step
             createCommunityAction.objects.filter(community=community, step_no="Step 2").update(
                 current_point=10)
 
-            community.save()
+            #saving the update image details if the image is updated
+            edit = request.GET.get('edit',False)
+            if edit == 'true':
+                if not member_id:
+                    return JsonResponse({'success': False, 'error_message': "Send member id in headers"})
+                else:
+                    member_instance = User.objects.get(id=member_id)
+
+                instance = communityUpdate()
+                instance.updated_field = "image"
+                instance.updated_time = time.time()
+                instance.updated_member = member_instance
+                instance.community = community
+                instance.save()
+
         elif 'collabcard_id' in body:
             attachment_type = body['type']
             collabcard_id = body['collabcard_id']
@@ -5074,6 +5214,19 @@ def upload_files(request):
             file.type = attachment_type
             file.file_url = body['url']
             file.save()
+        elif 'poll_id' in body:
+
+            try:
+                instance = CollabcardPolls.objects.get(id=body['poll_id'])
+                instance.image_url = body['url']
+                instance.save()
+            except:
+                return JsonResponse({'success':False,'error_message':"Send valid poll id"})
+
+
+
+
+
 
         return JsonResponse({'success': True})
     return JsonResponse({'success': False})
@@ -5843,6 +5996,12 @@ def edit_community(request):
     '''function to edit the community'''
 
     community_id = request.GET.get('community_id')
+    member_id = get_member_id_from_headers(request)
+    community = Community.objects.get(id=community_id)
+    if not member_id:
+        return JsonResponse({'success':False,'error_message':"Send member id in headers"})
+    else:
+        member_instance = User.objects.get(id=member_id)
 
     json_body = json.loads(request.body)
 
@@ -5850,10 +6009,7 @@ def edit_community(request):
 
     if key == 'purpose':
         value = json_body['value']
-        # purpose_collabcard = Community.objects.filter(id=community_id).values('purpose_collabcard')
-        # purpose_collabcard = purpose_collabcard[0]['purpose_collabcard']
-        # Collabcard.objects.filter(id=purpose_collabcard).update(title=value)
-        Community.objects.filter(id=community_id).update(purpose=value)
+        edit_community_purpose_collabcard(community_instance=community, member_instance=member_instance, purpose=value)
 
     elif key == 'questions':
         questions = json_body['questions']
@@ -5868,7 +6024,15 @@ def edit_community(request):
                                                  step_no="Step 5").update(current_point=15)
 
 
-    community = Community.objects.get(id=community_id)
+
+    #saving the updating details for history
+
+    instance = communityUpdate()
+    instance.updated_field = key
+    instance.updated_time = time.time()
+    instance.updated_member = member_instance
+    instance.community = community
+    instance.save()
 
     serialized_object = CommunitySerializer(community)
     new_dict = {}
@@ -5981,7 +6145,16 @@ def edit_questions_version_1(request):
 
     return JsonResponse({'success':True})
 
+def edit_community_purpose_collabcard(community_instance,member_instance,purpose):
 
+    '''function to update the purpose collabcard of community'''
+    update_status = Collabcard.objects.filter(community=community_instance,
+                                              type=card_types.CARD_PURPOSE).update(title=purpose,
+                                                                                   updated_member=member_instance,
+                                                                                   updated_time=time.time())
+    log="""purpose card updated for community=%s by user=%s"""%(str(community_instance.id),str(member_instance.id))
+    info_logger.info(log)
+    info_logger.info(update_status)
 
 ############# functions to update user location and city    ##########################
 
@@ -7018,77 +7191,6 @@ def push_report(request):
     return JsonResponse({'success': False})
 
 
-@csrf_exempt
-def collabcard_poll(request):
-    """ function to update polls of a card for user """
-    if request.method == 'POST':
-        collabcard_id = request.GET.get('collabcard_id', None)
-        poll_id = request.GET.get('poll_id', None)
-        member_id = get_member_id_from_headers(request)
-
-        if not collabcard_id or not poll_id:
-            return JsonResponse({"success": False})
-
-        card_instance = Collabcard.objects.get(pk=collabcard_id)
-        poll_instance = CollabcardPolls.objects.get(pk=poll_id)
-        user_instance = User.objects.get(pk=member_id)
-        # check if user has already voted for the card or not
-        memberpolls_instance = MemberPollVotes.objects.filter(card=card_instance, user=user_instance)
-
-        if not memberpolls_instance.exists():
-            # if not voted, create new row for user and card with opted poll by user
-            memberpolls_instance = MemberPollVotes()
-            memberpolls_instance.card = card_instance
-            memberpolls_instance.poll = poll_instance
-            memberpolls_instance.user = user_instance
-            memberpolls_instance.save()
-        else:
-            # if voted, update the poll if user optes different poll than previous
-            if str(memberpolls_instance[0].poll.id) == poll_id:
-                # if same poll is opted again
-                return JsonResponse({"success": True})
-            # if user changes the poll
-            memberpolls_instance.update(poll=poll_instance)
-        # update the card answer text according to no of polls
-        update_poll_card_text(collabcard_id)
-
-        if not str(member_id) == str(card_instance.user.id):
-            send_poll_or_event_notification.delay(card_id=collabcard_id, user_id=member_id)
-
-        return JsonResponse({"success": True})
-
-    return JsonResponse({"success": False})
-
-
-def update_poll_card_text(card_id):
-    """ function to update the answer text of card when someone polls in the card """
-
-    total_polls = MemberPollVotes.objects.filter(card=card_id).order_by('-id')
-
-    card = Collabcard.objects.get(pk=card_id)
-    poll_text = ''
-    total_polls_count = total_polls.count()
-
-    if total_polls_count <= 0:
-        card.answer_text = poll_text
-        card.save()
-        return
-
-    elif total_polls_count == 1:
-        user_names = total_polls[0].user.userinfo.name
-
-    elif total_polls_count == 2:
-        user_names = total_polls[0].user.userinfo.name + " and " + total_polls[1].user.userinfo.name
-
-    else:
-        user_names = total_polls[0].user.userinfo.name + ", " + total_polls[1].user.userinfo.name + " & " + str(
-            total_polls_count - 2) + " others"
-
-    poll_text += user_names + " voted on this poll"
-
-    card.answer_text = poll_text
-    card.polls_count = total_polls_count
-    card.save()
 
 def fetch_whatsapp_tool(request):
 

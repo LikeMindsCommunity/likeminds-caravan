@@ -19,7 +19,8 @@ from random import randint
 from django.conf import settings
 from user_agents import parse
 import time
-
+from datetime import datetime
+import dateutil.relativedelta
 from .states import *
 # cache details
 # from django.core.cache import cache
@@ -34,6 +35,8 @@ ios_app_download_link="https://apps.apple.com/us/app/collabmates/id1481298195"
 community_default_image = "https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fcommunity%2Fimage_community_default?alt=media"
 
 community_default_thumbnail = "https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fcommunity%2Fimage_community_default_thumbnail?alt=media"
+
+community_default_image_round = "https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Fmain_website%2Fgeneric_community_banner.png?alt=media&token=044d32ff-3da7-4d8d-9c83-d3c486b61f7a"
 
 url=settings.URL
 
@@ -99,7 +102,6 @@ def is_member_present(community_id,member_id):
     return is_member.exists()
 
 
-
 #community related functions
 def generate_private_link(community_instance,promoter_instance):
 
@@ -156,7 +158,7 @@ def generate_random(unique_code_list):
 
 
 
-
+#collabcard related functions
 def decode_meta_from_url(url):
 
     '''function to take meta tags from url'''
@@ -193,6 +195,52 @@ def decode_meta_from_url(url):
         pass
     og_tags['url']=url
     return og_tags
+
+def get_time_text(created_time):
+    """ function to get time stamp """
+
+    # get current time and convert it into epoch time
+    present_time = str(datetime.now())
+    current_time = datetime.strptime(present_time.strip(' \t\r\n'), "%Y-%m-%d %H:%M:%S.%f").strftime('%s')
+    created = datetime.fromtimestamp(created_time)
+    current = datetime.fromtimestamp(int(current_time))
+    difference = dateutil.relativedelta.relativedelta(current, created)
+    # print("diffrence ======== ",difference)
+    if difference.years:
+        # if difference is more than one week return created date
+        return time.strftime('%d/%m/%Y', time.localtime(created_time))
+    elif difference.months:
+        # if difference is more than one week return created date
+        return time.strftime('%d/%m/%Y', time.localtime(created_time))
+    elif difference.days:
+        # if difference is in days
+        if difference.days == 1:
+            return str(difference.days) + " day ago"
+
+        elif difference.days < 7:
+            return str(difference.days) + " days ago"
+
+        elif difference.days == 7:
+            return "1 week ago"
+        # if difference is more than one week return created date
+        return time.strftime('%d/%m/%Y', time.localtime(created_time))
+
+    elif difference.hours:
+        # if difference is in hours
+        if difference.hours == 1:
+            return str(difference.hours) + " hour ago"
+
+        return str(difference.hours) + " hours ago"
+    elif difference.minutes:
+        # if difference is in hours
+        if difference.minutes == 1:
+            return str(difference.minutes) + " min ago"
+
+        return str(difference.minutes) + " mins ago"
+    else:
+        # if difference is in seconds
+        return "Just Now"
+
 
 def get_nominated_admin_details(community_id,email):
     '''fetching nominated promoter details from temp admin table'''
