@@ -2796,11 +2796,11 @@ def collabcard_poll_version_1(request):
         poll_ids = json.loads(poll_ids)
         print(poll_ids)
 
-        # for poll_id in poll_ids:
-        #     vote_poll(poll_id,card_instance,user_instance,collabcard_id)
-        #
-        # if not str(member_id) == str(card_instance.user.id):
-        #     send_poll_or_event_notification.delay(card_id=collabcard_id, user_id=member_id)
+        for poll_id in poll_ids:
+            vote_poll(poll_id,card_instance,user_instance,collabcard_id)
+
+        if not str(member_id) == str(card_instance.user.id):
+            send_poll_or_event_notification.delay(card_id=collabcard_id, user_id=member_id)
 
         return JsonResponse({"success": True})
 
