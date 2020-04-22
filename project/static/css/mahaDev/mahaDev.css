@@ -61,6 +61,7 @@ body ::-webkit-scrollbar { display: none; }
 .h86 { height: 86px!important; }
 .w86 {width: 86px!important; }
 .h82 { height: 82px!important; }
+.h16 { height: 16px; }
 .w82 { width: 82px!important; }
 
 .w120 { width: 120px!important; }
