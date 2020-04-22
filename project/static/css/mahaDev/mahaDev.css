@@ -283,6 +283,7 @@ body ::-webkit-scrollbar { display: none; }
 .ttU { text-transform: uppercase; }
 
 .ls05 { letter-spacing: 0.5px; }
+.ls025 { letter-spacing: 0.25px; }
 .ls1 { letter-spacing: 1px; }
 .ls2 { letter-spacing: 2px; }
 

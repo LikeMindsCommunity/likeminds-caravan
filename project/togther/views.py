@@ -615,17 +615,25 @@ def get_admins_details(community):
     return admins
 
 
-def get_member_details(community):
+def get_member_details(community, *args):
     '''function to get member details of community'''
 
     members = []
+    # member_list = Members.objects.filter(community_id=community).filter(state=1) | Q(state=2) | Q(state=4))
+    
+    # tweaking func args to get other states as well
+    getMemberStates = [1, 2, 4] # default states
+    for state in args:
+        getMemberStates.append(state)
 
-    member_list = Members.objects.filter(community_id=community).filter(Q(state=1) | Q(state=2) | Q(state=4))
+    member_list = Members.objects.filter(community_id=community).filter(state__in = getMemberStates)
+    
     for member in member_list:
         temp = {}
         temp['id'] = member.member_id.id
         temp['name'] = member.member_id.userinfo.name
         temp['image_link'] = member.member_id.userinfo.image_link
+        temp['state'] = member.state
         answer = get_introduction_answer(community, member)
         temp['answer'] = answer
         members.append(temp)
@@ -653,6 +661,7 @@ def get_filtered_members(community,filter_list):
             temp['id'] = member[0].member_id.id
             temp['name'] = member[0].member_id.userinfo.name
             temp['image_link'] = member[0].member_id.userinfo.image_link
+            temp['state'] = member[0].state
             answer = get_introduction_answer(community, member[0])
             temp['answer'] = answer
             members.append(temp)
@@ -860,7 +869,7 @@ def members_directory(request, community_id):
         filters.append(temp)
 
     if member_string == None:
-        members = get_member_details(community_instance)
+        members = get_member_details(community_instance, 3) # passing 3 for getting unverified members
     else:
         member_split = member_string.split("$")
         members = get_filtered_members(community_instance,member_split)
