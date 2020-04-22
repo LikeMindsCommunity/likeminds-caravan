@@ -8,7 +8,7 @@ from django.shortcuts import get_object_or_404
 from django.db.models import Q
 import requests as rqst
 import json
-import os
+import ast
 from collabmates_api.notification import (send_notification_to_eligible_member,
                                           send_notification_to_referred_member,
                                           send_notification_to_referred_member_in_active_community,
@@ -146,8 +146,6 @@ def generate_private_link(community_instance,promoter_instance):
 
     return community_expire_filter[0].private_link
 
-
-
 def generate_random(unique_code_list):
 
   '''function to generate a random number'''
@@ -156,7 +154,20 @@ def generate_random(unique_code_list):
 
   return generate_random(unique_code_list) if randInt in unique_code_list else randInt
 
+def decode_option(value):
 
+    if not value:
+        return []
+
+    value = ast.literal_eval(value)
+    value_list = []
+
+    for item in value:
+        value_list.append(item['value'])
+
+    #print(value_list)
+
+    return value_list
 
 #collabcard related functions
 def decode_meta_from_url(url):
