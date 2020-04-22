@@ -395,7 +395,10 @@ def community(request, community_id,req_dict=None):
         temp['leave_community_sub_title'] = leave_community[1]  #fix
         temp['leave_community_positive_title'] = leave_community[2]
         temp['leave_community_negative_title'] = leave_community[3]
-        return JsonResponse({'community': new_dict,'leave_community':temp})
+        context = {'community': new_dict,'leave_community':temp}
+        if req_dict:
+            return context
+        return JsonResponse(context)
 
     if req_dict:
         return new_dict
@@ -662,6 +665,7 @@ def community_version_2(request,community_id):
     info_logger.info("Community Detail version 2")
     diff= end_time-start_time
     info_logger.info(diff)
+
 
     return JsonResponse(response)
 
@@ -6424,10 +6428,12 @@ def get_all_members(request, req_dict=None):
 
     if not req_dict:
         community_id = request.GET.get('community_id')
+        collabcard_id = request.GET.get('collabcard_id', None)
     else:
         community_id = req_dict['community_id']
+        collabcard_id = req_dict['collabcard_id'] if 'collabcard_id' in req_dict else None
 
-    collabcard_id = request.GET.get('collabcard_id', None)
+
 
     current_user_id = get_member_id_from_headers(request)
 
