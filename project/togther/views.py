@@ -214,6 +214,7 @@ def community(request, community_id):
     if request.user.is_authenticated:
         try:
             user = Userinfo.objects.get(user_id=request.user.id)
+            print("user", request.user.id)
         except:
             user = update_user_info(request)
         is_member = is_member_verified(community_id,request.user)
