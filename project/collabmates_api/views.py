@@ -1691,7 +1691,7 @@ def save_user_selected_options(question_instance,user_instance,community_instanc
     for choice in selected_choices:
 
         option = choice.strip()
-        if option not in dropdown_list:
+        if not is_option_present(option,dropdown_list):
             dropdown_list.append(option)
         filter_instance = questionFilters(question=question_instance, filter=option,
                                           member=user_instance, community=community_instance)
@@ -1706,6 +1706,16 @@ def save_user_selected_options(question_instance,user_instance,community_instanc
     json_dump = json.dumps(result)
     question_instance.value = json_dump
     question_instance.save()
+
+
+def is_option_present(option,dropdown_list):
+
+    '''function to check is option present or not'''
+
+    for data in dropdown_list:
+        if data.lower() == option.lower():
+            return True
+    return False
 
 
 
@@ -3729,6 +3739,7 @@ def collabcard(request, card_id):
         print('current_user_id_update', current_user_id)
         current_user_instance = Userinfo.objects.get(user_id=current_user_id)
         current_user = UserinfoSerializer(user=current_user_instance)
+        current_user['collabcard_state'] = get_status_of_collabcard(current_user_id,cards.community,cards)
         is_web = True
 
     feedback=True
@@ -3813,7 +3824,8 @@ def collabcard(request, card_id):
             card['end_time'] = time.strftime('%A, %b %y', time.gmtime(card['end_time']/1000.0))
 
             # get members
-            members = get_members_data_for_collabcard(card_id, cards.community.id, current_user_id)
+            state_list = [collabcard_states.COLLABCARD_STATE_ATTEND_FOLLOWING,collabcard_states.COLLABCARD_STATE_ATTEND_UNFOLLOWING]
+            members = get_members_data_for_collabcard(card_id, cards.community.id, current_user_id,state_list)
             print("members", members)
             # set header
             header = {
@@ -6454,6 +6466,7 @@ def get_all_members(request, req_dict=None):
     if not req_dict:
         community_id = request.GET.get('community_id')
         collabcard_id = request.GET.get('collabcard_id', None)
+
     else:
         community_id = req_dict['community_id']
         collabcard_id = req_dict['collabcard_id'] if 'collabcard_id' in req_dict else None
@@ -6465,7 +6478,10 @@ def get_all_members(request, req_dict=None):
     # functionality for user filteration based on options
     context = {}
     if collabcard_id:
-        members = get_members_data_for_collabcard(collabcard_id, community_id, current_user_id)
+        state_list = [collabcard_states.COLLABCARD_STATE_ATTEND_FOLLOWING,
+                      collabcard_states.COLLABCARD_STATE_ATTEND_UNFOLLOWING]
+
+        members = get_members_data_for_collabcard(collabcard_id, community_id, current_user_id,state_list,page_no=page)
         # print(members)
         context = {'members': members}
         return context
@@ -6589,47 +6605,32 @@ def get_filtered_users(filter_list,member_list):
     return member_set
 
 
-def get_members_data_for_collabcard(card_id,community_id,current_user_id):
+def get_members_data_for_collabcard(card_id,community_id,current_user_id,state_list,page_no=1):
 
+    if state_list:
+        collabcard_state_list = collabcardState.objects.filter(card=card_id).filter(state__in=state_list).order_by('-id')
+    else:
+        collabcard_state_list = collabcardState.objects.filter(card=card_id)
 
-    member_list = Members.objects.filter(community_id=community_id).filter(
-        Q(state=member_states.ADMIN) | Q(state=member_states.MEMBER) | Q(
-            state=member_states.KNOWN_NOMINATED_PROMOTER) | Q(state=member_states.PENDING_MEMBER)).order_by('id')
-
-    collabcard_state_list = collabcardState.objects.filter(card=card_id)
-
-    #creating a hashmap for collabcard objects
-    collabcard_state = {}
+    collabcard_state_list = pagination(collabcard_state_list,page_no,paginate_by=20)
+    members = []
 
     for instance in collabcard_state_list:
-        member_id = instance.user.id
-        collabcard_state[member_id]=instance.state
 
-    #print(collabcard_state)
-    members=[]
-    for member in member_list:
+        user_instance = instance.user
 
-        member_id = member.member_id.id
-        userinfo_serialized_object = UserinfoSerializer(member.member_id.userinfo)
-        userinfo_serialized_object['state'] = member.state
-
-        form_response = FormResponseSerilaizer(community_id, member_id, bl=True,
+        userinfo_serialized_object = UserinfoSerializer(user_instance.userinfo)
+        userinfo_serialized_object['collabcard_state'] = instance.state
+        form_response = FormResponseSerilaizer(community_id, user_instance.id, bl=True,
                                                current_user_id=current_user_id)
 
         if form_response:
-            #userinfo_serialized_object['response'] = form_response[0]
+            userinfo_serialized_object['response'] = form_response[0]
             userinfo_serialized_object['question_answers'] = form_response[1]
 
-        if member_id in collabcard_state:
-            userinfo_serialized_object['collabcard_state'] = collabcard_state[member_id]
-        else:
-            userinfo_serialized_object['collabcard_state'] = 0
-
-        #userinfo_serialized_object['collabcard_state'] = get_status_of_collabcard(member_id,community_id,card_id)
         members.append(userinfo_serialized_object)
 
 
-    #print(members)
     return members
 
 
