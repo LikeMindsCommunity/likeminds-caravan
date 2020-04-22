@@ -3739,7 +3739,7 @@ def collabcard(request, card_id):
         print('current_user_id_update', current_user_id)
         current_user_instance = Userinfo.objects.get(user_id=current_user_id)
         current_user = UserinfoSerializer(user=current_user_instance)
-        current_user['collabcard_state'] = get_status_of_collabcard(current_user_instance.id,cards.community,cards)
+        current_user['collabcard_state'] = get_status_of_collabcard(current_user_id,cards.community,cards)
         is_web = True
 
     feedback=True
