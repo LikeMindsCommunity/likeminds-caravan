@@ -33,32 +33,41 @@
                         </div>
                     </div>
                 </div>
-            {% elif member_state.state == 4 %}
-                <!-- attending -->
-                <div class="p1624 bdbE bs dT wp100 fwR">
-                    <div class="dT wp100 bs">
-                        <div class="bs dTc h64 w64">
-                            <img src="{{current_user.image_link}}" class="bd2F brp50 bxs dB h64 w64">
-                        </div>
-                        <div class="dTc vM pl16 bs fs15">
-                            <div class="lh20 c9 fwR pt4 bs">
-                                You confirmed that you are attending this event.
-                            </div>
-                            <div class="w150 bdT br22 bs cT fs12 fwM ls05 mt8 p8 taC wsN">
-                                <div class="dIb h16 vM">
-                                    <svg viewBox="0 0 24 24" class="h16 w16"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"></path></svg></div>
-                                    <div class="dIb p08 vM">ATTENDING</div>
-                                    <div class="dIb h16 vM">
-                                        <svg viewBox="0 0 24 24" class="h16 w16"><path d="M7.41,8.59L12,13.17l4.59-4.58L18,10l-6,6l-6-6L7.41,8.59z"></path></svg>
+            {% elif member_state.state == 5 %}
+                <!-- Declined -->
+            {% else %}
+                <!-- is member/promoter etc of community -->
+                {% for member in members %}
+                    {% if member.collabcard_state == 3 or member.collabcard_state == 4 %}
+                        <!-- is following and or attending event -->
+                        {% if current_user.id == member.id %}
+                            <!-- current user is this member -->
+                            <div class="p1624 bdbE bs dT wp100 fwR">
+                                <div class="dT wp100 bs">
+                                    <div class="bs dTc h64 w64">
+                                        <img src="{{current_user.image_link}}" class="bd2F brp50 bxs dB h64 w64">
+                                    </div>
+                                    <div class="dTc vM pl16 bs fs15">
+                                        <div class="lh20 c9 fwR pt4 bs">
+                                            You confirmed that you are attending this event.
+                                        </div>
+                                        <div class="w150 bdT br22 bs cT fs12 fwM ls05 mt8 p8 taC wsN">
+                                            <div class="dIb h16 vM">
+                                                <svg viewBox="0 0 24 24" class="h16 w16"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"></path></svg></div>
+                                                <div class="dIb p08 vM">ATTENDING</div>
+                                                <div class="dIb h16 vM">
+                                                    <svg viewBox="0 0 24 24" class="h16 w16"><path d="M7.41,8.59L12,13.17l4.59-4.58L18,10l-6,6l-6-6L7.41,8.59z"></path></svg>
+                                                </div>
+                                            </div>
                                     </div>
                                 </div>
-                        </div>
-                    </div>
-                </div>
-            {% else %}
-                
+                            </div>
+                        {% endif %}
+                    {% endif %}
+                {% endfor %}
             {% endif %}
         {% endif %}
+        <!-- event start time -->
         <div class="p1624 bdbE bs dT wp100 fwR">
             <div class="dTc vM w24 c06C3AF">
                 {% include 'svgs/calendar.html' %}
@@ -68,6 +77,7 @@
                 <div class="fs13 c9b pt2 bs">For {{ collabcard.duration }}</div>
             </div>
         </div>
+        <!-- event end time -->
         <div class="p1624 bdbE bs dT wp100 fwR">
             <div class="dTc vM w24 cfe7e8d">
                 {% include 'svgs/calendar.html' %}
@@ -77,6 +87,7 @@
                 <div class="fs13 cd0021b pt2 bs">{{ collabcard.end_time }}</div>
             </div>
         </div>
+        <!-- event location -->
         <div class="p1624 bdbE bs dT wp100 fwR">
             <div class="dTc vM w24">
                 {% include 'svgs/location.html' %}
@@ -169,10 +180,10 @@
                     </div>
                 {% endif %}
                 <!-- each member attending -->
-                {% for i in members %}
-                    {% if i.collabcard_state == 3 or i.collabcard_state == 4 %}
+                {% for member in members %}
+                    {% if member.collabcard_state == 3 or member.collabcard_state == 4 %}
                         <div class="dIb vM w64 h64">
-                            <img src="{{ i.image_url }}" class="dB w64 h64 brp50" />
+                            <img src="{{ member.image_url }}" class="dB w64 h64 brp50" />
                         </div>
                     {% endif %}
                     {% if forloop.counter == 8 %}
