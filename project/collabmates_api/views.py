@@ -3727,7 +3727,7 @@ def collabcard(request, card_id):
         current_user_id = request.user.id
         print('current_user_id_update', request.user.email)
         print('current_user_id_update', current_user_id)
-        current_user_instance = User.objects.get(id=current_user_id)
+        current_user_instance = Userinfo.objects.get(user_id=current_user_id)
         current_user = UserinfoSerializer(user=current_user_instance)
         is_web = True
 
