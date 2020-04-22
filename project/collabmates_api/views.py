@@ -6566,25 +6566,45 @@ def get_filtered_users(filter_list,member_list):
 
 def get_members_data_for_collabcard(card_id,community_id,current_user_id):
 
+
+    member_list = Members.objects.filter(community_id=community_id).filter(
+        Q(state=member_states.ADMIN) | Q(state=member_states.MEMBER) | Q(
+            state=member_states.KNOWN_NOMINATED_PROMOTER) | Q(state=member_states.PENDING_MEMBER)).order_by('id')
+
     collabcard_state_list = collabcardState.objects.filter(card=card_id)
-    members = []
+
+    #creating a hashmap for collabcard objects
+    collabcard_state = {}
 
     for instance in collabcard_state_list:
+        member_id = instance.user.id
+        collabcard_state[member_id]=instance.state
 
-        user_instance = instance.user
+    #print(collabcard_state)
+    members=[]
+    for member in member_list:
 
-        userinfo_serialized_object = UserinfoSerializer(user_instance.userinfo)
-        userinfo_serialized_object['collabcard_state'] = instance.state
-        form_response = FormResponseSerilaizer(community_id, user_instance.id, bl=True,
+        member_id = member.member_id.id
+        userinfo_serialized_object = UserinfoSerializer(member.member_id.userinfo)
+        userinfo_serialized_object['state'] = member.state
+
+        form_response = FormResponseSerilaizer(community_id, member_id, bl=True,
                                                current_user_id=current_user_id)
 
         if form_response:
-            userinfo_serialized_object['response'] = form_response[0]
+            #userinfo_serialized_object['response'] = form_response[0]
             userinfo_serialized_object['question_answers'] = form_response[1]
 
+        if member_id in collabcard_state:
+            userinfo_serialized_object['collabcard_state'] = collabcard_state[member_id]
+        else:
+            userinfo_serialized_object['collabcard_state'] = 0
+
+        #userinfo_serialized_object['collabcard_state'] = get_status_of_collabcard(member_id,community_id,card_id)
         members.append(userinfo_serialized_object)
 
 
+    #print(members)
     return members
 
 
