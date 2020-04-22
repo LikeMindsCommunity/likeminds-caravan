@@ -47,7 +47,7 @@ from utility.utils import (decode_meta_from_url, update_tag_image,
                            ig_members_count, is_LG_or_LP_community, feedback_community_id, feedback_collabcard_id,
                            is_member_verified,community_default_image,community_default_thumbnail,is_member_promoter,
                            is_member_pending,is_member_present,generate_private_link,generate_random,get_time_text,
-                           community_default_image_round
+                           community_default_image_round,decode_option
 
 
                            )
@@ -1357,10 +1357,7 @@ def join_promoter_created_community_version_1(res,request):
                 else:
                     selected_choices = question['value'].split(",")
 
-                for choice in selected_choices:
-                    filter_instance = questionFilters(question=question_instance, filter=choice.strip(),
-                                                      member=user_instance, community=community_instance)
-                    filter_instance.save()
+                save_user_selected_options(question_instance, user_instance, community_instance, selected_choices)
 
     #saving data directly
     if 'aj' in res:
@@ -1458,10 +1455,10 @@ def join_whatsapp_community(res,request):
                     selected_choices = question['value'].split("$#")
                 else:
                     selected_choices = question['value'].split(",")
-                for choice in selected_choices:
-                    filter_instance = questionFilters(question=question_instance, filter=choice.strip(),
-                                                      member=user_instance, community=community_instance)
-                    filter_instance.save()
+
+                save_user_selected_options(question_instance, user_instance, community_instance,selected_choices)
+
+
 
 
     #saving data directly
@@ -1669,9 +1666,6 @@ def creating_collabcard_for_lg_communities(community,user,introduction_answer,re
 
 
 
-
-
-
 def update_community_actions(community_instance,step_no,increment):
 
     '''function to update community actions steps'''
@@ -1686,6 +1680,32 @@ def update_community_actions(community_instance,step_no,increment):
         instance.save()
 
 
+def save_user_selected_options(question_instance,user_instance,community_instance,selected_choices):
+
+    '''function to save user selected options in dropdown'''
+
+    #question_instance = communityQuestions.objects.get(id=48562)
+
+    dropdown_list =  decode_option(question_instance.value)
+
+    for choice in selected_choices:
+
+        option = choice.strip()
+        if option not in dropdown_list:
+            dropdown_list.append(option)
+        filter_instance = questionFilters(question=question_instance, filter=option,
+                                          member=user_instance, community=community_instance)
+        filter_instance.save()
+
+    result = []
+    for value in dropdown_list:
+        temp={}
+        temp['value'] = value
+        result.append(temp)
+
+    json_dump = json.dumps(result)
+    question_instance.value = json_dump
+    question_instance.save()
 
 
 

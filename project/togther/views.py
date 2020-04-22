@@ -22,7 +22,7 @@ from utility.utils import (get_city_address, update_tag_image,
                            update_user_geography_tags, create_or_categorize_tag,
                            referal, insert_user_home_town_tags, user_onbaord,
                            is_request_android, is_request_ios,
-                           is_request_pc, android_app_download_link, is_IG_community, ios_app_download_link,is_member_verified,feedback_community_id)
+                           is_request_pc, android_app_download_link, is_IG_community, ios_app_download_link,is_member_verified,feedback_community_id,decode_option)
 from utility.firebase import upload_image_to_firebase
 from urllib.parse import urlencode, quote
 from collabmates_api.tasks import send_email
@@ -899,19 +899,19 @@ def members_directory(request, community_id):
 
 
 
-def decode_option(value):
-
-
-
-    value = ast.literal_eval(value)
-    value_list = []
-
-    for item in value:
-        value_list.append(item['value'])
-
-    #print(value_list)
-
-    return value_list
+# def decode_option(value):
+#
+#
+#
+#     value = ast.literal_eval(value)
+#     value_list = []
+#
+#     for item in value:
+#         value_list.append(item['value'])
+#
+#     #print(value_list)
+#
+#     return value_list
 
 
 def get_user_selected_option_list(question_id,selected_list=None):
