@@ -1,5 +1,7 @@
 @-ms-viewport{width: device-width}
 
+* { outline: none; } 
+
 body, html {
     height: auto !important;
     min-height: 100vh;
@@ -49,6 +51,7 @@ body ::-webkit-scrollbar { display: none; }
 .h54 { height: 54px; }
 .h24 { height: 24px; }
 .h8 { height: 8px; }
+.h180 { height: 180px; }
 
 .mnh48 { min-height: 48px!important; }
 .mxh24 { max-height: 24px; }
@@ -114,8 +117,9 @@ body ::-webkit-scrollbar { display: none; }
 .fL { float: left; }
 
 .cF, .cFh:hover { color: #fff!important; }
+.cF { fill: #fff; }
 .c0 { color: #000; }
-.c9b { color: #9b9b9b; }
+.c9b { color: #9b9b9b; fill: #9b9b9b; }
 .c4 { color: #444; }
 .c6 { color: #666; }
 .cT { color: teal; fill: teal; }
@@ -173,6 +177,7 @@ body ::-webkit-scrollbar { display: none; }
 .p12 { padding: 12px; }
 .p16 { padding: 16px!important; }
 .p160 { padding: 16px 0; }
+.p012 { padding: 0 12px; }
 .p016 { padding: 0 16px; }
 .p1224 { padding: 12px 24px; }
 .p1624 { padding: 16px 24px; }
