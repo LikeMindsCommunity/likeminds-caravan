@@ -118,6 +118,7 @@ body ::-webkit-scrollbar { display: none; }
 .c007aff { color: #007aff; }
 .c79, .c79h:hover { color: #797979; }
 .c06C3AF { color: #06C3AF }
+.cd0021b { color: #d0021b }
 
 
 .ffR { font-family:'Roboto'; }
@@ -259,6 +260,7 @@ body ::-webkit-scrollbar { display: none; }
 .ttU { text-transform: uppercase; }
 
 .ls05 { letter-spacing: 0.5px; }
+.ls025 { letter-spacing: 0.25px; }
 .ls1 { letter-spacing: 1px; }
 .ls2 { letter-spacing: 2px; }
 
