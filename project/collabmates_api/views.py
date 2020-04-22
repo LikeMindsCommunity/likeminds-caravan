@@ -3717,7 +3717,7 @@ def collabcard(request, card_id):
     # get the card object
 
     cards = Collabcard.objects.get(id=card_id)
-
+    is_web = False
     page = request.GET.get('page', 1)
 
     current_user_id = get_member_id_from_headers(request)
@@ -3727,6 +3727,9 @@ def collabcard(request, card_id):
         current_user_id = request.user.id
         print('current_user_id_update', request.user.email)
         print('current_user_id_update', current_user_id)
+        current_user_instance = Userinfo.objects.get(user_id=current_user_id)
+        current_user = UserinfoSerializer(user=current_user_instance)
+        is_web = True
 
     feedback=True
     if cards.community.id == feedback_community_id:
@@ -3756,9 +3759,9 @@ def collabcard(request, card_id):
 
     user = Userinfo.objects.get(user_id=cards.user.id)
 
-    if request.user.is_authenticated and not get_request_type(request):
-        # set current user if user in logged in
-        current_user = Userinfo.objects.get(user_id=current_user_id)
+    # if request.user.is_authenticated and not get_request_type(request):
+    #     # set current user if user in logged in
+    #     current_user = User.objects.get(user_id=current_user_id)
 
     # serializing user object
     usr = UserinfoSerializer(user)
@@ -3830,9 +3833,11 @@ def collabcard(request, card_id):
                 'header': header,
                 'google_oauth_client_id': settings.GOOGLE_OAUTH_CLIENT_ID,
             }
-            if request.user.is_authenticated and not get_request_type(request):
+
+            if is_web:
                 context["current_user"] = current_user
                 print("current_user", current_user)
+            #print(context)
             return render(request, 'event.html', context)
         else:
             print('collab card')
