@@ -1,0 +1,331 @@
+{% extends request.is_ajax|yesno:"layouts/ajax.html,layouts/layout.html" %}
+
+{% block yeild %}
+
+    {% include 'components/loader.html' %}
+    
+    <div class="container mxw960 mA mt56">
+            
+        {% include 'components/header.html' with data=header %}
+
+        {% if request.user.is_authenticated %}
+            {% if not request.user.email and request.user.id != 37 and request.user.id != 176 %} 
+                <div class="ui modal" id="email_login">
+                    <div class="header">
+                        Please provide your email id in order to continue
+                    </div>
+                    <div class="image content">
+                        <div class="description">
+                            <div class="ui  form">
+                            <div class="field">
+                                <label>E-mail</label>
+                                <input type="email" placeholder="Enter your email id" id="email_input">
+                            </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="actions">
+                        <div class="ui positive right labeled icon button" style="background-color:#00897b;" id="email_submit">
+                            Submit
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        {% else %}
+            <div class="ui modal test">
+                <div class="ui fluid card " style="#1ebea5; margin:0 0 ; padding: 10px 10px;">
+                    <h2 class="ui teal center aligned header">
+                        <img src="https://beta.likeminds.community/media/media/ic_launcher_round.png" style="float:left;width:35px;"/>
+                        <div class="content" style="color:#008577">
+                            Login to continue
+                        </div>
+                    </h2>
+                    <div class="content">
+                        <p class="center aligned" id="login_text">
+                            To join this community we
+                        </p>
+                    </div>
+                    <div class="center aligned container">
+                        {% if request.user.is_authenticated %}
+                            <div class="content">
+                                <button class="ui fluid button " style=" z-index:2;width:60%; left:20%;  margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;"
+                                    onclick="join('{{community_id}}')">Join this community</button>
+                            </div>
+                            <div style="height:10px"></div>
+                        {% elif not request.user.is_authenticated%}
+                            <div class="content">
+                                <a href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}">
+                                    <button class="ui facebook button" style="width:200px;">
+                                        <i class="fa fa-facebook" ></i>&nbsp;&nbsp;&nbsp;&nbsp;
+                                        Login with Facebook
+                                    </button>
+                                </a>
+                            </div>
+                        {% endif %}
+
+                        {% if not request.user.is_authenticated %}
+                            OR
+                        {% endif %}
+
+                        {% if not request.user.is_authenticated %}
+                            <div class="content">
+                                <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}">
+                                    <button class="ui linkedin button" style="width:200px;">
+                                        <i class="fa fa-linkedin"></i>&nbsp;&nbsp;&nbsp;&nbsp;
+                                            Login with LinkedIn
+                                    </button>
+                                </a>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+
+        <!-- {% if not request.path_info|slice:"1:-4" == 'collabcard' %}
+            <div style="margin:0 auto; max-width:786px;">
+        {% endif %} -->
+                <a href="{% url 'download_the_app' %}" style='color:white;'>
+                    <button class="ui fluid button"
+                            style="z-index:2;width:60%; left:20%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; top:10%;">
+                        Download the app
+                    </button>
+                </a>
+                <div class="ui raised padded text container segment" style="margin: 8px 8px !important;">
+                    <div>
+                        <button class="ui button" style="background-color:#00897b;color:white" id="refresh"><i class="fa fa-refresh" aria-hidden="true"></i></button>
+                    </div>
+                    <div class="card">
+                        <div class="content">
+                            <div class="header"><img class="ui left aligned avatar image" src="{{image_url}}">{{creator}}</div>
+                            <div class="meta"></div>
+                            <div class="description">
+                                <br>
+                                {{card}}
+                            </div>
+                            <br>
+                            {% if share_link %}
+                                <a href="{{share_link}}">
+                                    <table>
+                                        <tbody>
+                                            <tr>
+                                                <td style="height:60px;width:60px; align:left;">
+                                                    {% if share_link_image %}
+                                                    <img class="ui left aligned " style="height:60px;width:60px;padding-top:5px;padding_bottom-0px;" src="{{share_link_image}}">
+        
+                                                    {% else %}
+                                                        <i class="fa fa-paperclip fa-2x" aria-hidden="true" style="padding-left:15px; padding-top:5px; color:#00897b"></i>
+                                                    {% endif %}
+        
+                                                </td>
+                                                <td>
+                                                <a  style="line-height:1.5; display: block;font-size:12px;color:#00897b" class="item">{{share_link}}</a>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </a>
+                            {% endif %}
+                        </div>
+                        <br/>
+                        <br/>
+                        <br/>
+                        <div style="font-size:12px;color:#00897b">{{answer_text}}</div>
+                    </div>
+                </div>
+                {% if request.user.is_authenticated %}
+                    {%if is_member %}
+                        {% for i in answers %}
+                            {% if i.member.id == request.user.id %}
+                                <div class="ui raised padded text container segment" style="margin: 1em 1em !important;background:rgba(0,137,123,0.5);height:90%;">
+                            {% else %}
+                                <div class="ui raised padded text container segment" style="margin: 1em 1em !important;">
+                            {% endif %}
+                                    <div class="card">
+                                        <div class="content">
+            
+                                            <div>
+                                                <table>
+                                                    <tbody>
+                                                    <tr>
+                                                        <td>
+                                                            <img class="ui left aligned avatar image" src="{{i.member.image_url}}">
+            
+                                                        </td>
+                                                        <td>
+                                                            <p>&nbsp; {{i.member.name}}</p>
+                                                        </td>
+                                                    </tr>
+                                                    </tbody>
+                                                </table>
+            
+                                            </div>
+                                            <div class="meta"></div>
+                                            <div class="description " style="font-size:14px; height:auto; overflow-wrap: break-word;">
+            
+                                                {{i.answer}}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endif %}
+            
+                {% if request.user.is_authenticated %}
+                    <div id="answer"></div>
+                    <div id="show" style=" height:50px;">
+                        {%if is_member %}
+                            <div class="ui action input" style="background-color:black;background:white;color: white;margin: 1em 1em;width:93%;position: fixed; bottom:0%;">
+                                <input type="text" id="msg">
+                                <button class="ui button" style="background-color:#00897b;color:white" id="send"><i
+                                        class="fa fa-paper-plane" aria-hidden="true"></i></button>
+                            </div>
+                        {%else%}
+                            <button class="ui fluid button "
+                                    style=" z-index:2;width:60%; left:20%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; "
+                                    id="view_answer">View Answers
+                            </button>
+                        {% endif %}
+                    </div>
+                {% else %}
+                    <button class="ui fluid button "
+                            style=" z-index:2;width:60%; left:20%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; "
+                            id="view_answer">View Answers
+                    </button>
+                    <div class="ui action input"  style="margin: 1em 1em;width:93%; position: fixed; bottom:0%;background:white;color: white;">
+                        <input type="text" id="msg">
+                        <button class="ui button" style="background-color:#00897b;color:white; " id="send"><i
+                                class="fa fa-paper-plane" aria-hidden="true"></i></button>
+                    </div>
+                {% endif %}
+
+        <!-- {% if not request.path_info|slice:"1:-4" == 'collabcard' %}
+            </div>
+        {% endif %} -->
+
+    </div>
+
+    <script>
+        {% if request.user.is_authenticated %}
+            {% if not request.user.email and request.user.id != 37 and request.user.id != 176 %}        //admin handling case
+                //email_login popup start
+                $('#email_login').modal('show');
+                $('#email_login').modal({
+                    backdrop:'static',
+                    keyboard: false,
+                });
+                $('#email_submit').click(function(){
+                    email=$('#email_input').val()
+                    console.log(email);
+                    $.ajax({
+                        url:'/update_user_info/'+email,
+                        success:function(data){
+                            console.log(data)
+                        }
+                    })
+                })
+
+                //email_login popup end
+            {% endif %}
+        {% endif %}
+
+        $('#back_click').click(function(){
+            {% if user.is_authenticated %}
+                window.open("/communities");
+            {% else %}
+                $('.test').modal('show');
+            {% endif %}
+        });
+
+        function join(community_id){
+            console.log(1);
+            {% if user.is_authenticated %}
+                window.open("/"+"community/"+community_id+"?cta=join",'_self');
+            {% else %}
+                $('.test').modal('show');
+            {% endif %}
+        }
+
+        $(document).ready(function(){
+
+            setInterval(function(){
+                console.log('hit')
+                location.reload(true);
+            },120000);
+
+            $('#send').click(function(){
+                {% if user.is_authenticated %}
+                    create_new_message();
+                {% else %}
+                    var element = document.getElementById("login_text");
+                    element.innerHTML = "Your answer has been successfully saved. However to ensure privacy of the community, you need to be part of the <b>{{community_name}}</b> on LikeMinds before your answer gets posted.";
+                    $('.test').modal('show');
+                {% endif %}
+            });
+
+            {% if request.user.is_authenticated %}
+                {% if not is_member %}
+                    $('#view_answer').click(function(){
+                        var element = document.getElementById("login_text");
+                        {% if request.user.is_anonymous %}
+                            element.innerHTML = "To view answers, you need to be part of the <b>{{community_name}}</b> on LikeMinds";
+                            $('.test').modal('show');
+                        {% elif not is_member and request.user.is_authenticated%}
+                            element.innerHTML = "To view answers, you need to be part of the <b>{{community_name}}</b> on LikeMinds";
+                            $('.test').modal('show');
+                        {% endif %}
+                    });
+                {% endif %}
+            {% endif %}
+
+            {% if user.is_authenticated %}
+                function create_new_message(){
+                    //function to create new answer for collabcard
+                    var member_id={{request.user.id}};
+                    var collabcard_id={{card_id}};
+                    var msg=$('#msg').val();
+                    if(msg == ''){return}
+
+                    var html=`
+                            <div class="card">
+                            <div class="ui raised padded text container segment" style="margin: 1em 1em !important;background:rgba(0,137,123,0.5)" id="show" >
+                                <div class="card">
+                                    <div class="content">
+                                        <div ><img class="ui left aligned avatar image"  src="{{user_image_url}}">{{request.user}}</div>
+                                        <div class="meta"></div>
+                                        <div class="description" style="font-size:14px;overflow-wrap: break-word;">
+                                            <br>
+                                            ${msg}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            `
+                    $('#answer').append(html);
+                    $('#msg').val('');
+                    message={
+                        'collabcard_id':collabcard_id,
+                        'member_id':member_id,
+                        'message':msg
+                    }
+                    $.ajax({
+                        url:'/create_message',
+                        data:message,
+                        dataType:'json',
+                        success:function(data){
+                            console.log('success')
+                        }
+                    })
+                }
+            {% endif %}
+            $('#refresh').click(function(){
+                location.reload(true)
+            })
+        })
+
+    </script>
+
+{% endblock %}
+
+

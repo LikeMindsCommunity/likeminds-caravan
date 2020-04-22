@@ -3685,15 +3685,24 @@ def send_email_for_collabcard(community, user, card, type):
                     context['community_name']) + " community"
             send_email_for_new_collabcard_posted.delay(context)
 
-
+@api_view(['GET', 'POST'])
+@renderer_classes([JSONRenderer, TemplateHTMLRenderer])
 def collabcard(request, card_id):
+    
     ''' function to get card details, answers and images '''
     # get the card object
 
     cards = Collabcard.objects.get(id=card_id)
+
     page = request.GET.get('page', 1)
 
     current_user_id = get_member_id_from_headers(request)
+    print('current_user_id', current_user_id)
+    if request.user.is_authenticated and not get_request_type(request):
+        # user id from request if user in logged in
+        current_user_id = request.user.id
+        print('current_user_id_update', request.user.email)
+        print('current_user_id_update', current_user_id)
 
     feedback=True
     if cards.community.id == feedback_community_id:
@@ -3723,6 +3732,10 @@ def collabcard(request, card_id):
 
     user = Userinfo.objects.get(user_id=cards.user.id)
 
+    if request.user.is_authenticated and not get_request_type(request):
+        # set current user if user in logged in
+        current_user = Userinfo.objects.get(user_id=current_user_id)
+
     # serializing user object
     usr = UserinfoSerializer(user)
     usr['is_clickable']=feedback
@@ -3747,7 +3760,80 @@ def collabcard(request, card_id):
     # get tine stamp for card
     time_text = get_time_text(cards.date_epoch)
     card['created_at'] = time_text
-    return JsonResponse({"collabcard": card, 'answers': answers})
+    if request.accepted_renderer.format == 'html':
+        print('in html')
+        # check for event card
+        # type 2 => private
+        # type 6 => public
+        if card['type'] in (2, 6):
+            print('event card')
+
+            # get community for community name, image, etc
+            community = Community.objects.get(id=cards.community.id)
+
+            member_state = members_state(request,req_dict={'community_id':cards.community.id,'member_id':current_user_id})
+
+            # set default event banner image
+            card['banner_image'] = "//firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Fevent_banner.jpg?alt=media&token=4f6709df-8918-4227-8606-c11607d2d31b"
+
+            print("card", card)
+            # set time
+            card['start_time'] = card['date_time']
+            card['end_time'] = card['duration']
+
+            card['start_time'] = time.strftime('%A, %b %y, %H:%M', time.gmtime(card['start_time']/1000.0))
+            card['duration'] = time.strftime('%H hours %M minutes', time.gmtime(card['duration']/1000.0))
+            card['end_time'] = time.strftime('%A, %b %y', time.gmtime(card['end_time']/1000.0))
+
+            # get members
+            members = get_members_data_for_collabcard(card_id, cards.community.id, current_user_id)
+            print("members", members)
+            # set header
+            header = {
+                'back': True,
+                'title': community.name,
+                'subTitle': False,
+                'background': 'Wa',
+                'color': 'F'
+            }
+
+            context = {
+                "member_state": member_state,
+                "community": community,
+                "collabcard": card, 
+                "members": members,
+                'answers': answers, 
+                'header': header,
+                'google_oauth_client_id': settings.GOOGLE_OAUTH_CLIENT_ID,
+            }
+            if request.user.is_authenticated and not get_request_type(request):
+                context["current_user"] = current_user
+                print("current_user", current_user)
+            return render(request, 'event.html', context)
+        else:
+            print('collab card')
+            if request.user.is_authenticated:
+                header_back_link = "/dashboard"
+            else:
+                header_back_link = ""
+        
+            header = {
+                'back': True,
+                # 'title': collabcard_dict['collabcard']['member']['name'] + "'s Collabcard",
+                'backLink': header_back_link,
+                'subTitle': False,
+                'background': 'Wa',
+                'color': 'F'
+            }
+            context = {
+                'collabcard': card, 
+                'answers': answers, 
+                'header': header, 
+                'google_oauth_client_id': settings.GOOGLE_OAUTH_CLIENT_ID,
+            }
+            return render(request, 'collabcard.html', context)
+    else:
+        return JsonResponse({"collabcard": card, 'answers': answers})
 
 
 def get_answer_data(answer,feedback,community_id,current_user_id):
@@ -4805,13 +4891,23 @@ def collabcards_seen(request):
 
 @csrf_exempt
 def collabcard_attend(request):
+
     '''attending a event on a event card'''
 
     member_id = get_member_id_from_headers(request)
+    print("member_id", member_id)
+    if request.user.is_authenticated and not get_request_type(request):
+        # user id from request if user in logged in
+        member_id = request.user.id
+        print("member_id1", member_id)
+
     collabcard_id = request.GET.get('collabcard_id')
     status = request.GET.get('value', 'true')
+
     collabcard_instance = Collabcard.objects.get(id=collabcard_id)
+
     user_instance = User.objects.get(id=member_id)
+    print("user_instance", user_instance)
 
     if status != 'true':
         status = False
@@ -4819,7 +4915,6 @@ def collabcard_attend(request):
         status = True
 
     if status:
-
         # if the user clicks on attend but not following collabcard
         collabcard_state_instance = collabcardState.objects.get(card=collabcard_instance, user=user_instance)
         if collabcard_state_instance.state == collabcard_states.COLLABCARD_STATE_SEEN:
@@ -4846,11 +4941,10 @@ def collabcard_attend(request):
             collabcard_state_instance.state = collabcard_states.COLLABCARD_STATE_UNATTEND_FOLLOWING
             collabcard_state_instance.updated_at = time.time()
             collabcard_state_instance.save()
-
     update_event_answer_text(collabcard_id)  # function to update the text when a user attends an event
+    print('here 2')
     if not str(member_id) == str(collabcard_instance.user.id) and status:
         send_poll_or_event_notification.delay(card_id=collabcard_id, user_id=member_id)
-
     return JsonResponse({'success': True})
 
 

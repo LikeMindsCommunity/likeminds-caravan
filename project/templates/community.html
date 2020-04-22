@@ -172,27 +172,30 @@
             
             <div class="h60"></div>
             <!-- Displaying Buttons -->
-            <div class="p8 bs taC pF b0 l0 r0 h60 bdtE bgBg z1">
+            <div class="taC pF b0 l0 r0 h60 bdtE bgBg z1">
                 {% if Nom_mem_state == 6 %}
-                    <button class="h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" onclick="accept_admin('{{cta}}','{{community.id}}','{{Nom_mem_state}}');">Respond to invitation</button>
+                    <button class="m80 h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" onclick="accept_admin('{{cta}}','{{community.id}}','{{Nom_mem_state}}');">Respond to invitation</button>
                 {% elif Nom_mem_state == 7 %}
-                    <button class="h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" onclick="accept_admin('{{cta}}','{{community.id}}','{{Nom_mem_state}}');"> Respond to invitation</button>
+                    <button class="m80 h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" onclick="accept_admin('{{cta}}','{{community.id}}','{{Nom_mem_state}}');"> Respond to invitation</button>
                 {% elif Nom_mem_state == 8 %}
-                    <button class="h44 bgT cF br22 fwM ffR fs13" id="down_ref">Invite members</button>
+                    <button class="m80 h44 bgT cF br22 fwM ffR fs13" id="down_ref">Invite members</button>
                 {% elif Nom_mem_state == 3 %}
-                    <button class="h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" disabled>Pending Approval</button>
+                    <button class="m80 h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" disabled>Pending Approval</button>
                 {% elif Nom_mem_state == 1%}
-                    <button class="h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" onclick="window.location.href='/download_the_app'">Open in App<!-- You are a promoter --></button>
+                    {% include 'components/download_app_bar.html' with title='Use the LikeMinds app' subtitle='You are a promoter, track all updates on app'  %}
+                    <!-- <button class="h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" onclick="window.location.href='/download_the_app'">Open in App You are a promoter</button> -->
                 {% elif Nom_mem_state == 2 %}
-                    <button class="h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" onclick="window.location.href='/download_the_app'">Open in App<!-- You are a promoter --></button>
+                    {% include 'components/download_app_bar.html' with title='Use the LikeMinds app' subtitle='You are a promoter, track all updates on app'  %}
+                    <!-- <button class="h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" onclick="window.location.href='/download_the_app'">Open in App You are a promoter</button> -->
                 {% elif Nom_mem_state == 4 %}
-                    <button class="h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" onclick="window.location.href='/download_the_app'">Open in App<!-- Already a Member --></button>
+                    {% include 'components/download_app_bar.html' with title='Use the LikeMinds app' subtitle='Already a Member, track all updates on app'  %}
+                    <!-- <button class="h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" onclick="window.location.href='/download_the_app'">Open in App Already a Member</button> -->
                 {% elif Nom_mem_state == 5 %}
-                    <button class="h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" onclick="join('{{community.id}}')">Join Community (Declined)</button>
+                    <button class="m80 h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" onclick="join('{{community.id}}')">Join Community (Declined)</button>
                 {% elif source == 'email' %}
-                    <button class="h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" onclick="accept_admin();">Respond to invitation</button>
+                    <button class="m80 h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" onclick="accept_admin();">Respond to invitation</button>
                 {% elif Nom_mem_state == 0 %}
-                    <button class="h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" onclick="join('{{community.id}}')">Join Community</button>
+                    <button class="m80 h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" onclick="join('{{community.id}}')">Join Community</button>
                 {% endif %}
             </div>
         </div>
@@ -871,66 +874,9 @@
                 $('#members').addClass('bxs2');
                 location.href ="#members"
             })
-    
-            // google login
-            function authServer(token, element){
-                $(".ldrT", $('#loader')[0]).text("Login you in...");
-                $('#loader').show();
-                var temp = {"type": "google", "google_id_token": token}
-
-                $.ajax({
-                    url: "/api/v1/login",
-                    data: JSON.stringify(temp),
-                    type: "POST",
-                    dataType: "json",
-                    success: function(data){
-                        console.log("Google auth success", data);
-                        window.location.href = $(element).attr("data-next");
-                    },
-                    error: function(data){
-                        $('#loader').hide();
-                        console.log("Google auth failure", data);
-                    }
-                });
-            }
-            function attachSignin(element) {
-                auth2.attachClickHandler(element, {},
-                    function(googleUser) {
-                        var profile = googleUser.getBasicProfile();
-                        var id_token = googleUser.getAuthResponse().id_token;
-                        console.log('ID: ' + profile.getId()); // Do not send to your backend! Use an ID token instead.
-                        console.log('Name: ' + profile.getName());
-                        console.log('Image URL: ' + profile.getImageUrl());
-                        console.log('Email: ' + profile.getEmail()); // This is null if the 'email' scope is not present.
-                        authServer(id_token, element);
-                    }, function(error) {
-                        console.log(JSON.stringify(error, undefined, 2));
-                    });
-            }
-            (function(w,d,s){
-                var f = d.getElementsByTagName(s)[0],
-                    j = d.createElement(s);
-                j.async = true;
-                j.defer = true;
-                j.onload = function(){
-                    gapi.load('auth2', function(){
-                        // Retrieve the singleton for the GoogleAuth library and set up the client.
-                        auth2 = gapi.auth2.init({
-                            client_id: "{{ google_oauth_client_id }}",
-                            cookiepolicy: 'single_host_origin',
-                            // Request scopes in addition to 'profile' and 'email'
-                            // scope: 'additional_scope'
-                        });
-                        $(".googleSignin").removeClass("dN").each(function(){
-                            attachSignin(this);
-                        });
-                    });
-                };
-                j.onerror = function(){};
-                j.src = 'https://apis.google.com/js/api:client.js';
-                f.parentNode.insertBefore(j,f);
-            })(window,document,'script');
         </script>
+
+        {% include 'scripts/google_auth.html' with client_id=google_oauth_client_id %}
 
     </body>
 </html>

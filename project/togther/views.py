@@ -214,6 +214,7 @@ def community(request, community_id):
     if request.user.is_authenticated:
         try:
             user = Userinfo.objects.get(user_id=request.user.id)
+            print("user", request.user.id)
         except:
             user = update_user_info(request)
         is_member = is_member_verified(community_id,request.user)
@@ -300,7 +301,12 @@ def community(request, community_id):
                     #print(context)
                     return render(request, 'response_form.html', context)
                 else:
-                    pass
+                    isFromEvent = request.GET.get('event', '')
+                    # if from event page and already a member redirect to event page
+                    if isFromEvent:
+                        return redirect("/collabcard/"+isFromEvent)
+                    else:
+                        pass
             else:
                 if request.is_ajax:
                     return JsonResponse({'success': True})
