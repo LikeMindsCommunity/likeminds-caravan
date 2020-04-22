@@ -1691,7 +1691,7 @@ def save_user_selected_options(question_instance,user_instance,community_instanc
     for choice in selected_choices:
 
         option = choice.strip()
-        if option not in dropdown_list:
+        if not is_option_present(option,dropdown_list):
             dropdown_list.append(option)
         filter_instance = questionFilters(question=question_instance, filter=option,
                                           member=user_instance, community=community_instance)
@@ -1706,6 +1706,16 @@ def save_user_selected_options(question_instance,user_instance,community_instanc
     json_dump = json.dumps(result)
     question_instance.value = json_dump
     question_instance.save()
+
+
+def is_option_present(option,dropdown_list):
+
+    '''function to check is option present or not'''
+
+    for data in dropdown_list:
+        if data.lower() == option.lower():
+            return True
+    return False
 
 
 
