@@ -2898,6 +2898,61 @@ def update_poll_card_text(card_id):
     card.answer_text = poll_text
     card.polls_count = total_polls_count
     card.save()
+
+
+def fetch_info(request):
+
+    '''function to send info-text  for event card'''
+    response={}
+
+    response['online_event'] = {
+        'header':"Guidelines for online event url",
+        'sub_header':"Use the following guidelines to best use the online event url:",
+
+        'title_1':"What are online events",
+        'sub_title_1':"Online events are the events that can be performed via web video conferencing tools. There are plenty of video conferencing tools out there like Zoom, Hangout, Skype etc.",
+
+        'title_2':"Recommended online platforms",
+        'sub_title_2':"Recommended tools are those where joining the conference is easier and can handle the number of expected participants joining your event online.",
+
+        'title_3':"Link to online event",
+        'sub_title_3':"Make sure that you provide the video conferencing urls and not the event description page from other platforms."
+    }
+
+
+    response['event_privacy'] = {
+
+        'header':"Event Privacy",
+        'sub_header':"An event can either be a private or a public event.",
+
+        'title_1':"Private Event",
+        'sub_title_1':"Only verified community mambers can see all the details. A non-member trying to access the event information would have to join the community first.",
+
+        'title_2':"Public Event",
+        'sub_title_2':"Anyone with the link can see this event. Attending Member’s details would be available only to the users who join the community.",
+
+    }
+
+    response['banner'] = {
+        'header':"Guidelines for image files",
+        'sub_header':"Use the following guidelines to get the highest quality event image:",
+
+        'title_1':"Dimensions",
+        'sub_title_1':"Find at least a 2160 x 1080px (2:1 ratio) image.",
+
+        'title_2':"File Type",
+        'sub_title_2':"Pictures with file types JPEG, BMP, PNG, or GIF work best.",
+
+        'title_3' : "File Size",
+        'sub_title_3': "Use a photo that's not larger than 10MB.",
+
+        'title_4': "General",
+        'sub_title_4': "Avoid images that have a lot of text, logos, and fliers.",
+    }
+
+    return JsonResponse(response)
+
+
 # /api/add_admin/community_id
 @csrf_exempt
 def create_admin(request, community_id):
@@ -3814,7 +3869,7 @@ def collabcard(request, card_id):
             # set default event banner image
             card['banner_image'] = "//firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Fevent_banner.jpg?alt=media&token=4f6709df-8918-4227-8606-c11607d2d31b"
 
-            print("card", card)
+            #print("card", card)
             # set time
             card['start_time'] = card['date_time']
             card['end_time'] = card['duration']
@@ -4990,7 +5045,11 @@ def collabcard_attend(request):
             collabcard_state_instance.updated_at = time.time()
             collabcard_state_instance.save()
     update_event_answer_text(collabcard_id)  # function to update the text when a user attends an event
-    print('here 2')
+    # print('here 2')
+    # print("member_id---",member_id)
+    # print("instance",collabcard_instance.user.id)
+    # print("collabcard--",collabcard_id)
+    # print("status--",status)
     if not str(member_id) == str(collabcard_instance.user.id) and status:
         send_poll_or_event_notification.delay(card_id=collabcard_id, user_id=member_id)
     return JsonResponse({'success': True})

@@ -50,8 +50,10 @@ urlpatterns = [
     path('pending_members/<int:community_id>',api_views.pending_members,name = 'pending_members'),
     path('join',api_views.request_response,name = 'join'),
     path('pending_members_count/<int:community_id>',api_views.pending_request_count,name = 'pending_request_count'),
+
     path('collabcard_seen', api_views.collabcards_seen, name='collabcard_seen'),
     path('collabcard_attend', api_views.collabcard_attend, name='collabcard_attend'),
+    path('fetch_info', api_views.fetch_info, name='fetch_info'),
 
     path('members_state',api_views.members_state,name='members_state'),
     path('edit_member_profile',api_views.edit_member_profile,name='edit_member_profile'),
@@ -63,8 +65,10 @@ urlpatterns = [
     path('edit_community', views.edit_community, name='edit_community'),
     path('upload_attachment',api_views.upload_attachment,name='upload_attachment'),
     path('upload_files', api_views.upload_files, name='upload_files'),
+
     path('update_location',api_views.update_location,name='upload_location'),
     path('fetch_location/<int:user_id>',api_views.get_user_location,name='fetch_location'),
+
     path('decode_url', api_views.decode_url, name='decode_url'),
     path('all_members', api_views.all_members, name='all_members'),
     path('member_activity', api_views.member_activity, name='member_activity'),
