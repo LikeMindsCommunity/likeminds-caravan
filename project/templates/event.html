@@ -430,7 +430,7 @@
             {% if user.is_authenticated %}
                 $(".ldrT", $('#loader')[0]).text("Making request...");
                 $('#loader').show();
-                debugger;
+                //debugger;
                 $.ajax({
                     url: '/api/collabcard_attend?collabcard_id={{collabcard.id}}&value='+isAttending,
                     success:function(data){
