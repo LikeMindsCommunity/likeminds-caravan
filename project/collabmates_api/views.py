@@ -3847,8 +3847,10 @@ def collabcard(request, card_id):
             }
 
             if is_web:
+                if current_user['collabcard_state'] == 0:
+                    collabcards_seen_internal(cards.community.id, card_id, card['type'], current_user_id)
                 context["current_user"] = current_user
-                print("current_user", current_user)
+                
             #print(context)
             return render(request, 'event.html', context)
         else:
@@ -4904,6 +4906,13 @@ def collabcards_seen(request):
     if 'collabcard_type' in params:
         collabcard_type=params['collabcard_type']
 
+    collabcards_seen_internal(community_id, card_id, collabcard_type, user_id)
+
+    return JsonResponse({'success': True})
+
+def collabcards_seen_internal(community_id, card_id, collabcard_type, user_id):
+    '''This internal functions stores the details of members who have seen the card'''
+
     if str(collabcard_type) == str(5):                        #unverifeid collabcard
         collabcardTemp.objects.filter(id=card_id).update(state=1)
         return JsonResponse({'success': True})
@@ -4926,8 +4935,6 @@ def collabcards_seen(request):
         collabcard_state_instance.save()
 
     update_last_unseen_in_engage(user=user_instance, community=community,is_seen=False)
-    # custom_cache.clear()
-    return JsonResponse({'success': True})
 
 
 @csrf_exempt
