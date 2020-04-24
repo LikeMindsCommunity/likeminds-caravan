@@ -3868,7 +3868,10 @@ def collabcard(request, card_id):
             card['banner_image'] = "//firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Fevent_banner.jpg?alt=media&token=4f6709df-8918-4227-8606-c11607d2d31b"
 
             # set time
-            card['end_time'] = time.strftime('%A, %b %Y', time.localtime((card['duration'])/1000.0))
+            if time.time() > card['duration']/1000.0:
+                card['event_ended'] = True
+
+            card['end_time'] = time.strftime('%A, %b %Y', time.localtime(card['duration']/1000.0))
             card['date_time'] = time.strftime('%A, %b %d, %H:%M', time.localtime(card['date_time']/1000.0))
             card['duration'] = time.strftime('%H hours %M minutes', time.localtime(card['duration']/1000.0))
 

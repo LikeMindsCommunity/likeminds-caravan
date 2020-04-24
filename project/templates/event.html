@@ -14,9 +14,11 @@
         <div class="p1224 ffR fwL fs24 lh36 c4a bdbE bs">
             {{collabcard.title}}
             <!-- Event ended -->
-            <div class="dN p16 bs taC fs16 cfe7e8d bdfe7e8d bs br8">This event has ended.</div>
+            {% if collabcard.event_ended %}
+                <div class="bdfe7e8d br8 bs cfe7e8d fs16 mt12 p8 taC bgfef2f3">This event has ended.</div>
+            {% endif %}
         </div>
-        {% if request.user.is_authenticated %}
+        {% if request.user.is_authenticated and not collabcard.event_ended %}
             {% if member_state.state == 3 %}
                 <!-- Approval Pending -->
                 <div class="p1624 bdbE bs dT wp100 fwR">
@@ -251,7 +253,7 @@
         <div class="h60"></div>
         <!-- Displaying Buttons -->
         <div class="taC pF b0 l0 r0 h60 bdtE bgF z1">
-            {% if request.user.is_authenticated %}
+            {% if request.user.is_authenticated and not collabcard.event_ended %}
                 {% if member_state.state == 3 %}
                     <!-- Approval Pending -->
                     {% include 'components/download_app_bar.html' with title='Use the LikeMinds app' subtitle='Keep track of all event updates on app'  %}
@@ -265,6 +267,8 @@
                         <div class="dIb vM">ATTEND</div>
                     </button>
                 {% endif %}
+            {% elif collabcard.event_ended  %}
+                {% include 'components/download_app_bar.html' with title='Use the LikeMinds app' subtitle='Keep track of all event updates on app'  %}
             {% else %}
                 <button class="m80 h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU ls05" id="bottom_button" onclick="attend(true)">
                     <div class="dIb vM">

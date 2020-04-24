@@ -29,6 +29,7 @@ body ::-webkit-scrollbar { display: none; }
 .bgd0021b { background: #d0021b; }
 .bgf2 { background: #f2f2f2; }
 .bgF9 { background: #f9f9f9; }
+.bgfef2f3 { background: #fef2f3; }
 
 .wp100 { width: 100%; }
 
@@ -271,6 +272,7 @@ body ::-webkit-scrollbar { display: none; }
 .bdb2F { border-bottom: 2px solid #fff; }
 .bdT { border: 1px solid teal; }
 .bdE { border: 1px solid #eee; }
+.bdfe7e8d { border: 1px solid #fe7e8d; }
 
 .bgFo05 { background: rgba(255, 255, 255, 0.5); }
 .bgFo96 { background: rgba(255, 255, 255, 0.96); }
