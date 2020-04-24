@@ -3781,28 +3781,20 @@ def collabcard(request, card_id):
     ''' function to get card details, answers and images '''
     # get the card object
 
-    cards = Collabcard.objects.get(id=card_id)
-    is_web = False
+    card_instance = Collabcard.objects.get(id=card_id)
+
     page = request.GET.get('page', 1)
 
     current_user_id = get_member_id_from_headers(request)
 
-    if request.user.is_authenticated and not get_request_type(request):
-        # user id from request if user in logged in
-        current_user_id = request.user.id
-        current_user_instance = Userinfo.objects.get(user_id=current_user_id)
-        current_user = UserinfoSerializer(user=current_user_instance)
-        current_user['collabcard_state'] = get_status_of_collabcard(current_user_id,cards.community,cards)
-        is_web = True
-
     feedback=True
-    if cards.community.id == feedback_community_id:
+    if card_instance.community.id == feedback_community_id:
         feedback = False
 
     # coverting current time into epoch time for getting time stamp of answers and card
 
     # get all the answers of the card
-    answer = card_answers.objects.filter(card=cards).order_by('id')
+    answer = card_answers.objects.filter(card=card_instance).order_by('id')
     # answer=pagination(answer,page,paginate_by=10)
 
     answer_id = request.GET.get('answer_id', '')
@@ -3811,17 +3803,17 @@ def collabcard(request, card_id):
     if answer_id:
         answer_id = int(answer_id)
 
-        answer = card_answers.objects.filter(card=cards, id__gte=answer_id).filter(~Q(user__id=user_id))
+        answer = card_answers.objects.filter(card=card_instance, id__gte=answer_id).filter(~Q(user__id=user_id))
         # answer = pagination(answer, page, paginate_by=10)
-        answers = get_answer_data(answer,feedback,cards.community.id,current_user_id=current_user_id)         #if the feedback is true don't send id in userinfo
+        answers = get_answer_data(answer,feedback,card_instance.community.id,current_user_id=current_user_id)         #if the feedback is true don't send id in userinfo
         return JsonResponse({'answers': answers})
     else:
-        answers = get_answer_data(answer,feedback,cards.community.id,current_user_id=current_user_id)
+        answers = get_answer_data(answer,feedback,card_instance.community.id,current_user_id=current_user_id)
 
     # serializing Collabcard
-    card = CollabcardSerializer(cards, user_id, cards.community)
+    card = CollabcardSerializer(card_instance, user_id, card_instance.community)
 
-    user = Userinfo.objects.get(user_id=cards.user.id)
+    user = Userinfo.objects.get(user_id=card_instance.user.id)
 
     # if request.user.is_authenticated and not get_request_type(request):
     #     # set current user if user in logged in
@@ -3832,12 +3824,12 @@ def collabcard(request, card_id):
     usr['is_clickable']=feedback
 
     #when the member is removed
-    removed_state = removedMembersSerializer(cards.community.id,usr['id'])
+    removed_state = removedMembersSerializer(card_instance.community.id,usr['id'])
     if removed_state != False:
         usr['remove_state'] = removed_state
 
     # user form response serialzer
-    form_response = FormResponseSerilaizer(cards.community.id, cards.user.id,bl=True,current_user_id=current_user_id)
+    form_response = FormResponseSerilaizer(card_instance.community.id, card_instance.user.id,bl=True,current_user_id=current_user_id)
     if form_response:
         usr['response'] = form_response[0]
         usr['question_answers'] =form_response[1]
@@ -3847,86 +3839,25 @@ def collabcard(request, card_id):
     card['member'] = usr
     card['pdf'] = files[1]
     if user_id:
-        card['state'] = get_status_of_collabcard(member_id=user_id, community=cards.community, card=cards)
+        card['state'] = get_status_of_collabcard(member_id=user_id, community=card_instance.community, card=card_instance)
     # get tine stamp for card
-    time_text = get_time_text(cards.date_epoch)
+    time_text = get_time_text(card_instance.date_epoch)
     card['created_at'] = time_text
+
+
+    #request is made from web
     if request.accepted_renderer.format == 'html':
-        print('in html')
-        # check for event card
-        # type 2 => private
-        # type 6 => public
-        if card['type'] in (2, 6):
-            print('event card')
 
-            # get community for community name, image, etc
-            community = Community.objects.get(id=cards.community.id)
+        web_data = get_collabcard_details_for_web(request,card_instance,card,current_user_id,answers)
+        context = web_data[0]
+        card_category = web_data[1]
 
-            member_state = members_state(request,req_dict={'community_id':cards.community.id,'member_id':current_user_id})
-
-            # set default event banner image
-            card['banner_image'] = "//firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Fevent_banner.jpg?alt=media&token=4f6709df-8918-4227-8606-c11607d2d31b"
-
-            # set time
-            if time.time() > card['duration']/1000.0:
-                card['event_ended'] = True
-
-            card['end_time'] = time.strftime('%A, %b %Y', time.localtime(card['duration']/1000.0))
-            card['date_time'] = time.strftime('%A, %b %d, %H:%M', time.localtime(card['date_time']/1000.0))
-            card['duration'] = time.strftime('%H hours %M minutes', time.localtime(card['duration']/1000.0))
-
-            # get members
-            state_list = [collabcard_states.COLLABCARD_STATE_ATTEND_FOLLOWING,collabcard_states.COLLABCARD_STATE_ATTEND_UNFOLLOWING]
-            members = get_members_data_for_collabcard(card_id, cards.community.id, current_user_id,state_list)
-
-            # set header
-            header = {
-                'back': True,
-                'title': community.name,
-                'subTitle': False,
-                'background': 'Wa',
-                'color': 'F'
-            }
-
-            context = {
-                "member_state": member_state,
-                "community": community,
-                "collabcard": card, 
-                "members": members,
-                'answers': answers, 
-                'header': header,
-                'google_oauth_client_id': settings.GOOGLE_OAUTH_CLIENT_ID,
-            }
-
-            if is_web:
-                if current_user['collabcard_state'] == 0:
-                    collabcards_seen_internal(cards.community.id, card_id, card['type'], current_user_id)
-                context["current_user"] = current_user
-                
-            #print(context)
+        if card_category == "EVENT_CARD":
             return render(request, 'event.html', context)
+
         else:
-            print('collab card')
-            if request.user.is_authenticated:
-                header_back_link = "/dashboard"
-            else:
-                header_back_link = ""
-        
-            header = {
-                'back': True,
-                # 'title': collabcard_dict['collabcard']['member']['name'] + "'s Collabcard",
-                'backLink': header_back_link,
-                'subTitle': False,
-                'background': 'Wa',
-                'color': 'F'
-            }
-            context = {
-                'collabcard': card, 
-                'answers': answers, 
-                'header': header, 
-                'google_oauth_client_id': settings.GOOGLE_OAUTH_CLIENT_ID,
-            }
             return render(request, 'collabcard.html', context)
+
     else:
         return JsonResponse({"collabcard": card, 'answers': answers})
 
@@ -4001,6 +3932,106 @@ def get_answer_files(answer_id):
                 pdf_url = {'pdf_file': file.file_url}
                 pdf.append(pdf_url)
     return (img_list, pdf)
+
+
+def get_collabcard_details_for_web(request,card_instance,card,current_user_id,answers):
+
+    '''function that contain collabcard details for web'''
+    is_logged = False
+    current_user = {}
+
+    if request.user.is_authenticated and not get_request_type(request):
+        # user id from request if user in logged in
+        current_user_id = request.user.id
+        current_user_instance = Userinfo.objects.get(user_id=current_user_id)
+        current_user = UserinfoSerializer(user=current_user_instance)
+        current_user['collabcard_state'] = get_status_of_collabcard(current_user_id,card_instance.community,card_instance)
+        is_logged = True
+
+
+    print('in html')
+    # check for event card
+    # type 2 => private
+    # type 6 => public
+    if card['type'] in (card_types.CARD_EVENT, card_types.CARD_PUBLIC_EVENT):
+        print('event card')
+
+        # get community for community name, image, etc
+        community = card_instance.community
+
+        member_state = members_state(request,
+                                     req_dict={'community_id': card_instance.community.id, 'member_id': current_user_id})
+
+        # set default event banner image
+        card[
+            'banner_image'] = "//firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Fevent_banner.jpg?alt=media&token=4f6709df-8918-4227-8606-c11607d2d31b"
+
+        # set time
+        if time.time() > card['end_date'] / 1000.0:
+            card['event_ended'] = True
+
+        card['end_time'] = time.strftime('%A, %b %Y', time.localtime(card['end_date'] / 1000.0))
+        card['date_time'] = time.strftime('%A, %b %d, %H:%M', time.localtime(card['date_time'] / 1000.0))
+        card['duration'] = time.strftime('%H hours %M minutes', time.localtime(card['duration'] / 1000.0))
+
+        # get members
+        state_list = [collabcard_states.COLLABCARD_STATE_ATTEND_FOLLOWING,
+                      collabcard_states.COLLABCARD_STATE_ATTEND_UNFOLLOWING]
+        members = get_members_data_for_collabcard(card_instance.id, card_instance.community.id, current_user_id, state_list)
+
+        # set header
+        header = {
+            'back': True,
+            'title': community.name,
+            'subTitle': False,
+            'background': 'Wa',
+            'color': 'F'
+        }
+
+        context = {
+            "member_state": member_state,
+            "community": community,
+            "collabcard": card,
+            "members": members,
+            'answers': answers,
+            'header': header,
+            'google_oauth_client_id': settings.GOOGLE_OAUTH_CLIENT_ID,
+        }
+
+        if is_logged:
+            if current_user['collabcard_state'] == 0:
+                collabcards_seen_internal(card_instance.community.id, card_instance.id, card['type'], current_user_id)
+                context["current_user"] = current_user
+
+        # print(context)
+
+        return context,"EVENT_CARD"
+        #return render(request, 'event.html', context)
+    else:
+        print('collab card')
+        if request.user.is_authenticated:
+            header_back_link = "/dashboard"
+        else:
+            header_back_link = ""
+
+        header = {
+            'back': True,
+            # 'title': collabcard_dict['collabcard']['member']['name'] + "'s Collabcard",
+            'backLink': header_back_link,
+            'subTitle': False,
+            'background': 'Wa',
+            'color': 'F'
+        }
+        context = {
+            'collabcard': card,
+            'answers': answers,
+            'header': header,
+            'google_oauth_client_id': settings.GOOGLE_OAUTH_CLIENT_ID,
+        }
+
+        return context,"SIMPLE_CARD"
+        #return render(request, 'collabcard.html', context)
+
 
 
 
