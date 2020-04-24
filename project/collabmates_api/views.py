@@ -3852,6 +3852,7 @@ def collabcard(request, card_id):
         context = web_data[0]
         card_category = web_data[1]
 
+
         if card_category == "EVENT_CARD":
             return render(request, 'event.html', context)
 
@@ -3949,12 +3950,12 @@ def get_collabcard_details_for_web(request,card_instance,card,current_user_id,an
         is_logged = True
 
 
-    print('in html')
+    #print('in html')
     # check for event card
     # type 2 => private
     # type 6 => public
     if card['type'] in (card_types.CARD_EVENT, card_types.CARD_PUBLIC_EVENT):
-        print('event card')
+        #print('event card')
 
         # get community for community name, image, etc
         community = card_instance.community
@@ -4001,7 +4002,7 @@ def get_collabcard_details_for_web(request,card_instance,card,current_user_id,an
         if is_logged:
             if current_user['collabcard_state'] == 0:
                 collabcards_seen_internal(card_instance.community.id, card_instance.id, card['type'], current_user_id)
-                context["current_user"] = current_user
+            context["current_user"] = current_user
 
         # print(context)
 
