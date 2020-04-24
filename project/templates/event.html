@@ -36,7 +36,7 @@
             {% elif current_user.collabcard_state == 3 or current_user.collabcard_state == 4 %}
                 <div class="p1624 bdbE bs dT wp100 fwR">
                     <div class="dT wp100 bs">
-                        <div class="bs dTc h64 w64">
+                        <div class="bs dTc h64 w64 member_link" member_id="{{current_user.id}}">
                             <img src="{{current_user.image_url}}" class="bd2F brp50 bxs dB h64 w64">
                         </div>
                         <div class="dTc vM pl16 bs fs15">
@@ -108,7 +108,7 @@
         <div class="p24 bs bdbE bs">
             <div class="fs14 fwR c9b">Posted By</div>
             <div class="pt16 bs">
-                <div class="dT wp100 bs">
+                <div class="dT wp100 bs member_link" member_id="{{collabcard.member.id}}">
                     <div class="bs dTc h64 w64">
                         <img src="{{ collabcard.member.image_url }}" class="bd2F brp50 bxs dB h64 w64">
                     </div>
@@ -135,7 +135,7 @@
             <div class="fs14 fwR c9b lh30">Hosts</div>
             <div class="pt16 bs">
                 <!-- each host in co host -->
-                <div class="dT wp100 bs">
+                <div class="dT wp100 bs member_link" member_id="{{collabcard.member.id}}">
                     <div class="bs dTc h64 w64">
                         <img src="{{ collabcard.member.image_url }}" class="bd2F brp50 bxs dB h64 w64">
                     </div>
@@ -183,7 +183,7 @@
                 <!-- each member attending -->
                 {% for member in members %}
                     {% if member.collabcard_state == 3 or member.collabcard_state == 4 %}
-                        <div class="dIb vM w64 h64">
+                        <div class="dIb vM w64 h64 member_link" member_id="{{member.id}}">
                             <img src="{{ member.image_url }}" class="dB w64 h64 brp50" />
                         </div>
                     {% endif %}
@@ -195,11 +195,20 @@
         </div>
         <div class="p24 bs bdbE bs">
             <div class="fs14 fwR c9b lh30">Comments . {{ answers|length }}</div>
-            <form class="h40 pt16 bs dT wp100" id="submit_commit">
-                <div class="dTc vM">
-                    <input class="h40 p12 bs bgf2 br20 bd0 wp100 c9b" placeholder="Type your comment" />
-                </div>
-            </form>
+            <div class="pR">
+                {% if request.user.is_authenticated %}
+                    {% if member_state.state == 3 %}
+                        <div class="pA t0 b0 l0 r0 z1" onclick="attend(true)"></div>
+                    {% endif %}
+                {% else %}
+                    <div class="pA t0 b0 l0 r0 z1" onclick="attend(true)"></div>
+                {% endif %}
+                <form class="h40 pt16 bs dT wp100" id="submit_commit">
+                    <div class="dTc vM">
+                        <input class="h40 p12 bs bgf2 br20 bd0 wp100 c9b" placeholder="Type your comment" />
+                    </div>
+                </form>
+            </div>
             <div class="pR">
                 {% if request.user.is_authenticated %}
                     {% if member_state.state == 3 %}
@@ -221,7 +230,7 @@
                     </div>
                 {% endif %}
                 {% for answer in answers %}
-                    <div class="dT wp100 p200 bs">
+                    <div class="dT wp100 p200 bs member_link" member_id="{{answer.member.id}}">
                         <div class="dTc vT w48 h48">
                             <img class="dB w48 h48 brp50" src="{{ answer.member.image_url }}">
                         </div>
@@ -289,6 +298,18 @@
                         <div class="bs c9 fs13 fwM ls05 p12" id="dismiss_add_email">DISMISS</div>
                     </div>
                 </div>
+                <div class="ui modal ffR p24 bs w280 pb12" id="secondary_email">
+                    <p class="c0 fs16 fwM lh24 mb16">Change Email ID</p>
+                    <p class="c9 fs15 fwR lh22 mb16">
+                        Update your email ID below for further communications.
+                    </p>
+                    <form class="ui form mb16 p0">
+                        <input class="bd0 br8 bxs p16 h48 oH pR fs15" type="text" name="first-name" placeholder="Enter your email id" id="secondary_email_text">
+                    </form>
+                    <div class="taR fs13 ">
+                        <div class="bs cT dIb fs13 fwM ls05 p120 taC vM" id="update_secondary_email">SUBMIT</div>
+                    </div>
+                </div>
             {% else %}
                 <!-- Attending pop -->
                 <div class="pF l0 r0 t0 b0 dN z12" id="attend_overlay">
@@ -334,34 +355,26 @@
                     <p class="p0 fs15 lh22 c9 mb16" id="login_text">This is a closed community event. Continue with any of the following options to register yourself for this event and apply to join the community.</p>
                     <div class="w120 bdtE bs mA"></div>
                     <p class="fs13 fwR lh22 ls05 mb10 mt12 p0">Login to continue</p>
-                    {% if request.user.is_authenticated %}
-                        <div class="content">
-                            <button class="ui fluid button " style=" z-index:2;width:60%; left:20%;  margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;"
-                                onclick="join('{{community_id}}')">Join this community</button>
-                        </div>
-                        <div style="height:10px"></div>
-                    {% elif not request.user.is_authenticated %}
-                        <div class="p160 ls05">
-                            <div class="fs12 mb16">
-                                <div class="googleSignin p12 bs br20 bgF c79 ffR fwM bdE c79h dN" data-next="/community/{{community.id}}?cta=join&event={{collabcard.id}}">
-                                    <i class="dIb fa fa-google fs15 lh16 vM"></i>
-                                    <span  class="dIb lh16 pl12 vM">LOGIN WITH GOOGLE</span>
-                                </div>
-                            </div>
-                            <div class="fs12 mb16">
-                                <a class="p12 bs dB br20 tdN bgLi cF ffR fwM cFh" href="{% url 'social:begin' 'linkedin-oauth2' %}?next=/community/{{community.id}}?cta=join&event={{collabcard.id}}">
-                                    <i class="dIb fa fa-linkedin fs15 lh16 vM"></i>
-                                    <span  class="dIb lh16 pl12 vM">LOGIN WITH LINKEDIN</span>
-                                </a>
-                            </div>
-                            <div class="fs12">
-                                <a class="p12 bs dB br20 tdN bgFb cF ffR fwM cFh" href="{% url 'social:begin' 'facebook' %}?next=/community/{{community.id}}?cta=join&event={{collabcard.id}}">
-                                    <i class="fa fa-facebook dIb fs15 lh16 vM" ></i>
-                                    <span class="dIb lh16 pl12 vM">LOGIN WITH FACEBOOK</span>
-                                </a>
+                    <div class="p160 ls05">
+                        <div class="fs12 mb16">
+                            <div class="googleSignin p12 bs br20 bgF c79 ffR fwM bdE c79h dN" data-next="/community/{{community.id}}?cta=join&event={{collabcard.id}}">
+                                <i class="dIb fa fa-google fs15 lh16 vM"></i>
+                                <span  class="dIb lh16 pl12 vM">LOGIN WITH GOOGLE</span>
                             </div>
                         </div>
-                    {% endif %}
+                        <div class="fs12 mb16">
+                            <a class="p12 bs dB br20 tdN bgLi cF ffR fwM cFh" href="{% url 'social:begin' 'linkedin-oauth2' %}?next=/community/{{community.id}}?cta=join&event={{collabcard.id}}">
+                                <i class="dIb fa fa-linkedin fs15 lh16 vM"></i>
+                                <span  class="dIb lh16 pl12 vM">LOGIN WITH LINKEDIN</span>
+                            </a>
+                        </div>
+                        <div class="fs12">
+                            <a class="p12 bs dB br20 tdN bgFb cF ffR fwM cFh" href="{% url 'social:begin' 'facebook' %}?next=/community/{{community.id}}?cta=join&event={{collabcard.id}}">
+                                <i class="fa fa-facebook dIb fs15 lh16 vM" ></i>
+                                <span class="dIb lh16 pl12 vM">LOGIN WITH FACEBOOK</span>
+                            </a>
+                        </div>
+                    </div>
                 </div>
             </div>
         {% endif %}
@@ -376,36 +389,197 @@
     </div>
 
     <script>
+
+        $(document.body).on('click','.member_link',function(e){
+            var member_id = $(this).attr('member_id');
+            {% if request.user.is_authenticated %}
+                {% if member_state.state == 3 %}
+                    $('#add_email_pop').modal('show');
+                {% else %}
+                    showMemberProfile(member_id);
+                {% endif %}
+            {% else %}
+                $('.test').modal('show');
+            {% endif %}
+        });
+
         {% if request.user.is_authenticated %}
-            {% if not request.user.email and request.user.id != 37 and request.user.id != 176 %}        //admin handling case
-                //email_login popup start
-                $('#email_login').modal('show');
-                $('#email_login').modal({
-                    backdrop:'static',
-                    keyboard: false,
-                });
-                $('#email_submit').click(function(){
-                    email=$('#email_input').val()
-                    console.log(email);
-                    $.ajax({
-                        url:'/update_user_info/'+email,
-                        success:function(data){
-                            console.log(data)
-                        }
-                    })
-                })
-                //email_login popup end
-            {% elif member_state.state == 3 %}
+            {% if member_state.state == 3 %}
                 // pending member approval
                 $('#add_email_pop').modal('show');
                 $('#dismiss_add_email').click(function(e){
                     $('#add_email_pop').modal('hide');
                 });
+                $('#add_email').click(function(e){
+                    $('#add_email_pop').modal('hide');
+                    $('#secondary_email').modal('show');
+                });
+                $('#update_secondary_email').click(function(e){
+                    var email = $('#secondary_email_text').val();
+                    console.log(email);
+                    var json_data = {
+                        'data':'{{request.user.id}}',
+                        'email':email,
+                        'csrfmiddlewaretoken':'{{csrf_token}}',
+                    }
+                    $(".ldrT", $('#loader')[0]).text("Making request...");
+                    $('#loader').show();
+                    $.ajax({
+                        url: "/update_email",
+                        data: json_data,
+                        type: "POST",
+                        dataType: 'json',
+                        success: function(data) {
+                            $('#secondary_email').modal('hide');
+                            $('#loader').hide();
+                        },
+                        error: function(){
+                            $('#loader').hide();
+                        }
+                    })
+                })
             {% else %}
                 // attending overlay
                 $('#attending_pop').click(function(e){
                     $('#attend_overlay').show();
                 });
+
+                function showMemberProfile(member_id){
+                    var community_id = {{community.id}};
+                    json_data = {
+                        'data':member_id,
+                        'community_id':community_id,
+                        'csrfmiddlewaretoken':'{{csrf_token}}',
+                    }
+                    console.log(json_data);
+                    $.ajax({
+                        url:"/member_profile",
+                        data:json_data,
+                        type:"POST",
+                        dataType:'json',
+                        success:function(data){
+                            console.log(data['answer_list'])
+                            html = `
+                                <div class="h96 mtn38 taC pR z1">
+                                    <div class="w96 h96 brp50 bd2F bs bxs oH dIb vM bgF">
+                                        <img class="w96 h96 ofC" src=${data['image_link']} >
+                                    </div>
+                                </div>
+                                <div class="pR mtn58 br8 oH bgF">
+                                    <div class="h96">
+                                        <img class="wp100 ofC h96" src="https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Fprofile_header?alt=media&token=fa838851-244c-4cbc-81da-3d2125536e18">
+                                    </div>
+                                    <div class="h2"></div>
+                                    <p class="p0 m0 taC fwM fs16 c0 lh20">${data['member_name']}</p>
+                                </div>
+                                <div class="p18 bs">
+                            `;
+                            var refined_answer_obj = data['answer_list'].reduce(function(returnValue, answer) {
+                                if(answer.answer_privacy !== false){
+                                    (returnValue[answer.rank] = returnValue[answer.rank] || []).push(answer);
+                                }
+                                return returnValue;
+                            }, {});
+            
+                            console.log('refined_answer_obj', refined_answer_obj);
+            
+                            // var refined_answer_array = Object.keys(refined_answer_obj).map(function (answer) {
+                            //     return f[answer]; 
+                            // });
+                            
+                            $.each( refined_answer_obj, function( index, value ) {
+                                segment = ""
+                                if (index == 1) {
+                                    segment = `
+                                            <div class="dT mb10 tlF wp100">
+                                                <div class="dTc h24 vM w24 taC"><img class="dIb mxh24 mxw24 vM" src="/media/main_website/ic_email_48_px.png" /></div>
+                                                <div class="c9b dTc fs13 vM lh1h16 p08 bs">
+                                    `;
+                                                    $.each( value, function( index2, value2 ){
+                                                        segment = segment + value2.answer;
+                                                        if ( index2 != value.length - 1 ) {
+                                                            segment = segment + ', ';
+                                                        }
+                                                    });
+                                    segment = segment + `
+                                                </div>
+                                            </div>
+                                    `;
+                                    html = html + segment;
+                                }else if(index == 2 ){
+                                    segment = `
+                                            <div class="dT mb10 tlF wp100">
+                                                <div class="dTc h24 vM w24 taC"><img class="dIb mxh24 mxw24 vM" src="/media/main_website/mobile_alt.png"/></div>
+                                                <div class="c9b dTc fs13 vM lh1h16 p08 bs">
+                                    `;
+                                                    $.each( value, function( index2, value2 ){
+                                                        segment = segment + value2.answer;
+                                                        if ( index2 != value.length - 1 ) {
+                                                            segment = segment + ', ';
+                                                        }
+                                                    });
+                                    segment = segment + `
+                                                </div>
+                                            </div>
+                                    `;
+                                    html = html + segment
+                                }else if(index == 3 ){
+                                    segment = `
+                                            <div class="dT mb10 tlF wp100">
+                                                <div class="dTc h24 vM w24 taC"><img class="dIb mxh24 mxw24 vM" src="/media/main_website/link.png"/></div>
+                                                <div class="c9b dTc fs13 vM lh1h16 p08 bs">
+                                    `;
+                                                    $.each( value, function( index2, value2 ){
+                                                        segment = segment + `<a class="cT tdN" href="//${value2['profile_link']}">${value2['answer']}</a>`;
+                                                        if ( index2 != value.length - 1 ) {
+                                                            segment = segment + ', ';
+                                                        }
+                                                    });
+                                    segment = segment + `
+                                                </div>
+                                            </div>
+                                    `;
+                                    html = html + segment
+                                }else if(index == 4){
+                                    segment = ''
+                                    $.each( value, function( index2, value2 ){
+                                        segment = segment + `<p class="c4a fs15 lh24 m160">${value2['answer']}</p>`;
+                                        if ( index2 != value.length - 1 ) {
+                                            segment = segment + ', ';
+                                        }
+                                    });
+                                    html = html + segment
+                                }else if(index == 5){
+                                    segment = ''
+                                    $.each( value, function( index2, value2 ){
+                                        segment = segment + `
+                                            <a class="cT dB m160 tdN" href="//${value2['file_link']}">
+                                                ${value2['answer']}
+                                            </a>
+                                        `;
+                                        if ( index2 != value.length - 1 ) {
+                                            segment = segment + ', ';
+                                        }
+                                    });
+                                    html = html + segment
+                                }else{
+                                    segment = ''
+                                    $.each( value, function( index2, value2 ){
+                                        segment = segment + `<p class="c9b fs15 lh24 m160 m80 ">${value2['answer']}</p>`;
+                                        
+                                    });
+                                    html = html + segment
+                                }
+                            })
+                            $('#display').html(html + '</div><div class="fs13 p12 taC fwM" id="dismiss1">DISMISS</div>')
+                            $('#display').modal('show');
+                            $(".dimmer").css("background-color","rgba(40,40,40,0.5)");
+                            $('#dismiss1').click(function(){
+                                $('#display').modal('hide');
+                            })
+                        }
+                    })
+                }
             {% endif %}
         {% endif %}
 
@@ -483,8 +657,8 @@
 
             {% if user.is_authenticated %}
                 function create_new_message(){
-                    var member_id={{request.user.id}};
-                    var collabcard_id={{collabcard.id}};
+                    var member_id= {{request.user.id}};
+                    var collabcard_id = {{collabcard.id}};
                     var msg=$('#msg').val();
                     if(msg == ''){return}
 
