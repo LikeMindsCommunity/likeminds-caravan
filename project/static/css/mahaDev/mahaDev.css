@@ -139,6 +139,7 @@ body ::-webkit-scrollbar { display: none; }
 .m0 { margin:0!important; }
 .mA { margin: auto; }
 .m160 { margin: 16px 0; }
+.m8 { margin: 8px; }
 .m80 { margin: 8px 0; }
 .mb10 { margin-bottom: 10px; }
 .mb8 { margin-bottom: 8px; }
@@ -185,6 +186,7 @@ body ::-webkit-scrollbar { display: none; }
 .p016 { padding: 0 16px; }
 .p1224 { padding: 12px 24px; }
 .p1624 { padding: 16px 24px; }
+.p2416 { padding: 24px 16px; }
 .p18 { padding: 18px; }
 .p24 { padding: 24px; }
 .p200 { padding: 20px 0;; }
@@ -192,6 +194,7 @@ body ::-webkit-scrollbar { display: none; }
 .pl12 { padding-left: 12px!important; }
 .pt2 { padding-top: 2px; }
 .pt4 { padding-top: 4px; }
+.pt8 { padding-top: 8px; }
 .pt16 { padding-top: 16px; }
 .pt24 { padding-top: 24px; }
 .pt48 { padding-top: 48px; }

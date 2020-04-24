@@ -3786,12 +3786,10 @@ def collabcard(request, card_id):
     page = request.GET.get('page', 1)
 
     current_user_id = get_member_id_from_headers(request)
-    print('current_user_id', current_user_id)
+
     if request.user.is_authenticated and not get_request_type(request):
         # user id from request if user in logged in
         current_user_id = request.user.id
-        print('current_user_id_update', request.user.email)
-        print('current_user_id_update', current_user_id)
         current_user_instance = Userinfo.objects.get(user_id=current_user_id)
         current_user = UserinfoSerializer(user=current_user_instance)
         current_user['collabcard_state'] = get_status_of_collabcard(current_user_id,cards.community,cards)
@@ -3869,19 +3867,15 @@ def collabcard(request, card_id):
             # set default event banner image
             card['banner_image'] = "//firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Fevent_banner.jpg?alt=media&token=4f6709df-8918-4227-8606-c11607d2d31b"
 
-            #print("card", card)
             # set time
-            card['start_time'] = card['date_time']
-            card['end_time'] = card['duration']
-
-            card['start_time'] = time.strftime('%A, %b %y, %H:%M', time.gmtime(card['start_time']/1000.0))
-            card['duration'] = time.strftime('%H hours %M minutes', time.gmtime(card['duration']/1000.0))
-            card['end_time'] = time.strftime('%A, %b %y', time.gmtime(card['end_time']/1000.0))
+            card['end_time'] = time.strftime('%A, %b %Y', time.localtime((card['duration'])/1000.0))
+            card['date_time'] = time.strftime('%A, %b %d, %H:%M', time.localtime(card['date_time']/1000.0))
+            card['duration'] = time.strftime('%H hours %M minutes', time.localtime(card['duration']/1000.0))
 
             # get members
             state_list = [collabcard_states.COLLABCARD_STATE_ATTEND_FOLLOWING,collabcard_states.COLLABCARD_STATE_ATTEND_UNFOLLOWING]
             members = get_members_data_for_collabcard(card_id, cards.community.id, current_user_id,state_list)
-            print("members", members)
+
             # set header
             header = {
                 'back': True,
@@ -4998,11 +4992,10 @@ def collabcard_attend(request):
     '''attending a event on a event card'''
 
     member_id = get_member_id_from_headers(request)
-    print("member_id", member_id)
+
     if request.user.is_authenticated and not get_request_type(request):
         # user id from request if user in logged in
         member_id = request.user.id
-        print("member_id1", member_id)
 
     collabcard_id = request.GET.get('collabcard_id')
     status = request.GET.get('value', 'true')
@@ -5010,7 +5003,6 @@ def collabcard_attend(request):
     collabcard_instance = Collabcard.objects.get(id=collabcard_id)
 
     user_instance = User.objects.get(id=member_id)
-    print("user_instance", user_instance)
 
     if status != 'true':
         status = False

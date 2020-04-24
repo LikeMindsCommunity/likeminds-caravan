@@ -1568,6 +1568,7 @@ def view_answers(request, card_id):
 
 def create_message(request):
     '''function to create a message to show'''
+
     member_id = request.GET.get('member_id')
     user_info = Userinfo.objects.get(user_id=member_id)
     user = UserinfoSerializer(user_info)
@@ -1582,7 +1583,7 @@ def create_message(request):
         'title': msg
     }
     link = api_url + 'create_answer'
-    create_answer = rqst.post(link, params=params, json=json_body)
+    # create_answer = rqst.post(link, params=params, json=json_body)
     return JsonResponse({'success': True, 'msg': msg, 'image_url': user['image_url'], 'name': user['name']})
 
 
