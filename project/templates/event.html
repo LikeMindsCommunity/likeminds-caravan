@@ -326,6 +326,19 @@
                         <div class="bs cT dIb fs13 fwM ls05 p120 taC vM" id="update_secondary_email">SUBMIT</div>
                     </div>
                 </div>
+                {% if collabcard.type == 6 %}
+                    <div class="ui modal test w300" id="open_event_join">
+                        <div class="h72 w72 brp50 bd2F bs bxs oH bgT mtn22 mA">
+                            <img class="h86 w86 mtn12 mln8 ofC" src="https://beta.likeminds.community/media/media/ic_launcher_round.png">
+                        </div>
+                        <div class="p24 bs taC ffR">
+                            <div class="fs17 lh22 c0 fwM">Join community</div>
+                            <p class="c9 fs15 lh22 mb16 mt8 p0">You must be a member to view the list of members attending this event and their community profile.</p>
+                            <div class="fs13 ls05 fwM p12 bs cT" id="open_event">JOIN NOW</div>
+                            <div class="bs c9 fs13 fwM ls05 p12" id="dismiss_open_event">DISMISS</div>
+                        </div>
+                    </div>
+                {% endif %}
             {% else %}
                 <!-- profile pop-up -->
                 <div class="ui modal w320" id="display"></div>
@@ -418,9 +431,21 @@
             var member_id = $(this).attr('member_id');
             {% if request.user.is_authenticated %}
                 {% if member_state.state == 0 %}
-                    $(".ldrT", $('#loader')[0]).text("Making request...");
-                    $('#loader').show();
-                    window.location.href = "/community/{{community.id}}?cta=join&event={{collabcard.id}}&type={{collabcard.type}}";
+                    {% if collabcard.type == 2 %}
+                        $(".ldrT", $('#loader')[0]).text("Making request...");
+                        $('#loader').show();
+                        window.location.href = "/community/{{community.id}}?cta=join&event={{collabcard.id}}&type={{collabcard.type}}";
+                    {% else %}
+                        $('#open_event_join').modal('show');
+                        $("#open_event").click(function(){
+                            $(".ldrT", $('#loader')[0]).text("Loading...");
+                            $('#loader').show();
+                            location.href = "/community/{{community.id}}?cta=join&event={{collabcard.id}}&type={{collabcard.type}}";
+                        });
+                        $('#open_event_join').click(function(e){
+                            $('#add_email_pop').modal('hide');
+                        });
+                    {% endif %}
                 {% else %}
                     {% if member_state.state == 3 %}
                         $('#add_email_pop').modal('show');
