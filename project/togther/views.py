@@ -304,7 +304,7 @@ def community(request, community_id):
                     isFromEvent = request.GET.get('event', '')
                     # if from event page and already a member redirect to event page
                     if isFromEvent:
-                        return redirect("/collabcard/"+isFromEvent)
+                        return redirect("/collabcard/"+isFromEvent+"?email=true")
                     else:
                         pass
             else:
