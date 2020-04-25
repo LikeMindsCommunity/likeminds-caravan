@@ -7,7 +7,7 @@ import re
 import ast
 import time
 from datetime import datetime
-import datetime
+#import datetime
 import requests as rqst
 import dateutil.relativedelta
 import googlemaps
@@ -3801,6 +3801,8 @@ def collabcard(request, card_id):
     answer_id = request.GET.get('answer_id', '')
     user_id = request.GET.get('member_id', '')
 
+
+
     if answer_id:
         answer_id = int(answer_id)
 
@@ -3969,6 +3971,8 @@ def get_collabcard_details_for_web(request,card_instance,card,current_user_id,an
             'banner_image'] = "//firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Fevent_banner.jpg?alt=media&token=4f6709df-8918-4227-8606-c11607d2d31b"
 
         # set time
+        # print("current_time--",time.time())
+        # print("end_date--",card['end_date']/1000.0)
         if time.time() > card['end_date'] / 1000.0:
             card['event_ended'] = True
 
@@ -3981,6 +3985,10 @@ def get_collabcard_details_for_web(request,card_instance,card,current_user_id,an
         state_list = [collabcard_states.COLLABCARD_STATE_ATTEND_FOLLOWING,
                       collabcard_states.COLLABCARD_STATE_ATTEND_UNFOLLOWING]
         members = get_members_data_for_collabcard(card_instance.id, card_instance.community.id, current_user_id, state_list)
+
+        #co_hosts = json.loads(card_instance.co_hosts) if card_instance.co_hosts else []
+
+
 
         # set header
         header = {
