@@ -100,6 +100,8 @@
                             <div class="fs16 lh21 c4a">Link visible for attendees</div>
                         {% elif current_user.collabcard_state == 3 or current_user.collabcard_state == 4 %}
                             <div class="fs16 lh21"><a class="tdN cT" href="{{ collabcard.online_link }}">{{ collabcard.online_link }}</a></div>
+                        {% else %}
+                            <div class="fs16 lh21 c4a">Link visible for attendees</div>
                         {% endif %}
                     {% else %}
                         <div class="fs16 lh21 c4a">Link visible for attendees</div>
