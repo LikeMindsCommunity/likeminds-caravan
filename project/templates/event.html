@@ -107,6 +107,7 @@
                 </div>
             </div>
         {% endif %}
+
         <div class="p24 bs bdbE bs">
             <div class="fs14 fwR c9b">Posted By</div>
             <div class="pt16 bs">
@@ -135,18 +136,21 @@
                 </div>
             </div>
         {% endif %}
-        <div class="p24 bs bdbE bs">
+        {% if collabcard.co_hosts %}
+            <div class="p24 bs bdbE bs">
             <div class="fs14 fwR c9b lh30">Hosts</div>
             <div class="pt16 bs">
                 <!-- each host in co host -->
-                <div class="dT wp100 bs member_link" member_id="{{collabcard.member.id}}">
+                {% for host in collabcard.co_hosts %}
+                <div class="h86">
+                    <div class="dT wp100 bs member_link" member_id="{{host.id}}">
                     <div class="bs dTc h64 w64">
-                        <img src="{{ collabcard.member.image_url }}" class="bd2F brp50 bxs dB h64 w64">
+                        <img src="{{ host.image_url }}" class="bd2F brp50 bxs dB h64 w64">
                     </div>
                     <div class="dTc vM pl16 bs fs15">
-                        <div class="c0 fwM">{{ collabcard.member.name }}</div>
+                        <div class="c0 fwM">{{ host.name }}</div>
                         <div class="lh20 c9 fwR pt4 bs">
-                            {% for question_answer in collabcard.member.question_answers %}
+                            {% for question_answer in host.question_answers %}
                                 {% if question_answer.state == 7 %}
                                     <p class="ffR p0 m0 fs15 lh20 lc2 dwB wboV oH">{{question_answer.value}}</p>
                                 {% endif %}
@@ -154,8 +158,11 @@
                         </div>
                     </div>
                 </div>
+                </div>
+                {% endfor %}
             </div>
         </div>
+        {% endif %}
         <div class="p2416 bs bdbE bs">
             <div class="dT wp100 p08 bs">
                 <div class="dTc vM w24 h24">

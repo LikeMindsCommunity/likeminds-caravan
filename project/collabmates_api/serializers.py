@@ -185,7 +185,9 @@ def CollabcardSerializer(card,user,community=None):
 
         if card.co_hosts:
             co_host_list = json.loads(card.co_hosts)
-            #co_host_list = list(map(int, co_host_list))
+            #co_host_list = [36]
+            if not user:
+                user = None
 
             collabcard['co_hosts'] = get_members_profile(member_ids=co_host_list,community_id=card.community.id,
                                                          current_user_id=user)
@@ -254,7 +256,7 @@ def get_member_count(community):
     return Members.objects.filter(community_id=community).filter(
         Q(state=1) | Q(state=2) | Q(state=4) | Q(state=7) | Q(state = 8)).count()
 
-def get_members_profile(member_ids,community_id,current_user_id):
+def get_members_profile(member_ids,community_id,current_user_id=None):
 
     '''function to get member profile from list of members ids'''
     member_profile_list = []
