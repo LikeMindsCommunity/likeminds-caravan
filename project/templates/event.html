@@ -195,12 +195,13 @@
                             </div>
                         </div>
                     {% endif %}
-                {% else %}
+                {% elif collabcard.type == 2 %}
                     <!-- if not logged in -->
                     <div class=mnh200></div>
                     <div class="pA t0 b0 l0 r0 bgFo96 z1" onclick="attend(true)">
                         <div class="dT wp100 hp100 taC">
-                            <div class="c0 fs15 lh21 dTc vM">You must be a member of the community to view the conversations.</div>
+                            <div class="c0 fs15 lh21 dTc vM">
+                                You must be a member of the community to view the conversations.</div>
                         </div>
                     </div>
                 {% endif %}
@@ -249,7 +250,7 @@
                             </div>
                         </div>
                     {% endif %}
-                {% else %}
+                {% elif collabcard.type == 2  %}
                     <!-- if not logged in -->
                     <div class=mnh200></div>
                     <div class="pA t0 b0 l0 r0 bgFo96 z1" onclick="attend(true)">
@@ -369,24 +370,30 @@
                     <img class="h86 w86 mtn12 mln8 ofC" src="https://beta.likeminds.community/media/media/ic_launcher_round.png">
                 </div>
                 <div class="p24 bs taC ffR">
-                    <p class="p0 fs15 lh22 c9 mb16" id="login_text">This is a closed community event. Continue with any of the following options to register yourself for this event and apply to join the community.</p>
+                    <p class="p0 fs15 lh22 c9 mb16" id="login_text">
+                        {% if collabcard.type == 2 %}
+                            This is a closed community event. Continue with any of the following options to register yourself for this event and apply to join the community.
+                        {% else %}
+                            This is an open community event. Continue with any of the following options to register yourself for this event. You can also apply to join the community.
+                        {% endif %}
+                    </p>
                     <div class="w120 bdtE bs mA"></div>
                     <p class="fs13 fwR lh22 ls05 mb10 mt12 p0">Login to continue</p>
                     <div class="p160 ls05">
                         <div class="fs12 mb16">
-                            <div class="googleSignin p12 bs br20 bgF c79 ffR fwM bdE c79h dN" data-next="/community/{{community.id}}?cta=join&event={{collabcard.id}}">
+                            <div class="googleSignin p12 bs br20 bgF c79 ffR fwM bdE c79h dN" data-next="/community/{{community.id}}?cta=join&event={{collabcard.id}}&type={{collabcard.type}}">
                                 <i class="dIb fa fa-google fs15 lh16 vM"></i>
                                 <span  class="dIb lh16 pl12 vM">LOGIN WITH GOOGLE</span>
                             </div>
                         </div>
                         <div class="fs12 mb16">
-                            <a class="p12 bs dB br20 tdN bgLi cF ffR fwM cFh" href="{% url 'social:begin' 'linkedin-oauth2' %}?next=/community/{{community.id}}?cta=join&event={{collabcard.id}}">
+                            <a class="p12 bs dB br20 tdN bgLi cF ffR fwM cFh" href="{% url 'social:begin' 'linkedin-oauth2' %}?next=/community/{{community.id}}?cta=join&event={{collabcard.id}}&type={{collabcard.type}}">
                                 <i class="dIb fa fa-linkedin fs15 lh16 vM"></i>
                                 <span  class="dIb lh16 pl12 vM">LOGIN WITH LINKEDIN</span>
                             </a>
                         </div>
                         <div class="fs12">
-                            <a class="p12 bs dB br20 tdN bgFb cF ffR fwM cFh" href="{% url 'social:begin' 'facebook' %}?next=/community/{{community.id}}?cta=join&event={{collabcard.id}}">
+                            <a class="p12 bs dB br20 tdN bgFb cF ffR fwM cFh" href="{% url 'social:begin' 'facebook' %}?next=/community/{{community.id}}?cta=join&event={{collabcard.id}}&type={{collabcard.type}}">
                                 <i class="fa fa-facebook dIb fs15 lh16 vM" ></i>
                                 <span class="dIb lh16 pl12 vM">LOGIN WITH FACEBOOK</span>
                             </a>
@@ -413,7 +420,7 @@
                 {% if member_state.state == 0 %}
                     $(".ldrT", $('#loader')[0]).text("Making request...");
                     $('#loader').show();
-                    window.location.href = "/community/{{community.id}}?cta=join&event={{collabcard.id}}";
+                    window.location.href = "/community/{{community.id}}?cta=join&event={{collabcard.id}}&type={{collabcard.type}}";
                 {% else %}
                     {% if member_state.state == 3 %}
                         $('#add_email_pop').modal('show');
@@ -626,7 +633,7 @@
                 {% if member_state.state == 0 %}
                     $(".ldrT", $('#loader')[0]).text("Making request...");
                     $('#loader').show();
-                    window.location.href = "/community/{{community.id}}?cta=join&event={{collabcard.id}}";
+                    window.location.href = "/community/{{community.id}}?cta=join&event={{collabcard.id}}&type={{collabcard.type}}";
                 {% else %}
                     {% if member_state.state == 3 %}
                         $('.test').modal('show');
