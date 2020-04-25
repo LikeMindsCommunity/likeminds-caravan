@@ -429,7 +429,7 @@
         {% if request.user.is_authenticated %}
             {% if member_state.state == 3 %}
                 {% if request.GET.email %}
-                $('#add_email_pop').modal('show');
+                    $('#add_email_pop').modal('show');
                 {% endif %}
                 $('#dismiss_add_email').click(function(e){
                     $('#add_email_pop').modal('hide');
