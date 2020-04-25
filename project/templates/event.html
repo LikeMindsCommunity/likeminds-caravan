@@ -35,7 +35,7 @@
                         </div>
                     </div>
                 </div>
-            {% elif current_user.collabcard_state == 3 or current_user.collabcard_state == 4 %}
+            {% elif not member_state.state == 0 and current_user.collabcard_state == 3 or current_user.collabcard_state == 4 %}
                 <div class="p1624 bdbE bs dT wp100 fwR">
                     <div class="dT wp100 bs">
                         <div class="bs dTc h64 w64 member_link" member_id="{{current_user.id}}">
@@ -96,7 +96,7 @@
                 <div class="dTc vM pl30 bs">
                     <div class="fs16 c4a">Online event</div>
                     {% if request.user.is_authenticated %}
-                        {% if member_state.state == 3 %}
+                        {% if member_state.state == 3 or member_state.state == 0 %}
                             <div class="fs16 lh21 c4a">Link visible for attendees</div>
                         {% elif current_user.collabcard_state == 3 or current_user.collabcard_state == 4 %}
                             <div class="fs16 lh21"><a class="tdN cT" href="{{ collabcard.online_link }}">{{ collabcard.online_link }}</a></div>
@@ -163,8 +163,19 @@
                 <div class="dTc vM c06C3AF wsN">{{ collabcard.attending_count }} attending</div>
             </div>
             <div class="pt16 pR">
+                <!-- each member attending -->
+                {% for member in members %}
+                    {% if member.collabcard_state == 3 or member.collabcard_state == 4 %}
+                        <div class="m8 dIb vM w64 h64 member_link" member_id="{{member.id}}">
+                            <img src="{{ member.image_url }}" class="dB w64 h64 brp50" />
+                        </div>
+                    {% endif %}
+                    {% if forloop.counter == 8 %}
+                        <div class="p16 bdT br22 fs14 ls05 dIb w120 mA">SEE ALL</div>
+                    {% endif %}
+                {% endfor %}
                 {% if request.user.is_authenticated %}
-                    {% if collabcard.type == 2 and member_state.state == 3 or member_state.state == 5 %}
+                    {% if collabcard.type == 2 and member_state.state == 3 or member_state.state == 0 %}
                         <!-- if approval pending or declined -->
                         <div class=mnh200></div>
                         <div class="pA t0 b0 l0 r0 bgFo96 z1" onclick="attend(true)">
@@ -182,24 +193,13 @@
                         </div>
                     </div>
                 {% endif %}
-                <!-- each member attending -->
-                {% for member in members %}
-                    {% if member.collabcard_state == 3 or member.collabcard_state == 4 %}
-                        <div class="m8 dIb vM w64 h64 member_link" member_id="{{member.id}}">
-                            <img src="{{ member.image_url }}" class="dB w64 h64 brp50" />
-                        </div>
-                    {% endif %}
-                    {% if forloop.counter == 8 %}
-                        <div class="p16 bdT br22 fs14 ls05 dIb w120 mA">SEE ALL</div>
-                    {% endif %}
-                {% endfor %}
             </div>
         </div>
         <div class="p24 bs bdbE bs">
             <div class="fs14 fwR c9b lh30">Comments . {{ answers|length }}</div>
             <div class="pR">
                 {% if request.user.is_authenticated %}
-                    {% if member_state.state == 3 %}
+                    {% if member_state.state == 3 or member_state.state == 0 %}
                         <div class="pA t0 b0 l0 r0 z1" onclick="attend(true)"></div>
                     {% endif %}
                 {% else %}
@@ -212,8 +212,24 @@
                 </form>
             </div>
             <div class="pR pt16" id="comments">
+                {% for answer in answers %}
+                    <div class="dT wp100 pb12 pt16 bs member_link" member_id="{{answer.member.id}}">
+                        <div class="dTc vT w48 h48">
+                            <img class="dB w48 h48 brp50" src="{{ answer.member.image_url }}">
+                        </div>
+                        <div class="dTc vT pl12 bs">
+                            <div class="dT wp100 tlF">
+                                <div class="dTc vM c0 lh18 fs14 fwM">{{ answer.member.name }}</div>
+                                <div class="dTc vM taR fs12 c9b">{{ answer.created_at }}</div>
+                            </div>
+                            <div class="bdbE bs c4a fs13 lh20 pb24 pt8">
+                                {{ answer.answer }}
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
                 {% if request.user.is_authenticated %}
-                    {% if member_state.state == 3 %}
+                    {% if member_state.state == 3 or member_state.state == 0 %}
                         <!-- if pending or declined member -->
                         <div class=mnh200></div>
                         <div class="pA t0 b0 l0 r0 bgFo96 z1" onclick="attend(true)">
@@ -231,30 +247,14 @@
                         </div>
                     </div>
                 {% endif %}
-                {% for answer in answers %}
-                    <div class="dT wp100 pb12 pt16 bs member_link" member_id="{{answer.member.id}}">
-                        <div class="dTc vT w48 h48">
-                            <img class="dB w48 h48 brp50" src="{{ answer.member.image_url }}">
-                        </div>
-                        <div class="dTc vT pl12 bs">
-                            <div class="dT wp100 tlF">
-                                <div class="dTc vM c0 lh18 fs14 fwM">{{ answer.member.name }}</div>
-                                <div class="dTc vM taR fs12 c9b">{{ answer.created_at }}</div>
-                            </div>
-                            <div class="bdbE bs c4a fs13 lh20 pb24 pt8">
-                                {{ answer.answer }}
-                            </div>
-                        </div>
-                    </div>
-                {% endfor %}
             </div>
         </div>
         
         <div class="h60"></div>
         <!-- Displaying Buttons -->
         <div class="taC pF b0 l0 r0 h60 bdtE bgF z1">
-            {% if request.user.is_authenticated and not collabcard.event_ended %}
-                {% if member_state.state == 3 %}
+            {% if request.user.is_authenticated %}
+                {% if member_state.state == 3 or collabcard.event_ended %}
                     <!-- Approval Pending -->
                     {% include 'components/download_app_bar.html' with title='Use the LikeMinds app' subtitle='Keep track of all event updates on app'  %}
                 {% elif current_user.collabcard_state == 3 or current_user.collabcard_state == 4 %}
@@ -267,7 +267,7 @@
                         <div class="dIb vM">ATTEND</div>
                     </button>
                 {% endif %}
-            {% elif collabcard.event_ended  %}
+            {% elif collabcard.event_ended %}
                 {% include 'components/download_app_bar.html' with title='Use the LikeMinds app' subtitle='Keep track of all event updates on app'  %}
             {% else %}
                 <button class="m80 h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU ls05" id="bottom_button" onclick="attend(true)">
@@ -289,7 +289,7 @@
                     </div>
                     <div class="ui positive right labeled icon button" style="background-color:#00897b;" id="email_submit">Submit</div>
                 </div>
-            {% elif member_state.state == 3 %}
+            {% elif member_state.state == 3 or member_state.state == 0 %}
                 <!-- pending member -->
                 <div class="ui modal test w300" id="add_email_pop">
                     <div class="h72 w72 brp50 bd2F bs bxs oH bgT mtn22 mA">
@@ -399,10 +399,16 @@
         $(document.body).on('click','.member_link',function(e){
             var member_id = $(this).attr('member_id');
             {% if request.user.is_authenticated %}
-                {% if member_state.state == 3 %}
-                    $('#add_email_pop').modal('show');
+                {% if member_state.state == 0 %}
+                    $(".ldrT", $('#loader')[0]).text("Making request...");
+                    $('#loader').show();
+                    window.location.href = "/community/{{community.id}}?cta=join&event={{collabcard.id}}";
                 {% else %}
-                    showMemberProfile(member_id);
+                    {% if member_state.state == 3 %}
+                        $('#add_email_pop').modal('show');
+                    {% else %}
+                        showMemberProfile(member_id);
+                    {% endif %}
                 {% endif %}
             {% else %}
                 $('.test').modal('show');
@@ -411,8 +417,9 @@
 
         {% if request.user.is_authenticated %}
             {% if member_state.state == 3 %}
-                // pending member approval
+                {% if request.GET.email %}
                 $('#add_email_pop').modal('show');
+                {% endif %}
                 $('#dismiss_add_email').click(function(e){
                     $('#add_email_pop').modal('hide');
                 });
@@ -592,7 +599,7 @@
                         }
                     })
                 }
-            {% endif %}
+            {% endif %}     
         {% endif %}
 
         $('#back_click').click(function(){
@@ -603,32 +610,33 @@
             {% endif %}
         });
 
-        function join(community_id){
-            console.log(1);
-            {% if user.is_authenticated %}
-                window.open("/"+"community/"+community_id+"?cta=join",'_self');
-            {% else %}
-                $('.test').modal('show');
-            {% endif %}
-        }
-
         function attend(isAttending){
             {% if user.is_authenticated %}
-                $(".ldrT", $('#loader')[0]).text("Making request...");
-                $('#loader').show();
-                //debugger;
-                $.ajax({
-                    url: '/api/collabcard_attend?collabcard_id={{collabcard.id}}&value='+isAttending,
-                    success:function(data){
-                        console.log('attend api success');
-                        window.location.href = window.location.href;
-                        // $('#loader').hide();
-                    },
-                    error: function(data){
-                        console.log('attend api fail');
-                        $('#loader').hide();
-                    }
-                })
+                {% if member_state.state == 0 %}
+                    $(".ldrT", $('#loader')[0]).text("Making request...");
+                    $('#loader').show();
+                    window.location.href = "/community/{{community.id}}?cta=join&event={{collabcard.id}}";
+                {% else %}
+                    {% if member_state.state == 3 %}
+                        $('.test').modal('show');
+                    {% else %}
+                        $(".ldrT", $('#loader')[0]).text("Making request...");
+                        $('#loader').show();
+                        //debugger;
+                        $.ajax({
+                            url: '/api/collabcard_attend?collabcard_id={{collabcard.id}}&value='+isAttending,
+                            success:function(data){
+                                console.log('attend api success');
+                                window.location.href = window.location.href;
+                                // $('#loader').hide();
+                            },
+                            error: function(data){
+                                console.log('attend api fail');
+                                $('#loader').hide();
+                            }
+                        })
+                    {% endif %}
+                {% endif %}
             {% else %}
                 $('.test').modal('show');
             {% endif %}
@@ -651,21 +659,6 @@
                     $('.test').modal('show');
                 {% endif %}
             });
-
-            {% if request.user.is_authenticated %}
-                {% if not is_member %}
-                    $('#view_answer').click(function(){
-                        var element = document.getElementById("login_text");
-                        {% if request.user.is_anonymous %}
-                            element.innerHTML = "To view answers, you need to be part of the <b>{{community_name}}</b> on LikeMinds";
-                            $('.test').modal('show');
-                        {% elif not is_member and request.user.is_authenticated%}
-                            element.innerHTML = "To view answers, you need to be part of the <b>{{community_name}}</b> on LikeMinds";
-                            $('.test').modal('show');
-                        {% endif %}
-                    });
-                {% endif %}
-            {% endif %}
 
             {% if user.is_authenticated %}
                 function create_new_message(){
