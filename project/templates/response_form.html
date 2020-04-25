@@ -156,7 +156,7 @@
 
             <!-- Displaying Buttons -->
             <div class="p8 bs taC pF b0 l0 r0 h60 bdtE bgBg z1">
-                <button class="ui button h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU ls05" id="simple_button" type="submit">SUBMIT</button>
+                <button class="loading" id="simple_button" type="submit">SUBMIT</button>
             </div>
 
             <div class="p8 bs taC pF b0 l0 r0 h60 bdtE bgBg z1 dN" id="loading_button">
@@ -697,11 +697,15 @@
                     data:{"data": JSON.stringify(values_list)},
                     dataType:'json',
                     success:function(data){
-                        console.log(data)
-                        {% if community.hide_community == '5' %}
-                            location.href="/community/"+'{{community.id}}?profile='+{{request.user.id}};
+                        console.log(data);
+                        {% if request.GET.event %}
+                            location.href = "/collabcard/{{request.GET.event}}?email=true";
                         {% else %}
-                            location.href="/refer_members/"+'{{community.id}}';
+                            {% if community.hide_community == '5' %}
+                                location.href="/community/"+'{{community.id}}?profile='+{{request.user.id}};
+                            {% else %}
+                                location.href="/refer_members/"+'{{community.id}}';
+                            {% endif %}
                         {% endif %}
                     }
                 });
