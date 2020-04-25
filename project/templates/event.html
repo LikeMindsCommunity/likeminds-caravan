@@ -127,12 +127,14 @@
                 </div>
             </div>
         </div>
-        <div class="p24 bs bdbE bs">
-            <div class="fs14 fwR c9b lh30">About Event</div>
-            <div class="lh20 c4a fs15 fwR pt16">
-                About event here. Event description here. This is demo description.
+        {% if collabcard.about %}
+            <div class="p24 bs bdbE bs">
+                <div class="fs14 fwR c9b lh30">About Event</div>
+                <div class="lh20 c4a fs15 fwR pt16">
+                    {{collabcard.about}}
+                </div>
             </div>
-        </div>
+        {% endif %}
         <div class="p24 bs bdbE bs">
             <div class="fs14 fwR c9b lh30">Hosts</div>
             <div class="pt16 bs">

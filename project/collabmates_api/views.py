@@ -7,6 +7,7 @@ import re
 import ast
 import time
 from datetime import datetime
+import datetime
 import requests as rqst
 import dateutil.relativedelta
 import googlemaps
@@ -3971,9 +3972,10 @@ def get_collabcard_details_for_web(request,card_instance,card,current_user_id,an
         if time.time() > card['end_date'] / 1000.0:
             card['event_ended'] = True
 
-        card['end_time'] = time.strftime('%A, %b %Y', time.localtime(card['end_date'] / 1000.0))
+        card['end_time'] = time.strftime('%d %b %Y', time.localtime(card['end_date'] / 1000.0))
         card['date_time'] = time.strftime('%A, %b %d, %H:%M', time.localtime(card['date_time'] / 1000.0))
-        card['duration'] = time.strftime('%H hours %M minutes', time.localtime(card['duration'] / 1000.0))
+        card['duration'] = card['duration']/1000.0
+        card['duration'] = ConvertSectoDay(card['duration'])
 
         # get members
         state_list = [collabcard_states.COLLABCARD_STATE_ATTEND_FOLLOWING,
@@ -4385,6 +4387,47 @@ def text_for_community_live_subtitile(total_count,intro_collabcard_list,verified
             intro_name_list.append(instance.member.userinfo.name)
         return intro_name_list
 
+
+def ConvertSectoDay(n):
+
+    n=int(n)
+
+    day = n // (24 * 3600)
+
+    n = n % (24 * 3600)
+    hour = n // 3600
+
+    n %= 3600
+    minutes = n // 60
+
+    n %= 60
+    seconds = n
+    time_text = ""
+
+    #checking day
+    if day !=0:
+        if day == 1:
+            time_text = str(day)+" day "
+        else:
+            time_text = str(day) + " days "
+
+    if hour != 0:
+        if hour == 1:
+            time_text = time_text + str(hour) + " hour "
+        else:
+            time_text = time_text + str(hour) + " hours "
+
+
+    if minutes != 0:
+        if minutes == 1:
+            time_text = time_text+ "and " + str(minutes) + " minute "
+        else:
+            time_text = time_text +  "and " + str(minutes) + " minutes "
+
+
+
+
+    return time_text
 
 
 
