@@ -98,12 +98,20 @@
                 <div class="dTc vM pl30 bs">
                     <div class="fs16 c4a">Online event</div>
                     {% if request.user.is_authenticated %}
-                        {% if member_state.state == 3 or member_state.state == 0 %}
-                            <div class="fs16 lh20 c9 pt2 bs">Link visible for attendees</div>
-                        {% elif current_user.collabcard_state == 3 or current_user.collabcard_state == 4 %}
-                            <div class="fs16 lh20"><a class="tdN cT" href="{{ collabcard.online_link }}">{{ collabcard.online_link }}</a></div>
+                        {% if collabcard.type == 2 %}
+                            {% if member_state.state == 3 or member_state.state == 0 %}
+                                <div class="fs16 lh20 c9 pt2 bs">Link visible for attendees</div>
+                            {% elif current_user.collabcard_state == 3 or current_user.collabcard_state == 4 %}
+                                <div class="fs16 lh20"><a class="tdN cT" href="{{ collabcard.online_link }}">{{ collabcard.online_link }}</a></div>
+                            {% else %}
+                                <div class="fs16 lh20 c9 pt2 bs">Link visible for attendees</div>
+                            {% endif %}
                         {% else %}
-                            <div class="fs16 lh20 c9 pt2 bs">Link visible for attendees</div>
+                            {% if current_user.collabcard_state == 3 or current_user.collabcard_state == 4 %}
+                                <div class="fs16 lh20"><a class="tdN cT" href="{{ collabcard.online_link }}">{{ collabcard.online_link }}</a></div>
+                            {% else %}
+                                <div class="fs16 lh20 c9 pt2 bs">Link visible for attendees</div>
+                            {% endif %}
                         {% endif %}
                     {% else %}
                         <div class="fs16 lh20 c9 pt2 bs">Link visible for attendees</div>
@@ -300,16 +308,7 @@
         </div>
 
         {% if request.user.is_authenticated %}
-            {% if not request.user.email and request.user.id != 37 and request.user.id != 176 %} 
-                <div class="ui modal ffR p24 bs w280" id="email_login">
-                    <p class="c0 fs16 fwM lh24 mb16">Please provide your email id in order to continue</p>
-                    <div class="field">
-                        <label>E-mail</label>
-                        <input type="email" placeholder="Enter your email id" id="email_input">
-                    </div>
-                    <div class="ui positive right labeled icon button" style="background-color:#00897b;" id="email_submit">Submit</div>
-                </div>
-            {% elif member_state.state == 3 or member_state.state == 0 %}
+            {% if member_state.state == 3 or member_state.state == 0 %}
                 <!-- pending member -->
                 <div class="ui modal test w300" id="add_email_pop">
                     <div class="bd2F bgT brp50 bs bxs h72 mA mtn22 oH pR w72">
@@ -350,6 +349,8 @@
             {% else %}
                 <!-- profile pop-up -->
                 <div class="ui modal w320" id="display"></div>
+            {% endif %}
+            {% if current_user.collabcard_state == 3 or current_user.collabcard_state == 4 %}
                 <!-- Attending pop -->
                 <div class="pF l0 r0 t0 b0 dN z12" id="attend_overlay">
                     <div onclick="$('#attend_overlay').hide()" class="pA t0 b0 l0 r0 bg0o05 fadeIn ad04 o0"></div>
