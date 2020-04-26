@@ -217,12 +217,10 @@
                 {% if request.user.is_authenticated %}
                     {% if collabcard.type == 2 %}
                         {% if member_state.state == 3 or member_state.state == 0 %}
-                            <!-- com 1 -->
                             <div class="pA t0 b0 l0 r0 z1" onclick="attend(true)"></div>
                         {% endif %}
                     {% endif %}
                 {% else %}
-                    <!-- com 2 -->
                     <div class="pA t0 b0 l0 r0 z1" onclick="attend(true)"></div>
                 {% endif %}
                 <form class="h40 pt16 bs dT wp100" id="submit_commit">
@@ -321,7 +319,7 @@
                         <div class="fs17 lh22 c0 fwM">Congrats!</div>
                         <p class="c9 fs15 lh22 mb16 mt8 p0">Your application has been submitted successfully. You will receive a confirmation on your email ID : <span class="c007aff">{{request.user.email}}</span></p>
                         <div class="fs13 ls05 fwM p12 bs cT" id="add_email">ADD ANOTHER EMAIL</div>
-                        <div class="bs c9 fs13 fwM ls05 p12" id="dismiss_add_email">DISMISS</div>
+                        <div class="bs c9 fs13 fwM ls05 p12 pb0" id="dismiss_add_email">DISMISS</div>
                     </div>
                 </div>
                 <div class="ui modal ffR p24 bs w280 pb12" id="secondary_email">
