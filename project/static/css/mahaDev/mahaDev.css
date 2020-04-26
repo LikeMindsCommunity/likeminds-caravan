@@ -165,7 +165,7 @@ body ::-webkit-scrollbar { display: none; }
 .mtn8 { margin-top: -8px; }
 .mtn12 { margin-top: -12px; }
 .mln8 { margin-left: -8px; }
-.mln2 { margin-left: -2px; }
+.mln2 { margin-left: -2\px; }
 
 .mb20 { margin-bottom: 20px; }
 .mr16 { margin-right: 16px; }
@@ -210,6 +210,7 @@ body ::-webkit-scrollbar { display: none; }
 .p120 { padding: 12px 0; }
 .p48 { padding: 4px 8px; }
 .pb24 { padding-bottom: 24px!important; }
+.pb0 { padding-bottom: 0; }
 
 .wsN { white-space: nowrap; }
 

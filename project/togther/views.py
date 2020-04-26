@@ -1583,7 +1583,7 @@ def create_message(request):
         'title': msg
     }
     link = api_url + 'create_answer'
-    # create_answer = rqst.post(link, params=params, json=json_body)
+    create_answer = rqst.post(link, params=params, json=json_body)
     return JsonResponse({'success': True, 'msg': msg, 'image_url': user['image_url'], 'name': user['name']})
 
 
