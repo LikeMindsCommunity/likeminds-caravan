@@ -2,7 +2,17 @@
     <img class="wp100 pA l0 r0 b0" src='{{data.image}}'>
     <div class="bs pR taC">
         <h1 class="m0 p8 fs16 cF fwR lh24 ffR o8 bs">
-            <div>{{data.header}}</div>
+            <div>
+                {% if request.GET.event %}
+                    {% if request.GET.type == '2' %}
+                        To attend the event, join this community:
+                    {% else %}
+                        To access complete details of this event & upcoming events, join community:
+                    {% endif %}
+                {% else %}
+                    {{data.header}}
+                {% endif %}
+            </div>
             <div>{{data.subHeader}}</div>
         </h1>
     </div>
