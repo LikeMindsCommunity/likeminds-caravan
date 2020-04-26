@@ -19,7 +19,7 @@
             {% endif %}
         </div>
         {% if request.user.is_authenticated and not collabcard.event_ended %}
-            {% if member_state.state == 3 %}
+            {% if member_state.state == 3 and collabcard.type == 2 %}
                 <!-- Approval Pending -->
                 <div class="p1624 bdbE bs dT wp100 fwR">
                     <div class="dT wp100 bs">
@@ -79,15 +79,17 @@
                 <div class="fs13 cd0021b pt2 bs">{{ collabcard.end_time }}</div>
             </div>
         </div>
-        <!-- event location -->
-        <div class="p1624 bdbE bs dT wp100 fwR">
-            <div class="dTc vM w24">
-                {% include 'svgs/location.html' %}
+        {% if collabcard.location %}
+            <!-- event location -->
+            <div class="p1624 bdbE bs dT wp100 fwR">
+                <div class="dTc vM w24">
+                    {% include 'svgs/location.html' %}
+                </div>
+                <div class="dTc vM pl30 bs">
+                    <div class="fs16 c4a">{{ collabcard.location }}</div>
+                </div>
             </div>
-            <div class="dTc vM pl30 bs">
-                <div class="fs16 c4a">{{ collabcard.location }}</div>
-            </div>
-        </div>
+        {% endif %}
         {% if collabcard.online_link %}
             <div class="p1624 bdbE bs dT wp100 fwR">
                 <div class="dTc vM w24 c06C3AF">
@@ -96,15 +98,23 @@
                 <div class="dTc vM pl30 bs">
                     <div class="fs16 c4a">Online event</div>
                     {% if request.user.is_authenticated %}
-                        {% if member_state.state == 3 or member_state.state == 0 %}
-                            <div class="fs16 lh21 c4a">Link visible for attendees</div>
-                        {% elif current_user.collabcard_state == 3 or current_user.collabcard_state == 4 %}
-                            <div class="fs16 lh21"><a class="tdN cT" href="{{ collabcard.online_link }}">{{ collabcard.online_link }}</a></div>
+                        {% if collabcard.type == 2 %}
+                            {% if member_state.state == 3 or member_state.state == 0 %}
+                                <div class="fs16 lh20 c9 pt2 bs">Link visible for attendees</div>
+                            {% elif current_user.collabcard_state == 3 or current_user.collabcard_state == 4 %}
+                                <div class="fs16 lh20"><a class="tdN cT" href="{{ collabcard.online_link }}">{{ collabcard.online_link }}</a></div>
+                            {% else %}
+                                <div class="fs16 lh20 c9 pt2 bs">Link visible for attendees</div>
+                            {% endif %}
                         {% else %}
-                            <div class="fs16 lh21 c4a">Link visible for attendees</div>
+                            {% if current_user.collabcard_state == 3 or current_user.collabcard_state == 4 %}
+                                <div class="fs16 lh20"><a class="tdN cT" href="{{ collabcard.online_link }}">{{ collabcard.online_link }}</a></div>
+                            {% else %}
+                                <div class="fs16 lh20 c9 pt2 bs">Link visible for attendees</div>
+                            {% endif %}
                         {% endif %}
                     {% else %}
-                        <div class="fs16 lh21 c4a">Link visible for attendees</div>
+                        <div class="fs16 lh20 c9 pt2 bs">Link visible for attendees</div>
                     {% endif %}
                 </div>
             </div>
@@ -185,25 +195,27 @@
                         <div class="p16 bdT br22 fs14 ls05 dIb w120 mA">SEE ALL</div>
                     {% endif %}
                 {% endfor %}
-                {% if request.user.is_authenticated %}
-                    {% if collabcard.type == 2 and member_state.state == 3 or member_state.state == 0 %}
-                        <!-- if approval pending or declined -->
+                {% if collabcard.type == 2 %}
+                    {% if request.user.is_authenticated %}
+                        {% if member_state.state == 3 or member_state.state == 0 %}
+                            <!-- if approval pending or declined -->
+                            <div class=mnh200></div>
+                            <div class="pA t0 b0 l0 r0 bgFo96 z1" onclick="attend(true)">
+                                <div class="dT wp100 hp100 taC">
+                                    <div class="c0 fs15 lh20 dTc vM">You must be a member of the community to view the conversations.</div>
+                                </div>
+                            </div>
+                        {% endif %}
+                    {% else %}
+                        <!-- if not logged in -->
                         <div class=mnh200></div>
                         <div class="pA t0 b0 l0 r0 bgFo96 z1" onclick="attend(true)">
                             <div class="dT wp100 hp100 taC">
-                                <div class="c0 fs15 lh21 dTc vM">You must be a member of the community to view the conversations.</div>
+                                <div class="c0 fs15 lh20 dTc vM">
+                                    You must be a member of the community to view the conversations.</div>
                             </div>
                         </div>
                     {% endif %}
-                {% elif collabcard.type == 2 %}
-                    <!-- if not logged in -->
-                    <div class=mnh200></div>
-                    <div class="pA t0 b0 l0 r0 bgFo96 z1" onclick="attend(true)">
-                        <div class="dT wp100 hp100 taC">
-                            <div class="c0 fs15 lh21 dTc vM">
-                                You must be a member of the community to view the conversations.</div>
-                        </div>
-                    </div>
                 {% endif %}
             </div>
         </div>
@@ -211,15 +223,17 @@
             <div class="fs14 fwR c9b lh30">Comments . {{ answers|length }}</div>
             <div class="pR">
                 {% if request.user.is_authenticated %}
-                    {% if member_state.state == 3 or member_state.state == 0 %}
-                        <div class="pA t0 b0 l0 r0 z1" onclick="attend(true)"></div>
+                    {% if collabcard.type == 2 %}
+                        {% if member_state.state == 3 or member_state.state == 0 %}
+                            <div class="pA t0 b0 l0 r0 z1" onclick="attend(true)"></div>
+                        {% endif %}
                     {% endif %}
                 {% else %}
                     <div class="pA t0 b0 l0 r0 z1" onclick="attend(true)"></div>
                 {% endif %}
                 <form class="h40 pt16 bs dT wp100" id="submit_commit">
                     <div class="dTc vM">
-                        <input class="h40 p12 bs bgf2 br20 bd0 wp100 c9b" placeholder="Type your comment" id="comment_inp"/>
+                        <input class="h40 p1224 bs bgf2 br20 bd0 wp100 c9b" placeholder="Type your comment" id="comment_inp"/>
                     </div>
                 </form>
             </div>
@@ -240,24 +254,26 @@
                         </div>
                     </div>
                 {% endfor %}
-                {% if request.user.is_authenticated %}
-                    {% if member_state.state == 3 or member_state.state == 0 %}
-                        <!-- if pending or declined member -->
+                {% if collabcard.type == 2 %}
+                    {% if request.user.is_authenticated %}
+                        {% if member_state.state == 3 or member_state.state == 0 %}
+                            <!-- if pending or declined member -->
+                            <div class=mnh200></div>
+                            <div class="pA t0 b0 l0 r0 bgFo96 z1" onclick="attend(true)">
+                                <div class="dT wp100 hp100 taC">
+                                    <div class="c0 fs15 lh20 dTc vM">You must be a member of the community to view the conversations.</div>
+                                </div>
+                            </div>
+                        {% endif %}
+                    {% else  %}
+                        <!-- if not logged in -->
                         <div class=mnh200></div>
                         <div class="pA t0 b0 l0 r0 bgFo96 z1" onclick="attend(true)">
                             <div class="dT wp100 hp100 taC">
-                                <div class="c0 fs15 lh21 dTc vM">You must be a member of the community to view the conversations.</div>
+                                <div class="c0 fs15 lh20 dTc vM">You must be a member of the community to view the conversations.</div>
                             </div>
                         </div>
                     {% endif %}
-                {% elif collabcard.type == 2  %}
-                    <!-- if not logged in -->
-                    <div class=mnh200></div>
-                    <div class="pA t0 b0 l0 r0 bgFo96 z1" onclick="attend(true)">
-                        <div class="dT wp100 hp100 taC">
-                            <div class="c0 fs15 lh21 dTc vM">You must be a member of the community to view the conversations.</div>
-                        </div>
-                    </div>
                 {% endif %}
             </div>
         </div>
@@ -292,26 +308,17 @@
         </div>
 
         {% if request.user.is_authenticated %}
-            {% if not request.user.email and request.user.id != 37 and request.user.id != 176 %} 
-                <div class="ui modal ffR p24 bs w280" id="email_login">
-                    <p class="c0 fs16 fwM lh24 mb16">Please provide your email id in order to continue</p>
-                    <div class="field">
-                        <label>E-mail</label>
-                        <input type="email" placeholder="Enter your email id" id="email_input">
-                    </div>
-                    <div class="ui positive right labeled icon button" style="background-color:#00897b;" id="email_submit">Submit</div>
-                </div>
-            {% elif member_state.state == 3 or member_state.state == 0 %}
+            {% if member_state.state == 3 or member_state.state == 0 %}
                 <!-- pending member -->
                 <div class="ui modal test w300" id="add_email_pop">
-                    <div class="h72 w72 brp50 bd2F bs bxs oH bgT mtn22 mA">
-                        <img class="h86 w86 mtn12 mln8 ofC" src="https://beta.likeminds.community/media/media/ic_launcher_round.png">
+                    <div class="bd2F bgT brp50 bs bxs h72 mA mtn22 oH pR w72">
+                        <img class="h72 ofC w72 mtn2 mln2" src="https://beta.likeminds.community/media/media/ic_launcher_round.png">
                     </div>
                     <div class="p24 bs taC ffR">
                         <div class="fs17 lh22 c0 fwM">Congrats!</div>
                         <p class="c9 fs15 lh22 mb16 mt8 p0">Your application has been submitted successfully. You will receive a confirmation on your email ID : <span class="c007aff">{{request.user.email}}</span></p>
                         <div class="fs13 ls05 fwM p12 bs cT" id="add_email">ADD ANOTHER EMAIL</div>
-                        <div class="bs c9 fs13 fwM ls05 p12" id="dismiss_add_email">DISMISS</div>
+                        <div class="bs c9 fs13 fwM ls05 p12 pb0" id="dismiss_add_email">DISMISS</div>
                     </div>
                 </div>
                 <div class="ui modal ffR p24 bs w280 pb12" id="secondary_email">
@@ -329,19 +336,21 @@
                 {% if collabcard.type == 6 %}
                     <div class="ui modal test w300" id="open_event_join">
                         <div class="h72 w72 brp50 bd2F bs bxs oH bgT mtn22 mA">
-                            <img class="h86 w86 mtn12 mln8 ofC" src="https://beta.likeminds.community/media/media/ic_launcher_round.png">
+                            <img class="h72 ofC w72 mtn2 mln2" src="https://beta.likeminds.community/media/media/ic_launcher_round.png">
                         </div>
                         <div class="p24 bs taC ffR">
                             <div class="fs17 lh22 c0 fwM">Join community</div>
                             <p class="c9 fs15 lh22 mb16 mt8 p0">You must be a member to view the list of members attending this event and their community profile.</p>
                             <div class="fs13 ls05 fwM p12 bs cT" id="open_event">JOIN NOW</div>
-                            <div class="bs c9 fs13 fwM ls05 p12" id="dismiss_open_event">DISMISS</div>
+                            <div class="bs c9 fs13 fwM ls05 p12 pb0" id="dismiss_open_event">DISMISS</div>
                         </div>
                     </div>
                 {% endif %}
             {% else %}
                 <!-- profile pop-up -->
                 <div class="ui modal w320" id="display"></div>
+            {% endif %}
+            {% if current_user.collabcard_state == 3 or current_user.collabcard_state == 4 %}
                 <!-- Attending pop -->
                 <div class="pF l0 r0 t0 b0 dN z12" id="attend_overlay">
                     <div onclick="$('#attend_overlay').hide()" class="pA t0 b0 l0 r0 bg0o05 fadeIn ad04 o0"></div>
@@ -380,7 +389,10 @@
         {% else %}
             <div class="ui modal test w300">
                 <div class="h72 w72 brp50 bd2F bs bxs oH bgT mtn22 mA">
-                    <img class="h86 w86 mtn12 mln8 ofC" src="https://beta.likeminds.community/media/media/ic_launcher_round.png">
+                    <img class="h72 ofC w72 mtn2 mln2" src="https://beta.likeminds.community/media/media/ic_launcher_round.png">
+                </div>
+                <div class="h18 mt12 taC">
+                    <img class="h18 dIb vM" src="https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Flikeminds_logo_hdpi.png?alt=media&token=5f532ef2-20c6-4448-8efa-16e084494417"/>
                 </div>
                 <div class="p24 bs taC ffR">
                     <p class="p0 fs15 lh22 c9 mb16" id="login_text">
@@ -391,7 +403,7 @@
                         {% endif %}
                     </p>
                     <div class="w120 bdtE bs mA"></div>
-                    <p class="fs13 fwR lh22 ls05 mb10 mt12 p0">Login to continue</p>
+                    <p class="c0 fs13 fwR lh22 ls05 mb10 mt12 o25 p0">Login to continue</p>
                     <div class="p160 ls05">
                         <div class="fs12 mb16">
                             <div class="googleSignin p12 bs br20 bgF c79 ffR fwM bdE c79h dN" data-next="/community/{{community.id}}?cta=join&event={{collabcard.id}}&type={{collabcard.type}}">
@@ -442,8 +454,8 @@
                             $('#loader').show();
                             location.href = "/community/{{community.id}}?cta=join&event={{collabcard.id}}&type={{collabcard.type}}";
                         });
-                        $('#open_event_join').click(function(e){
-                            $('#add_email_pop').modal('hide');
+                        $('#dismiss_open_event').click(function(e){
+                            $('#open_event_join').modal('hide');
                         });
                     {% endif %}
                 {% else %}
@@ -655,7 +667,7 @@
 
         function attend(isAttending){
             {% if user.is_authenticated %}
-                {% if member_state.state == 0 %}
+                {% if member_state.state == 0 and collabcard.type == 2 %}
                     $(".ldrT", $('#loader')[0]).text("Making request...");
                     $('#loader').show();
                     window.location.href = "/community/{{community.id}}?cta=join&event={{collabcard.id}}&type={{collabcard.type}}";
@@ -717,7 +729,7 @@
                     $(".ldrT", $('#loader')[0]).text("Submitting your comment...");
                     $('#loader').show();
                     $.ajax({
-                        url: '/create_message',
+                        url: '/api/create_answer',
                         data: message,
                         dataType: 'json',
                         success: function(data){

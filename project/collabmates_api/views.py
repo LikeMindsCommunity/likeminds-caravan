@@ -3967,8 +3967,11 @@ def get_collabcard_details_for_web(request,card_instance,card,current_user_id,an
                                      req_dict={'community_id': card_instance.community.id, 'member_id': current_user_id})
 
         # set default event banner image
-        card[
-            'banner_image'] = "//firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Fevent_banner.jpg?alt=media&token=4f6709df-8918-4227-8606-c11607d2d31b"
+        card['banner_image'] = "https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Fevent_banner.jpg?alt=media&token=4f6709df-8918-4227-8606-c11607d2d31b"
+        # check if card hs banner image
+        if card['images'] and len(card['images']) > 0 and card['images'][0]['image_url']:
+            card['banner_image'] = card['images'][0]['image_url']
+
 
         # set time
         # print("current_time--",time.time())
