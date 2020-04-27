@@ -15,7 +15,7 @@
             {{collabcard.title}}
             <!-- Event ended -->
             {% if collabcard.event_ended %}
-                <div class="bdfe7e8d br8 bs cfe7e8d fs16 mt12 p8 taC bgfef2f3">This event has ended.</div>
+                <div class="bdfe7e8d bgfef2f3 br8 bs cfe7e8d fs16 lh20 mt12 p12 taC">This event has ended.</div>
             {% endif %}
         </div>
         {% if request.user.is_authenticated and not collabcard.event_ended %}
@@ -102,13 +102,13 @@
                             {% if member_state.state == 3 or member_state.state == 0 %}
                                 <div class="fs16 lh20 c9 pt2 bs">Link visible for attendees</div>
                             {% elif current_user.collabcard_state == 3 or current_user.collabcard_state == 4 %}
-                                <div class="fs16 lh20"><a class="tdN cT" href="{{ collabcard.online_link }}">{{ collabcard.online_link }}</a></div>
+                                <div class="fs16 lh20"><a class="tdN cT" target="_blank" href='//{{ collabcard.online_link|cut:" " }}'>{{ collabcard.online_link|cut:" " }}</a></div>
                             {% else %}
                                 <div class="fs16 lh20 c9 pt2 bs">Link visible for attendees</div>
                             {% endif %}
                         {% else %}
                             {% if current_user.collabcard_state == 3 or current_user.collabcard_state == 4 %}
-                                <div class="fs16 lh20"><a class="tdN cT" href="{{ collabcard.online_link }}">{{ collabcard.online_link }}</a></div>
+                                <div class="fs16 lh20"><a class="tdN cT" target="_blank" href='//{{ collabcard.online_link|cut:" " }}'>{{ collabcard.online_link|cut:" " }}</a></div>
                             {% else %}
                                 <div class="fs16 lh20 c9 pt2 bs">Link visible for attendees</div>
                             {% endif %}
@@ -175,50 +175,51 @@
             </div>
         </div>
         {% endif %}
-        <div class="p2416 bs bdbE bs">
-            <div class="dT wp100 p08 bs">
-                <div class="dTc vM w24 h24">
-                    {% include 'svgs/user_outline.html' %}
+        {% if members|length > 0 %}
+            <div class="p2416 bs bdbE bs">
+                <div class="dT wp100 p08 bs">
+                    <div class="dTc vM w24 h24">
+                        {% include 'svgs/user_outline.html' %}
+                    </div>
+                    <div class="dTc vM wp100 pl12 bs fwR fs14 c9b">Members Attending</div>
+                    <div class="dTc vM c06C3AF wsN">{{ collabcard.attending_count }} attending</div>
                 </div>
-                <div class="dTc vM wp100 pl12 bs fwR fs14 c9b">Members Attending</div>
-                <div class="dTc vM c06C3AF wsN">{{ collabcard.attending_count }} attending</div>
-            </div>
-            <div class="pt16 pR">
-                <!-- each member attending -->
-                {% for member in members %}
-                    {% if member.collabcard_state == 3 or member.collabcard_state == 4 %}
-                        <div class="m8 dIb vM w64 h64 member_link" member_id="{{member.id}}">
-                            <img src="{{ member.image_url }}" class="dB w64 h64 brp50" />
-                        </div>
-                    {% endif %}
-                    {% if forloop.counter == 8 %}
-                        <div class="p16 bdT br22 fs14 ls05 dIb w120 mA">SEE ALL</div>
-                    {% endif %}
-                {% endfor %}
-                {% if collabcard.type == 2 %}
-                    {% if request.user.is_authenticated %}
-                        {% if member_state.state == 3 or member_state.state == 0 %}
-                            <!-- if approval pending or declined -->
+                <div class="pt16 pR">
+                    <!-- each member attending -->
+                    {% for member in members %}
+                        {% if member.collabcard_state == 3 or member.collabcard_state == 4 %}
+                            <div class="m8 dIb vM w64 h64 member_link" member_id="{{member.id}}">
+                                <img src="{{ member.image_url }}" class="dB w64 h64 brp50" />
+                            </div>
+                        {% endif %}
+                        {% if forloop.counter == 8 %}
+                            <div class="p16 bdT br22 fs14 ls05 dIb w120 mA">SEE ALL</div>
+                        {% endif %}
+                    {% endfor %}
+                    {% if collabcard.type == 2 %}
+                        {% if request.user.is_authenticated %}
+                            {% if member_state.state == 3 or member_state.state == 0 %}
+                                <!-- if approval pending or declined -->
+                                <div class=mnh200></div>
+                                <div class="pA t0 b0 l0 r0 bgFo96 z1" onclick="attend(true)">
+                                    <div class="dT wp100 hp100 taC">
+                                        <div class="c0 fs15 lh20 dTc vM p08 bs">You must be a member of the community to view the conversations.</div>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        {% else %}
+                            <!-- if not logged in -->
                             <div class=mnh200></div>
                             <div class="pA t0 b0 l0 r0 bgFo96 z1" onclick="attend(true)">
                                 <div class="dT wp100 hp100 taC">
-                                    <div class="c0 fs15 lh20 dTc vM">You must be a member of the community to view the conversations.</div>
+                                    <div class="c0 fs15 lh20 dTc vM p08 bs">You must be a member of the community to view the conversations.</div>
                                 </div>
                             </div>
                         {% endif %}
-                    {% else %}
-                        <!-- if not logged in -->
-                        <div class=mnh200></div>
-                        <div class="pA t0 b0 l0 r0 bgFo96 z1" onclick="attend(true)">
-                            <div class="dT wp100 hp100 taC">
-                                <div class="c0 fs15 lh20 dTc vM">
-                                    You must be a member of the community to view the conversations.</div>
-                            </div>
-                        </div>
                     {% endif %}
-                {% endif %}
+                </div>
             </div>
-        </div>
+        {% endif %}
         <div class="p24 bs bdbE bs">
             <div class="fs14 fwR c9b lh30">Comments . {{ answers|length }}</div>
             <div class="pR">
@@ -427,13 +428,15 @@
                 </div>
             </div>
         {% endif %}
-
+        
+        {% if False %}
         <div class="dN member_state">{{member_state}}</div>
         <div class="dN current_user {{current_user.id}}">{{current_user}}</div>
         <div class="dN collabcard">{{collabcard}}</div>
         <div class="dN community">{{community}}</div>
         <div class="dN members">{{members}}</div>
         <div class="dN answers">{{answers}}</div>
+        {% endif %}
 
     </div>
 
@@ -721,16 +724,17 @@
                     var collabcard_id = {{collabcard.id}};
                     var msg = $('#comment_inp').val();
                     if(msg == ''){return}
-                    var message = {
-                        'collabcard_id': collabcard_id,
-                        'member_id': member_id,
-                        'message': msg
-                    }
+                    // var message = {
+                    //     'collabcard_id': collabcard_id,
+                    //     'member_id': member_id,
+                    //     'title': msg
+                    // }
                     $(".ldrT", $('#loader')[0]).text("Submitting your comment...");
                     $('#loader').show();
                     $.ajax({
-                        url: '/api/create_answer',
-                        data: message,
+                        url: '/api/create_answer?member_id='+member_id+"&collabcard_id="+collabcard_id,
+                        data: JSON.stringify({"title":msg}),
+                        type: 'POST',
                         dataType: 'json',
                         success: function(data){
                             var html = `
