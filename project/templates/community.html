@@ -878,7 +878,7 @@
 
         {% include 'scripts/google_auth.html' with client_id=google_oauth_client_id %}
 
-        {% include 'scripts/facebook_auth.html' %}
+        {% include 'scripts/facebook_auth.html' with facebook_auth_id=facebook_auth_id%}
 
     </body>
 </html>
