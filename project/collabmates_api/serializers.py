@@ -220,7 +220,7 @@ def CollabcardPollsSerializer(poll, user, card):
     polls = {
         'id': poll.id,
         'text': poll.text,
-        'is_selected': is_poll_selected(poll, user, card),
+        'is_selected': is_poll_selected(poll, user, card) if user else False
     }
 
     if poll.sub_text:

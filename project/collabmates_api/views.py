@@ -2654,7 +2654,7 @@ def create_card(request,req_dict=None):
             collabcardpolls_instance = CollabcardPolls()
             collabcardpolls_instance.card = card
             collabcardpolls_instance.text = poll['text']
-            collabcardpolls_instance.sub_text = poll['sub_text']
+            collabcardpolls_instance.sub_text = poll['sub_text'] if ('sub_text' in poll) else None
             collabcardpolls_instance.save()
 
 
@@ -4040,7 +4040,7 @@ def get_collabcard_details_for_web(request,card_instance,card,current_user_id,an
             'header': header,
             'google_oauth_client_id': settings.GOOGLE_OAUTH_CLIENT_ID,
         }
-
+        print(context)
         return context,"SIMPLE_CARD"
         #return render(request, 'collabcard.html', context)
 
