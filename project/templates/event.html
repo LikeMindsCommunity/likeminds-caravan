@@ -1,0 +1,773 @@
+{% extends request.is_ajax|yesno:"layouts/ajax.html,layouts/layout.html" %}
+
+{% block yeild %}
+
+    {% include 'components/loader.html' %}
+    
+    <div class="container mxw960 mA mt56 ffR">
+        
+        {% include 'components/header.html' with data=header %}
+        
+        <div class="mxh240 mb12 hv33 pR mnh200">
+            <img class="wp100 pA l0 r0 b0" src="{{ collabcard.banner_image }}">
+        </div>
+        <div class="p1224 ffR fwL fs24 lh36 c4a bdbE bs">
+            {{collabcard.title}}
+            <!-- Event ended -->
+            {% if collabcard.event_ended %}
+                <div class="bdfe7e8d bgfef2f3 br8 bs cfe7e8d fs16 lh20 mt12 p12 taC">This event has ended.</div>
+            {% endif %}
+        </div>
+        {% if request.user.is_authenticated and not collabcard.event_ended %}
+            {% if member_state.state == 3 and collabcard.type == 2 %}
+                <!-- Approval Pending -->
+                <div class="p1624 bdbE bs dT wp100 fwR">
+                    <div class="dT wp100 bs">
+                        <div class="bs dTc h64 w64">
+                            <img src="{{current_user.image_url}}" class="bd2F brp50 bxs dB h64 w64">
+                        </div>
+                        <div class="dTc vM pl16 bs fs15">
+                            <div class="c0 fwM">State</div>
+                            <div class="lh20 c9 fwR pt4 bs">
+                                Approval Pending. Get notified as soon as you are approved.
+                            </div>
+                            <a class="dB mt8 bdT bs br22 p12 fs12 fwM ls05 w150 cT taC tdN" href="/download_the_app">DOWNLOAD APP</a>
+                        </div>
+                    </div>
+                </div>
+            {% elif not member_state.state == 0 and current_user.collabcard_state == 3 or current_user.collabcard_state == 4 %}
+                <div class="p1624 bdbE bs dT wp100 fwR">
+                    <div class="dT wp100 bs">
+                        <div class="bs dTc h64 w64 member_link" member_id="{{current_user.id}}">
+                            <img src="{{current_user.image_url}}" class="bd2F brp50 bxs dB h64 w64">
+                        </div>
+                        <div class="dTc vM pl16 bs fs15">
+                            <div class="lh20 c9 fwR pt4 bs">
+                                You confirmed that you are attending this event.
+                            </div>
+                            <div class="w150 bdT br22 bs cT fs12 fwM ls05 mt8 p8 taC wsN" id="attending_pop">
+                                <div class="dIb h16 vM">
+                                    <svg viewBox="0 0 24 24" class="h16 w16"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"></path></svg>
+                                </div>
+                                <div class="dIb p08 vM">ATTENDING</div>
+                                <div class="dIb h16 vM">
+                                    <svg viewBox="0 0 24 24" class="h16 w16"><path d="M7.41,8.59L12,13.17l4.59-4.58L18,10l-6,6l-6-6L7.41,8.59z"></path></svg>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        {% endif %}
+        <!-- event start time -->
+        <div class="p1624 bdbE bs dT wp100 fwR">
+            <div class="dTc vM w24 c06C3AF">
+                {% include 'svgs/calendar.html' %}
+            </div>
+            <div class="dTc vM pl30 bs">
+                <div class="fs16 c4a">{{ collabcard.date_time }}</div>
+                <div class="fs13 c9b pt2 bs">For {{ collabcard.duration }}</div>
+            </div>
+        </div>
+        <!-- event end time -->
+        <div class="p1624 bdbE bs dT wp100 fwR">
+            <div class="dTc vM w24 cfe7e8d">
+                {% include 'svgs/calendar.html' %}
+            </div>
+            <div class="dTc vM pl30 bs">
+                <div class="fs16 c4a">Ends on</div>
+                <div class="fs13 cd0021b pt2 bs">{{ collabcard.end_time }}</div>
+            </div>
+        </div>
+        {% if collabcard.location %}
+            <!-- event location -->
+            <div class="p1624 bdbE bs dT wp100 fwR">
+                <div class="dTc vM w24">
+                    {% include 'svgs/location.html' %}
+                </div>
+                <div class="dTc vM pl30 bs">
+                    <div class="fs16 c4a">{{ collabcard.location }}</div>
+                </div>
+            </div>
+        {% endif %}
+        {% if collabcard.online_link %}
+            <div class="p1624 bdbE bs dT wp100 fwR">
+                <div class="dTc vM w24 c06C3AF">
+                    {% include 'svgs/click.html' %}
+                </div>
+                <div class="dTc vM pl30 bs">
+                    <div class="fs16 c4a">Online event</div>
+                    {% if request.user.is_authenticated %}
+                        {% if collabcard.type == 2 %}
+                            {% if member_state.state == 3 or member_state.state == 0 %}
+                                <div class="fs16 lh20 c9 pt2 bs">Link visible for attendees</div>
+                            {% elif current_user.collabcard_state == 3 or current_user.collabcard_state == 4 %}
+                                <div class="fs16 lh20"><a class="tdN cT" target="_blank" href='//{{ collabcard.online_link|cut:" " }}'>{{ collabcard.online_link|cut:" " }}</a></div>
+                            {% else %}
+                                <div class="fs16 lh20 c9 pt2 bs">Link visible for attendees</div>
+                            {% endif %}
+                        {% else %}
+                            {% if current_user.collabcard_state == 3 or current_user.collabcard_state == 4 %}
+                                <div class="fs16 lh20"><a class="tdN cT" target="_blank" href='//{{ collabcard.online_link|cut:" " }}'>{{ collabcard.online_link|cut:" " }}</a></div>
+                            {% else %}
+                                <div class="fs16 lh20 c9 pt2 bs">Link visible for attendees</div>
+                            {% endif %}
+                        {% endif %}
+                    {% else %}
+                        <div class="fs16 lh20 c9 pt2 bs">Link visible for attendees</div>
+                    {% endif %}
+                </div>
+            </div>
+        {% endif %}
+
+        <div class="p24 bs bdbE bs">
+            <div class="fs14 fwR c9b">Posted By</div>
+            <div class="pt16 bs">
+                <div class="dT wp100 bs member_link" member_id="{{collabcard.member.id}}">
+                    <div class="bs dTc h64 w64">
+                        <img src="{{ collabcard.member.image_url }}" class="bd2F brp50 bxs dB h64 w64">
+                    </div>
+                    <div class="dTc vM pl16 bs fs15">
+                        <div class="c0 fwM">{{ collabcard.member.name }}</div>
+                        <div class="lh20 c9 fwR pt4 bs">
+                            {% for question_answer in collabcard.member.question_answers %}
+                                {% if question_answer.state == 7 %}
+                                    <p class="ffR p0 m0 fs15 lh20 lc2 dwB wboV oH">{{question_answer.value}}</p>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% if collabcard.about %}
+            <div class="p24 bs bdbE bs">
+                <div class="fs14 fwR c9b lh30">About Event</div>
+                <div class="lh20 c4a fs15 fwR pt16">
+                    {{collabcard.about}}
+                </div>
+            </div>
+        {% endif %}
+        {% if collabcard.co_hosts %}
+            <div class="p24 bs bdbE bs">
+            <div class="fs14 fwR c9b lh30">Hosts</div>
+            <div class="pt16 bs">
+                <!-- each host in co host -->
+                {% for host in collabcard.co_hosts %}
+                <div class="h86">
+                    <div class="dT wp100 bs member_link" member_id="{{host.id}}">
+                    <div class="bs dTc h64 w64">
+                        <img src="{{ host.image_url }}" class="bd2F brp50 bxs dB h64 w64">
+                    </div>
+                    <div class="dTc vM pl16 bs fs15">
+                        <div class="c0 fwM">{{ host.name }}</div>
+                        <div class="lh20 c9 fwR pt4 bs">
+                            {% for question_answer in host.question_answers %}
+                                {% if question_answer.state == 7 %}
+                                    <p class="ffR p0 m0 fs15 lh20 lc2 dwB wboV oH">{{question_answer.value}}</p>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        {% if members|length > 0 %}
+            <div class="p2416 bs bdbE bs">
+                <div class="dT wp100 p08 bs">
+                    <div class="dTc vM w24 h24">
+                        {% include 'svgs/user_outline.html' %}
+                    </div>
+                    <div class="dTc vM wp100 pl12 bs fwR fs14 c9b">Members Attending</div>
+                    <div class="dTc vM c06C3AF wsN">{{ collabcard.attending_count }} attending</div>
+                </div>
+                <div class="pt16 pR">
+                    <!-- each member attending -->
+                    {% for member in members %}
+                        {% if member.collabcard_state == 3 or member.collabcard_state == 4 %}
+                            <div class="m8 dIb vM w64 h64 member_link" member_id="{{member.id}}">
+                                <img src="{{ member.image_url }}" class="dB w64 h64 brp50" />
+                            </div>
+                        {% endif %}
+                        {% if forloop.counter == 8 %}
+                            <div class="p16 bdT br22 fs14 ls05 dIb w120 mA">SEE ALL</div>
+                        {% endif %}
+                    {% endfor %}
+                    {% if collabcard.type == 2 %}
+                        {% if request.user.is_authenticated %}
+                            {% if member_state.state == 3 or member_state.state == 0 %}
+                                <!-- if approval pending or declined -->
+                                <div class=mnh200></div>
+                                <div class="pA t0 b0 l0 r0 bgFo96 z1" onclick="attend(true)">
+                                    <div class="dT wp100 hp100 taC">
+                                        <div class="c0 fs15 lh20 dTc vM p08 bs">You must be a member of the community to view the conversations.</div>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        {% else %}
+                            <!-- if not logged in -->
+                            <div class=mnh200></div>
+                            <div class="pA t0 b0 l0 r0 bgFo96 z1" onclick="attend(true)">
+                                <div class="dT wp100 hp100 taC">
+                                    <div class="c0 fs15 lh20 dTc vM p08 bs">You must be a member of the community to view the conversations.</div>
+                                </div>
+                            </div>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+        {% endif %}
+        <div class="p24 bs bdbE bs">
+            <div class="fs14 fwR c9b lh30">Comments . {{ answers|length }}</div>
+            <div class="pR">
+                {% if request.user.is_authenticated %}
+                    {% if collabcard.type == 2 %}
+                        {% if member_state.state == 3 or member_state.state == 0 %}
+                            <div class="pA t0 b0 l0 r0 z1" onclick="attend(true)"></div>
+                        {% endif %}
+                    {% endif %}
+                {% else %}
+                    <div class="pA t0 b0 l0 r0 z1" onclick="attend(true)"></div>
+                {% endif %}
+                <form class="h40 pt16 bs dT wp100" id="submit_commit">
+                    <div class="dTc vM">
+                        <input class="h40 p1224 bs bgf2 br20 bd0 wp100 c9b" placeholder="Type your comment" id="comment_inp"/>
+                    </div>
+                </form>
+            </div>
+            <div class="pR pt16" id="comments">
+                {% for answer in answers %}
+                    <div class="dT wp100 pb12 pt16 bs member_link" member_id="{{answer.member.id}}">
+                        <div class="dTc vT w48 h48">
+                            <img class="dB w48 h48 brp50" src="{{ answer.member.image_url }}">
+                        </div>
+                        <div class="dTc vT pl12 bs">
+                            <div class="dT wp100 tlF">
+                                <div class="dTc vM c0 lh18 fs14 fwM">{{ answer.member.name }}</div>
+                                <div class="dTc vM taR fs12 c9b">{{ answer.created_at }}</div>
+                            </div>
+                            <div class="bdbE bs c4a fs13 lh20 pb24 pt8">
+                                {{ answer.answer }}
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+                {% if collabcard.type == 2 %}
+                    {% if request.user.is_authenticated %}
+                        {% if member_state.state == 3 or member_state.state == 0 %}
+                            <!-- if pending or declined member -->
+                            <div class=mnh200></div>
+                            <div class="pA t0 b0 l0 r0 bgFo96 z1" onclick="attend(true)">
+                                <div class="dT wp100 hp100 taC">
+                                    <div class="c0 fs15 lh20 dTc vM">You must be a member of the community to view the conversations.</div>
+                                </div>
+                            </div>
+                        {% endif %}
+                    {% else  %}
+                        <!-- if not logged in -->
+                        <div class=mnh200></div>
+                        <div class="pA t0 b0 l0 r0 bgFo96 z1" onclick="attend(true)">
+                            <div class="dT wp100 hp100 taC">
+                                <div class="c0 fs15 lh20 dTc vM">You must be a member of the community to view the conversations.</div>
+                            </div>
+                        </div>
+                    {% endif %}
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="h60"></div>
+        <!-- Displaying Buttons -->
+        <div class="taC pF b0 l0 r0 h60 bdtE bgF z1">
+            {% if request.user.is_authenticated %}
+                {% if member_state.state == 3 or collabcard.event_ended %}
+                    <!-- Approval Pending -->
+                    {% include 'components/download_app_bar.html' with title='Use the LikeMinds app' subtitle='Keep track of all event updates on app'  %}
+                {% elif current_user.collabcard_state == 3 or current_user.collabcard_state == 4 %}
+                    {% include 'components/download_app_bar.html' with title='Use the LikeMinds app' subtitle='Keep track of all event updates on app'  %}
+                {% else %}
+                    <button class="m80 h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU ls05" id="bottom_button" onclick="attend(true)">
+                        <div class="dIb vM">
+                            {% include 'svgs/calendar_outline.html' %}
+                        </div>
+                        <div class="dIb vM">ATTEND</div>
+                    </button>
+                {% endif %}
+            {% elif collabcard.event_ended %}
+                {% include 'components/download_app_bar.html' with title='Use the LikeMinds app' subtitle='Keep track of all event updates on app'  %}
+            {% else %}
+                <button class="m80 h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU ls05" id="bottom_button" onclick="attend(true)">
+                    <div class="dIb vM">
+                        {% include 'svgs/calendar_outline.html' %}
+                    </div>
+                    <div class="dIb vM">ATTEND</div>
+                </button>
+            {% endif %}
+        </div>
+
+        {% if request.user.is_authenticated %}
+            {% if member_state.state == 3 or member_state.state == 0 %}
+                <!-- pending member -->
+                <div class="ui modal test w300" id="add_email_pop">
+                    <div class="bd2F bgT brp50 bs bxs h72 mA mtn22 oH pR w72">
+                        <img class="h72 ofC w72 mtn2 mln2" src="https://beta.likeminds.community/media/media/ic_launcher_round.png">
+                    </div>
+                    <div class="p24 bs taC ffR">
+                        <div class="fs17 lh22 c0 fwM">Congrats!</div>
+                        <p class="c9 fs15 lh22 mb16 mt8 p0">Your application has been submitted successfully. You will receive a confirmation on your email ID : <span class="c007aff">{{request.user.email}}</span></p>
+                        <div class="fs13 ls05 fwM p12 bs cT" id="add_email">ADD ANOTHER EMAIL</div>
+                        <div class="bs c9 fs13 fwM ls05 p12 pb0" id="dismiss_add_email">DISMISS</div>
+                    </div>
+                </div>
+                <div class="ui modal ffR p24 bs w280 pb12" id="secondary_email">
+                    <p class="c0 fs16 fwM lh24 mb16">Change Email ID</p>
+                    <p class="c9 fs15 fwR lh22 mb16">
+                        Update your email ID below for further communications.
+                    </p>
+                    <form class="ui form mb16 p0">
+                        <input class="bd0 br8 bxs p16 h48 oH pR fs15" type="text" name="first-name" placeholder="Enter your email id" id="secondary_email_text">
+                    </form>
+                    <div class="taR fs13 ">
+                        <div class="bs cT dIb fs13 fwM ls05 p120 taC vM" id="update_secondary_email">SUBMIT</div>
+                    </div>
+                </div>
+                {% if collabcard.type == 6 %}
+                    <div class="ui modal test w300" id="open_event_join">
+                        <div class="h72 w72 brp50 bd2F bs bxs oH bgT mtn22 mA">
+                            <img class="h72 ofC w72 mtn2 mln2" src="https://beta.likeminds.community/media/media/ic_launcher_round.png">
+                        </div>
+                        <div class="p24 bs taC ffR">
+                            <div class="fs17 lh22 c0 fwM">Join community</div>
+                            <p class="c9 fs15 lh22 mb16 mt8 p0">You must be a member to view the list of members attending this event and their community profile.</p>
+                            <div class="fs13 ls05 fwM p12 bs cT" id="open_event">JOIN NOW</div>
+                            <div class="bs c9 fs13 fwM ls05 p12 pb0" id="dismiss_open_event">DISMISS</div>
+                        </div>
+                    </div>
+                {% endif %}
+            {% else %}
+                <!-- profile pop-up -->
+                <div class="ui modal w320" id="display"></div>
+            {% endif %}
+            {% if current_user.collabcard_state == 3 or current_user.collabcard_state == 4 %}
+                <!-- Attending pop -->
+                <div class="pF l0 r0 t0 b0 dN z12" id="attend_overlay">
+                    <div onclick="$('#attend_overlay').hide()" class="pA t0 b0 l0 r0 bg0o05 fadeIn ad04 o0"></div>
+                    <div class="pF b0 mxw640 mA l0 r0 fadeInUp bgF ad04 btlr8 btrr8 oH bxs">
+                        <div class="bgE br8 h8 mA mt8 w100"></div>
+                        <div class="h20 p016 taR vM" onclick="$('#attend_overlay').hide()">
+                            <svg viewBox="0 0 24 24" class="h20 w20"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path></svg>
+                        </div>
+                        <div class="bs c0 ffR fs16">
+                            <div class="bs fwM lh18 p024">Your Response</div>
+                            <div class="bs lh24 oA p024 bdbE">
+                                <div class="bs p160">
+                                    <input type="radio" onclick="attend(true)" id="attending_radio" name="attend_notattend" value="attending" checked>
+                                    <label for="attending_radio" class="bs pR dB">Attending</label>
+                                </div>
+                                <div class="c9b fs13 lh17 mb16">
+                                    You have responded to attend this event. You can also add this event to your personal calendar and get notification when the event starts.
+                                </div>
+                                <!-- TO DO -->
+                                <!-- not showing add to calendar button, will integrate calendar api then show the button -->
+                                <!-- https://developers.google.com/calendar/quickstart/js -->
+                                <!-- <button class="h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU ls05 mb24">
+                                    ADD TO CALENDAR
+                                </button> -->
+                            </div>
+                            <div class="bs lh24 oA p024 bdbE">
+                                <div class="bs p160">
+                                    <input type="radio" onclick="attend(false)" id="not_attending_radio" name="attend_notattend" value="not_attending">
+                                    <label for="not_attending_radio" class="bs pR dB">Not Attending</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        {% else %}
+            <div class="ui modal test w300">
+                <div class="h72 w72 brp50 bd2F bs bxs oH bgT mtn22 mA">
+                    <img class="h72 ofC w72 mtn2 mln2" src="https://beta.likeminds.community/media/media/ic_launcher_round.png">
+                </div>
+                <div class="h18 mt12 taC">
+                    <img class="h18 dIb vM" src="https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Flikeminds_logo_hdpi.png?alt=media&token=5f532ef2-20c6-4448-8efa-16e084494417"/>
+                </div>
+                <div class="p24 bs taC ffR">
+                    <p class="p0 fs15 lh22 c9 mb16" id="login_text">
+                        {% if collabcard.type == 2 %}
+                            This is a closed community event. Continue with any of the following options to register yourself for this event and apply to join the community.
+                        {% else %}
+                            This is an open community event. Continue with any of the following options to register yourself for this event. You can also apply to join the community.
+                        {% endif %}
+                    </p>
+                    <div class="w120 bdtE bs mA"></div>
+                    <p class="c0 fs13 fwR lh22 ls05 mb10 mt12 o25 p0">Login to continue</p>
+                    <div class="p160 ls05">
+                        <div class="fs12 mb16">
+                            <div class="googleSignin p12 bs br20 bgF c79 ffR fwM bdE c79h dN" data-next="/community/{{community.id}}?cta=join&event={{collabcard.id}}&type={{collabcard.type}}">
+                                <i class="dIb fa fa-google fs15 lh16 vM"></i>
+                                <span  class="dIb lh16 pl12 vM">LOGIN WITH GOOGLE</span>
+                            </div>
+                        </div>
+                        <div class="fs12 mb16">
+                            <a class="p12 bs dB br20 tdN bgLi cF ffR fwM cFh" href="{% url 'social:begin' 'linkedin-oauth2' %}?next=/community/{{community.id}}?cta=join&event={{collabcard.id}}&type={{collabcard.type}}">
+                                <i class="dIb fa fa-linkedin fs15 lh16 vM"></i>
+                                <span  class="dIb lh16 pl12 vM">LOGIN WITH LINKEDIN</span>
+                            </a>
+                        </div>
+                        <div class="fs12">
+                            <a class="p12 bs dB br20 tdN bgFb cF ffR fwM cFh" href="{% url 'social:begin' 'facebook' %}?next=/community/{{community.id}}?cta=join&event={{collabcard.id}}&type={{collabcard.type}}">
+                                <i class="fa fa-facebook dIb fs15 lh16 vM" ></i>
+                                <span class="dIb lh16 pl12 vM">LOGIN WITH FACEBOOK</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+        
+        {% if False %}
+        <div class="dN member_state">{{member_state}}</div>
+        <div class="dN current_user {{current_user.id}}">{{current_user}}</div>
+        <div class="dN collabcard">{{collabcard}}</div>
+        <div class="dN community">{{community}}</div>
+        <div class="dN members">{{members}}</div>
+        <div class="dN answers">{{answers}}</div>
+        {% endif %}
+
+    </div>
+
+    <script>
+
+        $(document.body).on('click','.member_link',function(e){
+            var member_id = $(this).attr('member_id');
+            {% if request.user.is_authenticated %}
+                {% if member_state.state == 0 %}
+                    {% if collabcard.type == 2 %}
+                        $(".ldrT", $('#loader')[0]).text("Making request...");
+                        $('#loader').show();
+                        window.location.href = "/community/{{community.id}}?cta=join&event={{collabcard.id}}&type={{collabcard.type}}";
+                    {% else %}
+                        $('#open_event_join').modal('show');
+                        $("#open_event").click(function(){
+                            $(".ldrT", $('#loader')[0]).text("Loading...");
+                            $('#loader').show();
+                            location.href = "/community/{{community.id}}?cta=join&event={{collabcard.id}}&type={{collabcard.type}}";
+                        });
+                        $('#dismiss_open_event').click(function(e){
+                            $('#open_event_join').modal('hide');
+                        });
+                    {% endif %}
+                {% else %}
+                    {% if member_state.state == 3 %}
+                        $('#add_email_pop').modal('show');
+                    {% else %}
+                        showMemberProfile(member_id);
+                    {% endif %}
+                {% endif %}
+            {% else %}
+                $('.test').modal('show');
+            {% endif %}
+        });
+
+        {% if request.user.is_authenticated %}
+            {% if member_state.state == 3 %}
+                {% if request.GET.email %}
+                    $('#add_email_pop').modal('show');
+                {% endif %}
+                $('#dismiss_add_email').click(function(e){
+                    $('#add_email_pop').modal('hide');
+                });
+                $('#add_email').click(function(e){
+                    $('#add_email_pop').modal('hide');
+                    $('#secondary_email').modal('show');
+                });
+                $('#update_secondary_email').click(function(e){
+                    var email = $('#secondary_email_text').val();
+                    console.log(email);
+                    var json_data = {
+                        'data':'{{request.user.id}}',
+                        'email':email,
+                        'csrfmiddlewaretoken':'{{csrf_token}}',
+                    }
+                    $(".ldrT", $('#loader')[0]).text("Making request...");
+                    $('#loader').show();
+                    $.ajax({
+                        url: "/update_email",
+                        data: json_data,
+                        type: "POST",
+                        dataType: 'json',
+                        success: function(data) {
+                            $('#secondary_email').modal('hide');
+                            $('#loader').hide();
+                        },
+                        error: function(){
+                            $('#loader').hide();
+                        }
+                    })
+                })
+            {% else %}
+                // attending overlay
+                $('#attending_pop').click(function(e){
+                    $('#attend_overlay').show();
+                });
+
+                function showMemberProfile(member_id){
+                    $(".ldrT", $('#loader')[0]).text("Loading member profile...");
+                    $('#loader').show();
+                    var community_id = {{community.id}};
+                    json_data = {
+                        'data':member_id,
+                        'community_id':community_id,
+                        'csrfmiddlewaretoken':'{{csrf_token}}',
+                    }
+                    console.log(json_data);
+                    $.ajax({
+                        url:"/member_profile",
+                        data:json_data,
+                        type:"POST",
+                        dataType:'json',
+                        success:function(data){
+                            console.log(data['answer_list'])
+                            var html = `
+                                <div class="h96 mtn38 taC pR z1">
+                                    <div class="w96 h96 brp50 bd2F bs bxs oH dIb vM bgF">
+                                        <img class="w96 h96 ofC" src=${data['image_link']} >
+                                    </div>
+                                </div>
+                                <div class="pR mtn58 br8 oH bgF">
+                                    <div class="h96">
+                                        <img class="wp100 ofC h96" src="https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Fprofile_header?alt=media&token=fa838851-244c-4cbc-81da-3d2125536e18">
+                                    </div>
+                                    <div class="h2"></div>
+                                    <p class="p0 m0 taC fwM fs16 c0 lh20">${data['member_name']}</p>
+                                </div>
+                                <div class="p18 bs">
+                            `;
+                            var refined_answer_obj = data['answer_list'].reduce(function(returnValue, answer) {
+                                if(answer.answer_privacy !== false){
+                                    (returnValue[answer.rank] = returnValue[answer.rank] || []).push(answer);
+                                }
+                                return returnValue;
+                            }, {});
+            
+                            console.log('refined_answer_obj', refined_answer_obj);
+            
+                            // var refined_answer_array = Object.keys(refined_answer_obj).map(function (answer) {
+                            //     return f[answer]; 
+                            // });
+                            
+                            $.each( refined_answer_obj, function( index, value ) {
+                                segment = ""
+                                if (index == 1) {
+                                    segment = `
+                                            <div class="dT mb10 tlF wp100">
+                                                <div class="dTc h24 vM w24 taC"><img class="dIb mxh24 mxw24 vM" src="/media/main_website/ic_email_48_px.png" /></div>
+                                                <div class="c9b dTc fs13 vM lh1h16 p08 bs">
+                                    `;
+                                                    $.each( value, function( index2, value2 ){
+                                                        segment = segment + value2.answer;
+                                                        if ( index2 != value.length - 1 ) {
+                                                            segment = segment + ', ';
+                                                        }
+                                                    });
+                                    segment = segment + `
+                                                </div>
+                                            </div>
+                                    `;
+                                    html = html + segment;
+                                }else if(index == 2 ){
+                                    segment = `
+                                            <div class="dT mb10 tlF wp100">
+                                                <div class="dTc h24 vM w24 taC"><img class="dIb mxh24 mxw24 vM" src="/media/main_website/mobile_alt.png"/></div>
+                                                <div class="c9b dTc fs13 vM lh1h16 p08 bs">
+                                    `;
+                                                    $.each( value, function( index2, value2 ){
+                                                        segment = segment + value2.answer;
+                                                        if ( index2 != value.length - 1 ) {
+                                                            segment = segment + ', ';
+                                                        }
+                                                    });
+                                    segment = segment + `
+                                                </div>
+                                            </div>
+                                    `;
+                                    html = html + segment
+                                }else if(index == 3 ){
+                                    segment = `
+                                            <div class="dT mb10 tlF wp100">
+                                                <div class="dTc h24 vM w24 taC"><img class="dIb mxh24 mxw24 vM" src="/media/main_website/link.png"/></div>
+                                                <div class="c9b dTc fs13 vM lh1h16 p08 bs">
+                                    `;
+                                                    $.each( value, function( index2, value2 ){
+                                                        segment = segment + `<a class="cT tdN" href="//${value2['profile_link']}">${value2['answer']}</a>`;
+                                                        if ( index2 != value.length - 1 ) {
+                                                            segment = segment + ', ';
+                                                        }
+                                                    });
+                                    segment = segment + `
+                                                </div>
+                                            </div>
+                                    `;
+                                    html = html + segment
+                                }else if(index == 4){
+                                    segment = ''
+                                    $.each( value, function( index2, value2 ){
+                                        segment = segment + `<p class="c4a fs15 lh24 m160">${value2['answer']}</p>`;
+                                        if ( index2 != value.length - 1 ) {
+                                            segment = segment + ', ';
+                                        }
+                                    });
+                                    html = html + segment
+                                }else if(index == 5){
+                                    segment = ''
+                                    $.each( value, function( index2, value2 ){
+                                        segment = segment + `
+                                            <a class="cT dB m160 tdN" href="//${value2['file_link']}">
+                                                ${value2['answer']}
+                                            </a>
+                                        `;
+                                        if ( index2 != value.length - 1 ) {
+                                            segment = segment + ', ';
+                                        }
+                                    });
+                                    html = html + segment
+                                }else{
+                                    segment = ''
+                                    $.each( value, function( index2, value2 ){
+                                        segment = segment + `<p class="c9b fs15 lh24 m160 m80 ">${value2['answer']}</p>`;
+                                        
+                                    });
+                                    html = html + segment
+                                }
+                            })
+                            $('#display').html(html + '</div><div class="fs13 p12 taC fwM mb16" id="dismiss1">DISMISS</div>')
+                            $('#display').modal('show');
+                            $(".dimmer").css("background-color","rgba(40,40,40,0.5)");
+                            $('#dismiss1').click(function(){
+                                $('#display').modal('hide');
+                            });
+                            $('#loader').hide();
+                        },
+                        error: function(){
+                            $('#loader').hide();
+                        }
+                    })
+                }
+            {% endif %}     
+        {% endif %}
+
+        $('#back_click').click(function(){
+            {% if user.is_authenticated %}
+                window.open("/communities");
+            {% else %}
+                $('.test').modal('show');
+            {% endif %}
+        });
+
+        function attend(isAttending){
+            {% if user.is_authenticated %}
+                {% if member_state.state == 0 and collabcard.type == 2 %}
+                    $(".ldrT", $('#loader')[0]).text("Making request...");
+                    $('#loader').show();
+                    window.location.href = "/community/{{community.id}}?cta=join&event={{collabcard.id}}&type={{collabcard.type}}";
+                {% else %}
+                    {% if member_state.state == 3 %}
+                        $('.test').modal('show');
+                    {% else %}
+                        $(".ldrT", $('#loader')[0]).text("Making request...");
+                        $('#loader').show();
+                        //debugger;
+                        $.ajax({
+                            url: '/api/collabcard_attend?collabcard_id={{collabcard.id}}&value='+isAttending,
+                            success:function(data){
+                                console.log('attend api success');
+                                window.location.href = window.location.href;
+                                // $('#loader').hide();
+                            },
+                            error: function(data){
+                                console.log('attend api fail');
+                                $('#loader').hide();
+                            }
+                        })
+                    {% endif %}
+                {% endif %}
+            {% else %}
+                $('.test').modal('show');
+            {% endif %}
+        }
+
+        $(document).ready(function(){
+
+            // setInterval(function(){
+            //     console.log('hit')
+            //     location.reload(true);
+            // },120000);
+
+            $('#submit_commit').submit(function(e){
+                e.preventDefault();
+                {% if user.is_authenticated %}
+                    create_new_message();
+                {% else %}
+                    var element = document.getElementById("login_text");
+                    element.innerHTML = "Your answer has been successfully saved. However to ensure privacy of the community, you need to be part of the <b>{{community_name}}</b> on LikeMinds before your answer gets posted.";
+                    $('.test').modal('show');
+                {% endif %}
+            });
+
+            {% if user.is_authenticated %}
+                function create_new_message(){
+                    var member_id= {{request.user.id}};
+                    var collabcard_id = {{collabcard.id}};
+                    var msg = $('#comment_inp').val();
+                    if(msg == ''){return}
+                    // var message = {
+                    //     'collabcard_id': collabcard_id,
+                    //     'member_id': member_id,
+                    //     'title': msg
+                    // }
+                    $(".ldrT", $('#loader')[0]).text("Submitting your comment...");
+                    $('#loader').show();
+                    $.ajax({
+                        url: '/api/create_answer?member_id='+member_id+"&collabcard_id="+collabcard_id,
+                        data: JSON.stringify({"title":msg}),
+                        type: 'POST',
+                        dataType: 'json',
+                        success: function(data){
+                            var html = `
+                                <div class="dT wp100 pb12 pt16 bs member_link" member_id="{{ current_user.id }}">
+                                    <div class="dTc vT w48 h48">
+                                        <img class="dB w48 h48 brp50" src="{{ current_user.image_url }}">
+                                    </div>
+                                    <div class="dTc vT pl12 bs">
+                                        <div class="dT wp100 tlF">
+                                            <div class="dTc vM c0 lh18 fs14 fwM">{{ current_user.name }}</div>
+                                            <div class="dTc vM taR fs12 c9b">Just Now</div>
+                                        </div>
+                                        <div class="bdbE bs c4a fs13 lh20 pb24 pt8">${msg}</div>
+                                    </div>
+                                </div>
+                                `;
+                            $('#comments').append(html);
+                            $('#comment_inp').val('');
+                            $('#loader').hide();
+                        },
+                        error: function(){
+                            $('#loader').hide();
+                        }
+                    })
+                }
+            {% endif %}
+            // $('#refresh').click(function(){
+            //     location.reload(true)
+            // })
+        })
+
+    </script>
+    {% include 'scripts/google_auth.html' with client_id=google_oauth_client_id  %}
+{% endblock %}
+
+

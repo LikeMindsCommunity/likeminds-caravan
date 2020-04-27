@@ -7,6 +7,7 @@ import re
 import ast
 import time
 from datetime import datetime
+#import datetime
 import requests as rqst
 import dateutil.relativedelta
 import googlemaps
@@ -47,7 +48,7 @@ from utility.utils import (decode_meta_from_url, update_tag_image,
                            ig_members_count, is_LG_or_LP_community, feedback_community_id, feedback_collabcard_id,
                            is_member_verified,community_default_image,community_default_thumbnail,is_member_promoter,
                            is_member_pending,is_member_present,generate_private_link,generate_random,get_time_text,
-                           community_default_image_round
+                           community_default_image_round,decode_option
 
 
                            )
@@ -226,6 +227,20 @@ def your_communities(request, user_id):
     return JsonResponse({'your_communities': my_community})
 
 
+######################function for api utility#################################
+
+
+def get_error_context(success,error_message):
+
+    '''function to get error context for apis'''
+
+    context={
+        'success':success,
+        'error_message':error_message
+    }
+    return context
+
+
 ############# functions for  community detail screen ##########################
 
 def get_community_card_details(each_community, user_id):
@@ -381,7 +396,10 @@ def community(request, community_id,req_dict=None):
         temp['leave_community_sub_title'] = leave_community[1]  #fix
         temp['leave_community_positive_title'] = leave_community[2]
         temp['leave_community_negative_title'] = leave_community[3]
-        return JsonResponse({'community': new_dict,'leave_community':temp})
+        context = {'community': new_dict,'leave_community':temp}
+        if req_dict:
+            return context
+        return JsonResponse(context)
 
     if req_dict:
         return new_dict
@@ -648,6 +666,7 @@ def community_version_2(request,community_id):
     info_logger.info("Community Detail version 2")
     diff= end_time-start_time
     info_logger.info(diff)
+
 
     return JsonResponse(response)
 
@@ -1339,10 +1358,7 @@ def join_promoter_created_community_version_1(res,request):
                 else:
                     selected_choices = question['value'].split(",")
 
-                for choice in selected_choices:
-                    filter_instance = questionFilters(question=question_instance, filter=choice.strip(),
-                                                      member=user_instance, community=community_instance)
-                    filter_instance.save()
+                save_user_selected_options(question_instance, user_instance, community_instance, selected_choices)
 
     #saving data directly
     if 'aj' in res:
@@ -1440,10 +1456,10 @@ def join_whatsapp_community(res,request):
                     selected_choices = question['value'].split("$#")
                 else:
                     selected_choices = question['value'].split(",")
-                for choice in selected_choices:
-                    filter_instance = questionFilters(question=question_instance, filter=choice.strip(),
-                                                      member=user_instance, community=community_instance)
-                    filter_instance.save()
+
+                save_user_selected_options(question_instance, user_instance, community_instance,selected_choices)
+
+
 
 
     #saving data directly
@@ -1651,9 +1667,6 @@ def creating_collabcard_for_lg_communities(community,user,introduction_answer,re
 
 
 
-
-
-
 def update_community_actions(community_instance,step_no,increment):
 
     '''function to update community actions steps'''
@@ -1668,6 +1681,42 @@ def update_community_actions(community_instance,step_no,increment):
         instance.save()
 
 
+def save_user_selected_options(question_instance,user_instance,community_instance,selected_choices):
+
+    '''function to save user selected options in dropdown'''
+
+    #question_instance = communityQuestions.objects.get(id=48562)
+
+    dropdown_list =  decode_option(question_instance.value)
+
+    for choice in selected_choices:
+
+        option = choice.strip()
+        if not is_option_present(option,dropdown_list):
+            dropdown_list.append(option)
+        filter_instance = questionFilters(question=question_instance, filter=option,
+                                          member=user_instance, community=community_instance)
+        filter_instance.save()
+
+    result = []
+    for value in dropdown_list:
+        temp={}
+        temp['value'] = value
+        result.append(temp)
+
+    json_dump = json.dumps(result)
+    question_instance.value = json_dump
+    question_instance.save()
+
+
+def is_option_present(option,dropdown_list):
+
+    '''function to check is option present or not'''
+
+    for data in dropdown_list:
+        if data.lower() == option.lower():
+            return True
+    return False
 
 
 
@@ -2587,6 +2636,11 @@ def create_card(request,req_dict=None):
         card.co_hosts = json.dumps(res['co_hosts']) if ('co_hosts' in res) else None
         card.online_link = res['online_link'] if ('online_link' in res) else None
 
+
+        #for poll card
+        card.multiple_select = res['multiple_select'] if ('multiple_select' in res) else False
+        card.multiple_select_no = res['multiple_select_no'] if ('multiple_select_no' in res) else 1
+
         if 'share_link' in res:
             card.share_link = res['share_link']
             og_tags = decode_meta_from_url(res['share_link'])
@@ -2600,6 +2654,7 @@ def create_card(request,req_dict=None):
             collabcardpolls_instance = CollabcardPolls()
             collabcardpolls_instance.card = card
             collabcardpolls_instance.text = poll['text']
+            collabcardpolls_instance.sub_text = poll['sub_text'] if ('sub_text' in poll) else None
             collabcardpolls_instance.save()
 
 
@@ -2703,6 +2758,200 @@ def create_collabcard_state_for_user(card, user, state, community):
     collabcard_state_instance.created_at = time.time()
     collabcard_state_instance.updated_at = time.time()
     collabcard_state_instance.save()
+
+
+#api to deprecate
+@csrf_exempt
+def collabcard_poll(request):
+    """ function to update polls of a card for user """
+    if request.method == 'POST':
+        collabcard_id = request.GET.get('collabcard_id', None)
+        poll_id = request.GET.get('poll_id', None)
+        member_id = get_member_id_from_headers(request)
+
+        if not collabcard_id or not poll_id:
+            return JsonResponse({"success": False})
+
+        card_instance = Collabcard.objects.get(pk=collabcard_id)
+        poll_instance = CollabcardPolls.objects.get(pk=poll_id)
+        user_instance = User.objects.get(pk=member_id)
+        # check if user has already voted for the card or not
+        memberpolls_instance = MemberPollVotes.objects.filter(card=card_instance, user=user_instance)
+
+        if not memberpolls_instance.exists():
+            # if not voted, create new row for user and card with opted poll by user
+            memberpolls_instance = MemberPollVotes()
+            memberpolls_instance.card = card_instance
+            memberpolls_instance.poll = poll_instance
+            memberpolls_instance.user = user_instance
+            memberpolls_instance.save()
+        else:
+            # if voted, update the poll if user optes different poll than previous
+            if str(memberpolls_instance[0].poll.id) == poll_id:
+                # if same poll is opted again
+                return JsonResponse({"success": True})
+            # if user changes the poll
+            memberpolls_instance.update(poll=poll_instance)
+        # update the card answer text according to no of polls
+        update_poll_card_text(collabcard_id)
+
+        if not str(member_id) == str(card_instance.user.id):
+            send_poll_or_event_notification.delay(card_id=collabcard_id, user_id=member_id)
+
+        return JsonResponse({"success": True})
+
+    return JsonResponse({"success": False})
+
+@csrf_exempt
+def collabcard_poll_version_1(request):
+    """ function to update polls of a card for user """
+    if request.method == 'POST':
+        collabcard_id = request.POST.get('collabcard_id', None)
+
+        if not collabcard_id:
+            context = get_error_context(success=False,error_message="Send the correct collabcard id")
+            return JsonResponse(context)
+
+        member_id = get_member_id_from_headers(request)
+        if not member_id:
+            context = get_error_context(success=False, error_message="Send member id in headers")
+            return JsonResponse(context)
+
+        poll_ids = request.POST.get('poll_ids', None)
+        if not poll_ids:
+            context = get_error_context(success=False, error_message="Send array of polls_id in post params")
+            return JsonResponse(context)
+
+
+        user_instance = User.objects.get(pk=member_id)
+
+        card_instance = Collabcard.objects.get(pk=collabcard_id)
+
+        poll_ids = unquote(poll_ids)
+        poll_ids = json.loads(poll_ids)
+        print(poll_ids)
+
+
+        #deleting the previous votes
+        memberpolls_filter = MemberPollVotes.objects.filter(card=card_instance, user=user_instance)
+        memberpolls_filter.delete()
+
+
+        for poll_id in poll_ids:
+            vote_poll(poll_id,card_instance,user_instance,collabcard_id)
+
+        if not str(member_id) == str(card_instance.user.id):
+            send_poll_or_event_notification.delay(card_id=collabcard_id, user_id=member_id)
+
+        return JsonResponse({"success": True})
+
+    return JsonResponse({"success": False})
+
+
+def vote_poll(poll_id,card_instance,user_instance,collabcard_id):
+
+    '''function to vote on poll'''
+    poll_instance = CollabcardPolls.objects.get(pk=poll_id)
+
+    # check if user has already voted for the card or not
+
+
+    # if not voted, create new row for user and card with opted poll by user
+    memberpolls_instance = MemberPollVotes()
+    memberpolls_instance.card = card_instance
+    memberpolls_instance.poll = poll_instance
+    memberpolls_instance.user = user_instance
+    memberpolls_instance.save()
+
+    # update the card answer text according to no of polls
+    update_poll_card_text(collabcard_id)
+
+def update_poll_card_text(card_id):
+    """ function to update the answer text of card when someone polls in the card """
+
+    poll_filter = MemberPollVotes.objects.filter(card=card_id).order_by('-id')
+    total_polls = set()
+
+    for poll in poll_filter:
+        total_polls.add(poll.user)
+
+    total_polls = list(total_polls)
+    card = Collabcard.objects.get(pk=card_id)
+    poll_text = ''
+    total_polls_count = len(total_polls)
+
+    if total_polls_count <= 0:
+        card.answer_text = poll_text
+        card.save()
+        return
+
+    elif total_polls_count == 1:
+        user_names = total_polls[0].userinfo.name
+
+    elif total_polls_count == 2:
+        user_names = total_polls[0].userinfo.name + " and " + total_polls[1].userinfo.name
+
+    else:
+        user_names = total_polls[0].userinfo.name + ", " + total_polls[1].userinfo.name + " & " + str(
+            total_polls_count - 2) + " others"
+
+    poll_text += user_names + " voted on this poll"
+    card.answer_text = poll_text
+    card.polls_count = total_polls_count
+    card.save()
+
+
+def fetch_info(request):
+
+    '''function to send info-text  for event card'''
+    response={}
+
+    response['online_event'] = {
+        'header':"Guidelines for online event url",
+        'sub_header':"Use the following guidelines to best use the online event url:",
+
+        'title_1':"What are online events",
+        'sub_title_1':"Online events are the events that can be performed via web video conferencing tools. There are plenty of video conferencing tools out there like Zoom, Hangout, Skype etc.",
+
+        'title_2':"Recommended online platforms",
+        'sub_title_2':"Recommended tools are those where joining the conference is easier and can handle the number of expected participants joining your event online.",
+
+        'title_3':"Link to online event",
+        'sub_title_3':"Make sure that you provide the video conferencing urls and not the event description page from other platforms."
+    }
+
+
+    response['event_privacy'] = {
+
+        'header':"Event Privacy",
+        'sub_header':"An event can either be a private or a public event.",
+
+        'title_1':"Private Event",
+        'sub_title_1':"Only verified community mambers can see all the details. A non-member trying to access the event information would have to join the community first.",
+
+        'title_2':"Public Event",
+        'sub_title_2':"Anyone with the link can see this event. Attending Member’s details would be available only to the users who join the community.",
+
+    }
+
+    response['banner'] = {
+        'header':"Guidelines for image files",
+        'sub_header':"Use the following guidelines to get the highest quality event image:",
+
+        'title_1':"Dimensions",
+        'sub_title_1':"Find at least a 2160 x 1080px (2:1 ratio) image.",
+
+        'title_2':"File Type",
+        'sub_title_2':"Pictures with file types JPEG, BMP, PNG, or GIF work best.",
+
+        'title_3' : "File Size",
+        'sub_title_3': "Use a photo that's not larger than 10MB.",
+
+        'title_4': "General",
+        'sub_title_4': "Avoid images that have a lot of text, logos, and fliers.",
+    }
+
+    return JsonResponse(response)
 
 
 # /api/add_admin/community_id
@@ -3526,55 +3775,64 @@ def send_email_for_collabcard(community, user, card, type):
                     context['community_name']) + " community"
             send_email_for_new_collabcard_posted.delay(context)
 
-
+@api_view(['GET', 'POST'])
+@renderer_classes([JSONRenderer, TemplateHTMLRenderer])
 def collabcard(request, card_id):
+    
     ''' function to get card details, answers and images '''
     # get the card object
 
-    cards = Collabcard.objects.get(id=card_id)
+    card_instance = Collabcard.objects.get(id=card_id)
+
     page = request.GET.get('page', 1)
 
     current_user_id = get_member_id_from_headers(request)
 
     feedback=True
-    if cards.community.id == feedback_community_id:
+    if card_instance.community.id == feedback_community_id:
         feedback = False
 
     # coverting current time into epoch time for getting time stamp of answers and card
 
     # get all the answers of the card
-    answer = card_answers.objects.filter(card=cards).order_by('id')
+    answer = card_answers.objects.filter(card=card_instance).order_by('id')
     # answer=pagination(answer,page,paginate_by=10)
 
     answer_id = request.GET.get('answer_id', '')
     user_id = request.GET.get('member_id', '')
 
+
+
     if answer_id:
         answer_id = int(answer_id)
 
-        answer = card_answers.objects.filter(card=cards, id__gte=answer_id).filter(~Q(user__id=user_id))
+        answer = card_answers.objects.filter(card=card_instance, id__gte=answer_id).filter(~Q(user__id=user_id))
         # answer = pagination(answer, page, paginate_by=10)
-        answers = get_answer_data(answer,feedback,cards.community.id,current_user_id=current_user_id)         #if the feedback is true don't send id in userinfo
+        answers = get_answer_data(answer,feedback,card_instance.community.id,current_user_id=current_user_id)         #if the feedback is true don't send id in userinfo
         return JsonResponse({'answers': answers})
     else:
-        answers = get_answer_data(answer,feedback,cards.community.id,current_user_id=current_user_id)
+        answers = get_answer_data(answer,feedback,card_instance.community.id,current_user_id=current_user_id)
 
     # serializing Collabcard
-    card = CollabcardSerializer(cards, user_id, cards.community)
+    card = CollabcardSerializer(card_instance, user_id, card_instance.community)
 
-    user = Userinfo.objects.get(user_id=cards.user.id)
+    user = Userinfo.objects.get(user_id=card_instance.user.id)
+
+    # if request.user.is_authenticated and not get_request_type(request):
+    #     # set current user if user in logged in
+    #     current_user = User.objects.get(user_id=current_user_id)
 
     # serializing user object
     usr = UserinfoSerializer(user)
     usr['is_clickable']=feedback
 
     #when the member is removed
-    removed_state = removedMembersSerializer(cards.community.id,usr['id'])
+    removed_state = removedMembersSerializer(card_instance.community.id,usr['id'])
     if removed_state != False:
         usr['remove_state'] = removed_state
 
     # user form response serialzer
-    form_response = FormResponseSerilaizer(cards.community.id, cards.user.id,bl=True,current_user_id=current_user_id)
+    form_response = FormResponseSerilaizer(card_instance.community.id, card_instance.user.id,bl=True,current_user_id=current_user_id)
     if form_response:
         usr['response'] = form_response[0]
         usr['question_answers'] =form_response[1]
@@ -3584,11 +3842,28 @@ def collabcard(request, card_id):
     card['member'] = usr
     card['pdf'] = files[1]
     if user_id:
-        card['state'] = get_status_of_collabcard(member_id=user_id, community=cards.community, card=cards)
+        card['state'] = get_status_of_collabcard(member_id=user_id, community=card_instance.community, card=card_instance)
     # get tine stamp for card
-    time_text = get_time_text(cards.date_epoch)
+    time_text = get_time_text(card_instance.date_epoch)
     card['created_at'] = time_text
-    return JsonResponse({"collabcard": card, 'answers': answers})
+
+
+    #request is made from web
+    if request.accepted_renderer.format == 'html':
+
+        web_data = get_collabcard_details_for_web(request,card_instance,card,current_user_id,answers)
+        context = web_data[0]
+        card_category = web_data[1]
+
+
+        if card_category == "EVENT_CARD":
+            return render(request, 'event.html', context)
+
+        else:
+            return render(request, 'collabcard.html', context)
+
+    else:
+        return JsonResponse({"collabcard": card, 'answers': answers})
 
 
 def get_answer_data(answer,feedback,community_id,current_user_id):
@@ -3661,6 +3936,114 @@ def get_answer_files(answer_id):
                 pdf_url = {'pdf_file': file.file_url}
                 pdf.append(pdf_url)
     return (img_list, pdf)
+
+
+def get_collabcard_details_for_web(request,card_instance,card,current_user_id,answers):
+
+    '''function that contain collabcard details for web'''
+    is_logged = False
+    current_user = {}
+
+    if request.user.is_authenticated and not get_request_type(request):
+        # user id from request if user in logged in
+        current_user_id = request.user.id
+        current_user_instance = Userinfo.objects.get(user_id=current_user_id)
+        current_user = UserinfoSerializer(user=current_user_instance)
+        current_user['collabcard_state'] = get_status_of_collabcard(current_user_id,card_instance.community,card_instance)
+        is_logged = True
+
+
+    #print('in html')
+    # check for event card
+    # type 2 => private
+    # type 6 => public
+    if card['type'] in (card_types.CARD_EVENT, card_types.CARD_PUBLIC_EVENT):
+        #print('event card')
+
+        # get community for community name, image, etc
+        community = card_instance.community
+
+        member_state = members_state(request,
+                                     req_dict={'community_id': card_instance.community.id, 'member_id': current_user_id})
+
+        # set default event banner image
+        card['banner_image'] = "https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Fevent_banner.jpg?alt=media&token=4f6709df-8918-4227-8606-c11607d2d31b"
+        # check if card hs banner image
+        if card['images'] and len(card['images']) > 0 and card['images'][0]['image_url']:
+            card['banner_image'] = card['images'][0]['image_url']
+
+
+        # set time
+        # print("current_time--",time.time())
+        # print("end_date--",card['end_date']/1000.0)
+        if time.time() > card['end_date'] / 1000.0:
+            card['event_ended'] = True
+
+        card['end_time'] = time.strftime('%A, %b %d, %H:%M', time.localtime(card['end_date'] / 1000.0))
+        card['date_time'] = time.strftime('%A, %b %d, %H:%M', time.localtime(card['date_time'] / 1000.0))
+        card['duration'] = card['duration']/1000.0
+        card['duration'] = ConvertSectoDay(card['duration'])
+
+        # get members
+        state_list = [collabcard_states.COLLABCARD_STATE_ATTEND_FOLLOWING,
+                      collabcard_states.COLLABCARD_STATE_ATTEND_UNFOLLOWING]
+        members = get_members_data_for_collabcard(card_instance.id, card_instance.community.id, current_user_id, state_list)
+
+
+
+        # set header
+        header = {
+            'back': True,
+            'title': community.name,
+            'subTitle': False,
+            'background': 'Wa',
+            'color': 'F'
+        }
+
+        context = {
+            "member_state": member_state,
+            "community": community,
+            "collabcard": card,
+            "members": members,
+            'answers': answers,
+            'header': header,
+            'google_oauth_client_id': settings.GOOGLE_OAUTH_CLIENT_ID,
+        }
+
+        if is_logged:
+            if current_user['collabcard_state'] == 0:
+                collabcards_seen_internal(card_instance.community.id, card_instance.id, card['type'], current_user_id)
+            context["current_user"] = current_user
+
+        # print(context)
+
+        return context,"EVENT_CARD"
+        #return render(request, 'event.html', context)
+    else:
+        print('collab card')
+        if request.user.is_authenticated:
+            header_back_link = "/dashboard"
+        else:
+            header_back_link = ""
+
+        header = {
+            'back': True,
+            # 'title': collabcard_dict['collabcard']['member']['name'] + "'s Collabcard",
+            'backLink': header_back_link,
+            'subTitle': False,
+            'background': 'Wa',
+            'color': 'F'
+        }
+        context = {
+            'collabcard': card,
+            'answers': answers,
+            'header': header,
+            'google_oauth_client_id': settings.GOOGLE_OAUTH_CLIENT_ID,
+        }
+        print(context)
+        return context,"SIMPLE_CARD"
+        #return render(request, 'collabcard.html', context)
+
 
 
 
@@ -4013,6 +4396,47 @@ def text_for_community_live_subtitile(total_count,intro_collabcard_list,verified
             intro_name_list.append(instance.member.userinfo.name)
         return intro_name_list
 
+
+def ConvertSectoDay(n):
+
+    n=int(n)
+
+    day = n // (24 * 3600)
+
+    n = n % (24 * 3600)
+    hour = n // 3600
+
+    n %= 3600
+    minutes = n // 60
+
+    n %= 60
+    seconds = n
+    time_text = ""
+
+    #checking day
+    if day !=0:
+        if day == 1:
+            time_text = str(day)+" day "
+        else:
+            time_text = str(day) + " days "
+
+    if hour != 0:
+        if hour == 1:
+            time_text = time_text + str(hour) + " hour "
+        else:
+            time_text = time_text + str(hour) + " hours "
+
+
+    if minutes != 0:
+        if minutes == 1:
+            time_text = time_text+ "and " + str(minutes) + " minute "
+        else:
+            time_text = time_text +  "and " + str(minutes) + " minutes "
+
+
+
+
+    return time_text
 
 
 
@@ -4618,6 +5042,13 @@ def collabcards_seen(request):
     if 'collabcard_type' in params:
         collabcard_type=params['collabcard_type']
 
+    collabcards_seen_internal(community_id, card_id, collabcard_type, user_id)
+
+    return JsonResponse({'success': True})
+
+def collabcards_seen_internal(community_id, card_id, collabcard_type, user_id):
+    '''This internal functions stores the details of members who have seen the card'''
+
     if str(collabcard_type) == str(5):                        #unverifeid collabcard
         collabcardTemp.objects.filter(id=card_id).update(state=1)
         return JsonResponse({'success': True})
@@ -4640,18 +5071,24 @@ def collabcards_seen(request):
         collabcard_state_instance.save()
 
     update_last_unseen_in_engage(user=user_instance, community=community,is_seen=False)
-    # custom_cache.clear()
-    return JsonResponse({'success': True})
 
 
 @csrf_exempt
 def collabcard_attend(request):
+
     '''attending a event on a event card'''
 
     member_id = get_member_id_from_headers(request)
+
+    if request.user.is_authenticated and not get_request_type(request):
+        # user id from request if user in logged in
+        member_id = request.user.id
+
     collabcard_id = request.GET.get('collabcard_id')
     status = request.GET.get('value', 'true')
+
     collabcard_instance = Collabcard.objects.get(id=collabcard_id)
+
     user_instance = User.objects.get(id=member_id)
 
     if status != 'true':
@@ -4660,7 +5097,6 @@ def collabcard_attend(request):
         status = True
 
     if status:
-
         # if the user clicks on attend but not following collabcard
         collabcard_state_instance = collabcardState.objects.get(card=collabcard_instance, user=user_instance)
         if collabcard_state_instance.state == collabcard_states.COLLABCARD_STATE_SEEN:
@@ -4687,11 +5123,14 @@ def collabcard_attend(request):
             collabcard_state_instance.state = collabcard_states.COLLABCARD_STATE_UNATTEND_FOLLOWING
             collabcard_state_instance.updated_at = time.time()
             collabcard_state_instance.save()
-
     update_event_answer_text(collabcard_id)  # function to update the text when a user attends an event
+    # print('here 2')
+    # print("member_id---",member_id)
+    # print("instance",collabcard_instance.user.id)
+    # print("collabcard--",collabcard_id)
+    # print("status--",status)
     if not str(member_id) == str(collabcard_instance.user.id) and status:
         send_poll_or_event_notification.delay(card_id=collabcard_id, user_id=member_id)
-
     return JsonResponse({'success': True})
 
 
@@ -5055,6 +5494,19 @@ def upload_files(request):
             file.type = attachment_type
             file.file_url = body['url']
             file.save()
+        elif 'poll_id' in body:
+
+            try:
+                instance = CollabcardPolls.objects.get(id=body['poll_id'])
+                instance.image_url = body['url']
+                instance.save()
+            except:
+                return JsonResponse({'success':False,'error_message':"Send valid poll id"})
+
+
+
+
+
 
         return JsonResponse({'success': True})
     return JsonResponse({'success': False})
@@ -6158,17 +6610,23 @@ def get_all_members(request, req_dict=None):
 
     if not req_dict:
         community_id = request.GET.get('community_id')
+        collabcard_id = request.GET.get('collabcard_id', None)
+
     else:
         community_id = req_dict['community_id']
+        collabcard_id = req_dict['collabcard_id'] if 'collabcard_id' in req_dict else None
 
-    collabcard_id = request.GET.get('collabcard_id', None)
+
 
     current_user_id = get_member_id_from_headers(request)
 
     # functionality for user filteration based on options
     context = {}
     if collabcard_id:
-        members = get_members_data_for_collabcard(collabcard_id, community_id, current_user_id)
+        state_list = [collabcard_states.COLLABCARD_STATE_ATTEND_FOLLOWING,
+                      collabcard_states.COLLABCARD_STATE_ATTEND_UNFOLLOWING]
+
+        members = get_members_data_for_collabcard(collabcard_id, community_id, current_user_id,state_list,page_no=page)
         # print(members)
         context = {'members': members}
         return context
@@ -6292,9 +6750,14 @@ def get_filtered_users(filter_list,member_list):
     return member_set
 
 
-def get_members_data_for_collabcard(card_id,community_id,current_user_id):
+def get_members_data_for_collabcard(card_id,community_id,current_user_id,state_list,page_no=1):
 
-    collabcard_state_list = collabcardState.objects.filter(card=card_id)
+    if state_list:
+        collabcard_state_list = collabcardState.objects.filter(card=card_id).filter(state__in=state_list).order_by('-id')
+    else:
+        collabcard_state_list = collabcardState.objects.filter(card=card_id)
+
+    collabcard_state_list = pagination(collabcard_state_list,page_no,paginate_by=20)
     members = []
 
     for instance in collabcard_state_list:
@@ -7019,77 +7482,6 @@ def push_report(request):
     return JsonResponse({'success': False})
 
 
-@csrf_exempt
-def collabcard_poll(request):
-    """ function to update polls of a card for user """
-    if request.method == 'POST':
-        collabcard_id = request.GET.get('collabcard_id', None)
-        poll_id = request.GET.get('poll_id', None)
-        member_id = get_member_id_from_headers(request)
-
-        if not collabcard_id or not poll_id:
-            return JsonResponse({"success": False})
-
-        card_instance = Collabcard.objects.get(pk=collabcard_id)
-        poll_instance = CollabcardPolls.objects.get(pk=poll_id)
-        user_instance = User.objects.get(pk=member_id)
-        # check if user has already voted for the card or not
-        memberpolls_instance = MemberPollVotes.objects.filter(card=card_instance, user=user_instance)
-
-        if not memberpolls_instance.exists():
-            # if not voted, create new row for user and card with opted poll by user
-            memberpolls_instance = MemberPollVotes()
-            memberpolls_instance.card = card_instance
-            memberpolls_instance.poll = poll_instance
-            memberpolls_instance.user = user_instance
-            memberpolls_instance.save()
-        else:
-            # if voted, update the poll if user optes different poll than previous
-            if str(memberpolls_instance[0].poll.id) == poll_id:
-                # if same poll is opted again
-                return JsonResponse({"success": True})
-            # if user changes the poll
-            memberpolls_instance.update(poll=poll_instance)
-        # update the card answer text according to no of polls
-        update_poll_card_text(collabcard_id)
-
-        if not str(member_id) == str(card_instance.user.id):
-            send_poll_or_event_notification.delay(card_id=collabcard_id, user_id=member_id)
-
-        return JsonResponse({"success": True})
-
-    return JsonResponse({"success": False})
-
-
-def update_poll_card_text(card_id):
-    """ function to update the answer text of card when someone polls in the card """
-
-    total_polls = MemberPollVotes.objects.filter(card=card_id).order_by('-id')
-
-    card = Collabcard.objects.get(pk=card_id)
-    poll_text = ''
-    total_polls_count = total_polls.count()
-
-    if total_polls_count <= 0:
-        card.answer_text = poll_text
-        card.save()
-        return
-
-    elif total_polls_count == 1:
-        user_names = total_polls[0].user.userinfo.name
-
-    elif total_polls_count == 2:
-        user_names = total_polls[0].user.userinfo.name + " and " + total_polls[1].user.userinfo.name
-
-    else:
-        user_names = total_polls[0].user.userinfo.name + ", " + total_polls[1].user.userinfo.name + " & " + str(
-            total_polls_count - 2) + " others"
-
-    poll_text += user_names + " voted on this poll"
-
-    card.answer_text = poll_text
-    card.polls_count = total_polls_count
-    card.save()
 
 def fetch_whatsapp_tool(request):
 

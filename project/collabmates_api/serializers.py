@@ -151,6 +151,7 @@ def CollabcardSerializer(card,user,community=None):
     if card.community.image_link_round:
         collabcard['image_url_round'] = card.community.image_link_round
 
+    #for poll card
     if card.type == card_types.CARD_POLL:
         polls = []
         cardPolls = CollabcardPolls.objects.filter(card=card)
@@ -159,34 +160,43 @@ def CollabcardSerializer(card,user,community=None):
 
         collabcard['polls'] = polls
 
+        collabcard['multiple_select'] = card.multiple_select
+        collabcard['multiple_select_no'] = card.multiple_select_no
 
-    if card.location:
-        collabcard['location'] = card.location
+    #for event card
+    if card.type == card_types.CARD_EVENT or card.type == card_types.CARD_PUBLIC_EVENT:
+        if card.location:
+            collabcard['location'] = card.location
 
-    if card.location_lat:
-        collabcard['location_lat'] = card.location_lat
+        if card.location_lat:
+            collabcard['location_lat'] = card.location_lat
 
-    if card.location_long:
-        collabcard['location_long'] = card.location_long
+        if card.location_long:
+            collabcard['location_long'] = card.location_long
 
-    if card.start_date:
-        collabcard['start_date'] = card.start_date
+        if card.start_date:
+            collabcard['start_date'] = card.start_date
 
-    if card.end_date:
-        collabcard['end_date'] = card.end_date
+        if card.end_date:
+            collabcard['end_date'] = card.end_date
 
-    if card.about:
-        collabcard['about'] = card.about
+        if card.about:
+            collabcard['about'] = card.about
 
-    if card.co_hosts:
-        co_host_list = json.loads(card.co_hosts)
-        #co_host_list = list(map(int, co_host_list))
+        if card.co_hosts:
+            co_host_list = json.loads(card.co_hosts)
+            #co_host_list = [36]
+            if not user:
+                user = None
 
-        collabcard['co_hosts'] = get_members_profile(member_ids=co_host_list,community_id=card.community.id,
-                                                     current_user_id=user)
+            collabcard['co_hosts'] = get_members_profile(member_ids=co_host_list,community_id=card.community.id,
+                                                         current_user_id=user)
 
-    if card.online_link:
-        collabcard['online_link'] = card.online_link
+        if card.online_link:
+            collabcard['online_link'] = card.online_link
+
+
+
 
     if card.og_tags:
         og_tags = json.loads(card.og_tags)
@@ -210,8 +220,14 @@ def CollabcardPollsSerializer(poll, user, card):
     polls = {
         'id': poll.id,
         'text': poll.text,
-        'is_selected': is_poll_selected(poll, user, card),
+        'is_selected': is_poll_selected(poll, user, card) if user else False
     }
+
+    if poll.sub_text:
+        polls['sub_text'] = poll.sub_text
+
+    if poll.image_url:
+        polls['image_url'] = poll.image_url
 
     if card.date_time // 1000 <= time.time():
         polls['percentage'] = int(poll_percentage(card, poll))
@@ -240,7 +256,7 @@ def get_member_count(community):
     return Members.objects.filter(community_id=community).filter(
         Q(state=1) | Q(state=2) | Q(state=4) | Q(state=7) | Q(state = 8)).count()
 
-def get_members_profile(member_ids,community_id,current_user_id):
+def get_members_profile(member_ids,community_id,current_user_id=None):
 
     '''function to get member profile from list of members ids'''
     member_profile_list = []
@@ -294,7 +310,7 @@ def FormResponseSerilaizer(community_id, user_id,current_user_id=None,bl=False):
             temp['value'] = response.question_answer
             temp['question_id'] = response.question_id
             temp['state'] = questions['state']
-            temp['question_instance'] = questions               #sending the question instance
+            #temp['question_instance'] = questions               #sending the question instance
             new_response.append(temp)
 
         user_response.append(response_object)

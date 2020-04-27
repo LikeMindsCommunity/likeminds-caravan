@@ -22,7 +22,7 @@ from utility.utils import (get_city_address, update_tag_image,
                            update_user_geography_tags, create_or_categorize_tag,
                            referal, insert_user_home_town_tags, user_onbaord,
                            is_request_android, is_request_ios,
-                           is_request_pc, android_app_download_link, is_IG_community, ios_app_download_link,is_member_verified,feedback_community_id)
+                           is_request_pc, android_app_download_link, is_IG_community, ios_app_download_link,is_member_verified,feedback_community_id,decode_option)
 from utility.firebase import upload_image_to_firebase
 from urllib.parse import urlencode, quote
 from collabmates_api.tasks import send_email
@@ -214,6 +214,7 @@ def community(request, community_id):
     if request.user.is_authenticated:
         try:
             user = Userinfo.objects.get(user_id=request.user.id)
+            print("user", request.user.id)
         except:
             user = update_user_info(request)
         is_member = is_member_verified(community_id,request.user)
@@ -300,7 +301,12 @@ def community(request, community_id):
                     #print(context)
                     return render(request, 'response_form.html', context)
                 else:
-                    pass
+                    isFromEvent = request.GET.get('event', '')
+                    # if from event page and already a member redirect to event page
+                    if isFromEvent:
+                        return redirect("/collabcard/"+isFromEvent+"?email=true")
+                    else:
+                        pass
             else:
                 if request.is_ajax:
                     return JsonResponse({'success': True})
@@ -609,17 +615,25 @@ def get_admins_details(community):
     return admins
 
 
-def get_member_details(community):
+def get_member_details(community, *args):
     '''function to get member details of community'''
 
     members = []
+    # member_list = Members.objects.filter(community_id=community).filter(state=1) | Q(state=2) | Q(state=4))
+    
+    # tweaking func args to get other states as well
+    getMemberStates = [1, 2, 4] # default states
+    for state in args:
+        getMemberStates.append(state)
 
-    member_list = Members.objects.filter(community_id=community).filter(Q(state=1) | Q(state=2) | Q(state=4))
+    member_list = Members.objects.filter(community_id=community).filter(state__in = getMemberStates)
+    
     for member in member_list:
         temp = {}
         temp['id'] = member.member_id.id
         temp['name'] = member.member_id.userinfo.name
         temp['image_link'] = member.member_id.userinfo.image_link
+        temp['state'] = member.state
         answer = get_introduction_answer(community, member)
         temp['answer'] = answer
         members.append(temp)
@@ -647,6 +661,7 @@ def get_filtered_members(community,filter_list):
             temp['id'] = member[0].member_id.id
             temp['name'] = member[0].member_id.userinfo.name
             temp['image_link'] = member[0].member_id.userinfo.image_link
+            temp['state'] = member[0].state
             answer = get_introduction_answer(community, member[0])
             temp['answer'] = answer
             members.append(temp)
@@ -854,7 +869,7 @@ def members_directory(request, community_id):
         filters.append(temp)
 
     if member_string == None:
-        members = get_member_details(community_instance)
+        members = get_member_details(community_instance, 3) # passing 3 for getting unverified members
     else:
         member_split = member_string.split("$")
         members = get_filtered_members(community_instance,member_split)
@@ -884,19 +899,19 @@ def members_directory(request, community_id):
 
 
 
-def decode_option(value):
-
-
-
-    value = ast.literal_eval(value)
-    value_list = []
-
-    for item in value:
-        value_list.append(item['value'])
-
-    #print(value_list)
-
-    return value_list
+# def decode_option(value):
+#
+#
+#
+#     value = ast.literal_eval(value)
+#     value_list = []
+#
+#     for item in value:
+#         value_list.append(item['value'])
+#
+#     #print(value_list)
+#
+#     return value_list
 
 
 def get_user_selected_option_list(question_id,selected_list=None):
@@ -1553,6 +1568,7 @@ def view_answers(request, card_id):
 
 def create_message(request):
     '''function to create a message to show'''
+
     member_id = request.GET.get('member_id')
     user_info = Userinfo.objects.get(user_id=member_id)
     user = UserinfoSerializer(user_info)
