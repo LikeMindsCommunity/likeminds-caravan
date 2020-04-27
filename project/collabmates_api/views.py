@@ -3979,7 +3979,7 @@ def get_collabcard_details_for_web(request,card_instance,card,current_user_id,an
         if time.time() > card['end_date'] / 1000.0:
             card['event_ended'] = True
 
-        card['end_time'] = time.strftime('%d %b %Y', time.localtime(card['end_date'] / 1000.0))
+        card['end_time'] = time.strftime('%A, %b %d, %H:%M', time.localtime(card['end_date'] / 1000.0))
         card['date_time'] = time.strftime('%A, %b %d, %H:%M', time.localtime(card['date_time'] / 1000.0))
         card['duration'] = card['duration']/1000.0
         card['duration'] = ConvertSectoDay(card['duration'])
