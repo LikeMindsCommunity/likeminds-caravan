@@ -4008,6 +4008,7 @@ def get_collabcard_details_for_web(request,card_instance,card,current_user_id,an
             'answers': answers,
             'header': header,
             'google_oauth_client_id': settings.GOOGLE_OAUTH_CLIENT_ID,
+            'facebook_auth_id':settings.SOCIAL_AUTH_FACEBOOK_KEY
         }
 
         if is_logged:

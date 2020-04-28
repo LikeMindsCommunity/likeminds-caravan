@@ -192,7 +192,7 @@
                             </a>
                         </div>
                         <div class="fs12">
-                            <a class="p12 bs dB br20 tdN bgFb cF ffR fwM cFh" href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join-aj-{{aj}}">
+                            <a class="facebookSignin p12 bs dB br20 tdN bgFb cF ffR fwM cFh" data-next="{{ request.path }}?cta=join-aj-{{aj}}">
                                 <i class="fa fa-facebook dIb fs15 lh16 vM" ></i>
                                 <span class="dIb lh16 pl12 vM">LOGIN WITH FACEBOOK</span>
                             </a>
@@ -202,7 +202,6 @@
             </div>
             <!-- -->
         </div>
-
         <!-- Scripts -->
         <script>
             function showLoginPopup(){
@@ -726,6 +725,7 @@
             {% endif %}
         </script>
         {% include 'scripts/google_auth.html' with client_id=google_oauth_client_id  %}
+        {% include 'scripts/facebook_auth.html' with facebook_auth_id=facebook_auth_id%}
     </body>
 </html>
 {% endblock %}
