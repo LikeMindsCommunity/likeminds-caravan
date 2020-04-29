@@ -32,6 +32,7 @@ import time
 import logging
 from utility.states import collabcard_states, member_states, question_states
 import ast
+from django.contrib.auth import login
 
 
 url = settings.URL
@@ -40,11 +41,11 @@ if not url and settings.IS_BETA:
     url = "https://beta.likeminds.community"
 
 if not url and not settings.IS_BETA:
-    url = "https://www.collabmates.com"
+    url = "https://www.likeminds.community"
 
 # uncomment to run it in localhost
 #
-# url='http://localhost:8000'
+#url='http://localhost:8000'
 
 api_url = url + '/api/'
 error_logger = logging.getLogger("error_logger")
@@ -2400,3 +2401,56 @@ def alpha_page(request):
 
 
 
+def linked_in_authentication(request):
+
+    code = request.GET.get('code',None)
+    state = request.GET.get('state')
+    if not code:
+        return HttpResponse("unable to login try again")
+    redirect_url = url + state
+
+    link="https://www.linkedin.com/oauth/v2/accessToken"
+    params={
+      'client_id':settings.SOCIAL_AUTH_LINKEDIN_OAUTH2_KEY,
+      'client_secret': settings.SOCIAL_AUTH_LINKEDIN_OAUTH2_SECRET,
+      'grant_type':'authorization_code',
+      'redirect_uri':'http://localhost:8000/oauth/complete/linkedin-oauth2/',
+      'code':code
+
+    }
+    ans=rqst.post(link, params=params)
+    response = ans.json()
+    token = response['access_token']
+    #print(token)
+
+    #print(dis.json())
+
+    #getting the user data
+    user_url = 'https://api.linkedin.com/v2/me?projection=(id,firstName,emailAddress,lastName,vanityName,headline,interests,location,picture-url,name,profilePicture(displayImage~:playableStreams))&oauth2_access_token=' + \
+          response['access_token']
+    email_url = 'https://api.linkedin.com/v2/emailAddress?q=members&projection=(elements*(handle~))&oauth2_access_token=' + \
+                response['access_token']
+    resp = rqst.get(user_url)
+    # getting public details of user from Linked In
+    data_main = json.loads(resp.text)
+    resp = rqst.get(email_url)
+    email_data = json.loads(resp.text)
+
+    data_main['email'] = email_data
+    login_url = url + "/api/v1/login"
+    response = rqst.post(login_url,json={"type": "linkedIn", "login_json": data_main})
+    print("1",request.user.is_authenticated)
+    login_response = response.json()
+    if 'user' in login_response:
+        user = User.objects.get(id=login_response['user']['id'])
+        login(request, user=user, backend="django.contrib.auth.backends.ModelBackend")
+    # context = {'b': data_main}
+    #
+    # data_main = urlencode(context)
+    #
+    # #print(ans)
+    # #print(data_main)
+    # #data_main = quote(data_main,encoding='utf-8')
+    # redirect_url = redirect_url + "?json="+str(data_main)
+    print("2", request.user.is_authenticated)
+    return redirect(redirect_url)

@@ -413,8 +413,8 @@
                             </div>
                         </div>
                         <div class="fs12 mb16">
-                            <a class="p12 bs dB br20 tdN bgLi cF ffR fwM cFh" href="{% url 'social:begin' 'linkedin-oauth2' %}?next=/community/{{community.id}}?cta=join&event={{collabcard.id}}&type={{collabcard.type}}">
-                                <i class="dIb fa fa-linkedin fs15 lh16 vM"></i>
+                            <a class="p12 bs dB br20 tdN bgLi cF ffR fwM cFh" data-next="/community/{{community.id}}?cta=join&event={{collabcard.id}}&type={{collabcard.type}}">
+                                <i class="linkedinSignin dIb fa fa-linkedin fs15 lh16 vM"></i>
                                 <span  class="dIb lh16 pl12 vM">LOGIN WITH LINKEDIN</span>
                             </a>
                         </div>
@@ -769,6 +769,7 @@
     </script>
     {% include 'scripts/google_auth.html' with client_id=google_oauth_client_id  %}
     {% include 'scripts/facebook_auth.html' with facebook_auth_id=facebook_auth_id %}
+    {% include 'scripts/linkedin_auth.html' with request=request %}
 {% endblock %}
 
 

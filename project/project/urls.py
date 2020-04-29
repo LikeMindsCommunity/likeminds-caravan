@@ -30,7 +30,7 @@ handler404 = 'utility.exceptions.handler404'
 urlpatterns = [
     #url(r'^login/$', auth_views.LoginView, name='login'),
     url(r'^logout/$', auth_views.LogoutView, name='logout'),
-    url(r'^oauth/', include('social_django.urls', namespace='social')),  # <--
+    #url(r'^oauth/', include('social_django.urls', namespace='social')),  # <--
     url(r'^collabmates_admin/', admin.site.urls),
     path('', include('togther.urls'),name= 'togther'),
     # path('accounts/login/', views.home, name='login'),
