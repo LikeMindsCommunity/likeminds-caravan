@@ -1,0 +1,161 @@
+{% extends request.is_ajax|yesno:"layouts/ajax.html,layouts/layout.html" %}
+
+{% block yeild %}
+
+    {% include 'components/loader.html' %}
+    
+    <div class="container mxw960 mA mt56 ffR">
+        
+        {% include 'components/header.html' with data=header %}
+
+        <div class="dT wp100 p2024 bs tlF">
+            <div class="dTc vM w48 h48">
+                <img src="{{ collabcard.member.image_url }}" class="bd2F brp50 bs bxs dIb h48 vM w48"/>
+            </div>
+            <div class="dTc vM pl12 bs wp100">
+                <div class="fs16 c0">{{ collabcard.member.name }}</div>
+                <div class="fs12 c9">{{ collabcard.created_at }}</div>
+            </div>
+            <div class="dTc vM c0 w24">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="w24 h24">
+                    <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
+                </svg>
+            </div>
+        </div>
+        <div class="p024 dT wp100 fs13">
+            <div class="dTc vM cd0021b">Poll</div>
+            <div class="dTc vM bgd0021b w100 cF p610 taC">Ends in {{ collabcard.end_time }}</div>
+        </div>
+        <div class="c4a ffR fs24 fwL lh36 p1624">
+            {{collabcard.title}}
+        </div>
+        <div class="p024 bs fs16 lh24 c9 fwL">*Select exactly {{collabcard.multiple_select_no}} options.</div>
+        <div class="p24">
+            {% for poll in collabcard.polls %}
+                <div class="br8 oH pR mb10" data-id="{{ poll.id }}">
+                    <div class="pA t0 b0 l0 bgT o5" style="width:{{ poll.percentage }}%"></div>
+                    <div class="bgEo5 bs dT p816 pR wp100">
+                        <div class="dTc vM fs16 c6">{{ poll.text }}</div>
+                        <div class="dTc vM w22 h22">
+                            <div class="dIb vM w22 h22">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="w22 h22 cB">
+                                    <path d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="dTc vM w28 h28 pl16">
+                            <div class="bgE brp50 bs dIb h28 vM w28">
+                                {% if poll.is_selected %}
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="w28 h28 cF">
+                                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                                    </svg>
+                                {% else %}
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="w28 h28 cF">
+                                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                                    </svg>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+        <div class="bs p024">
+            <button class="bdE bs br8 p12 bs c9b wp100 bgF">+ Add a poll option</button>
+        </div>
+        <div class="cT fs13 p24 pb20">
+            dummy 1, dummy 2 has voted on this poll
+        </div>
+        <div class="dT p024 wp100">
+            <div class="dTc vM">
+                <button class="bdE bgF br20 c9 fs12 h40 wp100">
+                    <div class="dIb vM">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="24" viewBox="0 0 16 24">
+                            <path d="M2.11 11.25c-1.164 0-2.11.946-2.11 2.11.001.761.005 2.77.004 3.529-.005 4.412 2.921 6.768 3.014 6.905.132.132.311.206.498.206h8.437c.177 0 .362-.07.497-.206.097-.142 3.019-2.487 3.019-6.898v-3.537c0-1.163-.947-2.109-2.11-2.109-.274 0-.536.053-.777.15-.244-.896-1.064-1.556-2.035-1.556-.275 0-.537.053-.778.149-.195-.719-.763-1.286-1.481-1.481.97-.913 1.556-2.203 1.556-3.59C9.844 2.208 7.636 0 4.922 0 2.208 0 0 2.208 0 4.922c0 1.912 1.112 3.64 2.813 4.447v2.002c-.22-.078-.457-.121-.704-.121zm6.328 3.516c0 .388.314.703.703.703.388 0 .703-.315.703-.703v-2.813c0-.388.315-.703.703-.703.388 0 .703.315.703.703v2.813c0 .388.315.703.703.703.388 0 .703-.315.703-.703v-1.407c0-.387.316-.703.703-.703.388 0 .704.316.704.703v3.537c0 3.55-2.375 5.658-2.401 5.698H3.807c-.048-.072-2.405-2.067-2.4-5.703 0-.764-.004-2.775-.005-3.532 0-.387.32-.703.707-.703.388 0 .704.316.704.703v3.562c0 .388.314.703.703.703.388 0 .703-.315.703-.703v-12c0-.387.315-.702.703-.702.388 0 .703.315.703.703v9.844c0 .388.315.703.703.703.388 0 .703-.315.703-.703v-4.22c0-.387.316-.702.703-.702.388 0 .704.315.704.703v4.219z" opacity=".098"/>
+                        </svg>
+                    </div>
+                    <div class="dIb vM pl12 bs lh16">SUBMIT VOTE</div>
+                </button>
+            </div>
+            <div class="dTc vM w40 h40"></div>
+            <div class="dTc vM w40 h40">
+                <div class="bdE brp50 dIb h40 taC vM w40">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="w24 h36 cB">
+                        <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2zm-2 1H8v-6c0-2.48 1.51-4.5 4-4.5s4 2.02 4 4.5v6z"/>
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <div class="p24 bs bdbE bs">
+            <div class="fs14 fwR c9b lh30">Comments . {{ answers|length }}</div>
+            <div class="pR">
+                {% if request.user.is_authenticated %}
+                    {% if collabcard.type == 2 %}
+                        {% if member_state.state == 3 or member_state.state == 0 %}
+                            <div class="pA t0 b0 l0 r0 z1" onclick="attend(true)"></div>
+                        {% endif %}
+                    {% endif %}
+                {% else %}
+                    <div class="pA t0 b0 l0 r0 z1" onclick="attend(true)"></div>
+                {% endif %}
+                <form class="h40 pt16 bs dT wp100" id="submit_commit">
+                    <div class="dTc vM">
+                        <input class="h40 p1224 bs bgf2 br20 bd0 wp100 c9b" placeholder="Type your comment" id="comment_inp"/>
+                    </div>
+                </form>
+            </div>
+            <div class="pR pt16" id="comments">
+                {% for answer in answers %}
+                    <div class="dT wp100 pb12 pt16 bs member_link" member_id="{{answer.member.id}}">
+                        <div class="dTc vT w48 h48">
+                            <img class="dB w48 h48 brp50" src="{{ answer.member.image_url }}">
+                        </div>
+                        <div class="dTc vT pl12 bs">
+                            <div class="dT wp100 tlF">
+                                <div class="dTc vM c0 lh18 fs14 fwM">{{ answer.member.name }}</div>
+                                <div class="dTc vM taR fs12 c9b">{{ answer.created_at }}</div>
+                            </div>
+                            <div class="bdbE bs c4a fs13 lh20 pb24 pt8">
+                                {{ answer.answer }}
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+                {% if collabcard.type == 2 %}
+                    {% if request.user.is_authenticated %}
+                        {% if member_state.state == 3 or member_state.state == 0 %}
+                            <!-- if pending or declined member -->
+                            <div class=mnh200></div>
+                            <div class="pA t0 b0 l0 r0 bgFo96 z1" onclick="attend(true)">
+                                <div class="dT wp100 hp100 taC">
+                                    <div class="c0 fs15 lh20 dTc vM">You must be a member of the community to view the conversations.</div>
+                                </div>
+                            </div>
+                        {% endif %}
+                    {% else  %}
+                        <!-- if not logged in -->
+                        <div class=mnh200></div>
+                        <div class="pA t0 b0 l0 r0 bgFo96 z1" onclick="attend(true)">
+                            <div class="dT wp100 hp100 taC">
+                                <div class="c0 fs15 lh20 dTc vM">You must be a member of the community to view the conversations.</div>
+                            </div>
+                        </div>
+                    {% endif %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="dN member_state">{{member_state}}</div>
+    <div class="dN current_user {{current_user.id}}">{{current_user}}</div>
+    <div class="dN collabcard">{{collabcard}}</div>
+    <div class="dN community">{{community}}</div>
+    <div class="dN members">{{members}}</div>
+    <div class="dN answers">{{answers}}</div>
+
+    <script>
+
+    </script>
+    {% include 'scripts/google_auth.html' with client_id=google_oauth_client_id  %}
+{% endblock %}
