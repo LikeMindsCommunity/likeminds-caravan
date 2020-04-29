@@ -4008,6 +4008,7 @@ def get_collabcard_details_for_web(request,card_instance,card,current_user_id,an
             'answers': answers,
             'header': header,
             'google_oauth_client_id': settings.GOOGLE_OAUTH_CLIENT_ID,
+            'facebook_auth_id':settings.SOCIAL_AUTH_FACEBOOK_KEY
         }
 
         if is_logged:
@@ -5664,7 +5665,7 @@ def login_authenticate_version_1(request):
 
     if request.method == 'POST':
         res = json.loads(request.body)
-
+        #print(res)
         login_type = res['type']
         if login_type == "google":
             if 'google_id_token' in res:
@@ -5681,37 +5682,9 @@ def login_authenticate_version_1(request):
         # if user is logging in from facebook
         created = False
         if login_type == 'facebook':
-            res = res['login_json']
-            email = res['email']
-            # converting email to lower case and removing unwanted space
-            email = email.lower().strip()
-            user = User.objects.filter(email=email)
-
-            if not user.exists():
-                # creating a user if no user is associated with that email
-                user = create_user(user_name=res['name'], email=res['email'], id=res['id'])
-
-                # if there is no user then user will not have userinfo too
-                # creating user info
-
-                # fb_link = res['link'] if 'link' in res else None
-                if 'picture' in res:
-                    image_link = upload_image_to_firebase(res['picture']['data']['url'], user.id)
-                else:
-                    image_link = 'https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fuser%2F222%2Fimg_user_222?alt=media'
-
-                city = res['location']['name'] if 'location' in res else None
-
-                userinfo = create_userinfo(user=user, email=res['email'], user_name=res['name'],
-                                           profile_picture=image_link, login_type=login_type,
-                                           json_to_save=json_to_save, city=city,
-                                           # fb_link=fb_link
-                                           )
-                created = True
-                mail_triger(str(user.id), request)  # both mail and notification will be sent here
-
-            if not created:
-                userinfo = user[0].userinfo
+            context = login_with_facebook(request,res,json_to_save)
+            #context = {}
+            return JsonResponse(context)
 
         elif login_type == 'linkedIn':
 
@@ -5956,6 +5929,73 @@ def login_with_google(google_id_token,request,login_type="google"):
         context = {'user': usr, 'has_tags': has_tags}
 
     return context
+
+
+def login_with_facebook(request,res,json_to_save,login_type="facebook"):
+
+    '''function to login with facebook'''
+
+    platform_code = get_platform_code_from_headers(request)
+    is_request_web = False
+    if not platform_code:
+        is_request_web = True
+
+    res = res['login_json']
+    email = res['email']
+    # converting email to lower case and removing unwanted space
+    email = email.lower().strip()
+    user = User.objects.filter(email=email)
+
+    if not user.exists():
+        # creating a user if no user is associated with that email
+        user = create_user(user_name=res['name'], email=res['email'], id=res['id'])
+
+        # if there is no user then user will not have userinfo too
+        # creating user info
+
+        # fb_link = res['link'] if 'link' in res else None
+        if 'picture' in res:
+            image_link = upload_image_to_firebase(res['picture']['data']['url'], user.id)
+        else:
+            image_link = 'https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fuser%2F222%2Fimg_user_222?alt=media'
+
+        city = res['location']['name'] if 'location' in res else None
+
+        userinfo = create_userinfo(user=user, email=res['email'], user_name=res['name'],
+                                   profile_picture=image_link, login_type=login_type,
+                                   json_to_save=json_to_save, city=city,
+                                   # fb_link=fb_link
+                                   )
+
+        mail_triger(str(user.id), request)  # both mail and notification will be sent here
+    else:
+        userinfo = user[0].userinfo
+
+        # get serialized user object
+
+    usr = UserinfoSerializer(userinfo)
+    # see if user has tags or not
+    has_tags = userinfo.has_tags
+
+    # saving the OS type of user (Android,iOS,WEB)
+    request_type = get_request_type(request)
+    if request_type:
+        Userinfo.objects.filter(user_id=usr['id']).update(mobile_os=request_type)
+
+    #login in when the request is web
+    if is_request_web:
+        login(request, user=userinfo.user_id, backend="django.contrib.auth.backends.ModelBackend")
+
+    # User asscoaited tags if any present
+    if has_tags:
+        tags = get_user_lpig_tags(usr['id'])
+        usr['tags'] = tags
+    else:
+        create_member_for_feedback_community(userinfo.user_id)
+
+    context = {'user': usr, 'has_tags': has_tags}
+    return context
+
 
 
 

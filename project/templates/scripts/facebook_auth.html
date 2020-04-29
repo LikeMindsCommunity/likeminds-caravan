@@ -1,0 +1,88 @@
+
+<script>
+
+//initialization of javascript sdk
+(function(d, s, id) {
+    var js, fjs = d.getElementsByTagName(s)[0];
+    if (d.getElementById(id)) return;
+    js = d.createElement(s); js.id = id;
+    js.src = "https://connect.facebook.net/en_US/sdk.js";
+    fjs.parentNode.insertBefore(js, fjs);
+  }(document, 'script', 'facebook-jssdk'));
+
+  // initialize the facebook sdk
+
+  window.fbAsyncInit = function() {
+    FB.init({
+      appId      : "{{facebook_auth_id}}",
+      cookie     : true,  // enable cookies to allow the server to access
+                          // the session
+      xfbml      : true,  // parse social plugins on this page
+      version    : 'v3.1' // The Graph API version to use for the call
+    });
+
+}
+
+
+
+
+ function fetchUserProfile(cta,element)
+ {
+   console.log('Welcome!  Fetching your information.... ');
+   FB.api('/me?fields=id,name,email,picture', function(response) {
+
+    console.log(response)
+    authServer(response,cta)
+    //window.location.href = cta;
+
+   });
+
+ }
+
+function authServer(response,cta){
+        $(".ldrT", $('#loader')[0]).text("Login you in...");
+        $('#loader').show();
+        var temp = {"type": "facebook", "login_json": response}
+
+        $.ajax({
+            url: "/api/v1/login",
+            data: JSON.stringify(temp),
+            type: "POST",
+            dataType: "json",
+            success: function(data){
+                console.log("Facebook auth success", data);
+                window.location.href = cta;
+            },
+            error: function(data){
+                $('#loader').hide();
+                console.log("Facebook auth failure", data);
+            }
+        });
+    }
+
+
+$('.facebookSignin').click(function(){
+
+var cta = $(this).attr("data-next")
+ FB.login(function(response) {
+
+      if (response.status === 'connected') {
+
+       fetchUserProfile(cta,this)
+
+      }else{
+
+      console.log("not logged in")
+
+      }
+
+
+   }, {scope: 'public_profile,email'});
+
+
+
+
+
+})
+
+</script>

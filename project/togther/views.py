@@ -246,6 +246,7 @@ def community(request, community_id):
             if member_state == 0 or member_state == 5:
                 context = get_join_community_context(request, ref_id, aj, validation_error, user, data, community, filled_answers)
                 context['google_oauth_client_id'] = settings.GOOGLE_OAUTH_CLIENT_ID
+                context['facebook_auth_id'] = settings.SOCIAL_AUTH_FACEBOOK_KEY
                 return render(request, 'response_form.html', context)
 
         else:
@@ -297,7 +298,10 @@ def community(request, community_id):
                                 'validation_error': validation_error,
                                 'filled_answers': filled_answers,
                                 'aj':aj,'header_showcase':header_showcase,
-                                'google_oauth_client_id': settings.GOOGLE_OAUTH_CLIENT_ID}
+                                'google_oauth_client_id': settings.GOOGLE_OAUTH_CLIENT_ID,
+                                'facebook_auth_id': settings.SOCIAL_AUTH_FACEBOOK_KEY
+
+                               }
                     #print(context)
                     return render(request, 'response_form.html', context)
                 else:
@@ -456,7 +460,8 @@ def community(request, community_id):
                'is_member':is_member,
                'community_id':community.id,
                'user_email' : request.user.userinfo.email if request.user.is_authenticated else '',
-               'google_oauth_client_id': settings.GOOGLE_OAUTH_CLIENT_ID 
+               'google_oauth_client_id': settings.GOOGLE_OAUTH_CLIENT_ID,
+               'facebook_auth_id':settings.SOCIAL_AUTH_FACEBOOK_KEY
                }
     # user_email = True
     return render(request, 'community.html', context)
@@ -892,7 +897,8 @@ def members_directory(request, community_id):
         'filter_list':filters,
         'member_state':member_state,
         'selected':selected,
-        'google_oauth_client_id': settings.GOOGLE_OAUTH_CLIENT_ID
+        'google_oauth_client_id': settings.GOOGLE_OAUTH_CLIENT_ID,
+        'facebook_auth_id':settings.SOCIAL_AUTH_FACEBOOK_KEY
     }
 
     return render(request, 'members.html', context)

@@ -59,7 +59,7 @@
                             </a>
                         </div>
                         <div class="fs12">
-                            <a class="p12 bs dB br20 tdN bgFb cF ffR fwM cFh" href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}">
+                            <a class="facebookSignin p12 bs dB br20 tdN bgFb cF ffR fwM cFh" data-next="{{ request.path }}">
                                 <i class="fa fa-facebook dIb fs15 lh16 vM"></i>
                                 <span class="dIb lh16 pl12 vM">LOGIN WITH FACEBOOK</span>
                             </a>
@@ -448,6 +448,8 @@
         }
     </script>
     {% include 'scripts/google_auth.html' with client_id=google_oauth_client_id  %}
+    {% include 'scripts/facebook_auth.html' with facebook_auth_id=facebook_auth_id %}
+
 {% endblock %}
 
 
