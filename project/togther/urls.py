@@ -30,7 +30,7 @@ urlpatterns = [
     path('member_profile', views.member_profile, name='member_profile'),
     path('update_email', views.update_email, name='update_email'),
 
-    path('oauth/complete/linkedin-oauth2', views.test, name='test'),
+    path('oauth/complete/linkedin-oauth2', views.linked_in_authentication, name='linked_in_authentication'),
     path('', include('collabmates_api.urls', namespace='api')),
 
 ]

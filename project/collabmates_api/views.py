@@ -5977,12 +5977,6 @@ def login_with_linkedin(request,res,json_to_save,login_type="linkedIn"):
 
     '''login with linkedIn '''
 
-
-    platform_code = get_platform_code_from_headers(request)
-    is_request_web = False
-    if not platform_code:
-        is_request_web = True
-
     res = res['login_json']
     # if user is logging in with linkedIn
     user_name = res['firstName']['localized']['en_US'] + " " + res['lastName']['localized']['en_US']

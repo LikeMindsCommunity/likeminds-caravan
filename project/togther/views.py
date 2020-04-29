@@ -2401,7 +2401,7 @@ def alpha_page(request):
 
 
 
-def test(request):
+def linked_in_authentication(request):
 
     code = request.GET.get('code',None)
     state = request.GET.get('state')
