@@ -2410,11 +2410,12 @@ def linked_in_authentication(request):
     redirect_url = url + state
 
     link="https://www.linkedin.com/oauth/v2/accessToken"
+    redirect_uri = url+"/oauth/complete/linkedin-oauth2/"
     params={
       'client_id':settings.SOCIAL_AUTH_LINKEDIN_OAUTH2_KEY,
       'client_secret': settings.SOCIAL_AUTH_LINKEDIN_OAUTH2_SECRET,
       'grant_type':'authorization_code',
-      'redirect_uri':'http://localhost:8000/oauth/complete/linkedin-oauth2/',
+      'redirect_uri':redirect_uri,
       'code':code
 
     }
