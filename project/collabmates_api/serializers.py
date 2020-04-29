@@ -164,7 +164,7 @@ def CollabcardSerializer(card,user,community=None):
         collabcard['multiple_select_no'] = card.multiple_select_no
 
     #for event card
-    if card.type == card_types.CARD_EVENT or card.type == card_types.CARD_PUBLIC_EVENT:
+    if card.type == card_types.CARD_EVENT or card.type == card_types.CARD_PUBLIC_EVENT or card.type == card_types.CARD_POLL:
         if card.location:
             collabcard['location'] = card.location
 
