@@ -2640,6 +2640,7 @@ def create_card(request,req_dict=None):
         #for poll card
         card.multiple_select = res['multiple_select'] if ('multiple_select' in res) else False
         card.multiple_select_no = res['multiple_select_no'] if ('multiple_select_no' in res) else 1
+        card.multiple_select_state = res['multiple_select_state'] if ('multiple_select_state' in res) else 0
 
         if 'share_link' in res:
             card.share_link = res['share_link']

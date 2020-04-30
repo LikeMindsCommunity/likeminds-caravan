@@ -24,6 +24,13 @@ class CollabcardStates:
 collabcard_states = CollabcardStates()
 
 
+class MultipleSelectPoll:
+    #class to save states of multiple select poll
+    EXACTLY = 0
+    AT_MOST = 1
+
+multiple_select_poll = MultipleSelectPoll()
+
 # member state
 class MemberStates:
     ADMIN = 1
