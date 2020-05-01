@@ -8,7 +8,7 @@
         
         {% include 'components/header.html' with data=header %}
 
-        <div class="dT wp100 p2024 bs tlF">
+        <div class="dT wp100 p2024 bs tlF member_link">
             <div class="dTc vM w48 h48">
                 <img src="{{ collabcard.member.image_url }}" class="bd2F brp50 bs bxs dIb h48 vM w48"/>
             </div>
@@ -32,46 +32,59 @@
         <div class="p024 bs fs16 lh24 c9 fwL">*Select exactly {{collabcard.multiple_select_no}} options.</div>
         <div class="p24">
             {% for poll in collabcard.polls %}
-                <div class="br8 oH pR mb10" data-id="{{ poll.id }}">
-                    <div class="pA t0 b0 l0 bgT o5" style="width:{{ poll.percentage }}%"></div>
-                    <div class="bgEo5 bs dT p816 pR wp100">
-                        <div class="dTc vM fs16 c6">{{ poll.text }}</div>
-                        <div class="dTc vM w22 h22">
-                            <div class="dIb vM w22 h22">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="w22 h22 cB">
-                                    <path d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/>
+                <div class="pR mb10 poll_container">
+                    <div class="bgEo5 bs dT p816 pR wp100 br8 oH">
+                        {% if poll.image_url %}
+                            <div class="dTc vM h28 w28 pr12 bs">
+                                <img src="{{ poll.image_url }}" class="w28 h28 brp50 poll_image dIb vM" />
+                            </div>
+                        {% endif %}
+                        <div class="dTc vM fs16 c6">
+                            <div class="poll_text">{{ poll.text }}</div>
+                            {% if poll.sub_text %}
+                                <div class="poll_sub_text c9 fs13">{{ poll.sub_text }}</div>
+                            {% endif %}
+                        </div>
+                        {% if poll.sub_text %}
+                            <div class="dTc vM w22 h22 info_poll" data-id="{{ poll.id }}">
+                                <div class="dIb vM w22 h22">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="w22 h22 cB">
+                                        <path d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/>
+                                    </svg>
+                                </div>
+                            </div>
+                        {% endif %}
+                        <div class="dTc vM w28 h28 pl16">
+                            <div class="brp50 bs dIb h28 vM w28 vote_poll {% if poll.is_selected %}c06C3AF bd06C3AF voted_poll{% else %}cF bgE{% endif %}" data-id="{{ poll.id }}">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="w28 h28">
+                                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
                                 </svg>
                             </div>
                         </div>
-                        <div class="dTc vM w28 h28 pl16">
-                            <div class="bgE brp50 bs dIb h28 vM w28">
-                                {% if poll.is_selected %}
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="w28 h28 cF">
-                                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-                                    </svg>
-                                {% else %}
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="w28 h28 cF">
-                                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-                                    </svg>
-                                {% endif %}
-                            </div>
-                        </div>
                     </div>
+                    {% if poll.percentage > 0 %}
+                        <div class="bgT o5 h4" style="width:{{ poll.percentage }}%"></div>
+                        <div class="c9b fs13 p120 pb20">{% widthratio collabcard.polls_count_percentage 1 poll.percentage %} votes</div>
+                    {% endif %}
                 </div>
             {% endfor %}
         </div>
-        <div class="bs p024">
-            <button class="bdE bs br8 p12 bs c9b wp100 bgF">+ Add a poll option</button>
-        </div>
-        <div class="cT fs13 p24 pb20">
-            dummy 1, dummy 2 has voted on this poll
-        </div>
+        {% if False %}
+            <div class="bs p024">
+                <button class="bdE bs br8 p12 bs c9b wp100 bgF">+ Add a poll option</button>
+            </div>
+        {% endif %}
+        {% if collabcard.answer_text %}
+            <div class="cT fs13 p024 pb20">
+                {{collabcard.answer_text}}
+            </div>
+        {% endif %}
         <div class="dT p024 wp100">
             <div class="dTc vM">
-                <button class="bdE bgF br20 c9 fs12 h40 wp100">
+                <button class="bdE bgF br20 c9 fs12 h40 wp100" id="submit_vote">
                     <div class="dIb vM">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="24" viewBox="0 0 16 24">
-                            <path d="M2.11 11.25c-1.164 0-2.11.946-2.11 2.11.001.761.005 2.77.004 3.529-.005 4.412 2.921 6.768 3.014 6.905.132.132.311.206.498.206h8.437c.177 0 .362-.07.497-.206.097-.142 3.019-2.487 3.019-6.898v-3.537c0-1.163-.947-2.109-2.11-2.109-.274 0-.536.053-.777.15-.244-.896-1.064-1.556-2.035-1.556-.275 0-.537.053-.778.149-.195-.719-.763-1.286-1.481-1.481.97-.913 1.556-2.203 1.556-3.59C9.844 2.208 7.636 0 4.922 0 2.208 0 0 2.208 0 4.922c0 1.912 1.112 3.64 2.813 4.447v2.002c-.22-.078-.457-.121-.704-.121zm6.328 3.516c0 .388.314.703.703.703.388 0 .703-.315.703-.703v-2.813c0-.388.315-.703.703-.703.388 0 .703.315.703.703v2.813c0 .388.315.703.703.703.388 0 .703-.315.703-.703v-1.407c0-.387.316-.703.703-.703.388 0 .704.316.704.703v3.537c0 3.55-2.375 5.658-2.401 5.698H3.807c-.048-.072-2.405-2.067-2.4-5.703 0-.764-.004-2.775-.005-3.532 0-.387.32-.703.707-.703.388 0 .704.316.704.703v3.562c0 .388.314.703.703.703.388 0 .703-.315.703-.703v-12c0-.387.315-.702.703-.702.388 0 .703.315.703.703v9.844c0 .388.315.703.703.703.388 0 .703-.315.703-.703v-4.22c0-.387.316-.702.703-.702.388 0 .704.315.704.703v4.219z" opacity=".098"/>
+                            <path d="M2.11 11.25c-1.164 0-2.11.946-2.11 2.11.001.761.005 2.77.004 3.529-.005 4.412 2.921 6.768 3.014 6.905.132.132.311.206.498.206h8.437c.177 0 .362-.07.497-.206.097-.142 3.019-2.487 3.019-6.898v-3.537c0-1.163-.947-2.109-2.11-2.109-.274 0-.536.053-.777.15-.244-.896-1.064-1.556-2.035-1.556-.275 0-.537.053-.778.149-.195-.719-.763-1.286-1.481-1.481.97-.913 1.556-2.203 1.556-3.59C9.844 2.208 7.636 0 4.922 0 2.208 0 0 2.208 0 4.922c0 1.912 1.112 3.64 2.813 4.447v2.002c-.22-.078-.457-.121-.704-.121zm6.328 3.516c0 .388.314.703.703.703.388 0 .703-.315.703-.703v-2.813c0-.388.315-.703.703-.703.388 0 .703.315.703.703v2.813c0 .388.315.703.703.703.388 0 .703-.315.703-.703v-1.407c0-.387.316-.703.703-.703.388 0 .704.316.704.703v3.537c0 3.55-2.375 5.658-2.401 5.698H3.807c-.048-.072-2.405-2.067-2.4-5.703 0-.764-.004-2.775-.005-3.532 0-.387.32-.703.707-.703.388 0 .704.316.704.703v3.562c0 .388.314.703.703.703.388 0 .703-.315.703-.703v-12c0-.387.315-.702.703-.702.388 0 .703.315.703.703v9.844c0 .388.315.703.703.703.388 0 .703-.315.703-.703v-4.22c0-.387.316-.702.703-.702.388 0 .704.315.704.703v4.219z"/>
                         </svg>
                     </div>
                     <div class="dIb vM pl12 bs lh16">SUBMIT VOTE</div>
@@ -91,13 +104,11 @@
             <div class="fs14 fwR c9b lh30">Comments . {{ answers|length }}</div>
             <div class="pR">
                 {% if request.user.is_authenticated %}
-                    {% if collabcard.type == 2 %}
-                        {% if member_state.state == 3 or member_state.state == 0 %}
-                            <div class="pA t0 b0 l0 r0 z1" onclick="attend(true)"></div>
-                        {% endif %}
+                    {% if member_state.state == 3 or member_state.state == 0 %}
+                        <div class="pA t0 b0 l0 r0 z1 joinComm"></div>
                     {% endif %}
                 {% else %}
-                    <div class="pA t0 b0 l0 r0 z1" onclick="attend(true)"></div>
+                    <div class="pA t0 b0 l0 r0 z1 joinComm"></div>
                 {% endif %}
                 <form class="h40 pt16 bs dT wp100" id="submit_commit">
                     <div class="dTc vM">
@@ -122,30 +133,130 @@
                         </div>
                     </div>
                 {% endfor %}
-                {% if collabcard.type == 2 %}
-                    {% if request.user.is_authenticated %}
-                        {% if member_state.state == 3 or member_state.state == 0 %}
-                            <!-- if pending or declined member -->
-                            <div class=mnh200></div>
-                            <div class="pA t0 b0 l0 r0 bgFo96 z1" onclick="attend(true)">
-                                <div class="dT wp100 hp100 taC">
-                                    <div class="c0 fs15 lh20 dTc vM">You must be a member of the community to view the conversations.</div>
-                                </div>
-                            </div>
-                        {% endif %}
-                    {% else  %}
-                        <!-- if not logged in -->
+                {% if request.user.is_authenticated %}
+                    {% if member_state.state == 3 or member_state.state == 0 %}
+                        <!-- if pending or declined member -->
                         <div class=mnh200></div>
-                        <div class="pA t0 b0 l0 r0 bgFo96 z1" onclick="attend(true)">
+                        <div class="pA t0 b0 l0 r0 bgFo96 z1 joinComm">
                             <div class="dT wp100 hp100 taC">
                                 <div class="c0 fs15 lh20 dTc vM">You must be a member of the community to view the conversations.</div>
                             </div>
                         </div>
                     {% endif %}
+                {% else  %}
+                    <!-- if not logged in -->
+                    <div class=mnh200></div>
+                    <div class="pA t0 b0 l0 r0 bgFo96 z1 joinComm">
+                        <div class="dT wp100 hp100 taC">
+                            <div class="c0 fs15 lh20 dTc vM">You must be a member of the community to view the conversations.</div>
+                        </div>
+                    </div>
                 {% endif %}
             </div>
         </div>
     </div>
+
+    {% if request.user.is_authenticated %}
+        {% if member_state.state == 3 %}
+            <div class="ui modal test w300" id="add_email_pop">
+                <div class="bd2F bgT brp50 bs bxs h72 mA mtn22 oH pR w72">
+                    <img class="h72 ofC w72 mtn2 mln2" src="https://beta.likeminds.community/media/media/ic_launcher_round.png">
+                </div>
+                <div class="p24 bs taC ffR">
+                    <div class="fs17 lh22 c0 fwM">Congrats!</div>
+                    <p class="c9 fs15 lh22 mb16 mt8 p0">Your application has been submitted successfully. You will receive a confirmation on your email ID : <span class="c007aff">{{request.user.email}}</span></p>
+                    <div class="fs13 ls05 fwM p12 bs cT" id="add_email">ADD ANOTHER EMAIL</div>
+                    <div class="bs c9 fs13 fwM ls05 p12 pb0" id="dismiss_add_email">DISMISS</div>
+                </div>
+            </div>
+            <div class="ui modal ffR p24 bs w280 pb12" id="secondary_email">
+                <p class="c0 fs16 fwM lh24 mb16">Change Email ID</p>
+                <p class="c9 fs15 fwR lh22 mb16">
+                    Update your email ID below for further communications.
+                </p>
+                <form class="ui form mb16 p0">
+                    <input class="bd0 br8 bxs p16 h48 oH pR fs15" type="text" name="first-name" placeholder="Enter your email id" id="secondary_email_text">
+                </form>
+                <div class="taR fs13 ">
+                    <div class="bs cT dIb fs13 fwM ls05 p120 taC vM" id="update_secondary_email">SUBMIT</div>
+                </div>
+            </div>
+        {% else %}
+            <div class="pF l0 r0 t0 b0 dN z12" id="poll_info">
+                <div onclick="$('#poll_info').hide()" class="pA t0 b0 l0 r0 bg0o05 fadeIn ad04 o0"></div>
+                <div class="pF b0 mxw640 mA l0 r0 fadeInUp bgF ad04 btlr8 btrr8 oH bxs">
+                    <div class="bgE br8 h8 mA mt8 w100"></div>
+                    <div class="h20 p016 taR vM" onclick="$('#poll_info').hide()">
+                        <svg viewBox="0 0 24 24" class="h20 w20"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path></svg>
+                    </div>
+                    <div class="bs c0 ffR fs16">
+                        <div class="bs fwM lh18 p024">Option details</div>
+                        <div class="taC pt16 p24 bs">
+                            <img src="" class="poll_info_image w100 h100 dIb vM brp50">
+                            <div class="poll_info_text fs15 c0 fwM mt16"></div>
+                            <div class="poll_info_sub_text fs15 c6 lh20 mt16"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="pF l0 r0 t0 b0 dN z12" id="vote_success">
+                <div onclick="$('#vote_success').hide()" class="pA t0 b0 l0 r0 bg0o05 fadeIn ad04 o0"></div>
+                <div class="pF b0 mxw640 mA l0 r0 fadeInUp bgF ad04 btlr8 btrr8 oH bxs">
+                    <div class="bgE br8 h8 mA mt8 w100"></div>
+                    <div class="h20 p016 taR vM" onclick="$('#vote_success').hide()">
+                        <svg viewBox="0 0 24 24" class="h20 w20"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path></svg>
+                    </div>
+                    <div class="bs c0 ffR fs16 p24 taC">
+                        <div class="brp50 bs c06C3AF dIb h64 mb30 mt16 vM w64">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="h64 w64">
+                                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                            </svg>
+                        </div>
+                        <div class="fs15 fwM c0">Vote submission successful</div>
+                        <div class="bs c6 fs15 fwR lh20 mb30 mt12 pt12">
+                            Your vote has been submitted successfully. You can change and resubmit your vote anytime till the voting ends.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+    {% else %}
+        <div class="ui modal test w300">
+            <div class="h72 w72 brp50 bd2F bs bxs oH bgT mtn22 mA">
+                <img class="h72 ofC w72 mtn2 mln2" src="https://beta.likeminds.community/media/media/ic_launcher_round.png">
+            </div>
+            <div class="h18 mt12 taC">
+                <img class="h18 dIb vM" src="https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Flikeminds_logo_hdpi.png?alt=media&token=5f532ef2-20c6-4448-8efa-16e084494417"/>
+            </div>
+            <div class="p24 bs taC ffR">
+                <p class="p0 fs15 lh22 c9 mb16" id="login_text">
+                    This is a closed community poll. Continue with any of the following options to register yourself for this poll and apply to join the community.
+                </p>
+                <div class="w120 bdtE bs mA"></div>
+                <p class="c0 fs13 fwR lh22 ls05 mb10 mt12 o25 p0">Login to continue</p>
+                <div class="p160 ls05">
+                    <div class="fs12 mb16">
+                        <div class="googleSignin p12 bs br20 bgF c79 ffR fwM bdE c79h dN" data-next="/community/{{community.id}}?cta=join&poll={{collabcard.id}}">
+                            <i class="dIb fa fa-google fs15 lh16 vM"></i>
+                            <span  class="dIb lh16 pl12 vM">LOGIN WITH GOOGLE</span>
+                        </div>
+                    </div>
+                    <div class="fs12 mb16">
+                        <a class="linkedinSignin p12 bs dB br20 tdN bgLi cF ffR fwM cFh" data-next="/community/{{community.id}}?cta=join&poll={{collabcard.id}}">
+                            <i class="dIb fa fa-linkedin fs15 lh16 vM"></i>
+                            <span  class="dIb lh16 pl12 vM">LOGIN WITH LINKEDIN</span>
+                        </a>
+                    </div>
+                    <div class="fs12">
+                        <a class="facebookSignin p12 bs dB br20 tdN bgFb cF ffR fwM cFh"  data-next="/community/{{community.id}}?cta=join&poll={{collabcard.id}}">
+                            <i class="fa fa-facebook dIb fs15 lh16 vM" ></i>
+                            <span class="dIb lh16 pl12 vM">LOGIN WITH FACEBOOK</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
 
     <div class="dN member_state">{{member_state}}</div>
     <div class="dN current_user {{current_user.id}}">{{current_user}}</div>
@@ -155,7 +266,334 @@
     <div class="dN answers">{{answers}}</div>
 
     <script>
+        $(document).ready(function(){
+            $(document.body).on('click','.vote_poll',function(e){
+                {% if request.user.is_authenticated %}
+                    {% if member_state.state == 0 %}
+                        $(".ldrT", $('#loader')[0]).text("Making request...");
+                        $('#loader').show();
+                        window.location.href = "/community/{{community.id}}?cta=join&poll={{collabcard.id}}";
+                    {% elif member_state.state == 3 %}
+                        $('#add_email_pop').modal('show');
+                    {% else %}
+                        if($(this).hasClass('voted_poll')){
+                            $(this).removeClass('voted_poll c06C3AF bgF').addClass('cF bgE');
+                        }else{
+                            {% if collabcard.multiple_select_state == 0 %}
+                                if($('.voted_poll').length == {{collabcard.multiple_select_no}}){
+                            {% else %}
+                                if($('.voted_poll').length < {{collabcard.multiple_select_no}}){
+                            {% endif %}
+                                    $(this).addClass('voted_poll c06C3AF bgF').removeClass('cF bgE');
+                                }
+                        }
+                        {% if collabcard.multiple_select_state == 0 %}
+                            if($('.voted_poll').length == {{collabcard.multiple_select_no}}){
+                        {% else %}
+                            if($('.voted_poll').length < {{collabcard.multiple_select_no}}){
+                        {% endif %}
+                                $('#submit_vote').removeClass('bd06C3AF c06C3AF').addClass('bdE c9');
+                        }else{
+                                $('#submit_vote').addClass('bd06C3AF c06C3AF').removeClass('bdE c9');
+                            }
+                    {% endif %}
+                {% else %}
+                    $('.test').modal('show');
+                {% endif %}
+            });
+            $(document.body).on('click','.info_poll',function(e){
+                {% if request.user.is_authenticated %}
+                    {% if member_state.state == 0 %}
+                        $(".ldrT", $('#loader')[0]).text("Making request...");
+                        $('#loader').show();
+                        window.location.href = "/community/{{community.id}}?cta=join&poll={{collabcard.id}}";
+                    {% elif member_state.state == 3 %}
+                        $('#add_email_pop').modal('show');
+                    {% else %}
+                        var con = $(this).parents('.poll_container');
+                        var img = $('.poll_image', con[0]);
+                        var sub_txt = $('.poll_sub_text', con[0]);
+                        var txt = $('.poll_text', con[0]);
+                        if(img.length > 0){
+                            $('.poll_info_image').attr('src', img.attr('src')).show();
+                        }else{
+                            $('.poll_info_image').hide();
+                        }
+                        $('.poll_info_text').html(txt.html());
+                        $('.poll_info_sub_text').html(sub_txt.html());
+                        $('#poll_info').show();
+                    {% endif %}
+                {% else %}
+                    $('.test').modal('show');
+                {% endif %}
+            });
+            $(document.body).on('click','#submit_vote',function(e){
+                {% if request.user.is_authenticated %}
+                    {% if member_state.state == 0 %}
+                        $(".ldrT", $('#loader')[0]).text("Making request...");
+                        $('#loader').show();
+                        window.location.href = "/community/{{community.id}}?cta=join&poll={{collabcard.id}}";
+                    {% elif member_state.state == 3 %}
+                        $('#add_email_pop').modal('show');
+                    {% else %}
+                        var poll_ids = [];
+                        $('.voted_poll').each(function(){
+                            poll_ids.push($(this).attr('data-id'));
+                        })
+                        if(poll_ids.length == {{collabcard.multiple_select_no}}){
+                            $(".ldrT", $('#loader')[0]).text("Submiting your vote...");
+                            $('#loader').show();
+                            $.ajax({
+                                url: "/v1/collabcard_poll",
+                                data: {collabcard_id: {{collabcard.id}}, poll_ids: JSON.stringify(poll_ids)},
+                                type: "POST",
+                                dataType: 'json',
+                                success: function(data) {
+                                    $('#vote_success').show();
+                                    $('#loader').hide();
+                                    // window.location.href = window.location.href;
+                                },
+                                error: function(){
+                                    $('#loader').hide();
+                                }
+                            })
+                        }
+                    {% endif %}
+                {% else %}
+                    $('.test').modal('show');
+                {% endif %}
+            });
 
+            $(document.body).on('click','.member_link',function(e){
+                var member_id = $(this).attr('member_id');
+                {% if request.user.is_authenticated %}
+                    {% if member_state.state == 0 %}
+                        $(".ldrT", $('#loader')[0]).text("Making request...");
+                        $('#loader').show();
+                        window.location.href = "/community/{{community.id}}?cta=join&poll={{collabcard.id}}";
+                    {% elif member_state.state == 3 %}
+                        $('#add_email_pop').modal('show');
+                    {% else %}
+                        showMemberProfile(member_id);
+                    {% endif %}
+                {% else %}
+                    $('.test').modal('show');
+                {% endif %}
+            });
+
+            {% if request.user.is_authenticated %}
+                {% if member_state.state == 0 %}
+                {% elif member_state.state == 3 %}
+                {% else %}
+                    function showMemberProfile(member_id){
+                        $(".ldrT", $('#loader')[0]).text("Loading member profile...");
+                        $('#loader').show();
+                        var community_id = {{community.id}};
+                        json_data = {
+                            'data':member_id,
+                            'community_id':community_id,
+                            'csrfmiddlewaretoken':'{{csrf_token}}',
+                        }
+                        console.log(json_data);
+                        $.ajax({
+                            url:"/member_profile",
+                            data:json_data,
+                            type:"POST",
+                            dataType:'json',
+                            success:function(data){
+                                console.log(data['answer_list'])
+                                var html = `
+                                    <div class="h96 mtn38 taC pR z1">
+                                        <div class="w96 h96 brp50 bd2F bs bxs oH dIb vM bgF">
+                                            <img class="w96 h96 ofC" src=${data['image_link']} >
+                                        </div>
+                                    </div>
+                                    <div class="pR mtn58 br8 oH bgF">
+                                        <div class="h96">
+                                            <img class="wp100 ofC h96" src="https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Fprofile_header?alt=media&token=fa838851-244c-4cbc-81da-3d2125536e18">
+                                        </div>
+                                        <div class="h2"></div>
+                                        <p class="p0 m0 taC fwM fs16 c0 lh20">${data['member_name']}</p>
+                                    </div>
+                                    <div class="p18 bs">
+                                `;
+                                var refined_answer_obj = data['answer_list'].reduce(function(returnValue, answer) {
+                                    if(answer.answer_privacy !== false){
+                                        (returnValue[answer.rank] = returnValue[answer.rank] || []).push(answer);
+                                    }
+                                    return returnValue;
+                                }, {});
+                
+                                console.log('refined_answer_obj', refined_answer_obj);
+                
+                                // var refined_answer_array = Object.keys(refined_answer_obj).map(function (answer) {
+                                //     return f[answer]; 
+                                // });
+                                
+                                $.each( refined_answer_obj, function( index, value ) {
+                                    segment = ""
+                                    if (index == 1) {
+                                        segment = `
+                                                <div class="dT mb10 tlF wp100">
+                                                    <div class="dTc h24 vM w24 taC"><img class="dIb mxh24 mxw24 vM" src="/media/main_website/ic_email_48_px.png" /></div>
+                                                    <div class="c9b dTc fs13 vM lh1h16 p08 bs">
+                                        `;
+                                                        $.each( value, function( index2, value2 ){
+                                                            segment = segment + value2.answer;
+                                                            if ( index2 != value.length - 1 ) {
+                                                                segment = segment + ', ';
+                                                            }
+                                                        });
+                                        segment = segment + `
+                                                    </div>
+                                                </div>
+                                        `;
+                                        html = html + segment;
+                                    }else if(index == 2 ){
+                                        segment = `
+                                                <div class="dT mb10 tlF wp100">
+                                                    <div class="dTc h24 vM w24 taC"><img class="dIb mxh24 mxw24 vM" src="/media/main_website/mobile_alt.png"/></div>
+                                                    <div class="c9b dTc fs13 vM lh1h16 p08 bs">
+                                        `;
+                                                        $.each( value, function( index2, value2 ){
+                                                            segment = segment + value2.answer;
+                                                            if ( index2 != value.length - 1 ) {
+                                                                segment = segment + ', ';
+                                                            }
+                                                        });
+                                        segment = segment + `
+                                                    </div>
+                                                </div>
+                                        `;
+                                        html = html + segment
+                                    }else if(index == 3 ){
+                                        segment = `
+                                                <div class="dT mb10 tlF wp100">
+                                                    <div class="dTc h24 vM w24 taC"><img class="dIb mxh24 mxw24 vM" src="/media/main_website/link.png"/></div>
+                                                    <div class="c9b dTc fs13 vM lh1h16 p08 bs">
+                                        `;
+                                                        $.each( value, function( index2, value2 ){
+                                                            segment = segment + `<a class="cT tdN" href="//${value2['profile_link']}">${value2['answer']}</a>`;
+                                                            if ( index2 != value.length - 1 ) {
+                                                                segment = segment + ', ';
+                                                            }
+                                                        });
+                                        segment = segment + `
+                                                    </div>
+                                                </div>
+                                        `;
+                                        html = html + segment
+                                    }else if(index == 4){
+                                        segment = ''
+                                        $.each( value, function( index2, value2 ){
+                                            segment = segment + `<p class="c4a fs15 lh24 m160">${value2['answer']}</p>`;
+                                            if ( index2 != value.length - 1 ) {
+                                                segment = segment + ', ';
+                                            }
+                                        });
+                                        html = html + segment
+                                    }else if(index == 5){
+                                        segment = ''
+                                        $.each( value, function( index2, value2 ){
+                                            segment = segment + `
+                                                <a class="cT dB m160 tdN" href="//${value2['file_link']}">
+                                                    ${value2['answer']}
+                                                </a>
+                                            `;
+                                            if ( index2 != value.length - 1 ) {
+                                                segment = segment + ', ';
+                                            }
+                                        });
+                                        html = html + segment
+                                    }else{
+                                        segment = ''
+                                        $.each( value, function( index2, value2 ){
+                                            segment = segment + `<p class="c9b fs15 lh24 m160 m80 ">${value2['answer']}</p>`;
+                                            
+                                        });
+                                        html = html + segment
+                                    }
+                                })
+                                $('#display').html(html + '</div><div class="fs13 p12 taC fwM mb16" id="dismiss1">DISMISS</div>')
+                                $('#display').modal('show');
+                                $(".dimmer").css("background-color","rgba(40,40,40,0.5)");
+                                $('#dismiss1').click(function(){
+                                    $('#display').modal('hide');
+                                });
+                                $('#loader').hide();
+                            },
+                            error: function(){
+                                $('#loader').hide();
+                            }
+                        })
+                    }
+                {% endif %}
+            {% endif %}
+
+            $(document.body).on('click','.joinComm',function(e){
+                {% if user.is_authenticated %}
+                    {% if member_state.state == 0 %}
+                        $(".ldrT", $('#loader')[0]).text("Making request...");
+                        $('#loader').show();
+                        window.location.href = "/community/{{community.id}}?cta=join&poll={{collabcard.id}}";
+                    {% else %}
+                        {% if member_state.state == 3 %}
+                            $('.test').modal('show');
+                        {% else %}
+                           
+                        {% endif %}
+                    {% endif %}
+                {% else %}
+                    $('.test').modal('show');
+                {% endif %}
+            });
+
+            $('#submit_commit').submit(function(e){
+                e.preventDefault();
+                {% if user.is_authenticated %}
+                    var member_id = {{request.user.id}};
+                    var collabcard_id = {{collabcard.id}};
+                    var msg = $('#comment_inp').val();
+                    if(msg == ''){return}
+                    // var message = {
+                    //     'collabcard_id': collabcard_id,
+                    //     'member_id': member_id,
+                    //     'title': msg
+                    // }
+                    $(".ldrT", $('#loader')[0]).text("Submitting your comment...");
+                    $('#loader').show();
+                    $.ajax({
+                        url: '/api/create_answer?member_id='+member_id+"&collabcard_id="+collabcard_id,
+                        data: JSON.stringify({"title":msg}),
+                        type: 'POST',
+                        dataType: 'json',
+                        success: function(data){
+                            var html = `
+                                <div class="dT wp100 pb12 pt16 bs member_link" member_id="{{ current_user.id }}">
+                                    <div class="dTc vT w48 h48">
+                                        <img class="dB w48 h48 brp50" src="{{ current_user.image_url }}">
+                                    </div>
+                                    <div class="dTc vT pl12 bs">
+                                        <div class="dT wp100 tlF">
+                                            <div class="dTc vM c0 lh18 fs14 fwM">{{ current_user.name }}</div>
+                                            <div class="dTc vM taR fs12 c9b">Just Now</div>
+                                        </div>
+                                        <div class="bdbE bs c4a fs13 lh20 pb24 pt8">${msg}</div>
+                                    </div>
+                                </div>
+                                `;
+                            $('#comments').append(html);
+                            $('#comment_inp').val('');
+                            $('#loader').hide();
+                        },
+                        error: function(){
+                            $('#loader').hide();
+                        }
+                    })
+                {% endif %}
+            });
+
+        });
     </script>
     {% include 'scripts/google_auth.html' with client_id=google_oauth_client_id  %}
 {% endblock %}

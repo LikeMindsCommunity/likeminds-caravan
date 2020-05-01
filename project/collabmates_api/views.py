@@ -2813,6 +2813,8 @@ def collabcard_poll_version_1(request):
             return JsonResponse(context)
 
         member_id = get_member_id_from_headers(request)
+        if request.user.is_authenticated and not get_request_type(request):
+            member_id = request.user.id
         if not member_id:
             context = get_error_context(success=False, error_message="Send member id in headers")
             return JsonResponse(context)
@@ -4029,6 +4031,9 @@ def get_collabcard_details_for_web(request,card_instance,card,current_user_id,an
 
         member_state = members_state(request,
                                      req_dict={'community_id': card_instance.community.id, 'member_id': current_user_id})
+
+        if card['polls_count'] > 0:
+            card['polls_count_percentage'] = card['polls_count']/100
 
         # set time
         # print("current_time--",time.time())
