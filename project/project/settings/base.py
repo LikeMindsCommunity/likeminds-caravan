@@ -106,6 +106,7 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 
+ENCRYPT_KEY = b'yo0TkK34DzXNAr9sTEnT-vajau2ntgd6oFvwZt0k3dQ='
 # Internationalization
 # https://docs.djangoproject.com/en/2.1/topics/i18n/
 
