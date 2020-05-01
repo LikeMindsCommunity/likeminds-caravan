@@ -23,11 +23,11 @@
     of this community and we will notify you over email once it is approved.    </p>
 
         <p style="font-size: 16px; color:#4a4a4a;">Meanwhile, you can explore more communities on LikeMinds </p>
-    {% if not onboard %}
-        <div style="text-align:center">
-            <button class="ui button"  onclick="onbaording();"  style="background-color: #00897b; border-radius:20px; color:white;" >Show relevant communities</button>
-        </div>
-    {% endif %}
+    {# if not onboard #}
+<!--        <div style="text-align:center">-->
+<!--            <button class="ui button"  onclick="onbaording();"  style="background-color: #00897b; border-radius:20px; color:white;" >Show relevant communities</button>-->
+<!--        </div>-->
+    {# endif #}
 <!-- {% if community_tag == 'iitd' %}-->
 <!--    <p>Meanwhile, you can get early access to the CollabMates App by signing up for our alpha program. If you already signed up, you can download the android app now. </p>-->
 <!--    <button class="ui button" onclick="location.href='https://docs.google.com/forms/d/e/1FAIpQLSes87js8cTiGg0x-Vw9DYrnY1BCZTolba0B1WBvcVSYZSGAwg/viewform';"  style="margin-left:100px;margin-bottom:30px;background-color: #00897b; border-radius:20px; color:white;" >Sign up for Alpha</button>-->
@@ -47,8 +47,8 @@
     <div style="text-align:center">
 {% if onboard %}
 <button class="ui fluid button " style=" z-index:2;width:60%; left:20%; margin:0 auto; background-color: #00897b; border-radius:20px; color:white; bottom:1%; position:fixed;" onclick="open_community({{community.id}});"> Back To Explore  </button>
-{% else %}
-<button class="ui fluid button " style=" z-index:2;width:60%; left:20%; margin:0 auto; background-color: #00897b; border-radius:900px; color:white; bottom:1%; position:fixed;" onclick="onbaording();"> Show relevant communities  </button>
+{# else #}
+<!--<button class="ui fluid button " style=" z-index:2;width:60%; left:20%; margin:0 auto; background-color: #00897b; border-radius:900px; color:white; bottom:1%; position:fixed;" onclick="onbaording();"> Show relevant communities  </button>-->
 
 {% endif %}
 </div>
@@ -86,21 +86,18 @@
 
 <script>
 function open_community(id){
-                    //window.location.href = "../"+id;
-                    path=window.location.href
-                    path = path.substring(0, path.lastIndexOf('/'));
-                    path=path+"/"+id;
-                    location.href=path
+    //window.location.href = "../"+id;
+    path=window.location.href
+    path = path.substring(0, path.lastIndexOf('/'));
+    path=path+"/"+id;
+    location.href=path
+}
 
+function onbaording(){
+    path="/onboarding?community_id={{community.id}}";
+    location.href=path
 
-
-                }
-
-                function onbaording(){
-                    path="/onboarding?community_id={{community.id}}";
-                    location.href=path
-
-                }
+}
 </script>
 
 {% endblock %}

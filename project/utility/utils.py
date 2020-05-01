@@ -966,4 +966,15 @@ def is_legacy_home_town(communities_legacy):
     return False
 
 
+def get_user_communities_by_rank(request):
+    ''' function to get communities based on rank '''
+    communities_list = []
+    communities = Community_Rank.objects.filter(member_id=request.user).order_by('-weight').values_list('community_id',
+                                                                                                        flat=True).distinct()
+    for community in communities:
+        comm = Community.objects.get(pk=community)
+        # check if community is hidden or not
+        if comm.hide_community == '0' or comm.hide_community == '3' or comm.hide_community == '4':
+            communities_list.append(comm)
+    return communities_list
 

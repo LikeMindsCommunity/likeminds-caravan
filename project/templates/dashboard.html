@@ -49,7 +49,7 @@
     <div class="ui grid container" style="margin-left:0!important; margin-top:0px;">
         <div class="eight wide column" style="padding:10px; ">
 
-            <a class="item" href="{% url 'dashboard' %}" style='padding:10px;'>
+            <a class="item" href="{# url 'dashboard' #}" style='padding:10px;'>
                 <div class="image">
 
                     <img src="/media/logo_2.svg" alt="Logo"
@@ -124,10 +124,10 @@
                         <div class="center aligned container">
                             <div class="content">
                                 {% if cta == 'join' %}
-                                <a href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}&cta=join">
+                                <a href="{# url 'social:begin' 'facebook' #}?next={{ request.path }}&cta=join">
                                     <button class="ui facebook button" style="width:130px;">
                                         {% else %}
-                                        <a href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}">
+                                        <a href="{# url 'social:begin' 'facebook' #}?next={{ request.path }}">
                                     <button class="ui facebook button" style="width:200px;">
                                                 {% endif %}
                                                 <i class="fa fa-facebook" ></i>&nbsp;&nbsp;&nbsp;&nbsp;
@@ -141,10 +141,10 @@
                                         <br>
                                         <div class="content">
                                             {% if cta == 'join' %}
-                                            <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join">
+                                            <a href="{# url 'social:begin' 'linkedin-oauth2' #}?next={{ request.path }}?cta=join">
                                                 <button class="ui linkedin button" style="width:130px;">
                                                     {% else %}
-                                                    <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}">
+                                                    <a href="{# url 'social:begin' 'linkedin-oauth2' #}?next={{ request.path }}">
                                                         <button class="ui linkedin button" style="width:200px;">
                                                     {% endif %}
                                                     <i class="fa fa-linkedin"></i>&nbsp;&nbsp;&nbsp;&nbsp;
@@ -334,7 +334,7 @@
                 {% endif %}
             </div>
             <div class="content">
-                <div class="header" style="padding-bottom: 5px;"><a href="{% url 'comunity' community.id %}"
+                <div class="header" style="padding-bottom: 5px;"><a href="{# url 'comunity' community.id #}"
                                                                     style="color:#1cb39b;">{{community.name}}</a></div>
 
                 <span class="left floated" style="width:50%;">
@@ -436,10 +436,9 @@
 
             success:function(data){
                console.log(data)
-               {% if not onboard %}
-                $('.ui.modal.onboard').modal('show');
-                {% endif %}
-
+               {# if not onboard #}
+                    // $('.ui.modal.onboard').modal('show');
+               {# endif #}#
             }
 
          })
@@ -452,29 +451,28 @@
 
 //onboarding
 
-{% if request.user.is_authenticated %}
+{# if request.user.is_authenticated #}
 
-{% if not onboard and not request_user_email%}
- $('.ui.modal.onboard').modal('show');
-
-
-
-$('#onboard_popup').modal({
-    backdrop: 'static',
-    keyboard: false  // to prevent closing with Esc button (if you want this too)
-})
+{# if not onboard and not request_user_email#}
+// $('.ui.modal.onboard').modal('show');#
 
 
+// $('#onboard_popup').modal({
+//     backdrop: 'static',
+//     keyboard: false  // to prevent closing with Esc button (if you want this too)
+// })
 
- $('#onboard').click(function(e){
 
- location.href="/onboarding"
 
- })
+ // $('#onboard').click(function(e){
 
-{% endif %}
+ // location.href="/onboarding"
 
-{% endif %}
+ // })
+
+{# endif #}
+
+{# endif #}
 
 
 // onboaring end

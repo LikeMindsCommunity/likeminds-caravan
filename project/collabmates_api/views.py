@@ -48,8 +48,8 @@ from utility.utils import (decode_meta_from_url, update_tag_image,
                            ig_members_count, is_LG_or_LP_community, feedback_community_id, feedback_collabcard_id,
                            is_member_verified,community_default_image,community_default_thumbnail,is_member_promoter,
                            is_member_pending,is_member_present,generate_private_link,generate_random,get_time_text,
-                           community_default_image_round,decode_option
-
+                           community_default_image_round,decode_option, get_user_communities_by_rank,
+                           user_onbaord,
 
                            )
 
@@ -90,8 +90,17 @@ info_logger = logging.getLogger("info_logger")
 # /api/communities?category_id=&member_id=
 
 ############# functions for community api ##########################
+@api_view(['GET', 'POST'])
+@renderer_classes([JSONRenderer, TemplateHTMLRenderer])
 def communities(request):
     ''' function to get all the communities '''
+
+    if request.accepted_renderer.format == 'html':
+        print("here")
+        context = dashboard(request)
+        print(">>>> done3")
+
+        return render(request, 'dashboard.html', context)
 
     if request.method == 'GET':
         info_logger.info("communities APi : added")
@@ -126,6 +135,63 @@ def communities(request):
 
         return JsonResponse({'success': False})
 
+
+
+def dashboard(request):
+    ''' function to show all communities and filter based on categories '''
+    if request.user.is_authenticated:
+
+        # if user does not have a email linked to his account, ask for a email
+        request_user_email = False
+        if not request.user.email and request.user.id != 37 and request.user.id != 176:
+            request_user_email = True
+
+        try:
+            # check if user has user info
+            user = Userinfo.objects.get(user_id=request.user.id)
+
+        except:
+            # if there is no user info for the user who is currently logged in
+            # create userinfo for current user
+            user = []
+        # get users communities
+        my_community = get_user_communities(request)
+        # getting communities by user hidden tag
+        communities = get_user_communities_by_rank(request)
+
+        # check if user has completed onbarding and is from IIT Delhi
+        onboard = user_onbaord(request.user.id)
+        context = {'usr': user, 'communities': communities, 'my_communities': my_community[:2],
+                       "my_communities_count": len(my_community), 'onboard': onboard, 'is_iitd': True,
+                       'request_user_email': request_user_email}
+        print(">>>> done1")
+
+        return context
+
+    page = request.GET.get('page', 1)
+    communities = Community.objects.filter(Q(hide_community='0') | Q(hide_community='4')).order_by('-updated_at')
+    paginator = Paginator(communities, 20)
+    queryset = paginator.get_page(page)
+
+    for community in queryset:
+        update_member_count(community.id)
+    print(">>>> done2")
+    return {'communities': queryset}
+
+
+def get_user_communities(request):
+    ''' function to get users communities '''
+    communities1 = Members.objects.all().filter(member_id=request.user).filter(
+        Q(state=1) | Q(state=2) | Q(state=4) | Q(state=7))
+
+    my_communities = []
+    for j in communities1:
+        my_communities.append(j.community_id)
+    my_community = []
+    for j in my_communities:
+        my_community.append(j)
+
+    return my_community
 
 def get_user_communities_by_rank(page_number=1, user_id=None):
     ''' fetching communities based on user Community Rank data '''
