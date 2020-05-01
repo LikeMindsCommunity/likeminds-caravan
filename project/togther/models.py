@@ -212,6 +212,7 @@ class Collabcard(models.Model):
     # for poll functionality
     multiple_select = models.BooleanField(default=False)
     multiple_select_no = models.IntegerField(null=True)
+    multiple_select_state = models.IntegerField(default=0)
 
 
 
