@@ -105,7 +105,7 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
+#for encrypting and decryption for link
 ENCRYPT_KEY = b'yo0TkK34DzXNAr9sTEnT-vajau2ntgd6oFvwZt0k3dQ='
 # Internationalization
 # https://docs.djangoproject.com/en/2.1/topics/i18n/
