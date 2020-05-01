@@ -32,14 +32,14 @@
    FB.api('/me?fields=id,name,email,picture', function(response) {
 
     console.log(response)
-    authServer(response,cta)
+    authServerFacebook(response,cta)
     //window.location.href = cta;
 
    });
 
  }
 
-function authServer(response,cta){
+function authServerFacebook(response,cta){
         $(".ldrT", $('#loader')[0]).text("Login you in...");
         $('#loader').show();
         var temp = {"type": "facebook", "login_json": response}
