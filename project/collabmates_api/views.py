@@ -5978,6 +5978,7 @@ def login_with_apple(request,res,json_to_save,login_type="apple"):
     res = res['login_json']
     userinfo = Userinfo.objects.filter(apple_id=res['id'])
 
+
     if not userinfo.exists():
         # creating a user if no user is associated with that email
         user = create_user(user_name=res['name'], email=res['email'],
@@ -5996,7 +5997,7 @@ def login_with_apple(request,res,json_to_save,login_type="apple"):
                                    profile_picture=image_link, login_type=login_type,
                                    json_to_save=json_to_save, city=city, apple_id=res['id']
                                    )
-        created = True
+        save_user_primary_email(user,res['email'])
         mail_triger(str(user.id), request)  # both mail and notification will be sent here
 
     else:
