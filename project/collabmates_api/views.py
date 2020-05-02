@@ -2814,6 +2814,8 @@ def collabcard_poll_version_1(request):
             return JsonResponse(context)
 
         member_id = get_member_id_from_headers(request)
+        if request.user.is_authenticated and not get_request_type(request):
+            member_id = request.user.id
         if not member_id:
             context = get_error_context(success=False, error_message="Send member id in headers")
             return JsonResponse(context)
@@ -3859,7 +3861,8 @@ def collabcard(request, card_id):
 
         if card_category == "EVENT_CARD":
             return render(request, 'event.html', context)
-
+        if card_category == "POLL_CARD":
+            return render(request, 'poll.html', context)
         else:
             return render(request, 'collabcard.html', context)
 
@@ -4021,6 +4024,63 @@ def get_collabcard_details_for_web(request,card_instance,card,current_user_id,an
 
         return context,"EVENT_CARD"
         #return render(request, 'event.html', context)
+    elif card['type'] == card_types.CARD_POLL:
+        # print('poll card')
+
+        # get community for community name, image, etc
+        community = card_instance.community
+
+        member_state = members_state(request,
+                                     req_dict={'community_id': card_instance.community.id, 'member_id': current_user_id})
+
+        if card['polls_count'] > 0:
+            card['polls_count_percentage'] = card['polls_count']/100
+
+        # set time
+        card['end_date'] = ConvertSectoDay(card['end_date']/1000.0)
+
+        # print("current_time--",time.time())
+        # print("end_date--",card['end_date']/1000.0)
+        # if time.time() > card['end_date'] / 1000.0:
+        #     card['event_ended'] = True
+
+        # card['end_time'] = time.strftime('%A, %b %d, %H:%M', time.localtime(card['end_date'] / 1000.0))
+        # card['date_time'] = time.strftime('%A, %b %d, %H:%M', time.localtime(card['date_time'] / 1000.0))
+        # card['duration'] = card['duration']/1000.0
+        # card['duration'] = ConvertSectoDay(card['duration'])
+
+        # get members
+        state_list = [collabcard_states.COLLABCARD_STATE_ATTEND_FOLLOWING,
+                      collabcard_states.COLLABCARD_STATE_ATTEND_UNFOLLOWING]
+        members = get_members_data_for_collabcard(card_instance.id, card_instance.community.id, current_user_id, state_list)
+
+        # set header
+        header = {
+            'back': True,
+            'title': community.name,
+            'subTitle': False,
+            'background': 'Wa',
+            'color': 'F'
+        }
+
+        context = {
+            "member_state": member_state,
+            "community": community,
+            "collabcard": card,
+            "members": members,
+            'answers': answers,
+            'header': header,
+            'google_oauth_client_id': settings.GOOGLE_OAUTH_CLIENT_ID,
+        }
+
+        if is_logged:
+            if current_user['collabcard_state'] == 0:
+                collabcards_seen_internal(card_instance.community.id, card_instance.id, card['type'], current_user_id)
+            context["current_user"] = current_user
+
+        # print(context)
+
+        return context,"POLL_CARD"
     else:
         print('collab card')
         if request.user.is_authenticated:
