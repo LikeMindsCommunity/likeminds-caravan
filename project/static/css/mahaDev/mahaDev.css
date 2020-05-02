@@ -253,6 +253,7 @@ body ::-webkit-scrollbar { display: none; }
 .mnwp20 { min-width: 20%; }
 .mnwp100 { min-width: 100%; }
 .mnw296 { min-width: 296px; }
+.mnw100 { min-width: 100px; }
 .mxwp100 { max-width: 100%; }
 .mxw640 { max-width: 640px; }
 .mxw1280 { max-width: 1280px; }

@@ -23,8 +23,8 @@
             </div>
         </div>
         <div class="p024 dT wp100 fs13">
-            <div class="dTc vM cd0021b">Poll</div>
-            <div class="dTc vM bgd0021b w100 cF p610 taC">Ends in {{ collabcard.end_time }}</div>
+            <div class="dTc vM cd0021b wp100">Poll</div>
+            <div class="dTc vM bgd0021b mnw100 cF p610 taC wsN">Ends in {{ collabcard.end_date }}</div>
         </div>
         <div class="c4a ffR fs24 fwL lh36 p1624">
             {{collabcard.title}}
@@ -90,10 +90,10 @@
                     <div class="dIb vM pl12 bs lh16">SUBMIT VOTE</div>
                 </button>
             </div>
-            <div class="dTc vM w40 h40"></div>
+            <div class="dTc vM w20 h40"></div>
             <div class="dTc vM w40 h40">
-                <div class="bdE brp50 dIb h40 taC vM w40">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="w24 h36 cB">
+                <div class="brp50 dIb h40 taC vM w40 {% if current_user.collabcard_state == 2 or current_user.collabcard_state == 3 %}cB bdE{% else %}bd06C3AF c06C3AF{% endif %}" id="follow_poll" data-status="{% if current_user.collabcard_state == 2 or current_user.collabcard_state == 3 %}false{% else %}true{% endif %}">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="w24 h36">
                         <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2zm-2 1H8v-6c0-2.48 1.51-4.5 4-4.5s4 2.02 4 4.5v6z"/>
                     </svg>
                 </div>
@@ -590,6 +590,41 @@
                             $('#loader').hide();
                         }
                     })
+                {% endif %}
+            });
+
+            $(document.body).on('click','#follow_poll',function(e){
+                {% if request.user.is_authenticated %}
+                    {% if member_state.state == 0 %}
+                        $(".ldrT", $('#loader')[0]).text("Making request...");
+                        $('#loader').show();
+                        window.location.href = "/community/{{community.id}}?cta=join&poll={{collabcard.id}}";
+                    {% elif member_state.state == 3 %}
+                        $('#add_email_pop').modal('show');
+                    {% else %}
+                        var status = $(this).attr('data-status');
+                        $(".ldrT", $('#loader')[0]).text(`Requesting to ${status == 'true' ? '' : 'un'}follow poll...`);
+                        $('#loader').show();
+                        $.ajax({
+                            url: "/api/collabcard_follow",
+                            data: {collabcard_id: {{collabcard.id}}, member_id: {{current_user.id}}, value: status},
+                            type: "GET",
+                            dataType: 'json',
+                            success: function(data) {
+                                if(status == 'true'){
+                                    $('#follow_poll').attr('data-status', 'false').removeClass('bd06C3AF c06C3AF').addClass('bdE cB');
+                                }else{
+                                    $('#follow_poll').attr('data-status', 'true').addClass('bd06C3AF c06C3AF').removeClass('bdE cB');
+                                }
+                                $('#loader').hide();
+                            },
+                            error: function(){
+                                $('#loader').hide();
+                            }
+                        })
+                    {% endif %}
+                {% else %}
+                    $('.test').modal('show');
                 {% endif %}
             });
 

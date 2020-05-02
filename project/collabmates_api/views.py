@@ -4037,6 +4037,8 @@ def get_collabcard_details_for_web(request,card_instance,card,current_user_id,an
             card['polls_count_percentage'] = card['polls_count']/100
 
         # set time
+        card['end_date'] = ConvertSectoDay(card['end_date']/1000.0)
+
         # print("current_time--",time.time())
         # print("end_date--",card['end_date']/1000.0)
         # if time.time() > card['end_date'] / 1000.0:
