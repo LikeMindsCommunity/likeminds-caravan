@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+{% load static %}
+<html class="bgBg {{theme}}">
+    <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+        <link rel="shortcut icon" href="https://beta.collabmates.com/media/media/ic_launcher_round.png">
+        <meta name="keywords" content="">
+        <meta charset="UTF-8">
+        <meta name="description" content=""/>
+        <meta property="og:image" itemprop="image" content='https://beta.collabmates.com/media/media/ic_launcher_round.png'/>
+        <meta property="og:title" content=""/>
+        <meta property="og:description" content=""/>
+        <meta property="og:type" content="website"/>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <script async src="https://www.googletagmanager.com/gtag/js?id=UA-130288684-1"></script>
+        <link href="https://fonts.googleapis.com/css?family=Roboto:400,500,500i,700&display=swap" rel="stylesheet">
+        <!-- Global site tag (gtag.js) - Google Analytics -->
+        <script async src="https://www.googletagmanager.com/gtag/js?id=UA-155700742-1"></script>
+        <script>
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', 'UA-155700742-1');
+        </script>
+        <!-- Google Tag Manager -->
+        <script>
+            (function(w,d,s,l,i){
+                w[l]=w[l]||[];w[l].push({
+                    'gtm.start':new Date().getTime(),
+                    event:'gtm.js'});
+                var f=d.getElementsByTagName(s)[0],
+                    j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';
+                    j.async=true;
+                    j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;
+                    f.parentNode.insertBefore(j,f);
+            })(window,document,'script','dataLayer','GTM-KSF3G6T');
+        </script>
+        <style>
+            header, .scroll { color: #06c3af; fill: #06c3af}
+            footer { color: #999; fill: #999}
+            .dark header,.dark footer, .dark .scroll { color: #fff; fill: #fff}
+            .tc { color:#000 }
+            .dark .tc { color:#fff }
+            .pF {position: fixed}
+            .pR {position: relative}
+            .t0 {top: 0}
+            .l0 {left: 0}
+            .r0 {right: 0}
+            .b0 {bottom: 0}
+            .bvw6 {bottom: min(6vw, 48px)}
+            .z1 {z-index: 1}
+            .z2 {z-index: 2}
+
+            .dT {display: table}
+            .wp100 {width: 100%}
+            .mxw1280 {max-width: max(96vw, 1280px)}
+            .mxw1024 {max-width: max(86vw, 1024px)}
+            .mA {margin: auto}
+            .p48 {padding: min(6vw, 48px)}
+            .tlF {table-layout: fixed}
+            .bsB {box-sizing: border-box}
+
+            .dTc {display: table-cell}
+            .vM {vertical-align: middle}
+
+            .taL {text-align: left}
+            .taR {text-align: right}
+
+            .fwB {font-weight: bold}
+            
+            body {
+                overflow: hidden;
+                margin: 0;
+                font-family: "Roboto",Roboto,"Helvetica",Helvetica,"Arial",Arial,sans-serif;
+                text-rendering: optimizeLegibility;
+                height:100vh;
+                background: linear-gradient(#f9f9f9, #fff)
+            }
+
+            .dark body {background:#000}
+
+            main {
+                position: relative;
+                overflow: hidden;
+                transition: 1s cubic-bezier(0.5, 0, 0.5, 1);
+            }
+
+            .tcGrad {
+                background: -webkit-linear-gradient(45deg, #00897b, #87e28e);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+            }
+            .blinkCaret.animate { animation: blink-caret .75s infinite;}
+            @keyframes blink-caret {
+                from, to { color: transparent }
+                50% { color: inherit; }
+            }
+
+            .wsN { white-space: nowrap; }
+            .dIb {display:inline-block}
+            .pl68 { padding-left: 68px; }
+            .fsvw4 {font-size: min(3.8vw, 40px);}
+            .fsvw3 {font-size: min(3.2vw, 30px);}
+            .fsvw2 {font-size: min(1.4vw, 20px);}
+            .fsvw1 {font-size: min(1vw, 16px);}
+            .lhvw5 {line-height: min(3.8vw, 40px);}
+            .lsvw1 { letter-spacing: min(0.05vw, 0.5px); }
+            .wvw8 {width: 8vw;}
+            .hvw8 {height: 8vw;}
+            .wvw4 {width: 4vw;}
+            .hvw4 {height: 4vw;}
+            .hvw100 {height:100vh}
+            .pvw4 {padding:4vw}
+            .wvw3 {width:3vw}
+            .hvw3 {height:3vw}
+            .plwv8 { padding-left: min(8vw, 64px); }
+
+            .scroll {
+                -webkit-animation: bounce 2s infinite;
+                animation: bounce 2s infinite;
+            }
+            @-webkit-keyframes bounce {
+                0%,
+                20%,
+                50%,
+                80%,
+                100% {
+                    -webkit-transform: translateY(0);
+                            transform: translateY(0);
+                }
+                40% {
+                    -webkit-transform: translateY(-30px);
+                            transform: translateY(-30px);
+                }
+                60% {
+                    -webkit-transform: translateY(-15px);
+                            transform: translateY(-15px);
+                }
+            }
+            @keyframes bounce {
+                0%,
+                20%,
+                50%,
+                80%,
+                100% {
+                    -webkit-transform: translateY(0);
+                            transform: translateY(0);
+                }
+                40% {
+                    -webkit-transform: translateY(-30px);
+                            transform: translateY(-30px);
+                }
+                60% {
+                    -webkit-transform: translateY(-15px);
+                            transform: translateY(-15px);
+                }
+            }
+            .wp75 { width:66% }
+            .wp25 { width:30% }
+            .fs0 {font-size:0}
+            .scrolled .scroll {display: none;}
+        </style>
+    </head>
+    <body>
+        
+        <header class="pF t0 r0 l0 z1 lsvw1">
+            <div class="dT wp100 mxw1280 mA p48 tlF bsB wsN">
+                <div class="dTc vM taL">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="114" height="20" viewBox="0 0 114 20">
+                        <path d="M11.646 19.09v-2.994H3.729V.994H0v18.097h11.646zm3.89-15.063c.605 0 1.092-.174 1.46-.522.37-.348.554-.795.554-1.342 0-.539-.183-.982-.547-1.33-.365-.348-.854-.522-1.467-.522-.621 0-1.112.174-1.473.522-.36.348-.54.791-.54 1.33 0 .547.184.994.553 1.342.369.348.855.522 1.46.522zm1.802 15.064V5.643h-3.604V19.09h3.604zm6.55 0v-4.102l1.293-1.292 3.455 5.394h4.127l-5.283-7.843 4.86-5.605h-4.313l-3.442 4.04-.697.894V0h-3.591v19.09h3.591zm16.195.248c1.12 0 2.138-.213 3.058-.64.92-.426 1.649-1.02 2.187-1.783l-1.764-1.976c-.78 1.002-1.86 1.504-3.244 1.504-.895 0-1.635-.266-2.219-.796-.584-.53-.934-1.235-1.05-2.113h8.563V12.07c0-2.13-.528-3.775-1.584-4.935-1.057-1.16-2.505-1.74-4.344-1.74-1.227 0-2.318.288-3.275.864-.957.576-1.697 1.396-2.219 2.46-.522 1.066-.783 2.273-.783 3.624v.348c0 2.013.62 3.625 1.858 4.835 1.239 1.21 2.844 1.814 4.816 1.814zm2.002-8.252h-4.997c.124-.895.408-1.583.851-2.064.444-.48 1.022-.72 1.734-.72.763 0 1.35.217 1.765.652.415.435.63 1.05.647 1.846v.286zM50.382 19.09v-7.929l-.125-7.967 6.712 15.897h1.18l6.737-15.959-.124 8.079v7.88h1.529V.994h-2.039l-6.699 15.972L50.88.994h-2.026v18.097h1.529zm21.08-16.343c.314 0 .565-.095.751-.286.187-.19.28-.427.28-.709 0-.281-.093-.52-.28-.714-.186-.195-.437-.292-.752-.292s-.563.097-.745.292c-.183.195-.274.433-.274.714 0 .282.091.518.274.709.182.19.43.286.745.286zm.733 16.344V5.643h-1.492V19.09h1.492zm5.518 0V9.88c.34-.978.864-1.755 1.572-2.33.709-.576 1.523-.864 2.443-.864 1.102 0 1.903.294 2.405.882.5.589.756 1.483.764 2.685v8.837h1.48v-8.825c-.01-1.624-.366-2.842-1.07-3.654-.704-.812-1.777-1.218-3.219-1.218-.911 0-1.744.218-2.498.653-.754.435-1.384 1.067-1.89 1.895l-.05-2.3h-1.416v13.449h1.48zm17.077.248c1.848 0 3.249-.679 4.201-2.038l.063 1.79h1.392V0h-1.48v7.544c-.952-1.433-2.336-2.15-4.15-2.15-1.6 0-2.866.62-3.798 1.858-.932 1.24-1.398 2.902-1.398 4.99v.175c0 2.12.474 3.805 1.423 5.052.949 1.247 2.198 1.87 3.747 1.87zm.274-1.292c-1.251 0-2.22-.495-2.908-1.485-.688-.99-1.032-2.343-1.032-4.058 0-1.915.348-3.362 1.044-4.344.696-.982 1.67-1.473 2.92-1.473 1.815 0 3.108.874 3.879 2.622v6.314c-.771 1.616-2.072 2.424-3.903 2.424zm13.883 1.292c1.475 0 2.67-.34 3.586-1.019.915-.68 1.373-1.586 1.373-2.722 0-.696-.157-1.288-.472-1.777-.315-.489-.798-.907-1.448-1.255-.65-.348-1.628-.676-2.933-.982-1.305-.307-2.204-.644-2.697-1.013-.493-.369-.74-.889-.74-1.56 0-.696.296-1.262.889-1.697.592-.435 1.377-.652 2.355-.652 1.003 0 1.833.26 2.492.783.659.522.988 1.177.988 1.964h1.492c0-1.193-.454-2.16-1.361-2.902-.908-.742-2.111-1.113-3.61-1.113-1.385 0-2.52.346-3.406 1.038-.887.692-1.33 1.568-1.33 2.629 0 .67.16 1.243.478 1.715.32.472.808.872 1.467 1.2.659.327 1.584.617 2.778.87 1.193.252 2.086.602 2.678 1.05.593.447.889 1.04.889 1.777 0 .696-.32 1.272-.957 1.728-.638.455-1.475.683-2.51.683-1.111 0-2.004-.242-2.68-.727-.675-.485-1.041-1.162-1.1-2.032h-1.49c0 1.16.486 2.12 1.46 2.877.973.758 2.243 1.137 3.81 1.137z"/>
+                    </svg>
+                </div>
+                <div class="dTc vM taR fwB fsvw1">apply for alpha</div>
+            </div>
+        </header>
+
+        <main role="main" id="main">
+
+            <section class="communities dT wp100 mxw1024 mA fsvw4 hvw100 pvw4 bsB lsvw1">
+                <div class="dTc vM">
+                    <div class="dIb vM wvw8">
+                        <div class="dIb vM wvw8 hvw8">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96">
+                                <g fill="none">
+                                    <g fill="#06C3AF">
+                                        <ellipse cx="14.026" cy="73.991" rx="12.273" ry="12.475"/>
+                                        <ellipse cx="81.429" cy="73.991" rx="12.273" ry="12.475"/>
+                                        <ellipse cx="47.104" cy="14.287" rx="12.273" ry="12.475"/>
+                                        <path d="M66.098 89.318c-.429-.891-1.48-1.268-2.357-.832-5.046 2.475-10.48 3.743-16.13 3.743-8.552 0-16.793-2.99-23.396-8.436 2.376-2.555 3.837-6 3.837-9.782 0-7.862-6.292-14.258-14.026-14.258S0 66.149 0 74.011c0 7.861 6.292 14.257 14.026 14.257 2.708 0 5.26-.792 7.403-2.158 7.325 6.277 16.558 9.703 26.182 9.703 6.195 0 12.136-1.386 17.669-4.1.876-.435 1.247-1.504.818-2.395zM3.526 73.99c0-5.881 4.714-10.674 10.5-10.674s10.5 4.793 10.5 10.674c0 5.881-4.714 10.673-10.5 10.673s-10.5-4.792-10.5-10.673zM7.033 52.565c-.04.99.72 1.822 1.714 1.861h.058c.955 0 1.734-.772 1.773-1.742.429-12.852 7.15-24.476 17.961-31.11 1.695-1.03 3.468-1.94 5.28-2.693 1.89 5.604 7.13 9.664 13.266 9.664 7.734 0 14.026-6.396 14.026-14.258C61.111 6.426 54.819.03 47.085.03S33.059 6.426 33.059 14.287c0 .357.02.693.039 1.03-2.202.871-4.364 1.94-6.39 3.188C14.864 25.753 7.5 38.485 7.033 52.565zM47.104 3.614c5.786 0 10.5 4.792 10.5 10.673 0 5.882-4.714 10.654-10.5 10.654-5.785 0-10.5-4.792-10.5-10.674 0-5.88 4.695-10.653 10.5-10.653zM81.43 59.733c-7.734 0-14.027 6.396-14.027 14.258 0 7.861 6.293 14.257 14.026 14.257 7.734 0 14.026-6.396 14.026-14.257 0-5.525-3.116-10.337-7.655-12.693.39-2.337.603-4.713.603-7.09 0-14.06-6.935-27.03-18.545-34.713-.818-.534-1.91-.297-2.435.535-.526.832-.292 1.94.526 2.475 10.617 7.01 16.948 18.852 16.948 31.703 0 1.96-.156 3.921-.448 5.862-.974-.218-1.987-.337-3.02-.337zm10.5 14.258c0 5.881-4.715 10.673-10.5 10.673-5.786 0-10.5-4.792-10.5-10.673s4.714-10.674 10.5-10.674c5.785 0 10.5 4.793 10.5 10.674z"/>
+                                    </g>
+                                    <path fill="#FFF" d="M57.881 42h-20.49c-2.424.003-4.388 1.909-4.391 4.26v12.308c.003 2.352 1.967 4.258 4.39 4.26h1.357l-.859 4.166c-.037.179.036.363.187.472.15.11.352.125.519.04l9.162-4.678h10.125c2.424-.002 4.388-1.908 4.39-4.26V46.26c-.002-2.351-1.966-4.257-4.39-4.26z"/>
+                                </g>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="dIb vM plwv8 bsB fwB tc">
+                        <div>
+                            <span>Build </span>
+                            <span class="typewrite" data-period="2000" data-type='["learning","networking","alumni","hobby","neighborhood","volunteering","parenting","work","ambassador","sports","fan"]'></span>
+                            <span class="blinkCaret a">_</span> 
+                            <span> communities</span>
+                        </div>
+                        <div>via shared chat rooms</div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="communities dT wp100 mxw1024 mA fsvw4 hvw100 pvw4 bsB lsvw1">
+                <div class="dTc vM tc">
+                    <div class="dIb vM wvw8">
+                        <div class="dIb vM wvw8 hvw8">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96">
+                                <g fill="none">
+                                    <g fill="#06C3AF">
+                                        <ellipse cx="14.026" cy="73.991" rx="12.273" ry="12.475"/>
+                                        <ellipse cx="81.429" cy="73.991" rx="12.273" ry="12.475"/>
+                                        <ellipse cx="47.104" cy="14.287" rx="12.273" ry="12.475"/>
+                                        <path d="M66.098 89.318c-.429-.891-1.48-1.268-2.357-.832-5.046 2.475-10.48 3.743-16.13 3.743-8.552 0-16.793-2.99-23.396-8.436 2.376-2.555 3.837-6 3.837-9.782 0-7.862-6.292-14.258-14.026-14.258S0 66.149 0 74.011c0 7.861 6.292 14.257 14.026 14.257 2.708 0 5.26-.792 7.403-2.158 7.325 6.277 16.558 9.703 26.182 9.703 6.195 0 12.136-1.386 17.669-4.1.876-.435 1.247-1.504.818-2.395zM3.526 73.99c0-5.881 4.714-10.674 10.5-10.674s10.5 4.793 10.5 10.674c0 5.881-4.714 10.673-10.5 10.673s-10.5-4.792-10.5-10.673zM7.033 52.565c-.04.99.72 1.822 1.714 1.861h.058c.955 0 1.734-.772 1.773-1.742.429-12.852 7.15-24.476 17.961-31.11 1.695-1.03 3.468-1.94 5.28-2.693 1.89 5.604 7.13 9.664 13.266 9.664 7.734 0 14.026-6.396 14.026-14.258C61.111 6.426 54.819.03 47.085.03S33.059 6.426 33.059 14.287c0 .357.02.693.039 1.03-2.202.871-4.364 1.94-6.39 3.188C14.864 25.753 7.5 38.485 7.033 52.565zM47.104 3.614c5.786 0 10.5 4.792 10.5 10.673 0 5.882-4.714 10.654-10.5 10.654-5.785 0-10.5-4.792-10.5-10.674 0-5.88 4.695-10.653 10.5-10.653zM81.43 59.733c-7.734 0-14.027 6.396-14.027 14.258 0 7.861 6.293 14.257 14.026 14.257 7.734 0 14.026-6.396 14.026-14.257 0-5.525-3.116-10.337-7.655-12.693.39-2.337.603-4.713.603-7.09 0-14.06-6.935-27.03-18.545-34.713-.818-.534-1.91-.297-2.435.535-.526.832-.292 1.94.526 2.475 10.617 7.01 16.948 18.852 16.948 31.703 0 1.96-.156 3.921-.448 5.862-.974-.218-1.987-.337-3.02-.337zm10.5 14.258c0 5.881-4.715 10.673-10.5 10.673-5.786 0-10.5-4.792-10.5-10.673s4.714-10.674 10.5-10.674c5.785 0 10.5 4.793 10.5 10.674z"/>
+                                    </g>
+                                    <path fill="#FFF" d="M57.881 42h-20.49c-2.424.003-4.388 1.909-4.391 4.26v12.308c.003 2.352 1.967 4.258 4.39 4.26h1.357l-.859 4.166c-.037.179.036.363.187.472.15.11.352.125.519.04l9.162-4.678h10.125c2.424-.002 4.388-1.908 4.39-4.26V46.26c-.002-2.351-1.966-4.257-4.39-4.26z"/>
+                                </g>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="dIb vM plwv8 bsB fwB">
+                        <span>Chat rooms for </span>
+                        <span class="typewrite" data-period="2000" data-type='["finding partners","brainstorming","playing together","knowledge exchange","decision making","solving queries","task coordination","sharing resources","sourcing leads","gathering feedback","asking recommendations","getting mentorship","building relationships"]'></span>
+                        <span class="blinkCaret b">_</span>
+                    </div>
+                </div>
+            </section>
+
+            <section class="about dT wp100 mxw1280 mA hvw100 pvw4 bsB lsvw1">
+                <div class="dTc vM tc fs0">
+                    <div class="dIb vM wp25 fsvw4">
+                        <div class="dIb vM wvw4 hvw4">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96">
+                                <g fill="none">
+                                    <g fill="#06C3AF">
+                                        <ellipse cx="14.026" cy="73.991" rx="12.273" ry="12.475"/>
+                                        <ellipse cx="81.429" cy="73.991" rx="12.273" ry="12.475"/>
+                                        <ellipse cx="47.104" cy="14.287" rx="12.273" ry="12.475"/>
+                                        <path d="M66.098 89.318c-.429-.891-1.48-1.268-2.357-.832-5.046 2.475-10.48 3.743-16.13 3.743-8.552 0-16.793-2.99-23.396-8.436 2.376-2.555 3.837-6 3.837-9.782 0-7.862-6.292-14.258-14.026-14.258S0 66.149 0 74.011c0 7.861 6.292 14.257 14.026 14.257 2.708 0 5.26-.792 7.403-2.158 7.325 6.277 16.558 9.703 26.182 9.703 6.195 0 12.136-1.386 17.669-4.1.876-.435 1.247-1.504.818-2.395zM3.526 73.99c0-5.881 4.714-10.674 10.5-10.674s10.5 4.793 10.5 10.674c0 5.881-4.714 10.673-10.5 10.673s-10.5-4.792-10.5-10.673zM7.033 52.565c-.04.99.72 1.822 1.714 1.861h.058c.955 0 1.734-.772 1.773-1.742.429-12.852 7.15-24.476 17.961-31.11 1.695-1.03 3.468-1.94 5.28-2.693 1.89 5.604 7.13 9.664 13.266 9.664 7.734 0 14.026-6.396 14.026-14.258C61.111 6.426 54.819.03 47.085.03S33.059 6.426 33.059 14.287c0 .357.02.693.039 1.03-2.202.871-4.364 1.94-6.39 3.188C14.864 25.753 7.5 38.485 7.033 52.565zM47.104 3.614c5.786 0 10.5 4.792 10.5 10.673 0 5.882-4.714 10.654-10.5 10.654-5.785 0-10.5-4.792-10.5-10.674 0-5.88 4.695-10.653 10.5-10.653zM81.43 59.733c-7.734 0-14.027 6.396-14.027 14.258 0 7.861 6.293 14.257 14.026 14.257 7.734 0 14.026-6.396 14.026-14.257 0-5.525-3.116-10.337-7.655-12.693.39-2.337.603-4.713.603-7.09 0-14.06-6.935-27.03-18.545-34.713-.818-.534-1.91-.297-2.435.535-.526.832-.292 1.94.526 2.475 10.617 7.01 16.948 18.852 16.948 31.703 0 1.96-.156 3.921-.448 5.862-.974-.218-1.987-.337-3.02-.337zm10.5 14.258c0 5.881-4.715 10.673-10.5 10.673-5.786 0-10.5-4.792-10.5-10.673s4.714-10.674 10.5-10.674c5.785 0 10.5 4.793 10.5 10.674z"/>
+                                    </g>
+                                    <path fill="#06C3AF" d="M57.881 42h-20.49c-2.424.003-4.388 1.909-4.391 4.26v12.308c.003 2.352 1.967 4.258 4.39 4.26h1.357l-.859 4.166c-.037.179.036.363.187.472.15.11.352.125.519.04l9.162-4.678h10.125c2.424-.002 4.388-1.908 4.39-4.26V46.26c-.002-2.351-1.966-4.257-4.39-4.26z"/>
+                                </g>
+                            </svg>
+                        </div>
+                        <div class="dIb vM tcGrad fwB">About</div>
+                    </div>
+                    <div class="dIb vM wp75 fsvw3 lhvw5">
+                        LikeMinds helps communities engage deeper by enabling real-time conversations between relevant members in shared chat rooms, which dramatically reduces spam and fosters collaboration. Community managers have custom tools for community growth and engagement.
+                    </div>
+                </div>
+            </section>
+
+            <section class="sharedChatRooms dT wp100 mxw1280 mA hvw100 pvw4 bsB lsvw1">
+                <div class="dTc vM tc fs0">
+                    <div class="dIb vM wp25 fsvw4 tcGrad fwB">Shared chat rooms for each conversation</div>
+                    <div class="dIb vM wp75 fsvw3 lhvw5">Members can participate, follow, or add other members in relevant chat rooms to coordinate efficiently until the shared purpose is achieved. Post that chat rooms can be archived or saved in the community repository for future references.</div>
+                </div>
+            </section>
+
+            <section class="customSignin dT wp100 mxw1280 mA hvw100 pvw4 bsB lsvw1">
+                <div class="dTc vM tc">
+                    <div class="dIb vM wp25 fsvw4 tcGrad fwB">Custom signup form for your community</div>
+                    <div class="dIb vM wp75 fsvw3 lhvw5">Members create community-specific profiles while signing up, allowing you to approve only relevant members. A member directory is also generated for members to filter other members and make the right connections.</div>
+                </div>
+            </section>
+
+            <section class="tools dT wp100 mxw1280 mA hvw100 pvw4 bsB lsvw1">
+                <div class="dTc vM tc">
+                    <div class="dIb vM wp25 fsvw4 tcGrad fwB">Tools to manage your community efficiently</div>
+                    <div class="dIb vM wp75 fsvw3 lhvw5">Launch community events, conduct polls, and build lists to engage the community. With the right permission settings and the ability to analyze and reward your community, you will not need a third-party tool for anything.</div>
+                </div>
+            </section>
+
+            <section class="growth dT wp100 mxw1280 mA hvw100 pvw4 bsB lsvw1">
+                <div class="dTc vM tc">
+                    <div class="dIb vM wp25 fsvw4 tcGrad fwB">Designed for growth of your community</div>
+                    <div class="dIb vM wp75 fsvw3 lhvw5">All tools and chat rooms are web-enabled. You or community members can share events, polls, lists, or just interesting conversations with potential members of the community. Increased visibility and community discovery will drive membership in the community.</div>
+                </div>
+            </section>
+
+            <section class="alpha dT wp100 mxw1280 mA hvw100 pvw4 bsB lsvw1">
+                <div class="dTc vM tc">
+                    <div class="dTc vM tc">
+                        <div class="dIb vM wp25 fsvw4 tcGrad fwB">Apply for beta</div>
+                        <div class="dIb vM wp75 fsvw3 lhvw5">
+                            <div>If you are building a community or planning to build one on a chat platform and can relate to the usual problems of</div>
+                            <span class="typewrite" data-period="1000" data-type='["Cluttered conversations","Too many notifications","Lack of member identity and approval","Absence of tools to support community building","Arbitrary membership limit"]'></span>
+                            <span class="blinkCaret a">_</span>
+                            <div>Please fill out a quick survey, so we can make sure we’re a great fit for your community at this stage.</div>
+                            <button>APPLY FOR BETA</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+
+        <div class="scroll pF hvw3 wvw3 l0 r0 bvw6 mA z2">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                <path d="M10 0C4.486 0 0 4.486 0 10s4.486 10 10 10 10-4.486 10-10S15.514 0 10 0zm4.045 11.961l-3.75 3.75c-.163.163-.427.163-.59 0l-3.75-3.75c-.08-.08-.122-.186-.122-.294 0-.054.01-.108.032-.16.064-.156.217-.257.385-.257h.833c.111 0 .217.044.295.122l1.789 1.789V4.583c0-.23.186-.416.416-.416h.834c.23 0 .416.186.416.416v8.578l1.79-1.789c.077-.078.183-.122.294-.122h.833c.168 0 .32.101.385.257s.029.335-.09.454z"/>
+            </svg>
+        </div>
+
+        <footer class="pF b0 r0 l0 z1">
+            <div class="dT wp100 mxw1280 mA p48 tlF bsB wsN">
+                <div class="dTc vM taL">
+                    <div class="dIb vM">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="20" viewBox="0 0 24 20">
+                            <path d="M24 2.308c-.892.392-1.843.651-2.835.778 1.02-.61 1.799-1.566 2.165-2.72-.951.567-2.002.967-3.12 1.191C19.305.596 18.02 0 16.614 0 13.893 0 11.7 2.211 11.7 4.921c0 .39.033.765.114 1.122C7.721 5.845 4.103 3.883 1.67.897c-.425.736-.673 1.58-.673 2.487 0 1.704.877 3.214 2.185 4.089-.79-.015-1.566-.244-2.223-.606v.054c0 2.391 1.706 4.377 3.942 4.834-.4.11-.837.162-1.29.162-.315 0-.633-.018-.932-.083.638 1.948 2.447 3.38 4.598 3.427-1.674 1.31-3.8 2.099-6.1 2.099-.404 0-.791-.018-1.178-.068C2.18 18.697 4.763 19.5 7.548 19.5c9.054 0 14.004-7.5 14.004-14.001 0-.217-.008-.427-.018-.636.977-.693 1.797-1.559 2.466-2.555z"/>
+                        </svg>
+                    </div>
+                    <div class="dIb vM pl36 bs">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+                            <path d="M24 1.323v21.348c0 .734-.595 1.324-1.323 1.324h-6.118v-9.29h3.118l.466-3.621h-3.59V8.77c0-1.05.29-1.763 1.795-1.763h1.918v-3.24c-.332-.044-1.468-.146-2.796-.146-2.765 0-4.661 1.688-4.661 4.79v2.673H9.68v3.621h3.129V24H1.323C.595 24 0 23.405 0 22.677V1.323C0 .595.595 0 1.323 0h21.348C23.405 0 24 .595 24 1.323z"/>
+                        </svg>
+                    </div>
+                </div>
+                <div class="dTc vM taR fsvw1">
+                    <div class="dIb vM">terms</div>
+                    <div class="dIb vM pl48 bs">privacy</div>
+                </div>
+            </div>
+        </footer>
+
+        <script>
+            (function() {
+                "use strict";
+                /*[pan and well CSS scrolls]*/
+                var pnls = document.getElementsByTagName('section').length,
+                    scdir, hold = false;
+
+                function _scrollY(obj) {
+                    document.body.classList.add('scrolled');
+                    var slength, plength, pan, step = 100,
+                        vh = window.innerHeight / 100,
+                        vmin = Math.min(window.innerHeight, window.innerWidth) / 100;
+                    // if ((this !== undefined && this.id === 'main') || (obj !== undefined && obj.id === 'main')) {
+                        pan = well;//this || obj;
+                        plength = parseInt(pan.offsetHeight / vh);
+                    // }
+                    // if (pan === undefined) {
+                    //     return;
+                    // }
+                    plength = plength || parseInt(pan.offsetHeight / vmin);
+                    slength = parseInt(pan.style.transform.replace('translateY(', ''));
+                    if (scdir === 'up' && Math.abs(slength) < (plength - plength / pnls)) {
+                        slength = slength - step;
+                    } else if (scdir === 'down' && slength < 0) {
+                        slength = slength + step;
+                    } else if (scdir === 'top') {
+                        slength = 0;
+                    }
+                    if (hold === false) {
+                        hold = true;
+                        pan.style.transform = 'translateY(' + slength + 'vh)';
+                        setTimeout(function() {
+                            hold = false;
+                        }, 1100);
+                    }
+                    // console.log(scdir + ':' + slength + ':' + plength + ':' + (plength - plength / pnls));
+                }
+                /*[swipe detection on touchscreen devices]*/
+                function _swipe(obj) {
+                    var swdir,
+                        sX,
+                        sY,
+                        dX,
+                        dY,
+                        threshold = 100,
+                        /*[min distance traveled to be considered swipe]*/
+                        slack = 50,
+                        /*[max distance allowed at the same time in perpendicular direction]*/
+                        alT = 500,
+                        /*[max time allowed to travel that distance]*/
+                        elT, /*[elapsed time]*/
+                        stT; /*[start time]*/
+                    obj.addEventListener('touchstart', function(e) {
+                        var tchs = e.changedTouches[0];
+                        swdir = 'none';
+                        sX = tchs.pageX;
+                        sY = tchs.pageY;
+                        stT = new Date().getTime();
+                        //e.preventDefault();
+                    }, false);
+
+                    obj.addEventListener('touchmove', function(e) {
+                        e.preventDefault(); /*[prevent scrolling when inside DIV]*/
+                    }, false);
+
+                    obj.addEventListener('touchend', function(e) {
+                        var tchs = e.changedTouches[0];
+                        dX = tchs.pageX - sX;
+                        dY = tchs.pageY - sY;
+                        elT = new Date().getTime() - stT;
+                        if (elT <= alT) {
+                            if (Math.abs(dX) >= threshold && Math.abs(dY) <= slack) {
+                                swdir = (dX < 0) ? 'left' : 'right';
+                            } else if (Math.abs(dY) >= threshold && Math.abs(dX) <= slack) {
+                                swdir = (dY < 0) ? 'up' : 'down';
+                            }
+                            if (obj.id === 'main') {
+                                if (swdir === 'up') {
+                                    scdir = swdir;
+                                    _scrollY(obj);
+                                } else if (swdir === 'down' && obj.style.transform !== 'translateY(0)') {
+                                    scdir = swdir;
+                                    _scrollY(obj);
+
+                                }
+                                e.stopPropagation();
+                            }
+                        }
+                    }, false);
+                }
+                /*[assignments]*/
+                var well = document.getElementById('main');
+                well.style.transform = 'translateY(0)';
+                window.addEventListener('wheel', function(e) {
+                    if (e.deltaY < 0) {
+                        scdir = 'down';
+                    }
+                    if (e.deltaY > 0) {
+                        scdir = 'up';
+                    }
+                    e.stopPropagation();
+                });
+                window.addEventListener('wheel', _scrollY);
+
+                window.addEventListener("keydown", e => {
+                    if (e.keyCode == 38) {
+                        // up arrow
+                        scdir = 'down';
+                    }
+                    if (e.keyCode == 40) {
+                        // down arrow
+                        scdir = 'up';
+                    }
+                    if (e.keyCode == 37) {
+                        // left arrow
+                        scdir = 'down';
+                    }
+                    if (e.keyCode == 39) {
+                        // right arrow
+                        scdir = 'up';
+                    }
+                    if (e.keyCode == 37 || e.keyCode == 38 || e.keyCode ==  39 || e.keyCode ==  40) {
+                        _scrollY();
+                    }
+                    // e.stopPropagation();
+                });
+
+                // window.addEventListener('keydown', _scrollY);
+
+                _swipe(well);
+                var tops = document.querySelectorAll('.scroll');
+                for (var i = 0; i < tops.length; i++) {
+                    tops[i].addEventListener('click', function() {
+                        scdir = 'top';
+                        _scrollY(well);
+                    });
+                }
+            })();
+        
+        
+            var TxtType = function(el, toRotate, period) {
+                this.toRotate = toRotate;
+                this.el = el;
+                this.caret = el.nextElementSibling;
+                console.log(this.caret);
+                this.loopNum = 0;
+                this.period = parseInt(period, 10) || 2000;
+                this.txt = '';
+                this.tick();
+                this.isDeleting = false;
+            };
+
+            TxtType.prototype.tick = function() {
+                var i = this.loopNum % this.toRotate.length;
+                var fullTxt = this.toRotate[i];
+
+                if (this.isDeleting) {
+                    this.txt = fullTxt.substring(0, this.txt.length - 1);
+                    // caret[0].classList.remove('animate');
+                } else {
+                    // caret[0].classList.add('animate');
+                    this.txt = fullTxt.substring(0, this.txt.length + 1);
+                }
+
+                this.el.innerHTML = '<span class="wrap tcGrad">'+this.txt+'</span>';
+
+                var that = this;
+                var delta = 200 - Math.random() * 100;
+
+                if (this.isDeleting) { delta /= 2; }
+
+                if (!this.isDeleting && this.txt === fullTxt) {
+                    delta = this.period;
+                    this.isDeleting = true;
+                    this.caret.classList.add('animate');
+                } else if (this.isDeleting && this.txt === '') {
+                    this.isDeleting = false;
+                    this.loopNum++;
+                    delta = 500;
+                    this.caret.classList.add('animate');
+                }else{
+                    this.caret.classList.remove('animate');
+                }
+
+                setTimeout(function() {
+                    that.tick();
+                }, delta);
+            };
+
+            // window.onload = function() {
+                var elements = document.getElementsByClassName('typewrite');
+                for (var i=0; i<elements.length; i++) {
+                    var toRotate = elements[i].getAttribute('data-type');
+                    var period = elements[i].getAttribute('data-period');
+                    if (toRotate) {
+                        new TxtType(elements[i], JSON.parse(toRotate), period);
+                    }
+                }
+
+            // };
+        </script>
+
+    </body>
+</html>

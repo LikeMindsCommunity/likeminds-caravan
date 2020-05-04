@@ -54,15 +54,22 @@ info_logger = logging.getLogger("info_logger")
 
 def index(request):
     '''function to show promotion page'''
-    user_agent = parse(request.META['HTTP_USER_AGENT'])
-    os_type = user_agent.os.family
 
-    if os_type == "Android":
-        return render(request, 'mobile.html', {'is_beta': settings.IS_BETA})
-    elif os_type == "iOS":
-        return render(request, 'mobile.html', {'is_beta': settings.IS_BETA})
-    else:
-        return render(request, 'index.html', {'is_beta': settings.IS_BETA})
+    themeFromURL = request.GET.get('theme', 'light')
+    context = {
+        'theme': themeFromURL # 'dark', 'gradient'
+    }
+    return render(request, 'home_landing.html', context)
+
+    # user_agent = parse(request.META['HTTP_USER_AGENT'])
+    # os_type = user_agent.os.family
+
+    # if os_type == "Android":
+    #     return render(request, 'mobile.html', {'is_beta': settings.IS_BETA})
+    # elif os_type == "iOS":
+    #     return render(request, 'mobile.html', {'is_beta': settings.IS_BETA})
+    # else:
+    #     return render(request, 'index.html', {'is_beta': settings.IS_BETA})
 
 
 def download_the_app(request):
