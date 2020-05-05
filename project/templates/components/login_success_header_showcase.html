@@ -9,6 +9,8 @@
                     {% else %}
                         To access complete details of this event & upcoming events, join community:
                     {% endif %}
+                {% elif request.GET.poll %}
+                    To participate in poll, join this community:
                 {% else %}
                     {{data.header}}
                 {% endif %}
