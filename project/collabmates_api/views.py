@@ -3798,7 +3798,7 @@ def collabcard(request, card_id):
     # coverting current time into epoch time for getting time stamp of answers and card
 
     # get all the answers of the card
-    answer = card_answers.objects.filter(card=card_instance).order_by('id')
+    answer = cardAnswers.objects.filter(card=card_instance).order_by('id')
     # answer=pagination(answer,page,paginate_by=10)
 
     answer_id = request.GET.get('answer_id', '')
@@ -3809,7 +3809,7 @@ def collabcard(request, card_id):
     if answer_id:
         answer_id = int(answer_id)
 
-        answer = card_answers.objects.filter(card=card_instance, id__gte=answer_id).filter(~Q(user__id=user_id))
+        answer = cardAnswers.objects.filter(card=card_instance, id__gte=answer_id).filter(~Q(user__id=user_id))
         # answer = pagination(answer, page, paginate_by=10)
         answers = get_answer_data(answer,feedback,card_instance.community.id,current_user_id=current_user_id)         #if the feedback is true don't send id in userinfo
         return JsonResponse({'answers': answers})
@@ -3927,7 +3927,7 @@ def get_collabcard_files(card_id):
 def get_answer_files(answer_id):
     '''function to return pdf and image files of a collabcard'''
 
-    files = Answer_Attachment.objects.filter(answer=answer_id)
+    files = answerAttachment.objects.filter(answer=answer_id)
     img_list = []
     pdf = []
     for file in files:
@@ -4930,7 +4930,7 @@ def create_answer(request):
 
     if request.method == 'POST':
         res = json.loads(request.body)
-        ans = card_answers()
+        ans = cardAnswers()
         ans.answer = res['title']
         ans.card = card
         ans.user = user
@@ -4974,7 +4974,7 @@ def update_answer_text(card_id):
 
     ans_text = ''
     card = Collabcard.objects.get(id=card_id)
-    card_ans = card_answers.objects.filter(card=card).distinct('user_id')
+    card_ans = cardAnswers.objects.filter(card=card).distinct('user_id')
     # if only one answer is present fro a collab card
     card_ans_count = card_ans.count()
     if card_ans_count == 0:
@@ -5549,9 +5549,9 @@ def upload_files(request):
         elif 'answer_id' in body:
             attachment_type = body['type']
             answer_id = body['answer_id']
-            answer_obj = card_answers.objects.get(id=answer_id)
+            answer_obj = cardAnswers.objects.get(id=answer_id)
 
-            file = Answer_Attachment()
+            file = answerAttachment()
             file.answer = answer_obj
             file.type = attachment_type
             file.file_url = body['url']
