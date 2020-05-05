@@ -61,6 +61,7 @@ def index(request):
     }
     return render(request, 'home_landing.html', context)
 
+
     # user_agent = parse(request.META['HTTP_USER_AGENT'])
     # os_type = user_agent.os.family
 
@@ -1239,7 +1240,7 @@ def accept_admin(request, community_id):
 @login_required
 def logout_view(request):
     logout(request)
-    return redirect('signup')
+    return redirect('communities')
 
 
 def join_community(request, community_id, ref_id, aj=False, member_state=None):
