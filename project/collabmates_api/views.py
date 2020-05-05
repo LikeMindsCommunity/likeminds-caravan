@@ -48,7 +48,7 @@ from utility.utils import (decode_meta_from_url, update_tag_image,
                            ig_members_count, is_LG_or_LP_community, feedback_community_id, feedback_collabcard_id,
                            is_member_verified,community_default_image,community_default_thumbnail,is_member_promoter,
                            is_member_pending,is_member_present,generate_private_link,generate_random,get_time_text,
-                           community_default_image_round,decode_option, get_user_communities_by_rank,
+                           community_default_image_round,decode_option, get_user_communities_by_rank_web,
                            user_onbaord,
 
                            )
@@ -96,10 +96,7 @@ def communities(request):
     ''' function to get all the communities '''
 
     if request.accepted_renderer.format == 'html':
-        print("here")
         context = dashboard(request)
-        print(">>>> done3")
-
         return render(request, 'dashboard.html', context)
 
     if request.method == 'GET':
@@ -157,14 +154,13 @@ def dashboard(request):
         # get users communities
         my_community = get_user_communities(request)
         # getting communities by user hidden tag
-        communities = get_user_communities_by_rank(request)
+        communities = get_user_communities_by_rank_web(request)
 
         # check if user has completed onbarding and is from IIT Delhi
         onboard = user_onbaord(request.user.id)
         context = {'usr': user, 'communities': communities, 'my_communities': my_community[:2],
                        "my_communities_count": len(my_community), 'onboard': onboard, 'is_iitd': True,
                        'request_user_email': request_user_email}
-        print(">>>> done1")
 
         return context
 
@@ -175,7 +171,6 @@ def dashboard(request):
 
     for community in queryset:
         update_member_count(community.id)
-    print(">>>> done2")
     return {'communities': queryset}
 
 

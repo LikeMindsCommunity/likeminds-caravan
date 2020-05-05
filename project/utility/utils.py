@@ -966,7 +966,7 @@ def is_legacy_home_town(communities_legacy):
     return False
 
 
-def get_user_communities_by_rank(request):
+def get_user_communities_by_rank_web(request):
     ''' function to get communities based on rank '''
     communities_list = []
     communities = Community_Rank.objects.filter(member_id=request.user).order_by('-weight').values_list('community_id',
