@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 {% load static %}
-<html class="bgBg {{theme}}">
+<html class="bgBg dark {{theme}}">
     <head>
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
         <link rel="shortcut icon" href="https://beta.collabmates.com/media/media/ic_launcher_round.png">
@@ -53,8 +53,8 @@
 
             .dT {display: table}
             .wp100 {width: 100%}
-            .mxw1280 {max-width: max(96vw, 1280px)}
-            .mxw1024 {max-width: max(86vw, 1024px)}
+            .mxw1280 {max-width: 1440px}
+            .mxw1024 {max-width: 1280px}
             .mA {margin: auto}
             .p48 {padding: min(6vw, 48px)}
             .tlF {table-layout: fixed}
@@ -90,6 +90,7 @@
                 -webkit-background-clip: text;
                 -webkit-text-fill-color: transparent;
             }
+            .blinkCaret{margin-left: -8px;}
             .blinkCaret.animate { animation: blink-caret .75s infinite;}
             @keyframes blink-caret {
                 from, to { color: transparent }
@@ -159,6 +160,108 @@
             .wp25 { width:30% }
             .fs0 {font-size:0}
             .scrolled .scroll {display: none;}
+            .text2,.text3,.text4,.text5,.text6,.text5_1,.text5_2,.text5_3,.text5_4{display:none}
+            .text2,.text4,.text5,.text6,.text5_1,.text5_2,.text5_3,.text5_4{opacity:0}
+            #right{width:0}
+            #left{width:96px;text-align:left}
+            #container {margin:0 calc(50vw - 512px - 48px);font-size: 40px;transition: margin 1s ease;line-height: ;}
+            .text4{
+                line-height: 44px;
+                width: 680px;
+                font-size: 34px;
+                letter-spacing: 0.5px;
+                color: #ddd;}
+            .four .text5,.four .text6,.three .text3,.three .text4,.two .text2,.two_ .text2{display:inline-block;animation-delay: 1s;*/animation-duration: 1s;webkit-animation-fill-mode: forwards;animation-fill-mode: forwards;-webkit-animation-name: fadeIn ;animation-name: fadeIn;}
+            .one .text2,.three .text2,.one_ .text2 {animation-delay: 1s;animation-duration: 1s;webkit-animation-fill-mode: forwards;animation-fill-mode: forwards;-webkit-animation-name: fadeOut ;animation-name: fadeOut;}
+            .two .text1,.two .vai_shared {animation-duration: 1s;webkit-animation-fill-mode: forwards;animation-fill-mode: forwards;-webkit-animation-name: two ;animation-name: two;}
+            .two_ .text1,.two_ .vai_shared{display:none}
+            .one .text1,.one .vai_shared,.one_ .text1,.one_ .vai_shared  {animation-duration: 1s;webkit-animation-fill-mode: forwards;animation-fill-mode: forwards;-webkit-animation-name: one ;animation-name: one;}
+            .four .text5_1,.four .text5_2,.four .text5_3,.four .text5_4,
+            .two .text2,.three .text4,.four .text5 {animation-delay: 1s;animation-duration: 1s;webkit-animation-fill-mode: forwards;animation-fill-mode: forwards;-webkit-animation-name: three ;animation-name: three;}
+            .two_ .text2,.three_ .text4,.four_ .text5 {animation-delay: 1s;animation-duration: 1s;webkit-animation-fill-mode: forwards;animation-fill-mode: forwards;-webkit-animation-name: four ;animation-name: four;}
+            .three#container,.four#container {margin:0;}
+            .three .text2,.three .text1,.three .vai_shared,.three .chat_room,.four .text2,.four .text1,.four .vai_shared,.four .chat_room {display:none;}
+            .three #middle,.four #middle {width:300px;}
+            .three #middle .plwv8,.four #middle .plwv8{padding-left: 48px;}
+            /* .three .text3,.three .text4{display:inline-block;} */
+            .three #right,.four #right{width:660px;}
+            .four .text5_1,.four .text5_2,.four .text5_3,.four .text5_4{display:inline-block}
+            .four .text5_1{animation-delay: 2s;}
+            .four .text5_2{animation-delay: 3s;}
+            .four .text5_3{animation-delay: 4s;}
+            .four .text5_4{animation-delay: 5s;}
+            @-webkit-keyframes fadeIn {0% {opacity: 0; } to {opacity: 1; } }
+            @keyframes fadeIn {0% {opacity: 0; } to {opacity: 1; } }
+            @keyframes two {
+                0% {
+                    opacity: 1; 
+                    font-size: 36px;
+                    transform: translateY(0);
+                }
+                50%{
+                    opacity: 0;
+                    font-size: 36px;
+                    transform: translateY(-100px);
+                }
+                100%{
+                    font-size: 0;
+                    opacity: 0;
+                    transform: translateY(-100px);
+                }
+            }
+            @keyframes one {
+                0% {
+                    font-size: 0;
+                    opacity: 0; 
+                    transform: translateY(-100px);
+                }
+                50% {
+                    font-size: 36px;
+                    opacity: 0;
+                    transform: translateY(-100px);
+                }
+                100%{
+                    font-size: 36px;
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+            @keyframes three {
+                0% {
+                    opacity: 0; 
+                    transform: translateY(100px);
+                }
+                100%{
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+            @keyframes four {
+                0% {
+                    opacity: 0;
+                    transform: translateY(-100px);
+                }
+                100%{
+                    opacity: 1; 
+                    transform: translateY(0);
+                }
+            }
+            .p048{padding: 0 48px}
+            .mb48{margin-bottom: 24px;}
+            .w512{width: 700px;}
+            .fs17{font-size: 15px;}
+            .fs24{font-size: 18px;}
+            .lh24{line-height: 18px;}
+            .cb{color:#bbb}
+            .ls05{letter-spacing: 0.5px;}
+            .w72.h72{width:72px;height:72px;}
+            .wC72{width:calc(100% - 112px);margin-left:24px}
+            img.w72.h72.dIb.vM {
+                opacity: 0.3;
+                overflow: hidden;
+            }
+            .fs36{font-size:24px;}
+            .pl36{padding-left: 36px;}
         </style>
     </head>
     <body>
@@ -174,136 +277,101 @@
             </div>
         </header>
 
-        <main role="main" id="main">
+        <main role="main" id="main" class="mxw1280 mA">
 
-            <section class="communities dT wp100 mxw1024 mA fsvw4 hvw100 pvw4 bsB lsvw1">
-                <div class="dTc vM">
-                    <div class="dIb vM wvw8">
-                        <div class="dIb vM wvw8 hvw8">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96">
-                                <g fill="none">
-                                    <g fill="#06C3AF">
-                                        <ellipse cx="14.026" cy="73.991" rx="12.273" ry="12.475"/>
-                                        <ellipse cx="81.429" cy="73.991" rx="12.273" ry="12.475"/>
-                                        <ellipse cx="47.104" cy="14.287" rx="12.273" ry="12.475"/>
-                                        <path d="M66.098 89.318c-.429-.891-1.48-1.268-2.357-.832-5.046 2.475-10.48 3.743-16.13 3.743-8.552 0-16.793-2.99-23.396-8.436 2.376-2.555 3.837-6 3.837-9.782 0-7.862-6.292-14.258-14.026-14.258S0 66.149 0 74.011c0 7.861 6.292 14.257 14.026 14.257 2.708 0 5.26-.792 7.403-2.158 7.325 6.277 16.558 9.703 26.182 9.703 6.195 0 12.136-1.386 17.669-4.1.876-.435 1.247-1.504.818-2.395zM3.526 73.99c0-5.881 4.714-10.674 10.5-10.674s10.5 4.793 10.5 10.674c0 5.881-4.714 10.673-10.5 10.673s-10.5-4.792-10.5-10.673zM7.033 52.565c-.04.99.72 1.822 1.714 1.861h.058c.955 0 1.734-.772 1.773-1.742.429-12.852 7.15-24.476 17.961-31.11 1.695-1.03 3.468-1.94 5.28-2.693 1.89 5.604 7.13 9.664 13.266 9.664 7.734 0 14.026-6.396 14.026-14.258C61.111 6.426 54.819.03 47.085.03S33.059 6.426 33.059 14.287c0 .357.02.693.039 1.03-2.202.871-4.364 1.94-6.39 3.188C14.864 25.753 7.5 38.485 7.033 52.565zM47.104 3.614c5.786 0 10.5 4.792 10.5 10.673 0 5.882-4.714 10.654-10.5 10.654-5.785 0-10.5-4.792-10.5-10.674 0-5.88 4.695-10.653 10.5-10.653zM81.43 59.733c-7.734 0-14.027 6.396-14.027 14.258 0 7.861 6.293 14.257 14.026 14.257 7.734 0 14.026-6.396 14.026-14.257 0-5.525-3.116-10.337-7.655-12.693.39-2.337.603-4.713.603-7.09 0-14.06-6.935-27.03-18.545-34.713-.818-.534-1.91-.297-2.435.535-.526.832-.292 1.94.526 2.475 10.617 7.01 16.948 18.852 16.948 31.703 0 1.96-.156 3.921-.448 5.862-.974-.218-1.987-.337-3.02-.337zm10.5 14.258c0 5.881-4.715 10.673-10.5 10.673-5.786 0-10.5-4.792-10.5-10.673s4.714-10.674 10.5-10.674c5.785 0 10.5 4.793 10.5 10.674z"/>
-                                    </g>
-                                    <path fill="#FFF" d="M57.881 42h-20.49c-2.424.003-4.388 1.909-4.391 4.26v12.308c.003 2.352 1.967 4.258 4.39 4.26h1.357l-.859 4.166c-.037.179.036.363.187.472.15.11.352.125.519.04l9.162-4.678h10.125c2.424-.002 4.388-1.908 4.39-4.26V46.26c-.002-2.351-1.966-4.257-4.39-4.26z"/>
+            <div class="dT wp100 one mxw1024 hvw100 tlF p048 bsB" id="container">
+                <div class="dTc vM" id="left">
+                    <div class="dIb vM wvw8 hvw8 logo">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96">
+                            <g fill="none">
+                                <g fill="#06C3AF">
+                                    <ellipse cx="14.026" cy="73.991" rx="12.273" ry="12.475"/>
+                                    <ellipse cx="81.429" cy="73.991" rx="12.273" ry="12.475"/>
+                                    <ellipse cx="47.104" cy="14.287" rx="12.273" ry="12.475"/>
+                                    <path d="M66.098 89.318c-.429-.891-1.48-1.268-2.357-.832-5.046 2.475-10.48 3.743-16.13 3.743-8.552 0-16.793-2.99-23.396-8.436 2.376-2.555 3.837-6 3.837-9.782 0-7.862-6.292-14.258-14.026-14.258S0 66.149 0 74.011c0 7.861 6.292 14.257 14.026 14.257 2.708 0 5.26-.792 7.403-2.158 7.325 6.277 16.558 9.703 26.182 9.703 6.195 0 12.136-1.386 17.669-4.1.876-.435 1.247-1.504.818-2.395zM3.526 73.99c0-5.881 4.714-10.674 10.5-10.674s10.5 4.793 10.5 10.674c0 5.881-4.714 10.673-10.5 10.673s-10.5-4.792-10.5-10.673zM7.033 52.565c-.04.99.72 1.822 1.714 1.861h.058c.955 0 1.734-.772 1.773-1.742.429-12.852 7.15-24.476 17.961-31.11 1.695-1.03 3.468-1.94 5.28-2.693 1.89 5.604 7.13 9.664 13.266 9.664 7.734 0 14.026-6.396 14.026-14.258C61.111 6.426 54.819.03 47.085.03S33.059 6.426 33.059 14.287c0 .357.02.693.039 1.03-2.202.871-4.364 1.94-6.39 3.188C14.864 25.753 7.5 38.485 7.033 52.565zM47.104 3.614c5.786 0 10.5 4.792 10.5 10.673 0 5.882-4.714 10.654-10.5 10.654-5.785 0-10.5-4.792-10.5-10.674 0-5.88 4.695-10.653 10.5-10.653zM81.43 59.733c-7.734 0-14.027 6.396-14.027 14.258 0 7.861 6.293 14.257 14.026 14.257 7.734 0 14.026-6.396 14.026-14.257 0-5.525-3.116-10.337-7.655-12.693.39-2.337.603-4.713.603-7.09 0-14.06-6.935-27.03-18.545-34.713-.818-.534-1.91-.297-2.435.535-.526.832-.292 1.94.526 2.475 10.617 7.01 16.948 18.852 16.948 31.703 0 1.96-.156 3.921-.448 5.862-.974-.218-1.987-.337-3.02-.337zm10.5 14.258c0 5.881-4.715 10.673-10.5 10.673-5.786 0-10.5-4.792-10.5-10.673s4.714-10.674 10.5-10.674c5.785 0 10.5 4.793 10.5 10.674z"/>
                                 </g>
-                            </svg>
-                        </div>
+                                <path fill="#FFF" d="M57.881 42h-20.49c-2.424.003-4.388 1.909-4.391 4.26v12.308c.003 2.352 1.967 4.258 4.39 4.26h1.357l-.859 4.166c-.037.179.036.363.187.472.15.11.352.125.519.04l9.162-4.678h10.125c2.424-.002 4.388-1.908 4.39-4.26V46.26c-.002-2.351-1.966-4.257-4.39-4.26z"/>
+                            </g>
+                        </svg>
                     </div>
+                </div>
+                <div class="dTc vM" id="middle">
                     <div class="dIb vM plwv8 bsB fwB tc">
-                        <div>
+                        <div class="text1">
                             <span>Build </span>
-                            <span class="typewrite" data-period="2000" data-type='["learning","networking","alumni","hobby","neighborhood","volunteering","parenting","work","ambassador","sports","fan"]'></span>
+                            <span class="typewrite1 tcGrad" data-init="learning" data-period="2000" data-type='["networking","alumni","hobby","neighborhood","volunteering","parenting","work","ambassador","sports","fan","learning"]'>learning</span>
                             <span class="blinkCaret a">_</span> 
                             <span> communities</span>
                         </div>
-                        <div>via shared chat rooms</div>
-                    </div>
-                </div>
-            </section>
-
-            <section class="communities dT wp100 mxw1024 mA fsvw4 hvw100 pvw4 bsB lsvw1">
-                <div class="dTc vM tc">
-                    <div class="dIb vM wvw8">
-                        <div class="dIb vM wvw8 hvw8">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96">
-                                <g fill="none">
-                                    <g fill="#06C3AF">
-                                        <ellipse cx="14.026" cy="73.991" rx="12.273" ry="12.475"/>
-                                        <ellipse cx="81.429" cy="73.991" rx="12.273" ry="12.475"/>
-                                        <ellipse cx="47.104" cy="14.287" rx="12.273" ry="12.475"/>
-                                        <path d="M66.098 89.318c-.429-.891-1.48-1.268-2.357-.832-5.046 2.475-10.48 3.743-16.13 3.743-8.552 0-16.793-2.99-23.396-8.436 2.376-2.555 3.837-6 3.837-9.782 0-7.862-6.292-14.258-14.026-14.258S0 66.149 0 74.011c0 7.861 6.292 14.257 14.026 14.257 2.708 0 5.26-.792 7.403-2.158 7.325 6.277 16.558 9.703 26.182 9.703 6.195 0 12.136-1.386 17.669-4.1.876-.435 1.247-1.504.818-2.395zM3.526 73.99c0-5.881 4.714-10.674 10.5-10.674s10.5 4.793 10.5 10.674c0 5.881-4.714 10.673-10.5 10.673s-10.5-4.792-10.5-10.673zM7.033 52.565c-.04.99.72 1.822 1.714 1.861h.058c.955 0 1.734-.772 1.773-1.742.429-12.852 7.15-24.476 17.961-31.11 1.695-1.03 3.468-1.94 5.28-2.693 1.89 5.604 7.13 9.664 13.266 9.664 7.734 0 14.026-6.396 14.026-14.258C61.111 6.426 54.819.03 47.085.03S33.059 6.426 33.059 14.287c0 .357.02.693.039 1.03-2.202.871-4.364 1.94-6.39 3.188C14.864 25.753 7.5 38.485 7.033 52.565zM47.104 3.614c5.786 0 10.5 4.792 10.5 10.673 0 5.882-4.714 10.654-10.5 10.654-5.785 0-10.5-4.792-10.5-10.674 0-5.88 4.695-10.653 10.5-10.653zM81.43 59.733c-7.734 0-14.027 6.396-14.027 14.258 0 7.861 6.293 14.257 14.026 14.257 7.734 0 14.026-6.396 14.026-14.257 0-5.525-3.116-10.337-7.655-12.693.39-2.337.603-4.713.603-7.09 0-14.06-6.935-27.03-18.545-34.713-.818-.534-1.91-.297-2.435.535-.526.832-.292 1.94.526 2.475 10.617 7.01 16.948 18.852 16.948 31.703 0 1.96-.156 3.921-.448 5.862-.974-.218-1.987-.337-3.02-.337zm10.5 14.258c0 5.881-4.715 10.673-10.5 10.673-5.786 0-10.5-4.792-10.5-10.673s4.714-10.674 10.5-10.674c5.785 0 10.5 4.793 10.5 10.674z"/>
-                                    </g>
-                                    <path fill="#FFF" d="M57.881 42h-20.49c-2.424.003-4.388 1.909-4.391 4.26v12.308c.003 2.352 1.967 4.258 4.39 4.26h1.357l-.859 4.166c-.037.179.036.363.187.472.15.11.352.125.519.04l9.162-4.678h10.125c2.424-.002 4.388-1.908 4.39-4.26V46.26c-.002-2.351-1.966-4.257-4.39-4.26z"/>
-                                </g>
-                            </svg>
+                        <div class="dIb vM vai_shared">via shared</div> 
+                        <div class="dIb vM chat_room">chat rooms</div>
+                        <div class="dIb vM text2">
+                            <span>for </span>
+                            <span class="typewrite2 tcGrad" data-init="brainstorming" data-period="2000" data-type='["playing together","knowledge exchange","decision making","solving queries","task coordination","sharing resources","sourcing leads","gathering feedback","asking recommendations","getting mentorship","building relationships","finding partners","brainstorming"]'>finding partners</span>
+                            <span class="blinkCaret b">_</span>
+                        </div>
+                        <div class="dIb vM text3">
+                            <span class="typewrite3 tcGrad" data-init="" data-times="1" data-period="2000" data-type='["About"]'></span>
+                            <span class="blinkCaret b">_</span>
+                        </div>
+                        <div class="dIb vM text6">
+                            <span class="typewrite4 tcGrad" data-init="" data-times="1" data-period="2000" data-type='["How?"]'></span>
+                            <span class="blinkCaret b">_</span>
                         </div>
                     </div>
-                    <div class="dIb vM plwv8 bsB fwB">
-                        <span>Chat rooms for </span>
-                        <span class="typewrite" data-period="2000" data-type='["finding partners","brainstorming","playing together","knowledge exchange","decision making","solving queries","task coordination","sharing resources","sourcing leads","gathering feedback","asking recommendations","getting mentorship","building relationships"]'></span>
-                        <span class="blinkCaret b">_</span>
-                    </div>
                 </div>
-            </section>
-
-            <section class="about dT wp100 mxw1280 mA hvw100 pvw4 bsB lsvw1">
-                <div class="dTc vM tc fs0">
-                    <div class="dIb vM wp25 fsvw4">
-                        <div class="dIb vM wvw4 hvw4">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96">
-                                <g fill="none">
-                                    <g fill="#06C3AF">
-                                        <ellipse cx="14.026" cy="73.991" rx="12.273" ry="12.475"/>
-                                        <ellipse cx="81.429" cy="73.991" rx="12.273" ry="12.475"/>
-                                        <ellipse cx="47.104" cy="14.287" rx="12.273" ry="12.475"/>
-                                        <path d="M66.098 89.318c-.429-.891-1.48-1.268-2.357-.832-5.046 2.475-10.48 3.743-16.13 3.743-8.552 0-16.793-2.99-23.396-8.436 2.376-2.555 3.837-6 3.837-9.782 0-7.862-6.292-14.258-14.026-14.258S0 66.149 0 74.011c0 7.861 6.292 14.257 14.026 14.257 2.708 0 5.26-.792 7.403-2.158 7.325 6.277 16.558 9.703 26.182 9.703 6.195 0 12.136-1.386 17.669-4.1.876-.435 1.247-1.504.818-2.395zM3.526 73.99c0-5.881 4.714-10.674 10.5-10.674s10.5 4.793 10.5 10.674c0 5.881-4.714 10.673-10.5 10.673s-10.5-4.792-10.5-10.673zM7.033 52.565c-.04.99.72 1.822 1.714 1.861h.058c.955 0 1.734-.772 1.773-1.742.429-12.852 7.15-24.476 17.961-31.11 1.695-1.03 3.468-1.94 5.28-2.693 1.89 5.604 7.13 9.664 13.266 9.664 7.734 0 14.026-6.396 14.026-14.258C61.111 6.426 54.819.03 47.085.03S33.059 6.426 33.059 14.287c0 .357.02.693.039 1.03-2.202.871-4.364 1.94-6.39 3.188C14.864 25.753 7.5 38.485 7.033 52.565zM47.104 3.614c5.786 0 10.5 4.792 10.5 10.673 0 5.882-4.714 10.654-10.5 10.654-5.785 0-10.5-4.792-10.5-10.674 0-5.88 4.695-10.653 10.5-10.653zM81.43 59.733c-7.734 0-14.027 6.396-14.027 14.258 0 7.861 6.293 14.257 14.026 14.257 7.734 0 14.026-6.396 14.026-14.257 0-5.525-3.116-10.337-7.655-12.693.39-2.337.603-4.713.603-7.09 0-14.06-6.935-27.03-18.545-34.713-.818-.534-1.91-.297-2.435.535-.526.832-.292 1.94.526 2.475 10.617 7.01 16.948 18.852 16.948 31.703 0 1.96-.156 3.921-.448 5.862-.974-.218-1.987-.337-3.02-.337zm10.5 14.258c0 5.881-4.715 10.673-10.5 10.673-5.786 0-10.5-4.792-10.5-10.673s4.714-10.674 10.5-10.674c5.785 0 10.5 4.793 10.5 10.674z"/>
-                                    </g>
-                                    <path fill="#06C3AF" d="M57.881 42h-20.49c-2.424.003-4.388 1.909-4.391 4.26v12.308c.003 2.352 1.967 4.258 4.39 4.26h1.357l-.859 4.166c-.037.179.036.363.187.472.15.11.352.125.519.04l9.162-4.678h10.125c2.424-.002 4.388-1.908 4.39-4.26V46.26c-.002-2.351-1.966-4.257-4.39-4.26z"/>
-                                </g>
-                            </svg>
-                        </div>
-                        <div class="dIb vM tcGrad fwB">About</div>
-                    </div>
-                    <div class="dIb vM wp75 fsvw3 lhvw5">
+                <div class="dTc vM" id="right">
+                    <div class="dIb vM text4 tc lh48">
                         LikeMinds helps communities engage deeper by enabling real-time conversations between relevant members in shared chat rooms, which dramatically reduces spam and fosters collaboration. Community managers have custom tools for community growth and engagement.
                     </div>
-                </div>
-            </section>
-
-            <section class="sharedChatRooms dT wp100 mxw1280 mA hvw100 pvw4 bsB lsvw1">
-                <div class="dTc vM tc fs0">
-                    <div class="dIb vM wp25 fsvw4 tcGrad fwB">Shared chat rooms for each conversation</div>
-                    <div class="dIb vM wp75 fsvw3 lhvw5">Members can participate, follow, or add other members in relevant chat rooms to coordinate efficiently until the shared purpose is achieved. Post that chat rooms can be archived or saved in the community repository for future references.</div>
-                </div>
-            </section>
-
-            <section class="customSignin dT wp100 mxw1280 mA hvw100 pvw4 bsB lsvw1">
-                <div class="dTc vM tc">
-                    <div class="dIb vM wp25 fsvw4 tcGrad fwB">Custom signup form for your community</div>
-                    <div class="dIb vM wp75 fsvw3 lhvw5">Members create community-specific profiles while signing up, allowing you to approve only relevant members. A member directory is also generated for members to filter other members and make the right connections.</div>
-                </div>
-            </section>
-
-            <section class="tools dT wp100 mxw1280 mA hvw100 pvw4 bsB lsvw1">
-                <div class="dTc vM tc">
-                    <div class="dIb vM wp25 fsvw4 tcGrad fwB">Tools to manage your community efficiently</div>
-                    <div class="dIb vM wp75 fsvw3 lhvw5">Launch community events, conduct polls, and build lists to engage the community. With the right permission settings and the ability to analyze and reward your community, you will not need a third-party tool for anything.</div>
-                </div>
-            </section>
-
-            <section class="growth dT wp100 mxw1280 mA hvw100 pvw4 bsB lsvw1">
-                <div class="dTc vM tc">
-                    <div class="dIb vM wp25 fsvw4 tcGrad fwB">Designed for growth of your community</div>
-                    <div class="dIb vM wp75 fsvw3 lhvw5">All tools and chat rooms are web-enabled. You or community members can share events, polls, lists, or just interesting conversations with potential members of the community. Increased visibility and community discovery will drive membership in the community.</div>
-                </div>
-            </section>
-
-            <section class="alpha dT wp100 mxw1280 mA hvw100 pvw4 bsB lsvw1">
-                <div class="dTc vM tc">
-                    <div class="dTc vM tc">
-                        <div class="dIb vM wp25 fsvw4 tcGrad fwB">Apply for beta</div>
-                        <div class="dIb vM wp75 fsvw3 lhvw5">
-                            <div>If you are building a community or planning to build one on a chat platform and can relate to the usual problems of</div>
-                            <span class="typewrite" data-period="1000" data-type='["Cluttered conversations","Too many notifications","Lack of member identity and approval","Absence of tools to support community building","Arbitrary membership limit"]'></span>
-                            <span class="blinkCaret a">_</span>
-                            <div>Please fill out a quick survey, so we can make sure we’re a great fit for your community at this stage.</div>
-                            <button>APPLY FOR BETA</button>
+                    <div class="dIb vM text5 tc fsvw3">
+                        <div class="mb48 w512 ls05">
+                            <div class="dIb vM w72 h72">
+                                <img class="w72 h72 dIb vM"/>
+                            </div>
+                            <div class="dIb vM wC72">
+                                <div class="fs24 fwB">Shared chat rooms for each conversation</div>
+                                <div class="fs17 lh24 cb mt10">Members can participate, follow, or add other members in relevant chat rooms to coordinate efficiently until the shared purpose is achieved. Post that chat rooms can be archived or saved in the community repository for future references.</div>
+                            </div>
+                        </div>
+                        <div class="text5_1 mb48 w512 ls05">
+                            <div class="dIb vM w72 h72">
+                                <img class="w72 h72 dIb vM"/>
+                            </div>
+                            <div class="dIb vM wC72">
+                                <div class="fs24 fwB">Custom signup form for your community</div>
+                                <div class="fs17 lh24 cb mt10">Members create community-specific profiles while signing up, allowing you to approve only relevant members. A member directory is also generated for members to filter other members and make the right connections.</div>
+                            </div>
+                        </div>
+                        <div class="text5_2 mb48 w512 ls05">
+                            <div class="dIb vM w72 h72">
+                                <img class="w72 h72 dIb vM"/>
+                            </div>
+                            <div class="dIb vM wC72">
+                                <div class="fs24 fwB">Tools to manage your community efficiently</div>
+                                <div class="fs17 lh24 cb mt10">Launch community events, conduct polls, and build lists to engage the community. With the right permission settings and the ability to analyze and reward your community, you will not need a third-party tool for anything.</div>
+                            </div>
+                        </div>
+                        <div class="text5_3 mb48 w512 ls05">
+                            <div class="dIb vM w72 h72">
+                                <img class="w72 h72 dIb vM"/>
+                            </div>
+                            <div class="dIb vM wC72">
+                                <div class="fs24 fwB">Designed for growth of your community</div>
+                                <div class="fs17 lh24 cb mt10">All tools and chat rooms are web-enabled. You or community members can share events, polls, lists, or just interesting conversations with potential members of the community. Increased visibility and community discovery will drive membership in the community.</div>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </section>
+            </div>
 
         </main>
 
-        <div class="scroll pF hvw3 wvw3 l0 r0 bvw6 mA z2">
+        <!-- <div class="scroll pF hvw3 wvw3 l0 r0 bvw6 mA z2">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
                 <path d="M10 0C4.486 0 0 4.486 0 10s4.486 10 10 10 10-4.486 10-10S15.514 0 10 0zm4.045 11.961l-3.75 3.75c-.163.163-.427.163-.59 0l-3.75-3.75c-.08-.08-.122-.186-.122-.294 0-.054.01-.108.032-.16.064-.156.217-.257.385-.257h.833c.111 0 .217.044.295.122l1.789 1.789V4.583c0-.23.186-.416.416-.416h.834c.23 0 .416.186.416.416v8.578l1.79-1.789c.077-.078.183-.122.294-.122h.833c.168 0 .32.101.385.257s.029.335-.09.454z"/>
             </svg>
-        </div>
+        </div> -->
 
         <footer class="pF b0 r0 l0 z1">
             <div class="dT wp100 mxw1280 mA p48 tlF bsB wsN">
@@ -319,9 +387,9 @@
                         </svg>
                     </div>
                 </div>
-                <div class="dTc vM taR fsvw1">
+                <div class="dTc vM taR fsvw1 cb">
                     <div class="dIb vM">terms</div>
-                    <div class="dIb vM pl48 bs">privacy</div>
+                    <div class="dIb vM pl36 bs">privacy</div>
                 </div>
             </div>
         </footer>
@@ -332,34 +400,148 @@
                 /*[pan and well CSS scrolls]*/
                 var pnls = document.getElementsByTagName('section').length,
                     scdir, hold = false;
+                var changeState, state = 0, stateNames = ["one", "two", "three", "four", "five", "six"];
 
                 function _scrollY(obj) {
-                    document.body.classList.add('scrolled');
-                    var slength, plength, pan, step = 100,
-                        vh = window.innerHeight / 100,
-                        vmin = Math.min(window.innerHeight, window.innerWidth) / 100;
-                    // if ((this !== undefined && this.id === 'main') || (obj !== undefined && obj.id === 'main')) {
-                        pan = well;//this || obj;
-                        plength = parseInt(pan.offsetHeight / vh);
-                    // }
-                    // if (pan === undefined) {
-                    //     return;
-                    // }
-                    plength = plength || parseInt(pan.offsetHeight / vmin);
-                    slength = parseInt(pan.style.transform.replace('translateY(', ''));
-                    if (scdir === 'up' && Math.abs(slength) < (plength - plength / pnls)) {
-                        slength = slength - step;
-                    } else if (scdir === 'down' && slength < 0) {
-                        slength = slength + step;
-                    } else if (scdir === 'top') {
-                        slength = 0;
-                    }
                     if (hold === false) {
+                        // debugger;
+                        document.body.classList.add('scrolled');
+                        // var slength, plength, pan, step = 100,
+                        //     vh = window.innerHeight / 100,
+                        //     vmin = Math.min(window.innerHeight, window.innerWidth) / 100;
+                        // // if ((this !== undefined && this.id === 'main') || (obj !== undefined && obj.id === 'main')) {
+                        //     pan = well;//this || obj;
+                        //     plength = parseInt(pan.offsetHeight / vh);
+                        // // }
+                        // // if (pan === undefined) {
+                        // //     return;
+                        // // }
+                        // plength = plength || parseInt(pan.offsetHeight / vmin);
+                        // slength = parseInt(pan.style.transform.replace('translateY(', ''));
+                        // if (scdir === 'up' && Math.abs(slength) < (plength - plength / pnls)) {
+                        //     slength = slength - step;
+                        // } else if (scdir === 'down' && slength < 0) {
+                        //     slength = slength + step;
+                        // } else if (scdir === 'top') {
+                        //     slength = 0;
+                        // }
+                        if (scdir === 'up'){
+                            if(state == 3) return;
+                            console.log('up');
+                            changeState = stateNames[state];
+                            state++;
+                            
+                        }else{
+                            if(state ==  0) return;
+                            state--;
+                            changeState = stateNames[state]+"_";
+                            console.log('down');
+                        }
+                        switch(changeState){
+                            case 'one':
+                                document.getElementById('container').classList.add('two');
+                                document.getElementById('container').classList.remove('one', 'one_');
+                                var element1 = document.getElementsByClassName('typewrite2')[0];
+                                element1.innerHTML = element1.getAttribute('data-init');
+                                // for (var i=0; i<elements.length; i++) {
+                                    var toRotate = element1.getAttribute('data-type');
+                                    var period = element1.getAttribute('data-period');
+                                    if (toRotate) {
+                                        clearTimeout(window.tick);
+                                        setTimeout(function() {
+                                            new TxtType(element1, JSON.parse(toRotate), period);
+                                        },3000);
+                                    }
+                                // }
+                                break;
+                            case 'one_':
+                                document.getElementById('container').classList.add('one_');
+                                document.getElementById('container').classList.remove('two', 'two_');
+                                var element1 = document.getElementsByClassName('typewrite1')[0];
+                                element1.innerHTML = element1.getAttribute('data-init');
+                                // for (var i=0; i<elements.length; i++) {
+                                    var toRotate = element1.getAttribute('data-type');
+                                    var period = element1.getAttribute('data-period');
+                                    if (toRotate) {
+                                        clearTimeout(window.tick);
+                                        setTimeout(function() {
+                                            new TxtType(element1, JSON.parse(toRotate), period);
+                                        },3000);
+                                    }
+                                // }
+                                break;
+                            case 'two':
+                                document.getElementById('container').classList.add('three');
+                                document.getElementById('container').classList.remove('two', 'two_');
+                                var element1 = document.getElementsByClassName('typewrite3')[0];
+                                element1.innerHTML = element1.getAttribute('data-init');
+                                // for (var i=0; i<elements.length; i++) {
+                                    var toRotate = element1.getAttribute('data-type');
+                                    var period = element1.getAttribute('data-period');
+                                    if (toRotate) {
+                                        clearTimeout(window.tick);
+                                        setTimeout(function() {
+                                            new TxtType(element1, JSON.parse(toRotate), period);
+                                        },1000);
+                                    }
+                                // }
+                                break;
+                            case 'two_':
+                                document.getElementById('container').classList.add('two_');
+                                document.getElementById('container').classList.remove('three', 'three_');
+                                var element1 = document.getElementsByClassName('typewrite2')[0];
+                                element1.innerHTML = element1.getAttribute('data-init');
+                                // for (var i=0; i<elements.length; i++) {
+                                    var toRotate = element1.getAttribute('data-type');
+                                    var period = element1.getAttribute('data-period');
+                                    if (toRotate) {
+                                        clearTimeout(window.tick);
+                                        setTimeout(function() {
+                                            new TxtType(element1, JSON.parse(toRotate), period);
+                                        },3000);
+                                    }
+                                // }
+                                break;
+                            case 'three':
+                                document.getElementById('container').classList.add('four');
+                                document.getElementById('container').classList.remove('three', 'three_');
+                                var element1 = document.getElementsByClassName('typewrite4')[0];
+                                element1.innerHTML = element1.getAttribute('data-init');
+                                // for (var i=0; i<elements.length; i++) {
+                                    var toRotate = element1.getAttribute('data-type');
+                                    var period = element1.getAttribute('data-period');
+                                    if (toRotate) {
+                                        clearTimeout(window.tick);
+                                        setTimeout(function() {
+                                            new TxtType(element1, JSON.parse(toRotate), period);
+                                        },1000);
+                                    }
+                                // }
+                                break;
+                                
+                            case 'three_':
+                                document.getElementById('container').classList.add('three');
+                                document.getElementById('container').classList.remove('four', 'four_');
+                                var element1 = document.getElementsByClassName('typewrite3')[0];
+                                element1.innerHTML = element1.getAttribute('data-init');
+                                // for (var i=0; i<elements.length; i++) {
+                                    var toRotate = element1.getAttribute('data-type');
+                                    var period = element1.getAttribute('data-period');
+                                    if (toRotate) {
+                                        clearTimeout(window.tick);
+                                        setTimeout(function() {
+                                            new TxtType(element1, JSON.parse(toRotate), period);
+                                        },1000);
+                                    }
+                                // }
+                                break;
+                        }
+                    
                         hold = true;
-                        pan.style.transform = 'translateY(' + slength + 'vh)';
+                        // pan.style.transform = 'translateY(' + slength + 'vh)';
                         setTimeout(function() {
                             hold = false;
-                        }, 1100);
+                        }, 1000);
                     }
                     // console.log(scdir + ':' + slength + ':' + plength + ':' + (plength - plength / pnls));
                 }
@@ -467,15 +649,17 @@
         
         
             var TxtType = function(el, toRotate, period) {
-                this.toRotate = toRotate;
-                this.el = el;
-                this.caret = el.nextElementSibling;
-                console.log(this.caret);
-                this.loopNum = 0;
-                this.period = parseInt(period, 10) || 2000;
-                this.txt = '';
-                this.tick();
-                this.isDeleting = false;
+                    
+                    this.toRotate = toRotate;
+                    this.el = el;
+                    this.caret = el.nextElementSibling;
+                    console.log(this.caret);
+                    this.loopNum = 0;
+                    this.period = 300;//parseInt(period, 10) || 2000;
+                    this.txt = '';
+                    this.tick();
+                    this.isDeleting = false;
+
             };
 
             TxtType.prototype.tick = function() {
@@ -490,42 +674,50 @@
                     this.txt = fullTxt.substring(0, this.txt.length + 1);
                 }
 
-                this.el.innerHTML = '<span class="wrap tcGrad">'+this.txt+'</span>';
+                this.el.innerHTML = '<span class="wrap">'+this.txt+'</span>';
 
                 var that = this;
-                var delta = 200 - Math.random() * 100;
+                var delta = 60;//200 - Math.random() * 100;
 
                 if (this.isDeleting) { delta /= 2; }
 
                 if (!this.isDeleting && this.txt === fullTxt) {
-                    delta = this.period;
+                    delta = 1000;//this.period;
                     this.isDeleting = true;
                     this.caret.classList.add('animate');
                 } else if (this.isDeleting && this.txt === '') {
                     this.isDeleting = false;
                     this.loopNum++;
-                    delta = 500;
+                    delta = 20;
                     this.caret.classList.add('animate');
                 }else{
                     this.caret.classList.remove('animate');
                 }
 
-                setTimeout(function() {
+                window.tick = setTimeout(function() {
                     that.tick();
                 }, delta);
             };
 
             // window.onload = function() {
-                var elements = document.getElementsByClassName('typewrite');
-                for (var i=0; i<elements.length; i++) {
-                    var toRotate = elements[i].getAttribute('data-type');
-                    var period = elements[i].getAttribute('data-period');
-                    if (toRotate) {
-                        new TxtType(elements[i], JSON.parse(toRotate), period);
-                    }
-                }
+                // var elements = document.getElementsByClassName('typewrite');
+                // for (var i=0; i<elements.length; i++) {
+                //     var toRotate = elements[i].getAttribute('data-type');
+                //     var period = elements[i].getAttribute('data-period');
+                //     if (toRotate) {
+                //         new TxtType(elements[i], JSON.parse(toRotate), period);
+                //     }
+                // }
 
             // };
+            var element1 = document.getElementsByClassName('typewrite1')[0];
+            // for (var i=0; i<elements.length; i++) {
+                var toRotate = element1.getAttribute('data-type');
+                var period = element1.getAttribute('data-period');
+                if (toRotate) {
+                    new TxtType(element1, JSON.parse(toRotate), period);
+                }
+            // }
         </script>
 
     </body>
