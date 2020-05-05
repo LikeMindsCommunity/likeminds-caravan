@@ -54,7 +54,7 @@
                             <div style="height:10px"></div>
                         {% elif not request.user.is_authenticated%}
                             <div class="content">
-                                <a href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}">
+                                <a href="{# url 'social:begin' 'facebook' #}?next={{ request.path }}">
                                     <button class="ui facebook button" style="width:200px;">
                                         <i class="fa fa-facebook" ></i>&nbsp;&nbsp;&nbsp;&nbsp;
                                         Login with Facebook
@@ -69,7 +69,7 @@
 
                         {% if not request.user.is_authenticated %}
                             <div class="content">
-                                <a href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}">
+                                <a href="{# url 'social:begin' 'linkedin-oauth2' #}?next={{ request.path }}">
                                     <button class="ui linkedin button" style="width:200px;">
                                         <i class="fa fa-linkedin"></i>&nbsp;&nbsp;&nbsp;&nbsp;
                                             Login with LinkedIn
