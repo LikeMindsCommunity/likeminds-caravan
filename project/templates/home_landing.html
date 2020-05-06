@@ -13,7 +13,7 @@
         <meta property="og:type" content="website"/>
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <script async src="https://www.googletagmanager.com/gtag/js?id=UA-130288684-1"></script>
-        <link href="https://fonts.googleapis.com/css?family=Roboto:400,500,500i,700&display=swap" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css?family=Roboto:100,200,400,500,500i,700&display=swap" rel="stylesheet">
         <!-- Global site tag (gtag.js) - Google Analytics -->
         <script async src="https://www.googletagmanager.com/gtag/js?id=UA-155700742-1"></script>
         <script>
@@ -47,7 +47,6 @@
             .l0 {left: 0}
             .r0 {right: 0}
             .b0 {bottom: 0}
-            .bvw6 {bottom: min(6vw, 48px)}
             .z1 {z-index: 1}
             .z2 {z-index: 2}
 
@@ -56,7 +55,10 @@
             .mxw1280 {max-width: 1440px}
             .mxw1024 {max-width: 1280px}
             .mA {margin: auto}
-            .p48 {padding: min(6vw, 48px)}
+            .p48 {padding: min(6vmin, 48px)}
+            .p12 {padding: 16px}
+            .br20 {border-radius:25px}
+            .bd0{border:0}
             .tlF {table-layout: fixed}
             .bsB {box-sizing: border-box}
 
@@ -90,36 +92,33 @@
                 -webkit-background-clip: text;
                 -webkit-text-fill-color: transparent;
             }
-            .blinkCaret{margin-left: -8px;}
-            .blinkCaret.animate { animation: blink-caret .75s infinite;}
-            @keyframes blink-caret {
+            .blinkCaret.animate { animation: fadeIn .75s infinite;}
+            /* @keyframes blink-caret {
                 from, to { color: transparent }
                 50% { color: inherit; }
-            }
+            } */
 
             .wsN { white-space: nowrap; }
             .dIb {display:inline-block}
             .pl68 { padding-left: 68px; }
-            .fsvw4 {font-size: min(3.8vw, 40px);}
-            .fsvw3 {font-size: min(3.2vw, 30px);}
-            .fsvw2 {font-size: min(1.4vw, 20px);}
-            .fsvw1 {font-size: min(1vw, 16px);}
-            .lhvw5 {line-height: min(3.8vw, 40px);}
-            .lsvw1 { letter-spacing: min(0.05vw, 0.5px); }
-            .wvw8 {width: 8vw;}
-            .hvw8 {height: 8vw;}
+            .fs16 {font-size: min(3.6vw, 16px);}
+            .fs14 {font-size: min(3.4vw, 14px);}
+            .wvw8 {width: min(14vmin, 96px);}
+            .hvw8 {height: min(14vmin, 96px);}
             .wvw4 {width: 4vw;}
             .hvw4 {height: 4vw;}
             .hvw100 {height:100vh}
             .pvw4 {padding:4vw}
             .wvw3 {width:3vw}
             .hvw3 {height:3vw}
-            .plwv8 { padding-left: min(8vw, 64px); }
-
+            .plwv8 { padding-left: 48px }
+            .w24{width: min(5vw, 24px);}
+            .h24{height: min(5vw, 24px);}
             .scroll {
                 -webkit-animation: bounce 2s infinite;
                 animation: bounce 2s infinite;
             }
+            
             @-webkit-keyframes bounce {
                 0%,
                 20%,
@@ -156,72 +155,145 @@
                             transform: translateY(-15px);
                 }
             }
-            .wp75 { width:66% }
-            .wp25 { width:30% }
             .fs0 {font-size:0}
             .scrolled .scroll {display: none;}
-            .text2,.text3,.text4,.text5,.text6,.text5_1,.text5_2,.text5_3,.text5_4{display:none}
-            .text2,.text4,.text5,.text6,.text5_1,.text5_2,.text5_3,.text5_4{opacity:0}
+            .text2,.text3,.text4,.text5,.text6,.text7,.text8,.text5_1,.text5_2,.text5_3,.text5_4{display:none}
+            .text2,.text4,.text5,.text6,.text7,.text8,.text5_1,.text5_2,.text5_3,.text5_4{opacity:0;will-change: opacity;will-change: font-size;will-change: transform;}
             #right{width:0}
-            #left{width:96px;text-align:left}
-            #container {margin:0 calc(50vw - 512px - 48px);font-size: 40px;transition: margin 1s ease;line-height: ;}
+            #left{width:min(14vmin, 96px);text-align:left}
+            #container {
+                max-width:calc(100% - 10vw);
+                font-size: min(6vmin, 42px);
+                transition: max-width 1s ease;
+                margin:auto;
+                /* will-change: max-width; */
+                letter-spacing: min(2vmin, 0.5px);
+            }
             .text4{
-                line-height: 44px;
+                line-height: min(6vmin, 42px);
                 width: 680px;
-                font-size: 34px;
-                letter-spacing: 0.5px;
+                font-size: 6vmin;
+                letter-spacing: 0.5vmin;
                 color: #ddd;}
-            .four .text5,.four .text6,.three .text3,.three .text4,.two .text2,.two_ .text2{display:inline-block;animation-delay: 1s;*/animation-duration: 1s;webkit-animation-fill-mode: forwards;animation-fill-mode: forwards;-webkit-animation-name: fadeIn ;animation-name: fadeIn;}
-            .one .text2,.three .text2,.one_ .text2 {animation-delay: 1s;animation-duration: 1s;webkit-animation-fill-mode: forwards;animation-fill-mode: forwards;-webkit-animation-name: fadeOut ;animation-name: fadeOut;}
+            .four .text5,
+            .five .text5,
+            .four .text6,
+            .four_ .text5,
+            .last_ .text5,
+            .last_ .text6,
+            .last .text7,
+            .last .text8,
+            .six .text5,
+            .six_ .text5,
+            .seven .text5,
+            .seven_ .text5,
+            .five_ .text5,
+            .three .text4,
+            .three_ .text3,
+            .three_ .text4,
+            .two .text2,
+            .two_ .text2{display:inline-block;animation-delay: 1s;animation-duration: 1s;webkit-animation-fill-mode: forwards;animation-fill-mode: forwards;-webkit-animation-name: fadeIn ;animation-name: fadeIn;}
+            .one .text2,
+            .three .text2,
+            .three_ .text2,
+            /* .one_ .text2 {animation-delay: 1s;animation-duration: 1s;webkit-animation-fill-mode: forwards;animation-fill-mode: forwards;-webkit-animation-name: fadeOut ;animation-name: fadeOut;} */
             .two .text1,.two .vai_shared {animation-duration: 1s;webkit-animation-fill-mode: forwards;animation-fill-mode: forwards;-webkit-animation-name: two ;animation-name: two;}
             .two_ .text1,.two_ .vai_shared{display:none}
             .one .text1,.one .vai_shared,.one_ .text1,.one_ .vai_shared  {animation-duration: 1s;webkit-animation-fill-mode: forwards;animation-fill-mode: forwards;-webkit-animation-name: one ;animation-name: one;}
-            .four .text5_1,.four .text5_2,.four .text5_3,.four .text5_4,
-            .two .text2,.three .text4,.four .text5 {animation-delay: 1s;animation-duration: 1s;webkit-animation-fill-mode: forwards;animation-fill-mode: forwards;-webkit-animation-name: three ;animation-name: three;}
-            .two_ .text2,.three_ .text4,.four_ .text5 {animation-delay: 1s;animation-duration: 1s;webkit-animation-fill-mode: forwards;animation-fill-mode: forwards;-webkit-animation-name: four ;animation-name: four;}
-            .three#container,.four#container {margin:0;}
-            .three .text2,.three .text1,.three .vai_shared,.three .chat_room,.four .text2,.four .text1,.four .vai_shared,.four .chat_room {display:none;}
-            .three #middle,.four #middle {width:300px;}
-            .three #middle .plwv8,.four #middle .plwv8{padding-left: 48px;}
+            .last .text7,.four .text5_1,.four .text5_2,.four .text5_3,.four .text5_4,
+            .last_ .text5_1,.last_ .text5_2,.last_ .text5_3,.last_ .text5_4,.last_ .text5,
+            .four_ .text5_1,.four_ .text5_2,.four_ .text5_3,.four_ .text5_4,
+            .two .text2,.three .text4,.four .text5,.four_ .text5,.five .text5,.three .text5 {animation-delay: 1s;animation-duration: 1s;webkit-animation-fill-mode: forwards;animation-fill-mode: forwards;-webkit-animation-name: three ;animation-name: three;}
+            .five_ .text7,.two_ .text2,.three_ .text4,.three_ .text5,.four_ .text5 {animation-delay: 1s;animation-duration: 1s;webkit-animation-fill-mode: forwards;animation-fill-mode: forwards;-webkit-animation-name: four ;animation-name: four;}
+            .three#container,
+            .three_#container,
+            .last#container,
+            .last_#container,
+            .four#container,
+            .four_#container,
+            .five#container,
+            .five_#container,
+            .six#container,
+            .six_#container,
+            .seven#container,
+            .seven_#container,
+            .five#container {max-width:100%;}
+            .three .text2,.three .text1,.three .vai_shared,.three .chat_room,
+            .three_ .text2,.three_ .text1,.three_ .vai_shared,.three_ .chat_room,
+            .four .text2,.four .text1,.four .vai_shared,.four .chat_room,
+            .four_ .text2,.four_ .text1,.four_ .vai_shared,.four_ .chat_room,
+            .five .text2,.five .text1,.five .vai_shared,.five .chat_room,
+            .five_ .text2,.five_ .text1,.five_ .vai_shared,.five_ .chat_room,
+            .last .text2,.last .text1,.last .vai_shared,.last .chat_room,
+            .last_ .text2,.last_ .text1,.last_ .vai_shared,.last_ .chat_room {display:none;}
+            .three #middle,
+            .three_ #middle,
+            .four #middle,
+            .four_ #middle,
+            .last #middle,
+            .last_ #middle,
+            .five #middle {width:300px;}
+            .three #middle .plwv8,
+            .three_ #middle .plwv8,
+            .four #middle .plwv8,
+            .four_ #middle .plwv8,
+            .last_ #middle .plwv8,
+            .five #middle .plwv8{padding-left: 48px;}
             /* .three .text3,.three .text4{display:inline-block;} */
-            .three #right,.four #right{width:660px;}
-            .four .text5_1,.four .text5_2,.four .text5_3,.four .text5_4{display:inline-block}
-            .four .text5_1{animation-delay: 2s;}
-            .four .text5_2{animation-delay: 3s;}
-            .four .text5_3{animation-delay: 4s;}
-            .four .text5_4{animation-delay: 5s;}
+            .three #right,
+            .last #right,
+            .three_ #right,
+            .four #right,
+            .four_ #right,
+            .last_ #right,
+            .five #right,.last #right{width:660px;}
+            .three .text3,.four .text5_1,.four .text5_2,.four .text5_3,.four .text5_4,
+            .last_ .text5_1,.last_ .text5_2,.last_ .text5_3,.last_ .text5_4{display:inline-block}
+            .four .text5_1,.last_ .text5_1 {
+                animation-delay: 1s;
+            }
+            .four .text5_2,.last_ .text5_2 {
+                animation-delay: 2s;
+            }
+            .four .text5_3,.last_ .text5_3 {
+                animation-delay: 3s;
+            }
+            .text4, .text5,.text3,.text6,.text7,.text0,.text8{animation-delay: 0s!important;}
+            .three .text4{animation-delay: 1s!important;}
+            .three .text3{animation-delay: 0s;animation-duration: 1s;webkit-animation-fill-mode: forwards;animation-fill-mode: forwards;-webkit-animation-name: fadeIn ;animation-name: fadeIn;}
             @-webkit-keyframes fadeIn {0% {opacity: 0; } to {opacity: 1; } }
             @keyframes fadeIn {0% {opacity: 0; } to {opacity: 1; } }
+            @keyframes fadeOut {0% {opacity: 1; } to {opacity: 0; } }
             @keyframes two {
                 0% {
                     opacity: 1; 
-                    font-size: 36px;
+                    font-size: min(6vmin, 42px);
                     transform: translateY(0);
                 }
                 50%{
                     opacity: 0;
-                    font-size: 36px;
-                    transform: translateY(-100px);
+                    font-size: min(6vmin, 42px);
+                    transform: translateY(-5vmin);
                 }
                 100%{
                     font-size: 0;
                     opacity: 0;
-                    transform: translateY(-100px);
+                    transform: translateY(-5vmin);
                 }
             }
             @keyframes one {
                 0% {
                     font-size: 0;
                     opacity: 0; 
-                    transform: translateY(-100px);
+                    transform: translateY(-5vmin);
                 }
                 50% {
-                    font-size: 36px;
+                    font-size: min(6vmin, 42px);
                     opacity: 0;
-                    transform: translateY(-100px);
+                    transform: translateY(-5vmin);
                 }
                 100%{
-                    font-size: 36px;
+                    font-size: min(6vmin, 42px);
                     opacity: 1;
                     transform: translateY(0);
                 }
@@ -229,7 +301,7 @@
             @keyframes three {
                 0% {
                     opacity: 0; 
-                    transform: translateY(100px);
+                    transform: translateY(5vmin);
                 }
                 100%{
                     opacity: 1;
@@ -239,7 +311,7 @@
             @keyframes four {
                 0% {
                     opacity: 0;
-                    transform: translateY(-100px);
+                    transform: translateY(-5vmin);
                 }
                 100%{
                     opacity: 1; 
@@ -249,19 +321,103 @@
             .p048{padding: 0 48px}
             .mb48{margin-bottom: 24px;}
             .w512{width: 700px;}
-            .fs17{font-size: 15px;}
-            .fs24{font-size: 18px;}
-            .lh24{line-height: 18px;}
+            .fs17{font-size: min(2.8vmin, 16px);}
+            .fs24{font-size: min(3vmin, 18px)}
+            .lh24{line-height: min(4vmin, 24px);}
+            .lh48{line-height: min(9vmin, 36px);}
             .cb{color:#bbb}
-            .ls05{letter-spacing: 0.5px;}
+            .ls05{letter-spacing: min(2vw, 0.5px);}
             .w72.h72{width:72px;height:72px;}
             .wC72{width:calc(100% - 112px);margin-left:24px}
+            .text7,.text4{width:calc(100% - 150px)}
             img.w72.h72.dIb.vM {
                 opacity: 0.3;
                 overflow: hidden;
             }
-            .fs36{font-size:24px;}
-            .pl36{padding-left: 36px;}
+            .fs36{font-size:min(6vmin, 24px);}
+            .pl36{padding-left: min(5vw, 24px)}
+            .mt10{margin-top: min(6vmin, 10px)}
+            .mt24{margin-top: min(8vmin, 16px)}
+            div.br{display: none;}
+            @media only screen and (max-width: 1120px) {
+                .four .text5_1, .four .text5_2, .four .text5_3, .four .text5_4{animation:none}
+                /* #container .text5_0,#container .text5_1,#container .text5_2,#container .text5_3,#container .text5_4 {animation:none} */
+                /* .fs16{font-size: 3.8vmin;}
+                .fs14{font-size: 3vmin;} */
+                #container {max-width:100%;padding:0 6vmin;padding-top:22vh;}
+                #container .dTc{vertical-align: top;}
+                #subConatainer.dT{display:block}
+                #subConatainer .dTc{display:block}
+                #container #subConatainer .plwv8{padding-left:0}
+                .text1:after,.text1:before{content:"";display:block;width:100%}
+                .two .text2.txt,.two_ .text2.txt,div.br{display: block;margin-top:min(1vmin, 8px);}
+                .text4,.text7{margin-top:6vmin;}
+                .fs24.text7{font-size: min(4vmin, 14px);line-height: min(5vmin, 20px);}
+                #left{margin-bottom: min(7vw, 24px);width:16vmin}
+                .mH{display:none;}
+                ol{padding-left:1em}
+                .wvw8 {width:16vmin}
+                .hvw8{height:16vmin}
+                #right,.text4,.w512,.wC72,.text7{
+                    width: 100%!important;
+                }
+                button.bg06C3AF{font-size: 14px;
+                width: 200px;
+                padding: 12px;}
+                .w72.h72,.text5_0{display:none}
+                .text5_0{opacity: 0;}
+                
+                .three .text3,.two_ .text2{animation-delay:0s!important}
+                .four_ .text5_0,.four .text5_0, .last_ .text5_0,.five .text5_1,.five_ .text5_1,.six .text5_2,.six_ .text5_2,.seven .text5_3,.seven_ .text5_3{display:inline-block;animation-delay: 0s;animation-duration: 1s;webkit-animation-fill-mode: forwards;animation-fill-mode: forwards;-webkit-animation-name: three ;animation-name: three;}
+                .five .text5_0,.six .text5_0,.six .text5_1,.seven .text5_0,.seven .text5_1,.seven .text5_2{animation-delay: 1s;animation-duration: 0s;webkit-animation-fill-mode: forwards;animation-fill-mode: forwards;-webkit-animation-name: two ;animation-name: two;}
+                /* .five .text5_0,.text5_1,.text5_2,.text5_3,.text5_4 */
+                .text5 {position: relative; width:100%; min-height: 50vh;}
+                
+                .text5_0,.text5_1,.text5_2,.text5_3,.text5_4 {
+                    position: absolute;
+                    width: 100%;
+                    height: 100%;
+                    top:6vmin;
+                }
+                .fs17{font-size: 4.6vmin;line-height: 7vmin;}
+                .fs24{font-size: 5vmin;line-height: 7vmin;}
+                .lh24{line-height: 7vmin;}
+                .mb48,.wC72{margin:0}
+                .five .text2,.five .text1,.five .vai_shared,.five .chat_room,
+                .five_ .text2,.five_ .text1,.five_ .vai_shared,.five_ .chat_room,
+                .six .text2,.six .text1,.six .vai_shared,.six .chat_room,
+                .six_ .text2,.six_ .text1,.six_ .vai_shared,.six_ .chat_room,
+                .seven .text2,.seven .text1,.seven .vai_shared,.seven .chat_room,
+                .seven_ .text2,.seven_ .text1,.seven_ .vai_shared,.seven_ .chat_room,
+                .five .text5_0,.six .text5_0,.six .text5_1,.seven .text5_0,.seven .text5_1,.seven .text5_2 {display:none;}
+                
+                .four_ .text5_0,.five_ .text5_1,.six_ .text5_2,.seven_ .text5_3 {
+                    animation-delay: 0s;
+                    animation-duration: 1s;
+                    webkit-animation-fill-mode: forwards;
+                    animation-fill-mode: forwards;
+                    -webkit-animation-name: four;
+                    animation-name: four;
+                }
+
+                .four_ .text6,.five .text6,.five_ .text6,.six .text6,.six_ .text6,.seven .text6,.seven_ .text6 {
+                    display: inline-block;
+                    animation-delay: 0s;
+                    animation-duration: 1s;
+                    webkit-animation-fill-mode: forwards;
+                    animation-fill-mode: forwards;
+                    -webkit-animation-name: fadeIn;
+                    animation-name: fadeIn;
+                }
+            }
+            .o7{opacity: 0.7;}
+            .c06C3AF { color: #06C3AF;fill: #06C3AF }
+            .bg06C3AF { background: #06C3AF; }
+            .w250 {width:250px;}
+            .tdN{text-decoration:none;}
+            .cF{color:#fff;fill:#fff}
+            .c0{color:#000;fill:#000}
+            .taC{text-align: center;}
         </style>
     </head>
     <body>
@@ -273,92 +429,113 @@
                         <path d="M11.646 19.09v-2.994H3.729V.994H0v18.097h11.646zm3.89-15.063c.605 0 1.092-.174 1.46-.522.37-.348.554-.795.554-1.342 0-.539-.183-.982-.547-1.33-.365-.348-.854-.522-1.467-.522-.621 0-1.112.174-1.473.522-.36.348-.54.791-.54 1.33 0 .547.184.994.553 1.342.369.348.855.522 1.46.522zm1.802 15.064V5.643h-3.604V19.09h3.604zm6.55 0v-4.102l1.293-1.292 3.455 5.394h4.127l-5.283-7.843 4.86-5.605h-4.313l-3.442 4.04-.697.894V0h-3.591v19.09h3.591zm16.195.248c1.12 0 2.138-.213 3.058-.64.92-.426 1.649-1.02 2.187-1.783l-1.764-1.976c-.78 1.002-1.86 1.504-3.244 1.504-.895 0-1.635-.266-2.219-.796-.584-.53-.934-1.235-1.05-2.113h8.563V12.07c0-2.13-.528-3.775-1.584-4.935-1.057-1.16-2.505-1.74-4.344-1.74-1.227 0-2.318.288-3.275.864-.957.576-1.697 1.396-2.219 2.46-.522 1.066-.783 2.273-.783 3.624v.348c0 2.013.62 3.625 1.858 4.835 1.239 1.21 2.844 1.814 4.816 1.814zm2.002-8.252h-4.997c.124-.895.408-1.583.851-2.064.444-.48 1.022-.72 1.734-.72.763 0 1.35.217 1.765.652.415.435.63 1.05.647 1.846v.286zM50.382 19.09v-7.929l-.125-7.967 6.712 15.897h1.18l6.737-15.959-.124 8.079v7.88h1.529V.994h-2.039l-6.699 15.972L50.88.994h-2.026v18.097h1.529zm21.08-16.343c.314 0 .565-.095.751-.286.187-.19.28-.427.28-.709 0-.281-.093-.52-.28-.714-.186-.195-.437-.292-.752-.292s-.563.097-.745.292c-.183.195-.274.433-.274.714 0 .282.091.518.274.709.182.19.43.286.745.286zm.733 16.344V5.643h-1.492V19.09h1.492zm5.518 0V9.88c.34-.978.864-1.755 1.572-2.33.709-.576 1.523-.864 2.443-.864 1.102 0 1.903.294 2.405.882.5.589.756 1.483.764 2.685v8.837h1.48v-8.825c-.01-1.624-.366-2.842-1.07-3.654-.704-.812-1.777-1.218-3.219-1.218-.911 0-1.744.218-2.498.653-.754.435-1.384 1.067-1.89 1.895l-.05-2.3h-1.416v13.449h1.48zm17.077.248c1.848 0 3.249-.679 4.201-2.038l.063 1.79h1.392V0h-1.48v7.544c-.952-1.433-2.336-2.15-4.15-2.15-1.6 0-2.866.62-3.798 1.858-.932 1.24-1.398 2.902-1.398 4.99v.175c0 2.12.474 3.805 1.423 5.052.949 1.247 2.198 1.87 3.747 1.87zm.274-1.292c-1.251 0-2.22-.495-2.908-1.485-.688-.99-1.032-2.343-1.032-4.058 0-1.915.348-3.362 1.044-4.344.696-.982 1.67-1.473 2.92-1.473 1.815 0 3.108.874 3.879 2.622v6.314c-.771 1.616-2.072 2.424-3.903 2.424zm13.883 1.292c1.475 0 2.67-.34 3.586-1.019.915-.68 1.373-1.586 1.373-2.722 0-.696-.157-1.288-.472-1.777-.315-.489-.798-.907-1.448-1.255-.65-.348-1.628-.676-2.933-.982-1.305-.307-2.204-.644-2.697-1.013-.493-.369-.74-.889-.74-1.56 0-.696.296-1.262.889-1.697.592-.435 1.377-.652 2.355-.652 1.003 0 1.833.26 2.492.783.659.522.988 1.177.988 1.964h1.492c0-1.193-.454-2.16-1.361-2.902-.908-.742-2.111-1.113-3.61-1.113-1.385 0-2.52.346-3.406 1.038-.887.692-1.33 1.568-1.33 2.629 0 .67.16 1.243.478 1.715.32.472.808.872 1.467 1.2.659.327 1.584.617 2.778.87 1.193.252 2.086.602 2.678 1.05.593.447.889 1.04.889 1.777 0 .696-.32 1.272-.957 1.728-.638.455-1.475.683-2.51.683-1.111 0-2.004-.242-2.68-.727-.675-.485-1.041-1.162-1.1-2.032h-1.49c0 1.16.486 2.12 1.46 2.877.973.758 2.243 1.137 3.81 1.137z"/>
                     </svg>
                 </div>
-                <div class="dTc vM taR fwB fsvw1">apply for alpha</div>
+                <a href="https://betalikeminds.typeform.com/to/gBiqI3" class="dTc vM taR fwB fs16 tdN cF">apply for beta</a>
             </div>
         </header>
 
         <main role="main" id="main" class="mxw1280 mA">
 
             <div class="dT wp100 one mxw1024 hvw100 tlF p048 bsB" id="container">
-                <div class="dTc vM" id="left">
-                    <div class="dIb vM wvw8 hvw8 logo">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96">
-                            <g fill="none">
-                                <g fill="#06C3AF">
-                                    <ellipse cx="14.026" cy="73.991" rx="12.273" ry="12.475"/>
-                                    <ellipse cx="81.429" cy="73.991" rx="12.273" ry="12.475"/>
-                                    <ellipse cx="47.104" cy="14.287" rx="12.273" ry="12.475"/>
-                                    <path d="M66.098 89.318c-.429-.891-1.48-1.268-2.357-.832-5.046 2.475-10.48 3.743-16.13 3.743-8.552 0-16.793-2.99-23.396-8.436 2.376-2.555 3.837-6 3.837-9.782 0-7.862-6.292-14.258-14.026-14.258S0 66.149 0 74.011c0 7.861 6.292 14.257 14.026 14.257 2.708 0 5.26-.792 7.403-2.158 7.325 6.277 16.558 9.703 26.182 9.703 6.195 0 12.136-1.386 17.669-4.1.876-.435 1.247-1.504.818-2.395zM3.526 73.99c0-5.881 4.714-10.674 10.5-10.674s10.5 4.793 10.5 10.674c0 5.881-4.714 10.673-10.5 10.673s-10.5-4.792-10.5-10.673zM7.033 52.565c-.04.99.72 1.822 1.714 1.861h.058c.955 0 1.734-.772 1.773-1.742.429-12.852 7.15-24.476 17.961-31.11 1.695-1.03 3.468-1.94 5.28-2.693 1.89 5.604 7.13 9.664 13.266 9.664 7.734 0 14.026-6.396 14.026-14.258C61.111 6.426 54.819.03 47.085.03S33.059 6.426 33.059 14.287c0 .357.02.693.039 1.03-2.202.871-4.364 1.94-6.39 3.188C14.864 25.753 7.5 38.485 7.033 52.565zM47.104 3.614c5.786 0 10.5 4.792 10.5 10.673 0 5.882-4.714 10.654-10.5 10.654-5.785 0-10.5-4.792-10.5-10.674 0-5.88 4.695-10.653 10.5-10.653zM81.43 59.733c-7.734 0-14.027 6.396-14.027 14.258 0 7.861 6.293 14.257 14.026 14.257 7.734 0 14.026-6.396 14.026-14.257 0-5.525-3.116-10.337-7.655-12.693.39-2.337.603-4.713.603-7.09 0-14.06-6.935-27.03-18.545-34.713-.818-.534-1.91-.297-2.435.535-.526.832-.292 1.94.526 2.475 10.617 7.01 16.948 18.852 16.948 31.703 0 1.96-.156 3.921-.448 5.862-.974-.218-1.987-.337-3.02-.337zm10.5 14.258c0 5.881-4.715 10.673-10.5 10.673-5.786 0-10.5-4.792-10.5-10.673s4.714-10.674 10.5-10.674c5.785 0 10.5 4.793 10.5 10.674z"/>
-                                </g>
-                                <path fill="#FFF" d="M57.881 42h-20.49c-2.424.003-4.388 1.909-4.391 4.26v12.308c.003 2.352 1.967 4.258 4.39 4.26h1.357l-.859 4.166c-.037.179.036.363.187.472.15.11.352.125.519.04l9.162-4.678h10.125c2.424-.002 4.388-1.908 4.39-4.26V46.26c-.002-2.351-1.966-4.257-4.39-4.26z"/>
-                            </g>
-                        </svg>
-                    </div>
-                </div>
-                <div class="dTc vM" id="middle">
-                    <div class="dIb vM plwv8 bsB fwB tc">
-                        <div class="text1">
-                            <span>Build </span>
-                            <span class="typewrite1 tcGrad" data-init="learning" data-period="2000" data-type='["networking","alumni","hobby","neighborhood","volunteering","parenting","work","ambassador","sports","fan","learning"]'>learning</span>
-                            <span class="blinkCaret a">_</span> 
-                            <span> communities</span>
-                        </div>
-                        <div class="dIb vM vai_shared">via shared</div> 
-                        <div class="dIb vM chat_room">chat rooms</div>
-                        <div class="dIb vM text2">
-                            <span>for </span>
-                            <span class="typewrite2 tcGrad" data-init="brainstorming" data-period="2000" data-type='["playing together","knowledge exchange","decision making","solving queries","task coordination","sharing resources","sourcing leads","gathering feedback","asking recommendations","getting mentorship","building relationships","finding partners","brainstorming"]'>finding partners</span>
-                            <span class="blinkCaret b">_</span>
-                        </div>
-                        <div class="dIb vM text3">
-                            <span class="typewrite3 tcGrad" data-init="" data-times="1" data-period="2000" data-type='["About"]'></span>
-                            <span class="blinkCaret b">_</span>
-                        </div>
-                        <div class="dIb vM text6">
-                            <span class="typewrite4 tcGrad" data-init="" data-times="1" data-period="2000" data-type='["How?"]'></span>
-                            <span class="blinkCaret b">_</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="dTc vM" id="right">
-                    <div class="dIb vM text4 tc lh48">
-                        LikeMinds helps communities engage deeper by enabling real-time conversations between relevant members in shared chat rooms, which dramatically reduces spam and fosters collaboration. Community managers have custom tools for community growth and engagement.
-                    </div>
-                    <div class="dIb vM text5 tc fsvw3">
-                        <div class="mb48 w512 ls05">
-                            <div class="dIb vM w72 h72">
-                                <img class="w72 h72 dIb vM"/>
-                            </div>
-                            <div class="dIb vM wC72">
-                                <div class="fs24 fwB">Shared chat rooms for each conversation</div>
-                                <div class="fs17 lh24 cb mt10">Members can participate, follow, or add other members in relevant chat rooms to coordinate efficiently until the shared purpose is achieved. Post that chat rooms can be archived or saved in the community repository for future references.</div>
+                <div class="dTc vM">
+                    <div class="dT wp100 tlF" id="subConatainer">
+                        <div class="dTc vM" id="left">
+                            <div class="dIb vM wvw8 hvw8 logo">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96">
+                                    <g fill="none">
+                                        <g fill="#06C3AF">
+                                            <ellipse cx="14.026" cy="73.991" rx="12.273" ry="12.475"/>
+                                            <ellipse cx="81.429" cy="73.991" rx="12.273" ry="12.475"/>
+                                            <ellipse cx="47.104" cy="14.287" rx="12.273" ry="12.475"/>
+                                            <path d="M66.098 89.318c-.429-.891-1.48-1.268-2.357-.832-5.046 2.475-10.48 3.743-16.13 3.743-8.552 0-16.793-2.99-23.396-8.436 2.376-2.555 3.837-6 3.837-9.782 0-7.862-6.292-14.258-14.026-14.258S0 66.149 0 74.011c0 7.861 6.292 14.257 14.026 14.257 2.708 0 5.26-.792 7.403-2.158 7.325 6.277 16.558 9.703 26.182 9.703 6.195 0 12.136-1.386 17.669-4.1.876-.435 1.247-1.504.818-2.395zM3.526 73.99c0-5.881 4.714-10.674 10.5-10.674s10.5 4.793 10.5 10.674c0 5.881-4.714 10.673-10.5 10.673s-10.5-4.792-10.5-10.673zM7.033 52.565c-.04.99.72 1.822 1.714 1.861h.058c.955 0 1.734-.772 1.773-1.742.429-12.852 7.15-24.476 17.961-31.11 1.695-1.03 3.468-1.94 5.28-2.693 1.89 5.604 7.13 9.664 13.266 9.664 7.734 0 14.026-6.396 14.026-14.258C61.111 6.426 54.819.03 47.085.03S33.059 6.426 33.059 14.287c0 .357.02.693.039 1.03-2.202.871-4.364 1.94-6.39 3.188C14.864 25.753 7.5 38.485 7.033 52.565zM47.104 3.614c5.786 0 10.5 4.792 10.5 10.673 0 5.882-4.714 10.654-10.5 10.654-5.785 0-10.5-4.792-10.5-10.674 0-5.88 4.695-10.653 10.5-10.653zM81.43 59.733c-7.734 0-14.027 6.396-14.027 14.258 0 7.861 6.293 14.257 14.026 14.257 7.734 0 14.026-6.396 14.026-14.257 0-5.525-3.116-10.337-7.655-12.693.39-2.337.603-4.713.603-7.09 0-14.06-6.935-27.03-18.545-34.713-.818-.534-1.91-.297-2.435.535-.526.832-.292 1.94.526 2.475 10.617 7.01 16.948 18.852 16.948 31.703 0 1.96-.156 3.921-.448 5.862-.974-.218-1.987-.337-3.02-.337zm10.5 14.258c0 5.881-4.715 10.673-10.5 10.673-5.786 0-10.5-4.792-10.5-10.673s4.714-10.674 10.5-10.674c5.785 0 10.5 4.793 10.5 10.674z"/>
+                                        </g>
+                                        <path fill="#FFF" d="M57.881 42h-20.49c-2.424.003-4.388 1.909-4.391 4.26v12.308c.003 2.352 1.967 4.258 4.39 4.26h1.357l-.859 4.166c-.037.179.036.363.187.472.15.11.352.125.519.04l9.162-4.678h10.125c2.424-.002 4.388-1.908 4.39-4.26V46.26c-.002-2.351-1.966-4.257-4.39-4.26z"/>
+                                    </g>
+                                </svg>
                             </div>
                         </div>
-                        <div class="text5_1 mb48 w512 ls05">
-                            <div class="dIb vM w72 h72">
-                                <img class="w72 h72 dIb vM"/>
-                            </div>
-                            <div class="dIb vM wC72">
-                                <div class="fs24 fwB">Custom signup form for your community</div>
-                                <div class="fs17 lh24 cb mt10">Members create community-specific profiles while signing up, allowing you to approve only relevant members. A member directory is also generated for members to filter other members and make the right connections.</div>
+                        <div class="dTc vM" id="middle">
+                            <div class="dIb vM plwv8 bsB fwB tc">
+                                <div class="text1">
+                                    <span>build </span>
+                                    <div class="br"></div>
+                                    <span class="typewrite1 tcGrad" data-init="learning" data-period="2000" data-type='["learning","networking","alumni","hobby","neighborhood","volunteering","parenting","work","ambassador","sports","fan"]'>learning</span><span class="blinkCaret a">_</span> 
+                                    <span> communities</span>
+                                    <div class="br"></div>
+                                </div>
+                                <div class="dIb vM vai_shared">via shared</div> 
+                                <div class="dIb vM chat_room">chat rooms</div>
+                                <span class="dIb vM text2">for </span>
+                                <div class="dIb vM text2 txt">
+                                    <span class="typewrite2 tcGrad" data-init="brainstorming" data-period="2000" data-type='["brainstorming","playing together","knowledge exchange","decision making","solving queries","task coordination","sharing resources","sourcing leads","gathering feedback","asking recommendations","getting mentorship","building relationships","finding partners"]'>brainstorming</span><span class="blinkCaret b">_</span>
+                                </div>
+                                <div class="dIb vM text3">
+                                    <span class="typewrite3 tcGrad" data-init="" data-times="1" data-period="2000" data-type='["","About"]'></span><span class="blinkCaret b">_</span>
+                                </div>
+                                <div class="dIb vM text6">
+                                    <span class="typewrite4 tcGrad" data-init="" data-times="1" data-period="2000" data-type='["","How?"]'></span><span class="blinkCaret b">_</span>
+                                </div>
+                                <div class="dIb vM text8">
+                                    <span class="typewrite5 tcGrad" data-init="" data-times="1" data-period="2000" data-type='["","Apply"]'></span><span class="blinkCaret b">_</span>
+                                </div>
                             </div>
                         </div>
-                        <div class="text5_2 mb48 w512 ls05">
-                            <div class="dIb vM w72 h72">
-                                <img class="w72 h72 dIb vM"/>
+                        <div class="dTc vM ls05" id="right">
+                            <div class="dIb vM text4 lh48 fs36 ls05">
+                                LikeMinds helps communities engage deeper by enabling real-time conversations between relevant members in shared chat rooms, which dramatically reduces spam and fosters collaboration. Community managers have custom tools for community growth and engagement.
                             </div>
-                            <div class="dIb vM wC72">
-                                <div class="fs24 fwB">Tools to manage your community efficiently</div>
-                                <div class="fs17 lh24 cb mt10">Launch community events, conduct polls, and build lists to engage the community. With the right permission settings and the ability to analyze and reward your community, you will not need a third-party tool for anything.</div>
+                            <div class="dIb vM text5 tc fsvw3">
+                                <div class="text5_0 mb48 w512 ls05">
+                                    <div class="dIb vM w72 h72">
+                                        <img class="w72 h72 dIb vM"/>
+                                    </div>
+                                    <div class="dIb vM wC72">
+                                        <div class="fs24 fwB">Shared chat rooms for each conversation</div>
+                                        <div class="fs17 lh24 cb mt10">Members can participate, follow, or add other members in relevant chat rooms to coordinate efficiently until the shared purpose is achieved. Post that chat rooms can be archived or saved in the community repository for future references.</div>
+                                    </div>
+                                </div>
+                                <div class="text5_1 mb48 w512 ls05">
+                                    <div class="dIb vM w72 h72">
+                                        <img class="w72 h72 dIb vM"/>
+                                    </div>
+                                    <div class="dIb vM wC72">
+                                        <div class="fs24 fwB">Custom signup form for your community</div>
+                                        <div class="fs17 lh24 cb mt10">Members create community-specific profiles while signing up, allowing you to approve only relevant members. A member directory is also generated for members to filter other members and make the right connections.</div>
+                                    </div>
+                                </div>
+                                <div class="text5_2 mb48 w512 ls05">
+                                    <div class="dIb vM w72 h72">
+                                        <img class="w72 h72 dIb vM"/>
+                                    </div>
+                                    <div class="dIb vM wC72">
+                                        <div class="fs24 fwB">Tools to manage your community efficiently</div>
+                                        <div class="fs17 lh24 cb mt10">Launch community events, conduct polls, and build lists to engage the community. With the right permission settings and the ability to analyze and reward your community, you will not need a third-party tool for anything.</div>
+                                    </div>
+                                </div>
+                                <div class="text5_3 mb48 w512 ls05">
+                                    <div class="dIb vM w72 h72">
+                                        <img class="w72 h72 dIb vM"/>
+                                    </div>
+                                    <div class="dIb vM wC72">
+                                        <div class="fs24 fwB">Designed for growth of your community</div>
+                                        <div class="fs17 lh24 cb mt10">All tools and chat rooms are web-enabled. You or community members can share events, polls, lists, or just interesting conversations with potential members of the community. Increased visibility and community discovery will drive membership in the community.</div>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-                        <div class="text5_3 mb48 w512 ls05">
-                            <div class="dIb vM w72 h72">
-                                <img class="w72 h72 dIb vM"/>
-                            </div>
-                            <div class="dIb vM wC72">
-                                <div class="fs24 fwB">Designed for growth of your community</div>
-                                <div class="fs17 lh24 cb mt10">All tools and chat rooms are web-enabled. You or community members can share events, polls, lists, or just interesting conversations with potential members of the community. Increased visibility and community discovery will drive membership in the community.</div>
+                            <div class="dIb vM text7 tc fs24">
+                                <div>
+                                    If you are building a community or planning to build one on a chat platform and can relate to the usual problems of:
+                                </div>
+                                <ol class="c06C3AF">
+                                    <li>Cluttered conversations</li>
+                                    <li>Too many notifications</li>
+                                    <li>Lack of member identity and approval</li>
+                                    <li>Absence of tools to support community building</li>
+                                    <li>Arbitrary membership limit</li>
+                                </ol>
+                                <div class="mH">
+                                    Please fill out a quick survey, so we can make sure we’re a great fit for your community at this stage.
+                                </div>
+                                <a href="https://betalikeminds.typeform.com/to/gBiqI3" class="bg06C3AF c0 w250 br20 bd0 p12 fs24 fwB mt24 tdN taC dIb vM">apply for beta</a>
                             </div>
                         </div>
                     </div>
@@ -373,34 +550,37 @@
             </svg>
         </div> -->
 
-        <footer class="pF b0 r0 l0 z1">
+        <footer class="pF b0 r0 l0 z1 o7">
             <div class="dT wp100 mxw1280 mA p48 tlF bsB wsN">
                 <div class="dTc vM taL">
-                    <div class="dIb vM">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="20" viewBox="0 0 24 20">
-                            <path d="M24 2.308c-.892.392-1.843.651-2.835.778 1.02-.61 1.799-1.566 2.165-2.72-.951.567-2.002.967-3.12 1.191C19.305.596 18.02 0 16.614 0 13.893 0 11.7 2.211 11.7 4.921c0 .39.033.765.114 1.122C7.721 5.845 4.103 3.883 1.67.897c-.425.736-.673 1.58-.673 2.487 0 1.704.877 3.214 2.185 4.089-.79-.015-1.566-.244-2.223-.606v.054c0 2.391 1.706 4.377 3.942 4.834-.4.11-.837.162-1.29.162-.315 0-.633-.018-.932-.083.638 1.948 2.447 3.38 4.598 3.427-1.674 1.31-3.8 2.099-6.1 2.099-.404 0-.791-.018-1.178-.068C2.18 18.697 4.763 19.5 7.548 19.5c9.054 0 14.004-7.5 14.004-14.001 0-.217-.008-.427-.018-.636.977-.693 1.797-1.559 2.466-2.555z"/>
+                    <a href="https://in.linkedin.com/company/collabmates" class="dIb vM w24 h24 cF tdN">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                            <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
                         </svg>
-                    </div>
-                    <div class="dIb vM pl36 bs">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
-                            <path d="M24 1.323v21.348c0 .734-.595 1.324-1.323 1.324h-6.118v-9.29h3.118l.466-3.621h-3.59V8.77c0-1.05.29-1.763 1.795-1.763h1.918v-3.24c-.332-.044-1.468-.146-2.796-.146-2.765 0-4.661 1.688-4.661 4.79v2.673H9.68v3.621h3.129V24H1.323C.595 24 0 23.405 0 22.677V1.323C0 .595.595 0 1.323 0h21.348C23.405 0 24 .595 24 1.323z"/>
+                    </a>
+                    <a href="https://angel.co/company/likeminds-6" class="dIb vM pl36 bs w24 h24 cF tdN">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+                            <path d="M47.072 27.312q3.964.75 5.58 3.338 1.616 2.6 1.625 8.174 0 11.077-6.66 18.128-6.66 7.05-17.032 7.047a22.022 22.022 0 0 1-7.928-1.471 19.648 19.648 0 0 1-6.607-4.109 20.819 20.819 0 0 1-4.748-6.131 14.878 14.878 0 0 1-1.581-6.607q0-3.78 1.625-5.845Q12.97 37.77 16.48 37a23.519 23.519 0 0 1-.969-2.594 6.307 6.307 0 0 1-.308-1.625q0-1.978 2.088-4.043 2.088-2.066 3.933-2.066a5.404 5.404 0 0 1 1.669.286 10.976 10.976 0 0 1 2.022.947q-3.387-9.58-4.924-14.8-1.537-5.2-1.533-7.18 0-2.726 1.405-4.33a4.845 4.845 0 0 1 3.825-1.59q4.13 0 10.452 18.46 1.097 3.162 1.67 4.88.484-1.36 1.36-3.867Q43.513 1.2 48.08 1.2a4.545 4.545 0 0 1 3.581 1.515q1.32 1.515 1.32 4.065 0 1.934-1.47 7.073-1.47 5.14-4.44 13.468zm-31.47 17.93q.617.75 1.713 2.202 2.902 4 5.36 4a2.33 2.33 0 0 0 1.493-.529 1.453 1.453 0 0 0 .661-1.097q0-.66-.88-2.202a28.373 28.373 0 0 0-2.418-3.471 26.109 26.109 0 0 0-2.924-3.272q-1.163-1.03-1.867-1.03-1.537 0-2.836 1.647a6.104 6.104 0 0 0-1.295 3.889 10.813 10.813 0 0 0 .881 4.021 19.379 19.379 0 0 0 2.616 4.462 17.441 17.441 0 0 0 6.439 5.338 19.185 19.185 0 0 0 8.514 1.85 18.56 18.56 0 0 0 14.349-6.395q5.778-6.395 5.778-16.02a19.872 19.872 0 0 0-.44-4.682 4.479 4.479 0 0 0-1.449-2.528q-1.8-1.493-7.012-2.682a48.822 48.822 0 0 0-10.879-1.185q-1.58 0-2.242.53-.66.53-.66 1.8 0 3 3.338 4.33 3.338 1.34 10.813 1.32h1.8a1.211 1.211 0 0 1 .991.44 2.836 2.836 0 0 1 .507 1.383q-.75.705-3.083 1.603a16.556 16.556 0 0 0-3.559 1.762 15.785 15.785 0 0 0-4.215 4.642 9.804 9.804 0 0 0-1.603 5.034 11.35 11.35 0 0 0 .683 3.493 12.24 12.24 0 0 1 .683 2.528v.308l-.088.396q-1.933-.132-3.052-2.264-1.12-2.132-1.12-5.7v-.396a2.436 2.436 0 0 1-.683.44 1.938 1.938 0 0 1-.727.132 4.048 4.048 0 0 1-.749-.066 7.681 7.681 0 0 1-.793-.198 7.782 7.782 0 0 1 .198.947 5.439 5.439 0 0 1 .066.727 3.651 3.651 0 0 1-1.273 2.792 4.347 4.347 0 0 1-3.035 1.163q-2.77 0-5.624-2.704-2.854-2.704-2.858-5.285a3.043 3.043 0 0 1 .11-.859 1.471 1.471 0 0 1 .37-.639zm13.187 1.053a1.81 1.81 0 0 0 1.361-.683 2.158 2.158 0 0 0 .617-1.471q0-.832-1.207-3.9a38.987 38.987 0 0 0-3.013-5.999 14.037 14.037 0 0 0-2.594-3.316q-1.277-1.12-2.418-1.12-.925 0-2.044 1.163-1.12 1.163-1.12 2.176 0 1.053 1.097 3.162a29.892 29.892 0 0 0 2.947 4.484 24.471 24.471 0 0 0 3.647 4.043q1.713 1.436 2.726 1.436zm4.307-21.23L28.35 11.342q-1.847-5.228-2.85-6.836-1.023-1.606-2.212-1.603a1.832 1.832 0 0 0-1.48.705 2.907 2.907 0 0 0-.573 1.889q0 2.022 1.537 7.047Q24.3 17.57 27.4 25.687a1.467 1.467 0 0 1 .749-.683 3.572 3.572 0 0 1 1.321-.198q.264 0 1.053.044.788.044 2.585.207zM38.06 38.37a27.043 27.043 0 0 1-3.581-.396 18.987 18.987 0 0 1-3.228-.881q.7 1.4 1.25 2.814a24.532 24.532 0 0 1 .881 2.77 21.854 21.854 0 0 1 2.202-2.396 18.564 18.564 0 0 1 2.475-1.911zm5.845-11.82q2.942-7.998 4.594-13.213 1.652-5.215 1.647-6.395a3.145 3.145 0 0 0-.551-1.978 1.819 1.819 0 0 0-1.515-.705q-1.23 0-2.506 2.044-1.277 2.044-2.814 6.57l-4.404 12.702z"/>
                         </svg>
-                    </div>
+                    </a>
                 </div>
-                <div class="dTc vM taR fsvw1 cb">
-                    <div class="dIb vM">terms</div>
-                    <div class="dIb vM pl36 bs">privacy</div>
+                <div class="dTc vM taR fs14">
+                    <a href="/terms" class="dIb vM tdN cF">terms</a>
+                    <a href="/privacy" class="dIb vM pl36 bs tdN cF">privacy</a>
                 </div>
             </div>
         </footer>
 
         <script>
+            if(Math.max(document.documentElement.clientWidth, window.innerWidth) <= 1120){
+                document.body.classList.add('mobile');
+            }
             (function() {
                 "use strict";
                 /*[pan and well CSS scrolls]*/
                 var pnls = document.getElementsByTagName('section').length,
                     scdir, hold = false;
-                var changeState, state = 0, stateNames = ["one", "two", "three", "four", "five", "six"];
+                var changeState, state = 0, stateNames = ["one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"];
 
                 function _scrollY(obj) {
                     if (hold === false) {
@@ -426,7 +606,12 @@
                         //     slength = 0;
                         // }
                         if (scdir === 'up'){
-                            if(state == 3) return;
+                            if(document.body.classList.contains('mobile')){
+                                if(state == 7) return;
+                            }else{
+                                if(state == 4) return;
+                            }
+                            
                             console.log('up');
                             changeState = stateNames[state];
                             state++;
@@ -446,12 +631,13 @@
                                 // for (var i=0; i<elements.length; i++) {
                                     var toRotate = element1.getAttribute('data-type');
                                     var period = element1.getAttribute('data-period');
-                                    if (toRotate) {
-                                        clearTimeout(window.tick);
+                                    // if (toRotate) {
+                                    //     clearTimeout(window.tick);
                                         setTimeout(function() {
+                                            clearTimeout(window.tick);
                                             new TxtType(element1, JSON.parse(toRotate), period);
-                                        },3000);
-                                    }
+                                        },2000);
+                                    // }
                                 // }
                                 break;
                             case 'one_':
@@ -462,12 +648,13 @@
                                 // for (var i=0; i<elements.length; i++) {
                                     var toRotate = element1.getAttribute('data-type');
                                     var period = element1.getAttribute('data-period');
-                                    if (toRotate) {
-                                        clearTimeout(window.tick);
+                                    // if (toRotate) {
+                                    //     clearTimeout(window.tick);
                                         setTimeout(function() {
+                                            clearTimeout(window.tick);
                                             new TxtType(element1, JSON.parse(toRotate), period);
-                                        },3000);
-                                    }
+                                        },1200);
+                                    // }
                                 // }
                                 break;
                             case 'two':
@@ -478,12 +665,13 @@
                                 // for (var i=0; i<elements.length; i++) {
                                     var toRotate = element1.getAttribute('data-type');
                                     var period = element1.getAttribute('data-period');
-                                    if (toRotate) {
-                                        clearTimeout(window.tick);
+                                    // if (toRotate) {
+                                    //     clearTimeout(window.tick);
                                         setTimeout(function() {
+                                            clearTimeout(window.tick);
                                             new TxtType(element1, JSON.parse(toRotate), period);
-                                        },1000);
-                                    }
+                                        },1200);
+                                    // }
                                 // }
                                 break;
                             case 'two_':
@@ -494,12 +682,13 @@
                                 // for (var i=0; i<elements.length; i++) {
                                     var toRotate = element1.getAttribute('data-type');
                                     var period = element1.getAttribute('data-period');
-                                    if (toRotate) {
-                                        clearTimeout(window.tick);
+                                    // if (toRotate) {
+                                    //     clearTimeout(window.tick);
                                         setTimeout(function() {
+                                            clearTimeout(window.tick);
                                             new TxtType(element1, JSON.parse(toRotate), period);
-                                        },3000);
-                                    }
+                                        },2000);
+                                    // }
                                 // }
                                 break;
                             case 'three':
@@ -510,38 +699,148 @@
                                 // for (var i=0; i<elements.length; i++) {
                                     var toRotate = element1.getAttribute('data-type');
                                     var period = element1.getAttribute('data-period');
-                                    if (toRotate) {
-                                        clearTimeout(window.tick);
+                                    // if (toRotate) {
+                                    //     clearTimeout(window.tick);
                                         setTimeout(function() {
+                                            clearTimeout(window.tick);
                                             new TxtType(element1, JSON.parse(toRotate), period);
-                                        },1000);
-                                    }
+                                        },1);
+                                    // }
                                 // }
                                 break;
                                 
                             case 'three_':
-                                document.getElementById('container').classList.add('three');
-                                document.getElementById('container').classList.remove('four', 'four_');
+                                document.getElementById('container').classList.add('three_');
+                                document.getElementById('container').classList.remove('four', 'four_', 'last', 'last_');
                                 var element1 = document.getElementsByClassName('typewrite3')[0];
                                 element1.innerHTML = element1.getAttribute('data-init');
                                 // for (var i=0; i<elements.length; i++) {
                                     var toRotate = element1.getAttribute('data-type');
                                     var period = element1.getAttribute('data-period');
-                                    if (toRotate) {
-                                        clearTimeout(window.tick);
+                                    // if (toRotate) {
+                                    //     clearTimeout(window.tick);
                                         setTimeout(function() {
+                                            clearTimeout(window.tick);
                                             new TxtType(element1, JSON.parse(toRotate), period);
-                                        },1000);
-                                    }
+                                        },1);
+                                    // }
                                 // }
                                 break;
+                            case 'four':
+                                // debugger;
+                                if(document.body.classList.contains('mobile')){
+                                    document.getElementById('container').classList.add('five');
+                                    document.getElementById('container').classList.remove('four', 'four_');
+                                }else{
+                                    document.getElementById('container').classList.add('last');
+                                    document.getElementById('container').classList.remove('four', 'four_', 'last_');
+                                    var element1 = document.getElementsByClassName('typewrite5')[0];
+                                    element1.innerHTML = element1.getAttribute('data-init');
+                                    // for (var i=0; i<elements.length; i++) {
+                                        var toRotate = element1.getAttribute('data-type');
+                                        var period = element1.getAttribute('data-period');
+                                        // if (toRotate) {
+                                        //     clearTimeout(window.tick);
+                                            setTimeout(function() {
+                                                clearTimeout(window.tick);
+                                                new TxtType(element1, JSON.parse(toRotate), period);
+                                            },1);
+                                        // }
+                                    // }
+                                }
+                                break;
+                                
+                            case 'four_':
+                                // debugger;
+                                if(document.body.classList.contains('mobile')){
+                                    document.getElementById('container').classList.add('four_');
+                                    document.getElementById('container').classList.remove('five', 'five_');
+                                }else{
+                                    document.getElementById('container').classList.add('last_');
+                                    document.getElementById('container').classList.remove('last');
+                                    var element1 = document.getElementsByClassName('typewrite4')[0];
+                                    element1.innerHTML = element1.getAttribute('data-init');
+                                    // for (var i=0; i<elements.length; i++) {
+                                        var toRotate = element1.getAttribute('data-type');
+                                        var period = element1.getAttribute('data-period');
+                                        // if (toRotate) {
+                                        //     clearTimeout(window.tick);
+                                            setTimeout(function() {
+                                                clearTimeout(window.tick);
+                                                new TxtType(element1, JSON.parse(toRotate), period);
+                                            },1);
+                                        // }
+                                    // }
+                                }
+                                break;
+                            
+                            case 'five':
+                                document.getElementById('container').classList.add('six');
+                                document.getElementById('container').classList.remove('five', 'five_');
+                                break;
+                                
+                            case 'five_':
+                                document.getElementById('container').classList.add('five_');
+                                document.getElementById('container').classList.remove('six', 'six_');
+                                break;
+
+                            case 'six':
+                                document.getElementById('container').classList.add('seven');
+                                document.getElementById('container').classList.remove('six', 'six_');
+                                break;
+                                
+                            case 'six_':
+                                document.getElementById('container').classList.add('six_');
+                                document.getElementById('container').classList.remove('seven', 'seven_');
+                                break;
+
+                            case 'seven':
+                                // document.getElementById('container').classList.add('eight');
+                                // document.getElementById('container').classList.remove('seven', 'seven_');
+                                
+                                document.getElementById('container').classList.add('last');
+                                document.getElementById('container').classList.remove('seven', 'seven_', 'last_');
+                                var element1 = document.getElementsByClassName('typewrite5')[0];
+                                element1.innerHTML = element1.getAttribute('data-init');
+                                // for (var i=0; i<elements.length; i++) {
+                                    var toRotate = element1.getAttribute('data-type');
+                                    var period = element1.getAttribute('data-period');
+                                    // if (toRotate) {
+                                    //     clearTimeout(window.tick);
+                                        setTimeout(function() {
+                                            clearTimeout(window.tick);
+                                            new TxtType(element1, JSON.parse(toRotate), period);
+                                        },1);
+                                    // }
+                                // }
+                                
+                                break;
+                                
+                            case 'seven_':
+                                document.getElementById('container').classList.add('seven_');
+                                document.getElementById('container').classList.remove('last', 'last_');
+                                var element1 = document.getElementsByClassName('typewrite4')[0];
+                                element1.innerHTML = element1.getAttribute('data-init');
+                                // for (var i=0; i<elements.length; i++) {
+                                    var toRotate = element1.getAttribute('data-type');
+                                    var period = element1.getAttribute('data-period');
+                                    // if (toRotate) {
+                                    //     clearTimeout(window.tick);
+                                        setTimeout(function() {
+                                            clearTimeout(window.tick);
+                                            new TxtType(element1, JSON.parse(toRotate), period);
+                                        },1);
+                                    // }
+                                // }
+                                break;
+
                         }
                     
                         hold = true;
                         // pan.style.transform = 'translateY(' + slength + 'vh)';
                         setTimeout(function() {
                             hold = false;
-                        }, 1000);
+                        }, 2000);
                     }
                     // console.log(scdir + ':' + slength + ':' + plength + ':' + (plength - plength / pnls));
                 }
@@ -649,23 +948,28 @@
         
         
             var TxtType = function(el, toRotate, period) {
-                    
+                    // clearTimeout(window.tick);
+                    // debugger;
                     this.toRotate = toRotate;
                     this.el = el;
                     this.caret = el.nextElementSibling;
                     console.log(this.caret);
                     this.loopNum = 0;
                     this.period = 300;//parseInt(period, 10) || 2000;
-                    this.txt = '';
+                    this.txt = el.getAttribute('data-init');
+                    this.times = el.getAttribute('data-times') || false;
+                    this.isDeleting = true;//this.times ? false : true;
                     this.tick();
-                    this.isDeleting = false;
 
             };
 
             TxtType.prototype.tick = function() {
                 var i = this.loopNum % this.toRotate.length;
                 var fullTxt = this.toRotate[i];
-
+                if(this.times && this.txt == this.toRotate[1]){
+                    clearTimeout(window.tick);
+                    return;
+                }
                 if (this.isDeleting) {
                     this.txt = fullTxt.substring(0, this.txt.length - 1);
                     // caret[0].classList.remove('animate');
@@ -688,7 +992,7 @@
                 } else if (this.isDeleting && this.txt === '') {
                     this.isDeleting = false;
                     this.loopNum++;
-                    delta = 20;
+                    delta = 200;
                     this.caret.classList.add('animate');
                 }else{
                     this.caret.classList.remove('animate');
@@ -710,14 +1014,16 @@
                 // }
 
             // };
-            var element1 = document.getElementsByClassName('typewrite1')[0];
-            // for (var i=0; i<elements.length; i++) {
-                var toRotate = element1.getAttribute('data-type');
-                var period = element1.getAttribute('data-period');
-                if (toRotate) {
-                    new TxtType(element1, JSON.parse(toRotate), period);
-                }
-            // }
+            setTimeout(function(){
+                var element1 = document.getElementsByClassName('typewrite1')[0];
+                // for (var i=0; i<elements.length; i++) {
+                    var toRotate = element1.getAttribute('data-type');
+                    var period = element1.getAttribute('data-period');
+                    if (toRotate) {
+                        new TxtType(element1, JSON.parse(toRotate), period);
+                    }
+                // }
+            },1200)
         </script>
 
     </body>
