@@ -5173,13 +5173,16 @@ def collabcard_follow(request, function_dict=None):
 
         if status:
             collabcardState.objects.filter(card=collabcard, user=user_instance).update(state=collabcard_states.COLLABCARD_STATE_FOLLOW,
-                                                                                       updated_at=time.time())
-            create_chatroom(card_instance=collabcard, user_instance=user_instance,
+                                                                                    updated_at=time.time())
+            if explicit_call:
+                create_chatroom(card_instance=collabcard, user_instance=user_instance,
                             state=chatroom_states.CHATROOM_FOLLOW, current_user_id=current_member_id)
         else:
             collabcardState.objects.filter(card=collabcard, user=user_instance).update(state=collabcard_states.COLLABCARD_STATE_SEEN,
-                                                                                       updated_at=time.time())
-            create_chatroom(card_instance=collabcard, user_instance=user_instance,
+                                                                                   updated_at=time.time())
+
+            if explicit_call:
+                create_chatroom(card_instance=collabcard, user_instance=user_instance,
                             state=chatroom_states.CHATROOM_UNFOLLOW, current_user_id=current_member_id)
 
 
