@@ -241,7 +241,8 @@ class cardAnswers(models.Model):
     answer = models.TextField()
     card = models.ForeignKey(Collabcard, on_delete=models.CASCADE)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    date_epoch = models.BigIntegerField(default=-9223372036854775808)
+    created_at = models.BigIntegerField(default=-9223372036854775808)
+    state = models.IntegerField(default=0)
 
 
 
