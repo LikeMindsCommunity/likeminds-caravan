@@ -1482,11 +1482,27 @@ def send_email(email):
 
 
 def privacy(request):
-    return render(request, 'privacy.html')
+    header = {
+        'back': True,
+        'title': "Privacy Policy",
+        'backLink': "/",
+        'subTitle': False,
+        'background': '0',
+        'color': 'F'
+    }
+    return render(request, 'privacy.html', {'header': header})
 
 
 def terms(request):
-    return render(request, 'terms.html')
+    header = {
+        'back': True,
+        'title': "Terms",
+        'backLink': "/",
+        'subTitle': False,
+        'background': '0',
+        'color': 'F'
+    }
+    return render(request, 'terms.html', {'header': header})
 
 
 def collabcard(request, card_id):
