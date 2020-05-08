@@ -24,7 +24,13 @@
         </div>
         <div class="p024 dT wp100 fs13">
             <div class="dTc vM cd0021b wp100">Poll</div>
-            <div class="dTc vM bgd0021b mnw100 cF p610 taC wsN">Ends in {{ collabcard.end_date }}</div>
+            <div class="dTc vM bgd0021b mnw100 cF p610 taC wsN">
+                {% if collabcard.poll_ended %}
+                    Poll ended
+                {% else %}
+                    Ends in {{ collabcard.ends_in }}
+                {% endif %}
+            </div>
         </div>
         <div class="c4a ffR fs24 fwL lh36 p1624">
             {{collabcard.title}}
@@ -79,26 +85,30 @@
                 {{collabcard.answer_text}}
             </div>
         {% endif %}
-        <div class="dT p024 wp100">
-            <div class="dTc vM">
-                <button class="bdE bgF br20 c9 fs12 h40 wp100" id="submit_vote">
-                    <div class="dIb vM">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="24" viewBox="0 0 16 24">
-                            <path d="M2.11 11.25c-1.164 0-2.11.946-2.11 2.11.001.761.005 2.77.004 3.529-.005 4.412 2.921 6.768 3.014 6.905.132.132.311.206.498.206h8.437c.177 0 .362-.07.497-.206.097-.142 3.019-2.487 3.019-6.898v-3.537c0-1.163-.947-2.109-2.11-2.109-.274 0-.536.053-.777.15-.244-.896-1.064-1.556-2.035-1.556-.275 0-.537.053-.778.149-.195-.719-.763-1.286-1.481-1.481.97-.913 1.556-2.203 1.556-3.59C9.844 2.208 7.636 0 4.922 0 2.208 0 0 2.208 0 4.922c0 1.912 1.112 3.64 2.813 4.447v2.002c-.22-.078-.457-.121-.704-.121zm6.328 3.516c0 .388.314.703.703.703.388 0 .703-.315.703-.703v-2.813c0-.388.315-.703.703-.703.388 0 .703.315.703.703v2.813c0 .388.315.703.703.703.388 0 .703-.315.703-.703v-1.407c0-.387.316-.703.703-.703.388 0 .704.316.704.703v3.537c0 3.55-2.375 5.658-2.401 5.698H3.807c-.048-.072-2.405-2.067-2.4-5.703 0-.764-.004-2.775-.005-3.532 0-.387.32-.703.707-.703.388 0 .704.316.704.703v3.562c0 .388.314.703.703.703.388 0 .703-.315.703-.703v-12c0-.387.315-.702.703-.702.388 0 .703.315.703.703v9.844c0 .388.315.703.703.703.388 0 .703-.315.703-.703v-4.22c0-.387.316-.702.703-.702.388 0 .704.315.704.703v4.219z"/>
+
+        {% if collabcard.poll_ended %}
+        {% else %}
+            <div class="dT p024 wp100">
+                <div class="dTc vM">
+                    <button class="bdE bgF br20 c9 fs12 h40 wp100" id="submit_vote">
+                        <div class="dIb vM">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="24" viewBox="0 0 16 24">
+                                <path d="M2.11 11.25c-1.164 0-2.11.946-2.11 2.11.001.761.005 2.77.004 3.529-.005 4.412 2.921 6.768 3.014 6.905.132.132.311.206.498.206h8.437c.177 0 .362-.07.497-.206.097-.142 3.019-2.487 3.019-6.898v-3.537c0-1.163-.947-2.109-2.11-2.109-.274 0-.536.053-.777.15-.244-.896-1.064-1.556-2.035-1.556-.275 0-.537.053-.778.149-.195-.719-.763-1.286-1.481-1.481.97-.913 1.556-2.203 1.556-3.59C9.844 2.208 7.636 0 4.922 0 2.208 0 0 2.208 0 4.922c0 1.912 1.112 3.64 2.813 4.447v2.002c-.22-.078-.457-.121-.704-.121zm6.328 3.516c0 .388.314.703.703.703.388 0 .703-.315.703-.703v-2.813c0-.388.315-.703.703-.703.388 0 .703.315.703.703v2.813c0 .388.315.703.703.703.388 0 .703-.315.703-.703v-1.407c0-.387.316-.703.703-.703.388 0 .704.316.704.703v3.537c0 3.55-2.375 5.658-2.401 5.698H3.807c-.048-.072-2.405-2.067-2.4-5.703 0-.764-.004-2.775-.005-3.532 0-.387.32-.703.707-.703.388 0 .704.316.704.703v3.562c0 .388.314.703.703.703.388 0 .703-.315.703-.703v-12c0-.387.315-.702.703-.702.388 0 .703.315.703.703v9.844c0 .388.315.703.703.703.388 0 .703-.315.703-.703v-4.22c0-.387.316-.702.703-.702.388 0 .704.315.704.703v4.219z"/>
+                            </svg>
+                        </div>
+                        <div class="dIb vM pl12 bs lh16">SUBMIT VOTE</div>
+                    </button>
+                </div>
+                <div class="dTc vM w20 h40"></div>
+                <div class="dTc vM w40 h40">
+                    <div class="brp50 dIb h40 taC vM w40 {% if current_user.collabcard_state == 2 or current_user.collabcard_state == 3 %}cB bdE{% else %}bd06C3AF c06C3AF{% endif %}" id="follow_poll" data-status="{% if current_user.collabcard_state == 2 or current_user.collabcard_state == 3 %}false{% else %}true{% endif %}">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="w24 h36">
+                            <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2zm-2 1H8v-6c0-2.48 1.51-4.5 4-4.5s4 2.02 4 4.5v6z"/>
                         </svg>
                     </div>
-                    <div class="dIb vM pl12 bs lh16">SUBMIT VOTE</div>
-                </button>
-            </div>
-            <div class="dTc vM w20 h40"></div>
-            <div class="dTc vM w40 h40">
-                <div class="brp50 dIb h40 taC vM w40 {% if current_user.collabcard_state == 2 or current_user.collabcard_state == 3 %}cB bdE{% else %}bd06C3AF c06C3AF{% endif %}" id="follow_poll" data-status="{% if current_user.collabcard_state == 2 or current_user.collabcard_state == 3 %}false{% else %}true{% endif %}">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="w24 h36">
-                        <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2zm-2 1H8v-6c0-2.48 1.51-4.5 4-4.5s4 2.02 4 4.5v6z"/>
-                    </svg>
                 </div>
             </div>
-        </div>
+        {% endif %}
 
         <div class="p24 bs bdbE bs">
             <div class="fs14 fwR c9b lh30">Comments . {{ answers|length }}</div>
@@ -276,26 +286,25 @@
                     {% elif member_state.state == 3 %}
                         $('#add_email_pop').modal('show');
                     {% else %}
-                        if($(this).hasClass('voted_poll')){
-                            $(this).removeClass('voted_poll c06C3AF bgF').addClass('cF bgE');
-                        }else{
-                            {% if collabcard.multiple_select_state == 0 %}
-                                if($('.voted_poll').length == {{collabcard.multiple_select_no}}){
-                            {% else %}
+                        {% if collabcard.poll_ended %}
+                        {% else %}
+                            if($(this).hasClass('voted_poll')){
+                                $(this).removeClass('voted_poll c06C3AF bgF').addClass('cF bgE');
+                            }else{
                                 if($('.voted_poll').length < {{collabcard.multiple_select_no}}){
-                            {% endif %}
                                     $(this).addClass('voted_poll c06C3AF bgF').removeClass('cF bgE');
                                 }
-                        }
-                        {% if collabcard.multiple_select_state == 0 %}
-                            if($('.voted_poll').length == {{collabcard.multiple_select_no}}){
-                        {% else %}
-                            if($('.voted_poll').length < {{collabcard.multiple_select_no}}){
-                        {% endif %}
-                                $('#submit_vote').removeClass('bd06C3AF c06C3AF').addClass('bdE c9');
-                        }else{
-                                $('#submit_vote').addClass('bd06C3AF c06C3AF').removeClass('bdE c9');
                             }
+                            {% if collabcard.multiple_select_state == 0 %}
+                                if($('.voted_poll').length > 0 && $('.voted_poll').length == {{collabcard.multiple_select_no}}){
+                            {% else %}
+                                if($('.voted_poll').length > 0 && $('.voted_poll').length <= {{collabcard.multiple_select_no}}){
+                            {% endif %}
+                                    $('#submit_vote').addClass('bd06C3AF c06C3AF').removeClass('bdE c9');
+                            }else{
+                                    $('#submit_vote').removeClass('bd06C3AF c06C3AF').addClass('bdE c9');
+                                }
+                        {% endif %}
                     {% endif %}
                 {% else %}
                     $('.test').modal('show');
@@ -327,42 +336,45 @@
                     $('.test').modal('show');
                 {% endif %}
             });
-            $(document.body).on('click','#submit_vote',function(e){
-                {% if request.user.is_authenticated %}
-                    {% if member_state.state == 0 %}
-                        $(".ldrT", $('#loader')[0]).text("Making request...");
-                        $('#loader').show();
-                        window.location.href = "/community/{{community.id}}?cta=join&poll={{collabcard.id}}";
-                    {% elif member_state.state == 3 %}
-                        $('#add_email_pop').modal('show');
-                    {% else %}
-                        var poll_ids = [];
-                        $('.voted_poll').each(function(){
-                            poll_ids.push($(this).attr('data-id'));
-                        })
-                        if(poll_ids.length == {{collabcard.multiple_select_no}}){
-                            $(".ldrT", $('#loader')[0]).text("Submiting your vote...");
+            {% if collabcard.poll_ended %}
+            {% else %}
+                $(document.body).on('click','#submit_vote',function(e){
+                    {% if request.user.is_authenticated %}
+                        {% if member_state.state == 0 %}
+                            $(".ldrT", $('#loader')[0]).text("Making request...");
                             $('#loader').show();
-                            $.ajax({
-                                url: "/v1/collabcard_poll",
-                                data: {collabcard_id: {{collabcard.id}}, poll_ids: JSON.stringify(poll_ids)},
-                                type: "POST",
-                                dataType: 'json',
-                                success: function(data) {
-                                    $('#vote_success').show();
-                                    $('#loader').hide();
-                                    // window.location.href = window.location.href;
-                                },
-                                error: function(){
-                                    $('#loader').hide();
-                                }
+                            window.location.href = "/community/{{community.id}}?cta=join&poll={{collabcard.id}}";
+                        {% elif member_state.state == 3 %}
+                            $('#add_email_pop').modal('show');
+                        {% else %}
+                            var poll_ids = [];
+                            $('.voted_poll').each(function(){
+                                poll_ids.push($(this).attr('data-id'));
                             })
-                        }
+                            if(poll_ids.length == {{collabcard.multiple_select_no}}){
+                                $(".ldrT", $('#loader')[0]).text("Submiting your vote...");
+                                $('#loader').show();
+                                $.ajax({
+                                    url: "/v1/collabcard_poll",
+                                    data: {collabcard_id: {{collabcard.id}}, poll_ids: JSON.stringify(poll_ids)},
+                                    type: "POST",
+                                    dataType: 'json',
+                                    success: function(data) {
+                                        $('#vote_success').show();
+                                        $('#loader').hide();
+                                        // window.location.href = window.location.href;
+                                    },
+                                    error: function(){
+                                        $('#loader').hide();
+                                    }
+                                })
+                            }
+                        {% endif %}
+                    {% else %}
+                        $('.test').modal('show');
                     {% endif %}
-                {% else %}
-                    $('.test').modal('show');
-                {% endif %}
-            });
+                });
+            {% endif %}
 
             $(document.body).on('click','.member_link',function(e){
                 var member_id = $(this).attr('member_id');
