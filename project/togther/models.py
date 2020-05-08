@@ -766,3 +766,36 @@ class communityUpdate(models.Model):
     updated_field = models.TextField(null=True)
     updated_time = models.BigIntegerField(default=0)
     community = models.ForeignKey(Community, on_delete=models.CASCADE)
+
+
+class emailTokens(models.Model):
+
+    '''function to generate email tokens for syncing new email ids'''
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    email = models.TextField(null=True)
+    token = models.IntegerField(null=True)
+    expire_time = models.BigIntegerField(default=0)
+    created_at = models.BigIntegerField(default=0,null=True)
+    #verification_link = models.TextField(null=True)
+    email_state = models.IntegerField(default=0)
+
+    def save(self, *args, **kwargs):
+        if self.created_at == 0:
+            self.created_at = time.time()
+        super(emailTokens, self).save(*args, **kwargs)
+
+
+class userEmails(models.Model):
+
+    '''function to save user emails for communication and email sync'''
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    email = models.TextField(null=True)
+    email_state = models.IntegerField(default=0)
+    created_at = models.BigIntegerField(default=0)
+
+    def save(self, *args, **kwargs):
+        if self.created_at == 0:
+            self.created_at = time.time()
+        super(userEmails, self).save(*args, **kwargs)

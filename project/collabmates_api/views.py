@@ -25,13 +25,15 @@ from django.views.decorators.csrf import csrf_exempt
 from togther.forms import *
 from togther.models import *
 from togther.tasks import send_email_to_proposed_admin, send_mail_after_rank_computation
+
+#utility functions
 from utility.celery_tasks import (save_community_purpose_card,
                                   update_last_unseen_in_engage_on_card_creation,
                                   update_last_unseen_in_engage,
                                   )
 from utility.firebase import update_last_answer_id, upload_image_to_firebase, upload_community_thumbnail, \
     upload_community_files
-from utility.states import collabcard_states, member_states, question_states,community_states,deleted_members,card_types
+from utility.states import (collabcard_states, member_states, question_states,community_states,deleted_members,card_types,email_states)
 from utility.tasks import (mail_triger, new_member_request,
                            member_request_approval_or_denied,
                            send_mail_for_report_abuse,
@@ -52,6 +54,8 @@ from utility.utils import (decode_meta_from_url, update_tag_image,
                            user_onbaord,
 
                            )
+
+from utility.encryption import encrypt,decrypt
 
 from .notification import (send_follow_notification, send_notification_to_admins,
                            send_notification_for_join_requests,
@@ -76,7 +80,6 @@ from urllib.parse import unquote
 
 from rest_framework.renderers import JSONRenderer, TemplateHTMLRenderer
 from rest_framework.decorators import api_view, renderer_classes
-
 
 
 # CACHE_TTL = getattr(settings, 'CACHE_TTL', cache_timeout)
@@ -5785,6 +5788,7 @@ def login_authenticate(request):
 
 @csrf_exempt
 def login_authenticate_version_1(request):
+
     ''' function to login a user '''
 
     if request.method == 'POST':
@@ -5803,8 +5807,7 @@ def login_authenticate_version_1(request):
 
         dic_form = res['login_json']
         json_to_save = json.dumps(dic_form)
-        # if user is logging in from facebook
-        created = False
+
         if login_type == 'facebook':
             context = login_with_facebook(request,res,json_to_save)
             #context = {}
@@ -5815,55 +5818,11 @@ def login_authenticate_version_1(request):
             return JsonResponse(context)
 
         else:
-            # if user is logging in with Apple
-            res = res['login_json']
-            userinfo = Userinfo.objects.filter(apple_id=res['id'])
-
-            if not userinfo.exists():
-                # creating a user if no user is associated with that email
-                user = create_user(user_name=res['name'], email=res['email'],
-                                   id=res['id'], apple_id=True)
-
-                # fb_link = res['link'] if 'link' in res else None
-                if 'picture' in res:
-                    image_link = upload_image_to_firebase(res['picture']['data']['url'], user.id)
-                else:
-                    image_link = 'https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fuser%2F222%2Fimg_user_222?alt=media'
-
-                city = res['location']['name'] if 'location' in res else None
-                # if there is no user then user will not have userinfo too
-                # create or get user info
-                userinfo = create_userinfo(user=user, email=res['email'], user_name=res['name'],
-                                           profile_picture=image_link, login_type=login_type,
-                                           json_to_save=json_to_save, city=city, apple_id=res['id']
-                                           )
-                created = True
-                mail_triger(str(user.id), request)  # both mail and notification will be sent here
-
-            if not created:
-                userinfo = userinfo[0]
-
-        # get serialized user object
-
-        usr = UserinfoSerializer(userinfo)
-        # see if user has tags or not
-        has_tags = userinfo.has_tags
-
-        # saving the OS type of user (Android,iOS,WEB)
-        request_type = get_request_type(request)
-        if request_type:
-            Userinfo.objects.filter(user_id=usr['id']).update(mobile_os=request_type)
-
-        # User asscoaited tags if any present
-        if has_tags:
-            tags = get_user_lpig_tags(usr['id'])
-            usr['tags'] = tags
-            return JsonResponse({'user': usr, 'has_tags': has_tags})
-        else:
-            create_member_for_feedback_community(userinfo.user_id)
-            return JsonResponse({'user': usr, 'has_tags': has_tags})
-
-    return HttpResponse('Login Api')
+            context = login_with_apple(request,res,json_to_save)
+            return JsonResponse(context)
+    else:
+        context = get_error_context(False,"Send a post request")
+        return JsonResponse(context)
 
 
 def create_user(user_name, email, id, apple_id=False):
@@ -5919,7 +5878,11 @@ def create_member_for_feedback_community(user_instance):
 
     is_member=Members.objects.filter(community_id=feedback_community_id,member_id=user_instance)
 
-    community_instance = Community.objects.get(id=feedback_community_id)
+    try:
+        community_instance = Community.objects.get(id=feedback_community_id)
+    except:
+        return
+
 
     if not is_member.exists():                                                #not is_member.exists()
         member_instance=Members()
@@ -5955,8 +5918,6 @@ def fetch_google_auth_data(google_id_token):
     x = (json_to_save,google_json)
     return x
 
-
-
 def login_with_google(google_id_token,request,login_type="google"):
 
     '''function to login with google'''
@@ -5967,21 +5928,16 @@ def login_with_google(google_id_token,request,login_type="google"):
     res = google_json[1]
     info_logger.info(res)
     created = False
-    context ={'success':False,'error_message':"please give permission to use your google account"}
-
-    is_request_web = False
-
-    platform_code = get_platform_code_from_headers(request)
-    
-    if not platform_code:
-        is_request_web = True
+    #context ={'success':False,'error_message':"please give permission to use your google account"}
+    context = get_error_context(False,"please give permission to use your google account")
 
     if 'email' in res:
         email = res['email']
         email = email.lower().strip()
-        user = User.objects.filter(email=email)
 
-        if not user.exists():
+        user = get_user_from_email(email)           #getting the user instance from email if it is present
+
+        if not user:
             # creating a user if no user is associated with that email
             res['id'] = res['azp']
 
@@ -5996,11 +5952,12 @@ def login_with_google(google_id_token,request,login_type="google"):
                                        profile_picture=image_link, login_type=login_type,
                                        json_to_save=json_to_save
                                        )
-            created = True
+            save_user_primary_email(user,res['email'])
             mail_triger(str(user.id), request)  # both mail and notification will be sent here
 
-        if not created:
-            userinfo = user[0].userinfo
+
+        else:
+            userinfo = user.userinfo
 
 
 
@@ -6022,31 +5979,24 @@ def login_with_google(google_id_token,request,login_type="google"):
             create_member_for_feedback_community(userinfo.user_id)
 
 
-        if is_request_web:
-
+        if is_request_web(request):
             login(request,user=userinfo.user_id,backend="django.contrib.auth.backends.ModelBackend")
 
         context = {'user': usr, 'has_tags': has_tags}
 
     return context
 
-
 def login_with_facebook(request,res,json_to_save,login_type="facebook"):
 
     '''function to login with facebook'''
-
-    platform_code = get_platform_code_from_headers(request)
-    is_request_web = False
-    if not platform_code:
-        is_request_web = True
 
     res = res['login_json']
     email = res['email']
     # converting email to lower case and removing unwanted space
     email = email.lower().strip()
-    user = User.objects.filter(email=email)
+    user = get_user_from_email(email)
 
-    if not user.exists():
+    if not user:
         # creating a user if no user is associated with that email
         user = create_user(user_name=res['name'], email=res['email'], id=res['id'])
 
@@ -6066,10 +6016,10 @@ def login_with_facebook(request,res,json_to_save,login_type="facebook"):
                                    json_to_save=json_to_save, city=city,
                                    # fb_link=fb_link
                                    )
-
+        save_user_primary_email(user,res['email'])
         mail_triger(str(user.id), request)  # both mail and notification will be sent here
     else:
-        userinfo = user[0].userinfo
+        userinfo = user.userinfo
 
         # get serialized user object
 
@@ -6083,7 +6033,7 @@ def login_with_facebook(request,res,json_to_save,login_type="facebook"):
         Userinfo.objects.filter(user_id=usr['id']).update(mobile_os=request_type)
 
     #login in when the request is web
-    if is_request_web:
+    if is_request_web(request):
         login(request, user=userinfo.user_id, backend="django.contrib.auth.backends.ModelBackend")
 
     # User asscoaited tags if any present
@@ -6096,21 +6046,20 @@ def login_with_facebook(request,res,json_to_save,login_type="facebook"):
     context = {'user': usr, 'has_tags': has_tags}
     return context
 
-
 def login_with_linkedin(request,res,json_to_save,login_type="linkedIn"):
 
     '''login with linkedIn '''
-
     res = res['login_json']
     # if user is logging in with linkedIn
-    user_name = res['firstName']['localized']['en_US'] + " " + res['lastName']['localized']['en_US']
     email = res['email']['elements'][0]['handle~']['emailAddress']
-    userinfo = Userinfo.objects.filter(email=email)
-    # create user and userinfo if there is no user with this email
 
-    if not userinfo.exists():
+    user = get_user_from_email(email)
 
+    if not user:
+
+        user_name = res['firstName']['localized']['en_US'] + " " + res['lastName']['localized']['en_US']
         user = create_user(user_name=user_name, email=email, id=res['id'])
+
         if 'profilePicture' in res:
             profile_picture = upload_image_to_firebase(
                 res['profilePicture']['displayImage~']['elements'][2]['identifiers'][0]['identifier'], user.id)
@@ -6120,11 +6069,11 @@ def login_with_linkedin(request,res,json_to_save,login_type="linkedIn"):
         userinfo = create_userinfo(user=user, email=email, user_name=user_name,
                                    profile_picture=profile_picture, login_type=login_type,
                                    json_to_save=json_to_save)
-        created = True
+        save_user_primary_email(user,res['email'])
         mail_triger(str(user.id), request)  # both mail and notification will be sent here
 
     else:
-        userinfo = userinfo[0]
+        userinfo = user.userinfo
 
     usr = UserinfoSerializer(userinfo)
     # see if user has tags or not
@@ -6135,11 +6084,6 @@ def login_with_linkedin(request,res,json_to_save,login_type="linkedIn"):
     if request_type:
         Userinfo.objects.filter(user_id=usr['id']).update(mobile_os=request_type)
 
-    # login in when the request is web
-    # if is_request_web:
-    #     login(request, user=userinfo.user_id, backend="django.contrib.auth.backends.ModelBackend")
-
-    # User asscoaited tags if any present
     if has_tags:
         tags = get_user_lpig_tags(usr['id'])
         usr['tags'] = tags
@@ -6149,6 +6093,85 @@ def login_with_linkedin(request,res,json_to_save,login_type="linkedIn"):
     context = {'user': usr, 'has_tags': has_tags}
     #print(context)
     return context
+
+def login_with_apple(request,res,json_to_save,login_type="apple"):
+
+    '''function to login with apple'''
+    # if user is logging in with Apple
+    res = res['login_json']
+    userinfo = Userinfo.objects.filter(apple_id=res['id'])
+
+
+    if not userinfo.exists():
+        # creating a user if no user is associated with that email
+        user = create_user(user_name=res['name'], email=res['email'],
+                           id=res['id'], apple_id=True)
+
+        # fb_link = res['link'] if 'link' in res else None
+        if 'picture' in res:
+            image_link = upload_image_to_firebase(res['picture']['data']['url'], user.id)
+        else:
+            image_link = 'https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fuser%2F222%2Fimg_user_222?alt=media'
+
+        city = res['location']['name'] if 'location' in res else None
+        # if there is no user then user will not have userinfo too
+        # create or get user info
+        userinfo = create_userinfo(user=user, email=res['email'], user_name=res['name'],
+                                   profile_picture=image_link, login_type=login_type,
+                                   json_to_save=json_to_save, city=city, apple_id=res['id']
+                                   )
+        save_user_primary_email(user,res['email'])
+        mail_triger(str(user.id), request)  # both mail and notification will be sent here
+
+    else:
+        userinfo = userinfo[0]
+
+    # get serialized user object
+
+    usr = UserinfoSerializer(userinfo)
+    # see if user has tags or not
+    has_tags = userinfo.has_tags
+
+    # saving the OS type of user (Android,iOS,WEB)
+    request_type = get_request_type(request)
+    if request_type:
+        Userinfo.objects.filter(user_id=usr['id']).update(mobile_os=request_type)
+
+    # User asscoaited tags if any present
+    if has_tags:
+        tags = get_user_lpig_tags(usr['id'])
+        usr['tags'] = tags
+    else:
+        create_member_for_feedback_community(userinfo.user_id)
+
+    return {'user': usr, 'has_tags': has_tags}
+
+
+
+def save_user_primary_email(user_instance,email):
+
+    '''function to save primary email of user for communications'''
+
+    user_email_instance = userEmails()
+    user_email_instance.user = user_instance
+    user_email_instance.email_state = email_states.PRIMARY
+    user_email_instance.email = email
+    user_email_instance.save()
+
+def get_user_from_email(email):
+
+    '''function to get user instance from email'''
+
+    user_emails = userEmails.objects.filter(email=email)
+    if user_emails.exists():
+        instance = user_emails[0]
+        user = instance.user
+    else:
+        user = User.objects.filter(email=email)
+        if user.exists():
+            user = user[0]
+
+    return user
 
 
 def notify_referred_member_after_join(joined_member_id, joined_member_name, community_name, community_id):
@@ -7207,7 +7230,16 @@ def get_platform_code_from_headers(request):
     return platform_code
 
 
+def is_request_web(request):
 
+    '''function to tell if the request is web or not'''
+
+    platform_code = get_platform_code_from_headers(request)
+
+    if not platform_code:
+        return True
+
+    return False
 
 ################ functions for getting and setting of tags ##########################################
 
@@ -7779,5 +7811,120 @@ def fetch_master_questions(request):
 
 
 
+#email address verification for syncing new email accounts
+
+@csrf_exempt
+def sync_email(request):
+
+    '''function to syc the email with existing account'''
+
+    member_id = get_member_id_from_headers(request)
+
+    if not member_id:
+        context = get_error_context(False, "send member id in headers")
+        return JsonResponse(context)
+
+    email = request.POST.get('email_id',None)
+    email_state = request.POST.get('email_state',0)
+    if not email:
+        context = get_error_context(False,"send a email id in post params")
+        return JsonResponse(context)
+
+    token_list = list(emailTokens.objects.filter(user=member_id).values_list('token',flat=True))
+
+    try:
+        user_instance = User.objects.get(id=member_id)
+    except:
+        context = get_error_context(False,"User does not exists")
+        return JsonResponse(context)
+
+    verification_details = generating_verification_link_for_email(token_list,member_id)
+
+    #saving the email token details for user
+    instance = emailTokens()
+    instance.user = user_instance
+    instance.token = verification_details['token']
+    instance.expire_time = 86400            #24 hours
+    instance.email = email
+    instance.email_state = email_state
+    instance.save()
+
+    return JsonResponse({'success':True,'verification_link':verification_details['verify_url']})
 
 
+def generating_verification_link_for_email(token_list,user_id):
+
+    '''function to generate verification link for email and saving the email'''
+
+
+    token = generate_random(token_list)
+    #print(token)
+    encrpt_number = encrypt(token)
+    user_id = encrypt(user_id)
+    #print(user_id)
+    verify_url = url + "/email_verify?token="+encrpt_number+"&user="+user_id
+
+    temp={'verify_url':verify_url,'token':token}
+
+    return temp
+
+@api_view(['GET', 'POST'])
+@renderer_classes([JSONRenderer, TemplateHTMLRenderer])
+def email_verify(request):
+
+    '''api to verify the email details'''
+
+    if request.accepted_renderer.format == 'html':
+
+        token = request.GET.get('token')
+        user = request.GET.get('user')
+
+        current_time = time.time()
+        if not token or not user:
+            return HttpResponse("Invalid link")
+
+
+        decoded_token = decrypt(token)
+        decoded_user = decrypt(user)
+
+        #getting the user instance
+        try:
+            user_instance = User.objects.get(id=decoded_user)
+        except:
+            context = get_error_context(False, "User does not exists")
+            return HttpResponse(context)
+
+        instance_list = emailTokens.objects.filter(token=decoded_token,user=user_instance)
+
+
+        if instance_list.exists():
+            instance = instance_list[0]
+            #print(instance)
+
+            #if the link is verified
+            if (current_time - instance.created_at) <= instance.expire_time:
+
+                email_state = instance.email_state
+
+                if email_state == email_states.PRIMARY:
+                    userEmails.objects.filter(user = user_instance).update(email_state = email_states.NON_PRIMARY)
+
+                user_email_list = userEmails.objects.filter(email=instance.email,user=user_instance)
+
+                if not user_email_list.exists():
+                    user_email_instance = userEmails()
+                    user_email_instance.user = user_instance
+                    user_email_instance.email_state = email_state
+                    user_email_instance.email = instance.email
+                    user_email_instance.save()
+
+                else:
+                    user_email_list.update(user=user_instance,email_state=email_state,email=instance.email)
+
+                return HttpResponse("Verified")
+            else:
+                return HttpResponse("Not verified")
+
+
+
+    return HttpResponse("Hit from browser")

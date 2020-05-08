@@ -121,3 +121,11 @@ class CommunityStates:
     WHATSAPP = 5
 
 community_states = CommunityStates()
+
+
+class EmailStates:
+
+    NON_PRIMARY = 0
+    PRIMARY = 1
+
+email_states = EmailStates()
