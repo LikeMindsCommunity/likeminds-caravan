@@ -33,7 +33,7 @@ from utility.celery_tasks import (save_community_purpose_card,
                                   )
 from utility.firebase import update_last_answer_id, upload_image_to_firebase, upload_community_thumbnail, \
     upload_community_files
-from utility.states import collabcard_states, member_states, question_states,community_states,deleted_members,card_types,chatroom_states
+from utility.states import collabcard_states, member_states, question_states,community_states,deleted_members,card_types,chatroom_states,email_states
 
 from utility.tasks import (mail_triger, new_member_request,
                            member_request_approval_or_denied,
@@ -8088,7 +8088,7 @@ def email_verify(request):
 
                 return render(request, 'email_verify_landing.html', context)
 
-                
+
 
 
 
