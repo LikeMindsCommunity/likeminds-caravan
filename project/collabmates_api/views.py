@@ -7856,7 +7856,7 @@ def sync_email(request):
     send_verification_mail_for_email_sync.delay(user_name=user_instance.userinfo.name,
                                           verification_link=verification_details['verify_url'],email=email)
 
-    return JsonResponse({'success':True,'verification_link':verification_details['verify_url']})
+    return JsonResponse({'success':True})
 
 
 def generating_verification_link_for_email(token_list,user_id):
