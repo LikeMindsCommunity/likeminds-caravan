@@ -73,7 +73,9 @@ from .notification import (send_follow_notification, send_notification_to_admins
                            send_notification_for_tool_unlocked_for_live_community,
                            send_notification_for_tool_unlocked_for_pilot)
 from .raw_queries import compute_rank
-from .tasks import send_email_to_nominated_admin, send_email_for_new_collabcard_posted, send_welcome_mail
+
+from .tasks import send_email_to_nominated_admin, send_email_for_new_collabcard_posted, send_welcome_mail,send_verification_mail_for_email_sync
+
 from django.contrib.auth import login
 from urllib.parse import unquote
 
@@ -7848,6 +7850,11 @@ def sync_email(request):
     instance.email = email
     instance.email_state = email_state
     instance.save()
+
+
+    #sending a email from template
+    send_verification_mail_for_email_sync(user_name=user_instance.userinfo.name,
+                                          verification_link=verification_details['verify_url'],email=email)
 
     return JsonResponse({'success':True,'verification_link':verification_details['verify_url']})
 
