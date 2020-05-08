@@ -270,6 +270,8 @@ body ::-webkit-scrollbar { display: none; }
 .pA { position: absolute; }
 .pF { position: fixed; }
 
+.wbBa { word-break: break-all; }
+
 
 .brp50 { border-radius: 50% !important; }
 .br8 { border-radius: 8px!important; }
