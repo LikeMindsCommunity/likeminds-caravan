@@ -339,7 +339,7 @@ def send_welcome_mail(user_id):
 
 
 
-
+@shared_task
 def send_verification_mail_for_email_sync(user_name,verification_link,email):
 
     '''function to send verification mail to user who wants email sync'''
@@ -352,6 +352,7 @@ def send_verification_mail_for_email_sync(user_name,verification_link,email):
                 'ios_app_download_link': ios_app_download_link
                }
     template = get_template("mails/verify_email_template.html").render(context)
+    #print(context)
 
     to = [email]
     send_email(subject, template, to)

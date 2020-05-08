@@ -7853,7 +7853,7 @@ def sync_email(request):
 
 
     #sending a email from template
-    send_verification_mail_for_email_sync(user_name=user_instance.userinfo.name,
+    send_verification_mail_for_email_sync.delay(user_name=user_instance.userinfo.name,
                                           verification_link=verification_details['verify_url'],email=email)
 
     return JsonResponse({'success':True,'verification_link':verification_details['verify_url']})
