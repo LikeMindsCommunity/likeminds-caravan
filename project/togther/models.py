@@ -237,7 +237,7 @@ class Collabcard(models.Model):
 #     # date = models.DateField(auto_now_add = True)
 
 
-class cardAnswers(models.Model):
+class card_answers(models.Model):
     answer = models.TextField()
     card = models.ForeignKey(Collabcard, on_delete=models.CASCADE)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -267,7 +267,7 @@ class Card_Attachment(models.Model):
 class answerAttachment(models.Model):
     '''model to save files of collabcard'''
 
-    answer = models.ForeignKey(cardAnswers, on_delete=models.CASCADE)
+    answer = models.ForeignKey(card_answers, on_delete=models.CASCADE)
     # attachment = models.FileField(upload_to="media/collabcard_files",default='')
     file_url = models.CharField(max_length=500, null=True)
     type = models.CharField(max_length=50, default='')

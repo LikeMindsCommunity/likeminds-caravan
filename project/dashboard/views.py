@@ -1,7 +1,7 @@
 from django.shortcuts import render,redirect
 from django.http import HttpResponse
 from togther.models import *
-from togther.models import cardAnswers as CardAnswers
+from togther.models import card_answers as CardAnswers
 from togther.views import update_user_info
 from django.views.generic import *
 from collabmates_api.views import request_response
