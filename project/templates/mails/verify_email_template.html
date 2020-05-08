@@ -2,156 +2,57 @@
 <html>
     <head>
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-        <link rel="shortcut icon" href="https://beta.collabmates.com/media/media/ic_launcher_round.png">
         <meta charset="UTF-8">
-        <title>LikeMinds</title>
-        <style type="text/css">
-            body{
-                font-family:Roboto,Helvetica,Arial,sans-serif;
-                background: #f9f9f9;
-                margin:0;
-                padding:24px;
-                text-align: center;
-            }
-            .main{
-                padding: 48px;
-                padding-top:100px;
-                max-width: 500px;
-                margin:auto;
-                background: #fff;
-                border-radius: 8px;
-                border: 1px solid #eee;
-                box-sizing: border-box;
-            }
-            .logoContainer{
-                width:98px;
-                height: 48px;
-                margin:auto;
-                overflow: visible;
-                position: relative;
-                z-index: 1;
-            }
-            .logo{
-                width: 98px;
-                height: 98px;
-            }
-            .helloText{
-                font-size: 20px;
-                color: #666;
-                text-align: left;
-                font-weight: bold;
-            }
-            .helloSubText {
-                margin-top: 18px;
-                font-size: 16px;
-                line-height: 24px;
-                color: #718297;
-                text-align: left;
-            }
-            .verifyButton {
-                background: #00897b;
-                height: 44px;
-                line-height: 44px;
-                width: 162px;
-                border-radius: 22px;
-                font-size: 13px;
-                line-height: 44px;
-                letter-spacing: 0.5px;
-                font-weight: bold;
-                color: #fff;
-                margin: 48px auto;
-                display: block;
-                text-decoration: none;
-                outline: none;
-            }
-            .signature{
-                text-align: left;
-            }
-            .signatureText {
-                color: #718297;
-                font-size: 16px;
-            }
-            .signatureSubText {
-                color: #666;
-                font-size: 16px;
-                line-height: 24px;
-                font-weight: bold;
-            }
-            .downloadApp, .privacyLinks, .socialMediaLinks {
-                margin: 24px 0;
-            }
-            .downloadAppText{
-                margin-bottom: 8px;
-                font-size: 14px;
-                color: #718297;
-            }
-            .playStore, .appStore{
-                width: 162px;
-                height: 48px;
-                display: inline-block;
-                vertical-align: middle;
-            }
-            .appStore{
-                margin-left: 8px;
-            }
-            .privacyLinks div {
-                margin-bottom:8px;
-                font-size: 14px;
-                color: #718297
-            }
-            .line {
-                background: #d8d8d8;
-                height: 1px;
-                width: 280px;
-                margin: auto;
-            }
-            .twitter, .facebook {
-                width: 24px;
-                height: 24px;
-                display: inline-block;
-                vertical-align: middle;
-            }
-            .facebook {
-                margin-left: 36px;
-            }
-            .privacyLink, .termsLink {
-                text-decoration: none;
-                color: #718297;
-            }
-        </style>
     </head>
-    <body>
-        <div class="logoContainer">
-            <img class="logo" src="https://collabmates.com/media/mail/logo_gradient_big.png">
-        </div>
-        <div class="main">
-            <div class="helloText">
-                Hello {userName}!
+    <body style="margin:0;padding:0;">
+        <div style="font-family:Roboto,Helvetica,Arial,sans-serif;background:#f9f9f9;margin:0;padding:24px;text-align:center;">
+            <div class="logoContainer" style="width:98px;height:48px;margin:auto;overflow:visible;position:relative;z-index:1;">
+                <img class="logo" src="https://beta.likeminds.community/media/mail/logo_gradient_big.png" style="width:98px;height:98px;" />
             </div>
-            <div class="helloSubText">
-                Thanks for registering a new email for your account on LikeMinds! You just need to confirm that this email belongs to you. Click below to verify your email address:
+            <div class="main" style="padding:48px;padding-top:100px;max-width:500px;margin:auto;background:#fff;border-radius:8px;border: 1px solid #eee;box-sizing:border-box;">
+                <div class="helloText" style="font-size:20px;color:#666;text-align:left;font-weight:bold;">
+                    Hello {{user_name}}!
+                </div>
+                <div class="helloSubText" style="margin-top:18px;font-size:16px;line-height:24px;color:#718297;text-align:left;">
+                    Thanks for registering a new email for your account on LikeMinds! You just need to confirm that this email belongs to you. Click below to verify your email address:
+                </div>
+                <a class="verifyButton" href="{{verification_link}}" style="background:#00897b;height:44px;line-height:44px;width:162px;border-radius:22px;font-size:13px;line-height:44px;letter-spacing:0.5px;font-weight:bold;color:#fff;margin:48px auto;display:block;text-decoration:none;outline:none;">
+                    VERIFY EMAIL
+                </a>
+                <div class="signature" style="text-align:left;">
+                    <div class="signatureText" style="color:#718297;font-size:16px;">
+                        Regards
+                    </div>
+                    <div class="signatureSubText" style="color:#666;font-size:16px;line-height:24px;font-weight:bold;">
+                        The LikeMinds Team
+                    </div>
+                </div>
             </div>
-            <a class="verifyButton" href="">VERIFY EMAIL</a>
-            <div class="signature">
-                <div class="signatureText">Regards</div>
-                <div class="signatureSubText">The LikeMinds Team</div>
+            <div class="downloadApp" style="margin:24px 0;">
+                <div class="downloadAppText" style="margin-bottom:8px;font-size:14px;color:#718297;">Never miss any conversation. Get the LikeMinds App.</div>
+                <img class="playStore" src="https://likeminds.community/media/playstore_icon.png" style="height:48px;display:inline-block;vertical-align:middle;" />
+                <img class="appStore" src="https://likeminds.community/media/apple-store.png" style="height:48px;display:inline-block;vertical-align:middle;margin-left:8px;" />
             </div>
-        </div>
-        <div class="downloadApp">
-            <div class="downloadAppText">Never miss any conversation. Get the LikeMinds App.</div>
-            <img class="playStore" src="https://collabmates.com/media/playstore_icon.png">
-            <img class="appStore" src="https://collabmates.com/media/apple-store.png">
-        </div>
-        <div class="line"></div>
-        <div class="privacyLinks">
-            <div><a href="/privacy" class="privacyLink">Privacy Policy</a>  | <a href="/terms" class="termsLink">Terms & Condition</a></div>
-            <div>© 2020 Collabmates Pvt. Ltd. All Rights Reserved.</div>
-            <div>Gurugram - India</div>
-        </div>
-        <div class="line"></div>
-        <div class="socialMediaLinks">
-            <img class="twitter" src="https://collabmates.com/media/mail/twitter.png">
-            <img class="facebook" src="https://collabmates.com/media/mail/facebook.png">
+            <div class="line" style="background:#d8d8d8;height:1px;width:280px;margin:auto;"></div>
+            <div class="privacyLinks" style="margin:24px 0;font-size:14px;color:#718297">
+                <div>
+                    <a href="/privacy" class="privacyLink" style="text-decoration:none;color:#718297;">
+                        Privacy Policy
+                    </a>  |
+                    <a href="/terms" class="termsLink" style="text-decoration:none;color:#718297;">
+                        Terms & Condition
+                    </a>
+                </div>
+                <div style="margin-bottom:8px;">
+                    © 2020 Collabmates Pvt. Ltd. All Rights Reserved.
+                </div>
+                <div>Gurugram - India</div>
+            </div>
+            <div class="line" style="background:#d8d8d8;height:1px;width:280px;margin:auto;"></div>
+            <div class="socialMediaLinks" style="margin:24px 0;">
+                <img class="twitter" src="https://likeminds.community/media/mail/twitter.png" style="width:24px;height:24px;display:inline-block;vertical-align:middle;" />
+                <img class="facebook" src="https://likeminds.community/media/mail/facebook.png" style="width:24px;height:24px;display:inline-block;vertical-align:middle;" />
+            </div>
         </div>
     </body>
 </html>
