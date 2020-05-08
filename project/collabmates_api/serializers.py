@@ -274,7 +274,7 @@ def get_members_profile(member_ids,community_id,current_user_id=None):
                                                    current_user_id=current_user_id)
 
             if form_response:
-                userinfo_serialized_object['response'] = form_response[0]
+                #userinfo_serialized_object['response'] = form_response[0]
                 userinfo_serialized_object['question_answers'] = form_response[1]
 
             member_profile_list.append(userinfo_serialized_object)

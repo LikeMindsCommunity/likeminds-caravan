@@ -9,10 +9,10 @@ import time
 from datetime import datetime
 import html
 import requests as rqst
-import dateutil.relativedelta
+
 import googlemaps
 from celery import shared_task
-from collabmates_api.serializers import *
+from .serializers import *
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.paginator import Paginator
@@ -25,13 +25,16 @@ from django.views.decorators.csrf import csrf_exempt
 from togther.forms import *
 from togther.models import *
 from togther.tasks import send_email_to_proposed_admin, send_mail_after_rank_computation
+
+#utility functions
 from utility.celery_tasks import (save_community_purpose_card,
                                   update_last_unseen_in_engage_on_card_creation,
                                   update_last_unseen_in_engage,
                                   )
 from utility.firebase import update_last_answer_id, upload_image_to_firebase, upload_community_thumbnail, \
     upload_community_files
-from utility.states import collabcard_states, member_states, question_states,community_states,deleted_members,card_types
+from utility.states import collabcard_states, member_states, question_states,community_states,deleted_members,card_types,chatroom_states
+
 from utility.tasks import (mail_triger, new_member_request,
                            member_request_approval_or_denied,
                            send_mail_for_report_abuse,
@@ -53,6 +56,8 @@ from utility.utils import (decode_meta_from_url, update_tag_image,
 
                            )
 
+from utility.encryption import encrypt,decrypt
+
 from .notification import (send_follow_notification, send_notification_to_admins,
                            send_notification_for_join_requests,
                            send_notification_for_new_collabcard_posted,
@@ -69,14 +74,15 @@ from .notification import (send_follow_notification, send_notification_to_admins
                            send_notification_for_tool_unlocked_for_live_community,
                            send_notification_for_tool_unlocked_for_pilot)
 from .raw_queries import compute_rank
-from .tasks import send_email_to_nominated_admin, send_email_for_new_collabcard_posted, send_welcome_mail
+
+from .tasks import send_email_to_nominated_admin, send_email_for_new_collabcard_posted, send_welcome_mail,send_verification_mail_for_email_sync
+
 from django.contrib.auth import login
-from urllib.parse import unquote
+from urllib.parse import unquote,quote
 
 
 from rest_framework.renderers import JSONRenderer, TemplateHTMLRenderer
 from rest_framework.decorators import api_view, renderer_classes
-
 
 
 # CACHE_TTL = getattr(settings, 'CACHE_TTL', cache_timeout)
@@ -2655,7 +2661,7 @@ def create_card(request,req_dict=None):
 
         # creating card
         # type=0 normal card, type =1 intro card, type 2 is event card and type 3 is poll card
-        typ = int(res['type']) if 'type' in res else 0
+        typ = int(res['type']) if 'type' in res else card_types.CARD_NORMAL
 
 
         card = Collabcard.objects.filter(community=community, user=user_instance, type=1)
@@ -2711,6 +2717,9 @@ def create_card(request,req_dict=None):
         card.date_epoch = time.time()  # card creation time
         card.save()
 
+
+
+        #saving poll card details
         polls = res['polls'] if 'polls' in res else []
         for poll in polls:
             collabcardpolls_instance = CollabcardPolls()
@@ -2762,6 +2771,14 @@ def create_card(request,req_dict=None):
 
         update_last_answer_id(card.id, "")
 
+        #creating a chatroom for the collabcard posted
+        create_chatroom(card_instance=card,user_instance=user_instance
+                        ,state=chatroom_states.CHATROOM_HEADER,current_user_id=user_id)
+
+        #creating a chatroom having content of collabcard
+        create_chatroom(card_instance=card,user_instance=user_instance,state=chatroom_states.CHATROOM_CREATER,current_user_id=user_id,answer = card.title)
+
+
 
 
         if is_member_engage(community, user_instance):
@@ -2772,9 +2789,6 @@ def create_card(request,req_dict=None):
                     last_unseen_conversation=card,
                     member_referral=""
                 )
-
-
-
         else:
             engage = Member_Engage()
             engage.member_id = user_instance
@@ -2801,7 +2815,7 @@ def create_card(request,req_dict=None):
                                                           community_name=community_name,
                                                           community_state=community_state)
 
-        if typ != 1:  # stopping mail for introduction cards
+        if typ != card_types.CARD_INTRO:  # stopping mail for introduction cards
             send_email_for_collabcard(community, userinfo_instance, card, typ)
 
 
@@ -2820,6 +2834,44 @@ def create_collabcard_state_for_user(card, user, state, community):
     collabcard_state_instance.created_at = time.time()
     collabcard_state_instance.updated_at = time.time()
     collabcard_state_instance.save()
+
+
+def create_chatroom(card_instance,user_instance,state,current_user_id=None,answer=""):
+
+    '''function to create chat-room and perform follow unfollow operations'''
+    #handling answer states
+    if not answer:
+
+        user_name = user_instance.userinfo.name
+        member_ids = [user_instance.id]
+        community_profile = get_members_profile(member_ids, card_instance.community.id, current_user_id)
+        if community_profile:
+            community_profile = community_profile[0]
+            user_route = "route://member_profile/" + str(user_instance.id) + "?member=" + quote(str(community_profile))
+        else:
+            user_route = "route://member_profile/" + str(user_instance.id)
+        user_name = "<<" + user_name + "|" + user_route + ">>"
+        if state == chatroom_states.CHATROOM_HEADER:
+
+            community = CommunitySerializer(card_instance.community)
+            community_route = "route://community/"+str(community['id'])+"?community="+quote(str(community))
+            community_name = "<<"+str(community['name'])+"|"+community_route+">>"
+            answer = user_name + " started this chatroom in " + community_name
+        elif state == chatroom_states.CHATROOM_FOLLOW:
+            answer = user_name + " followed this chatroom"
+        elif state == chatroom_states.CHATROOM_UNFOLLOW:
+            answer = user_name + " unfollwed this chatroom"
+
+
+    instance = card_answers()
+    instance.answer = answer
+    instance.card = card_instance
+    instance.user = user_instance
+    instance.state = state
+    instance.created_at = time.time()
+    instance.save()
+
+
 
 
 #api to deprecate
@@ -2963,6 +3015,7 @@ def update_poll_card_text(card_id):
     card.answer_text = poll_text
     card.polls_count = total_polls_count
     card.save()
+
 
 
 def fetch_info(request):
@@ -3165,8 +3218,6 @@ def check_member(email, community_id, member_id, nominated_member_name,community
                                                       proposed_admin_name=ProposedAdmin)
         return True
     return False
-
-
 
 
 
@@ -3859,8 +3910,8 @@ def collabcard(request, card_id):
     # coverting current time into epoch time for getting time stamp of answers and card
 
     # get all the answers of the card
-    answer = card_answers.objects.filter(card=card_instance).order_by('id')
-    # answer=pagination(answer,page,paginate_by=10)
+    answer = card_answers.objects.filter(card=card_instance).order_by('-id')
+    #answer=pagination(answer,page,paginate_by=3)
 
     answer_id = request.GET.get('answer_id', '')
     user_id = request.GET.get('member_id', '')
@@ -3898,7 +3949,7 @@ def collabcard(request, card_id):
     # user form response serialzer
     form_response = FormResponseSerilaizer(card_instance.community.id, card_instance.user.id,bl=True,current_user_id=current_user_id)
     if form_response:
-        usr['response'] = form_response[0]
+        #usr['response'] = form_response[0]
         usr['question_answers'] =form_response[1]
     # get the card image if any
     files = get_collabcard_files(card_id)
@@ -3931,37 +3982,6 @@ def collabcard(request, card_id):
         return JsonResponse({"collabcard": card, 'answers': answers})
 
 
-def get_answer_data(answer,feedback,community_id,current_user_id):
-    '''function to get answer for a particular collabcard from database database'''
-    answers = []
-
-    for ans in answer:
-        user = Userinfo.objects.filter(user_id=ans.user.id)
-        usr = UserinfoSerializer(user[0])
-        usr['is_clickable']=feedback
-
-        removed_state = removedMembersSerializer(community_id, usr['id'])
-
-        if removed_state != False:
-            usr['remove_state'] = removed_state
-
-        form_response = FormResponseSerilaizer(community_id, ans.user.id,bl=True,current_user_id=current_user_id)
-        if form_response:
-            usr['response'] = form_response[0]
-            usr['question_answers'] = form_response[1]
-        # coverting current time into epoch time
-
-        if str(ans.date_epoch) == "-9223372036854775808":
-            time_text = ""
-        else:
-            time_text = get_time_text(ans.date_epoch)
-
-        attachements = get_answer_files(ans.id)
-
-        answers.append({'id': ans.id, 'answer': ans.answer, 'created_at': time_text, 'member': usr,
-                        'images': attachements[0], 'pdf': attachements[1]})
-    return answers
-
 
 def get_collabcard_files(card_id):
     '''function to return pdf and image files of a collabcard'''
@@ -3988,7 +4008,7 @@ def get_collabcard_files(card_id):
 def get_answer_files(answer_id):
     '''function to return pdf and image files of a collabcard'''
 
-    files = Answer_Attachment.objects.filter(answer=answer_id)
+    files = answerAttachment.objects.filter(answer=answer_id)
     img_list = []
     pdf = []
     for file in files:
@@ -4172,6 +4192,101 @@ def get_collabcard_details_for_web(request,card_instance,card,current_user_id,an
         #return render(request, 'collabcard.html', context)
 
 
+def get_chatroom(request, card_id):
+
+    '''api to get the chatroom'''
+
+    card_instance = Collabcard.objects.get(id=card_id)
+    answer_id = request.GET.get('answer_id', '')
+    #user_id = request.GET.get('member_id', '')
+    page = request.GET.get('page',1)
+    current_user_id = get_member_id_from_headers(request)
+    context = get_chatroom_internal(request,card_instance,answer_id,current_user_id,page)
+    return JsonResponse(context)
+
+
+def get_answer_data(answer_filter,feedback,community_id,current_user_id):
+    '''function to get answer for a particular collabcard '''
+
+    answers = []
+
+    for ans in answer_filter:
+        user = Userinfo.objects.filter(user_id=ans.user.id)
+        usr = UserinfoSerializer(user[0])
+        usr['is_clickable']=feedback
+
+        removed_state = removedMembersSerializer(community_id, usr['id'])
+
+        if removed_state != False:
+            usr['remove_state'] = removed_state
+
+        form_response = FormResponseSerilaizer(community_id, ans.user.id,bl=True,current_user_id=current_user_id)
+        if form_response:
+            #usr['response'] = form_response[0]
+            usr['question_answers'] = form_response[1]
+        # coverting current time into epoch time
+
+
+        time_text = time.strftime('%I:%M %p', time.localtime(ans.created_at))
+        date = time.strftime('%d %b %Y', time.localtime(ans.created_at))
+        attachements = get_answer_files(ans.id)
+        context = {'id': ans.id, 'answer': ans.answer, 'created_at': time_text, 'member': usr,
+                        'images': attachements[0], 'pdf': attachements[1],'date':date}
+        answers.append(context)
+    return answers
+
+
+def get_chatroom_internal(request,card_instance,answer_id,user_id,page):
+
+    '''internal function to get the chatroom can be used to handle web and android '''
+
+    # sending collabcard object
+    feedback = True
+    if card_instance.community.id == feedback_community_id:
+        feedback = False
+
+    card = CollabcardSerializer(card_instance, user_id, card_instance.community)
+    card_id = card['id']
+    user = Userinfo.objects.get(user_id=card_instance.user.id)
+
+    usr = UserinfoSerializer(user)
+    usr['is_clickable'] = feedback
+
+    # when the member is removed
+    removed_state = removedMembersSerializer(card_instance.community.id, usr['id'])
+    if removed_state != False:
+        usr['remove_state'] = removed_state
+
+    # user form response serialzer
+    form_response = FormResponseSerilaizer(card_instance.community.id, card_instance.user.id, bl=True,
+                                           current_user_id=user_id)
+    if form_response:
+        usr['question_answers'] = form_response[1]
+
+    # get the card image if any
+    files = get_collabcard_files(card_id)
+    card['images'] = files[0]
+    card['member'] = usr
+    card['pdf'] = files[1]
+    card['state'] = get_status_of_collabcard(member_id=user_id, community=card_instance.community,
+                                                 card=card_instance)
+    # get tine stamp for card
+    time_text = get_time_text(card_instance.date_epoch)
+    card['created_at'] = time_text
+
+    if answer_id:
+        answer_id = int(answer_id)
+        answer = card_answers.objects.filter(card=card_instance, id__gte=answer_id).filter(~Q(user__id=user_id))
+        chatroom = get_answer_data(answer, feedback, card_instance.community.id,
+                                   current_user_id=user_id)
+    else:
+        answer_filter = card_answers.objects.filter(card=card_instance).order_by('-created_at')
+        answer_filter = pagination(answer_filter, page_number=page, paginate_by=15)
+        chatroom = get_answer_data(answer_filter, feedback, card_instance.community.id, current_user_id=user_id)
+
+    context = {'chat_room': card, 'conversations': chatroom}
+
+    return context
 
 
 
@@ -4986,12 +5101,15 @@ def get_status_of_collabcard(member_id, community, card):
 def create_answer(request):
     '''function to post answer on collabcard'''
     body = request.GET
-    if 'member_id' in body:
+
+    try:
         user_id = body['member_id']
-    user = User.objects.get(id=user_id)
-    if 'collabcard_id' in body:
         card_id = body['collabcard_id']
-    card = Collabcard.objects.get(id=card_id)
+        user = User.objects.get(id=user_id)
+        card = Collabcard.objects.get(id=card_id)
+    except:
+        context = get_error_context(False,"Send params correctly")
+        return JsonResponse(context)
 
     if request.method == 'POST':
         res = json.loads(request.body)
@@ -4999,7 +5117,7 @@ def create_answer(request):
         ans.answer = res['title']
         ans.card = card
         ans.user = user
-        ans.date_epoch = time.time()
+        ans.created_at = time.time()
         ans.save()
         update_last_answer_id(card_id, ans.id)
 
@@ -5014,7 +5132,7 @@ def create_answer(request):
         send_follow_notification.delay(card_id=card_id, user_id=user_id, answer=res['title'])
 
         # calling update_answer_text
-        if card.type == 0 or card.type == 1:
+        if card.type == card_types.CARD_NORMAL or card.type == card_types.CARD_INTRO:
             print("type === ", card.type)
             update_answer_text(card_id)
 
@@ -5075,6 +5193,12 @@ def update_answer_text(card_id):
 @csrf_exempt
 def collabcard_follow(request, function_dict=None):
     '''Api to follow collabcard by members Post API'''
+    explicit_call = False                       #variable to distinguish whether the collabcard is followed by external call or internal call
+
+    current_member_id = get_member_id_from_headers(request)
+    if not current_member_id:
+        context = get_error_context(False,"send member id in headers")
+        return JsonResponse(context)
 
     if not function_dict:
         collabcard_id = request.GET.get('collabcard_id', '')
@@ -5082,9 +5206,10 @@ def collabcard_follow(request, function_dict=None):
         status = request.GET.get('value', 'true')
 
         if status != 'true':
-            status = False
+            status = False              #unfollowed
         else:
-            status = True
+            status = True               #followed
+        explicit_call = True
     else:
         collabcard_id = function_dict['collabcard_id']
         member_id = function_dict['member_id']
@@ -5094,12 +5219,12 @@ def collabcard_follow(request, function_dict=None):
     community_instance = collabcard.community
     user_instance = User.objects.get(id=member_id)
 
-    if collabcard.type == 2 and status:  # the collabcard is the event card
+    if (collabcard.type == card_types.CARD_EVENT or collabcard.type == card_types.CARD_PUBLIC_EVENT) and status:  # the collabcard is the event card and followed
 
         collabcard_state_instance = collabcardState.objects.get(card=collabcard, user=user_instance)
 
         # when the user is not attending but following the collabcard
-        if collabcard_state_instance.state == 1:
+        if collabcard_state_instance.state == collabcard_states.COLLABCARD_STATE_SEEN:
 
             collabcard_state_instance.state = collabcard_states.COLLABCARD_STATE_UNATTEND_FOLLOWING
             collabcard_state_instance.updated_at = time.time()
@@ -5110,9 +5235,14 @@ def collabcard_follow(request, function_dict=None):
             collabcard_state_instance.state = collabcard_states.COLLABCARD_STATE_ATTEND_FOLLOWING
             collabcard_state_instance.updated_at = time.time()
             collabcard_state_instance.save()
+
+        if explicit_call:
+            create_chatroom(card_instance=collabcard,user_instance=user_instance,
+                            state=chatroom_states.CHATROOM_FOLLOW,current_user_id=current_member_id)
+
         return JsonResponse({'success': True})
 
-    elif collabcard.type == 2 and not status:
+    elif (collabcard.type == card_types.CARD_EVENT or collabcard.type == card_types.CARD_PUBLIC_EVENT) and not status:
         collabcard_state_instance = collabcardState.objects.get(card=collabcard, user=user_instance)
         # when the user is not attending and not follow
         if collabcard_state_instance.state == collabcard_states.COLLABCARD_STATE_UNATTEND_FOLLOWING:
@@ -5126,6 +5256,10 @@ def collabcard_follow(request, function_dict=None):
             collabcard_state_instance.state = collabcard_states.COLLABCARD_STATE_ATTEND_UNFOLLOWING
             collabcard_state_instance.updated_at = time.time()
             collabcard_state_instance.save()
+
+        if explicit_call:
+            create_chatroom(card_instance=collabcard, user_instance=user_instance,
+                            state=chatroom_states.CHATROOM_UNFOLLOW, current_user_id=current_member_id)
         return JsonResponse({'success': True})
 
     is_present = collabcardState.objects.filter(card=collabcard, user=user_instance)
@@ -5138,17 +5272,33 @@ def collabcard_follow(request, function_dict=None):
         collabcard_state_instance.created_at = time.time()
         collabcard_state_instance.updated_at = time.time()
         collabcard_state_instance.save()
+
+        if status and explicit_call:
+            create_chatroom(card_instance=collabcard, user_instance=user_instance,
+                            state=chatroom_states.CHATROOM_FOLLOW, current_user_id=current_member_id)
+
     else:
 
         if status:
             collabcardState.objects.filter(card=collabcard, user=user_instance).update(state=collabcard_states.COLLABCARD_STATE_FOLLOW,
-                                                                                       updated_at=time.time())
+                                                                                    updated_at=time.time())
+            if explicit_call:
+                create_chatroom(card_instance=collabcard, user_instance=user_instance,
+                            state=chatroom_states.CHATROOM_FOLLOW, current_user_id=current_member_id)
         else:
             collabcardState.objects.filter(card=collabcard, user=user_instance).update(state=collabcard_states.COLLABCARD_STATE_SEEN,
-                                                                                       updated_at=time.time())
+                                                                                   updated_at=time.time())
+
+            if explicit_call:
+                create_chatroom(card_instance=collabcard, user_instance=user_instance,
+                            state=chatroom_states.CHATROOM_UNFOLLOW, current_user_id=current_member_id)
+
+
 
     # custom_cache.clear()
     return JsonResponse({'success': True})
+
+
 
 
 @csrf_exempt
@@ -5616,7 +5766,7 @@ def upload_files(request):
             answer_id = body['answer_id']
             answer_obj = card_answers.objects.get(id=answer_id)
 
-            file = Answer_Attachment()
+            file = answerAttachment()
             file.answer = answer_obj
             file.type = attachment_type
             file.file_url = body['url']
@@ -5787,6 +5937,7 @@ def login_authenticate(request):
 
 @csrf_exempt
 def login_authenticate_version_1(request):
+
     ''' function to login a user '''
 
     if request.method == 'POST':
@@ -5805,8 +5956,7 @@ def login_authenticate_version_1(request):
 
         dic_form = res['login_json']
         json_to_save = json.dumps(dic_form)
-        # if user is logging in from facebook
-        created = False
+
         if login_type == 'facebook':
             context = login_with_facebook(request,res,json_to_save)
             #context = {}
@@ -5817,55 +5967,11 @@ def login_authenticate_version_1(request):
             return JsonResponse(context)
 
         else:
-            # if user is logging in with Apple
-            res = res['login_json']
-            userinfo = Userinfo.objects.filter(apple_id=res['id'])
-
-            if not userinfo.exists():
-                # creating a user if no user is associated with that email
-                user = create_user(user_name=res['name'], email=res['email'],
-                                   id=res['id'], apple_id=True)
-
-                # fb_link = res['link'] if 'link' in res else None
-                if 'picture' in res:
-                    image_link = upload_image_to_firebase(res['picture']['data']['url'], user.id)
-                else:
-                    image_link = 'https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fuser%2F222%2Fimg_user_222?alt=media'
-
-                city = res['location']['name'] if 'location' in res else None
-                # if there is no user then user will not have userinfo too
-                # create or get user info
-                userinfo = create_userinfo(user=user, email=res['email'], user_name=res['name'],
-                                           profile_picture=image_link, login_type=login_type,
-                                           json_to_save=json_to_save, city=city, apple_id=res['id']
-                                           )
-                created = True
-                mail_triger(str(user.id), request)  # both mail and notification will be sent here
-
-            if not created:
-                userinfo = userinfo[0]
-
-        # get serialized user object
-
-        usr = UserinfoSerializer(userinfo)
-        # see if user has tags or not
-        has_tags = userinfo.has_tags
-
-        # saving the OS type of user (Android,iOS,WEB)
-        request_type = get_request_type(request)
-        if request_type:
-            Userinfo.objects.filter(user_id=usr['id']).update(mobile_os=request_type)
-
-        # User asscoaited tags if any present
-        if has_tags:
-            tags = get_user_lpig_tags(usr['id'])
-            usr['tags'] = tags
-            return JsonResponse({'user': usr, 'has_tags': has_tags})
-        else:
-            create_member_for_feedback_community(userinfo.user_id)
-            return JsonResponse({'user': usr, 'has_tags': has_tags})
-
-    return HttpResponse('Login Api')
+            context = login_with_apple(request,res,json_to_save)
+            return JsonResponse(context)
+    else:
+        context = get_error_context(False,"Send a post request")
+        return JsonResponse(context)
 
 
 def create_user(user_name, email, id, apple_id=False):
@@ -5921,7 +6027,11 @@ def create_member_for_feedback_community(user_instance):
 
     is_member=Members.objects.filter(community_id=feedback_community_id,member_id=user_instance)
 
-    community_instance = Community.objects.get(id=feedback_community_id)
+    try:
+        community_instance = Community.objects.get(id=feedback_community_id)
+    except:
+        return
+
 
     if not is_member.exists():                                                #not is_member.exists()
         member_instance=Members()
@@ -5957,8 +6067,6 @@ def fetch_google_auth_data(google_id_token):
     x = (json_to_save,google_json)
     return x
 
-
-
 def login_with_google(google_id_token,request,login_type="google"):
 
     '''function to login with google'''
@@ -5969,21 +6077,16 @@ def login_with_google(google_id_token,request,login_type="google"):
     res = google_json[1]
     info_logger.info(res)
     created = False
-    context ={'success':False,'error_message':"please give permission to use your google account"}
-
-    is_request_web = False
-
-    platform_code = get_platform_code_from_headers(request)
-    
-    if not platform_code:
-        is_request_web = True
+    #context ={'success':False,'error_message':"please give permission to use your google account"}
+    context = get_error_context(False,"please give permission to use your google account")
 
     if 'email' in res:
         email = res['email']
         email = email.lower().strip()
-        user = User.objects.filter(email=email)
 
-        if not user.exists():
+        user = get_user_from_email(email)           #getting the user instance from email if it is present
+
+        if not user:
             # creating a user if no user is associated with that email
             res['id'] = res['azp']
 
@@ -5998,11 +6101,12 @@ def login_with_google(google_id_token,request,login_type="google"):
                                        profile_picture=image_link, login_type=login_type,
                                        json_to_save=json_to_save
                                        )
-            created = True
+            save_user_primary_email(user,res['email'])
             mail_triger(str(user.id), request)  # both mail and notification will be sent here
 
-        if not created:
-            userinfo = user[0].userinfo
+
+        else:
+            userinfo = user.userinfo
 
 
 
@@ -6024,31 +6128,24 @@ def login_with_google(google_id_token,request,login_type="google"):
             create_member_for_feedback_community(userinfo.user_id)
 
 
-        if is_request_web:
-
+        if is_request_web(request):
             login(request,user=userinfo.user_id,backend="django.contrib.auth.backends.ModelBackend")
 
         context = {'user': usr, 'has_tags': has_tags}
 
     return context
 
-
 def login_with_facebook(request,res,json_to_save,login_type="facebook"):
 
     '''function to login with facebook'''
-
-    platform_code = get_platform_code_from_headers(request)
-    is_request_web = False
-    if not platform_code:
-        is_request_web = True
 
     res = res['login_json']
     email = res['email']
     # converting email to lower case and removing unwanted space
     email = email.lower().strip()
-    user = User.objects.filter(email=email)
+    user = get_user_from_email(email)
 
-    if not user.exists():
+    if not user:
         # creating a user if no user is associated with that email
         user = create_user(user_name=res['name'], email=res['email'], id=res['id'])
 
@@ -6068,10 +6165,10 @@ def login_with_facebook(request,res,json_to_save,login_type="facebook"):
                                    json_to_save=json_to_save, city=city,
                                    # fb_link=fb_link
                                    )
-
+        save_user_primary_email(user,res['email'])
         mail_triger(str(user.id), request)  # both mail and notification will be sent here
     else:
-        userinfo = user[0].userinfo
+        userinfo = user.userinfo
 
         # get serialized user object
 
@@ -6085,7 +6182,7 @@ def login_with_facebook(request,res,json_to_save,login_type="facebook"):
         Userinfo.objects.filter(user_id=usr['id']).update(mobile_os=request_type)
 
     #login in when the request is web
-    if is_request_web:
+    if is_request_web(request):
         login(request, user=userinfo.user_id, backend="django.contrib.auth.backends.ModelBackend")
 
     # User asscoaited tags if any present
@@ -6098,21 +6195,20 @@ def login_with_facebook(request,res,json_to_save,login_type="facebook"):
     context = {'user': usr, 'has_tags': has_tags}
     return context
 
-
 def login_with_linkedin(request,res,json_to_save,login_type="linkedIn"):
 
     '''login with linkedIn '''
-
     res = res['login_json']
     # if user is logging in with linkedIn
-    user_name = res['firstName']['localized']['en_US'] + " " + res['lastName']['localized']['en_US']
     email = res['email']['elements'][0]['handle~']['emailAddress']
-    userinfo = Userinfo.objects.filter(email=email)
-    # create user and userinfo if there is no user with this email
 
-    if not userinfo.exists():
+    user = get_user_from_email(email)
 
+    if not user:
+
+        user_name = res['firstName']['localized']['en_US'] + " " + res['lastName']['localized']['en_US']
         user = create_user(user_name=user_name, email=email, id=res['id'])
+
         if 'profilePicture' in res:
             profile_picture = upload_image_to_firebase(
                 res['profilePicture']['displayImage~']['elements'][2]['identifiers'][0]['identifier'], user.id)
@@ -6122,11 +6218,11 @@ def login_with_linkedin(request,res,json_to_save,login_type="linkedIn"):
         userinfo = create_userinfo(user=user, email=email, user_name=user_name,
                                    profile_picture=profile_picture, login_type=login_type,
                                    json_to_save=json_to_save)
-        created = True
+        save_user_primary_email(user,res['email'])
         mail_triger(str(user.id), request)  # both mail and notification will be sent here
 
     else:
-        userinfo = userinfo[0]
+        userinfo = user.userinfo
 
     usr = UserinfoSerializer(userinfo)
     # see if user has tags or not
@@ -6137,11 +6233,6 @@ def login_with_linkedin(request,res,json_to_save,login_type="linkedIn"):
     if request_type:
         Userinfo.objects.filter(user_id=usr['id']).update(mobile_os=request_type)
 
-    # login in when the request is web
-    # if is_request_web:
-    #     login(request, user=userinfo.user_id, backend="django.contrib.auth.backends.ModelBackend")
-
-    # User asscoaited tags if any present
     if has_tags:
         tags = get_user_lpig_tags(usr['id'])
         usr['tags'] = tags
@@ -6151,6 +6242,85 @@ def login_with_linkedin(request,res,json_to_save,login_type="linkedIn"):
     context = {'user': usr, 'has_tags': has_tags}
     #print(context)
     return context
+
+def login_with_apple(request,res,json_to_save,login_type="apple"):
+
+    '''function to login with apple'''
+    # if user is logging in with Apple
+    res = res['login_json']
+    userinfo = Userinfo.objects.filter(apple_id=res['id'])
+
+
+    if not userinfo.exists():
+        # creating a user if no user is associated with that email
+        user = create_user(user_name=res['name'], email=res['email'],
+                           id=res['id'], apple_id=True)
+
+        # fb_link = res['link'] if 'link' in res else None
+        if 'picture' in res:
+            image_link = upload_image_to_firebase(res['picture']['data']['url'], user.id)
+        else:
+            image_link = 'https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fuser%2F222%2Fimg_user_222?alt=media'
+
+        city = res['location']['name'] if 'location' in res else None
+        # if there is no user then user will not have userinfo too
+        # create or get user info
+        userinfo = create_userinfo(user=user, email=res['email'], user_name=res['name'],
+                                   profile_picture=image_link, login_type=login_type,
+                                   json_to_save=json_to_save, city=city, apple_id=res['id']
+                                   )
+        save_user_primary_email(user,res['email'])
+        mail_triger(str(user.id), request)  # both mail and notification will be sent here
+
+    else:
+        userinfo = userinfo[0]
+
+    # get serialized user object
+
+    usr = UserinfoSerializer(userinfo)
+    # see if user has tags or not
+    has_tags = userinfo.has_tags
+
+    # saving the OS type of user (Android,iOS,WEB)
+    request_type = get_request_type(request)
+    if request_type:
+        Userinfo.objects.filter(user_id=usr['id']).update(mobile_os=request_type)
+
+    # User asscoaited tags if any present
+    if has_tags:
+        tags = get_user_lpig_tags(usr['id'])
+        usr['tags'] = tags
+    else:
+        create_member_for_feedback_community(userinfo.user_id)
+
+    return {'user': usr, 'has_tags': has_tags}
+
+
+
+def save_user_primary_email(user_instance,email):
+
+    '''function to save primary email of user for communications'''
+
+    user_email_instance = userEmails()
+    user_email_instance.user = user_instance
+    user_email_instance.email_state = email_states.PRIMARY
+    user_email_instance.email = email
+    user_email_instance.save()
+
+def get_user_from_email(email):
+
+    '''function to get user instance from email'''
+
+    user_emails = userEmails.objects.filter(email=email)
+    if user_emails.exists():
+        instance = user_emails[0]
+        user = instance.user
+    else:
+        user = User.objects.filter(email=email)
+        if user.exists():
+            user = user[0]
+
+    return user
 
 
 def notify_referred_member_after_join(joined_member_id, joined_member_name, community_name, community_id):
@@ -7209,7 +7379,16 @@ def get_platform_code_from_headers(request):
     return platform_code
 
 
+def is_request_web(request):
 
+    '''function to tell if the request is web or not'''
+
+    platform_code = get_platform_code_from_headers(request)
+
+    if not platform_code:
+        return True
+
+    return False
 
 ################ functions for getting and setting of tags ##########################################
 
@@ -7781,5 +7960,125 @@ def fetch_master_questions(request):
 
 
 
+#email address verification for syncing new email accounts
+
+@csrf_exempt
+def sync_email(request):
+
+    '''function to syc the email with existing account'''
+
+    member_id = get_member_id_from_headers(request)
+
+    if not member_id:
+        context = get_error_context(False, "send member id in headers")
+        return JsonResponse(context)
+
+    email = request.POST.get('email_id',None)
+    email_state = request.POST.get('email_state',0)
+    if not email:
+        context = get_error_context(False,"send a email id in post params")
+        return JsonResponse(context)
+
+    token_list = list(emailTokens.objects.filter(user=member_id).values_list('token',flat=True))
+
+    try:
+        user_instance = User.objects.get(id=member_id)
+    except:
+        context = get_error_context(False,"User does not exists")
+        return JsonResponse(context)
+
+    verification_details = generating_verification_link_for_email(token_list,member_id)
+
+    #saving the email token details for user
+    instance = emailTokens()
+    instance.user = user_instance
+    instance.token = verification_details['token']
+    instance.expire_time = 86400            #24 hours
+    instance.email = email
+    instance.email_state = email_state
+    instance.save()
 
 
+    #sending a email from template
+    send_verification_mail_for_email_sync.delay(user_name=user_instance.userinfo.name,
+                                          verification_link=verification_details['verify_url'],email=email)
+
+    return JsonResponse({'success':True})
+
+
+def generating_verification_link_for_email(token_list,user_id):
+
+    '''function to generate verification link for email and saving the email'''
+
+
+    token = generate_random(token_list)
+    #print(token)
+    encrpt_number = encrypt(token)
+    user_id = encrypt(user_id)
+    #print(user_id)
+    verify_url = url + "/email_verify?token="+encrpt_number+"&user="+user_id
+
+    temp={'verify_url':verify_url,'token':token}
+
+    return temp
+
+@api_view(['GET', 'POST'])
+@renderer_classes([JSONRenderer, TemplateHTMLRenderer])
+def email_verify(request):
+
+    '''api to verify the email details'''
+
+    if request.accepted_renderer.format == 'html':
+
+        token = request.GET.get('token')
+        user = request.GET.get('user')
+
+        current_time = time.time()
+        if not token or not user:
+            return HttpResponse("Invalid link")
+
+
+        decoded_token = decrypt(token)
+        decoded_user = decrypt(user)
+
+        #getting the user instance
+        try:
+            user_instance = User.objects.get(id=decoded_user)
+        except:
+            context = get_error_context(False, "User does not exists")
+            return HttpResponse(context)
+
+        instance_list = emailTokens.objects.filter(token=decoded_token,user=user_instance)
+
+
+        if instance_list.exists():
+            instance = instance_list[0]
+            #print(instance)
+
+            #if the link is verified
+            if (current_time - instance.created_at) <= instance.expire_time:
+
+                email_state = instance.email_state
+
+                if email_state == email_states.PRIMARY:
+                    userEmails.objects.filter(user = user_instance).update(email_state = email_states.NON_PRIMARY)
+
+                user_email_list = userEmails.objects.filter(email=instance.email,user=user_instance)
+
+                if not user_email_list.exists():
+                    user_email_instance = userEmails()
+                    user_email_instance.user = user_instance
+                    user_email_instance.email_state = email_state
+                    user_email_instance.email = instance.email
+                    user_email_instance.save()
+
+                else:
+                    user_email_list.update(user=user_instance,email_state=email_state,email=instance.email)
+
+                return HttpResponse("Verified")
+            else:
+                return HttpResponse("Not verified")
+
+
+
+    return HttpResponse("Hit from browser")
