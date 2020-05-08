@@ -32,7 +32,9 @@ urlpatterns = [
     path('members/<int:community_id>', api_views.members, name="members"),
     path('ask_approval', api_views.ask_approval, name="ask_approval"),
     path('create_collabcard', api_views.create_card, name="create_card"),
+
     path('collabcard/<int:card_id>', api_views.collabcard, name="collabcard"),
+    path('get_chatroom/<int:card_id>', api_views.get_chatroom, name="get_chatroom"),
 
     path('community_collabcard/<int:community_id>', api_views.community_cards, name="community_cards"),
     path('community_collabcard_invite/<int:community_id>', api_views.community_collabcard_invite, name="community_collabcard_invite"),
