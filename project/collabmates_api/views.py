@@ -2863,7 +2863,7 @@ def create_chatroom(card_instance,user_instance,state,current_user_id=None,answe
             answer = user_name + " unfollwed this chatroom"
 
 
-    instance = cardAnswers()
+    instance = card_answers()
     instance.answer = answer
     instance.card = card_instance
     instance.user = user_instance
@@ -3910,7 +3910,7 @@ def collabcard(request, card_id):
     # coverting current time into epoch time for getting time stamp of answers and card
 
     # get all the answers of the card
-    answer = cardAnswers.objects.filter(card=card_instance).order_by('-id')
+    answer = card_answers.objects.filter(card=card_instance).order_by('-id')
     #answer=pagination(answer,page,paginate_by=3)
 
     answer_id = request.GET.get('answer_id', '')
@@ -3921,7 +3921,7 @@ def collabcard(request, card_id):
     if answer_id:
         answer_id = int(answer_id)
 
-        answer = cardAnswers.objects.filter(card=card_instance, id__gte=answer_id).filter(~Q(user__id=user_id))
+        answer = card_answers.objects.filter(card=card_instance, id__gte=answer_id).filter(~Q(user__id=user_id))
         # answer = pagination(answer, page, paginate_by=10)
         answers = get_answer_data(answer,feedback,card_instance.community.id,current_user_id=current_user_id)         #if the feedback is true don't send id in userinfo
         return JsonResponse({'answers': answers})
@@ -4274,11 +4274,11 @@ def get_chatroom_internal(request,card_instance,answer_id,user_id,page):
 
     if answer_id:
         answer_id = int(answer_id)
-        answer = cardAnswers.objects.filter(card=card_instance, id__gte=answer_id).filter(~Q(user__id=user_id))
+        answer = card_answers.objects.filter(card=card_instance, id__gte=answer_id).filter(~Q(user__id=user_id))
         chatroom = get_answer_data(answer, feedback, card_instance.community.id,
                                    current_user_id=user_id)
     else:
-        answer_filter = cardAnswers.objects.filter(card=card_instance).order_by('-created_at')
+        answer_filter = card_answers.objects.filter(card=card_instance).order_by('-created_at')
         answer_filter = pagination(answer_filter, page_number=page, paginate_by=15)
         chatroom = get_answer_data(answer_filter, feedback, card_instance.community.id, current_user_id=user_id)
 
@@ -5111,7 +5111,7 @@ def create_answer(request):
 
     if request.method == 'POST':
         res = json.loads(request.body)
-        ans = cardAnswers()
+        ans = card_answers()
         ans.answer = res['title']
         ans.card = card
         ans.user = user
@@ -5155,7 +5155,7 @@ def update_answer_text(card_id):
 
     ans_text = ''
     card = Collabcard.objects.get(id=card_id)
-    card_ans = cardAnswers.objects.filter(card=card).distinct('user_id')
+    card_ans = card_answers.objects.filter(card=card).distinct('user_id')
     # if only one answer is present fro a collab card
     card_ans_count = card_ans.count()
     if card_ans_count == 0:
@@ -5762,7 +5762,7 @@ def upload_files(request):
         elif 'answer_id' in body:
             attachment_type = body['type']
             answer_id = body['answer_id']
-            answer_obj = cardAnswers.objects.get(id=answer_id)
+            answer_obj = card_answers.objects.get(id=answer_id)
 
             file = answerAttachment()
             file.answer = answer_obj
