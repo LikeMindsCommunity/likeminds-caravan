@@ -8079,16 +8079,16 @@ def email_verify(request):
                 else:
                     user_email_list.update(user=user_instance,email_state=email_state,email=instance.email)
                 
-                if request.accepted_renderer.format == 'html':
-                    return render(request, 'email_verify_landing.html', context)
 
-                return HttpResponse("Verified")
+                return render(request, 'email_verify_landing.html', context)
+
+
             else:
                 context['verification'] = False
-                if request.accepted_renderer.format == 'html':
-                    return render(request, 'email_verify_landing.html', context)
 
-                return HttpResponse("Not verified")
+                return render(request, 'email_verify_landing.html', context)
+
+                
 
 
 
