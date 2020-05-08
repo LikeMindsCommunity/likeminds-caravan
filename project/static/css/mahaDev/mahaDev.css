@@ -5,6 +5,8 @@
 body, html {
     height: auto !important;
     min-height: 100vh;
+    margin:0;
+    padding:0;
 }
 
 html { 
@@ -18,6 +20,7 @@ html {
 body ::-webkit-scrollbar { display: none; }
 
 .bg { background: transparent; }
+.bg0 { background: #000 }
 .bgF { background: #fff!important; }
 .bgT { background: teal!important; }
 .bgBg { background: #f0f5f5; }
@@ -266,6 +269,8 @@ body ::-webkit-scrollbar { display: none; }
 .pR { position: relative; }
 .pA { position: absolute; }
 .pF { position: fixed; }
+
+.wbBa { word-break: break-all; }
 
 
 .brp50 { border-radius: 50% !important; }

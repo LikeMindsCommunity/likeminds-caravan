@@ -98,6 +98,11 @@ urlpatterns = [
     path('fetch_filters', api_views.fetch_filters, name='fetch_filters'),
     path('push_email', api_views.push_email, name='push_email'),
 
+
+    #email verify
+    path('email_verify', api_views.email_verify, name='email_verify'),
+    path('sync_email', api_views.sync_email, name='sync_email')
+
 ]
 
 app_name = 'collabmates_api'

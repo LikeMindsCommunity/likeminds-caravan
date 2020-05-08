@@ -61,6 +61,7 @@ def index(request):
     }
     return render(request, 'home_landing.html', context)
 
+
     # user_agent = parse(request.META['HTTP_USER_AGENT'])
     # os_type = user_agent.os.family
 
@@ -1239,7 +1240,7 @@ def accept_admin(request, community_id):
 @login_required
 def logout_view(request):
     logout(request)
-    return redirect('signup')
+    return redirect('communities')
 
 
 def join_community(request, community_id, ref_id, aj=False, member_state=None):
@@ -1481,11 +1482,27 @@ def send_email(email):
 
 
 def privacy(request):
-    return render(request, 'privacy.html')
+    header = {
+        'back': True,
+        'title': "Privacy Policy",
+        'backLink': "/",
+        'subTitle': False,
+        'background': '0',
+        'color': 'F'
+    }
+    return render(request, 'privacy.html', {'header': header})
 
 
 def terms(request):
-    return render(request, 'terms.html')
+    header = {
+        'back': True,
+        'title': "Terms",
+        'backLink': "/",
+        'subTitle': False,
+        'background': '0',
+        'color': 'F'
+    }
+    return render(request, 'terms.html', {'header': header})
 
 
 def collabcard(request, card_id):
