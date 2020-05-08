@@ -4124,32 +4124,15 @@ def get_collabcard_details_for_web(request,card_instance,card,current_user_id,an
 def get_chatroom(request, card_id):
 
     '''api to get the chatroom'''
+
     card_instance = Collabcard.objects.get(id=card_id)
-
-    page = request.GET.get('page', 1)
-
-    current_user_id = get_member_id_from_headers(request)
-
-    feedback = True
-    if card_instance.community.id == feedback_community_id:
-        feedback = False
-
-
     answer_id = request.GET.get('answer_id', '')
-    user_id = request.GET.get('member_id', '')
-
-    if answer_id:
-        answer_id = int(answer_id)
-        answer = cardAnswers.objects.filter(card=card_instance, id__gte=answer_id).filter(~Q(user__id=user_id))
-        chatroom = get_answer_data(answer, feedback, card_instance.community.id,
-                                  current_user_id=current_user_id)
-    else:
-        answer_filter = cardAnswers.objects.filter(card=card_instance).order_by('-created_at')
-        answer_filter = pagination(answer_filter,page_number=page,paginate_by=15)
-        chatroom = get_answer_data(answer_filter, feedback, card_instance.community.id, current_user_id=current_user_id)
-
-    context = {'chatroom':chatroom}
+    #user_id = request.GET.get('member_id', '')
+    page = request.GET.get('page',1)
+    current_user_id = get_member_id_from_headers(request)
+    context = get_chatroom_internal(request,card_instance,answer_id,current_user_id,page)
     return JsonResponse(context)
+
 
 def get_answer_data(answer_filter,feedback,community_id,current_user_id):
     '''function to get answer for a particular collabcard '''
@@ -4180,6 +4163,60 @@ def get_answer_data(answer_filter,feedback,community_id,current_user_id):
                         'images': attachements[0], 'pdf': attachements[1],'date':date}
         answers.append(context)
     return answers
+
+
+def get_chatroom_internal(request,card_instance,answer_id,user_id,page):
+
+    '''internal function to get the chatroom can be used to handle web and android '''
+
+    # sending collabcard object
+    feedback = True
+    if card_instance.community.id == feedback_community_id:
+        feedback = False
+
+    card = CollabcardSerializer(card_instance, user_id, card_instance.community)
+    card_id = card['id']
+    user = Userinfo.objects.get(user_id=card_instance.user.id)
+
+    usr = UserinfoSerializer(user)
+    usr['is_clickable'] = feedback
+
+    # when the member is removed
+    removed_state = removedMembersSerializer(card_instance.community.id, usr['id'])
+    if removed_state != False:
+        usr['remove_state'] = removed_state
+
+    # user form response serialzer
+    form_response = FormResponseSerilaizer(card_instance.community.id, card_instance.user.id, bl=True,
+                                           current_user_id=user_id)
+    if form_response:
+        usr['question_answers'] = form_response[1]
+
+    # get the card image if any
+    files = get_collabcard_files(card_id)
+    card['images'] = files[0]
+    card['member'] = usr
+    card['pdf'] = files[1]
+    card['state'] = get_status_of_collabcard(member_id=user_id, community=card_instance.community,
+                                                 card=card_instance)
+    # get tine stamp for card
+    time_text = get_time_text(card_instance.date_epoch)
+    card['created_at'] = time_text
+
+    if answer_id:
+        answer_id = int(answer_id)
+        answer = cardAnswers.objects.filter(card=card_instance, id__gte=answer_id).filter(~Q(user__id=user_id))
+        chatroom = get_answer_data(answer, feedback, card_instance.community.id,
+                                   current_user_id=user_id)
+    else:
+        answer_filter = cardAnswers.objects.filter(card=card_instance).order_by('-created_at')
+        answer_filter = pagination(answer_filter, page_number=page, paginate_by=15)
+        chatroom = get_answer_data(answer_filter, feedback, card_instance.community.id, current_user_id=user_id)
+
+    context = {'chat_room': card, 'conversations': chatroom}
+
+    return context
+
 
 
 def community_cards(request, community_id):
