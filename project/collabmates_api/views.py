@@ -8048,6 +8048,11 @@ def email_verify(request):
             context = get_error_context(False, "User does not exists")
             return HttpResponse(context)
 
+        info_logger.info("Email Verify")
+        info_logger.info(decoded_token)
+        info_logger.info(decoded_user)
+        info_logger.info("\n")
+
         instance_list = emailTokens.objects.filter(token=decoded_token,user=user_instance)
 
 
@@ -8092,4 +8097,4 @@ def email_verify(request):
 
 
 
-    return HttpResponse("Hit from browser")
+    return render(request, 'email_verify_landing.html', {'verification':False})
