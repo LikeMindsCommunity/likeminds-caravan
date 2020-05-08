@@ -338,3 +338,21 @@ def send_welcome_mail(user_id):
         return
 
 
+
+@shared_task
+def send_verification_mail_for_email_sync(user_name,verification_link,email):
+
+    '''function to send verification mail to user who wants email sync'''
+
+    subject = "Verify your email"
+    context = {
+                'user_name':user_name,
+                'verification_link':verification_link,
+                'android_app_download_link': android_app_download_link,
+                'ios_app_download_link': ios_app_download_link
+               }
+    template = get_template("mails/verify_email_template.html").render(context)
+    #print(context)
+
+    to = [email]
+    send_email(subject, template, to)
