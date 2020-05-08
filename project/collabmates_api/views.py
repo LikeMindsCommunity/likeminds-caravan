@@ -8055,6 +8055,10 @@ def email_verify(request):
             instance = instance_list[0]
             #print(instance)
 
+            context = {
+                'verification': True
+            }
+
             #if the link is verified
             if (current_time - instance.created_at) <= instance.expire_time:
 
@@ -8074,9 +8078,16 @@ def email_verify(request):
 
                 else:
                     user_email_list.update(user=user_instance,email_state=email_state,email=instance.email)
+                
+                if request.accepted_renderer.format == 'html':
+                    return render(request, 'email_verify_landing.html', context)
 
                 return HttpResponse("Verified")
             else:
+                context['verification'] = False
+                if request.accepted_renderer.format == 'html':
+                    return render(request, 'email_verify_landing.html', context)
+
                 return HttpResponse("Not verified")
 
 
