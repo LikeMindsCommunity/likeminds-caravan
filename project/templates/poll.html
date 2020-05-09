@@ -75,7 +75,11 @@
 
                     {% if poll.percentage > 0 %}
                         <div class="bgT o5 h4" style="width:{{ poll.percentage }}%"></div>
-                        <div class="c9b fs13 p120 pb20">{% widthratio collabcard.polls_count_percentage 1 poll.percentage %} votes</div>
+                        {% if poll.poll_count == 1 %}
+                            <div class="c9b fs13 p120 pb20 "> {{poll.poll_count}} vote</div>
+                        {% elif poll.poll_count > 1 %}
+                            <div class="c9b fs13 p120 pb20 ">{{poll.poll_count}} votes</div>
+                        {% endif %}
                     {% endif %}
                 </div>
             {% endfor %}
