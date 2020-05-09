@@ -4123,6 +4123,8 @@ def get_collabcard_details_for_web(request,card_instance,card,current_user_id,an
         if card['polls_count'] > 0:
             card['polls_count_percentage'] = card['polls_count']/100
 
+
+
         # set time
         # card['end_date'] = ConvertSectoDay(card['end_date']/1000.0)
 
@@ -5228,7 +5230,7 @@ def collabcard_follow(request, function_dict=None):
         member_id = function_dict['member_id']
         status = function_dict['status']
 
-        
+
 
     collabcard = Collabcard.objects.get(id=collabcard_id)
     community_instance = collabcard.community
