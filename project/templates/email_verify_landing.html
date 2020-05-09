@@ -1,138 +1,68 @@
-{% extends request.is_ajax|yesno:"layouts/ajax.html,layouts/layout.html" %}
-
-{% block yeild %}
-
-    <style>
-        .bgImg{
-            background: teal;
-            background-image: url("https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Fbackground_blur.jpg?alt=media&token=7e72f750-1f35-45f1-8846-0e228ccdecfd"); 
-            background-size: cover;
-            -webkit-transition: all 1s ease;
-            transition: all 1s ease;
-        }
-        .blur {-webkit-filter:blur(2px);filter:blur(2px)}
-        .mt56 { margin-top: 96px; }
-        @media only screen and (max-width: 720px) {
-            .mt56 { margin-top: 56px; }
-            .bgImg { 
-                background-image: url("https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Fbackground_mobile_blur.jpg?alt=media&token=3b384b9b-18e8-4436-b2c0-fa9141e868c0"); 
-            }
-            .logo {text-align: left;}
-        }
-    </style>
-
-    <div class="pF t0 b0 l0 r0 bgImg blur"></div>
-
-    {% include 'components/loader.html' %}
-    
-    <div class="h52 pF z1 t0 l0 r0 p16 bs cF taC logo">
-        <svg xmlns="http://www.w3.org/2000/svg" width="114" height="20" viewBox="0 0 114 20">
-            <path d="M11.646 19.09v-2.994H3.729V.994H0v18.097h11.646zm3.89-15.063c.605 0 1.092-.174 1.46-.522.37-.348.554-.795.554-1.342 0-.539-.183-.982-.547-1.33-.365-.348-.854-.522-1.467-.522-.621 0-1.112.174-1.473.522-.36.348-.54.791-.54 1.33 0 .547.184.994.553 1.342.369.348.855.522 1.46.522zm1.802 15.064V5.643h-3.604V19.09h3.604zm6.55 0v-4.102l1.293-1.292 3.455 5.394h4.127l-5.283-7.843 4.86-5.605h-4.313l-3.442 4.04-.697.894V0h-3.591v19.09h3.591zm16.195.248c1.12 0 2.138-.213 3.058-.64.92-.426 1.649-1.02 2.187-1.783l-1.764-1.976c-.78 1.002-1.86 1.504-3.244 1.504-.895 0-1.635-.266-2.219-.796-.584-.53-.934-1.235-1.05-2.113h8.563V12.07c0-2.13-.528-3.775-1.584-4.935-1.057-1.16-2.505-1.74-4.344-1.74-1.227 0-2.318.288-3.275.864-.957.576-1.697 1.396-2.219 2.46-.522 1.066-.783 2.273-.783 3.624v.348c0 2.013.62 3.625 1.858 4.835 1.239 1.21 2.844 1.814 4.816 1.814zm2.002-8.252h-4.997c.124-.895.408-1.583.851-2.064.444-.48 1.022-.72 1.734-.72.763 0 1.35.217 1.765.652.415.435.63 1.05.647 1.846v.286zM50.382 19.09v-7.929l-.125-7.967 6.712 15.897h1.18l6.737-15.959-.124 8.079v7.88h1.529V.994h-2.039l-6.699 15.972L50.88.994h-2.026v18.097h1.529zm21.08-16.343c.314 0 .565-.095.751-.286.187-.19.28-.427.28-.709 0-.281-.093-.52-.28-.714-.186-.195-.437-.292-.752-.292s-.563.097-.745.292c-.183.195-.274.433-.274.714 0 .282.091.518.274.709.182.19.43.286.745.286zm.733 16.344V5.643h-1.492V19.09h1.492zm5.518 0V9.88c.34-.978.864-1.755 1.572-2.33.709-.576 1.523-.864 2.443-.864 1.102 0 1.903.294 2.405.882.5.589.756 1.483.764 2.685v8.837h1.48v-8.825c-.01-1.624-.366-2.842-1.07-3.654-.704-.812-1.777-1.218-3.219-1.218-.911 0-1.744.218-2.498.653-.754.435-1.384 1.067-1.89 1.895l-.05-2.3h-1.416v13.449h1.48zm17.077.248c1.848 0 3.249-.679 4.201-2.038l.063 1.79h1.392V0h-1.48v7.544c-.952-1.433-2.336-2.15-4.15-2.15-1.6 0-2.866.62-3.798 1.858-.932 1.24-1.398 2.902-1.398 4.99v.175c0 2.12.474 3.805 1.423 5.052.949 1.247 2.198 1.87 3.747 1.87zm.274-1.292c-1.251 0-2.22-.495-2.908-1.485-.688-.99-1.032-2.343-1.032-4.058 0-1.915.348-3.362 1.044-4.344.696-.982 1.67-1.473 2.92-1.473 1.815 0 3.108.874 3.879 2.622v6.314c-.771 1.616-2.072 2.424-3.903 2.424zm13.883 1.292c1.475 0 2.67-.34 3.586-1.019.915-.68 1.373-1.586 1.373-2.722 0-.696-.157-1.288-.472-1.777-.315-.489-.798-.907-1.448-1.255-.65-.348-1.628-.676-2.933-.982-1.305-.307-2.204-.644-2.697-1.013-.493-.369-.74-.889-.74-1.56 0-.696.296-1.262.889-1.697.592-.435 1.377-.652 2.355-.652 1.003 0 1.833.26 2.492.783.659.522.988 1.177.988 1.964h1.492c0-1.193-.454-2.16-1.361-2.902-.908-.742-2.111-1.113-3.61-1.113-1.385 0-2.52.346-3.406 1.038-.887.692-1.33 1.568-1.33 2.629 0 .67.16 1.243.478 1.715.32.472.808.872 1.467 1.2.659.327 1.584.617 2.778.87 1.193.252 2.086.602 2.678 1.05.593.447.889 1.04.889 1.777 0 .696-.32 1.272-.957 1.728-.638.455-1.475.683-2.51.683-1.111 0-2.004-.242-2.68-.727-.675-.485-1.041-1.162-1.1-2.032h-1.49c0 1.16.486 2.12 1.46 2.877.973.758 2.243 1.137 3.81 1.137z"/>
-        </svg>
-    </div>
-    <div class="bs container ffR hp100 mA mxw1280 p16 pR taC">
-        <div class="br8 mA mt56 mxw640 wp100 mb106">
-            <div class="bg0o05 br8 p24 bs">
-                {% if verification %}
-                    <img src="https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Femail_success.png?alt=media&token=717d07a8-b237-4121-a944-ba01c4c64054" class="h78 w76 dIb vM mA" />
-                {% else %}
-                    <img src="https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Femail_expired.png?alt=media&token=9a35931d-949a-4a18-92cd-d6143f060d60" class="h78 w76 dIb vM mA" />
-                {% endif %}
-                <div class="cF fs24 fwB mt16 lh30">
-                    {% if verification %}
-                        Your email is verified successfully.
-                    {% else %}
-                        Email verification link has expired.
-                    {% endif %}
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+        <meta charset="UTF-8">
+    </head>
+    <body style="margin:0;padding:0;">
+        <div style="font-family:Roboto,Helvetica,Arial,sans-serif;text-align:center;margin:12px auto;">
+            <div style="width:98px;height:48px;margin:auto;overflow:visible;position:relative;z-index:1;">
+                <img src="https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Fmain_website%2Flogo.png?alt=media&token=2e66c0e5-35ef-4f94-ad2b-356c78eeaaba" style="width:98px;height:98px;" />
+            </div>
+            <div style="padding:24px;padding-top:72px;max-width:500px;margin:auto;background:#fff;border-radius:8px;border: 1px solid #eee;box-sizing:border-box;">
+                <div style="font-size:20px;color:#666;text-align:left;font-weight:bold;">
+                    Hello {{user_name}}!
                 </div>
-                <div class="cF fs15 lh20 mb24 mt8">
-                    {% if verification %}
-                        Check your account to see the newly added email ID.
-                    {% else %}
-                        Verification link expires in 24 hours once generated. Please login and resend the link.
-                    {% endif %}
+                <div style="margin-top:18px;font-size:16px;line-height:24px;color:#718297;text-align:left;">
+                    Thanks for registering a new email for your account on LikeMinds! You just need to confirm that this email belongs to you. Click below to verify your email address:
                 </div>
-                <button class="bd0 dIb vM h44 bg06C3AF br22 p036 bs cF fwM ls05 mA fs13" id="action_button">
-                    {% if verification %}
-                        GO TO MY ACCOUNT
-                    {% else %}
-                        LOGIN
-                    {% endif %}
-                </button>
+                <a href="{{verification_link}}" style="background:#00897b;height:44px;line-height:44px;width:162px;border-radius:22px;font-size:13px;line-height:44px;letter-spacing:0.5px;font-weight:bold;color:#fff;margin:48px auto;display:block;text-decoration:none;outline:none;">
+                    VERIFY EMAIL
+                </a>
+                <div style="text-align:left;">
+                    <div style="color:#718297;font-size:16px;">
+                        Regards
+                    </div>
+                    <div style="color:#666;font-size:16px;line-height:24px;font-weight:bold;">
+                        The LikeMinds Team
+                    </div>
+                </div>
+            </div>
+            <div style="margin:24px 0;">
+                <div style="margin-bottom:8px;font-size:14px;color:#718297;line-height:22px;">Never miss any conversation. Get the LikeMinds App.</div>
+                <a href="{{android_app_download_link}}" style="text-decoration:none;color:#000;display:inline-block;vertical-align:middle;padding:6px;box-sizing:border-box;">
+                    <img alt="Play Store" src="https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Fmain_website%2Fgoogle_playstore.png?alt=media&token=8cbff2b1-ef49-4dcf-9fd4-6666855d9b71" style="height:48px;display:inline-block;vertical-align:middle;" />
+                </a>
+                <a href="{{ios_app_download_link}}" style="text-decoration:none;color:#000;display:inline-block;vertical-align:middle;padding:6px;box-sizing:border-box;">
+                    <img alt="App Store" src="https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Fmain_website%2Fapple_store.png?alt=media&token=b1b62dfb-cde0-42c1-b801-5ed7fd0ca90b" style="height:48px;display:inline-block;vertical-align:middle;" />
+                </a>
+            </div>
+            <div style="background:#d8d8d8;height:1px;width:280px;margin:auto;"></div>
+            <div style="margin:24px 0;font-size:14px;color:#718297">
+                <div style="margin-bottom:8px;">
+                    <a href="https://likeminds.community/privacy" class="privacyLink" style="text-decoration:none;color:#718297;">
+                        Privacy Policy
+                    </a>  | 
+                    <a href="https://likeminds.community/terms" class="termsLink" style="text-decoration:none;color:#718297;">
+                        Terms & Condition
+                    </a>
+                </div>
+                <div style="margin-bottom:8px;">
+                    <div>© 2020 Collabmates Pvt. Ltd.</div>
+                    <div>All Rights Reserved.</div>
+                </div>
+                <div>Gurugram - India</div>
+            </div>
+            <div style="background:#d8d8d8;height:1px;width:280px;margin:auto;"></div>
+            <div style="margin:24px 0;">
+                <a href="{{angellist_link}}" style="padding-right:20px;text-decoration:none;">
+                    <img alt="Angellist" src="https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Fmain_website%2Fangellist.png?alt=media&token=8953ca15-9523-4a47-b665-48fd4a5cd2b6" style="width:14px;height:20px;display:inline-block;vertical-align:middle;"/>
+                </a>
+                <a href="{{linkedIn_link}}">
+                    <img alt="LinkedIn" src="https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Fmain_website%2Flinkedin.png?alt=media&token=e236c6b8-b8fa-4e15-8e76-99bde965749f" style="width:20px;height:20px;display:inline-block;vertical-align:middle;"/>
+                </a>
+
             </div>
         </div>
-    </div>
-
-    {% if verification %}
-    {% else %}
-        <div class="ui modal test w300">
-            <div class="h72 w72 brp50 bd2F bs bxs oH bgT mtn22 mA">
-                <img class="h72 ofC w72 mtn2 mln2" src="https://beta.likeminds.community/media/media/ic_launcher_round.png">
-            </div>
-            <div class="h18 mt12 taC">
-                <img class="h18 dIb vM" src="https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Flikeminds_logo_hdpi.png?alt=media&token=5f532ef2-20c6-4448-8efa-16e084494417"/>
-            </div>
-            <div class="p24 bs taC ffR">
-                <div class="w120 bdtE bs mA"></div>
-                <p class="c0 fs13 fwR lh22 ls05 mb10 mt12 p0">Login to continue</p>
-                <div class="p160 ls05">
-                    <div class="fs12 mb16">
-                        <div class="googleSignin p12 bs br20 bgF c79 ffR fwM bdE c79h dN" data-next="/">
-                            <i class="dIb fa fa-google fs15 lh16 vM"></i>
-                            <span  class="dIb lh16 pl12 vM">LOGIN WITH GOOGLE</span>
-                        </div>
-                    </div>
-                    <div class="fs12 mb16">
-                        <a class="linkedinSignin p12 bs dB br20 tdN bgLi cF ffR fwM cFh" data-next="/">
-                            <i class="dIb fa fa-linkedin fs15 lh16 vM"></i>
-                            <span  class="dIb lh16 pl12 vM">LOGIN WITH LINKEDIN</span>
-                        </a>
-                    </div>
-                    <div class="fs12">
-                        <a class="facebookSignin p12 bs dB br20 tdN bgFb cF ffR fwM cFh"  data-next="/">
-                            <i class="fa fa-facebook dIb fs15 lh16 vM" ></i>
-                            <span class="dIb lh16 pl12 vM">LOGIN WITH FACEBOOK</span>
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    {% endif %}
-
-    <div class="pF b0 l0 r0 bg0 fs15 z1 taC ffR">
-        <a href="/download_the_app" class="dB wp100 tdN p16 bs cF bdbE bs bdb3">Download the app</a>
-        <div class="p12 bs c9b">© 2020 LikeMinds</div>
-    </div>
-
-    <script>
-        $(document).ready(function(){
-            var bgImg = document.getElementsByClassName('bgImg')[0]; 
-            var img = new Image();
-            if (Math.max(document.documentElement.clientWidth, window.innerWidth) <= 1120){
-                img.src = "https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Fmobile_header?alt=media";
-            }else{
-                img.src = "https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Fmain_website%2Fheader_image?alt=media&token=e434abc7-81e0-426e-af49-b268caea0315";
-            }
-            img.onload = function(){
-                bgImg.style.backgroundImage = "url(" + this.src + ")";
-                bgImg.classList.remove('blur');
-            }
-            $('#action_button').click(function(){
-                {% if verification %}
-                    $(".ldrT", $('#loader')[0]).text("Taking you to your account...");
-                    $('#loader').show();
-                    window.location.href = "/"
-                {% else %}
-                    $('.test').modal('show');
-                {% endif %}
-            });
-        });
-    </script>
-
-    {% include 'scripts/google_auth.html' with client_id=google_oauth_client_id %}
-
-    {% include 'scripts/facebook_auth.html' with facebook_auth_id=facebook_auth_id%}
-
-    {% include 'scripts/linkedin_auth.html' with request=request %}
-
-{% endblock %}
+    </body>
+</html>
