@@ -8056,7 +8056,9 @@ def email_verify(request):
             #print(instance)
 
             context = {
-                'verification': True
+                'verification': True,
+                'google_oauth_client_id': settings.GOOGLE_OAUTH_CLIENT_ID,
+                'facebook_auth_id':settings.SOCIAL_AUTH_FACEBOOK_KEY
             }
 
             #if the link is verified
