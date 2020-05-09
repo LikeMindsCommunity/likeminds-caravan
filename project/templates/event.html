@@ -662,7 +662,7 @@
 
         $('#back_click').click(function(){
             {% if user.is_authenticated %}
-                window.open("/communities");
+                location.href = "/community/{{ community.id }}";
             {% else %}
                 $('.test').modal('show');
             {% endif %}
