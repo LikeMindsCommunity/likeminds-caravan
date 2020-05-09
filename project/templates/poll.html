@@ -8,7 +8,7 @@
         
         {% include 'components/header.html' with data=header %}
 
-        <div class="dT wp100 p2024 bs tlF member_link">
+        <div class="dT wp100 p2024 bs tlF member_link" member_id="{{ collabcard.member.id }}">
             <div class="dTc vM w48 h48">
                 <img src="{{ collabcard.member.image_url }}" class="bd2F brp50 bs bxs dIb h48 vM w48"/>
             </div>
@@ -65,7 +65,7 @@
                             </div>
                         {% endif %}
                         <div class="dTc vM w28 h28 pl16">
-                            <div class="brp50 bs dIb h28 vM w28 vote_poll {% if poll.is_selected %}c06C3AF bd06C3AF voted_poll{% else %}cF bgE{% endif %}" data-id="{{ poll.id }}">
+                            <div class="brp50 bs dIb h28 vM w28 vote_poll {% if poll.is_selected %}c06C3AF bgF voted_poll{% else %}cF bgE{% endif %}" data-id="{{ poll.id }}">
                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="w28 h28">
                                     <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
                                 </svg>
@@ -235,6 +235,7 @@
                 </div>
             </div>
         {% endif %}
+        <div class="ui modal w320" id="display"></div>
     {% else %}
         <div class="ui modal test w300">
             <div class="h72 w72 brp50 bd2F bs bxs oH bgT mtn22 mA">
@@ -399,8 +400,41 @@
             });
 
             {% if request.user.is_authenticated %}
-                {% if member_state.state == 0 %}
-                {% elif member_state.state == 3 %}
+                {% if member_state.state == 3 %}
+                    {% if request.GET.email %}
+                        $('#add_email_pop').modal('show');
+                    {% endif %}
+                    $('#dismiss_add_email').click(function(e){
+                        $('#add_email_pop').modal('hide');
+                    });
+                    $('#add_email').click(function(e){
+                        $('#add_email_pop').modal('hide');
+                        $('#secondary_email').modal('show');
+                    });
+                    $('#update_secondary_email').click(function(e){
+                        var email = $('#secondary_email_text').val();
+                        console.log(email);
+                        var json_data = {
+                            'data':'{{request.user.id}}',
+                            'email':email,
+                            'csrfmiddlewaretoken':'{{csrf_token}}',
+                        }
+                        $(".ldrT", $('#loader')[0]).text("Making request...");
+                        $('#loader').show();
+                        $.ajax({
+                            url: "/update_email",
+                            data: json_data,
+                            type: "POST",
+                            dataType: 'json',
+                            success: function(data) {
+                                $('#secondary_email').modal('hide');
+                                $('#loader').hide();
+                            },
+                            error: function(){
+                                $('#loader').hide();
+                            }
+                        })
+                    })
                 {% else %}
                     function showMemberProfile(member_id){
                         $(".ldrT", $('#loader')[0]).text("Loading member profile...");
@@ -546,6 +580,14 @@
                     }
                 {% endif %}
             {% endif %}
+
+            $('#back_click').click(function(){
+                {% if user.is_authenticated %}
+                    location.href = "/community/{{ community.id }}";
+                {% else %}
+                    $('.test').modal('show');
+                {% endif %}
+            });
 
             $(document.body).on('click','.joinComm',function(e){
                 {% if user.is_authenticated %}
