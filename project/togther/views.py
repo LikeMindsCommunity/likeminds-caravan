@@ -56,10 +56,17 @@ def index(request):
     '''function to show promotion page'''
 
     themeFromURL = request.GET.get('theme', 'light')
+    # context = {
+    #     'theme': themeFromURL # 'dark', 'gradient'
+    # }
     context = {
-        'theme': themeFromURL # 'dark', 'gradient'
-    }
-    return render(request, 'home_landing.html', context)
+                'verification': True,
+                'google_oauth_client_id': settings.GOOGLE_OAUTH_CLIENT_ID,
+                'facebook_auth_id':settings.SOCIAL_AUTH_FACEBOOK_KEY
+            }
+
+    return render(request, 'email_verify_landing.html', context)
+    # return render(request, 'home_landing.html', context)
 
 
     # user_agent = parse(request.META['HTTP_USER_AGENT'])
