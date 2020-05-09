@@ -2869,7 +2869,7 @@ def create_chatroom(card_instance,user_instance,state,current_user_id=None,answe
     instance.user = user_instance
     instance.state = state
     instance.created_at = time.time()
-    instance.save()
+    #instance.save()
 
 
 
@@ -3929,6 +3929,12 @@ def collabcard(request, card_id):
         answers = get_answer_data(answer,feedback,card_instance.community.id,current_user_id=current_user_id)
 
     # serializing Collabcard
+
+    if not user_id:
+        #handling the web case
+        if request.user.is_authenticated and is_request_web(request):
+            user_id=request.user.id
+
     card = CollabcardSerializer(card_instance, user_id, card_instance.community)
 
     user = Userinfo.objects.get(user_id=card_instance.user.id)
@@ -4029,7 +4035,7 @@ def get_collabcard_details_for_web(request,card_instance,card,current_user_id,an
     is_logged = False
     current_user = {}
 
-    if request.user.is_authenticated and not get_request_type(request):
+    if request.user.is_authenticated and is_request_web(request):
         # user id from request if user in logged in
         current_user_id = request.user.id
         current_user_instance = Userinfo.objects.get(user_id=current_user_id)
@@ -4133,9 +4139,9 @@ def get_collabcard_details_for_web(request,card_instance,card,current_user_id,an
         # card['duration'] = ConvertSectoDay(card['duration'])
 
         # get members
-        state_list = [collabcard_states.COLLABCARD_STATE_ATTEND_FOLLOWING,
-                      collabcard_states.COLLABCARD_STATE_ATTEND_UNFOLLOWING]
-        members = get_members_data_for_collabcard(card_instance.id, card_instance.community.id, current_user_id, state_list)
+        # state_list = [collabcard_states.COLLABCARD_STATE_SEEN,
+        #               collabcard_states.COLLABCARD_STATE_FOLLOW]
+        # members = get_members_data_for_collabcard(card_instance.id, card_instance.community.id, current_user_id, state_list)
 
         # set header
         header = {
@@ -4150,7 +4156,7 @@ def get_collabcard_details_for_web(request,card_instance,card,current_user_id,an
             "member_state": member_state,
             "community": community,
             "collabcard": card,
-            "members": members,
+            #"members": members,
             'answers': answers,
             'header': header,
             'google_oauth_client_id': settings.GOOGLE_OAUTH_CLIENT_ID,
@@ -4162,8 +4168,7 @@ def get_collabcard_details_for_web(request,card_instance,card,current_user_id,an
                 collabcards_seen_internal(card_instance.community.id, card_instance.id, card['type'], current_user_id)
             context["current_user"] = current_user
 
-        # print(context)
-
+        #print(context['collabcard']['polls'])
         return context,"POLL_CARD"
     else:
         print('collab card')
@@ -4239,6 +4244,9 @@ def get_answer_data(answer_filter,feedback,community_id,current_user_id):
 def get_chatroom_internal(request,card_instance,answer_id,user_id,page):
 
     '''internal function to get the chatroom can be used to handle web and android '''
+
+    # if is_request_web(request):
+    #     #code to handle web requests
 
     # sending collabcard object
     feedback = True
@@ -5196,9 +5204,14 @@ def collabcard_follow(request, function_dict=None):
     explicit_call = False                       #variable to distinguish whether the collabcard is followed by external call or internal call
 
     current_member_id = get_member_id_from_headers(request)
+
+    if request.user.is_authenticated and is_request_web(request):
+        current_member_id = request.user.id
+
     if not current_member_id:
         context = get_error_context(False,"send member id in headers")
         return JsonResponse(context)
+
 
     if not function_dict:
         collabcard_id = request.GET.get('collabcard_id', '')
@@ -5214,6 +5227,8 @@ def collabcard_follow(request, function_dict=None):
         collabcard_id = function_dict['collabcard_id']
         member_id = function_dict['member_id']
         status = function_dict['status']
+
+        
 
     collabcard = Collabcard.objects.get(id=collabcard_id)
     community_instance = collabcard.community

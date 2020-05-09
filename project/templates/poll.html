@@ -17,9 +17,9 @@
                 <div class="fs12 c9">{{ collabcard.created_at }}</div>
             </div>
             <div class="dTc vM c0 w24">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="w24 h24">
-                    <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
-                </svg>
+<!--                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="w24 h24">-->
+<!--                    <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>-->
+<!--                </svg>-->
             </div>
         </div>
         <div class="p024 dT wp100 fs13">
@@ -35,7 +35,11 @@
         <div class="c4a ffR fs24 fwL lh36 p1624">
             {{collabcard.title}}
         </div>
-        <div class="p024 bs fs16 lh24 c9 fwL">*Select exactly {{collabcard.multiple_select_no}} options.</div>
+        {% if collabcard.multiple_select_no == 1 %}
+            <div class="p024 bs fs16 lh24 c9 fwL">*Select exactly {{collabcard.multiple_select_no}} option.</div>
+        {% else %}
+            <div class="p024 bs fs16 lh24 c9 fwL">*Select exactly {{collabcard.multiple_select_no}} options.</div>
+        {% endif %}
         <div class="p24">
             {% for poll in collabcard.polls %}
                 <div class="pR mb10 poll_container">
@@ -68,6 +72,7 @@
                             </div>
                         </div>
                     </div>
+
                     {% if poll.percentage > 0 %}
                         <div class="bgT o5 h4" style="width:{{ poll.percentage }}%"></div>
                         <div class="c9b fs13 p120 pb20">{% widthratio collabcard.polls_count_percentage 1 poll.percentage %} votes</div>
@@ -615,6 +620,7 @@
                         $('#add_email_pop').modal('show');
                     {% else %}
                         var status = $(this).attr('data-status');
+                        console.log(status)
                         $(".ldrT", $('#loader')[0]).text(`Requesting to ${status == 'true' ? '' : 'un'}follow poll...`);
                         $('#loader').show();
                         $.ajax({
@@ -623,6 +629,7 @@
                             type: "GET",
                             dataType: 'json',
                             success: function(data) {
+
                                 if(status == 'true'){
                                     $('#follow_poll').attr('data-status', 'false').removeClass('bd06C3AF c06C3AF').addClass('bdE cB');
                                 }else{
