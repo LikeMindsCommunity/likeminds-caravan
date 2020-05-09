@@ -38,6 +38,9 @@ community_default_thumbnail = "https://firebasestorage.googleapis.com/v0/b/colla
 
 community_default_image_round = "https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Fmain_website%2Fgeneric_community_banner.png?alt=media&token=044d32ff-3da7-4d8d-9c83-d3c486b61f7a"
 
+angellist_link = "https://angel.co/company/likeminds-6"
+linkedIn_link = "https://www.linkedin.com/company/collabmates/about/"
+
 url=settings.URL
 
 if settings.IS_BETA:
