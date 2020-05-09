@@ -11,7 +11,7 @@ from togther.models import *
 from project.celery import app
 from utility.tasks import send_email
 from utility.utils import (android_app_download_link, ios_app_download_link,
-                           is_LG_or_LP_community, is_IG_community)
+                           is_LG_or_LP_community, is_IG_community,angellist_link,linkedIn_link)
 from django.http import JsonResponse
 
 url  = settings.URL
@@ -349,7 +349,9 @@ def send_verification_mail_for_email_sync(user_name,verification_link,email):
                 'user_name':user_name,
                 'verification_link':verification_link,
                 'android_app_download_link': android_app_download_link,
-                'ios_app_download_link': ios_app_download_link
+                'ios_app_download_link': ios_app_download_link,
+                'linkedIn_link': linkedIn_link,
+                'angellist_link': angellist_link
                }
     template = get_template("mails/verify_email_template.html").render(context)
     #print(context)

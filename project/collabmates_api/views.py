@@ -33,7 +33,7 @@ from utility.celery_tasks import (save_community_purpose_card,
                                   )
 from utility.firebase import update_last_answer_id, upload_image_to_firebase, upload_community_thumbnail, \
     upload_community_files
-from utility.states import collabcard_states, member_states, question_states,community_states,deleted_members,card_types,chatroom_states
+from utility.states import collabcard_states, member_states, question_states,community_states,deleted_members,card_types,chatroom_states,email_states
 
 from utility.tasks import (mail_triger, new_member_request,
                            member_request_approval_or_denied,
@@ -2869,7 +2869,7 @@ def create_chatroom(card_instance,user_instance,state,current_user_id=None,answe
     instance.user = user_instance
     instance.state = state
     instance.created_at = time.time()
-    instance.save()
+    #instance.save()
 
 
 
@@ -3929,6 +3929,12 @@ def collabcard(request, card_id):
         answers = get_answer_data(answer,feedback,card_instance.community.id,current_user_id=current_user_id)
 
     # serializing Collabcard
+
+    if not user_id:
+        #handling the web case
+        if request.user.is_authenticated and is_request_web(request):
+            user_id=request.user.id
+
     card = CollabcardSerializer(card_instance, user_id, card_instance.community)
 
     user = Userinfo.objects.get(user_id=card_instance.user.id)
@@ -4029,7 +4035,7 @@ def get_collabcard_details_for_web(request,card_instance,card,current_user_id,an
     is_logged = False
     current_user = {}
 
-    if request.user.is_authenticated and not get_request_type(request):
+    if request.user.is_authenticated and is_request_web(request):
         # user id from request if user in logged in
         current_user_id = request.user.id
         current_user_instance = Userinfo.objects.get(user_id=current_user_id)
@@ -4133,9 +4139,9 @@ def get_collabcard_details_for_web(request,card_instance,card,current_user_id,an
         # card['duration'] = ConvertSectoDay(card['duration'])
 
         # get members
-        state_list = [collabcard_states.COLLABCARD_STATE_ATTEND_FOLLOWING,
-                      collabcard_states.COLLABCARD_STATE_ATTEND_UNFOLLOWING]
-        members = get_members_data_for_collabcard(card_instance.id, card_instance.community.id, current_user_id, state_list)
+        # state_list = [collabcard_states.COLLABCARD_STATE_SEEN,
+        #               collabcard_states.COLLABCARD_STATE_FOLLOW]
+        # members = get_members_data_for_collabcard(card_instance.id, card_instance.community.id, current_user_id, state_list)
 
         # set header
         header = {
@@ -4150,7 +4156,7 @@ def get_collabcard_details_for_web(request,card_instance,card,current_user_id,an
             "member_state": member_state,
             "community": community,
             "collabcard": card,
-            "members": members,
+            #"members": members,
             'answers': answers,
             'header': header,
             'google_oauth_client_id': settings.GOOGLE_OAUTH_CLIENT_ID,
@@ -4162,8 +4168,7 @@ def get_collabcard_details_for_web(request,card_instance,card,current_user_id,an
                 collabcards_seen_internal(card_instance.community.id, card_instance.id, card['type'], current_user_id)
             context["current_user"] = current_user
 
-        # print(context)
-
+        #print(context['collabcard']['polls'])
         return context,"POLL_CARD"
     else:
         print('collab card')
@@ -4239,6 +4244,9 @@ def get_answer_data(answer_filter,feedback,community_id,current_user_id):
 def get_chatroom_internal(request,card_instance,answer_id,user_id,page):
 
     '''internal function to get the chatroom can be used to handle web and android '''
+
+    # if is_request_web(request):
+    #     #code to handle web requests
 
     # sending collabcard object
     feedback = True
@@ -5196,9 +5204,14 @@ def collabcard_follow(request, function_dict=None):
     explicit_call = False                       #variable to distinguish whether the collabcard is followed by external call or internal call
 
     current_member_id = get_member_id_from_headers(request)
+
+    if request.user.is_authenticated and is_request_web(request):
+        current_member_id = request.user.id
+
     if not current_member_id:
         context = get_error_context(False,"send member id in headers")
         return JsonResponse(context)
+
 
     if not function_dict:
         collabcard_id = request.GET.get('collabcard_id', '')
@@ -5214,6 +5227,8 @@ def collabcard_follow(request, function_dict=None):
         collabcard_id = function_dict['collabcard_id']
         member_id = function_dict['member_id']
         status = function_dict['status']
+
+        
 
     collabcard = Collabcard.objects.get(id=collabcard_id)
     community_instance = collabcard.community
@@ -8048,6 +8063,11 @@ def email_verify(request):
             context = get_error_context(False, "User does not exists")
             return HttpResponse(context)
 
+        info_logger.info("Email Verify")
+        info_logger.info(decoded_token)
+        info_logger.info(decoded_user)
+        info_logger.info("\n")
+
         instance_list = emailTokens.objects.filter(token=decoded_token,user=user_instance)
 
 
@@ -8081,17 +8101,17 @@ def email_verify(request):
                 else:
                     user_email_list.update(user=user_instance,email_state=email_state,email=instance.email)
                 
-                if request.accepted_renderer.format == 'html':
-                    return render(request, 'email_verify_landing.html', context)
 
-                return HttpResponse("Verified")
+                return render(request, 'email_verify_landing.html', context)
+
+
             else:
                 context['verification'] = False
-                if request.accepted_renderer.format == 'html':
-                    return render(request, 'email_verify_landing.html', context)
 
-                return HttpResponse("Not verified")
+                return render(request, 'email_verify_landing.html', context)
 
 
 
-    return HttpResponse("Hit from browser")
+
+
+    return render(request, 'email_verify_landing.html', {'verification':False})
