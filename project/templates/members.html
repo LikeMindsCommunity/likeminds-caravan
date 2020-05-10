@@ -53,13 +53,13 @@
                             </div>
                         </div>
                         <div class="fs12 mb16">
-                            <a class="p12 bs dB br20 tdN bgFb cF ffR fwM cFh" href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}">
+                            <a class="linkedinSignin p12 bs dB br20 tdN bgFb cF ffR fwM cFh" data-next="{{ request.path }}">
                                 <i class="dIb fa fa-linkedin fs15 lh16 vM"></i>
                                 <span  class="dIb lh16 pl12 vM">LOGIN WITH LINKEDIN</span>
                             </a>
                         </div>
                         <div class="fs12">
-                            <a class="p12 bs dB br20 tdN bgFb cF ffR fwM cFh" href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}">
+                            <a class="facebookSignin p12 bs dB br20 tdN bgFb cF ffR fwM cFh" data-next="{{ request.path }}">
                                 <i class="fa fa-facebook dIb fs15 lh16 vM"></i>
                                 <span class="dIb lh16 pl12 vM">LOGIN WITH FACEBOOK</span>
                             </a>
@@ -336,7 +336,7 @@
                                 <img class="wp100 ofC h96" src="https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Fprofile_header?alt=media&token=fa838851-244c-4cbc-81da-3d2125536e18">
                             </div>
                             <div class="h2"></div>
-                            <p class="p0 m0 taC fwM fs16 c0 lh20">${data['member_name']}</p>
+                            <p class="p012 bs m0 taC fwM fs16 c0 lh20 wbBa wp100">${data['member_name']}</p>
                         </div>
                         <div class="p18 bs">
                     `;
@@ -359,7 +359,7 @@
                             segment = `
                                     <div class="dT mb10 tlF wp100">
                                         <div class="dTc h24 vM w24 taC"><img class="dIb mxh24 mxw24 vM" src="/media/main_website/ic_email_48_px.png" /></div>
-                                        <div class="c9b dTc fs13 vM lh1h16 p08 bs">
+                                        <div class="c9b dTc fs13 vM lh1h16 p08 bs wbBa">
                             `;
                                             $.each( value, function( index2, value2 ){
                                                 segment = segment + value2.answer;
@@ -376,7 +376,7 @@
                             segment = `
                                     <div class="dT mb10 tlF wp100">
                                         <div class="dTc h24 vM w24 taC"><img class="dIb mxh24 mxw24 vM" src="/media/main_website/mobile_alt.png"/></div>
-                                        <div class="c9b dTc fs13 vM lh1h16 p08 bs">
+                                        <div class="c9b dTc fs13 vM lh1h16 p08 bs wbBa">
                             `;
                                             $.each( value, function( index2, value2 ){
                                                 segment = segment + value2.answer;
@@ -393,7 +393,7 @@
                             segment = `
                                     <div class="dT mb10 tlF wp100">
                                         <div class="dTc h24 vM w24 taC"><img class="dIb mxh24 mxw24 vM" src="/media/main_website/link.png"/></div>
-                                        <div class="c9b dTc fs13 vM lh1h16 p08 bs">
+                                        <div class="c9b dTc fs13 vM lh1h16 p08 bs wbBa">
                             `;
                                             $.each( value, function( index2, value2 ){
                                                 segment = segment + `<a class="cT tdN" href="//${value2['profile_link']}">${value2['answer']}</a>`;
@@ -409,7 +409,7 @@
                         }else if(index == 4){
                             segment = ''
                             $.each( value, function( index2, value2 ){
-                                segment = segment + `<p class="c4a fs15 lh24 m160">${value2['answer']}</p>`;
+                                segment = segment + `<p class="c4a fs15 lh24 m160 wbBa wp100">${value2['answer']}</p>`;
                                 if ( index2 != value.length - 1 ) {
                                     segment = segment + ', ';
                                 }
@@ -419,7 +419,7 @@
                             segment = ''
                             $.each( value, function( index2, value2 ){
                                 segment = segment + `
-                                    <a class="cT dB m160 tdN" href="//${value2['file_link']}">
+                                    <a class="cT dB m160 tdN wbBa" href="//${value2['file_link']}">
                                         ${value2['answer']}
                                     </a>
                                 `;
@@ -431,7 +431,7 @@
                         }else{
                             segment = ''
                             $.each( value, function( index2, value2 ){
-                                segment = segment + `<p class="c9b fs15 lh24 m160 m80 ">${value2['answer']}</p>`;
+                                segment = segment + `<p class="c9b fs15 lh24 m160 m80 wbBa wp100">${value2['answer']}</p>`;
                                 
                             });
                             html = html + segment
@@ -448,6 +448,9 @@
         }
     </script>
     {% include 'scripts/google_auth.html' with client_id=google_oauth_client_id  %}
+    {% include 'scripts/facebook_auth.html' with facebook_auth_id=facebook_auth_id %}
+    {% include 'scripts/linkedin_auth.html' with request=request %}
+
 {% endblock %}
 
 

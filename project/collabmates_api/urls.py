@@ -32,7 +32,9 @@ urlpatterns = [
     path('members/<int:community_id>', api_views.members, name="members"),
     path('ask_approval', api_views.ask_approval, name="ask_approval"),
     path('create_collabcard', api_views.create_card, name="create_card"),
+
     path('collabcard/<int:card_id>', api_views.collabcard, name="collabcard"),
+    path('get_chatroom/<int:card_id>', api_views.get_chatroom, name="get_chatroom"),
 
     path('community_collabcard/<int:community_id>', api_views.community_cards, name="community_cards"),
     path('community_collabcard_invite/<int:community_id>', api_views.community_collabcard_invite, name="community_collabcard_invite"),
@@ -95,6 +97,11 @@ urlpatterns = [
 
     path('fetch_filters', api_views.fetch_filters, name='fetch_filters'),
     path('push_email', api_views.push_email, name='push_email'),
+
+
+    #email verify
+    path('email_verify', api_views.email_verify, name='email_verify'),
+    path('sync_email', api_views.sync_email, name='sync_email')
 
 ]
 

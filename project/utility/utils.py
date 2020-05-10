@@ -38,6 +38,9 @@ community_default_thumbnail = "https://firebasestorage.googleapis.com/v0/b/colla
 
 community_default_image_round = "https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Fmain_website%2Fgeneric_community_banner.png?alt=media&token=044d32ff-3da7-4d8d-9c83-d3c486b61f7a"
 
+angellist_link = "https://angel.co/company/likeminds-6"
+linkedIn_link = "https://www.linkedin.com/company/collabmates/about/"
+
 url=settings.URL
 
 if settings.IS_BETA:
@@ -966,4 +969,15 @@ def is_legacy_home_town(communities_legacy):
     return False
 
 
+def get_user_communities_by_rank_web(request):
+    ''' function to get communities based on rank '''
+    communities_list = []
+    communities = Community_Rank.objects.filter(member_id=request.user).order_by('-weight').values_list('community_id',
+                                                                                                        flat=True).distinct()
+    for community in communities:
+        comm = Community.objects.get(pk=community)
+        # check if community is hidden or not
+        if comm.hide_community == '0' or comm.hide_community == '3' or comm.hide_community == '4':
+            communities_list.append(comm)
+    return communities_list
 

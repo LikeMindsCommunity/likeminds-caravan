@@ -1,6 +1,6 @@
 import enum
 
-# collabcard types
+# collabcard stats
 class CollabcardTypes:
     CARD_NORMAL = 0
     CARD_INTRO = 1
@@ -11,7 +11,7 @@ class CollabcardTypes:
     CARD_PURPOSE = 7
 
 card_types = CollabcardTypes()
-# collabcard states
+
 class CollabcardStates:
     COLLABCARD_STATE_SEEN = 1
     COLLABCARD_STATE_FOLLOW = 2
@@ -23,6 +23,23 @@ class CollabcardStates:
 
 collabcard_states = CollabcardStates()
 
+
+
+class ChatroomStates:
+    ANSWER = 0
+    CHATROOM_HEADER = 1
+    CHATROOM_FOLLOW = 2
+    CHATROOM_UNFOLLOW = 3
+    CHATROOM_CREATER = 4
+
+chatroom_states = ChatroomStates()
+
+class MultipleSelectPoll:
+    #class to save states of multiple select poll
+    EXACTLY = 0
+    AT_MOST = 1
+
+multiple_select_poll = MultipleSelectPoll()
 
 # member state
 class MemberStates:
@@ -114,3 +131,11 @@ class CommunityStates:
     WHATSAPP = 5
 
 community_states = CommunityStates()
+
+
+class EmailStates:
+
+    NON_PRIMARY = 0
+    PRIMARY = 1
+
+email_states = EmailStates()

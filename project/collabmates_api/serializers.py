@@ -154,7 +154,7 @@ def CollabcardSerializer(card,user,community=None):
     #for poll card
     if card.type == card_types.CARD_POLL:
         polls = []
-        cardPolls = CollabcardPolls.objects.filter(card=card)
+        cardPolls = CollabcardPolls.objects.filter(card=card).order_by('id')
         for poll in cardPolls:
             polls.append(CollabcardPollsSerializer(poll, user, card))
 
@@ -162,9 +162,10 @@ def CollabcardSerializer(card,user,community=None):
 
         collabcard['multiple_select'] = card.multiple_select
         collabcard['multiple_select_no'] = card.multiple_select_no
+        collabcard['multiple_select_state'] = card.multiple_select_state
 
     #for event card
-    if card.type == card_types.CARD_EVENT or card.type == card_types.CARD_PUBLIC_EVENT:
+    if card.type == card_types.CARD_EVENT or card.type == card_types.CARD_PUBLIC_EVENT or card.type == card_types.CARD_POLL:
         if card.location:
             collabcard['location'] = card.location
 
@@ -216,7 +217,7 @@ def CollabcardSerializer(card,user,community=None):
 
 def CollabcardPollsSerializer(poll, user, card):
     """ Poll serializer """
-
+    #print("user--",user)
     polls = {
         'id': poll.id,
         'text': poll.text,
@@ -229,8 +230,12 @@ def CollabcardPollsSerializer(poll, user, card):
     if poll.image_url:
         polls['image_url'] = poll.image_url
 
+
     if card.date_time // 1000 <= time.time():
-        polls['percentage'] = int(poll_percentage(card, poll))
+        poll_detail = poll_percentage(card, poll)
+
+        polls['poll_count'] = poll_detail[0]
+        polls['percentage'] = int(poll_detail[1])
 
     return polls
 
@@ -248,8 +253,8 @@ def poll_percentage(card, poll):
     total_polls = total_polls.count()
 
     if total_polls == 0:
-        return 0
-    return selected_polls/total_polls * 100
+        return 0,0
+    return selected_polls,selected_polls/total_polls * 100
 
 
 def get_member_count(community):
@@ -273,7 +278,7 @@ def get_members_profile(member_ids,community_id,current_user_id=None):
                                                    current_user_id=current_user_id)
 
             if form_response:
-                userinfo_serialized_object['response'] = form_response[0]
+                #userinfo_serialized_object['response'] = form_response[0]
                 userinfo_serialized_object['question_answers'] = form_response[1]
 
             member_profile_list.append(userinfo_serialized_object)

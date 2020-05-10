@@ -6,8 +6,8 @@ urlpatterns = [
     path('signup/', views.signup, name="signup"),
     path('privacy/', views.privacy, name="privacy"),
     path('terms/', views.terms, name="terms"),
-    path('communities/', views.dashboard, name="dashboard"),
-    path('community/<int:community_id>', views.community, name="comunity"),
+    # path('communities/', views.dashboard, name="dashboard"),
+    path('community/<int:community_id>', views.community, name="community"),
     path('logout',views.logout_view, name = "logout_view"),
     path('thankyou', views.thankyou, name="thankyou"),
     # path('collabcard/<int:card_id>', views.collabcard, name="card"),
@@ -29,6 +29,7 @@ urlpatterns = [
     path('members_directory/<int:community_id>', views.members_directory, name='members_directory'),
     path('member_profile', views.member_profile, name='member_profile'),
     path('update_email', views.update_email, name='update_email'),
+    path('oauth/complete/linkedin-oauth2', views.linked_in_authentication, name='linked_in_authentication'),
     path('', include('collabmates_api.urls', namespace='api')),
 
 ]

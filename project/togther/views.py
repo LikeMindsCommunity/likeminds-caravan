@@ -32,6 +32,7 @@ import time
 import logging
 from utility.states import collabcard_states, member_states, question_states
 import ast
+from django.contrib.auth import login
 
 
 url = settings.URL
@@ -40,11 +41,11 @@ if not url and settings.IS_BETA:
     url = "https://beta.likeminds.community"
 
 if not url and not settings.IS_BETA:
-    url = "https://www.collabmates.com"
+    url = "https://www.likeminds.community"
 
 # uncomment to run it in localhost
 #
-# url='http://localhost:8000'
+#url='http://localhost:8000'
 
 api_url = url + '/api/'
 error_logger = logging.getLogger("error_logger")
@@ -53,15 +54,23 @@ info_logger = logging.getLogger("info_logger")
 
 def index(request):
     '''function to show promotion page'''
-    user_agent = parse(request.META['HTTP_USER_AGENT'])
-    os_type = user_agent.os.family
 
-    if os_type == "Android":
-        return render(request, 'mobile.html', {'is_beta': settings.IS_BETA})
-    elif os_type == "iOS":
-        return render(request, 'mobile.html', {'is_beta': settings.IS_BETA})
-    else:
-        return render(request, 'index.html', {'is_beta': settings.IS_BETA})
+    themeFromURL = request.GET.get('theme', 'light')
+    context = {
+        'theme': themeFromURL # 'dark', 'gradient'
+    }
+    return render(request, 'home_landing.html', context)
+
+
+    # user_agent = parse(request.META['HTTP_USER_AGENT'])
+    # os_type = user_agent.os.family
+
+    # if os_type == "Android":
+    #     return render(request, 'mobile.html', {'is_beta': settings.IS_BETA})
+    # elif os_type == "iOS":
+    #     return render(request, 'mobile.html', {'is_beta': settings.IS_BETA})
+    # else:
+    #     return render(request, 'index.html', {'is_beta': settings.IS_BETA})
 
 
 def download_the_app(request):
@@ -246,6 +255,7 @@ def community(request, community_id):
             if member_state == 0 or member_state == 5:
                 context = get_join_community_context(request, ref_id, aj, validation_error, user, data, community, filled_answers)
                 context['google_oauth_client_id'] = settings.GOOGLE_OAUTH_CLIENT_ID
+                context['facebook_auth_id'] = settings.SOCIAL_AUTH_FACEBOOK_KEY
                 return render(request, 'response_form.html', context)
 
         else:
@@ -297,14 +307,20 @@ def community(request, community_id):
                                 'validation_error': validation_error,
                                 'filled_answers': filled_answers,
                                 'aj':aj,'header_showcase':header_showcase,
-                                'google_oauth_client_id': settings.GOOGLE_OAUTH_CLIENT_ID}
+                                'google_oauth_client_id': settings.GOOGLE_OAUTH_CLIENT_ID,
+                                'facebook_auth_id': settings.SOCIAL_AUTH_FACEBOOK_KEY
+
+                               }
                     #print(context)
                     return render(request, 'response_form.html', context)
                 else:
                     isFromEvent = request.GET.get('event', '')
-                    # if from event page and already a member redirect to event page
+                    isFromPoll = request.GET.get('poll', '')
+                    # if from event/poll page and already a member redirect to event/poll page
                     if isFromEvent:
                         return redirect("/collabcard/"+isFromEvent+"?email=true")
+                    elif isFromPoll:
+                        return redirect("/collabcard/"+isFromPoll+"?email=true")
                     else:
                         pass
             else:
@@ -456,7 +472,8 @@ def community(request, community_id):
                'is_member':is_member,
                'community_id':community.id,
                'user_email' : request.user.userinfo.email if request.user.is_authenticated else '',
-               'google_oauth_client_id': settings.GOOGLE_OAUTH_CLIENT_ID 
+               'google_oauth_client_id': settings.GOOGLE_OAUTH_CLIENT_ID,
+               'facebook_auth_id':settings.SOCIAL_AUTH_FACEBOOK_KEY
                }
     # user_email = True
     return render(request, 'community.html', context)
@@ -892,7 +909,8 @@ def members_directory(request, community_id):
         'filter_list':filters,
         'member_state':member_state,
         'selected':selected,
-        'google_oauth_client_id': settings.GOOGLE_OAUTH_CLIENT_ID
+        'google_oauth_client_id': settings.GOOGLE_OAUTH_CLIENT_ID,
+        'facebook_auth_id':settings.SOCIAL_AUTH_FACEBOOK_KEY
     }
 
     return render(request, 'members.html', context)
@@ -1222,7 +1240,7 @@ def accept_admin(request, community_id):
 @login_required
 def logout_view(request):
     logout(request)
-    return redirect('signup')
+    return redirect('communities')
 
 
 def join_community(request, community_id, ref_id, aj=False, member_state=None):
@@ -1464,11 +1482,27 @@ def send_email(email):
 
 
 def privacy(request):
-    return render(request, 'privacy.html')
+    header = {
+        'back': True,
+        'title': "Privacy Policy",
+        'backLink': "/",
+        'subTitle': False,
+        'background': '0',
+        'color': 'F'
+    }
+    return render(request, 'privacy.html', {'header': header})
 
 
 def terms(request):
-    return render(request, 'terms.html')
+    header = {
+        'back': True,
+        'title': "Terms",
+        'backLink': "/",
+        'subTitle': False,
+        'background': '0',
+        'color': 'F'
+    }
+    return render(request, 'terms.html', {'header': header})
 
 
 def collabcard(request, card_id):
@@ -2394,3 +2428,57 @@ def alpha_page(request):
 
 
 
+def linked_in_authentication(request):
+
+    code = request.GET.get('code',None)
+    state = request.GET.get('state')
+    if not code:
+        return HttpResponse("unable to login try again")
+    redirect_url = url + state
+
+    link="https://www.linkedin.com/oauth/v2/accessToken"
+    redirect_uri = url+"/oauth/complete/linkedin-oauth2/"
+    params={
+      'client_id':settings.SOCIAL_AUTH_LINKEDIN_OAUTH2_KEY,
+      'client_secret': settings.SOCIAL_AUTH_LINKEDIN_OAUTH2_SECRET,
+      'grant_type':'authorization_code',
+      'redirect_uri':redirect_uri,
+      'code':code
+
+    }
+    ans=rqst.post(link, params=params)
+    response = ans.json()
+    token = response['access_token']
+    #print(token)
+
+    #print(dis.json())
+
+    #getting the user data
+    user_url = 'https://api.linkedin.com/v2/me?projection=(id,firstName,emailAddress,lastName,vanityName,headline,interests,location,picture-url,name,profilePicture(displayImage~:playableStreams))&oauth2_access_token=' + \
+          response['access_token']
+    email_url = 'https://api.linkedin.com/v2/emailAddress?q=members&projection=(elements*(handle~))&oauth2_access_token=' + \
+                response['access_token']
+    resp = rqst.get(user_url)
+    # getting public details of user from Linked In
+    data_main = json.loads(resp.text)
+    resp = rqst.get(email_url)
+    email_data = json.loads(resp.text)
+
+    data_main['email'] = email_data
+    login_url = url + "/api/v1/login"
+    response = rqst.post(login_url,json={"type": "linkedIn", "login_json": data_main})
+    print("1",request.user.is_authenticated)
+    login_response = response.json()
+    if 'user' in login_response:
+        user = User.objects.get(id=login_response['user']['id'])
+        login(request, user=user, backend="django.contrib.auth.backends.ModelBackend")
+    # context = {'b': data_main}
+    #
+    # data_main = urlencode(context)
+    #
+    # #print(ans)
+    # #print(data_main)
+    # #data_main = quote(data_main,encoding='utf-8')
+    # redirect_url = redirect_url + "?json="+str(data_main)
+    print("2", request.user.is_authenticated)
+    return redirect(redirect_url)

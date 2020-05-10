@@ -45,11 +45,12 @@
         <link href="https://fonts.googleapis.com/css?family=Roboto:400,500,500i,700&display=swap" rel="stylesheet">
     </head>
     <body class="bgBg">
+
         {% include 'components/loader.html' %}
         <!-- Google Tag Manager (noscript) -->
         <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-KSF3G6T" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         <!-- End Google Tag Manager (noscript) -->
-    
+
         <!-- email popup -->
         <div class="ui modal" id="email_login">
             <div class="header">Please provide your email id in order to continue</div>
@@ -132,8 +133,8 @@
                                             <img class="wp100 ofC h96" src="https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Fprofile_header?alt=media">
                                         </div>
                                         <div class="h2"></div>
-                                        <p class="p0 m0 taC fwM fs16 c0 lh20">{{admin.name}}</p>
-                                        <p class="p0 m0 p18 pt28 fs15 c6 lh24 taC">{{admin.introduction_answer}}</p>
+                                        <p class="p012 bs m0 taC fwM fs16 c0 lh20 wbBa wp100">{{admin.name}}</p>
+                                        <p class="p0 m0 p18 pt28 fs15 c6 lh24 taC wbBa wp100">{{admin.introduction_answer}}</p>
                                     </div>
                                 </div>
                             {% endfor %}
@@ -169,7 +170,7 @@
 
                 </div>
             {% endif %}
-            
+
             <div class="h60"></div>
             <!-- Displaying Buttons -->
             <div class="taC pF b0 l0 r0 h60 bdtE bgBg z1">
@@ -224,66 +225,7 @@
             </div>
         </div>
 
-        <!-- login model for non exclusive communities -->
-        <div class="ui modal test w300">
-            <div class="h72 w72 brp50 bd2F bs bxs oH bgT mtn22 mA">
-                <img class="h86 w86 mtn8 mln8 ofC" src="https://beta.likeminds.community/media/media/ic_launcher_round.png">
-            </div>
-            <div class="p24 bs taC ffR">
-                <p class="p0 fs17 lh22 c0 mb10 fwM">Login to continue</p>
-                <p class="p0 fs15 lh22 c9 mb16">To join this community we need few basic information about you. This will help us to have relevant member in group.</p>
-                <div class="p160 ls05">
-                    <div class="fs12 mb16">
-                        {% if ref_id != '' %}
-                            <div class="googleSignin p12 bs br20 bgF c79 ffR fwM bdE c79h dN" data-next="{{ request.path }}?cta=join-ref_id-{{ref_id}}">
-                        {% elif aj  %}
-                            <div class="googleSignin p12 bs br20 bgF c79 ffR fwM bdE c79h dN" data-next="{{ request.path }}?cta=join-aj-{{aj}}">
-                        {% elif cta == 'share' %}
-                            <div class="googleSignin p12 bs br20 bgF c79 ffR fwM bdE c79h dN" data-next="{{ request.path }}?cta=join">
-                        {% elif cta != '' %}
-                            <div class="googleSignin p12 bs br20 bgF c79 ffR fwM bdE c79h dN" data-next="{{ request.path }}?cta={{cta}}">
-                        {% else %}
-                            <div class="googleSignin p12 bs br20 bgF c79 ffR fwM bdE c79h dN" data-next="{{ request.path }}?cta=join">
-                        {% endif %}
-                                <i class="dIb fa fa-google fs15 lh16 vM"></i>
-                                <span  class="dIb lh16 pl12 vM">LOGIN WITH GOOGLE</span>
-                            </div>
-                    </div>
-                    <div class="fs12 mb16">
-                        {% if ref_id != '' %}
-                            <a class="p12 bs dB br20 tdN bgLi cF ffR fwM cFh" href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join-ref_id-{{ref_id}}">
-                        {% elif aj  %}
-                            <a class="p12 bs dB br20 tdN bgLi cF ffR fwM cFh" href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join-aj-{{aj}}">
-                        {% elif cta == 'share' %}
-                            <a class="p12 bs dB br20 tdN bgLi cF ffR fwM cFh" href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join">
-                        {% elif cta != '' %}
-                            <a class="p12 bs dB br20 tdN bgLi cF ffR fwM cFh" href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta={{cta}}">
-                        {% else %}
-                            <a class="p12 bs dB br20 tdN bgLi cF ffR fwM cFh" href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join">
-                        {% endif %}
-                                <i class="dIb fa fa-linkedin fs15 lh16 vM"></i>
-                                <span  class="dIb lh16 pl12 vM">LOGIN WITH LINKEDIN</span>
-                            </a>
-                    </div>
-                    <div class="fs12">
-                        {% if ref_id != '' %}
-                            <a class="p12 bs dB br20 tdN bgFb cF ffR fwM cFh" href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join-ref_id-{{ref_id}}">
-                        {% elif aj  %}
-                            <a class="p12 bs dB br20 tdN bgFb cF ffR fwM cFh" href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join-aj-{{aj}}">
-                        {% elif cta == 'share' %}
-                            <a class="p12 bs dB br20 tdN bgFb cF ffR fwM cFh" href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join">
-                        {% elif cta != '' %}
-                            <a class="p12 bs dB br20 tdN bgFb cF ffR fwM cFh" href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta={{cta}}">
-                        {% else %}
-                            <a class="p12 bs dB br20 tdN bgFb cF ffR fwM cFh" href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join">
-                        {% endif %}
-                                <i class="fa fa-facebook dIb fs15 lh16 vM" ></i>
-                                <span class="dIb lh16 pl12 vM">LOGIN WITH FACEBOOK</span>
-                            </a>
-                    </div>
-                </div>
-            </div>
-        </div>
+
 
         <!-- accept invitation model -->
         <div class="ui modal accept" id="accept">
@@ -325,7 +267,7 @@
                 </div>
             </div>
         </div>
-        
+
         <!-- login model for exclusive communities -->
         <div class="ui modal image_container_login w300" id="whatsapp_login">
             <div class="h72 w72 brp50 bd2F bs bxs oH bgT mtn22 mA">
@@ -353,15 +295,15 @@
                     </div>
                     <div class="fs12 mb16">
                         {% if ref_id != '' %}
-                            <a class="p12 bs dB br20 tdN bgLi cF ffR fwM cFh" href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join-ref_id-{{ref_id}}">
+                            <a class="linkedinSignin p12 bs dB br20 tdN bgLi cF ffR fwM cFh" data-next="{{ request.path }}?cta=join-ref_id-{{ref_id}}">
                         {% elif aj  %}
-                            <a class="p12 bs dB br20 tdN bgLi cF ffR fwM cFh" href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join-aj-{{aj}}">
+                            <a class="linkedinSignin p12 bs dB br20 tdN bgLi cF ffR fwM cFh" data-next="{{ request.path }}?cta=join-aj-{{aj}}">
                         {% elif cta == 'share' %}
-                            <a class="p12 bs dB br20 tdN bgLi cF ffR fwM cFh" href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join">
+                            <a class="linkedinSignin p12 bs dB br20 tdN bgLi cF ffR fwM cFh" data-next="{{ request.path }}?cta=join">
                         {% elif cta != '' %}
-                            <a class="p12 bs dB br20 tdN bgLi cF ffR fwM cFh" href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta={{cta}}">
+                            <a class="linkedinSignin p12 bs dB br20 tdN bgLi cF ffR fwM cFh" data-next="{{ request.path }}?cta={{cta}}">
                         {% else %}
-                            <a class="p12 bs dB br20 tdN bgLi cF ffR fwM cFh" href="{% url 'social:begin' 'linkedin-oauth2' %}?next={{ request.path }}?cta=join">
+                            <a class="linkedinSignin p12 bs dB br20 tdN bgLi cF ffR fwM cFh" data-next="{{ request.path }}?cta=join">
                         {% endif %}
                                 <i class="dIb fa fa-linkedin fs15 lh16 vM"></i>
                                 <span  class="dIb lh16 pl12 vM">LOGIN WITH LINKEDIN</span>
@@ -369,15 +311,15 @@
                     </div>
                     <div class="fs12">
                         {% if ref_id != '' %}
-                            <a class="p12 bs dB br20 tdN bgFb cF ffR fwM cFh" href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join-ref_id-{{ref_id}}">
+                            <a class="facebookSignin p12 bs dB br20 tdN bgFb cF ffR fwM cFh"  data-next="{{ request.path }}?cta=join-ref_id-{{ref_id}}">
                         {% elif aj  %}
-                            <a class="p12 bs dB br20 tdN bgFb cF ffR fwM cFh" href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join-aj-{{aj}}">
+                            <a class="facebookSignin p12 bs dB br20 tdN bgFb cF ffR fwM cFh"  data-next="{{ request.path }}?cta=join-aj-{{aj}}">
                         {% elif cta == 'share' %}
-                            <a class="p12 bs dB br20 tdN bgFb cF ffR fwM cFh" href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join">
+                            <a class="facebookSignin p12 bs dB br20 tdN bgFb cF ffR fwM cFh"  data-next="{{ request.path }}?cta=join">
                         {% elif cta != '' %}
-                            <a class="p12 bs dB br20 tdN bgFb cF ffR fwM cFh" href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta={{cta}}">
+                            <a class="facebookSignin p12 bs dB br20 tdN bgFb cF ffR fwM cFh"  data-next="{{ request.path }}?cta={{cta}}">
                         {% else %}
-                            <a class="p12 bs dB br20 tdN bgFb cF ffR fwM cFh" href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}?cta=join">
+                            <a class="facebookSignin p12 bs dB br20 tdN bgFb cF ffR fwM cFh" data-next="{{ request.path }}?cta=join">
                         {% endif %}
                                 <i class="fa fa-facebook dIb fs15 lh16 vM" ></i>
                                 <span class="dIb lh16 pl12 vM">LOGIN WITH FACEBOOK</span>
@@ -385,7 +327,7 @@
                     </div>
                 </div>
             </div>
-        </div>
+
 
         <!-- pop-up to show member profile -->
         <div class="ui modal image_container_profile w320 p16 bs" id="member_profile">
@@ -505,13 +447,13 @@
 
         <!-- scripts for the page -->
         <script>
-
+            console.log('{{request.path}}')
             function open_community(id){
                console.log(id);
                 window.location.href ="../community/"+id;
                 console.log(window.location.href)
             }
-    
+
             function join(community_id){
                 console.log(1);
                 {% if user.is_authenticated %}
@@ -526,7 +468,7 @@
                         model_show();
                 {% endif %}
             }
-    
+
             function accept_admin(cta,community_id,Nom_mem_state){
                 {% if user.is_authenticated %}
                     if (Nom_mem_state!=6 & Nom_mem_state!=7){
@@ -538,7 +480,7 @@
                     $('.test').modal('show');
                 {% endif %}
             }
-    
+
             function referal(ref_id){
                 {% if user.is_authenticated %}
                     window.location.href ="../refer_members/"+{{community.id}}+"?ref_id="+ref_id;
@@ -546,14 +488,14 @@
                     model_show();
                 {% endif %}
             }
-    
+
             function model_show(){
                 //function to show the model
                 $('#whatsapp_login').modal('show');
             }
-    
+
             //jquery
-    
+
             $(document).ready(function() {
                 for(var i=0;i<={{similar_community_length}};i++){
                     ans=$('#'+i).text();
@@ -561,7 +503,7 @@
                     ans=ans+'...';
                     $('#'+i).html(ans)
                 }
-    
+
                 //function to auto accept the invitation
                 var community_id={{community.id}};
                 console.log(community_id);
@@ -587,12 +529,12 @@
                         location.href="/communities";
                     }
                 })
-    
+
                 $("#yes").click(function(){
                     location.href="/communities";
                 })
             });
-    
+
             {% if request_user_email %}
                 //email_login popup start
                 $('#email_login').modal('show');
@@ -612,14 +554,14 @@
                 })
                 //email_login popup end
             {% endif %}
-    
+
             //download the app popup
             $('#conv').click(function(){
                 {% if android_app_link %}
                     $('#download_app_popup').modal('show');
                 {% endif %}
             })
-    
+
             // share pop-up to share community link
             $('#ref').click(function(e){
                 if (navigator.share) {
@@ -636,7 +578,7 @@
                     console.log('test');
                 }
             })
-    
+
             $('#down_ref').click(function(e){
                 if (navigator.share) {
                     navigator.share({
@@ -652,41 +594,41 @@
                     console.log('test');
                 }
             })
-    
+
             // about show more
             $('#show_more').click(function(){
                 $('#show_more').css("display","none");
                 var display=`{{community.about|linebreaks}}`;
                 $('#more').html(display);
             })
-    
+
             $('#filter_icon').click(function(e){
                 location.href="/members_directory/"+'{{community.id}}';
             })
-    
+
             //member profile pop-up
             {% if profile_list %}
                 $('#member_profile').modal('show');
                 $(".dimmer").css("background-color","rgba(40,40,40,0.5)");
             {% endif %}
-    
+
             //dismiss pop-up
             $('#dismiss').click(function(){
                 $('#member_profile').modal('hide');
             })
-    
+
             //dismiss email popup
             $('#dismiss_email').click(function(){
                 $('#unverified_member').modal('hide');
             })
-    
+
             $('#change_email').click(function(){
                 $('#unverified_member').modal('hide');
                 $('#secondary_email').modal('show');
             })
-    
+
             update_email();
-    
+
             $('.member_link').click(function(){
                 var member_id=$(this).attr('member_id');
                 console.log(member_id);
@@ -703,7 +645,7 @@
                     showMemberProfile(member_id);
                 {% endif %}
             })
-    
+
             function update_email(){
                 $('#update_secondary_email').click(function(e){
                     var email=$('#secondary_email_text').val();
@@ -726,7 +668,7 @@
                     })
                 })
             }
-    
+
             function showMemberProfile(member_id){
                 var community_id = {{community_id}};
                 json_data = {
@@ -753,7 +695,7 @@
                                     <img class="wp100 ofC h96" src="https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Fprofile_header?alt=media&token=fa838851-244c-4cbc-81da-3d2125536e18">
                                 </div>
                                 <div class="h2"></div>
-                                <p class="p0 m0 taC fwM fs16 c0 lh20">${data['member_name']}</p>
+                                <p class="p012 bs m0 taC fwM fs16 c0 lh20 wbBa wp100">${data['member_name']}</p>
                             </div>
                             <div class="p18 bs">
                         `
@@ -763,20 +705,20 @@
                             }
                             return returnValue;
                         }, {});
-    
+
                         console.log('refined_answer_obj', refined_answer_obj);
-    
+
                         // var refined_answer_array = Object.keys(refined_answer_obj).map(function (answer) {
-                        //     return f[answer]; 
+                        //     return f[answer];
                         // });
-    
+
                         $.each( refined_answer_obj, function( index, value ) {
                             segment = ""
                             if (index == 1) {
                                 segment = `
                                         <div class="dT mb10 tlF wp100">
                                             <div class="dTc h24 vM w24 taC"><img class="dIb mxh24 mxw24 vM" src="/media/main_website/ic_email_48_px.png" /></div>
-                                            <div class="c9b dTc fs13 vM lh16 p08 bs">
+                                            <div class="c9b dTc fs13 vM lh16 p08 bs wbBa">
                                 `;
                                                 $.each( value, function( index2, value2 ){
                                                     segment = segment + value2.answer;
@@ -793,7 +735,7 @@
                                 segment = `
                                         <div class="dT mb10 tlF wp100">
                                             <div class="dTc h24 vM w24 taC"><img class="dIb mxh24 mxw24 vM" src="/media/main_website/mobile_alt.png"/></div>
-                                            <div class="c9b dTc fs13 vM lh16 p08 bs">
+                                            <div class="c9b dTc fs13 vM lh16 p08 bs wbBa">
                                 `;
                                                 $.each( value, function( index2, value2 ){
                                                     segment = segment + value2.answer;
@@ -810,7 +752,7 @@
                                 segment = `
                                         <div class="dT mb10 tlF wp100">
                                             <div class="dTc h24 vM w24 taC"><img class="dIb mxh24 mxw24 vM" src="/media/main_website/link.png"/></div>
-                                            <div class="c9b dTc fs13 vM lh16 p08 bs">
+                                            <div class="c9b dTc fs13 vM lh16 p08 bs wbBa">
                                 `;
                                                 $.each( value, function( index2, value2 ){
                                                     segment = segment + `<a class="cT tdN" href="${value2['profile_link']}">${value2['answer']}</a>`;
@@ -826,7 +768,7 @@
                             }else if(index == 4){
                                 segment = ''
                                 $.each( value, function( index2, value2 ){
-                                    segment = segment + `<p class="c4a fs15 lh24 m160">${value2['answer']}</p>`;
+                                    segment = segment + `<p class="c4a fs15 lh24 m160 wbBa wp100">${value2['answer']}</p>`;
                                     if ( index2 != value.length - 1 ) {
                                         segment = segment + ', ';
                                     }
@@ -836,7 +778,7 @@
                                 segment = ''
                                 $.each( value, function( index2, value2 ){
                                     segment = segment + `
-                                        <a class="cT dB m160 tdN" href="//${value2['file_link']}">
+                                        <a class="cT dB m160 tdN wbBa wp100" href="//${value2['file_link']}">
                                             ${value2['answer']}
                                         </a>
                                     `;
@@ -848,8 +790,8 @@
                             }else{
                                 segment = ''
                                 $.each( value, function( index2, value2 ){
-                                    segment = segment + `<p class="c9b fs15 lh24 m160 m80 ">${value2['answer']}</p>`;
-    
+                                    segment = segment + `<p class="c9b fs15 lh24 m160 m80 wbBa wp100">${value2['answer']}</p>`;
+
                                 });
                                 html = html + segment
                             }
@@ -863,20 +805,27 @@
                     }
                 })
             }
-    
+
             //menu bar clicks
             $('#purpose_header').click(function(){
                 $("#purpose").addClass('bxs2');
             })
-    
+
             $('#member_header').click(function(){
                 $("#purpose").removeClass('bxs2');
                 $('#members').addClass('bxs2');
                 location.href ="#members"
             })
+
         </script>
 
         {% include 'scripts/google_auth.html' with client_id=google_oauth_client_id %}
+
+        {% include 'scripts/facebook_auth.html' with facebook_auth_id=facebook_auth_id%}
+
+        {% include 'scripts/linkedin_auth.html' with request=request %}
+
+
 
     </body>
 </html>
