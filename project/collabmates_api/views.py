@@ -2869,7 +2869,7 @@ def create_chatroom(card_instance,user_instance,state,current_user_id=None,answe
     instance.user = user_instance
     instance.state = state
     instance.created_at = time.time()
-    instance.save()
+    #instance.save()
 
 
 
