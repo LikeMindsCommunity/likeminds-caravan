@@ -2478,13 +2478,13 @@ def linked_in_authentication(request):
     if 'user' in login_response:
         user = User.objects.get(id=login_response['user']['id'])
         login(request, user=user, backend="django.contrib.auth.backends.ModelBackend")
-    context = {'b': data_main}
-
-    data_main = urlencode(context)
-
-    #print(ans)
-    #print(data_main)
-    #data_main = quote(data_main,encoding='utf-8')
-    redirect_url = redirect_url + "?json="+str(data_main)
+    # context = {'b': data_main}
+    #
+    # data_main = urlencode(context)
+    #
+    # #print(ans)
+    # #print(data_main)
+    # #data_main = quote(data_main,encoding='utf-8')
+    # redirect_url = redirect_url + "?json="+str(data_main)
     print("2", request.user.is_authenticated)
     return redirect(redirect_url)
