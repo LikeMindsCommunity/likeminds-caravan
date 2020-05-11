@@ -2434,10 +2434,15 @@ def linked_in_authentication(request):
     state = request.GET.get('state')
     if not code:
         return HttpResponse("unable to login try again")
+
+    url = request.META['HTTP_HOST']
     redirect_url = url + state
 
     link="https://www.linkedin.com/oauth/v2/accessToken"
     redirect_uri = url+"/oauth/complete/linkedin-oauth2/"
+
+    info_logger.info(redirect_uri)
+
     params={
       'client_id':settings.SOCIAL_AUTH_LINKEDIN_OAUTH2_KEY,
       'client_secret': settings.SOCIAL_AUTH_LINKEDIN_OAUTH2_SECRET,
@@ -2448,6 +2453,7 @@ def linked_in_authentication(request):
     }
     ans=rqst.post(link, params=params)
     response = ans.json()
+    info_logger.info(response)
     token = response['access_token']
     #print(token)
 
