@@ -2434,10 +2434,17 @@ def linked_in_authentication(request):
     state = request.GET.get('state')
     if not code:
         return HttpResponse("unable to login try again")
+
+    #url = "http://" + request.META['HTTP_HOST']  # for local
+    url = "https://"+request.META['HTTP_HOST']
+
     redirect_url = url + state
 
     link="https://www.linkedin.com/oauth/v2/accessToken"
     redirect_uri = url+"/oauth/complete/linkedin-oauth2/"
+
+    info_logger.info(redirect_uri)
+
     params={
       'client_id':settings.SOCIAL_AUTH_LINKEDIN_OAUTH2_KEY,
       'client_secret': settings.SOCIAL_AUTH_LINKEDIN_OAUTH2_SECRET,
@@ -2448,6 +2455,11 @@ def linked_in_authentication(request):
     }
     ans=rqst.post(link, params=params)
     response = ans.json()
+    info_logger.info(response)
+
+    if 'access_token' not in response:
+        return  HttpResponse("Try after sometime!!!!!")
+
     token = response['access_token']
     #print(token)
 
@@ -2467,8 +2479,8 @@ def linked_in_authentication(request):
     data_main['email'] = email_data
     login_url = url + "/api/v1/login"
     response = rqst.post(login_url,json={"type": "linkedIn", "login_json": data_main})
-    print("1",request.user.is_authenticated)
     login_response = response.json()
+    info_logger.info(response)
     if 'user' in login_response:
         user = User.objects.get(id=login_response['user']['id'])
         login(request, user=user, backend="django.contrib.auth.backends.ModelBackend")
@@ -2480,5 +2492,5 @@ def linked_in_authentication(request):
     # #print(data_main)
     # #data_main = quote(data_main,encoding='utf-8')
     # redirect_url = redirect_url + "?json="+str(data_main)
-    print("2", request.user.is_authenticated)
+    info_logger.info(request.user.is_authenticated)
     return redirect(redirect_url)
