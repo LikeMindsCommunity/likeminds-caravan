@@ -152,12 +152,12 @@ def new_member_request(member_id, community_id, form_response, ref_id=None, ph_n
          'result': res, 'url': url, 'is_IG':is_IG })
 
     if is_beta:
-        to_list = ['mahesh61437mahe@gmail.com']
+        to_list = ['mahesh@likeminds.community']
 
     elif not is_beta:
-        to_list = ['nipungoyal.iitd@gmail.com', 'hrshshukl@gmail.com']
+        to_list = ['nipun@likeminds.community', 'harsh@likeminds.community']
     else:
-        to_list = ['mahesh61437mahe@gmail.com', 'rastogi.fresh88@gmail.com']
+        to_list = ['mahesh@likeminds.community']
     # msg = EmailMultiAlternatives(subject,
     #                              template,
     #                              "Collabmates<hello@collabmates.com>",
