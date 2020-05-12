@@ -2720,7 +2720,7 @@ def create_card(request,req_dict=None):
 
         #sending notification to co-hosts
         if card.co_hosts:
-            co_hosts = ast.literal_eval(res['co_hosts'])
+            co_hosts = res['co_hosts']
             send_notification_to_event_co_hosts.delay(co_hosts,card.id,card.title,user_instance.userinfo.name)
 
 
