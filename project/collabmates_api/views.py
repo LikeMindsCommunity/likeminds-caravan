@@ -72,7 +72,8 @@ from .notification import (send_follow_notification, send_notification_to_admins
                            send_notification_to_referrer_of_lg_community,
                            ask_approval_notification,
                            send_notification_for_tool_unlocked_for_live_community,
-                           send_notification_for_tool_unlocked_for_pilot)
+                           send_notification_for_tool_unlocked_for_pilot,
+                           send_notification_to_event_co_hosts)
 from .raw_queries import compute_rank
 
 from .tasks import send_email_to_nominated_admin, send_email_for_new_collabcard_posted, send_welcome_mail,send_verification_mail_for_email_sync
@@ -2716,6 +2717,11 @@ def create_card(request,req_dict=None):
 
         card.date_epoch = time.time()  # card creation time
         card.save()
+
+        #sending notification to co-hosts
+        if card.co_hosts:
+            co_hosts = ast.literal_eval(res['co_hosts'])
+            send_notification_to_event_co_hosts.delay(co_hosts,card.id,card.title,user_instance.userinfo.name)
 
 
 
