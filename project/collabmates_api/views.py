@@ -2721,6 +2721,17 @@ def create_card(request,req_dict=None):
         #sending notification to co-hosts
         if card.co_hosts:
             co_hosts = res['co_hosts']
+
+            #making the co_host auto follow the card
+            for host in co_hosts:
+                req_dict={
+                    'member_id': host,
+                    'collabcard_id' : card.id,
+                    'status' : True
+                }
+                collabcard_follow(request,req_dict)
+
+
             send_notification_to_event_co_hosts.delay(co_hosts,card.id,card.title,user_instance.userinfo.name)
 
 
@@ -5239,12 +5250,25 @@ def collabcard_follow(request, function_dict=None):
 
 
     collabcard = Collabcard.objects.get(id=collabcard_id)
+
     community_instance = collabcard.community
     user_instance = User.objects.get(id=member_id)
 
     if (collabcard.type == card_types.CARD_EVENT or collabcard.type == card_types.CARD_PUBLIC_EVENT) and status:  # the collabcard is the event card and followed
 
-        collabcard_state_instance = collabcardState.objects.get(card=collabcard, user=user_instance)
+        try:
+            collabcard_state_instance = collabcardState.objects.get(card=collabcard, user=user_instance)
+        except:
+            #for autofollowing the co-host
+            collabcard_state_instance = collabcardState()
+            collabcard_state_instance.card = collabcard
+            collabcard_state_instance.community = community_instance
+            collabcard_state_instance.user = user_instance
+            collabcard_state_instance.state = collabcard_states.COLLABCARD_STATE_FOLLOW
+            collabcard_state_instance.created_at = time.time()
+            collabcard_state_instance.updated_at = time.time()
+            collabcard_state_instance.save()
+
 
         # when the user is not attending but following the collabcard
         if collabcard_state_instance.state == collabcard_states.COLLABCARD_STATE_SEEN:
