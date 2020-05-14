@@ -34,7 +34,7 @@ urlpatterns = [
     path('create_collabcard', api_views.create_card, name="create_card"),
 
     path('collabcard/<int:card_id>', api_views.collabcard, name="collabcard"),
-    path('get_chatroom/<int:card_id>', api_views.get_chatroom, name="get_chatroom"),
+    path('fetch_chatroom', api_views.fetch_chatroom, name="fetch_chatroom"),
 
     path('community_collabcard/<int:community_id>', api_views.community_cards, name="community_cards"),
     path('community_collabcard_invite/<int:community_id>', api_views.community_collabcard_invite, name="community_collabcard_invite"),
