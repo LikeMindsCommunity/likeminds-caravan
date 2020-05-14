@@ -238,11 +238,14 @@ class Collabcard(models.Model):
 
 
 class card_answers(models.Model):
+
     answer = models.TextField()
     card = models.ForeignKey(Collabcard, on_delete=models.CASCADE)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     created_at = models.BigIntegerField(default=-9223372036854775808)
     state = models.IntegerField(default=0)
+
+
 
 
 
@@ -268,9 +271,21 @@ class answerAttachment(models.Model):
     '''model to save files of collabcard'''
 
     answer = models.ForeignKey(card_answers, on_delete=models.CASCADE)
-    # attachment = models.FileField(upload_to="media/collabcard_files",default='')
-    file_url = models.CharField(max_length=500, null=True)
+
+    file_url = models.TextField(null=True)
     type = models.CharField(max_length=50, default='')
+
+    location_name = models.TextField(null=True)
+    location_lat = models.FloatField(null=True)
+    location_long = models.FloatField(null=True)
+
+    created_at = models.BigIntegerField(default=0)
+
+    def save(self, *args, **kwargs):
+        if self.created_at == 0:
+            self.created_at = time.time()
+        super(answerAttachment, self).save(*args, **kwargs)
+
 
 
 # class collabcard_seen(models.Model):

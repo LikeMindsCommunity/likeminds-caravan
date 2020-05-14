@@ -1,5 +1,5 @@
 from __future__ import absolute_import, unicode_literals
-
+from celery import shared_task
 import re
 import time
 from django.http.response import JsonResponse
