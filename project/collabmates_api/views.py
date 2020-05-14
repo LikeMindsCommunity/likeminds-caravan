@@ -4216,9 +4216,15 @@ def get_collabcard_details_for_web(request,card_instance,card,current_user_id,an
         #return render(request, 'collabcard.html', context)
 
 
-def get_chatroom(request, card_id):
+def fetch_chatroom(request):
 
     '''api to get the chatroom'''
+
+    card_id = request.GET.get('chat_room_id','')
+
+    if not card_id:
+        context = get_error_context(False,"send chat_room_id as a get params")
+        return JsonResponse(context)
 
     card_instance = Collabcard.objects.get(id=card_id)
     answer_id = request.GET.get('answer_id', '')
@@ -4255,7 +4261,7 @@ def get_answer_data(answer_filter,feedback,community_id,current_user_id):
         date = time.strftime('%d %b %Y', time.localtime(ans.created_at))
         attachements = get_answer_files(ans.id)
         context = {'id': ans.id, 'answer': ans.answer, 'created_at': time_text, 'member': usr,
-                        'images': attachements[0], 'pdf': attachements[1],'date':date}
+                        'images': attachements[0], 'pdf': attachements[1],'date':date,'state':ans.state}
         answers.append(context)
     return answers
 
