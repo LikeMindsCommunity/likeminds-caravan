@@ -1,19 +1,16 @@
 from __future__ import absolute_import, unicode_literals
 from celery import shared_task
-import json
 import logging
 import os
 import re
-import ast
-import time
 from datetime import datetime
-import html
-import requests as rqst
+from urllib.parse import unquote, quote
 
 import googlemaps
+import requests as rqst
 from celery import shared_task
-from .serializers import *
 from django.conf import settings
+from django.contrib.auth import login
 from django.contrib.auth.models import User
 from django.core.paginator import Paginator
 from django.db.models import F
@@ -22,19 +19,21 @@ from django.http import HttpResponse
 from django.http.response import JsonResponse
 from django.shortcuts import get_object_or_404, render
 from django.views.decorators.csrf import csrf_exempt
+from rest_framework.decorators import api_view, renderer_classes
+from rest_framework.renderers import JSONRenderer, TemplateHTMLRenderer
 from togther.forms import *
 from togther.models import *
 from togther.tasks import send_email_to_proposed_admin, send_mail_after_rank_computation
-
-#utility functions
+# utility functions
 from utility.celery_tasks import (save_community_purpose_card,
                                   update_last_unseen_in_engage_on_card_creation,
                                   update_last_unseen_in_engage,
                                   )
+from utility.encryption import encrypt, decrypt
 from utility.firebase import update_last_answer_id, upload_image_to_firebase, upload_community_thumbnail, \
     upload_community_files
-from utility.states import collabcard_states, member_states, question_states,community_states,deleted_members,card_types,chatroom_states,email_states
-
+from utility.states import collabcard_states, member_states, question_states, community_states, deleted_members, \
+    card_types, chatroom_states, email_states
 from utility.tasks import (mail_triger, new_member_request,
                            member_request_approval_or_denied,
                            send_mail_for_report_abuse,
@@ -49,14 +48,12 @@ from utility.utils import (decode_meta_from_url, update_tag_image,
                            get_city_address,
                            update_user_geography_tags, insert_user_home_town_tags, is_IG_community,
                            ig_members_count, is_LG_or_LP_community, feedback_community_id, feedback_collabcard_id,
-                           is_member_verified,community_default_image,community_default_thumbnail,is_member_promoter,
-                           is_member_pending,is_member_present,generate_private_link,generate_random,get_time_text,
-                           community_default_image_round,decode_option, get_user_communities_by_rank_web,
+                           is_member_verified, community_default_image, community_default_thumbnail, is_member_promoter,
+                           is_member_present, generate_private_link, generate_random, get_time_text,
+                           community_default_image_round, decode_option, get_user_communities_by_rank_web,
                            user_onbaord,
 
                            )
-
-from utility.encryption import encrypt,decrypt
 
 from .notification import (send_follow_notification, send_notification_to_admins,
                            send_notification_for_join_requests,
@@ -75,16 +72,9 @@ from .notification import (send_follow_notification, send_notification_to_admins
                            send_notification_for_tool_unlocked_for_pilot,
                            send_notification_to_event_co_hosts)
 from .raw_queries import compute_rank
-
-from .tasks import send_email_to_nominated_admin, send_email_for_new_collabcard_posted, send_welcome_mail,send_verification_mail_for_email_sync
-
-from django.contrib.auth import login
-from urllib.parse import unquote,quote
-
-
-from rest_framework.renderers import JSONRenderer, TemplateHTMLRenderer
-from rest_framework.decorators import api_view, renderer_classes
-
+from .serializers import *
+from .tasks import send_email_to_nominated_admin, send_email_for_new_collabcard_posted, send_welcome_mail, \
+    send_verification_mail_for_email_sync
 
 # CACHE_TTL = getattr(settings, 'CACHE_TTL', cache_timeout)
 
@@ -2792,8 +2782,8 @@ def create_card(request,req_dict=None):
         create_chatroom(card_instance=card,user_instance=user_instance
                         ,state=chatroom_states.CHATROOM_HEADER,current_user_id=user_id)
 
-        #creating a chatroom having content of collabcard
-        create_chatroom(card_instance=card,user_instance=user_instance,state=chatroom_states.CHATROOM_CREATER,current_user_id=user_id,answer = card.title)
+        # #creating a chatroom having content of collabcard
+        #create_chatroom(card_instance=card,user_instance=user_instance,state=chatroom_states.CHATROOM_CREATER,current_user_id=user_id,answer = card.title)
 
 
 
@@ -4028,23 +4018,6 @@ def get_collabcard_files(card_id):
     return (img_list, pdf)
 
 
-def get_answer_files(answer_id):
-    '''function to return pdf and image files of a collabcard'''
-
-    files = answerAttachment.objects.filter(answer=answer_id)
-    img_list = []
-    pdf = []
-    for file in files:
-        if file.type == 'image':
-            if file.file_url:
-                img = {'image_url': file.file_url}
-                img_list.append(img)
-        elif file.type == 'pdf':
-            if file.file_url:
-                pdf_url = {'pdf_file': file.file_url}
-                pdf.append(pdf_url)
-    return (img_list, pdf)
-
 
 def get_collabcard_details_for_web(request,card_instance,card,current_user_id,answers):
 
@@ -4260,11 +4233,54 @@ def get_answer_data(answer_filter,feedback,community_id,current_user_id):
         time_text = time.strftime('%I:%M %p', time.localtime(ans.created_at))
         date = time.strftime('%d %b %Y', time.localtime(ans.created_at))
         attachements = get_answer_files(ans.id)
-        context = {'id': ans.id, 'answer': ans.answer, 'created_at': time_text, 'member': usr,
-                        'images': attachements[0], 'pdf': attachements[1],'date':date,'state':ans.state}
+
+        context = {
+              'id': ans.id,
+              'answer': ans.answer,
+              'created_at': time_text,
+              'member': usr,
+              'images': attachements['image'],
+              'pdf': attachements['pdf'],
+              'date': date,
+              'state': ans.state,
+        }
+
+        if 'location' in attachements:
+            context['location'] = attachements['location']
+
         answers.append(context)
     return answers
 
+
+def get_answer_files(answer_id):
+    '''function to return pdf and image files of a collabcard'''
+
+    attachments = answerAttachment.objects.filter(answer=answer_id)
+    img_list = []
+    pdf = []
+    files = {}
+    for file in attachments:
+        if file.type == 'image':
+            if file.file_url:
+                img = {'image_url': file.file_url}
+                img_list.append(img)
+        elif file.type == 'pdf':
+            if file.file_url:
+                pdf_url = {'pdf_file': file.file_url}
+                pdf.append(pdf_url)
+        elif file.type == "location":
+            location = {
+                'location_name' : file.location_name,
+                'location_lat' : file.location_lat,
+                'location_long' : file.location_long
+
+            }
+            files['location'] = location
+
+
+    files['image'] = img_list
+    files['pdf'] =pdf
+    return files
 
 def get_chatroom_internal(request,card_instance,answer_id,user_id,page):
 
@@ -5670,103 +5686,6 @@ def community_collabcard_meta(request):
 
 ############# upload files flow   ##########################
 
-@csrf_exempt
-def image_upload(request):
-    ''' function to upload community images '''
-    body = request.GET
-    if request.method == 'POST':
-        # if 'member_id' in body:
-        #     user_id = body['member_id']
-        #     user = User.objects.get(id = user_id)
-        new_image = request.FILES['file']
-        if 'community_id' in body:
-            # if image to be updated in community
-            community_id = body['community_id']
-            community = Community.objects.get(id=community_id)
-            old_image_file = community.image_url
-
-            # # deleting the old file after new file is updated
-            # # get the new image file
-            version = re.findall(r'\w*__image__(\d+)', old_image_file.name)
-            if version:
-                version = int(version[0]) + 1
-            else:
-                version = 1
-            new_image.name = str(community_id) + '__image__' + str(version) + '.jpg'
-
-            if not old_image_file == new_image:
-                #     # if both are not same delete old file
-                if os.path.isfile(old_image_file.path):
-                    os.remove(old_image_file.path)
-
-                community.image_url = new_image
-                community.save()
-
-        elif 'collabcard_id' in body:
-
-            # if image to be updated in collabcard
-            collabcard_id = body['collabcard_id']
-            collabcard = Collabcard.objects.get(id=collabcard_id)
-
-            card_image = Card_Attachment.objects.filter(collabcard=collabcard).order_by('-id')
-            if card_image:
-                old_image_file = card_image[0].attachment
-                if os.path.isfile(old_image_file.path):
-                    version = re.findall(r'\w*__image__(\d+)', old_image_file.name)
-                    if version:
-                        version = int(version[0]) + 1
-                    else:
-                        version = 1
-                    new_image.name = str(collabcard_id) + '__image__' + str(version) + '.jpg'
-                    card_image = Card_Attachment()
-                    card_image.collabcard = collabcard
-                    card_image.attachment = new_image
-                    card_image.type = 'Image'
-                    card_image.save()
-
-            else:
-                card_image = Card_Attachment()
-                new_image.name = str(collabcard_id) + '__image__' + str(0) + '.jpg'
-                card_image.collabcard = collabcard
-                card_image.attachment = new_image
-                card_image.type = 'Image'
-                card_image.save()
-        return JsonResponse({'success': True})
-
-
-@csrf_exempt
-def upload_attachment(request):
-    '''function to upload attachments'''
-    body = request.GET
-    if request.method == 'POST':
-        attachment = request.FILES['file']
-        if 'community_id' in body:
-            # if image to be updated in community
-            community_id = body['community_id']
-            community = Community.objects.get(id=community_id)
-            old_image_file = community.image_url
-            # deleting the old file after new file is updated
-            # get the new image file
-            if not old_image_file == attachment:
-                # if both are not same delete old file
-                if os.path.isfile(old_image_file.path):
-                    os.remove(old_image_file.path)
-
-            community.image_url = attachment
-            community.save()
-        elif 'collabcard_id' in body:
-            attachment_type = body['type']
-            collabcard_id = body['collabcard_id']
-            collabcard = Collabcard.objects.get(id=collabcard_id)
-
-            file = Card_Attachment()
-            file.attachment = attachment
-            file.collabcard = collabcard
-            file.type = attachment_type
-            file.save()
-        return JsonResponse({'success': True})
-    return JsonResponse({'success': False})
-
 
 @csrf_exempt
 def upload_files(request):
@@ -5774,72 +5693,68 @@ def upload_files(request):
 
     body = request.GET
     member_id=get_member_id_from_headers(request)
-    if request.method == 'POST':
 
-        if 'community_id' in body:
-            # if image to be updated in community
-            community_id = body['community_id']
-            community = Community.objects.get(id=community_id)
-            community.image_link = body['url']
-            community.image_link_round = body['url']
-            upload_community_thumbnail.delay(community_id, body['url'])
-            community.save()
-            #updating the create community second step
-            createCommunityAction.objects.filter(community=community, step_no="Step 2").update(
-                current_point=10)
+    if 'community_id' in body:
+        # if image to be updated in community
+        community_id = body['community_id']
+        community = Community.objects.get(id=community_id)
+        community.image_link = body['url']
+        community.image_link_round = body['url']
+        upload_community_thumbnail.delay(community_id, body['url'])
+        community.save()
+        # updating the create community second step
+        createCommunityAction.objects.filter(community=community, step_no="Step 2").update(
+            current_point=10)
 
-            #saving the update image details if the image is updated
-            edit = request.GET.get('edit',False)
-            if edit == 'true':
-                if not member_id:
-                    return JsonResponse({'success': False, 'error_message': "Send member id in headers"})
-                else:
-                    member_instance = User.objects.get(id=member_id)
+        # saving the update image details if the image is updated
+        edit = request.GET.get('edit', False)
+        if edit == 'true':
+            if not member_id:
+                return JsonResponse({'success': False, 'error_message': "Send member id in headers"})
+            else:
+                member_instance = User.objects.get(id=member_id)
 
-                instance = communityUpdate()
-                instance.updated_field = "image"
-                instance.updated_time = time.time()
-                instance.updated_member = member_instance
-                instance.community = community
-                instance.save()
+            instance = communityUpdate()
+            instance.updated_field = "image"
+            instance.updated_time = time.time()
+            instance.updated_member = member_instance
+            instance.community = community
+            instance.save()
 
-        elif 'collabcard_id' in body:
-            attachment_type = body['type']
-            collabcard_id = body['collabcard_id']
-            collabcard = Collabcard.objects.get(id=collabcard_id)
+    elif 'collabcard_id' in body:
+        attachment_type = body['type']
+        collabcard_id = body['collabcard_id']
+        collabcard = Collabcard.objects.get(id=collabcard_id)
 
-            file = Card_Attachment()
-            file.collabcard = collabcard
-            file.type = attachment_type
-            file.file_url = body['url']
-            file.save()
+        file = Card_Attachment()
+        file.collabcard = collabcard
+        file.type = attachment_type
+        file.file_url = body['url']
+        file.save()
 
-        elif 'answer_id' in body:
-            attachment_type = body['type']
-            answer_id = body['answer_id']
-            answer_obj = card_answers.objects.get(id=answer_id)
+    elif 'answer_id' in body:
+        attachment_type = body['type']
+        answer_id = body['answer_id']
+        answer_instance = card_answers.objects.get(id=answer_id)
+        file = answerAttachment()
+        file.answer = answer_instance
+        file.type = attachment_type
+        file.file_url = body['url'] if 'url' in body else None
+        file.location_name = body['location_name'] if 'location_name' in body else None
+        file.location_lat = body['location_lat'] if 'location_lat' in body else None
+        file.location_long = body['location_long'] if 'location_long' in body else None
+        file.save()
+    elif 'poll_id' in body:
 
-            file = answerAttachment()
-            file.answer = answer_obj
-            file.type = attachment_type
-            file.file_url = body['url']
-            file.save()
-        elif 'poll_id' in body:
+        try:
+            instance = CollabcardPolls.objects.get(id=body['poll_id'])
+            instance.image_url = body['url']
+            instance.save()
+        except:
+            return JsonResponse({'success': False, 'error_message': "Send valid poll id"})
 
-            try:
-                instance = CollabcardPolls.objects.get(id=body['poll_id'])
-                instance.image_url = body['url']
-                instance.save()
-            except:
-                return JsonResponse({'success':False,'error_message':"Send valid poll id"})
+    return JsonResponse({'success': True})
 
-
-
-
-
-
-        return JsonResponse({'success': True})
-    return JsonResponse({'success': False})
 
 
 ############# functions for  login flow   ##########################
