@@ -187,6 +187,7 @@ def CollabcardSerializer(card,user,community=None):
         if card.co_hosts:
             co_host_list = json.loads(card.co_hosts)
             #co_host_list = [36]
+            print(user)
             if not user:
                 user = None
 
@@ -421,5 +422,18 @@ def createCommunityActionSerializer(instance):
 
     if instance.step_subtitle:
         temp['step_sub_title'] = instance.step_subtitle
+
+    return temp
+
+
+def chatroomActionsSerializer(instance):
+
+    temp = {
+        'id':instance.id,
+        'title':instance.title
+    }
+
+    if instance.route:
+        temp['route']  = instance.route
 
     return temp
