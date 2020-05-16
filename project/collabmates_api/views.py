@@ -3917,7 +3917,7 @@ def collabcard(request, card_id):
     # coverting current time into epoch time for getting time stamp of answers and card
 
     # get all the answers of the card
-    answer = card_answers.objects.filter(card=card_instance).order_by('-id')
+    answer = card_answers.objects.filter(card=card_instance).order_by('created_at')
     #answer=pagination(answer,page,paginate_by=3)
 
     answer_id = request.GET.get('answer_id', '')
