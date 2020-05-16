@@ -2861,7 +2861,7 @@ def create_chatroom(card_instance,user_instance,state,current_user_id=None,answe
         if state == chatroom_states.CHATROOM_HEADER:
 
             community = CommunitySerializer(card_instance.community)
-            community_route = "route://community/"+str(community['id'])+"?community="+quote(str(community))
+            community_route = "route://community/"+str(community['id'])
             community_name = "<<"+str(community['name'])+"|"+community_route+">>"
             answer = user_name + " started this chatroom in " + community_name
         elif state == chatroom_states.CHATROOM_FOLLOW:
@@ -4282,6 +4282,24 @@ def get_answer_files(answer_id):
     files['pdf'] =pdf
     return files
 
+
+def get_chatromm_actions(creator):
+
+    '''function to get chatroom actions'''
+    if creator:
+        instance_list = chatroomActions.objects.all().order_by('-created_at')
+    else:
+        instance_list = chatroomActions.objects.filter(creator=False).order_by('-created_at')
+
+    action_list = []
+    for instance in instance_list:
+
+        temp = chatroomActionsSerializer(instance)
+        action_list.append(temp)
+
+    return action_list
+
+
 def get_chatroom_internal(request,card_instance,answer_id,user_id,page):
 
     '''internal function to get the chatroom can be used to handle web and android '''
@@ -4290,6 +4308,8 @@ def get_chatroom_internal(request,card_instance,answer_id,user_id,page):
     #     #code to handle web requests
 
     # sending collabcard object
+
+
     feedback = True
     if card_instance.community.id == feedback_community_id:
         feedback = False
@@ -4333,7 +4353,16 @@ def get_chatroom_internal(request,card_instance,answer_id,user_id,page):
         answer_filter = pagination(answer_filter, page_number=page, paginate_by=15)
         chatroom = get_answer_data(answer_filter, feedback, card_instance.community.id, current_user_id=user_id)
 
-    context = {'chat_room': card, 'conversations': chatroom}
+
+
+    if int(user_id) == card_instance.user.id:
+
+        chatroom_actions = get_chatromm_actions(creator = True)
+    else:
+
+        chatroom_actions = get_chatromm_actions(creator = False)
+
+    context = {'chat_room': card, 'conversations': chatroom,'chatroom_actions':chatroom_actions}
 
     return context
 
