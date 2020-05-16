@@ -4057,8 +4057,8 @@ def get_collabcard_details_for_web(request,card_instance,card,current_user_id,an
         current_user = UserinfoSerializer(user=current_user_instance)
 
         collabcard_status = get_status_of_collabcard(member_id=current_user_id, community=card_instance.community, card=card_instance)
-        card['collabcard_state'] = collabcard_status['state']
-        card['mute_status'] = collabcard_status['mute_status']
+        current_user['collabcard_state'] = collabcard_status['state']
+        current_user['mute_status'] = collabcard_status['mute_status']
 
         is_logged = True
 
