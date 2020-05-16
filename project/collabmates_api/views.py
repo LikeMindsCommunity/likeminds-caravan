@@ -3970,7 +3970,9 @@ def collabcard(request, card_id):
     card['member'] = usr
     card['pdf'] = files[1]
     if user_id:
-        card['state'] = get_status_of_collabcard(member_id=user_id, community=card_instance.community, card=card_instance)
+        collabcard_status = get_status_of_collabcard(member_id=user_id, community=card_instance.community, card=card_instance)
+        card['state'] = collabcard_status['state']
+        card['mute_status'] = collabcard_status['mute_status']
     # get tine stamp for card
     time_text = get_time_text(card_instance.date_epoch)
     card['created_at'] = time_text
@@ -4030,7 +4032,11 @@ def get_collabcard_details_for_web(request,card_instance,card,current_user_id,an
         current_user_id = request.user.id
         current_user_instance = Userinfo.objects.get(user_id=current_user_id)
         current_user = UserinfoSerializer(user=current_user_instance)
-        current_user['collabcard_state'] = get_status_of_collabcard(current_user_id,card_instance.community,card_instance)
+
+        collabcard_status = get_status_of_collabcard(member_id=current_user_id, community=card_instance.community, card=card_instance)
+        card['collabcard_state'] = collabcard_status['state']
+        card['mute_status'] = collabcard_status['mute_status']
+
         is_logged = True
 
 
@@ -4337,8 +4343,14 @@ def get_chatroom_internal(request,card_instance,answer_id,user_id,page):
     card['images'] = files[0]
     card['member'] = usr
     card['pdf'] = files[1]
-    card['state'] = get_status_of_collabcard(member_id=user_id, community=card_instance.community,
-                                                 card=card_instance)
+
+    #get status of chatroom
+    card_status = get_status_of_collabcard(user_id,card_instance.community,card_instance)
+    card['state'] = card_status['state']
+    card['mute_status'] = card_status['mute_status']
+
+
+
     # get tine stamp for card
     time_text = get_time_text(card_instance.date_epoch)
     card['created_at'] = time_text
@@ -4365,67 +4377,6 @@ def get_chatroom_internal(request,card_instance,answer_id,user_id,page):
     context = {'chat_room': card, 'conversations': chatroom,'chatroom_actions':chatroom_actions}
 
     return context
-
-
-
-def community_cards(request, community_id):
-    ''' function get all the cards in a community '''
-
-    community = Community.objects.get(id=community_id)
-    member_id = request.GET.get('member_id')
-
-    current_user_id = get_member_id_from_headers(request)
-
-    # user_instance=User.objects.get(id=member_id)
-
-    # is_tour=request.GET.get('is_tour',False)
-
-    # if the community is pilot community and android tour is given
-    if community.hide_community == '3':
-        card_list = get_cards_for_demo(community_id, member_id)
-        return JsonResponse({'collabcards': card_list})
-
-    size = request.GET.get('size', '')
-    if size:
-        size = int(size)
-        cards = Collabcard.objects.filter(community=community_id).order_by('id')[:size]
-        size = Collabcard.objects.filter(community=community_id).count()
-    else:
-        cards = Collabcard.objects.filter(community=community_id).order_by('id')
-        size = cards.count()
-
-    # collabcard_url=request.build_absolute_uri()
-    # if collabcard_url in custom_cache:
-    #     card_list=custom_cache.get(collabcard_url)
-    # else:
-    if True:
-        card_list = []
-        for card in cards:
-            user = Userinfo.objects.get(user_id=card.user)
-            # serialize user object
-            usr = UserinfoSerializer(user)
-            # form responses of user
-            form_response = FormResponseSerilaizer(card.community.id, card.user.id,bl=True,current_user_id=current_user_id)
-            if form_response:
-                usr['response'] = form_response[0]
-                usr['question_answers'] = form_response[1]
-            # get card images --------------------------------------------------------
-            files = get_collabcard_files(card)
-            # -----------------------------------------------------------------------
-            # share_url = url+'/collabcard/'+str(card.id)
-
-            time_text = '' if str(card.date_epoch) == "-9223372036854775808" else get_time_text(card.date_epoch)
-            card_dict = CollabcardSerializer(card, member_id, card.community)
-            card_dict['state'] = get_status_of_collabcard(member_id, community, card)
-            card_dict['created_at'] = time_text
-            card_dict['member'] = usr
-            card_dict['images'] = files[0]
-            card_dict['pdf'] = files[1]
-            card_list.append(card_dict)
-        # custom_cache.set(collabcard_url,card_list,timeout=CACHE_TTL)
-    # card_list=list(Collabcard.objects.filter(community_id=community).values_list("id",flat=True))
-    # print(card_list)
-    return JsonResponse({'collabcards': card_list, 'size': size})
 
 
 
@@ -4995,7 +4946,11 @@ def community_cards_version_1(request,community_id,req_dict=None):
         time_text = '' if str(card_instance.date_epoch) == "-9223372036854775808" else get_time_text(
             card_instance.date_epoch)
         card_dict = CollabcardSerializer(card_instance, member_id, card_instance.community)
-        card_dict['state'] = get_status_of_collabcard(member_id, community, card_instance)
+
+        collabcard_status = get_status_of_collabcard(member_id=member_id, community=card_instance.community,
+                                                     card=card_instance)
+        card_dict['state'] = collabcard_status['state']
+        card_dict['mute_status'] = collabcard_status['mute_status']
         card_dict['created_at'] = time_text
         card_dict['member'] = usr
         card_dict['images'] = files[0]
@@ -5164,14 +5119,18 @@ def get_cards_for_demo(community_id, member_id):
 
 def get_status_of_collabcard(member_id, community, card):
     '''function to get the state of collabcard'''
-    state = 0
+
+    collabcard_status = {
+        'state' : 0,
+        'mute_status' : False
+    }
     member_id = User.objects.get(id=member_id)
     collabcard_state = collabcardState.objects.filter(card=card, user=member_id)
 
     if collabcard_state:
-        state = collabcard_state[0].state
-        return state
-    return state
+        collabcard_status['state'] = collabcard_state[0].state
+        collabcard_status['mute_status'] = collabcard_state[0].mute_status
+    return collabcard_status
 
 
 # /api/create_answer?collabcard_id=&member_id=
@@ -5699,7 +5658,12 @@ def community_collabcard_meta(request):
             time_text = get_time_text(card_instance.date_epoch)
         community_instance=card_instance.community
         card_dict = CollabcardSerializer(card_instance, member_id, card_instance.community)
-        card_dict['state'] = get_status_of_collabcard(member_id, card_instance.community, card_instance)
+
+        collabard_status = get_status_of_collabcard(member_id, card_instance.community, card_instance)
+
+        card_dict['state'] = collabard_status['state']
+        card_dict['mute_status'] = collabard_status['mute_status']
+
         card_dict['created_at'] = time_text
         card_dict['member'] = usr
         card_dict['images'] = files[0]
