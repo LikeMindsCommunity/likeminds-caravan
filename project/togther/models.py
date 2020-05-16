@@ -184,8 +184,6 @@ class Collabcard(models.Model):
     #     super(Collabcard, self).save(*args, **kwargs)
 
 
-
-
 class card_answers(models.Model):
 
     answer = models.TextField()
@@ -543,13 +541,10 @@ class collabcardState(models.Model):
     created_at = models.BigIntegerField(default=-9223372036854775808, null=True)
     updated_at = models.BigIntegerField(default=-9223372036854775808, null=True)
 
+    #if got removed saving the previous state
     removed_status = models.IntegerField(null=True)
-    #
-    # def save(self, *args, **kwargs):
-    #     if self.created_at <= 0:
-    #         self.created_at = time.time()
-    #     self.updated_at = time.time()
-    #     super(collabcardState, self).save(*args, **kwargs)
+    mute_status = models.BooleanField(default=False)
+
 
 
 class CollabcardPolls(models.Model):

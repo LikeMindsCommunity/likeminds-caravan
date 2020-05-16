@@ -383,12 +383,12 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title, 
 @shared_task
 def send_follow_notification(card_id,user_id,answer):
 
-    '''function to send notification to followed members'''
+    '''function to send notification to followed members who have responded or follow'''
 
     try:
         connection=get_connection()
         curr=connection.cursor()
-        sql="select user_id from togther_collabcardstate where card_id=%s and state=%s and removed_status is null"
+        sql="select user_id from togther_collabcardstate where card_id=%s and state=%s and removed_status is null and mute_status = False"
         parameter_list=[card_id, collabcard_states.COLLABCARD_STATE_FOLLOW]
         curr.execute(sql,parameter_list)
         member_list=curr.fetchall()
