@@ -4287,9 +4287,9 @@ def get_chatromm_actions(creator):
 
     '''function to get chatroom actions'''
     if creator:
-        instance_list = chatroomActions.objects.all().order_by('id')
+        instance_list = chatroomActions.objects.all().order_by('-id')
     else:
-        instance_list = chatroomActions.objects.filter(creator=False).order_by('id')
+        instance_list = chatroomActions.objects.filter(creator=False).order_by('-id')
 
     action_list = []
     for instance in instance_list:
