@@ -4287,9 +4287,9 @@ def get_chatromm_actions(creator):
 
     '''function to get chatroom actions'''
     if creator:
-        instance_list = chatroomActions.objects.all().order_by('-created_at')
+        instance_list = chatroomActions.objects.all().order_by('id')
     else:
-        instance_list = chatroomActions.objects.filter(creator=False).order_by('-created_at')
+        instance_list = chatroomActions.objects.filter(creator=False).order_by('id')
 
     action_list = []
     for instance in instance_list:
@@ -4349,7 +4349,7 @@ def get_chatroom_internal(request,card_instance,answer_id,user_id,page):
         chatroom = get_answer_data(answer, feedback, card_instance.community.id,
                                    current_user_id=user_id)
     else:
-        answer_filter = card_answers.objects.filter(card=card_instance).order_by('-created_at')
+        answer_filter = card_answers.objects.filter(card=card_instance).order_by('created_at')
         answer_filter = pagination(answer_filter, page_number=page, paginate_by=15)
         chatroom = get_answer_data(answer_filter, feedback, card_instance.community.id, current_user_id=user_id)
 
