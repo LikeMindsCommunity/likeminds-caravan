@@ -3077,6 +3077,29 @@ def fetch_info(request):
 
     return JsonResponse(response)
 
+@csrf_exempt
+def chatroom_mute(request):
+
+    '''function to mute and unmute chatroom'''
+    chatroom_id = request.POST.get('chatroom_id')
+
+    if not chatroom_id:
+        context = get_error_context(False,"send chatroom id as post parameters")
+        return JsonResponse(context)
+
+    member_id = get_member_id_from_headers(request)
+    if not member_id:
+        context = get_error_context(False,"send member id in headers")
+        return JsonResponse(context)
+
+    value = request.POST.get('value',False)
+
+    if value == "true":
+        collabcardState.objects.filter(card_id=chatroom_id,user=member_id).update(mute_status=True)
+    else:
+        collabcardState.objects.filter(card_id=chatroom_id, user=member_id).update(mute_status=False)
+
+    return JsonResponse({'success':True})
 
 # /api/add_admin/community_id
 @csrf_exempt
@@ -4034,8 +4057,8 @@ def get_collabcard_details_for_web(request,card_instance,card,current_user_id,an
         current_user = UserinfoSerializer(user=current_user_instance)
 
         collabcard_status = get_status_of_collabcard(member_id=current_user_id, community=card_instance.community, card=card_instance)
-        card['collabcard_state'] = collabcard_status['state']
-        card['mute_status'] = collabcard_status['mute_status']
+        current_user['collabcard_state'] = collabcard_status['state']
+        current_user['mute_status'] = collabcard_status['mute_status']
 
         is_logged = True
 
@@ -5356,8 +5379,6 @@ def collabcard_follow(request, function_dict=None):
     return JsonResponse({'success': True})
 
 
-
-
 @csrf_exempt
 def collabcards_seen(request):
     '''This functions stores the details of members who have seen the card'''
@@ -5466,6 +5487,8 @@ def collabcard_attend(request):
     if not str(member_id) == str(collabcard_instance.user.id) and status:
         send_poll_or_event_notification.delay(card_id=collabcard_id, user_id=member_id)
     return JsonResponse({'success': True})
+
+
 
 
 def update_event_answer_text(card_id):

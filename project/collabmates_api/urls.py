@@ -55,6 +55,8 @@ urlpatterns = [
 
     path('collabcard_seen', api_views.collabcards_seen, name='collabcard_seen'),
     path('collabcard_attend', api_views.collabcard_attend, name='collabcard_attend'),
+    path('chatroom_mute', api_views.chatroom_mute, name='chatroom_mute'),
+
     path('fetch_info', api_views.fetch_info, name='fetch_info'),
 
     path('members_state',api_views.members_state,name='members_state'),
