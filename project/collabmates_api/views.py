@@ -3940,7 +3940,7 @@ def collabcard(request, card_id):
     # coverting current time into epoch time for getting time stamp of answers and card
 
     # get all the answers of the card
-    answer = card_answers.objects.filter(card=card_instance).order_by('created_at')
+    answer = card_answers.objects.filter(card=card_instance).order_by('id')
     #answer=pagination(answer,page,paginate_by=3)
 
     answer_id = request.GET.get('answer_id', '')
@@ -4259,7 +4259,7 @@ def get_answer_data(answer_filter,feedback,community_id,current_user_id):
         # coverting current time into epoch time
 
 
-        time_text = time.strftime('%I:%M %p', time.localtime(ans.created_at))
+        time_text = get_time_text(ans.created_at)
         date = time.strftime('%d %b %Y', time.localtime(ans.created_at))
         attachements = get_answer_files(ans.id)
 
