@@ -176,12 +176,9 @@ class Collabcard(models.Model):
     multiple_select_no = models.IntegerField(null=True)
     multiple_select_state = models.IntegerField(default=0)
 
+    # for saving chatroom name
+    header = models.TextField(null=True)
 
-
-
-    # def save(self, *args, **kwargs):
-    #     self.date_epoch = time.time()
-    #     super(Collabcard, self).save(*args, **kwargs)
 
 
 class card_answers(models.Model):
