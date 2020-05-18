@@ -2914,9 +2914,9 @@ def chatroom_rename(request):
 
     if not chatroom_id:
         context = get_error_context(False,"send chatroom id in post params")
+        return JsonResponse(context)
 
     chatroom_name = request.POST.get("header",None)
-
     Collabcard.objects.filter(id=chatroom_id).update(header=chatroom_name)
 
     return JsonResponse({"success":True})
