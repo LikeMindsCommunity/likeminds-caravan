@@ -5278,9 +5278,9 @@ def collabcard_follow(request, function_dict=None):
     if request.user.is_authenticated and is_request_web(request):
         current_member_id = request.user.id
 
-    if not current_member_id:
-        context = get_error_context(False,"send member id in headers")
-        return JsonResponse(context)
+    # if not current_member_id:
+    #     context = get_error_context(False,"send member id in headers")
+    #     return JsonResponse(context)
 
 
     if not function_dict:
@@ -5297,6 +5297,8 @@ def collabcard_follow(request, function_dict=None):
         collabcard_id = function_dict['collabcard_id']
         member_id = function_dict['member_id']
         status = function_dict['status']
+
+
 
 
 
