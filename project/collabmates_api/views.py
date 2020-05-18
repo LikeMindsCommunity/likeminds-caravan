@@ -2917,7 +2917,7 @@ def chatroom_rename(request):
 
     chatroom_name = request.POST.get("header",None)
 
-    Collabard.objects.filter(id=chatroom_id).update(header=chatroom_name)
+    Collabcard.objects.filter(id=chatroom_id).update(header=chatroom_name)
 
     return JsonResponse({"success":True})
 
