@@ -2700,6 +2700,9 @@ def create_card(request,req_dict=None):
         card.multiple_select_no = res['multiple_select_no'] if ('multiple_select_no' in res) else 1
         card.multiple_select_state = res['multiple_select_state'] if ('multiple_select_state' in res) else 0
 
+        #for chatroom rename
+        card.header = get_chatroom_name(user_instance.userinfo.name,typ)
+
         if 'share_link' in res:
             card.share_link = res['share_link']
             og_tags = decode_meta_from_url(res['share_link'])
@@ -2879,7 +2882,44 @@ def create_chatroom(card_instance,user_instance,state,current_user_id=None,answe
     instance.save()
 
 
+@csrf_exempt
+def chatroom_mute(request):
 
+    '''function to mute and unmute chatroom'''
+    chatroom_id = request.POST.get('chatroom_id')
+
+    if not chatroom_id:
+        context = get_error_context(False,"send chatroom id as post parameters")
+        return JsonResponse(context)
+
+    member_id = get_member_id_from_headers(request)
+    if not member_id:
+        context = get_error_context(False,"send member id in headers")
+        return JsonResponse(context)
+
+    value = request.POST.get('value',False)
+
+    if value == "true":
+        collabcardState.objects.filter(card_id=chatroom_id,user=member_id).update(mute_status=True)
+    else:
+        collabcardState.objects.filter(card_id=chatroom_id, user=member_id).update(mute_status=False)
+
+    return JsonResponse({'success':True})
+
+
+@csrf_exempt
+def chatroom_rename(request):
+
+    chatroom_id = request.POST.get('chatroom_id')
+
+    if not chatroom_id:
+        context = get_error_context(False,"send chatroom id in post params")
+
+    chatroom_name = request.POST.get("header",None)
+
+    Collabard.objects.filter(id=chatroom_id).update(header=chatroom_name)
+
+    return JsonResponse({"success":True})
 
 #api to deprecate
 @csrf_exempt
@@ -3077,29 +3117,7 @@ def fetch_info(request):
 
     return JsonResponse(response)
 
-@csrf_exempt
-def chatroom_mute(request):
 
-    '''function to mute and unmute chatroom'''
-    chatroom_id = request.POST.get('chatroom_id')
-
-    if not chatroom_id:
-        context = get_error_context(False,"send chatroom id as post parameters")
-        return JsonResponse(context)
-
-    member_id = get_member_id_from_headers(request)
-    if not member_id:
-        context = get_error_context(False,"send member id in headers")
-        return JsonResponse(context)
-
-    value = request.POST.get('value',False)
-
-    if value == "true":
-        collabcardState.objects.filter(card_id=chatroom_id,user=member_id).update(mute_status=True)
-    else:
-        collabcardState.objects.filter(card_id=chatroom_id, user=member_id).update(mute_status=False)
-
-    return JsonResponse({'success':True})
 
 # /api/add_admin/community_id
 @csrf_exempt
