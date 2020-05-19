@@ -4310,8 +4310,8 @@ def get_answer_data(answer_filter,feedback,community_id,current_user_id):
             usr['question_answers'] = form_response[1]
         # coverting current time into epoch time
 
-
         time_text = get_time_text(ans.created_at)
+        time_text = time.strftime('%H:%M', time.localtime(ans.created_at))
         date = time.strftime('%d %b %Y', time.localtime(ans.created_at))
         attachements = get_answer_files(ans.id)
 
@@ -4433,7 +4433,7 @@ def get_chatroom_internal(request,card_instance,answer_id,user_id,page):
 
     #if the chatroom is deleted
     if card['type'] == card_types.CARD_HIDDEN:
-        context = {'chat_room':card}
+        context = {'chat_room': card}
         return context
 
     if answer_id:
