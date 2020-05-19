@@ -2921,6 +2921,38 @@ def chatroom_rename(request):
 
     return JsonResponse({"success":True})
 
+@csrf_exempt
+def chatroom_delete(request):
+
+    '''api to delete the chatroom '''
+
+    member_id = get_member_id_from_headers(request)
+    chatroom_id = request.POST.get('chatroom_id',None)
+
+    if not chatroom_id:
+        context = get_error_context(False,"send the chatroom_id in post params")
+        return JsonResponse(context)
+
+    try:
+        collabcard_instance = Collabcard.objects.get(id=chatroom_id)
+
+        if collabcard_instance.user.id != int(member_id):
+            context = get_error_context(False,"You are not the card creator you cannot delete this chatroom")
+            return JsonResponse(context)
+
+        collabcard_instance.type = card_types.CARD_HIDDEN
+
+        collabcard_instance.save()
+
+    except:
+
+        context = get_error_context(False,"Collabcard does'nt exists")
+        return JsonResponse(context)
+
+
+
+    return JsonResponse({'success':True})
+
 #api to deprecate
 @csrf_exempt
 def collabcard_poll(request):
@@ -3562,6 +3594,8 @@ def request_response(request, req_dict=None):
     accepted=False
     if 'accepted' in res:
         accepted = res['accepted']
+
+
     community = Community.objects.get(id=community_id)
     user = User.objects.get(id=member_id)
 
@@ -4356,7 +4390,7 @@ def get_chatroom_internal(request,card_instance,answer_id,user_id,page):
 
     # sending collabcard object
 
-
+    #for feedback community
     feedback = True
     if card_instance.community.id == feedback_community_id:
         feedback = False
@@ -4395,6 +4429,12 @@ def get_chatroom_internal(request,card_instance,answer_id,user_id,page):
     # get tine stamp for card
     time_text = get_time_text(card_instance.date_epoch)
     card['created_at'] = time_text
+
+
+    #if the chatroom is deleted
+    if card['type'] == card_types.CARD_HIDDEN:
+        context = {'chat_room':card}
+        return context
 
     if answer_id:
         answer_id = int(answer_id)
