@@ -7,6 +7,7 @@ class CollabcardTypes:
     CARD_EVENT = 2
     CARD_POLL = 3
     CARD_FEEDBACK = 4
+    CARD_HIDDEN = 4
     CARD_PUBLIC_EVENT = 6
     CARD_PURPOSE = 7
 
