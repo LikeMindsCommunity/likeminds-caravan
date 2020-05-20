@@ -4310,7 +4310,7 @@ def get_answer_data(answer_filter,feedback,community_id,current_user_id):
             usr['question_answers'] = form_response[1]
         # coverting current time into epoch time
 
-        time_text = get_time_text(ans.created_at)
+        #time_text = get_time_text(ans.created_at)
         time_text = time.strftime('%H:%M', time.localtime(ans.created_at))
         date = time.strftime('%d %b %Y', time.localtime(ans.created_at))
         attachements = get_answer_files(ans.id)
@@ -4442,8 +4442,9 @@ def get_chatroom_internal(request,card_instance,answer_id,user_id,page):
         chatroom = get_answer_data(answer, feedback, card_instance.community.id,
                                    current_user_id=user_id)
     else:
-        answer_filter = card_answers.objects.filter(card=card_instance).order_by('created_at')
+        answer_filter = card_answers.objects.filter(card=card_instance).order_by('-created_at')
         answer_filter = pagination(answer_filter, page_number=page, paginate_by=15)
+        answer_filter = sorted(answer_filter, key=lambda k: k.id)
         chatroom = get_answer_data(answer_filter, feedback, card_instance.community.id, current_user_id=user_id)
 
 
