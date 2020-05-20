@@ -4288,6 +4288,43 @@ def fetch_chatroom(request):
     context = get_chatroom_internal(request,card_instance,answer_id,current_user_id,page)
     return JsonResponse(context)
 
+@csrf_exempt
+def conversation_meta(request):
+
+    '''api to perfrom firebase operations on conversation for real time messaging'''
+
+    conversation_id = request.POST.get('conversation_id')
+    chatroom_id = request.POST.get('chatroom_id')
+
+    if not conversation_id or not chatroom_id:
+        context = get_error_context(False,"send conversation_id and chatroom_id in post params")
+        return JsonResponse(context)
+
+    user_id = get_member_id_from_headers(request)
+    if not user_id:
+        context = get_error_context(False,"send member_id in headers")
+        return JsonResponse(context)
+
+
+    card_instance = Collabcard.objects.get(id=chatroom_id)
+    feedback = True
+    if card_instance.community.id == feedback_community_id:
+        feedback = False
+
+    answer_id = int(conversation_id)
+    answer = card_answers.objects.filter(card=card_instance, id__gte=answer_id).filter(~Q(user__id=user_id))
+    chatroom = get_answer_data(answer, feedback, card_instance.community.id,
+                                   current_user_id=user_id)
+
+    context = {
+        'conversations': chatroom
+    }
+
+    return JsonResponse(context)
+
+
+
+
 
 def get_answer_data(answer_filter,feedback,community_id,current_user_id):
     '''function to get answer for a particular collabcard '''
@@ -4443,7 +4480,7 @@ def get_chatroom_internal(request,card_instance,answer_id,user_id,page):
                                    current_user_id=user_id)
     else:
         answer_filter = card_answers.objects.filter(card=card_instance).order_by('-created_at')
-        answer_filter = pagination(answer_filter, page_number=page, paginate_by=15)
+        answer_filter = pagination(answer_filter, page_number=page, paginate_by=20)
         answer_filter = sorted(answer_filter, key=lambda k: k.id)
         chatroom = get_answer_data(answer_filter, feedback, card_instance.community.id, current_user_id=user_id)
 
@@ -4459,6 +4496,7 @@ def get_chatroom_internal(request,card_instance,answer_id,user_id,page):
     context = {'chat_room': card, 'conversations': chatroom,'chatroom_actions':chatroom_actions}
 
     return context
+
 
 
 
