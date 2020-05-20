@@ -4516,7 +4516,7 @@ def get_chatroom_internal(request,card_instance,user_id,page,conversation_id,scr
 
         if not instance_filter.exists():
             conversations = card_answers.objects.filter(card=card_instance).order_by('id')
-            conversations = pagination(conversations,page,paginate_by=2)
+            conversations = pagination(conversations,page,paginate_by=10)
             conversations = get_answer_data(conversations, feedback, card_instance.community.id, current_user_id=user_id)
         else:
             conversation_instance = instance_filter[0].conversation
