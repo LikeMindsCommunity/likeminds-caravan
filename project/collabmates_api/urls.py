@@ -59,6 +59,7 @@ urlpatterns = [
     path('chatroom_rename', api_views.chatroom_rename, name='chatroom_rename'),
     path('chatroom_delete', api_views.chatroom_delete, name='chatroom_delete'),
     path('conversation_meta', api_views.conversation_meta, name='conversation_meta'),
+    path('conversation_seen', api_views.conversation_seen, name='conversation_seen'),
 
 
     path('fetch_info', api_views.fetch_info, name='fetch_info'),
