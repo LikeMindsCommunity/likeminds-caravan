@@ -4323,9 +4323,6 @@ def conversation_meta(request):
     return JsonResponse(context)
 
 
-
-
-
 def get_answer_data(answer_filter,feedback,community_id,current_user_id):
     '''function to get answer for a particular collabcard '''
 
