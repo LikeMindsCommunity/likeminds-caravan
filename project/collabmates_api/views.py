@@ -4280,13 +4280,84 @@ def fetch_chatroom(request):
         context = get_error_context(False,"send chat_room_id as a get params")
         return JsonResponse(context)
 
+    conversation_id = request.GET.get('conversation_id')
+    scroll_direction = request.GET.get('scroll_direction')
+
+
+
     card_instance = Collabcard.objects.get(id=card_id)
-    answer_id = request.GET.get('answer_id', '')
-    #user_id = request.GET.get('member_id', '')
     page = request.GET.get('page',1)
     current_user_id = get_member_id_from_headers(request)
-    context = get_chatroom_internal(request,card_instance,answer_id,current_user_id,page)
+    context = get_chatroom_internal(request,card_instance,current_user_id,page,conversation_id,scroll_direction)
     return JsonResponse(context)
+
+@csrf_exempt
+def conversation_meta(request):
+
+    '''api to perfrom firebase operations on conversation for real time messaging'''
+
+    conversation_id = request.POST.get('conversation_id')
+    chatroom_id = request.POST.get('chatroom_id')
+
+    if not conversation_id or not chatroom_id:
+        context = get_error_context(False,"send conversation_id and chatroom_id in post params")
+        return JsonResponse(context)
+
+    user_id = get_member_id_from_headers(request)
+    if not user_id:
+        context = get_error_context(False,"send member_id in headers")
+        return JsonResponse(context)
+
+
+    card_instance = Collabcard.objects.get(id=chatroom_id)
+    feedback = True
+    if card_instance.community.id == feedback_community_id:
+        feedback = False
+
+    answer_id = int(conversation_id)
+    answer = card_answers.objects.filter(card=card_instance, id__gte=answer_id).filter(~Q(user__id=user_id))
+    chatroom = get_answer_data(answer, feedback, card_instance.community.id,
+                                   current_user_id=user_id)
+
+    context = {
+        'conversations': chatroom
+    }
+
+    return JsonResponse(context)
+
+
+@csrf_exempt
+def conversation_seen(request):
+
+    '''api to save conversation id for user'''
+    conversation_id = request.POST.get('conversation_id')
+    member_id = get_member_id_from_headers(request)
+    if not conversation_id:
+        context = get_error_context(False,"send conversation id")
+        return context
+
+    try:
+        user_instance = User.objects.get(id=member_id)
+        conversation_instance = card_answers.objects.get(id=conversation_id)
+        card_instance = conversation_instance.card
+        conversation_member_filter = conversationMemberState.objects.filter(user=user_instance,card=card_instance)
+
+        if not conversation_member_filter.exists():
+            conversation_member_instance = conversationMemberState()
+            conversation_member_instance.card = card_instance
+            conversation_member_instance.conversation = conversation_instance
+            conversation_member_instance.user = user_instance
+            conversation_member_instance.save()
+        else:
+            conversation_member_filter.update(conversation=conversation_instance,updated_at=time.time())
+    except Exception as e:
+        print(e)
+        context = get_error_context(False,"send the member id in headers or conversation does'nt exists")
+        return JsonResponse(context)
+
+
+    return JsonResponse({'success':True})
+
 
 
 def get_answer_data(answer_filter,feedback,community_id,current_user_id):
@@ -4364,7 +4435,7 @@ def get_answer_files(answer_id):
     return files
 
 
-def get_chatromm_actions(creator):
+def get_chatroom_actions(creator):
 
     '''function to get chatroom actions'''
     if creator:
@@ -4381,7 +4452,7 @@ def get_chatromm_actions(creator):
     return action_list
 
 
-def get_chatroom_internal(request,card_instance,answer_id,user_id,page):
+def get_chatroom_internal(request,card_instance,user_id,page,conversation_id,scroll_direction):
 
     '''internal function to get the chatroom can be used to handle web and android '''
 
@@ -4436,30 +4507,62 @@ def get_chatroom_internal(request,card_instance,answer_id,user_id,page):
         context = {'chat_room': card}
         return context
 
-    if answer_id:
-        answer_id = int(answer_id)
-        answer = card_answers.objects.filter(card=card_instance, id__gte=answer_id).filter(~Q(user__id=user_id))
-        chatroom = get_answer_data(answer, feedback, card_instance.community.id,
-                                   current_user_id=user_id)
+
+    # conversations  functionality
+
+    #user has not done the scrolling
+    if not conversation_id and not scroll_direction:
+        instance_filter = conversationMemberState.objects.filter(user_id=user_id,card = card_instance)
+
+        if not instance_filter.exists():
+            conversations = card_answers.objects.filter(card=card_instance).order_by('id')
+            conversations = pagination(conversations,page,paginate_by=10)
+            conversations = get_answer_data(conversations, feedback, card_instance.community.id, current_user_id=user_id)
+        else:
+            conversation_instance = instance_filter[0].conversation
+
+            upward_conversation = card_answers.objects.filter(card=card_instance).filter(
+                id__lte=conversation_instance.id)[:10]
+
+            downward_conversation = card_answers.objects.filter(card=card_instance).filter(
+                id__gt=conversation_instance.id)[:10]
+
+            #merging both conversations
+            conversations = upward_conversation|downward_conversation
+            conversations = get_answer_data(conversations,feedback,card_instance.community.id,current_user_id=user_id)
+
     else:
-        answer_filter = card_answers.objects.filter(card=card_instance).order_by('-created_at')
-        answer_filter = pagination(answer_filter, page_number=page, paginate_by=15)
-        answer_filter = sorted(answer_filter, key=lambda k: k.id)
-        chatroom = get_answer_data(answer_filter, feedback, card_instance.community.id, current_user_id=user_id)
+
+        scroll_direction = int(scroll_direction)
+        conversation_id = int(conversation_id)
+        if scroll_direction == 0:               #upward scroll
+            conversations = card_answers.objects.filter(card=card_instance).filter(
+                    id__lte=conversation_id)[:10]
+        elif scroll_direction == 1:           #downward scroll
+            conversations = card_answers.objects.filter(card=card_instance).filter(
+                id__gte=conversation_id)[:10]
+        else:
+            conversations = card_answers.objects.filter(card=card_instance)
+
+        conversations = get_answer_data(conversations, feedback, card_instance.community.id, current_user_id=user_id)
 
 
 
+
+    #sending the chatroom actions
     if int(user_id) == card_instance.user.id:
 
-        chatroom_actions = get_chatromm_actions(creator = True)
+        chatroom_actions = get_chatroom_actions(creator = True)
     else:
 
-        chatroom_actions = get_chatromm_actions(creator = False)
+        chatroom_actions = get_chatroom_actions(creator = False)
 
-    context = {'chat_room': card, 'conversations': chatroom,'chatroom_actions':chatroom_actions}
+    context = {'chat_room': card,
+               'conversations': conversations,
+               'chatroom_actions':chatroom_actions
+               }
 
     return context
-
 
 
 def community_collabcard_invite(request,community_id):

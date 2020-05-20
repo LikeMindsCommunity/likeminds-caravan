@@ -190,6 +190,27 @@ class card_answers(models.Model):
     state = models.IntegerField(default=0)
 
 
+class conversationMemberState(models.Model):
+
+    '''function to save member state of conversation'''
+    conversation = models.ForeignKey(card_answers, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    card = models.ForeignKey(Collabcard, on_delete=models.CASCADE)
+    created_at = models.BigIntegerField(default=0)
+    updated_at = models.BigIntegerField(default=0)
+
+    def save(self, *args, **kwargs):
+        if self.created_at == 0:
+            self.created_at = time.time()
+
+        if self.updated_at == 0 :
+            self.updated_at = self.created_at
+
+        super(conversationMemberState, self).save(*args, **kwargs)
+
+
+
+
 class chatroomActions(models.Model):
 
     '''table to add chatroom actions'''
@@ -746,3 +767,5 @@ class userEmails(models.Model):
         if self.created_at == 0:
             self.created_at = time.time()
         super(userEmails, self).save(*args, **kwargs)
+
+
