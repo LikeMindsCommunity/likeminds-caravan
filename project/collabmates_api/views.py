@@ -4522,10 +4522,10 @@ def get_chatroom_internal(request,card_instance,user_id,page,conversation_id,scr
             conversation_instance = instance_filter[0].conversation
 
             upward_conversation = card_answers.objects.filter(card=card_instance).filter(
-                id__lte=conversation_instance.id)[:10]
+                id__lte=conversation_instance.id).order_by('id')[:10]
 
             downward_conversation = card_answers.objects.filter(card=card_instance).filter(
-                id__gt=conversation_instance.id)[:10]
+                id__gt=conversation_instance.id).order_by('id')[:10]
 
             #merging both conversations
             conversations = upward_conversation|downward_conversation
@@ -4537,10 +4537,10 @@ def get_chatroom_internal(request,card_instance,user_id,page,conversation_id,scr
         conversation_id = int(conversation_id)
         if scroll_direction == 0:               #upward scroll
             conversations = card_answers.objects.filter(card=card_instance).filter(
-                    id__lte=conversation_id)[:10]
+                    id__lte=conversation_id).order_by('id')[:10]
         elif scroll_direction == 1:           #downward scroll
             conversations = card_answers.objects.filter(card=card_instance).filter(
-                id__gte=conversation_id)[:10]
+                id__gte=conversation_id).order_by('id')[:10]
         else:
             conversations = card_answers.objects.filter(card=card_instance)
 
