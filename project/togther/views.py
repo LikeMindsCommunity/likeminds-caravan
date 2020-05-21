@@ -1237,10 +1237,10 @@ def accept_admin(request, community_id):
     return HttpResponseRedirect("https://play.google.com/apps/testing/com.collabmates")
 
 
-@login_required
+#@login_required
 def logout_view(request):
     logout(request)
-    return redirect('#')
+    return redirect(settings.URL)
 
 
 def join_community(request, community_id, ref_id, aj=False, member_state=None):
