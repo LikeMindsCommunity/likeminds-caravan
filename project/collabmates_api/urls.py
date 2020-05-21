@@ -34,9 +34,9 @@ urlpatterns = [
     path('create_collabcard', api_views.create_card, name="create_card"),
 
     path('collabcard/<int:card_id>', api_views.collabcard, name="collabcard"),
-    path('get_chatroom/<int:card_id>', api_views.get_chatroom, name="get_chatroom"),
+    path('fetch_chatroom', api_views.fetch_chatroom, name="fetch_chatroom"),
 
-    path('community_collabcard/<int:community_id>', api_views.community_cards, name="community_cards"),
+    #path('community_collabcard/<int:community_id>', api_views.community_cards, name="community_cards"),
     path('community_collabcard_invite/<int:community_id>', api_views.community_collabcard_invite, name="community_collabcard_invite"),
     path('v1/community_collabcard/<int:community_id>', api_views.community_cards_version_1,
          name="community_cards_version_1"),
@@ -47,7 +47,7 @@ urlpatterns = [
     path('login',api_views.login_authenticate,name = 'login'),
     path('v1/login',api_views.login_authenticate_version_1,name = 'v1/login'),
 
-    path('image_upload',api_views.image_upload,name = 'image'),
+    #path('image_upload',api_views.image_upload,name = 'image'),
     path('add_admin/<int:community_id>',api_views.create_admin,name = 'create_admin'),
     path('pending_members/<int:community_id>',api_views.pending_members,name = 'pending_members'),
     path('join',api_views.request_response,name = 'join'),
@@ -55,6 +55,13 @@ urlpatterns = [
 
     path('collabcard_seen', api_views.collabcards_seen, name='collabcard_seen'),
     path('collabcard_attend', api_views.collabcard_attend, name='collabcard_attend'),
+    path('chatroom_mute', api_views.chatroom_mute, name='chatroom_mute'),
+    path('chatroom_rename', api_views.chatroom_rename, name='chatroom_rename'),
+    path('chatroom_delete', api_views.chatroom_delete, name='chatroom_delete'),
+    path('conversation_meta', api_views.conversation_meta, name='conversation_meta'),
+    path('conversation_seen', api_views.conversation_seen, name='conversation_seen'),
+
+
     path('fetch_info', api_views.fetch_info, name='fetch_info'),
 
     path('members_state',api_views.members_state,name='members_state'),
@@ -65,7 +72,7 @@ urlpatterns = [
     path('collabcard_follow',api_views.collabcard_follow,name='collabcard_follow'),
     path('accept_invitation',views.accept_invitation,name='accept_invitation'),
     path('edit_community', views.edit_community, name='edit_community'),
-    path('upload_attachment',api_views.upload_attachment,name='upload_attachment'),
+    #path('upload_attachment',api_views.upload_attachment,name='upload_attachment'),
     path('upload_files', api_views.upload_files, name='upload_files'),
 
     path('update_location',api_views.update_location,name='upload_location'),

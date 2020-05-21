@@ -1,5 +1,5 @@
 from __future__ import absolute_import, unicode_literals
-
+from celery import shared_task
 import re
 import time
 from django.http.response import JsonResponse
@@ -383,12 +383,12 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title, 
 @shared_task
 def send_follow_notification(card_id,user_id,answer):
 
-    '''function to send notification to followed members'''
+    '''function to send notification to followed members who have responded or follow'''
 
     try:
         connection=get_connection()
         curr=connection.cursor()
-        sql="select user_id from togther_collabcardstate where card_id=%s and state=%s and removed_status is null"
+        sql="select user_id from togther_collabcardstate where card_id=%s and state=%s and removed_status is null and mute_status = False"
         parameter_list=[card_id, collabcard_states.COLLABCARD_STATE_FOLLOW]
         curr.execute(sql,parameter_list)
         member_list=curr.fetchall()
@@ -438,9 +438,6 @@ def send_follow_notification(card_id,user_id,answer):
         print ("Error while connecting to PostgreSQL", error)
 
 
-
-
-
 @shared_task
 def send_notification_to_tagged_users(card_id,answerer_name,answer,user_id,user_names):
 
@@ -469,11 +466,6 @@ def send_notification_to_tagged_users(card_id,answerer_name,answer,user_id,user_
 
     except (Exception, psycopg2.Error) as error:
         print ("Error while connecting to PostgreSQL", error)
-
-
-
-
-
 
 
 
@@ -560,6 +552,31 @@ def poll_expiry_or_event_remainder_notification(community_name, community_id, ty
     except:
         print("Error while connecting to PostgreSQL")
 
+
+@shared_task
+def send_notification_to_event_co_hosts(co_hosts,card_id,event_title,event_creater):
+
+    '''function to send notification to co-hosts'''
+
+    notification_list=[]
+
+    for host in co_hosts:
+        temp={}
+        notification_details = get_token_for_fcm(host,flag=True)
+        temp['id'] = host
+        temp['fcm_token'] = notification_details[0]
+        temp['mobile_os'] = notification_details[1]
+        notification_list.append(temp)
+
+    message={}
+    message['payload']={
+        "title" : event_creater +" made you co-host of this event",
+        "sub_title" : event_title,
+        "route":"route://collabcard?collabcard_id="+str(card_id)
+    }
+    # print(notification_list)
+    # print(message)
+    notification_meta(notification_list,message)
 
 
 

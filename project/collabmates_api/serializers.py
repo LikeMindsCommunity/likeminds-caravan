@@ -187,6 +187,7 @@ def CollabcardSerializer(card,user,community=None):
         if card.co_hosts:
             co_host_list = json.loads(card.co_hosts)
             #co_host_list = [36]
+            print(user)
             if not user:
                 user = None
 
@@ -198,6 +199,11 @@ def CollabcardSerializer(card,user,community=None):
 
 
 
+    #for sending header
+    if card.header:
+        collabcard['header'] = card.header
+    else:
+        collabcard['header'] = get_chatroom_name(card.user.userinfo.name,card.type)
 
     if card.og_tags:
         og_tags = json.loads(card.og_tags)
@@ -213,6 +219,25 @@ def CollabcardSerializer(card,user,community=None):
         collabcard['updated_time'] = get_time_text(card.updated_time)
 
     return collabcard
+
+
+
+def get_chatroom_name(user_name,type):
+
+    '''function to create chatroom name'''
+
+    if len(user_name) > 1:
+        user_name = user_name.split(" ")
+        user_name = user_name[0]
+
+    if type == card_types.CARD_PUBLIC_EVENT  or type == card_types.CARD_EVENT:
+        chatroom_name = """%s's Event"""%(user_name)
+    elif type == card_types.CARD_POLL:
+        chatroom_name = """%s's Poll""" % (user_name)
+    else:
+        chatroom_name = """%s's Chat Room"""%(user_name)
+
+    return chatroom_name
 
 
 def CollabcardPollsSerializer(poll, user, card):
@@ -421,5 +446,18 @@ def createCommunityActionSerializer(instance):
 
     if instance.step_subtitle:
         temp['step_sub_title'] = instance.step_subtitle
+
+    return temp
+
+
+def chatroomActionsSerializer(instance):
+
+    temp = {
+        'id':instance.id,
+        'title':instance.title
+    }
+
+    if instance.route:
+        temp['route']  = instance.route
 
     return temp

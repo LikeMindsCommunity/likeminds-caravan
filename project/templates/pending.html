@@ -1,0 +1,272 @@
+{% extends request.is_ajax|yesno:"layouts/ajax.html,layouts/layout.html" %}
+{% block yeild %}
+
+    {% include 'components/loader.html' %}
+    
+    <div class="container mxw960 mA mt56">
+            
+        {% include 'components/header.html' with data=header %}
+
+        {% if length == 0 %}
+           No Pending Members
+        {% endif %}
+        <!-- fluid card for members -->
+        <div class="content" id="members">
+            {% include 'components/member_card_list.html' with data=members is_member=is_member %}
+        </div>
+
+        <!-- profile pop-up -->
+        <div class="ui modal w320" id="display"></div>
+
+        {% if not request.user.is_authenticated %}
+
+             <!-- login model for exclusive communities -->
+            <div class="ui modal image_container_login w300" id="login_popup">
+                <div class="h72 w72 brp50 bd2F bs bxs oH bgT mtn22 mA">
+                    <img class="h86 w86 mtn8 mln8 ofC" src="/media/main_website/like_minds_speaker.png">
+                </div>
+                <div class="p24 bs taC ffR">
+                    <p class="m0 p0 fs17 lh22 c0 mb10 fwM">Login to continue</p>
+                    <p class="m0 p0 fs15 lh22 c9 mb16">This is an exclusive community. To view member details please login/signup and join the community.</p>
+                    <div class="p160 ls05">
+                        <div class="fs12 mb16">
+                            <div class="googleSignin p12 bs br20 bgF c79 ffR fwM bdE c79h" data-next="{{ request.path }}">
+                                <i class="dIb fa fa-google fs15 lh16 vM"></i>
+                                <span  class="dIb lh16 pl12 vM">LOGIN WITH GOOGLE</span>
+                            </div>
+                        </div>
+                        <div class="fs12 mb16">
+                            <a class="linkedinSignin p12 bs dB br20 tdN bgFb cF ffR fwM cFh" data-next="{{ request.path }}">
+                                <i class="dIb fa fa-linkedin fs15 lh16 vM"></i>
+                                <span  class="dIb lh16 pl12 vM">LOGIN WITH LINKEDIN</span>
+                            </a>
+                        </div>
+                        <div class="fs12">
+                            <a class="facebookSignin p12 bs dB br20 tdN bgFb cF ffR fwM cFh" data-next="{{ request.path }}">
+                                <i class="fa fa-facebook dIb fs15 lh16 vM"></i>
+                                <span class="dIb lh16 pl12 vM">LOGIN WITH FACEBOOK</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        {% endif %}
+
+
+
+    </div>
+
+    <!-- scripts -->
+    <script>
+
+        //functionality to show back button click
+        $('#back_click').click(function(e){
+            location.href="/community/"+"{{community_id}}";
+        });
+    
+        // functionality to show member pop-up
+        $(document.body).on('click','.member_link',function(e){
+            member_id=$(this).attr('member_id');
+            {% if not request.user.is_authenticated %}
+                $('#login_popup').modal('show');
+                console.log("user is not authenticated");
+            {% elif not is_member %}
+                {% if member_state == 3 %}
+                    $('#unverified_member').modal('show');
+                {% endif %}
+                console.log("test");
+            {% else %}
+                showMemberProfile(member_id);
+            {% endif %}
+        });
+
+        function showMemberProfile(member_id){
+            community_id = {{community_id}};
+            json_data = {
+                'data':member_id,
+                'community_id':community_id,
+                'csrfmiddlewaretoken':'{{csrf_token}}',
+            }
+            console.log(json_data);
+            $.ajax({
+                url:"/member_profile",
+                data:json_data,
+                type:"POST",
+                dataType:'json',
+                success:function(data){
+                    console.log(data['answer_list'])
+                    html = `
+                        <div class="h96 mtn38 taC pR z1">
+                            <div class="w96 h96 brp50 bd2F bs bxs oH dIb vM bgF">
+                                <img class="w96 h96 ofC" src=${data['image_link']} >
+                            </div>
+                        </div>
+                        <div class="pR mtn58 br8 oH bgF">
+                            <div class="h96">
+                                <img class="wp100 ofC h96" src="https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Fprofile_header?alt=media&token=fa838851-244c-4cbc-81da-3d2125536e18">
+                            </div>
+                            <div class="h2"></div>
+                            <p class="p012 bs m0 taC fwM fs16 c0 lh20 wbBa wp100">${data['member_name']}</p>
+                        </div>
+                        <div class="p18 bs">
+                    `;
+                    var refined_answer_obj = data['answer_list'].reduce(function(returnValue, answer) {
+                        if(answer.answer_privacy !== false){
+                            (returnValue[answer.rank] = returnValue[answer.rank] || []).push(answer);
+                        }
+                        return returnValue;
+                    }, {});
+    
+                    console.log('refined_answer_obj', refined_answer_obj);
+    
+                    // var refined_answer_array = Object.keys(refined_answer_obj).map(function (answer) {
+                    //     return f[answer]; 
+                    // });
+                    
+                    $.each( refined_answer_obj, function( index, value ) {
+                        segment = ""
+                        if (index == 1) {
+                            segment = `
+                                    <div class="dT mb10 tlF wp100">
+                                        <div class="dTc h24 vM w24 taC"><img class="dIb mxh24 mxw24 vM" src="/media/main_website/ic_email_48_px.png" /></div>
+                                        <div class="c9b dTc fs13 vM lh1h16 p08 bs wbBa">
+                            `;
+                                            $.each( value, function( index2, value2 ){
+                                                segment = segment + value2.answer;
+                                                if ( index2 != value.length - 1 ) {
+                                                    segment = segment + ', ';
+                                                }
+                                            });
+                            segment = segment + `
+                                        </div>
+                                    </div>
+                            `;
+                            html = html + segment;
+                        }else if(index == 2 ){
+                            segment = `
+                                    <div class="dT mb10 tlF wp100">
+                                        <div class="dTc h24 vM w24 taC"><img class="dIb mxh24 mxw24 vM" src="/media/main_website/mobile_alt.png"/></div>
+                                        <div class="c9b dTc fs13 vM lh1h16 p08 bs wbBa">
+                            `;
+                                            $.each( value, function( index2, value2 ){
+                                                segment = segment + value2.answer;
+                                                if ( index2 != value.length - 1 ) {
+                                                    segment = segment + ', ';
+                                                }
+                                            });
+                            segment = segment + `
+                                        </div>
+                                    </div>
+                            `;
+                            html = html + segment
+                        }else if(index == 3 ){
+                            segment = `
+                                    <div class="dT mb10 tlF wp100">
+                                        <div class="dTc h24 vM w24 taC"><img class="dIb mxh24 mxw24 vM" src="/media/main_website/link.png"/></div>
+                                        <div class="c9b dTc fs13 vM lh1h16 p08 bs wbBa">
+                            `;
+                                            $.each( value, function( index2, value2 ){
+                                                segment = segment + `<a class="cT tdN" href="//${value2['profile_link']}">${value2['answer']}</a>`;
+                                                if ( index2 != value.length - 1 ) {
+                                                    segment = segment + ', ';
+                                                }
+                                            });
+                            segment = segment + `
+                                        </div>
+                                    </div>
+                            `;
+                            html = html + segment
+                        }else if(index == 4){
+                            segment = ''
+                            $.each( value, function( index2, value2 ){
+                                segment = segment + `<p class="c4a fs15 lh24 m160 wbBa wp100">${value2['answer']}</p>`;
+                                if ( index2 != value.length - 1 ) {
+                                    segment = segment + ', ';
+                                }
+                            });
+                            html = html + segment
+                        }else if(index == 5){
+                            segment = ''
+                            $.each( value, function( index2, value2 ){
+                                segment = segment + `
+                                    <a class="cT dB m160 tdN wbBa" href="//${value2['file_link']}">
+                                        ${value2['answer']}
+                                    </a>
+                                `;
+                                if ( index2 != value.length - 1 ) {
+                                    segment = segment + ', ';
+                                }
+                            });
+                            html = html + segment
+                        }else{
+                            segment = ''
+                            $.each( value, function( index2, value2 ){
+                                segment = segment + `<p class="c9b fs15 lh24 m160 m80 wbBa wp100">${value2['answer']}</p>`;
+                                
+                            });
+                            html = html + segment
+                        }
+                    })
+                    html = html + '</div><div class="fs13 p12 taC fwM cT" id="dismiss1">APPROVE</div>'
+                    $('#display').html(html + '</div><div class="fs13 p12 taC fwM mb16 " id="dismiss2">DECLINE</div>')
+                    $('#display').modal('show');
+                    $(".dimmer").css("background-color","rgba(40,40,40,0.5)");
+
+                    $('#dismiss1').click(function(){
+                        console.log("approve")
+                        approve_or_decline(member_id,{{community_id}},true)
+                        $('#display').modal('hide');
+                    })
+
+                    $('#dismiss2').click(function(){
+
+                        console.log("decline")
+                        approve_or_decline(member_id,{{community_id}},false)
+                        $('#display').modal('hide');
+                    })
+
+                }
+            })
+        }
+
+
+        function approve_or_decline(member_id,community_id,status){
+
+            json_data = {
+                'member_id':member_id,
+                'community_id':community_id,
+                'accepted' : status
+            }
+            console.log(json_data);
+            $.ajax({
+                url:"/api/join",
+                data:JSON.stringify(json_data),
+                type:"POST",
+                dataType:'json',
+                success: function(data){
+
+                    location.reload(true)
+
+                }
+            })
+
+        }
+    </script>
+    {% include 'scripts/google_auth.html' with client_id=google_oauth_client_id  %}
+    {% include 'scripts/facebook_auth.html' with facebook_auth_id=facebook_auth_id %}
+    {% include 'scripts/linkedin_auth.html' with request=request %}
+
+{% endblock %}
+
+
+
+
+
+
+
+
+
+
+
+

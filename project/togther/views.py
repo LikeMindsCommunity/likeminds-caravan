@@ -1240,7 +1240,7 @@ def accept_admin(request, community_id):
 @login_required
 def logout_view(request):
     logout(request)
-    return redirect('communities')
+    return redirect('#')
 
 
 def join_community(request, community_id, ref_id, aj=False, member_state=None):
@@ -1721,8 +1721,8 @@ def pending_list(request, community_id):
 
     }
     #print(context)
-    return render(request,'pending_page.html', context)
 
+    return render(request,'pending_page.html', context)
 
 def questions_responses(request):
     '''function to get responses of the particular user to show'''

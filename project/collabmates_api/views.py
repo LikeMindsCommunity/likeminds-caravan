@@ -1,19 +1,16 @@
 from __future__ import absolute_import, unicode_literals
 from celery import shared_task
-import json
 import logging
 import os
 import re
-import ast
-import time
 from datetime import datetime
-import html
-import requests as rqst
+from urllib.parse import unquote, quote
 
 import googlemaps
+import requests as rqst
 from celery import shared_task
-from .serializers import *
 from django.conf import settings
+from django.contrib.auth import login
 from django.contrib.auth.models import User
 from django.core.paginator import Paginator
 from django.db.models import F
@@ -22,19 +19,21 @@ from django.http import HttpResponse
 from django.http.response import JsonResponse
 from django.shortcuts import get_object_or_404, render
 from django.views.decorators.csrf import csrf_exempt
+from rest_framework.decorators import api_view, renderer_classes
+from rest_framework.renderers import JSONRenderer, TemplateHTMLRenderer
 from togther.forms import *
 from togther.models import *
 from togther.tasks import send_email_to_proposed_admin, send_mail_after_rank_computation
-
-#utility functions
+# utility functions
 from utility.celery_tasks import (save_community_purpose_card,
                                   update_last_unseen_in_engage_on_card_creation,
                                   update_last_unseen_in_engage,
                                   )
+from utility.encryption import encrypt, decrypt
 from utility.firebase import update_last_answer_id, upload_image_to_firebase, upload_community_thumbnail, \
     upload_community_files
-from utility.states import collabcard_states, member_states, question_states,community_states,deleted_members,card_types,chatroom_states,email_states
-
+from utility.states import collabcard_states, member_states, question_states, community_states, deleted_members, \
+    card_types, chatroom_states, email_states
 from utility.tasks import (mail_triger, new_member_request,
                            member_request_approval_or_denied,
                            send_mail_for_report_abuse,
@@ -49,14 +48,12 @@ from utility.utils import (decode_meta_from_url, update_tag_image,
                            get_city_address,
                            update_user_geography_tags, insert_user_home_town_tags, is_IG_community,
                            ig_members_count, is_LG_or_LP_community, feedback_community_id, feedback_collabcard_id,
-                           is_member_verified,community_default_image,community_default_thumbnail,is_member_promoter,
-                           is_member_pending,is_member_present,generate_private_link,generate_random,get_time_text,
-                           community_default_image_round,decode_option, get_user_communities_by_rank_web,
+                           is_member_verified, community_default_image, community_default_thumbnail, is_member_promoter,
+                           is_member_present, generate_private_link, generate_random, get_time_text,
+                           community_default_image_round, decode_option, get_user_communities_by_rank_web,
                            user_onbaord,
 
                            )
-
-from utility.encryption import encrypt,decrypt
 
 from .notification import (send_follow_notification, send_notification_to_admins,
                            send_notification_for_join_requests,
@@ -72,18 +69,12 @@ from .notification import (send_follow_notification, send_notification_to_admins
                            send_notification_to_referrer_of_lg_community,
                            ask_approval_notification,
                            send_notification_for_tool_unlocked_for_live_community,
-                           send_notification_for_tool_unlocked_for_pilot)
+                           send_notification_for_tool_unlocked_for_pilot,
+                           send_notification_to_event_co_hosts)
 from .raw_queries import compute_rank
-
-from .tasks import send_email_to_nominated_admin, send_email_for_new_collabcard_posted, send_welcome_mail,send_verification_mail_for_email_sync
-
-from django.contrib.auth import login
-from urllib.parse import unquote,quote
-
-
-from rest_framework.renderers import JSONRenderer, TemplateHTMLRenderer
-from rest_framework.decorators import api_view, renderer_classes
-
+from .serializers import *
+from .tasks import send_email_to_nominated_admin, send_email_for_new_collabcard_posted, send_welcome_mail, \
+    send_verification_mail_for_email_sync
 
 # CACHE_TTL = getattr(settings, 'CACHE_TTL', cache_timeout)
 
@@ -2709,6 +2700,9 @@ def create_card(request,req_dict=None):
         card.multiple_select_no = res['multiple_select_no'] if ('multiple_select_no' in res) else 1
         card.multiple_select_state = res['multiple_select_state'] if ('multiple_select_state' in res) else 0
 
+        #for chatroom rename
+        card.header = get_chatroom_name(user_instance.userinfo.name,typ)
+
         if 'share_link' in res:
             card.share_link = res['share_link']
             og_tags = decode_meta_from_url(res['share_link'])
@@ -2716,6 +2710,22 @@ def create_card(request,req_dict=None):
 
         card.date_epoch = time.time()  # card creation time
         card.save()
+
+        #sending notification to co-hosts
+        if card.co_hosts:
+            co_hosts = res['co_hosts']
+
+            #making the co_host auto follow the card
+            for host in co_hosts:
+                req_dict={
+                    'member_id': host,
+                    'collabcard_id' : card.id,
+                    'status' : True
+                }
+                collabcard_follow(request,req_dict)
+
+
+            send_notification_to_event_co_hosts.delay(co_hosts,card.id,card.title,user_instance.userinfo.name)
 
 
 
@@ -2775,8 +2785,8 @@ def create_card(request,req_dict=None):
         create_chatroom(card_instance=card,user_instance=user_instance
                         ,state=chatroom_states.CHATROOM_HEADER,current_user_id=user_id)
 
-        #creating a chatroom having content of collabcard
-        create_chatroom(card_instance=card,user_instance=user_instance,state=chatroom_states.CHATROOM_CREATER,current_user_id=user_id,answer = card.title)
+        # #creating a chatroom having content of collabcard
+        #create_chatroom(card_instance=card,user_instance=user_instance,state=chatroom_states.CHATROOM_CREATER,current_user_id=user_id,answer = card.title)
 
 
 
@@ -2854,7 +2864,7 @@ def create_chatroom(card_instance,user_instance,state,current_user_id=None,answe
         if state == chatroom_states.CHATROOM_HEADER:
 
             community = CommunitySerializer(card_instance.community)
-            community_route = "route://community/"+str(community['id'])+"?community="+quote(str(community))
+            community_route = "route://community/"+str(community['id'])
             community_name = "<<"+str(community['name'])+"|"+community_route+">>"
             answer = user_name + " started this chatroom in " + community_name
         elif state == chatroom_states.CHATROOM_FOLLOW:
@@ -2869,10 +2879,79 @@ def create_chatroom(card_instance,user_instance,state,current_user_id=None,answe
     instance.user = user_instance
     instance.state = state
     instance.created_at = time.time()
-    #instance.save()
+    instance.save()
+
+
+@csrf_exempt
+def chatroom_mute(request):
+
+    '''function to mute and unmute chatroom'''
+    chatroom_id = request.POST.get('chatroom_id')
+
+    if not chatroom_id:
+        context = get_error_context(False,"send chatroom id as post parameters")
+        return JsonResponse(context)
+
+    member_id = get_member_id_from_headers(request)
+    if not member_id:
+        context = get_error_context(False,"send member id in headers")
+        return JsonResponse(context)
+
+    value = request.POST.get('value',False)
+
+    if value == "true":
+        collabcardState.objects.filter(card_id=chatroom_id,user=member_id).update(mute_status=True)
+    else:
+        collabcardState.objects.filter(card_id=chatroom_id, user=member_id).update(mute_status=False)
+
+    return JsonResponse({'success':True})
+
+
+@csrf_exempt
+def chatroom_rename(request):
+
+    chatroom_id = request.POST.get('chatroom_id')
+
+    if not chatroom_id:
+        context = get_error_context(False,"send chatroom id in post params")
+        return JsonResponse(context)
+
+    chatroom_name = request.POST.get("header",None)
+    Collabcard.objects.filter(id=chatroom_id).update(header=chatroom_name)
+
+    return JsonResponse({"success":True})
+
+@csrf_exempt
+def chatroom_delete(request):
+
+    '''api to delete the chatroom '''
+
+    member_id = get_member_id_from_headers(request)
+    chatroom_id = request.POST.get('chatroom_id',None)
+
+    if not chatroom_id:
+        context = get_error_context(False,"send the chatroom_id in post params")
+        return JsonResponse(context)
+
+    try:
+        collabcard_instance = Collabcard.objects.get(id=chatroom_id)
+
+        if collabcard_instance.user.id != int(member_id):
+            context = get_error_context(False,"You are not the card creator you cannot delete this chatroom")
+            return JsonResponse(context)
+
+        collabcard_instance.type = card_types.CARD_HIDDEN
+
+        collabcard_instance.save()
+
+    except:
+
+        context = get_error_context(False,"Collabcard does'nt exists")
+        return JsonResponse(context)
 
 
 
+    return JsonResponse({'success':True})
 
 #api to deprecate
 @csrf_exempt
@@ -3069,6 +3148,7 @@ def fetch_info(request):
     }
 
     return JsonResponse(response)
+
 
 
 # /api/add_admin/community_id
@@ -3514,6 +3594,8 @@ def request_response(request, req_dict=None):
     accepted=False
     if 'accepted' in res:
         accepted = res['accepted']
+
+
     community = Community.objects.get(id=community_id)
     user = User.objects.get(id=member_id)
 
@@ -3963,7 +4045,9 @@ def collabcard(request, card_id):
     card['member'] = usr
     card['pdf'] = files[1]
     if user_id:
-        card['state'] = get_status_of_collabcard(member_id=user_id, community=card_instance.community, card=card_instance)
+        collabcard_status = get_status_of_collabcard(member_id=user_id, community=card_instance.community, card=card_instance)
+        card['state'] = collabcard_status['state']
+        card['mute_status'] = collabcard_status['mute_status']
     # get tine stamp for card
     time_text = get_time_text(card_instance.date_epoch)
     card['created_at'] = time_text
@@ -4011,23 +4095,6 @@ def get_collabcard_files(card_id):
     return (img_list, pdf)
 
 
-def get_answer_files(answer_id):
-    '''function to return pdf and image files of a collabcard'''
-
-    files = answerAttachment.objects.filter(answer=answer_id)
-    img_list = []
-    pdf = []
-    for file in files:
-        if file.type == 'image':
-            if file.file_url:
-                img = {'image_url': file.file_url}
-                img_list.append(img)
-        elif file.type == 'pdf':
-            if file.file_url:
-                pdf_url = {'pdf_file': file.file_url}
-                pdf.append(pdf_url)
-    return (img_list, pdf)
-
 
 def get_collabcard_details_for_web(request,card_instance,card,current_user_id,answers):
 
@@ -4040,7 +4107,11 @@ def get_collabcard_details_for_web(request,card_instance,card,current_user_id,an
         current_user_id = request.user.id
         current_user_instance = Userinfo.objects.get(user_id=current_user_id)
         current_user = UserinfoSerializer(user=current_user_instance)
-        current_user['collabcard_state'] = get_status_of_collabcard(current_user_id,card_instance.community,card_instance)
+
+        collabcard_status = get_status_of_collabcard(member_id=current_user_id, community=card_instance.community, card=card_instance)
+        current_user['collabcard_state'] = collabcard_status['state']
+        current_user['mute_status'] = collabcard_status['mute_status']
+
         is_logged = True
 
 
@@ -4199,17 +4270,94 @@ def get_collabcard_details_for_web(request,card_instance,card,current_user_id,an
         #return render(request, 'collabcard.html', context)
 
 
-def get_chatroom(request, card_id):
+def fetch_chatroom(request):
 
     '''api to get the chatroom'''
 
+    card_id = request.GET.get('chat_room_id','')
+
+    if not card_id:
+        context = get_error_context(False,"send chat_room_id as a get params")
+        return JsonResponse(context)
+
+    conversation_id = request.GET.get('conversation_id')
+    scroll_direction = request.GET.get('scroll_direction')
+
+
+
     card_instance = Collabcard.objects.get(id=card_id)
-    answer_id = request.GET.get('answer_id', '')
-    #user_id = request.GET.get('member_id', '')
     page = request.GET.get('page',1)
     current_user_id = get_member_id_from_headers(request)
-    context = get_chatroom_internal(request,card_instance,answer_id,current_user_id,page)
+    context = get_chatroom_internal(request,card_instance,current_user_id,page,conversation_id,scroll_direction)
     return JsonResponse(context)
+
+@csrf_exempt
+def conversation_meta(request):
+
+    '''api to perfrom firebase operations on conversation for real time messaging'''
+
+    conversation_id = request.POST.get('conversation_id')
+    chatroom_id = request.POST.get('chatroom_id')
+
+    if not conversation_id or not chatroom_id:
+        context = get_error_context(False,"send conversation_id and chatroom_id in post params")
+        return JsonResponse(context)
+
+    user_id = get_member_id_from_headers(request)
+    if not user_id:
+        context = get_error_context(False,"send member_id in headers")
+        return JsonResponse(context)
+
+
+    card_instance = Collabcard.objects.get(id=chatroom_id)
+    feedback = True
+    if card_instance.community.id == feedback_community_id:
+        feedback = False
+
+    answer_id = int(conversation_id)
+    answer = card_answers.objects.filter(card=card_instance, id__gte=answer_id).filter(~Q(user__id=user_id))
+    chatroom = get_answer_data(answer, feedback, card_instance.community.id,
+                                   current_user_id=user_id)
+
+    context = {
+        'conversations': chatroom
+    }
+
+    return JsonResponse(context)
+
+
+@csrf_exempt
+def conversation_seen(request):
+
+    '''api to save conversation id for user'''
+    conversation_id = request.POST.get('conversation_id')
+    member_id = get_member_id_from_headers(request)
+    if not conversation_id:
+        context = get_error_context(False,"send conversation id")
+        return context
+
+    try:
+        user_instance = User.objects.get(id=member_id)
+        conversation_instance = card_answers.objects.get(id=conversation_id)
+        card_instance = conversation_instance.card
+        conversation_member_filter = conversationMemberState.objects.filter(user=user_instance,card=card_instance)
+
+        if not conversation_member_filter.exists():
+            conversation_member_instance = conversationMemberState()
+            conversation_member_instance.card = card_instance
+            conversation_member_instance.conversation = conversation_instance
+            conversation_member_instance.user = user_instance
+            conversation_member_instance.save()
+        else:
+            conversation_member_filter.update(conversation=conversation_instance,updated_at=time.time())
+    except Exception as e:
+        print(e)
+        context = get_error_context(False,"send the member id in headers or conversation does'nt exists")
+        return JsonResponse(context)
+
+
+    return JsonResponse({'success':True})
+
 
 
 def get_answer_data(answer_filter,feedback,community_id,current_user_id):
@@ -4233,17 +4381,78 @@ def get_answer_data(answer_filter,feedback,community_id,current_user_id):
             usr['question_answers'] = form_response[1]
         # coverting current time into epoch time
 
-
         time_text = get_time_text(ans.created_at)
+
         date = time.strftime('%d %b %Y', time.localtime(ans.created_at))
         attachements = get_answer_files(ans.id)
-        context = {'id': ans.id, 'answer': ans.answer, 'created_at': time_text, 'member': usr,
-                        'images': attachements[0], 'pdf': attachements[1],'date':date}
+
+        context = {
+              'id': ans.id,
+              'answer': ans.answer,
+              'created_at': time_text,
+              'member': usr,
+              'images': attachements['image'],
+              'pdf': attachements['pdf'],
+              'date': date,
+              'state': ans.state,
+        }
+
+        if 'location' in attachements:
+            context['location'] = attachements['location']
+
         answers.append(context)
     return answers
 
 
-def get_chatroom_internal(request,card_instance,answer_id,user_id,page):
+def get_answer_files(answer_id):
+    '''function to return pdf and image files of a collabcard'''
+
+    attachments = answerAttachment.objects.filter(answer=answer_id)
+    img_list = []
+    pdf = []
+    files = {}
+    for file in attachments:
+        if file.type == 'image':
+            if file.file_url:
+                img = {'image_url': file.file_url}
+                img_list.append(img)
+        elif file.type == 'pdf':
+            if file.file_url:
+                pdf_url = {'pdf_file': file.file_url}
+                pdf.append(pdf_url)
+        elif file.type == "location":
+            location = {
+                'location_name' : file.location_name,
+                'location_lat' : file.location_lat,
+                'location_long' : file.location_long
+
+            }
+            files['location'] = location
+
+
+    files['image'] = img_list
+    files['pdf'] =pdf
+    return files
+
+
+def get_chatroom_actions(creator):
+
+    '''function to get chatroom actions'''
+    if creator:
+        instance_list = chatroomActions.objects.all().order_by('id')
+    else:
+        instance_list = chatroomActions.objects.filter(creator=False).order_by('id')
+
+    action_list = []
+    for instance in instance_list:
+
+        temp = chatroomActionsSerializer(instance)
+        action_list.append(temp)
+
+    return action_list
+
+
+def get_chatroom_internal(request,card_instance,user_id,page,conversation_id,scroll_direction):
 
     '''internal function to get the chatroom can be used to handle web and android '''
 
@@ -4251,6 +4460,8 @@ def get_chatroom_internal(request,card_instance,answer_id,user_id,page):
     #     #code to handle web requests
 
     # sending collabcard object
+
+    #for feedback community
     feedback = True
     if card_instance.community.id == feedback_community_id:
         feedback = False
@@ -4278,87 +4489,80 @@ def get_chatroom_internal(request,card_instance,answer_id,user_id,page):
     card['images'] = files[0]
     card['member'] = usr
     card['pdf'] = files[1]
-    card['state'] = get_status_of_collabcard(member_id=user_id, community=card_instance.community,
-                                                 card=card_instance)
+
+    #get status of chatroom
+    card_status = get_status_of_collabcard(user_id,card_instance.community,card_instance)
+    card['state'] = card_status['state']
+    card['mute_status'] = card_status['mute_status']
+
+
+
     # get tine stamp for card
     time_text = get_time_text(card_instance.date_epoch)
     card['created_at'] = time_text
 
-    if answer_id:
-        answer_id = int(answer_id)
-        answer = card_answers.objects.filter(card=card_instance, id__gte=answer_id).filter(~Q(user__id=user_id))
-        chatroom = get_answer_data(answer, feedback, card_instance.community.id,
-                                   current_user_id=user_id)
-    else:
-        answer_filter = card_answers.objects.filter(card=card_instance).order_by('-created_at')
-        answer_filter = pagination(answer_filter, page_number=page, paginate_by=15)
-        chatroom = get_answer_data(answer_filter, feedback, card_instance.community.id, current_user_id=user_id)
 
-    context = {'chat_room': card, 'conversations': chatroom}
+    #if the chatroom is deleted
+    if card['type'] == card_types.CARD_HIDDEN:
+        context = {'chat_room': card}
+        return context
+
+
+    # conversations  functionality
+
+    #user has not done the scrolling
+    if not conversation_id and not scroll_direction:
+        instance_filter = conversationMemberState.objects.filter(user_id=user_id,card = card_instance)
+
+        if not instance_filter.exists():
+            conversations = card_answers.objects.filter(card=card_instance).order_by('id')
+            conversations = pagination(conversations,page,paginate_by=10)
+            conversations = get_answer_data(conversations, feedback, card_instance.community.id, current_user_id=user_id)
+        else:
+            conversation_instance = instance_filter[0].conversation
+
+            upward_conversation = card_answers.objects.filter(card=card_instance).filter(
+                id__lte=conversation_instance.id).order_by('id')[:10]
+
+            downward_conversation = card_answers.objects.filter(card=card_instance).filter(
+                id__gt=conversation_instance.id).order_by('id')[:10]
+
+            #merging both conversations
+            conversations = upward_conversation|downward_conversation
+            conversations = get_answer_data(conversations,feedback,card_instance.community.id,current_user_id=user_id)
+
+    else:
+
+        scroll_direction = int(scroll_direction)
+        conversation_id = int(conversation_id)
+        if scroll_direction == 0:               #upward scroll
+            conversations = card_answers.objects.filter(card=card_instance).filter(
+                    id__lte=conversation_id).order_by('id')[:10]
+        elif scroll_direction == 1:           #downward scroll
+            conversations = card_answers.objects.filter(card=card_instance).filter(
+                id__gte=conversation_id).order_by('id')[:10]
+        else:
+            conversations = card_answers.objects.filter(card=card_instance)
+
+        conversations = get_answer_data(conversations, feedback, card_instance.community.id, current_user_id=user_id)
+
+
+
+
+    #sending the chatroom actions
+    if int(user_id) == card_instance.user.id:
+
+        chatroom_actions = get_chatroom_actions(creator = True)
+    else:
+
+        chatroom_actions = get_chatroom_actions(creator = False)
+
+    context = {'chat_room': card,
+               'conversations': conversations,
+               'chatroom_actions':chatroom_actions
+               }
 
     return context
-
-
-
-def community_cards(request, community_id):
-    ''' function get all the cards in a community '''
-
-    community = Community.objects.get(id=community_id)
-    member_id = request.GET.get('member_id')
-
-    current_user_id = get_member_id_from_headers(request)
-
-    # user_instance=User.objects.get(id=member_id)
-
-    # is_tour=request.GET.get('is_tour',False)
-
-    # if the community is pilot community and android tour is given
-    if community.hide_community == '3':
-        card_list = get_cards_for_demo(community_id, member_id)
-        return JsonResponse({'collabcards': card_list})
-
-    size = request.GET.get('size', '')
-    if size:
-        size = int(size)
-        cards = Collabcard.objects.filter(community=community_id).order_by('id')[:size]
-        size = Collabcard.objects.filter(community=community_id).count()
-    else:
-        cards = Collabcard.objects.filter(community=community_id).order_by('id')
-        size = cards.count()
-
-    # collabcard_url=request.build_absolute_uri()
-    # if collabcard_url in custom_cache:
-    #     card_list=custom_cache.get(collabcard_url)
-    # else:
-    if True:
-        card_list = []
-        for card in cards:
-            user = Userinfo.objects.get(user_id=card.user)
-            # serialize user object
-            usr = UserinfoSerializer(user)
-            # form responses of user
-            form_response = FormResponseSerilaizer(card.community.id, card.user.id,bl=True,current_user_id=current_user_id)
-            if form_response:
-                usr['response'] = form_response[0]
-                usr['question_answers'] = form_response[1]
-            # get card images --------------------------------------------------------
-            files = get_collabcard_files(card)
-            # -----------------------------------------------------------------------
-            # share_url = url+'/collabcard/'+str(card.id)
-
-            time_text = '' if str(card.date_epoch) == "-9223372036854775808" else get_time_text(card.date_epoch)
-            card_dict = CollabcardSerializer(card, member_id, card.community)
-            card_dict['state'] = get_status_of_collabcard(member_id, community, card)
-            card_dict['created_at'] = time_text
-            card_dict['member'] = usr
-            card_dict['images'] = files[0]
-            card_dict['pdf'] = files[1]
-            card_list.append(card_dict)
-        # custom_cache.set(collabcard_url,card_list,timeout=CACHE_TTL)
-    # card_list=list(Collabcard.objects.filter(community_id=community).values_list("id",flat=True))
-    # print(card_list)
-    return JsonResponse({'collabcards': card_list, 'size': size})
-
 
 
 def community_collabcard_invite(request,community_id):
@@ -4927,7 +5131,11 @@ def community_cards_version_1(request,community_id,req_dict=None):
         time_text = '' if str(card_instance.date_epoch) == "-9223372036854775808" else get_time_text(
             card_instance.date_epoch)
         card_dict = CollabcardSerializer(card_instance, member_id, card_instance.community)
-        card_dict['state'] = get_status_of_collabcard(member_id, community, card_instance)
+
+        collabcard_status = get_status_of_collabcard(member_id=member_id, community=card_instance.community,
+                                                     card=card_instance)
+        card_dict['state'] = collabcard_status['state']
+        card_dict['mute_status'] = collabcard_status['mute_status']
         card_dict['created_at'] = time_text
         card_dict['member'] = usr
         card_dict['images'] = files[0]
@@ -5096,14 +5304,18 @@ def get_cards_for_demo(community_id, member_id):
 
 def get_status_of_collabcard(member_id, community, card):
     '''function to get the state of collabcard'''
-    state = 0
+
+    collabcard_status = {
+        'state' : 0,
+        'mute_status' : False
+    }
     member_id = User.objects.get(id=member_id)
     collabcard_state = collabcardState.objects.filter(card=card, user=member_id)
 
     if collabcard_state:
-        state = collabcard_state[0].state
-        return state
-    return state
+        collabcard_status['state'] = collabcard_state[0].state
+        collabcard_status['mute_status'] = collabcard_state[0].mute_status
+    return collabcard_status
 
 
 # /api/create_answer?collabcard_id=&member_id=
@@ -5210,9 +5422,9 @@ def collabcard_follow(request, function_dict=None):
     if request.user.is_authenticated and is_request_web(request):
         current_member_id = request.user.id
 
-    if not current_member_id:
-        context = get_error_context(False,"send member id in headers")
-        return JsonResponse(context)
+    # if not current_member_id:
+    #     context = get_error_context(False,"send member id in headers")
+    #     return JsonResponse(context)
 
 
     if not function_dict:
@@ -5232,13 +5444,28 @@ def collabcard_follow(request, function_dict=None):
 
 
 
+
+
     collabcard = Collabcard.objects.get(id=collabcard_id)
+
     community_instance = collabcard.community
     user_instance = User.objects.get(id=member_id)
 
     if (collabcard.type == card_types.CARD_EVENT or collabcard.type == card_types.CARD_PUBLIC_EVENT) and status:  # the collabcard is the event card and followed
 
-        collabcard_state_instance = collabcardState.objects.get(card=collabcard, user=user_instance)
+        try:
+            collabcard_state_instance = collabcardState.objects.get(card=collabcard, user=user_instance)
+        except:
+            #for autofollowing the co-host
+            collabcard_state_instance = collabcardState()
+            collabcard_state_instance.card = collabcard
+            collabcard_state_instance.community = community_instance
+            collabcard_state_instance.user = user_instance
+            collabcard_state_instance.state = collabcard_states.COLLABCARD_STATE_FOLLOW
+            collabcard_state_instance.created_at = time.time()
+            collabcard_state_instance.updated_at = time.time()
+            collabcard_state_instance.save()
+
 
         # when the user is not attending but following the collabcard
         if collabcard_state_instance.state == collabcard_states.COLLABCARD_STATE_SEEN:
@@ -5314,8 +5541,6 @@ def collabcard_follow(request, function_dict=None):
 
     # custom_cache.clear()
     return JsonResponse({'success': True})
-
-
 
 
 @csrf_exempt
@@ -5426,6 +5651,8 @@ def collabcard_attend(request):
     if not str(member_id) == str(collabcard_instance.user.id) and status:
         send_poll_or_event_notification.delay(card_id=collabcard_id, user_id=member_id)
     return JsonResponse({'success': True})
+
+
 
 
 def update_event_answer_text(card_id):
@@ -5618,7 +5845,12 @@ def community_collabcard_meta(request):
             time_text = get_time_text(card_instance.date_epoch)
         community_instance=card_instance.community
         card_dict = CollabcardSerializer(card_instance, member_id, card_instance.community)
-        card_dict['state'] = get_status_of_collabcard(member_id, card_instance.community, card_instance)
+
+        collabard_status = get_status_of_collabcard(member_id, card_instance.community, card_instance)
+
+        card_dict['state'] = collabard_status['state']
+        card_dict['mute_status'] = collabard_status['mute_status']
+
         card_dict['created_at'] = time_text
         card_dict['member'] = usr
         card_dict['images'] = files[0]
@@ -5634,103 +5866,6 @@ def community_collabcard_meta(request):
 
 ############# upload files flow   ##########################
 
-@csrf_exempt
-def image_upload(request):
-    ''' function to upload community images '''
-    body = request.GET
-    if request.method == 'POST':
-        # if 'member_id' in body:
-        #     user_id = body['member_id']
-        #     user = User.objects.get(id = user_id)
-        new_image = request.FILES['file']
-        if 'community_id' in body:
-            # if image to be updated in community
-            community_id = body['community_id']
-            community = Community.objects.get(id=community_id)
-            old_image_file = community.image_url
-
-            # # deleting the old file after new file is updated
-            # # get the new image file
-            version = re.findall(r'\w*__image__(\d+)', old_image_file.name)
-            if version:
-                version = int(version[0]) + 1
-            else:
-                version = 1
-            new_image.name = str(community_id) + '__image__' + str(version) + '.jpg'
-
-            if not old_image_file == new_image:
-                #     # if both are not same delete old file
-                if os.path.isfile(old_image_file.path):
-                    os.remove(old_image_file.path)
-
-                community.image_url = new_image
-                community.save()
-
-        elif 'collabcard_id' in body:
-
-            # if image to be updated in collabcard
-            collabcard_id = body['collabcard_id']
-            collabcard = Collabcard.objects.get(id=collabcard_id)
-
-            card_image = Card_Attachment.objects.filter(collabcard=collabcard).order_by('-id')
-            if card_image:
-                old_image_file = card_image[0].attachment
-                if os.path.isfile(old_image_file.path):
-                    version = re.findall(r'\w*__image__(\d+)', old_image_file.name)
-                    if version:
-                        version = int(version[0]) + 1
-                    else:
-                        version = 1
-                    new_image.name = str(collabcard_id) + '__image__' + str(version) + '.jpg'
-                    card_image = Card_Attachment()
-                    card_image.collabcard = collabcard
-                    card_image.attachment = new_image
-                    card_image.type = 'Image'
-                    card_image.save()
-
-            else:
-                card_image = Card_Attachment()
-                new_image.name = str(collabcard_id) + '__image__' + str(0) + '.jpg'
-                card_image.collabcard = collabcard
-                card_image.attachment = new_image
-                card_image.type = 'Image'
-                card_image.save()
-        return JsonResponse({'success': True})
-
-
-@csrf_exempt
-def upload_attachment(request):
-    '''function to upload attachments'''
-    body = request.GET
-    if request.method == 'POST':
-        attachment = request.FILES['file']
-        if 'community_id' in body:
-            # if image to be updated in community
-            community_id = body['community_id']
-            community = Community.objects.get(id=community_id)
-            old_image_file = community.image_url
-            # deleting the old file after new file is updated
-            # get the new image file
-            if not old_image_file == attachment:
-                # if both are not same delete old file
-                if os.path.isfile(old_image_file.path):
-                    os.remove(old_image_file.path)
-
-            community.image_url = attachment
-            community.save()
-        elif 'collabcard_id' in body:
-            attachment_type = body['type']
-            collabcard_id = body['collabcard_id']
-            collabcard = Collabcard.objects.get(id=collabcard_id)
-
-            file = Card_Attachment()
-            file.attachment = attachment
-            file.collabcard = collabcard
-            file.type = attachment_type
-            file.save()
-        return JsonResponse({'success': True})
-    return JsonResponse({'success': False})
-
 
 @csrf_exempt
 def upload_files(request):
@@ -5738,72 +5873,68 @@ def upload_files(request):
 
     body = request.GET
     member_id=get_member_id_from_headers(request)
-    if request.method == 'POST':
 
-        if 'community_id' in body:
-            # if image to be updated in community
-            community_id = body['community_id']
-            community = Community.objects.get(id=community_id)
-            community.image_link = body['url']
-            community.image_link_round = body['url']
-            upload_community_thumbnail.delay(community_id, body['url'])
-            community.save()
-            #updating the create community second step
-            createCommunityAction.objects.filter(community=community, step_no="Step 2").update(
-                current_point=10)
+    if 'community_id' in body:
+        # if image to be updated in community
+        community_id = body['community_id']
+        community = Community.objects.get(id=community_id)
+        community.image_link = body['url']
+        community.image_link_round = body['url']
+        upload_community_thumbnail.delay(community_id, body['url'])
+        community.save()
+        # updating the create community second step
+        createCommunityAction.objects.filter(community=community, step_no="Step 2").update(
+            current_point=10)
 
-            #saving the update image details if the image is updated
-            edit = request.GET.get('edit',False)
-            if edit == 'true':
-                if not member_id:
-                    return JsonResponse({'success': False, 'error_message': "Send member id in headers"})
-                else:
-                    member_instance = User.objects.get(id=member_id)
+        # saving the update image details if the image is updated
+        edit = request.GET.get('edit', False)
+        if edit == 'true':
+            if not member_id:
+                return JsonResponse({'success': False, 'error_message': "Send member id in headers"})
+            else:
+                member_instance = User.objects.get(id=member_id)
 
-                instance = communityUpdate()
-                instance.updated_field = "image"
-                instance.updated_time = time.time()
-                instance.updated_member = member_instance
-                instance.community = community
-                instance.save()
+            instance = communityUpdate()
+            instance.updated_field = "image"
+            instance.updated_time = time.time()
+            instance.updated_member = member_instance
+            instance.community = community
+            instance.save()
 
-        elif 'collabcard_id' in body:
-            attachment_type = body['type']
-            collabcard_id = body['collabcard_id']
-            collabcard = Collabcard.objects.get(id=collabcard_id)
+    elif 'collabcard_id' in body:
+        attachment_type = body['type']
+        collabcard_id = body['collabcard_id']
+        collabcard = Collabcard.objects.get(id=collabcard_id)
 
-            file = Card_Attachment()
-            file.collabcard = collabcard
-            file.type = attachment_type
-            file.file_url = body['url']
-            file.save()
+        file = Card_Attachment()
+        file.collabcard = collabcard
+        file.type = attachment_type
+        file.file_url = body['url']
+        file.save()
 
-        elif 'answer_id' in body:
-            attachment_type = body['type']
-            answer_id = body['answer_id']
-            answer_obj = card_answers.objects.get(id=answer_id)
+    elif 'answer_id' in body:
+        attachment_type = body['type']
+        answer_id = body['answer_id']
+        answer_instance = card_answers.objects.get(id=answer_id)
+        file = answerAttachment()
+        file.answer = answer_instance
+        file.type = attachment_type
+        file.file_url = body['url'] if 'url' in body else None
+        file.location_name = body['location_name'] if 'location_name' in body else None
+        file.location_lat = body['location_lat'] if 'location_lat' in body else None
+        file.location_long = body['location_long'] if 'location_long' in body else None
+        file.save()
+    elif 'poll_id' in body:
 
-            file = answerAttachment()
-            file.answer = answer_obj
-            file.type = attachment_type
-            file.file_url = body['url']
-            file.save()
-        elif 'poll_id' in body:
+        try:
+            instance = CollabcardPolls.objects.get(id=body['poll_id'])
+            instance.image_url = body['url']
+            instance.save()
+        except:
+            return JsonResponse({'success': False, 'error_message': "Send valid poll id"})
 
-            try:
-                instance = CollabcardPolls.objects.get(id=body['poll_id'])
-                instance.image_url = body['url']
-                instance.save()
-            except:
-                return JsonResponse({'success':False,'error_message':"Send valid poll id"})
+    return JsonResponse({'success': True})
 
-
-
-
-
-
-        return JsonResponse({'success': True})
-    return JsonResponse({'success': False})
 
 
 ############# functions for  login flow   ##########################
@@ -7375,7 +7506,7 @@ def get_member_id_from_headers(request):
     '''function to get member id from headers'''
     headers = request.META
 
-    member_id = 0
+    member_id = None
     if 'HTTP_X_MEMBER_ID' in headers and 'HTTP_X_VERSION_CODE' in headers:
         member_id = headers['HTTP_X_MEMBER_ID']
     elif 'HTTP_X_MEMBER_ID' in headers:

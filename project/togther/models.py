@@ -134,44 +134,6 @@ class Userinfo(models.Model):
     def __str__(self):
         return self.name
 
-    # def save(self, *args, **kwargs):
-    #     self.created_at = time.time()
-    #     super(Userinfo, self).save(*args, **kwargs)
-
-
-# class Experience(models.Model):
-#     user_id = models.ForeignKey(Userinfo, default=6, on_delete=models.CASCADE)
-#     title = models.CharField(max_length=200, null=True)
-#     company = models.CharField(max_length=200, null=True)
-#     location = models.CharField(max_length=200, null=True)
-#     from_year = models.CharField(max_length=4, null=True)
-#     to_year = models.CharField(max_length=4, null=True)
-#     description = models.TextField(null=True)
-
-
-# class Education(models.Model):
-#     user_id = models.ForeignKey(Userinfo, default=6, on_delete=models.CASCADE)
-#     instituion = models.CharField(max_length=200, null=True)
-#     degree = models.CharField(max_length=200, null=True)
-#     field_of_study = models.CharField(max_length=200, null=True)
-#     from_year = models.CharField(max_length=4, null=True)
-#     to_year = models.CharField(max_length=4, null=True)
-#     description = models.TextField(null=True)
-
-
-# class Requests(models.Model):
-#     user_id = models.ForeignKey(User, on_delete=models.CASCADE)
-#     user_info = models.ForeignKey(Userinfo, on_delete=models.CASCADE)
-#     community = models.ForeignKey(Community, on_delete=models.CASCADE)
-#     status = models.IntegerField(default=0)
-
-
-# class Form_response(models.Model):
-#     data = models.TextField()
-#     user = models.IntegerField()
-#     community = models.IntegerField()
-#     response = models.TextField()
-
 
 class Collabcard(models.Model):
     title = models.TextField()
@@ -214,36 +176,56 @@ class Collabcard(models.Model):
     multiple_select_no = models.IntegerField(null=True)
     multiple_select_state = models.IntegerField(default=0)
 
+    # for saving chatroom name
+    header = models.TextField(null=True)
 
-
-
-    # def save(self, *args, **kwargs):
-    #     self.date_epoch = time.time()
-    #     super(Collabcard, self).save(*args, **kwargs)
-
-
-
-
-# class Comments(models.Model):
-#     comment = models.CharField(max_length=1000)
-#     card = models.ForeignKey(Collabcard, on_delete=models.CASCADE)
-#     user = models.ForeignKey(User, on_delete=models.CASCADE)
-
-
-# class Cardaction(models.Model):
-#     action = models.CharField(max_length=100, choices=response_choices)
-#     card = models.ForeignKey(Collabcard, on_delete=models.CASCADE)
-#     user = models.ForeignKey(User, on_delete=models.CASCADE)
-#     # date = models.DateField(auto_now_add = True)
 
 
 class card_answers(models.Model):
+
     answer = models.TextField()
     card = models.ForeignKey(Collabcard, on_delete=models.CASCADE)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     created_at = models.BigIntegerField(default=-9223372036854775808)
     state = models.IntegerField(default=0)
 
+
+class conversationMemberState(models.Model):
+
+    '''function to save member state of conversation'''
+    conversation = models.ForeignKey(card_answers, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    card = models.ForeignKey(Collabcard, on_delete=models.CASCADE)
+    created_at = models.BigIntegerField(default=0)
+    updated_at = models.BigIntegerField(default=0)
+
+    def save(self, *args, **kwargs):
+        if self.created_at == 0:
+            self.created_at = time.time()
+
+        if self.updated_at == 0 :
+            self.updated_at = self.created_at
+
+        super(conversationMemberState, self).save(*args, **kwargs)
+
+
+
+
+class chatroomActions(models.Model):
+
+    '''table to add chatroom actions'''
+
+    title = models.TextField(null=True)
+    route = models.TextField(null=True)
+    created_at = models.BigIntegerField(default=0)
+    creator = models.BooleanField(default=False)
+
+
+
+    def save(self, *args, **kwargs):
+        if self.created_at == 0:
+            self.created_at = time.time()
+        super(chatroomActions, self).save(*args, **kwargs)
 
 
 class temp_admin(models.Model):
@@ -268,41 +250,29 @@ class answerAttachment(models.Model):
     '''model to save files of collabcard'''
 
     answer = models.ForeignKey(card_answers, on_delete=models.CASCADE)
-    # attachment = models.FileField(upload_to="media/collabcard_files",default='')
-    file_url = models.CharField(max_length=500, null=True)
+
+    file_url = models.TextField(null=True)
     type = models.CharField(max_length=50, default='')
 
+    location_name = models.TextField(null=True)
+    location_lat = models.FloatField(null=True)
+    location_long = models.FloatField(null=True)
 
-# class collabcard_seen(models.Model):
-#     card = models.ForeignKey(Collabcard, on_delete=models.CASCADE)
-#     community = models.ForeignKey(Community, on_delete=models.CASCADE)
-#     user = models.ForeignKey(User, on_delete=models.CASCADE)
+    created_at = models.BigIntegerField(default=0)
+
+    def save(self, *args, **kwargs):
+        if self.created_at == 0:
+            self.created_at = time.time()
+        super(answerAttachment, self).save(*args, **kwargs)
 
 
-# class follow_collabcard(models.Model):
-#     '''Model to store the follow requests of members'''
-#     collabcard_id = models.ForeignKey(Collabcard, on_delete=models.CASCADE)
-#     member_id = models.ForeignKey(User, on_delete=models.CASCADE)
+
+
 
 
 class get_notified(models.Model):
     email = models.EmailField()
 
-
-# class Tags(models.Model):
-#     '''Model to show tags from database'''
-#
-#     category_id = models.CharField(max_length=10, null=True)
-#     category_name = models.CharField(max_length=50, unique=True)
-#     state = models.IntegerField(null=True)
-#     type = models.CharField(null=True, max_length=100)
-
-
-# class userinfo_tags(models.Model):
-#     ''' Model to give user hidden tags '''
-#
-#     tag_id = models.IntegerField(null=True)
-#     user_id = models.IntegerField(null=True)
 
 
 class User_LPIG(models.Model):
@@ -589,13 +559,10 @@ class collabcardState(models.Model):
     created_at = models.BigIntegerField(default=-9223372036854775808, null=True)
     updated_at = models.BigIntegerField(default=-9223372036854775808, null=True)
 
+    #if got removed saving the previous state
     removed_status = models.IntegerField(null=True)
-    #
-    # def save(self, *args, **kwargs):
-    #     if self.created_at <= 0:
-    #         self.created_at = time.time()
-    #     self.updated_at = time.time()
-    #     super(collabcardState, self).save(*args, **kwargs)
+    mute_status = models.BooleanField(default=False)
+
 
 
 class CollabcardPolls(models.Model):
@@ -800,3 +767,5 @@ class userEmails(models.Model):
         if self.created_at == 0:
             self.created_at = time.time()
         super(userEmails, self).save(*args, **kwargs)
+
+
