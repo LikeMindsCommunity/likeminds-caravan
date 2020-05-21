@@ -1721,8 +1721,8 @@ def pending_list(request, community_id):
 
     }
     #print(context)
-    return render(request,'pending.html', context)
 
+    return render(request,'pending_page.html', context)
 
 def questions_responses(request):
     '''function to get responses of the particular user to show'''
