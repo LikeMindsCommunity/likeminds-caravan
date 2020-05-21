@@ -1649,56 +1649,79 @@ def update_member_count(community_id):
 def pending_list(request, community_id):
     ''' function to show pending list in html '''
 
-    if request.user.is_authenticated:
-        try:
-            user = Userinfo.objects.get(user_id=request.user.id)
-        except:
-            user = update_user_info(request)
+    # if request.user.is_authenticated:
+    #     try:
+    #         user = Userinfo.objects.get(user_id=request.user.id)
+    #     except:
+    #         user = update_user_info(request)
+    #
+    # link = api_url + 'pending_members/' + str(community_id)
+    #
+    # link = link if not request.user.is_authenticated else link + "?member_id=" + str(request.user.id)
+    #
+    # res = rqst.get(link)
+    # user_image_url = ""
+    # is_promoter = 'false'
+    # request_user_email = False
+    # if request.user.is_authenticated:
+    #     try:
+    #         userinfo = Userinfo.objects.get(user_id=request.user.id)
+    #     except:
+    #         user, request_user_email = update_user_info(request)
+    #     userinfo=Userinfo.objects.get(user_id=request.user.id)
+    #     if not userinfo.image_link:
+    #         user_image_url = url + userinfo.image_file.url
+    #     else:
+    #         user_image_url = userinfo.image_link
+    #     link = api_url + 'members_state?member_id=' + str(request.user.id) + '&community_id=' + str(community_id)
+    #     state = rqst.get(link)
+    #     try:
+    #         state = json.loads(state.content)
+    #         if state['state'] == 1 or state['state'] == 2:
+    #             is_promoter = 'true'
+    #     except Exception as e:
+    #         traceback.print_exc()
+    # pending_list = []
+    # error = False
+    # try:
+    #     pending_list = json.loads(res.content)['pending_members']
+    # except Exception as e:
+    #     error = True
+    #     traceback.print_exc()
 
-    link = api_url + 'pending_members/' + str(community_id)
+    community_instance = Community.objects.get(id=community_id)
 
-    link = link if not request.user.is_authenticated else link + "?member_id=" + str(request.user.id)
+    all_members = get_member_details(community_instance,3)
+    members = []
+    is_promoter = False
+    for member in all_members:
+        if member['state'] == member_states.PENDING_MEMBER:
+            #member['answer'] = ""
+            members.append(member)
+        elif member['state'] == member_states.ADMIN and request.user.id == member['id']:
+            is_promoter = True
 
-    res = rqst.get(link)
-    user_image_url = ""
-    is_promoter = 'false'
-    request_user_email = False
-    if request.user.is_authenticated:
-        try:
-            userinfo = Userinfo.objects.get(user_id=request.user.id)
-        except:
-            user, request_user_email = update_user_info(request)
-        userinfo=Userinfo.objects.get(user_id=request.user.id)
-        if not userinfo.image_link:
-            user_image_url = url + userinfo.image_file.url
-        else:
-            user_image_url = userinfo.image_link
-        link = api_url + 'members_state?member_id=' + str(request.user.id) + '&community_id=' + str(community_id)
-        state = rqst.get(link)
-        try:
-            state = json.loads(state.content)
-            if state['state'] == 1 or state['state'] == 2:
-                is_promoter = 'true'
-        except Exception as e:
-            traceback.print_exc()
-    pending_list = []
-    error = False
-    try:
-        pending_list = json.loads(res.content)['pending_members']
-    except Exception as e:
-        error = True
-        traceback.print_exc()
+
+    header = {
+        'back': True,
+        'title': 'Members',
+        'subTitle': community_instance.name,
+        'background': 'Wa',
+        'color': 'F'
+    }
 
     context = {
-        'pending_list': pending_list,
-        'community_id': community_id,
-        'user_image_url': user_image_url,
-        'is_promoter': is_promoter,
-        'list_length': len(pending_list),
-        'error': error,
-        'request_user_email': request_user_email
+        'header' : header,
+        'members' : members,
+        'community_id':community_instance.id,
+        'is_member' : is_promoter,
+        'google_oauth_client_id': settings.GOOGLE_OAUTH_CLIENT_ID,
+        'facebook_auth_id': settings.SOCIAL_AUTH_FACEBOOK_KEY,
+        'length' : len(members)
+
     }
-    return render(request, 'pending_list.html', context)
+    #print(context)
+    return render(request,'pending_page.html', context)
 
 
 def questions_responses(request):
