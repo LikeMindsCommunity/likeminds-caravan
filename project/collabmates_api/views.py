@@ -2871,6 +2871,8 @@ def create_chatroom(card_instance,user_instance,state,current_user_id=None,answe
             answer = user_name + " followed this chatroom"
         elif state == chatroom_states.CHATROOM_UNFOLLOW:
             answer = user_name + " unfollwed this chatroom"
+        elif state == chatroom_states.CHATROOM_PURPOSE_EDIT:
+            answer = user_name + " edited community purpose"
 
 
     instance = card_answers()
@@ -6940,13 +6942,19 @@ def edit_questions_version_1(request):
 
     return JsonResponse({'success':True})
 
+
 def edit_community_purpose_collabcard(community_instance,member_instance,purpose):
 
     '''function to update the purpose collabcard of community'''
-    update_status = Collabcard.objects.filter(community=community_instance,
-                                              type=card_types.CARD_PURPOSE).update(title=purpose,
-                                                                                   updated_member=member_instance,
-                                                                                   updated_time=time.time())
+    user_instance = member_instance
+    collabcard_filter = Collabcard.objects.filter(community=community_instance,type=card_types.CARD_PURPOSE)
+
+    update_status = collabcard_filter.update(title=purpose,updated_member=user_instance,updated_time=time.time())
+
+    if collabcard_filter.exists():
+        card_instance = collabcard_filter[0]
+        create_chatroom(card_instance=card_instance,user_instance=user_instance,
+                        state=chatroom_states.CHATROOM_PURPOSE_EDIT)
     log="""purpose card updated for community=%s by user=%s"""%(str(community_instance.id),str(member_instance.id))
     info_logger.info(log)
     info_logger.info(update_status)
