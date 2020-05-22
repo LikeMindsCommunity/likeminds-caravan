@@ -32,6 +32,7 @@ class ChatroomStates:
     CHATROOM_FOLLOW = 2
     CHATROOM_UNFOLLOW = 3
     CHATROOM_CREATER = 4
+    CHATROOM_PURPOSE_EDIT = 5
 
 chatroom_states = ChatroomStates()
 
