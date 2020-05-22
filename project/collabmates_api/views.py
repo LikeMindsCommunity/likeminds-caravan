@@ -4360,11 +4360,10 @@ def conversation_seen(request):
 
 
 
-def get_answer_data(answer_filter,feedback,community_id,current_user_id):
+def get_answer_data(answer_filter,feedback,community_id,current_user_id,last_seen=None):
     '''function to get answer for a particular collabcard '''
 
     answers = []
-
     for ans in answer_filter:
         user = Userinfo.objects.filter(user_id=ans.user.id)
         usr = UserinfoSerializer(user[0])
@@ -4397,6 +4396,9 @@ def get_answer_data(answer_filter,feedback,community_id,current_user_id):
               'date': date,
               'state': ans.state,
         }
+
+        if last_seen and last_seen.id == ans.id:
+            context['last_seen'] = True
 
         if 'location' in attachements:
             context['location'] = attachements['location']
@@ -4530,7 +4532,8 @@ def get_chatroom_internal(request,card_instance,user_id,page,conversation_id,scr
 
             #merging both conversations
             conversations = upward_conversation|downward_conversation
-            conversations = get_answer_data(conversations,feedback,card_instance.community.id,current_user_id=user_id)
+            conversations = get_answer_data(conversations,feedback,card_instance.community.id,
+                                            current_user_id=user_id,last_seen=conversation_instance)
 
     else:
 
