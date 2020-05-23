@@ -179,3 +179,49 @@ def update_last_unseen_in_engage(user='',community='',is_seen=False):
     # if is_seen == False:
     #     Member_Engage.objects.filter(community_id=community).filter(~Q(member_id=user)).update(last_unseen_count=collabcard_unseen,updated_at=current_time)
 
+
+@shared_task
+def update_my_chatrooms_for_users(chatroom_id,user_id=None):
+
+
+    conversation_engage_filter = conversationEngage.objects.filter(card_id=chatroom_id)
+    if not user_id:
+        user_list = list(conversation_engage_filter.values_list('user_id',flat=True))
+    else:
+        user_list = [user_id]
+    conversations = card_answers.objects.filter(card_id=chatroom_id).filter(state = 0).order_by('id')
+
+    length = len(conversations)
+    next_unseen_conversation = {}
+    unseen_count = {}
+    first_conversation = None
+    for i in range(length):
+
+        if i+1 < length:
+            next_unseen_conversation[conversations[i].id] = conversations[i+1]
+        else:
+            next_unseen_conversation[conversations[i].id] = conversations[i]
+
+        unseen_count[conversations[i].id] = length - i - 1
+
+        if not first_conversation:
+            first_conversation = conversations[i].id
+
+    print(next_unseen_conversation)
+    print("\n\n")
+    print(unseen_count)
+    print(user_list)
+    for user in user_list:
+
+        has_seen = conversationMemberState.objects.filter(card_id=chatroom_id,user_id=user)
+
+        if has_seen.exists():
+            seen_id = has_seen[0].conversation.id
+            conversation_engage_filter.filter(user=user).update(
+                last_conversation=next_unseen_conversation[seen_id],
+                updated_at = time.time(),unseen_count = unseen_count[seen_id])
+        else:
+            conversation_engage_filter.filter(user=user).update(
+                last_conversation = first_conversation,
+                updated_at=time.time(),unseen_count=length)
+
