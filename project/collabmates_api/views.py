@@ -307,12 +307,12 @@ def my_chatrooms(request):
         chatroom['chatroom'] = CollabcardSerializer(card_instance,member_id)
 
         last_conversation = instance.last_conversation
-        print(last_conversation)
+        #print(last_conversation)
         if last_conversation:
             chatroom['last_conversation'] = conversationSerializer(last_conversation)
 
-        chatroom['unseen_count'] = instance.unseen_count
-        chatroom['time_text'] = get_time_text_for_my_chatrooms(instance.updated_at)
+        chatroom['unseen_conversation_count'] = instance.unseen_count
+        chatroom['last_conversation_time'] = get_time_text_for_my_chatrooms(instance.updated_at)
 
         my_chatrooms.append(chatroom)
 
