@@ -221,6 +221,14 @@ def CollabcardSerializer(card,user,community=None):
     return collabcard
 
 
+def conversationSerializer(conversation):
+
+    temp = {
+        "answer":conversation.answer,
+        "state" : conversation.state
+    }
+
+    return temp
 
 def get_chatroom_name(user_name,type):
 

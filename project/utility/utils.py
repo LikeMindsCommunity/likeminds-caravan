@@ -19,7 +19,7 @@ from random import randint
 from django.conf import settings
 from user_agents import parse
 import time
-from datetime import datetime
+from datetime import datetime,date
 import dateutil.relativedelta
 from .states import *
 # cache details
@@ -254,6 +254,23 @@ def get_time_text(created_time):
     else:
         # if difference is in seconds
         return "Just Now"
+
+
+def get_time_text_for_my_chatrooms(updated_at):
+
+    current_time = time.time()
+    current_date = datetime.fromtimestamp(current_time).date()
+    previous_date =  datetime.fromtimestamp(updated_at).date()
+    difference = current_date  - previous_date
+
+    if difference.days == 1:
+        return "Yesterday"
+    elif difference.days > 1:
+        return time.strftime('%d/%m/%y', time.localtime(updated_at))
+    else:
+        return time.strftime('%H:%M', time.localtime(updated_at))
+
+
 
 
 def get_nominated_admin_details(community_id,email):
