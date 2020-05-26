@@ -4627,8 +4627,30 @@ def get_chatroom_internal(request,card_instance,user_id,page,conversation_id,scr
                'conversations': conversations,
                'chatroom_actions':chatroom_actions
                }
-
+    save_the_latest_conversation(card_instance, user_id)
     return context
+
+
+def save_the_latest_conversation(card_instance,user_id):
+
+    '''function to save the latest seen conversation'''
+
+    latest_card = card_answers.objects.filter(card=card_instance,state=chatroom_states.ANSWER).last()
+
+    if latest_card:
+        user_instance = User.objects.get(id=user_id)
+        conversation_member_filter = conversationMemberState.objects.filter(user=user_instance, card=card_instance)
+        conversation_instance = latest_card
+        if not conversation_member_filter.exists():
+            conversation_member_instance = conversationMemberState()
+            conversation_member_instance.card = card_instance
+            conversation_member_instance.conversation = conversation_instance
+            conversation_member_instance.user = user_instance
+            conversation_member_instance.save()
+        else:
+            conversation_member_filter.update(conversation=conversation_instance, updated_at=time.time())
+        update_my_chatrooms_for_users(card_instance,user_instance.id)
+
 
 
 def community_collabcard_invite(request,community_id):
@@ -5429,7 +5451,6 @@ def create_answer(request):
     update_my_chatrooms_for_users(chatroom_id=card_id)
 
     return JsonResponse({'success': True,'id':ans.id})
-
 
 
 
