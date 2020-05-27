@@ -225,7 +225,8 @@ def conversationSerializer(conversation):
 
     temp = {
         "answer":conversation.answer,
-        "state" : conversation.state
+        "state" : conversation.state,
+        "member" : UserinfoSerializer(conversation.user.userinfo)
     }
 
     return temp
