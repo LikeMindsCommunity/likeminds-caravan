@@ -304,7 +304,13 @@ def my_chatrooms(request):
         chatroom = {}
         card_instance = instance.card
         chatroom['community'] = CommunitySerializer(card_instance.community)
-        chatroom['chatroom'] = CollabcardSerializer(card_instance,member_id)
+
+        collabcard_serializer = CollabcardSerializer(card_instance,member_id)
+        collabcard_member = get_members_profile([card_instance.user.id],card_instance.community.id)
+        if collabcard_member:
+            collabcard_serializer['member'] = collabcard_member[0]
+
+        chatroom['chatroom'] = collabcard_serializer
 
         last_conversation = instance.last_conversation
         #print(last_conversation)
