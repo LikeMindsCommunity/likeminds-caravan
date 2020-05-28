@@ -4659,7 +4659,7 @@ def get_chatroom_internal(request,card_instance,user_id,page,conversation_id,scr
 
         chatroom_actions = get_chatroom_actions(creator = False)
 
-    context = {'chat_room': card,
+    context = {'chatroom': card,
                'conversations': conversations,
                'chatroom_actions':chatroom_actions
                }
