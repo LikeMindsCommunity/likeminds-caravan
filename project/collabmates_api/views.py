@@ -2817,7 +2817,7 @@ def create_card(request,req_dict=None):
 
 
         # #saving the state in collabcardState table instead of follow collabcard
-        create_collabcard_state_for_user(card=card, user=user_instance,
+        create_collabcard_state_for_user(card_instance=card, user_instance=user_instance,
                                          state=collabcard_states.COLLABCARD_STATE_FOLLOW,
                                          community=community)
 
