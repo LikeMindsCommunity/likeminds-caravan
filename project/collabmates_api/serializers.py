@@ -145,7 +145,8 @@ def CollabcardSerializer(card,user,community=None):
         'duration': card.duration,
         'answers_count':card.answers_count,
         'attending_count': card.attending_count,
-        'polls_count': card.polls_count
+        'polls_count': card.polls_count,
+        'card_creation_time' : time.strftime('%B %d at %H:%M',time.localtime(card.date_epoch))
     }
 
     if card.community.image_link_round:
@@ -252,6 +253,25 @@ def get_chatroom_name(user_name,type):
 
 
     return chatroom_name
+
+def get_chatroom_instance(card_instance,member_id):
+
+    collabcard_serializer = CollabcardSerializer(card_instance, member_id)
+
+    collabcard_member = get_members_profile([card_instance.user.id], card_instance.community.id)
+    if collabcard_member:
+        collabcard_serializer['member'] = collabcard_member[0]
+
+    # state = collabcardState.objects.filter(card=card_instance,user=member_id)
+    #
+    # if state.exists():
+    #     state = state[0]
+    # else:
+    #     state = 0
+    #
+    # collabcard_serializer['state'] = state
+
+    return collabcard_serializer
 
 
 def CollabcardPollsSerializer(poll, user, card):

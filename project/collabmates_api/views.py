@@ -305,12 +305,7 @@ def my_chatrooms(request):
         card_instance = instance.card
         chatroom['community'] = CommunitySerializer(card_instance.community)
 
-        collabcard_serializer = CollabcardSerializer(card_instance,member_id)
-        collabcard_member = get_members_profile([card_instance.user.id],card_instance.community.id)
-        if collabcard_member:
-            collabcard_serializer['member'] = collabcard_member[0]
-
-        chatroom['chatroom'] = collabcard_serializer
+        chatroom['chatroom'] = get_chatroom_instance(card_instance,member_id)
 
         last_conversation = instance.last_conversation
         #print(last_conversation)
@@ -322,7 +317,10 @@ def my_chatrooms(request):
 
         my_chatrooms.append(chatroom)
 
+
     return JsonResponse({"my_chatrooms":my_chatrooms})
+
+
 
 
 ######################function for api utility#################################
@@ -5680,10 +5678,6 @@ def set_state_for_event_cards(collabcard,community_instance,user_instance,status
         return {'success': False}
 
 
-
-
-
-
 @csrf_exempt
 def collabcards_seen(request):
     '''This functions stores the details of members who have seen the card'''
@@ -5792,8 +5786,6 @@ def collabcard_attend(request):
     if not str(member_id) == str(collabcard_instance.user.id) and status:
         send_poll_or_event_notification.delay(card_id=collabcard_id, user_id=member_id)
     return JsonResponse({'success': True})
-
-
 
 
 def update_event_answer_text(card_id):
@@ -6003,6 +5995,97 @@ def community_collabcard_meta(request):
         return JsonResponse({'collabcards': card_list,'community':community})
 
     return JsonResponse({'collabcards': card_list})
+
+def fetch_chatroom_feed(request):
+
+    '''api to fetch chatroom feed'''
+
+    community_id = request.GET.get('community_id')
+    page = request.GET.get('page',1)
+
+    chatroom_id = request.GET.get('chatroom_id')
+    scroll_direction  = request.GET.get('scroll_direction')
+
+    member_id = get_member_id_from_headers(request)
+
+    chatroom_filter = Collabcard.objects.filter(community=community_id).order_by('id')
+
+    chatrooms = []
+    if not chatroom_id and not scroll_direction:
+
+        last_seen = collabcardState.objects.filter(community=community_id,user = member_id).last()
+
+        if not last_seen:
+            chatroom_list = pagination(chatroom_filter,page,paginate_by=10)
+            chatrooms = get_chatrooms(chatroom_list,member_id)
+        else:
+
+            upward = Collabcard.objects.filter(id__lte=last_seen.card.id,community=community_id).order_by('-id')[:5]
+            downward = Collabcard.objects.filter(id__gt=last_seen.card.id,community=community_id).order_by('id')[:5]
+            chatroom_list = upward | downward
+            chatrooms = get_chatrooms(chatroom_list,member_id)
+
+    else:
+        scroll_direction = int(scroll_direction)
+        if scroll_direction == 0:                                   #upward scroll
+
+            upward = Collabcard.objects.filter(id__lt=chatroom_id, community=community_id).order_by('-id')[:10]
+            chatrooms = get_chatrooms(upward,member_id)
+
+        elif scroll_direction == 1:                                 #downward scroll
+
+            downward = Collabcard.objects.filter(id__gt=chatroom_id, community=community_id).order_by('id')[:10]
+
+            chatrooms = get_chatrooms(downward,member_id)
+
+    return JsonResponse({'chatroooms':chatrooms})
+
+
+
+def get_last_conversation(conversation_filter,member_id,chatroom_id):
+
+    '''function to get last conversation and last unseen conversation'''
+
+    has_seen = conversationMemberState.objects.filter(card_id=chatroom_id, user_id=member_id)
+
+    if has_seen.exists():
+        conversation_id = has_seen[0].conversation.id
+        next_conversation = card_answers.objects.filter(id__gt=conversation_id,card=chatroom_id,state=chatroom_states.ANSWER)
+        unseen_count = next_conversation.count()
+
+        if not next_conversation:
+            conversation = conversationSerializer(has_seen[0].conversation)
+        else:
+            conversation = conversationSerializer(next_conversation)
+
+        return (conversation,unseen_count)
+    elif conversation_filter.exists():
+        conversation = conversationSerializer(conversation_filter[0])
+        unseen_count = conversation_filter.count()
+        return (conversation,unseen_count)
+    else:
+        return (None,0)
+
+
+def get_chatrooms(chatroom_list,member_id):
+
+    '''function to get chatrooms'''
+
+    chatrooms = []
+
+    for card_instance in chatroom_list:
+        chatroom_instance = get_chatroom_instance(card_instance, member_id)
+        conversation_filter = card_answers.objects.filter(card=card_instance.id,
+                                                          state=chatroom_states.ANSWER).order_by('id')
+        chatroom_instance['total_response_count'] = conversation_filter.count()
+        conversation = get_last_conversation(conversation_filter, member_id, chatroom_instance['id'])
+
+        if conversation[0]:
+            chatroom_instance['last_conversation'] = conversation[0]
+        chatroom_instance['unseen_conversation_count'] = conversation[1]
+        chatrooms.append(chatroom_instance)
+
+    return chatrooms
 
 
 ############# upload files flow   ##########################
