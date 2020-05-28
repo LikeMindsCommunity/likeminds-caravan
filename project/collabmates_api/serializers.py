@@ -243,8 +243,13 @@ def get_chatroom_name(user_name,type):
         chatroom_name = """%s's Event"""%(user_name)
     elif type == card_types.CARD_POLL:
         chatroom_name = """%s's Poll""" % (user_name)
+    elif type == card_types.CARD_PURPOSE:
+        chatroom_name = """Onboarding Room"""
+    elif type == card_types.CARD_INTRO:
+        chatroom_name = """%s's Intro"""
     else:
         chatroom_name = """%s's Chat Room"""%(user_name)
+
 
     return chatroom_name
 

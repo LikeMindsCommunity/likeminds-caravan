@@ -304,13 +304,7 @@ def my_chatrooms(request):
         chatroom = {}
         card_instance = instance.card
         chatroom['community'] = CommunitySerializer(card_instance.community)
-
-        collabcard_serializer = CollabcardSerializer(card_instance,member_id)
-        collabcard_member = get_members_profile([card_instance.user.id],card_instance.community.id)
-        if collabcard_member:
-            collabcard_serializer['member'] = collabcard_member[0]
-
-        chatroom['chatroom'] = collabcard_serializer
+        chatroom['chatroom'] = CollabcardSerializer(card_instance,member_id)
 
         last_conversation = instance.last_conversation
         #print(last_conversation)
@@ -1704,6 +1698,8 @@ def post_purpose_collabcard_for_community(request,community_instance,member_id):
     create_card(request, req_dict=req_dict)
 
 
+
+
 def creating_collabcard_for_lg_communities(community,user,introduction_answer,ref_id=None):
 
     '''function to create collabcard for lg community'''
@@ -2696,10 +2692,10 @@ def create_card(request,req_dict=None):
         typ = int(res['type']) if 'type' in res else card_types.CARD_NORMAL
 
 
-        card = Collabcard.objects.filter(community=community, user=user_instance, type=1)
-        if card.exists() and typ == 1:
+        card = Collabcard.objects.filter(community=community, user=user_instance, type=card_types.CARD_INTRO)
+        if card.exists():
             # if welcome card for user is already existing
-            return JsonResponse({'success': False})
+            return JsonResponse({'success': False,"errro_message" : "Introduction already exists"})
 
         if 'date_time' in res:
             date_time = res['date_time'] if (str(typ) == '2' or str(typ) == '3') else 0
@@ -2873,17 +2869,19 @@ def create_card(request,req_dict=None):
     return JsonResponse({'success': False})
 
 
-def create_collabcard_state_for_user(card, user, state, community):
+def create_collabcard_state_for_user(card_instance, user_instance, state, community):
     """ create collabcard state for a member for a card """
 
-    collabcard_state_instance = collabcardState()
-    collabcard_state_instance.card = card
-    collabcard_state_instance.user = user
-    collabcard_state_instance.community = community
-    collabcard_state_instance.state = state  # user has created the card and he is autofollowing
-    collabcard_state_instance.created_at = time.time()
-    collabcard_state_instance.updated_at = time.time()
-    collabcard_state_instance.save()
+    state_filter = collabcardState.objects.filter(card=card_instance,user=user_instance)
+    if not state_filter.exists():
+        collabcard_state_instance = collabcardState()
+        collabcard_state_instance.card = card_instance
+        collabcard_state_instance.user = user_instance
+        collabcard_state_instance.community = community
+        collabcard_state_instance.state = state  # user has created the card and he is autofollowing
+        collabcard_state_instance.created_at = time.time()
+        collabcard_state_instance.updated_at = time.time()
+        collabcard_state_instance.save()
 
 
 def create_chatroom(card_instance,user_instance,state,current_user_id=None,answer=""):
@@ -3651,15 +3649,23 @@ def request_response(request, req_dict=None):
 
     if 'member_id' in res:
         member_id = res['member_id']
+    else:
+        context = get_error_context(False,"send member id in body")
+        return JsonResponse(context)
     if 'community_id' in res:
         community_id = res['community_id']
+    else:
+        context = get_error_context(False, "send community id in body")
+        return JsonResponse(context)
+
     accepted=False
     if 'accepted' in res:
         accepted = res['accepted']
 
 
     community = Community.objects.get(id=community_id)
-    user = User.objects.get(id=member_id)
+    community_state = get_state_of_community(community)
+    #user = User.objects.get(id=member_id)
 
     is_lg=is_LG_or_LP_community(community)
 
@@ -3676,10 +3682,7 @@ def request_response(request, req_dict=None):
         approve_or_decline_lg_community(request,req_dict,member_verification)
         return JsonResponse({'success': True})
 
-    community_state = get_state_of_community(community)
-
-    if community_state == community_states.WHATSAPP:
-
+    elif community_state == community_states.WHATSAPP:
         req_dict = {
             'member_id': member_id,
             'community_id': community_id,
@@ -3690,7 +3693,7 @@ def request_response(request, req_dict=None):
         update_pending_member_count_in_engage(req_dict['community_id'])
         return  JsonResponse({'success': True})
 
-    if community_state == community_states.PRIVATE or community_state == community_states.HIDDEN:
+    elif community_state == community_states.PRIVATE or community_state == community_states.HIDDEN:
         req_dict = {
             'member_id': member_id,
             'community_id': community_id,
@@ -3703,48 +3706,48 @@ def request_response(request, req_dict=None):
 
 
 
-    if accepted or accepted == 'true':
-        # if accepted , then make him a member of the community
-        join_time = time.time()
+    # if accepted or accepted == 'true':
+    #     # if accepted , then make him a member of the community
+    #     join_time = time.time()
+    #
+    #     # check if member is already accepted to stop duplicate notifications and false member count
+    #     member_queryset = Members.objects.filter(member_id=member_id, community_id=community).filter(Q(state=1)|Q(state=4))
+    #     if not member_queryset.exists():
+    #         # updating the approve state
+    #         Members.objects.filter(member_id=member_id, community_id=community).update(state=4,
+    #                                                                                    created_at=join_time)  # aprove state = 4
+    #         community = Community.objects.get(id=community_id)
+    #         members_count = community.members_count + 1
+    #         Community.objects.filter(id=community_id).update(members_count=members_count)
+    #
+    #         request.method = "POST"
+    #         post_introduction_card_for_community(community_id,member_id,request)
+    #
+    #
+    #         send_notification_for_join_requests.delay(community_id, True, member_id)
+    #         ## sending email to the user that his request is accepted for this community
+    #         member_request_approval_or_denied.delay(user_id=member_id, community_id=community_id, approved=True)
+    #
+    # else:
+    #
+    #     send_notification = res['send_notification'] if 'send_notification' in res else True
+    #
+    #     # checking state to stop duplicate notifications and false referal text and pending member count
+    #     state = Members.objects.filter(member_id=member_id, community_id=community)[0].state
+    #     if state == 3 or state == 8:
+    #         # change user state to 5
+    #         Members.objects.filter(member_id=member_id, community_id=community).delete()  # decline state = 5
+    #         # delete the member engage table record for the user
+    #         Member_Engage.objects.filter(member_id=member_id, community_id=community).delete()
+    #         # delete the responses of user to community questions, if any
+    #         communityAnswers.objects.filter(member=member_id, community=community_id).delete()
+    #         # update pending members count of community and referal text of user
+    #         update_pending_member_count_in_engage(community)
+    #
+    #         if send_notification or send_notification == 'true':
+    #             send_notification_for_join_requests.delay(community_id, False, member_id)
 
-        # check if member is already accepted to stop duplicate notifications and false member count
-        member_queryset = Members.objects.filter(member_id=member_id, community_id=community).filter(Q(state=1)|Q(state=4))
-        if not member_queryset.exists():
-            # updating the approve state
-            Members.objects.filter(member_id=member_id, community_id=community).update(state=4,
-                                                                                       created_at=join_time)  # aprove state = 4
-            community = Community.objects.get(id=community_id)
-            members_count = community.members_count + 1
-            Community.objects.filter(id=community_id).update(members_count=members_count)
-
-            request.method = "POST"
-            post_introduction_card_for_community(community_id,member_id,request)
-
-
-            send_notification_for_join_requests.delay(community_id, True, member_id)
-            ## sending email to the user that his request is accepted for this community
-            member_request_approval_or_denied.delay(user_id=member_id, community_id=community_id, approved=True)
-
-    else:
-
-        send_notification = res['send_notification'] if 'send_notification' in res else True
-
-        # checking state to stop duplicate notifications and false referal text and pending member count
-        state = Members.objects.filter(member_id=member_id, community_id=community)[0].state
-        if state == 3 or state == 8:
-            # change user state to 5
-            Members.objects.filter(member_id=member_id, community_id=community).delete()  # decline state = 5
-            # delete the member engage table record for the user
-            Member_Engage.objects.filter(member_id=member_id, community_id=community).delete()
-            # delete the responses of user to community questions, if any
-            communityAnswers.objects.filter(member=member_id, community=community_id).delete()
-            # update pending members count of community and referal text of user
-            update_pending_member_count_in_engage(community)
-
-            if send_notification or send_notification == 'true':
-                send_notification_for_join_requests.delay(community_id, False, member_id)
-
-    return JsonResponse({'success': True})
+    return JsonResponse({'success': False})
 
 
 def approve_or_decline_lg_community(request,req_dict,member_verification):
@@ -3888,7 +3891,6 @@ def approve_or_decline_lg_community(request,req_dict,member_verification):
             send_notification_for_join_requests.delay(community_id, False, member_id)
 
 
-
 def approve_or_decline_whatsapp_community(req_dict,request):
 
     '''function to approve the whatsapp community'''
@@ -3910,6 +3912,13 @@ def approve_or_decline_whatsapp_community(req_dict,request):
             community = Community.objects.get(id=req_dict['community_id'])
             members_count = community.members_count + 1
             Community.objects.filter(id=req_dict['community_id']).update(members_count=members_count)
+
+            # setting the follow state for purpose collabcard
+            try:
+                user_instance = User.objects.get(pk=req_dict['member_id'])
+                set_state_for_onboarding_chatroom(community_instance=community, user_instance=user_instance)
+            except:
+                pass
 
             # posting a intro collabcard
             post_introduction_card_for_community(req_dict['community_id'], req_dict['member_id'], request)
@@ -3960,6 +3969,13 @@ def approve_or_decline_private_community(req_dict,request):
             members_count = community.members_count + 1
             Community.objects.filter(id=req_dict['community_id']).update(members_count=members_count)
 
+            # setting the follow state for purpose collabcard
+            try:
+                user_instance = User.objects.get(pk=req_dict['member_id'])
+                set_state_for_onboarding_chatroom(community_instance=community, user_instance=user_instance)
+            except:
+                pass
+
             # posting a intro collabcard
             post_introduction_card_for_community(req_dict['community_id'], req_dict['member_id'], request)
 
@@ -3986,6 +4002,17 @@ def approve_or_decline_private_community(req_dict,request):
 
         send_notification_for_join_requests.delay(req_dict['community_id'], False, req_dict['member_id'])
 
+
+def set_state_for_onboarding_chatroom(community_instance,user_instance):
+
+    '''function to autofollow onboarding chatroom'''
+    onboarding_chatroom_instance = Collabcard.objects.filter(community=community_instance,type=card_types.CARD_PURPOSE)
+
+    if onboarding_chatroom_instance.exists():
+        instance = onboarding_chatroom_instance[0]
+        create_collabcard_state_for_user(card_instance=instance,user_instance = user_instance,
+                                         state=card_types.COLLABCARD_STATE_FOLLOW,community=community_instance)
+        print("onboarding state set for user")
 
 
 ############# functions for  collabcard flow   ##########################
