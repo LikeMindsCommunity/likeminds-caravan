@@ -6084,7 +6084,7 @@ def get_chatrooms(chatroom_list,member_id):
             chatroom_instance['last_conversation'] = conversation[0]
         chatroom_instance['unseen_conversation_count'] = conversation[1]
 
-        #chatroom_instance['state'] = get_status_of_collabcard(member_id,card_instance.community.id,card_instance.id)
+        chatroom_instance['state'] = get_status_of_collabcard(member_id,card_instance.community.id,card_instance.id)
         chatrooms.append(chatroom_instance)
 
     return chatrooms
