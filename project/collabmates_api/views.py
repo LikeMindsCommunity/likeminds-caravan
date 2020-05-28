@@ -3919,11 +3919,8 @@ def approve_or_decline_whatsapp_community(req_dict,request):
             Community.objects.filter(id=req_dict['community_id']).update(members_count=members_count)
 
             # setting the follow state for purpose collabcard
-            try:
-                user_instance = User.objects.get(pk=req_dict['member_id'])
-                set_state_for_onboarding_chatroom(community_instance=community, user_instance=user_instance)
-            except:
-                pass
+            set_state_for_onboarding_chatroom(community_instance=community, user_id=req_dict['member_id'],request=request)
+
 
             # posting a intro collabcard
             post_introduction_card_for_community(req_dict['community_id'], req_dict['member_id'], request)
@@ -3975,11 +3972,8 @@ def approve_or_decline_private_community(req_dict,request):
             Community.objects.filter(id=req_dict['community_id']).update(members_count=members_count)
 
             # setting the follow state for purpose collabcard
-            try:
-                user_instance = User.objects.get(pk=req_dict['member_id'])
-                set_state_for_onboarding_chatroom(community_instance=community, user_instance=user_instance)
-            except:
-                pass
+            set_state_for_onboarding_chatroom(community_instance=community, user_id=req_dict['member_id'],request=request)
+
 
             # posting a intro collabcard
             post_introduction_card_for_community(req_dict['community_id'], req_dict['member_id'], request)
@@ -4008,15 +4002,19 @@ def approve_or_decline_private_community(req_dict,request):
         send_notification_for_join_requests.delay(req_dict['community_id'], False, req_dict['member_id'])
 
 
-def set_state_for_onboarding_chatroom(community_instance,user_instance):
+def set_state_for_onboarding_chatroom(community_instance,user_id,request):
 
     '''function to autofollow onboarding chatroom'''
     onboarding_chatroom_instance = Collabcard.objects.filter(community=community_instance,type=card_types.CARD_PURPOSE)
 
     if onboarding_chatroom_instance.exists():
         instance = onboarding_chatroom_instance[0]
-        create_collabcard_state_for_user(card_instance=instance,user_instance = user_instance,
-                                         state=card_types.COLLABCARD_STATE_FOLLOW,community=community_instance)
+
+        collabcard_follow(request,function_dict={
+            'collabcard_id':instance.id,
+            'member_id' : user_id,
+            'status' : True
+        })
         print("onboarding state set for user")
 
 
@@ -5548,7 +5546,7 @@ def collabcard_follow(request, function_dict=None):
 
     current_member_id = get_member_id_from_headers(request)
 
-    if request.user.is_authenticated and is_request_web(request):
+    if is_request_web(request) and request.user.is_authenticated:
         current_member_id = request.user.id
 
     if not function_dict:
