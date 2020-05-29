@@ -5996,51 +5996,6 @@ def community_collabcard_meta(request):
 
     return JsonResponse({'collabcards': card_list})
 
-def fetch_chatroom_feed(request):
-
-    '''api to fetch chatroom feed'''
-
-    community_id = request.GET.get('community_id')
-    page = request.GET.get('page',1)
-
-    chatroom_id = request.GET.get('chatroom_id')
-    scroll_direction  = request.GET.get('scroll_direction')
-
-    member_id = get_member_id_from_headers(request)
-
-    chatroom_filter = Collabcard.objects.filter(community=community_id).order_by('id')
-
-    chatrooms = []
-    if not chatroom_id and not scroll_direction:
-
-        last_seen = collabcardState.objects.filter(community=community_id,user = member_id).last()
-
-        if not last_seen:
-            chatroom_list = pagination(chatroom_filter,page,paginate_by=10)
-            chatrooms = get_chatrooms(chatroom_list,member_id)
-        else:
-
-            upward = Collabcard.objects.filter(id__lte=last_seen.card.id,community=community_id).order_by('-id')[:5]
-            downward = Collabcard.objects.filter(id__gt=last_seen.card.id,community=community_id).order_by('id')[:5]
-            chatroom_list = upward | downward
-            chatrooms = get_chatrooms(chatroom_list,member_id)
-
-    else:
-        scroll_direction = int(scroll_direction)
-        if scroll_direction == 0:                                   #upward scroll
-
-            upward = Collabcard.objects.filter(id__lt=chatroom_id, community=community_id).order_by('-id')[:10]
-            chatrooms = get_chatrooms(upward,member_id)
-
-        elif scroll_direction == 1:                                 #downward scroll
-
-            downward = Collabcard.objects.filter(id__gt=chatroom_id, community=community_id).order_by('id')[:10]
-
-            chatrooms = get_chatrooms(downward,member_id)
-
-    return JsonResponse({'chatroooms':chatrooms})
-
-
 
 def get_last_conversation(conversation_filter,member_id,chatroom_id):
 
@@ -6084,10 +6039,58 @@ def get_chatrooms(chatroom_list,member_id):
             chatroom_instance['last_conversation'] = conversation[0]
         chatroom_instance['unseen_conversation_count'] = conversation[1]
 
-        chatroom_instance['state'] = get_status_of_collabcard(member_id,card_instance.community.id,card_instance.id)
+        status = get_status_of_collabcard(member_id,card_instance.community.id,card_instance.id)
+        chatroom_instance['state'] = status['state']
+        chatroom_instance['mute_status'] = status['mute_status']
         chatrooms.append(chatroom_instance)
 
     return chatrooms
+
+
+
+def fetch_chatroom_feed(request):
+
+    '''api to fetch chatroom feed'''
+
+    community_id = request.GET.get('community_id')
+    page = request.GET.get('page',1)
+
+    chatroom_id = request.GET.get('chatroom_id')
+    scroll_direction  = request.GET.get('scroll_direction')
+
+    member_id = get_member_id_from_headers(request)
+
+    chatroom_filter = Collabcard.objects.filter(community=community_id).order_by('id')
+
+    chatrooms = []
+    if not chatroom_id and not scroll_direction:
+
+        last_seen = collabcardState.objects.filter(community=community_id,user = member_id).last()
+
+        if not last_seen:
+            chatroom_list = pagination(chatroom_filter,page,paginate_by=5)
+            chatrooms = get_chatrooms(chatroom_list,member_id)
+        else:
+
+            upward = Collabcard.objects.filter(id__lte=last_seen.card.id,community=community_id).order_by('-id')[:5]
+            downward = Collabcard.objects.filter(id__gt=last_seen.card.id,community=community_id).order_by('id')[:5]
+            chatroom_list = upward | downward
+            chatrooms = get_chatrooms(chatroom_list,member_id)
+
+    else:
+        scroll_direction = int(scroll_direction)
+        if scroll_direction == 0:                                   #upward scroll
+
+            upward = Collabcard.objects.filter(id__lt=chatroom_id, community=community_id).order_by('-id')[:5]
+            chatrooms = get_chatrooms(upward,member_id)
+
+        elif scroll_direction == 1:                                 #downward scroll
+
+            downward = Collabcard.objects.filter(id__gt=chatroom_id, community=community_id).order_by('id')[:5]
+            chatrooms = get_chatrooms(downward,member_id)
+
+    return JsonResponse({'chatroooms':chatrooms})
+
 
 
 ############# upload files flow   ##########################

@@ -188,7 +188,7 @@ def CollabcardSerializer(card,user,community=None):
         if card.co_hosts:
             co_host_list = json.loads(card.co_hosts)
             #co_host_list = [36]
-            print(user)
+            #print(user)
             if not user:
                 user = None
 
