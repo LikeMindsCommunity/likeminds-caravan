@@ -6072,8 +6072,8 @@ def fetch_chatroom_feed(request):
             chatrooms = get_chatrooms(chatroom_list,member_id)
         else:
 
-            upward = Collabcard.objects.filter(id__lte=last_seen.card.id,community=community_id).order_by('-id')[:5]
-            downward = Collabcard.objects.filter(id__gt=last_seen.card.id,community=community_id).order_by('id')[:5]
+            upward = Collabcard.objects.filter(id__lte=last_seen.card.id,community=community_id).order_by('id')[:3]
+            downward = Collabcard.objects.filter(id__gt=last_seen.card.id,community=community_id).order_by('id')[:3]
             chatroom_list = upward | downward
             chatrooms = get_chatrooms(chatroom_list,member_id)
 
@@ -6081,7 +6081,7 @@ def fetch_chatroom_feed(request):
         scroll_direction = int(scroll_direction)
         if scroll_direction == 0:                                   #upward scroll
 
-            upward = Collabcard.objects.filter(id__lt=chatroom_id, community=community_id).order_by('-id')[:5]
+            upward = Collabcard.objects.filter(id__lt=chatroom_id, community=community_id).order_by('id')[:5]
             chatrooms = get_chatrooms(upward,member_id)
 
         elif scroll_direction == 1:                                 #downward scroll
