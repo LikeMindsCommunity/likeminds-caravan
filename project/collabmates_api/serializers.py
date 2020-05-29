@@ -225,6 +225,7 @@ def CollabcardSerializer(card,user,community=None):
 def conversationSerializer(conversation):
 
     temp = {
+        "id":conversation.id,
         "answer":conversation.answer,
         "state" : conversation.state,
         "member" : UserinfoSerializer(conversation.user.userinfo)
