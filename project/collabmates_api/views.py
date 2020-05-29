@@ -4610,24 +4610,23 @@ def get_chatroom_internal(request,card_instance,user_id,page,conversation_id,scr
     # conversations  functionality
 
     #user has not done the scrolling
+    conversations_filter = card_answers.objects.filter(card=card_instance).order_by('id')
     if not conversation_id and not scroll_direction:
         instance_filter = conversationMemberState.objects.filter(user_id=user_id,card = card_instance)
-
         if not instance_filter.exists():
-            conversations = card_answers.objects.filter(card=card_instance).order_by('id')
-            conversations = pagination(conversations,page,paginate_by=20)
+
+            conversations = pagination(conversations_filter,page,paginate_by=20)
             conversations = get_answer_data(conversations, feedback, card_instance.community.id, current_user_id=user_id)
         else:
             conversation_instance = instance_filter[0].conversation
 
-            upward_conversation = card_answers.objects.filter(card=card_instance).filter(
-                id__lte=conversation_instance.id).order_by('id')[:10]
+            upward_conversation = conversations_filter.filter(id__lte=conversation_instance.id).order_by('-id')[:10]
 
-            downward_conversation = card_answers.objects.filter(card=card_instance).filter(
-                id__gt=conversation_instance.id).order_by('id')[:10]
+            downward_conversation = conversations_filter.filter(id__gt=conversation_instance.id)[:10]
 
             #merging both conversations
             conversations = upward_conversation|downward_conversation
+            conversations = conversations.order_by('id')
             conversations = get_answer_data(conversations,feedback,card_instance.community.id,
                                             current_user_id=user_id,last_seen=conversation_instance)
 
@@ -4636,13 +4635,11 @@ def get_chatroom_internal(request,card_instance,user_id,page,conversation_id,scr
         scroll_direction = int(scroll_direction)
         conversation_id = int(conversation_id)
         if scroll_direction == 0:               #upward scroll
-            conversations = card_answers.objects.filter(card=card_instance).filter(
-                    id__lte=conversation_id).order_by('id')[:10]
+            conversations = conversations_filter.filter(id__lt=conversation_id).order_by('-id')[:10]
         elif scroll_direction == 1:           #downward scroll
-            conversations = card_answers.objects.filter(card=card_instance).filter(
-                id__gte=conversation_id).order_by('id')[:10]
+            conversations = conversations_filter.filter(id__gt=conversation_id)[:10]
         else:
-            conversations = card_answers.objects.filter(card=card_instance)
+            conversations = conversations_filter
 
         conversations = get_answer_data(conversations, feedback, card_instance.community.id, current_user_id=user_id)
 
@@ -6060,7 +6057,7 @@ def fetch_chatroom_feed(request):
 
     member_id = get_member_id_from_headers(request)
 
-    chatroom_filter = Collabcard.objects.filter(community=community_id).order_by('id')
+    chatroom_filter = Collabcard.objects.filter(community=community_id)
 
     chatrooms = []
     if not chatroom_id and not scroll_direction:
@@ -6072,21 +6069,24 @@ def fetch_chatroom_feed(request):
             chatrooms = get_chatrooms(chatroom_list,member_id)
         else:
 
-            upward = Collabcard.objects.filter(id__lte=last_seen.card.id,community=community_id).order_by('id')[:3]
-            downward = Collabcard.objects.filter(id__gt=last_seen.card.id,community=community_id).order_by('id')[:3]
-            chatroom_list = upward | downward
+            upward = chatroom_filter.filter(id__lte=last_seen.card.id).order_by('-id')[:3]
+            downward = chatroom_filter.filter(id__gt=last_seen.card.id)[:3]
+            # upward = Collabcard.objects.filter(id__lt=last_seen.card.id,community=community_id).order_by('id')[:3]
+            # downward = Collabcard.objects.filter(id__gt=last_seen.card.id,community=community_id).order_by('id')[:3]
+            chatroom_filter = upward | downward
+            chatroom_list = chatroom_filter.order_by('id')
             chatrooms = get_chatrooms(chatroom_list,member_id)
 
     else:
         scroll_direction = int(scroll_direction)
         if scroll_direction == 0:                                   #upward scroll
 
-            upward = Collabcard.objects.filter(id__lt=chatroom_id, community=community_id).order_by('id')[:5]
+            upward = chatroom_filter.filter(id__lt=chatroom_id).order_by('-id')[:5]
             chatrooms = get_chatrooms(upward,member_id)
 
         elif scroll_direction == 1:                                 #downward scroll
 
-            downward = Collabcard.objects.filter(id__gt=chatroom_id, community=community_id).order_by('id')[:5]
+            downward = chatroom_filter.filter(id__gt=chatroom_id).order_by('id')[:5]
             chatrooms = get_chatrooms(downward,member_id)
 
     return JsonResponse({'chatroooms':chatrooms})

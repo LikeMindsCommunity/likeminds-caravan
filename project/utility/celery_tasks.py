@@ -207,10 +207,10 @@ def update_my_chatrooms_for_users(chatroom_id,user_id=None):
         if not first_conversation:
             first_conversation = conversations[i].id
 
-    print(next_unseen_conversation)
-    print("\n\n")
-    print(unseen_count)
-    print(user_list)
+    # print(next_unseen_conversation)
+    # print("\n\n")
+    # print(unseen_count)
+    # print(user_list)
     for user in user_list:
 
         has_seen = conversationMemberState.objects.filter(card_id=chatroom_id,user_id=user)
