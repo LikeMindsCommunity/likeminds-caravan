@@ -1,0 +1,320 @@
+<script>
+
+    function textareaInput(ele, eve){
+        // debugger;
+        ele.style.height = "auto";
+        var scl = ele.scrollHeight;
+        if(scl > 200){
+            scl = 200;
+        }
+        if(scl < 48){
+            // ele.style.lineHeight = "48px";
+            $('#bottomFiller')[0].style.height = "60px";
+        }else{
+            // ele.style.lineHeight = "normal";
+            $('#bottomFiller')[0].style.height = (scl)+"px";
+        }
+        ele.style.height = (scl - 32)+"px";
+        $('#attach').addClass('dN');
+    }
+
+    function readURL(input) {
+        // debugger;
+        if (input.files) {
+            for (var i = 0; i < input.files.length; i++) {
+                var filetype = $(input).attr('data-type'), type ="";
+                var idDocs = idVdo = false;
+                // debugger;
+                if(filetype == "image"){
+                    type = '<img src="" class="mediaAttach dIb vM mxhp100">';
+                }else if(filetype == "video"){
+                    type= '<video controls class="mxh240 dIb vM mxhp100"><source src="" class="videoURL"></video>';
+                    idVdo = true;
+                }else if(filetype == "pdf"){
+                    type= '<div class="dT wp100"><div class="dTc vM"><img src="https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Fpdf.png?alt=media&token=0e7542ec-3e74-4e06-8b73-569b92adacf6" class="h48"></div><div class="dTc vM cF">Document</div></div>';
+                    idDocs = true;
+                }
+                $('#filesType').html(filetype);
+                if(!idDocs){
+                    var inputFile = input.files[i];
+                    var reader = new FileReader();
+                    reader.onload = function (e) {
+                        // $('html, body').animate({ scrollTop: $(document).height() }, 100);
+                        // debugger;
+                        $('#allMedia').append(type);
+                        if(!$('#media').children().length){
+                            $('#media').append(type);
+                            $('#allMedia img').addClass('imgSelected');
+                        }
+                        $('#uploadOverlay').show();
+                        if(idVdo){
+                            var $source = $('.videoURL');
+                            $source[0].src = URL.createObjectURL(inputFile);
+                            $source.parent()[0].load();
+                            $source.removeClass('videoURL');
+                        }else{
+                            $('.mediaAttach')
+                            .attr('src', e.target.result).removeClass('mediaAttach');
+                        }
+                        $('#attach').addClass('dN');
+                    // $('#comment_inp').val('');
+                    };
+
+                    reader.readAsDataURL(inputFile);
+                }else{
+                    $('#allMedia').append(type);
+                    if(!$('#media').children().length){
+                        $('#media').append(type);
+                        $('#allMedia img').addClass('imgSelected');
+                    }
+                    $('#uploadOverlay').show();
+                }
+                
+            }
+        }
+    }
+
+    //$(document).ready(function(){
+
+        $.fn.isInViewport = function() {
+            var elementTop = $(this).offset().top;
+            var elementBottom = elementTop + $(this).outerHeight();
+
+            var viewportTop = $(window).scrollTop();
+            var viewportBottom = viewportTop + $(window).height();
+
+            return elementBottom > viewportTop && elementTop < viewportBottom;
+        };
+
+        $(window).on('resize scroll', function() {
+            $('#attach').addClass('dN');
+            console.log('scroll');
+            if ($('#comments').isInViewport()) {
+                $('#bottomButton').hide();
+                $('.chatInput').show();
+            } else {
+                $('#bottomButton').show();
+                $('.chatInput').hide();
+            }
+        });
+
+        
+        {% if user.is_authenticated %}
+
+            $(document).on("click",'#allMedia img', function(){
+                // debugger;
+                $('#allMedia .imgSelected').removeClass('imgSelected');
+                $(this).addClass('imgSelected');
+                $('#media img').attr('src', $(this).attr('src'));
+            })
+            
+            $('#submit_commit').submit(function(e){
+                e.preventDefault();
+                create_new_message();
+            });
+
+            $('#submit_media').submit(function(e){
+                // debugger;
+                e.preventDefault();
+                // $('#uploadOverlay').hide();
+                create_new_media();
+            });
+
+            
+            function create_new_message(){
+                var member_id= {{request.user.id}};
+                var collabcard_id = {{collabcard.id}};
+
+                var msg = $('#comment_inp').val();
+                if(msg == ''){return}
+                var html= `
+                            <div class="dT wp100 pb12 bs">
+                                <div class="dTc vB taR">
+                                    <div class="dIb message sent vM wbBa mxwp100">
+                                        ${msg}
+                                        <span class="metadata">
+                                            <span class="time">Just Now</span>
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="dTc vB h48 member_link pl12 bs w12"></div>
+                                <div class="commentStatus dTr"><div class="taR cStatus c9b fs13 pt4">sending...</div></div>
+                            </div>
+                        `;
+                    $('#comments').append(html);
+                    $('#comment_inp').val('');
+                $.ajax({
+                    url: '/api/create_answer?member_id='+member_id+"&collabcard_id="+collabcard_id,
+                    data: JSON.stringify({"title":msg}),
+                    type: 'POST',
+                    dataType: 'json',
+                    success: function(data){
+                        $('.cStatus').text('sent sucessfully');
+                        $('.commentStatus').delay(2000).fadeOut(300, function() { 
+                            $(this).remove(); 
+                        });
+                    },
+                    error: function(){
+                        $('.cStatus').text('sent sucessfully');
+                        $('.commentStatus').delay(2000).fadeOut(300, function() { 
+                            $(this).remove(); 
+                        });
+                    }
+                });
+
+            }
+
+            function create_new_media(file){
+                $('#uploadOverlay').hide();
+                var member_id= {{request.user.id}};
+                var collabcard_id = {{collabcard.id}};
+                var type = $('#filesType').html();
+                var files = $('[data-type="'+ type +'"]')[0].files;
+                var msg = $('#mediaComment').val() || '';
+                // debugger;
+                if(type == 'pdf'){
+                    var html = `<div class="dT wp100 pb12 bs">
+                                    <div class="dTc vB taR">`;
+                                for (var i = 0; i < files.length; i++) {
+                                    html = html + `
+                                        <div class="dIb message mxwp100 sent vM wbBa noTri mb4">
+                                            <div class="fs0 mxw360">
+                                                <div class="dT wp100"><div class="dTc vM"><img src="https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Fpdf.png?alt=media&token=0e7542ec-3e74-4e06-8b73-569b92adacf6" class="h48"></div><div class="bs c3 dTc fs14 p8 vM">Document</div></div>
+                                            </div>
+                                        </div>
+                                        <div class="commentStatus_${i}"><div class="taR cStatus c9b fs13 pt4">sending...</div></div>
+                                        <br>
+                                    `;
+                                }
+                                    html = html + `
+                                        <div class="dIb message sent vM wbBa mxwp100">
+                                            ${msg}
+                                            <span class="metadata">
+                                                <span class="time">Just Now</span>
+                                            </span>
+                                        </div>
+                                    `;
+                    html = html + `
+                                    </div>
+                                    <div class="dTc vB h48 member_link pl12 bs w12"></div>
+                                    <div class="commentStatus dTr"><div class="taR cStatus c9b fs13 pt4">sending...</div></div>
+                                </div>`;
+                    $('#comments').append(html);
+                    $('#mediaComment').val('');
+                }else if(type == 'image'){
+                    var html = `<div class="dT wp100 pb12 bs">
+                                    <div class="dTc vB taR">`;
+                                for (var i = 0; i < $('#allMedia img').length; i++) {
+                                    html = html + `
+                                        <div class="dT wp100"><div class="dTc vM"><img src="https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Fpdf.png?alt=media&token=0e7542ec-3e74-4e06-8b73-569b92adacf6" class="h48"></div><div class="dTc vM">Document</div></div>
+                                        <div class="commentStatus_${i}"><div class="taR cStatus c9b fs13 pt4">sending...</div></div>
+                                        <br>
+                                    `;
+                                }
+                                    html = html + `
+                                        <div class="dIb message sent vM wbBa mxwp100">
+                                            ${msg}
+                                            <span class="metadata">
+                                                <span class="time">Just Now</span>
+                                            </span>
+                                        </div>
+                                    `;
+                    html = html + `
+                                    </div>
+                                    <div class="dTc vB h48 member_link pl12 bs w12"></div>
+                                    <div class="commentStatus dTr"><div class="taR cStatus c9b fs13 pt4">sending...</div></div>
+                                </div>`;
+                    $('#comments').append(html);
+                }
+                $('html, body').animate({ scrollTop: $(document).height() }, 100);
+                // debugger;
+                var answerID;
+                $.ajax({
+                    url: '/api/create_answer?member_id='+member_id+"&collabcard_id="+collabcard_id,
+                    data: JSON.stringify({"title":msg}),
+                    type: 'POST',
+                    dataType: 'json',
+                    success: function(data){
+                        // debugger;
+                        for (var i = 0; i < files.length; i++) {
+                            if(files[i]){
+                                var metadata = { contentType: files[i].type };
+                                var name = +new Date; //files[i].name;
+                                answerID = data.id;
+                                firebaseUpload(member_id, answerID, files[i], type, name, metadata, i)
+                            }
+                        }
+                        $('[data-type="'+ $('#filesType').html() +'"]')[0].value = "";
+                        $('#filesType').html('');
+                        $('#allMedia').html('');
+                        $('#media').html('');
+                        $('.commentStatus .cStatus').text('sent successfully');
+                        $('.commentStatus').delay(2000).fadeOut(300, function() { 
+                            $(this).remove(); 
+                        });
+                    },
+                    error: function(){
+                        // $('#loader').hide();
+                        $('.cStatus').text('error occured');
+                        $('.commentStatus').delay(2000).fadeOut(300, function() { 
+                            $(this).remove(); 
+                        });
+                    }
+                });
+
+            }
+
+            function firebaseUpload(member_id, answerID, file, type, name, metadata, index){
+                var storageRef = firebase.storage().ref();
+                var uploadTask = storageRef.child('files/collabcard/{{ collabcard.id }}/conversation/'+ answerID +'/'+name).put(file, metadata);
+
+                uploadTask.on('state_changed', function(snapshot){
+                
+                    var progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                    console.log('Upload is ' + progress + '% done');
+                    switch (snapshot.state) {
+                        case firebase.storage.TaskState.PAUSED: // or 'paused'
+                        console.log('Upload is paused');
+                        break;
+                        case firebase.storage.TaskState.RUNNING: // or 'running'
+                        console.log('Upload is running');
+                        break;
+                    }
+                }, function(error) {
+                    // Handle unsuccessful uploads
+                    $('.commentStatus_'+ index +' .cStatus').text('error occured');
+                    $('.commentStatus_'+ index).delay(2000).fadeOut(300, function() { 
+                        $(this).remove(); 
+                    });
+                }, function() {
+                    // Handle successful uploads on complete
+                    // For instance, get the download URL: https://firebasestorage.googleapis.com/...
+                    uploadTask.snapshot.ref.getDownloadURL().then(function(downloadURL) {
+                        console.log('File available at', downloadURL);
+                        // debugger;
+                        $.ajax({
+                            url: '/api/upload_files?member_id='+member_id+"&type="+ type +"&answer_id="+answerID+"&url="+encodeURI(downloadURL),
+                            success: function(data){
+                                // debugger;
+                                $('.commentStatus_'+ index +' .cStatus').text('sent sucessfully');
+                                $('.commentStatus_'+ index).delay(2000).fadeOut(300, function() { 
+                                    $(this).remove(); 
+                                });
+                            },
+                            error: function(data){
+                                // debugger;
+                                $('.commentStatus_'+ index +' .cStatus').text('error occured');
+                                $('.commentStatus_'+ index).delay(2000).fadeOut(300, function() { 
+                                    $(this).remove(); 
+                                });
+                            }
+                        });
+
+
+
+                    });
+                });
+            }
+        {% endif %}
+    // });
+</script>

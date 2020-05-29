@@ -220,41 +220,14 @@
                 </div>
             </div>
         {% endif %}
-        <div class="p24 bs bdbE bs">
-            <div class="fs14 fwR c9b lh30">Comments . {{ answers|length }}</div>
+        <div>
+            <div class="fs14 fwR c6 lh30 p24 bs pb12">Comments . {{ answers|length }}</div>
+
+
             <div class="pR">
-                {% if request.user.is_authenticated %}
-                    {% if collabcard.type == 2 %}
-                        {% if member_state.state == 3 or member_state.state == 0 %}
-                            <div class="pA t0 b0 l0 r0 z1" onclick="attend(true)"></div>
-                        {% endif %}
-                    {% endif %}
-                {% else %}
-                    <div class="pA t0 b0 l0 r0 z1" onclick="attend(true)"></div>
-                {% endif %}
-                <form class="h40 pt16 bs dT wp100" id="submit_commit">
-                    <div class="dTc vM">
-                        <input class="h40 p1224 bs bgf2 br20 bd0 wp100 c9b" placeholder="Type your comment" id="comment_inp"/>
-                    </div>
-                </form>
-            </div>
-            <div class="pR pt16" id="comments">
-                {% for answer in answers %}
-                    <div class="dT wp100 pb12 pt16 bs member_link" member_id="{{answer.member.id}}">
-                        <div class="dTc vT w48 h48">
-                            <img class="dB w48 h48 brp50" src="{{ answer.member.image_url }}">
-                        </div>
-                        <div class="dTc vT pl12 bs">
-                            <div class="dT wp100 tlF">
-                                <div class="dTc vM c0 lh18 fs14 fwM">{{ answer.member.name }}</div>
-                                <div class="dTc vM taR fs12 c9b">{{ answer.created_at }}</div>
-                            </div>
-                            <div class="bdbE bs c4a fs13 lh20 pb24 pt8">
-                                {{ answer.answer }}
-                            </div>
-                        </div>
-                    </div>
-                {% endfor %}
+
+                {% include 'components/chat.html' with answers=answers current_user=current_user collabcard=collabcard request=request user=user %}
+
                 {% if collabcard.type == 2 %}
                     {% if request.user.is_authenticated %}
                         {% if member_state.state == 3 or member_state.state == 0 %}
@@ -276,12 +249,25 @@
                         </div>
                     {% endif %}
                 {% endif %}
+
+                {% if request.user.is_authenticated %}
+                    {% if collabcard.type == 2 %}
+                        {% if member_state.state == 3 or member_state.state == 0 %}
+                            <div class="pF b0 l0 r0 z1 h60 chatInput" onclick="attend(true)"></div>
+                        {% endif %}
+                    {% endif %}
+                {% else %}
+                    <div class="pF b0 l0 r0 z1 h60 chatInput" onclick="attend(true)"></div>
+                {% endif %}
+
             </div>
+            
+    
         </div>
         
-        <div class="h60"></div>
+        <div class="h60 bgd0d8e2" id="bottomFiller"></div>
         <!-- Displaying Buttons -->
-        <div class="taC pF b0 l0 r0 h60 bdtE bgF z1">
+        <div class="taC pF b0 l0 r0 h60 bdtE bgF z1" id="bottomButton">
             {% if request.user.is_authenticated %}
                 {% if member_state.state == 3 or collabcard.event_ended %}
                     <!-- Approval Pending -->
@@ -429,7 +415,7 @@
             </div>
         {% endif %}
         
-        {% if False %}
+        {% if True %}
         <div class="dN member_state">{{member_state}}</div>
         <div class="dN current_user {{current_user.id}}">{{current_user}}</div>
         <div class="dN collabcard">{{collabcard}}</div>
@@ -441,7 +427,7 @@
     </div>
 
     <script>
-
+        
         $(document.body).on('click','.member_link',function(e){
             var member_id = $(this).attr('member_id');
             {% if request.user.is_authenticated %}
@@ -700,76 +686,36 @@
             {% endif %}
         }
 
-        $(document).ready(function(){
 
-            // setInterval(function(){
-            //     console.log('hit')
-            //     location.reload(true);
-            // },120000);
-
+        // setInterval(function(){
+        //     console.log('hit')
+        //     location.reload(true);
+        // },120000);
+        {% if user.is_authenticated %}
+        {% else %}
             $('#submit_commit').submit(function(e){
                 e.preventDefault();
-                {% if user.is_authenticated %}
-                    create_new_message();
-                {% else %}
-                    var element = document.getElementById("login_text");
-                    element.innerHTML = "Your answer has been successfully saved. However to ensure privacy of the community, you need to be part of the <b>{{community_name}}</b> on LikeMinds before your answer gets posted.";
-                    $('.test').modal('show');
-                {% endif %}
+                var element = document.getElementById("login_text");
+                element.innerHTML = "Your answer has been successfully saved. However to ensure privacy of the community, you need to be part of the <b>{{community_name}}</b> on LikeMinds before your answer gets posted.";
+                $('.test').modal('show');
             });
+            $('#submit_media').submit(function(e){
+                debugger;
+                e.preventDefault();
+                var element = document.getElementById("login_text");
+                element.innerHTML = "Your answer has been successfully saved. However to ensure privacy of the community, you need to be part of the <b>{{community_name}}</b> on LikeMinds before your answer gets posted.";
+                $('.test').modal('show');
+            });
+        {% endif %}
 
-            {% if user.is_authenticated %}
-                function create_new_message(){
-                    var member_id= {{request.user.id}};
-                    var collabcard_id = {{collabcard.id}};
-                    var msg = $('#comment_inp').val();
-                    if(msg == ''){return}
-                    // var message = {
-                    //     'collabcard_id': collabcard_id,
-                    //     'member_id': member_id,
-                    //     'title': msg
-                    // }
-                    $(".ldrT", $('#loader')[0]).text("Submitting your comment...");
-                    $('#loader').show();
-                    $.ajax({
-                        url: '/api/create_answer?member_id='+member_id+"&collabcard_id="+collabcard_id,
-                        data: JSON.stringify({"title":msg}),
-                        type: 'POST',
-                        dataType: 'json',
-                        success: function(data){
-                            var html = `
-                                <div class="dT wp100 pb12 pt16 bs member_link" member_id="{{ current_user.id }}">
-                                    <div class="dTc vT w48 h48">
-                                        <img class="dB w48 h48 brp50" src="{{ current_user.image_url }}">
-                                    </div>
-                                    <div class="dTc vT pl12 bs">
-                                        <div class="dT wp100 tlF">
-                                            <div class="dTc vM c0 lh18 fs14 fwM">{{ current_user.name }}</div>
-                                            <div class="dTc vM taR fs12 c9b">Just Now</div>
-                                        </div>
-                                        <div class="bdbE bs c4a fs13 lh20 pb24 pt8">${msg}</div>
-                                    </div>
-                                </div>
-                                `;
-                            $('#comments').append(html);
-                            $('#comment_inp').val('');
-                            $('#loader').hide();
-                        },
-                        error: function(){
-                            $('#loader').hide();
-                        }
-                    })
-                }
-            {% endif %}
-            // $('#refresh').click(function(){
-            //     location.reload(true)
-            // })
-        })
-
+        // $('#refresh').click(function(){
+        //     location.reload(true)
+        // })
     </script>
     {% include 'scripts/google_auth.html' with client_id=google_oauth_client_id  %}
     {% include 'scripts/facebook_auth.html' with facebook_auth_id=facebook_auth_id %}
     {% include 'scripts/linkedin_auth.html' with request=request %}
+    
 {% endblock %}
 
 
