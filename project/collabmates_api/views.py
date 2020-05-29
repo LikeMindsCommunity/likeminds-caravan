@@ -308,7 +308,7 @@ def my_chatrooms(request):
         chatroom['chatroom'] = get_chatroom_instance(card_instance,member_id)
 
         last_conversation = instance.last_conversation
-        #print(last_conversation)
+
         if last_conversation:
             chatroom['last_conversation'] = conversationSerializer(last_conversation)
 
@@ -4135,7 +4135,7 @@ def collabcard(request, card_id):
     card['member'] = usr
     card['pdf'] = files[1]
     if user_id:
-        collabcard_status = get_status_of_collabcard(member_id=user_id, community=card_instance.community, card=card_instance)
+        collabcard_status = get_status_of_collabcard(member_id=user_id, card=card_instance)
         card['state'] = collabcard_status['state']
         card['mute_status'] = collabcard_status['mute_status']
     # get tine stamp for card
@@ -4198,7 +4198,7 @@ def get_collabcard_details_for_web(request,card_instance,card,current_user_id,an
         current_user_instance = Userinfo.objects.get(user_id=current_user_id)
         current_user = UserinfoSerializer(user=current_user_instance)
 
-        collabcard_status = get_status_of_collabcard(member_id=current_user_id, community=card_instance.community, card=card_instance)
+        collabcard_status = get_status_of_collabcard(member_id=current_user_id, card=card_instance)
         current_user['collabcard_state'] = collabcard_status['state']
         current_user['mute_status'] = collabcard_status['mute_status']
 
@@ -4593,7 +4593,7 @@ def get_chatroom_internal(request,card_instance,user_id,page,conversation_id,scr
     card['pdf'] = files[1]
 
     #get status of chatroom
-    card_status = get_status_of_collabcard(user_id,card_instance.community,card_instance)
+    card_status = get_status_of_collabcard(user_id,card_instance)
     card['state'] = card_status['state']
     card['mute_status'] = card_status['mute_status']
 
@@ -5254,7 +5254,7 @@ def community_cards_version_1(request,community_id,req_dict=None):
             card_instance.date_epoch)
         card_dict = CollabcardSerializer(card_instance, member_id, card_instance.community)
 
-        collabcard_status = get_status_of_collabcard(member_id=member_id, community=card_instance.community,
+        collabcard_status = get_status_of_collabcard(member_id=member_id,
                                                      card=card_instance)
         card_dict['state'] = collabcard_status['state']
         card_dict['mute_status'] = collabcard_status['mute_status']
@@ -5424,20 +5424,6 @@ def get_cards_for_demo(community_id, member_id):
     return card_list
 
 
-def get_status_of_collabcard(member_id, community, card):
-    '''function to get the state of collabcard'''
-
-    collabcard_status = {
-        'state' : 0,
-        'mute_status' : False
-    }
-    member_id = User.objects.get(id=member_id)
-    collabcard_state = collabcardState.objects.filter(card=card, user=member_id)
-
-    if collabcard_state:
-        collabcard_status['state'] = collabcard_state[0].state
-        collabcard_status['mute_status'] = collabcard_state[0].mute_status
-    return collabcard_status
 
 
 # /api/create_answer?collabcard_id=&member_id=
@@ -5979,7 +5965,7 @@ def community_collabcard_meta(request):
         community_instance=card_instance.community
         card_dict = CollabcardSerializer(card_instance, member_id, card_instance.community)
 
-        collabard_status = get_status_of_collabcard(member_id, card_instance.community, card_instance)
+        collabard_status = get_status_of_collabcard(member_id, card_instance)
 
         card_dict['state'] = collabard_status['state']
         card_dict['mute_status'] = collabard_status['mute_status']
@@ -6038,10 +6024,6 @@ def get_chatrooms(chatroom_list,member_id):
         if conversation[0]:
             chatroom_instance['last_conversation'] = conversation[0]
         chatroom_instance['unseen_conversation_count'] = conversation[1]
-
-        status = get_status_of_collabcard(member_id,card_instance.community.id,card_instance.id)
-        chatroom_instance['state'] = status['state']
-        chatroom_instance['mute_status'] = status['mute_status']
         chatrooms.append(chatroom_instance)
 
     return chatrooms

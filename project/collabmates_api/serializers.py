@@ -263,16 +263,26 @@ def get_chatroom_instance(card_instance,member_id):
     if collabcard_member:
         collabcard_serializer['member'] = collabcard_member[0]
 
-    # state = collabcardState.objects.filter(card=card_instance,user=member_id)
-    #
-    # if state.exists():
-    #     state = state[0]
-    # else:
-    #     state = 0
-    #
-    # collabcard_serializer['state'] = state
-
+    status = get_status_of_collabcard(member_id,card_instance)
+    collabcard_serializer['state'] = status['state']
+    collabcard_serializer['mute_status'] = status['mute_status']
     return collabcard_serializer
+
+
+def get_status_of_collabcard(member_id,card):
+    '''function to get the state of collabcard'''
+
+    collabcard_status = {
+        'state' : 0,
+        'mute_status' : False
+    }
+    member_id = User.objects.get(id=member_id)
+    collabcard_state = collabcardState.objects.filter(card=card, user=member_id)
+
+    if collabcard_state:
+        collabcard_status['state'] = collabcard_state[0].state
+        collabcard_status['mute_status'] = collabcard_state[0].mute_status
+    return collabcard_status
 
 
 def CollabcardPollsSerializer(poll, user, card):
