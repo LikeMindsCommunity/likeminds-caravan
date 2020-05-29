@@ -221,6 +221,15 @@ def CollabcardSerializer(card,user,community=None):
     return collabcard
 
 
+def conversationSerializer(conversation):
+
+    temp = {
+        "answer":conversation.answer,
+        "state" : conversation.state,
+        "member" : UserinfoSerializer(conversation.user.userinfo)
+    }
+
+    return temp
 
 def get_chatroom_name(user_name,type):
 
@@ -234,8 +243,13 @@ def get_chatroom_name(user_name,type):
         chatroom_name = """%s's Event"""%(user_name)
     elif type == card_types.CARD_POLL:
         chatroom_name = """%s's Poll""" % (user_name)
+    elif type == card_types.CARD_PURPOSE:
+        chatroom_name = """Onboarding Room"""
+    elif type == card_types.CARD_INTRO:
+        chatroom_name = """%s's Intro"""%(user_name)
     else:
         chatroom_name = """%s's Chat Room"""%(user_name)
+
 
     return chatroom_name
 

@@ -208,6 +208,25 @@ class conversationMemberState(models.Model):
 
         super(conversationMemberState, self).save(*args, **kwargs)
 
+class conversationEngage(models.Model):
+
+    '''model to map to conversation engage screen'''
+
+    user = models.ForeignKey(User,on_delete=models.CASCADE)
+    card = models.ForeignKey(Collabcard,on_delete=models.CASCADE)
+    last_conversation = models.ForeignKey(card_answers,on_delete=models.CASCADE,null=True)
+    unseen_count = models.IntegerField(default=0)
+    created_at = models.BigIntegerField(default=0)
+    updated_at = models.BigIntegerField(default=0)
+
+    def save(self, *args, **kwargs):
+        if self.created_at == 0:
+            self.created_at = time.time()
+
+        if self.updated_at == 0 :
+            self.updated_at = self.created_at
+
+        super(conversationEngage, self).save(*args, **kwargs)
 
 
 

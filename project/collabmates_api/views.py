@@ -27,7 +27,7 @@ from togther.tasks import send_email_to_proposed_admin, send_mail_after_rank_com
 # utility functions
 from utility.celery_tasks import (save_community_purpose_card,
                                   update_last_unseen_in_engage_on_card_creation,
-                                  update_last_unseen_in_engage,
+                                  update_last_unseen_in_engage,update_my_chatrooms_for_users
                                   )
 from utility.encryption import encrypt, decrypt
 from utility.firebase import update_last_answer_id, upload_image_to_firebase, upload_community_thumbnail, \
@@ -51,7 +51,7 @@ from utility.utils import (decode_meta_from_url, update_tag_image,
                            is_member_verified, community_default_image, community_default_thumbnail, is_member_promoter,
                            is_member_present, generate_private_link, generate_random, get_time_text,
                            community_default_image_round, decode_option, get_user_communities_by_rank_web,
-                           user_onbaord,
+                           user_onbaord,get_time_text_for_my_chatrooms,
 
                            )
 
@@ -283,6 +283,46 @@ def your_communities(request, user_id):
             my_community.append(community)
 
     return JsonResponse({'your_communities': my_community})
+
+
+def my_chatrooms(request):
+
+    '''functions to get chatrooms for users'''
+
+    member_id = get_member_id_from_headers(request)
+    page = request.GET.get('page',1)
+    if not member_id:
+        context = get_error_context(False,"send member id in headers")
+        return JsonResponse(context)
+
+
+    instance_list = conversationEngage.objects.filter(user=member_id).order_by('-updated_at')
+    instance_list = pagination(instance_list,page,paginate_by=10)
+    my_chatrooms = []
+    for instance in instance_list:
+
+        chatroom = {}
+        card_instance = instance.card
+        chatroom['community'] = CommunitySerializer(card_instance.community)
+
+        collabcard_serializer = CollabcardSerializer(card_instance,member_id)
+        collabcard_member = get_members_profile([card_instance.user.id],card_instance.community.id)
+        if collabcard_member:
+            collabcard_serializer['member'] = collabcard_member[0]
+
+        chatroom['chatroom'] = collabcard_serializer
+
+        last_conversation = instance.last_conversation
+        #print(last_conversation)
+        if last_conversation:
+            chatroom['last_conversation'] = conversationSerializer(last_conversation)
+
+        chatroom['unseen_conversation_count'] = instance.unseen_count
+        chatroom['last_conversation_time'] = get_time_text_for_my_chatrooms(instance.updated_at)
+
+        my_chatrooms.append(chatroom)
+
+    return JsonResponse({"my_chatrooms":my_chatrooms})
 
 
 ######################function for api utility#################################
@@ -1663,6 +1703,8 @@ def post_purpose_collabcard_for_community(request,community_instance,member_id):
     create_card(request, req_dict=req_dict)
 
 
+
+
 def creating_collabcard_for_lg_communities(community,user,introduction_answer,ref_id=None):
 
     '''function to create collabcard for lg community'''
@@ -2655,10 +2697,10 @@ def create_card(request,req_dict=None):
         typ = int(res['type']) if 'type' in res else card_types.CARD_NORMAL
 
 
-        card = Collabcard.objects.filter(community=community, user=user_instance, type=1)
-        if card.exists() and typ == 1:
+        card = Collabcard.objects.filter(community=community, user=user_instance, type=card_types.CARD_INTRO)
+        if card.exists():
             # if welcome card for user is already existing
-            return JsonResponse({'success': False})
+            return JsonResponse({'success': False,"errro_message" : "Introduction already exists"})
 
         if 'date_time' in res:
             date_time = res['date_time'] if (str(typ) == '2' or str(typ) == '3') else 0
@@ -2775,7 +2817,7 @@ def create_card(request,req_dict=None):
 
 
         # #saving the state in collabcardState table instead of follow collabcard
-        create_collabcard_state_for_user(card=card, user=user_instance,
+        create_collabcard_state_for_user(card_instance=card, user_instance=user_instance,
                                          state=collabcard_states.COLLABCARD_STATE_FOLLOW,
                                          community=community)
 
@@ -2785,8 +2827,7 @@ def create_card(request,req_dict=None):
         create_chatroom(card_instance=card,user_instance=user_instance
                         ,state=chatroom_states.CHATROOM_HEADER,current_user_id=user_id)
 
-        # #creating a chatroom having content of collabcard
-        #create_chatroom(card_instance=card,user_instance=user_instance,state=chatroom_states.CHATROOM_CREATER,current_user_id=user_id,answer = card.title)
+        create_chatroom_engagement(card_instance=card,user_instance=user_instance)
 
 
 
@@ -2833,17 +2874,19 @@ def create_card(request,req_dict=None):
     return JsonResponse({'success': False})
 
 
-def create_collabcard_state_for_user(card, user, state, community):
+def create_collabcard_state_for_user(card_instance, user_instance, state, community):
     """ create collabcard state for a member for a card """
 
-    collabcard_state_instance = collabcardState()
-    collabcard_state_instance.card = card
-    collabcard_state_instance.user = user
-    collabcard_state_instance.community = community
-    collabcard_state_instance.state = state  # user has created the card and he is autofollowing
-    collabcard_state_instance.created_at = time.time()
-    collabcard_state_instance.updated_at = time.time()
-    collabcard_state_instance.save()
+    state_filter = collabcardState.objects.filter(card=card_instance,user=user_instance)
+    if not state_filter.exists():
+        collabcard_state_instance = collabcardState()
+        collabcard_state_instance.card = card_instance
+        collabcard_state_instance.user = user_instance
+        collabcard_state_instance.community = community
+        collabcard_state_instance.state = state  # user has created the card and he is autofollowing
+        collabcard_state_instance.created_at = time.time()
+        collabcard_state_instance.updated_at = time.time()
+        collabcard_state_instance.save()
 
 
 def create_chatroom(card_instance,user_instance,state,current_user_id=None,answer=""):
@@ -2883,6 +2926,26 @@ def create_chatroom(card_instance,user_instance,state,current_user_id=None,answe
     instance.created_at = time.time()
     instance.save()
 
+
+def create_chatroom_engagement(card_instance,user_instance,last_conversation=None,unseen_count=0):
+
+    '''function to create and update chatroom engagements '''
+    print("hit")
+    instance_list = conversationEngage.objects.filter(card=card_instance,user=user_instance)
+
+    if not instance_list.exists():
+        instance = conversationEngage()
+        instance.card = card_instance
+        instance.user = user_instance
+        instance.last_conversation = last_conversation
+        instance.unseen_count = unseen_count
+        instance.save()
+    else:
+        instance = instance_list[0]
+        instance_list.last_conversation = last_conversation
+        instance_list.unseen_count = unseen_count
+        instance.updated_at = time.time()
+        instance.save()
 
 @csrf_exempt
 def chatroom_mute(request):
@@ -3591,15 +3654,23 @@ def request_response(request, req_dict=None):
 
     if 'member_id' in res:
         member_id = res['member_id']
+    else:
+        context = get_error_context(False,"send member id in body")
+        return JsonResponse(context)
     if 'community_id' in res:
         community_id = res['community_id']
+    else:
+        context = get_error_context(False, "send community id in body")
+        return JsonResponse(context)
+
     accepted=False
     if 'accepted' in res:
         accepted = res['accepted']
 
 
     community = Community.objects.get(id=community_id)
-    user = User.objects.get(id=member_id)
+    community_state = get_state_of_community(community)
+    #user = User.objects.get(id=member_id)
 
     is_lg=is_LG_or_LP_community(community)
 
@@ -3616,10 +3687,7 @@ def request_response(request, req_dict=None):
         approve_or_decline_lg_community(request,req_dict,member_verification)
         return JsonResponse({'success': True})
 
-    community_state = get_state_of_community(community)
-
-    if community_state == community_states.WHATSAPP:
-
+    elif community_state == community_states.WHATSAPP:
         req_dict = {
             'member_id': member_id,
             'community_id': community_id,
@@ -3630,7 +3698,7 @@ def request_response(request, req_dict=None):
         update_pending_member_count_in_engage(req_dict['community_id'])
         return  JsonResponse({'success': True})
 
-    if community_state == community_states.PRIVATE or community_state == community_states.HIDDEN:
+    elif community_state == community_states.PRIVATE or community_state == community_states.HIDDEN:
         req_dict = {
             'member_id': member_id,
             'community_id': community_id,
@@ -3643,48 +3711,48 @@ def request_response(request, req_dict=None):
 
 
 
-    if accepted or accepted == 'true':
-        # if accepted , then make him a member of the community
-        join_time = time.time()
+    # if accepted or accepted == 'true':
+    #     # if accepted , then make him a member of the community
+    #     join_time = time.time()
+    #
+    #     # check if member is already accepted to stop duplicate notifications and false member count
+    #     member_queryset = Members.objects.filter(member_id=member_id, community_id=community).filter(Q(state=1)|Q(state=4))
+    #     if not member_queryset.exists():
+    #         # updating the approve state
+    #         Members.objects.filter(member_id=member_id, community_id=community).update(state=4,
+    #                                                                                    created_at=join_time)  # aprove state = 4
+    #         community = Community.objects.get(id=community_id)
+    #         members_count = community.members_count + 1
+    #         Community.objects.filter(id=community_id).update(members_count=members_count)
+    #
+    #         request.method = "POST"
+    #         post_introduction_card_for_community(community_id,member_id,request)
+    #
+    #
+    #         send_notification_for_join_requests.delay(community_id, True, member_id)
+    #         ## sending email to the user that his request is accepted for this community
+    #         member_request_approval_or_denied.delay(user_id=member_id, community_id=community_id, approved=True)
+    #
+    # else:
+    #
+    #     send_notification = res['send_notification'] if 'send_notification' in res else True
+    #
+    #     # checking state to stop duplicate notifications and false referal text and pending member count
+    #     state = Members.objects.filter(member_id=member_id, community_id=community)[0].state
+    #     if state == 3 or state == 8:
+    #         # change user state to 5
+    #         Members.objects.filter(member_id=member_id, community_id=community).delete()  # decline state = 5
+    #         # delete the member engage table record for the user
+    #         Member_Engage.objects.filter(member_id=member_id, community_id=community).delete()
+    #         # delete the responses of user to community questions, if any
+    #         communityAnswers.objects.filter(member=member_id, community=community_id).delete()
+    #         # update pending members count of community and referal text of user
+    #         update_pending_member_count_in_engage(community)
+    #
+    #         if send_notification or send_notification == 'true':
+    #             send_notification_for_join_requests.delay(community_id, False, member_id)
 
-        # check if member is already accepted to stop duplicate notifications and false member count
-        member_queryset = Members.objects.filter(member_id=member_id, community_id=community).filter(Q(state=1)|Q(state=4))
-        if not member_queryset.exists():
-            # updating the approve state
-            Members.objects.filter(member_id=member_id, community_id=community).update(state=4,
-                                                                                       created_at=join_time)  # aprove state = 4
-            community = Community.objects.get(id=community_id)
-            members_count = community.members_count + 1
-            Community.objects.filter(id=community_id).update(members_count=members_count)
-
-            request.method = "POST"
-            post_introduction_card_for_community(community_id,member_id,request)
-
-
-            send_notification_for_join_requests.delay(community_id, True, member_id)
-            ## sending email to the user that his request is accepted for this community
-            member_request_approval_or_denied.delay(user_id=member_id, community_id=community_id, approved=True)
-
-    else:
-
-        send_notification = res['send_notification'] if 'send_notification' in res else True
-
-        # checking state to stop duplicate notifications and false referal text and pending member count
-        state = Members.objects.filter(member_id=member_id, community_id=community)[0].state
-        if state == 3 or state == 8:
-            # change user state to 5
-            Members.objects.filter(member_id=member_id, community_id=community).delete()  # decline state = 5
-            # delete the member engage table record for the user
-            Member_Engage.objects.filter(member_id=member_id, community_id=community).delete()
-            # delete the responses of user to community questions, if any
-            communityAnswers.objects.filter(member=member_id, community=community_id).delete()
-            # update pending members count of community and referal text of user
-            update_pending_member_count_in_engage(community)
-
-            if send_notification or send_notification == 'true':
-                send_notification_for_join_requests.delay(community_id, False, member_id)
-
-    return JsonResponse({'success': True})
+    return JsonResponse({'success': False})
 
 
 def approve_or_decline_lg_community(request,req_dict,member_verification):
@@ -3828,7 +3896,6 @@ def approve_or_decline_lg_community(request,req_dict,member_verification):
             send_notification_for_join_requests.delay(community_id, False, member_id)
 
 
-
 def approve_or_decline_whatsapp_community(req_dict,request):
 
     '''function to approve the whatsapp community'''
@@ -3850,6 +3917,10 @@ def approve_or_decline_whatsapp_community(req_dict,request):
             community = Community.objects.get(id=req_dict['community_id'])
             members_count = community.members_count + 1
             Community.objects.filter(id=req_dict['community_id']).update(members_count=members_count)
+
+            # setting the follow state for purpose collabcard
+            set_state_for_onboarding_chatroom(community_instance=community, user_id=req_dict['member_id'],request=request)
+
 
             # posting a intro collabcard
             post_introduction_card_for_community(req_dict['community_id'], req_dict['member_id'], request)
@@ -3900,6 +3971,10 @@ def approve_or_decline_private_community(req_dict,request):
             members_count = community.members_count + 1
             Community.objects.filter(id=req_dict['community_id']).update(members_count=members_count)
 
+            # setting the follow state for purpose collabcard
+            set_state_for_onboarding_chatroom(community_instance=community, user_id=req_dict['member_id'],request=request)
+
+
             # posting a intro collabcard
             post_introduction_card_for_community(req_dict['community_id'], req_dict['member_id'], request)
 
@@ -3926,6 +4001,21 @@ def approve_or_decline_private_community(req_dict,request):
 
         send_notification_for_join_requests.delay(req_dict['community_id'], False, req_dict['member_id'])
 
+
+def set_state_for_onboarding_chatroom(community_instance,user_id,request):
+
+    '''function to autofollow onboarding chatroom'''
+    onboarding_chatroom_instance = Collabcard.objects.filter(community=community_instance,type=card_types.CARD_PURPOSE)
+
+    if onboarding_chatroom_instance.exists():
+        instance = onboarding_chatroom_instance[0]
+
+        collabcard_follow(request,function_dict={
+            'collabcard_id':instance.id,
+            'member_id' : user_id,
+            'status' : True
+        })
+        print("onboarding state set for user")
 
 
 ############# functions for  collabcard flow   ##########################
@@ -4332,13 +4422,19 @@ def conversation_meta(request):
 
 
 @csrf_exempt
-def conversation_seen(request):
+def conversation_seen(request,req_dict=None):
 
     '''api to save conversation id for user'''
-    conversation_id = request.POST.get('conversation_id')
-    member_id = get_member_id_from_headers(request)
-    if not conversation_id:
-        context = get_error_context(False,"send conversation id")
+
+    if not req_dict:
+        conversation_id = request.POST.get('conversation_id')
+        member_id = get_member_id_from_headers(request)
+    else:
+        conversation_id = req_dict['conversation_id']
+        member_id = req_dict['member_id']
+
+    if not conversation_id or not member_id:
+        context = get_error_context(False,"send conversation id and member id in headers")
         return context
 
     try:
@@ -4360,7 +4456,7 @@ def conversation_seen(request):
         context = get_error_context(False,"send the member id in headers or conversation does'nt exists")
         return JsonResponse(context)
 
-
+    update_my_chatrooms_for_users(conversation_instance.card.id,member_id)
     return JsonResponse({'success':True})
 
 
@@ -4524,7 +4620,7 @@ def get_chatroom_internal(request,card_instance,user_id,page,conversation_id,scr
 
         if not instance_filter.exists():
             conversations = card_answers.objects.filter(card=card_instance).order_by('id')
-            conversations = pagination(conversations,page,paginate_by=10)
+            conversations = pagination(conversations,page,paginate_by=20)
             conversations = get_answer_data(conversations, feedback, card_instance.community.id, current_user_id=user_id)
         else:
             conversation_instance = instance_filter[0].conversation
@@ -4566,12 +4662,34 @@ def get_chatroom_internal(request,card_instance,user_id,page,conversation_id,scr
 
         chatroom_actions = get_chatroom_actions(creator = False)
 
-    context = {'chat_room': card,
+    context = {'chatroom': card,
                'conversations': conversations,
                'chatroom_actions':chatroom_actions
                }
-
+    save_the_latest_conversation(card_instance, user_id)
     return context
+
+
+def save_the_latest_conversation(card_instance,user_id):
+
+    '''function to save the latest seen conversation'''
+
+    latest_card = card_answers.objects.filter(card=card_instance,state=chatroom_states.ANSWER).last()
+
+    if latest_card:
+        user_instance = User.objects.get(id=user_id)
+        conversation_member_filter = conversationMemberState.objects.filter(user=user_instance, card=card_instance)
+        conversation_instance = latest_card
+        if not conversation_member_filter.exists():
+            conversation_member_instance = conversationMemberState()
+            conversation_member_instance.card = card_instance
+            conversation_member_instance.conversation = conversation_instance
+            conversation_member_instance.user = user_instance
+            conversation_member_instance.save()
+        else:
+            conversation_member_filter.update(conversation=conversation_instance, updated_at=time.time())
+        update_my_chatrooms_for_users(card_instance,user_instance.id)
+
 
 
 def community_collabcard_invite(request,community_id):
@@ -5342,34 +5460,37 @@ def create_answer(request):
         context = get_error_context(False,"Send params correctly")
         return JsonResponse(context)
 
-    if request.method == 'POST':
-        res = json.loads(request.body)
-        ans = card_answers()
-        ans.answer = res['title']
-        ans.card = card
-        ans.user = user
-        ans.created_at = time.time()
-        ans.save()
-        update_last_answer_id(card_id, ans.id)
 
+    res = json.loads(request.body)
+    ans = card_answers()
+    ans.answer = res['title']
+    ans.card = card
+    ans.user = user
+    ans.created_at = time.time()
+    ans.save()
+    update_last_answer_id(card_id, ans.id)
         # auto following the collabcard if answer is created
-        function_dict = {
-            'member_id': user_id,
+    function_dict = {
+        'member_id': user_id,
             'collabcard_id': card_id,
             'status': True
         }
-        collabcard_follow(request, function_dict)
+    collabcard_follow(request, function_dict)
 
-        # send_follow_notification.delay(card_id=card_id, user_id=user_id, answer=res['title'])
+    send_follow_notification.delay(card_id=card_id, user_id=user_id, answer=res['title'])
 
         # calling update_answer_text
-        if card.type == card_types.CARD_NORMAL or card.type == card_types.CARD_INTRO:
-            print("type === ", card.type)
-            update_answer_text(card_id)
+    if card.type == card_types.CARD_NORMAL or card.type == card_types.CARD_INTRO:
+        print("type === ", card.type)
+        update_answer_text(card_id)
 
-        return JsonResponse({'success': True,'id':ans.id})
 
-    return JsonResponse({'success': False})
+    #updating the conversationEngage table
+    conversation_seen(request,{'member_id':user_id,'conversation_id':ans.id})
+    update_my_chatrooms_for_users(chatroom_id=card_id)
+
+    return JsonResponse({'success': True,'id':ans.id})
+
 
 
 def _send_notification_to_tagged_users(card_id, answerer_name, answer, user_id):
@@ -5428,13 +5549,8 @@ def collabcard_follow(request, function_dict=None):
 
     current_member_id = get_member_id_from_headers(request)
 
-    if request.user.is_authenticated and is_request_web(request):
+    if is_request_web(request) and request.user.is_authenticated:
         current_member_id = request.user.id
-
-    # if not current_member_id:
-    #     context = get_error_context(False,"send member id in headers")
-    #     return JsonResponse(context)
-
 
     if not function_dict:
         collabcard_id = request.GET.get('collabcard_id', '')
@@ -5451,69 +5567,15 @@ def collabcard_follow(request, function_dict=None):
         member_id = function_dict['member_id']
         status = function_dict['status']
 
-
-
-
-
     collabcard = Collabcard.objects.get(id=collabcard_id)
 
     community_instance = collabcard.community
     user_instance = User.objects.get(id=member_id)
 
-    if (collabcard.type == card_types.CARD_EVENT or collabcard.type == card_types.CARD_PUBLIC_EVENT) and status:  # the collabcard is the event card and followed
-
-        try:
-            collabcard_state_instance = collabcardState.objects.get(card=collabcard, user=user_instance)
-        except:
-            #for autofollowing the co-host
-            collabcard_state_instance = collabcardState()
-            collabcard_state_instance.card = collabcard
-            collabcard_state_instance.community = community_instance
-            collabcard_state_instance.user = user_instance
-            collabcard_state_instance.state = collabcard_states.COLLABCARD_STATE_FOLLOW
-            collabcard_state_instance.created_at = time.time()
-            collabcard_state_instance.updated_at = time.time()
-            collabcard_state_instance.save()
-
-
-        # when the user is not attending but following the collabcard
-        if collabcard_state_instance.state == collabcard_states.COLLABCARD_STATE_SEEN:
-
-            collabcard_state_instance.state = collabcard_states.COLLABCARD_STATE_UNATTEND_FOLLOWING
-            collabcard_state_instance.updated_at = time.time()
-            collabcard_state_instance.save()
-        # when the user is attending and following the collabcard
-        elif collabcard_state_instance.state == collabcard_states.COLLABCARD_STATE_ATTEND_UNFOLLOWING:
-
-            collabcard_state_instance.state = collabcard_states.COLLABCARD_STATE_ATTEND_FOLLOWING
-            collabcard_state_instance.updated_at = time.time()
-            collabcard_state_instance.save()
-
-        if explicit_call:
-            create_chatroom(card_instance=collabcard,user_instance=user_instance,
-                            state=chatroom_states.CHATROOM_FOLLOW,current_user_id=current_member_id)
-
-        return JsonResponse({'success': True})
-
-    elif (collabcard.type == card_types.CARD_EVENT or collabcard.type == card_types.CARD_PUBLIC_EVENT) and not status:
-        collabcard_state_instance = collabcardState.objects.get(card=collabcard, user=user_instance)
-        # when the user is not attending and not follow
-        if collabcard_state_instance.state == collabcard_states.COLLABCARD_STATE_UNATTEND_FOLLOWING:
-            collabcard_state_instance.state = collabcard_states.COLLABCARD_STATE_SEEN
-            collabcard_state_instance.updated_at = time.time()
-            collabcard_state_instance.save()
-
-        # when the user is attending and unfollow the collabcard
-        elif collabcard_state_instance.state == collabcard_states.COLLABCARD_STATE_ATTEND_FOLLOWING:
-
-            collabcard_state_instance.state = collabcard_states.COLLABCARD_STATE_ATTEND_UNFOLLOWING
-            collabcard_state_instance.updated_at = time.time()
-            collabcard_state_instance.save()
-
-        if explicit_call:
-            create_chatroom(card_instance=collabcard, user_instance=user_instance,
-                            state=chatroom_states.CHATROOM_UNFOLLOW, current_user_id=current_member_id)
-        return JsonResponse({'success': True})
+    #if the collabcard is an event card
+    event_status = set_state_for_event_cards(collabcard,community_instance,user_instance,status,explicit_call,current_member_id)
+    if event_status['success']:
+        return JsonResponse(event_status)
 
     is_present = collabcardState.objects.filter(card=collabcard, user=user_instance)
     if not is_present:
@@ -5526,9 +5588,12 @@ def collabcard_follow(request, function_dict=None):
         collabcard_state_instance.updated_at = time.time()
         collabcard_state_instance.save()
 
-        if status and explicit_call:
-            create_chatroom(card_instance=collabcard, user_instance=user_instance,
+        if status:
+            if explicit_call:
+                create_chatroom(card_instance=collabcard, user_instance=user_instance,
                             state=chatroom_states.CHATROOM_FOLLOW, current_user_id=current_member_id)
+
+            create_chatroom_engagement(card_instance=collabcard,user_instance=user_instance)
 
     else:
 
@@ -5538,10 +5603,15 @@ def collabcard_follow(request, function_dict=None):
             if explicit_call:
                 create_chatroom(card_instance=collabcard, user_instance=user_instance,
                             state=chatroom_states.CHATROOM_FOLLOW, current_user_id=current_member_id)
+
+            create_chatroom_engagement(card_instance=collabcard, user_instance=user_instance)
+
         else:
             collabcardState.objects.filter(card=collabcard, user=user_instance).update(state=collabcard_states.COLLABCARD_STATE_SEEN,
                                                                                    updated_at=time.time())
 
+            #deleting the conversation engage
+            conversationEngage.objects.filter(card=collabcard,user=user_instance).delete()
             if explicit_call:
                 create_chatroom(card_instance=collabcard, user_instance=user_instance,
                             state=chatroom_states.CHATROOM_UNFOLLOW, current_user_id=current_member_id)
@@ -5549,7 +5619,72 @@ def collabcard_follow(request, function_dict=None):
 
 
     # custom_cache.clear()
+    update_my_chatrooms_for_users(chatroom_id=collabcard.id,user_id=current_member_id)
     return JsonResponse({'success': True})
+
+
+def set_state_for_event_cards(collabcard,community_instance,user_instance,status,explicit_call,current_member_id):
+
+    '''function to set states in case of event cards'''
+
+    if (collabcard.type == card_types.CARD_EVENT or collabcard.type == card_types.CARD_PUBLIC_EVENT):
+
+        if status:  # the collabcard is the event card and followed
+            try:
+                collabcard_state_instance = collabcardState.objects.get(card=collabcard, user=user_instance)
+            except:
+                # for autofollowing the co-host
+                collabcard_state_instance = collabcardState()
+                collabcard_state_instance.card = collabcard
+                collabcard_state_instance.community = community_instance
+                collabcard_state_instance.user = user_instance
+                collabcard_state_instance.state = collabcard_states.COLLABCARD_STATE_FOLLOW
+                collabcard_state_instance.created_at = time.time()
+                collabcard_state_instance.updated_at = time.time()
+                collabcard_state_instance.save()
+
+            # when the user is not attending but following the collabcard
+            if collabcard_state_instance.state == collabcard_states.COLLABCARD_STATE_SEEN:
+
+                collabcard_state_instance.state = collabcard_states.COLLABCARD_STATE_UNATTEND_FOLLOWING
+                collabcard_state_instance.updated_at = time.time()
+                collabcard_state_instance.save()
+            # when the user is attending and following the collabcard
+            elif collabcard_state_instance.state == collabcard_states.COLLABCARD_STATE_ATTEND_UNFOLLOWING:
+
+                collabcard_state_instance.state = collabcard_states.COLLABCARD_STATE_ATTEND_FOLLOWING
+                collabcard_state_instance.updated_at = time.time()
+                collabcard_state_instance.save()
+
+            if explicit_call:
+                create_chatroom(card_instance=collabcard, user_instance=user_instance,
+                                state=chatroom_states.CHATROOM_FOLLOW, current_user_id=current_member_id)
+
+        else:
+            collabcard_state_instance = collabcardState.objects.get(card=collabcard, user=user_instance)
+            # when the user is not attending and not follow
+            if collabcard_state_instance.state == collabcard_states.COLLABCARD_STATE_UNATTEND_FOLLOWING:
+                collabcard_state_instance.state = collabcard_states.COLLABCARD_STATE_SEEN
+                collabcard_state_instance.updated_at = time.time()
+                collabcard_state_instance.save()
+
+            # when the user is attending and unfollow the collabcard
+            elif collabcard_state_instance.state == collabcard_states.COLLABCARD_STATE_ATTEND_FOLLOWING:
+
+                collabcard_state_instance.state = collabcard_states.COLLABCARD_STATE_ATTEND_UNFOLLOWING
+                collabcard_state_instance.updated_at = time.time()
+                collabcard_state_instance.save()
+
+            if explicit_call:
+                create_chatroom(card_instance=collabcard, user_instance=user_instance,
+                                state=chatroom_states.CHATROOM_UNFOLLOW, current_user_id=current_member_id)
+        return {'success':True}
+    else:
+        return {'success': False}
+
+
+
+
 
 
 @csrf_exempt
