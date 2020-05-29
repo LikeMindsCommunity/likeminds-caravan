@@ -38,3 +38,15 @@ FCM_SERVER_KEY=os.getenv('BETA_FCM_SERVER_KEY')
 # GOOGLE_OAUTH_CLIENT_ID=os.getenv('BETA_GOOGLE_OAUTH_CLIENT_ID')
 # hard coding here for prod unless key it is moved to beta env as above
 GOOGLE_OAUTH_CLIENT_ID="983690302378-vmcfu305q815j0n430t385to742s3epu.apps.googleusercontent.com"
+
+# hard coding here for prod unless key it is moved to beta env
+FIREBASE_CONFIG = {
+    'apiKey':  "AIzaSyBWjDQEiYKdQbQNvoiVvvOn_cbufQzvWuo",
+    'authDomain':  "collabmates-beta.firebaseapp.com",
+    'databaseURL':  "https://collabmates-beta.firebaseio.com",
+    'projectId':  "collabmates-beta",
+    'storageBucket':  "collabmates-beta.appspot.com",
+    'messagingSenderId': "983690302378",
+    'appId':  "1:983690302378:web:b2fa2c58f2351d5c1b91d3",
+    'measurementId': "G-R2PXYC9F4S"
+}

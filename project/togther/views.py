@@ -256,6 +256,7 @@ def community(request, community_id):
                 context = get_join_community_context(request, ref_id, aj, validation_error, user, data, community, filled_answers)
                 context['google_oauth_client_id'] = settings.GOOGLE_OAUTH_CLIENT_ID
                 context['facebook_auth_id'] = settings.SOCIAL_AUTH_FACEBOOK_KEY
+                context['firebase_config'] = settings.FIREBASE_CONFIG
                 return render(request, 'response_form.html', context)
 
         else:
@@ -308,7 +309,8 @@ def community(request, community_id):
                                 'filled_answers': filled_answers,
                                 'aj':aj,'header_showcase':header_showcase,
                                 'google_oauth_client_id': settings.GOOGLE_OAUTH_CLIENT_ID,
-                                'facebook_auth_id': settings.SOCIAL_AUTH_FACEBOOK_KEY
+                                'facebook_auth_id': settings.SOCIAL_AUTH_FACEBOOK_KEY,
+                                'firebase_config': settings.FIREBASE_CONFIG
 
                                }
                     #print(context)
@@ -473,7 +475,8 @@ def community(request, community_id):
                'community_id':community.id,
                'user_email' : request.user.userinfo.email if request.user.is_authenticated else '',
                'google_oauth_client_id': settings.GOOGLE_OAUTH_CLIENT_ID,
-               'facebook_auth_id':settings.SOCIAL_AUTH_FACEBOOK_KEY
+               'facebook_auth_id':settings.SOCIAL_AUTH_FACEBOOK_KEY,
+               'firebase_config': settings.FIREBASE_CONFIG
                }
     # user_email = True
     return render(request, 'community.html', context)
@@ -910,7 +913,8 @@ def members_directory(request, community_id):
         'member_state':member_state,
         'selected':selected,
         'google_oauth_client_id': settings.GOOGLE_OAUTH_CLIENT_ID,
-        'facebook_auth_id':settings.SOCIAL_AUTH_FACEBOOK_KEY
+        'facebook_auth_id':settings.SOCIAL_AUTH_FACEBOOK_KEY,
+        'firebase_config': settings.FIREBASE_CONFIG
     }
 
     return render(request, 'members.html', context)
@@ -1717,6 +1721,7 @@ def pending_list(request, community_id):
         'is_member' : is_promoter,
         'google_oauth_client_id': settings.GOOGLE_OAUTH_CLIENT_ID,
         'facebook_auth_id': settings.SOCIAL_AUTH_FACEBOOK_KEY,
+        'firebase_config': settings.FIREBASE_CONFIG,
         'length' : len(members)
 
     }

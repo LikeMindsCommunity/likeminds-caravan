@@ -3,7 +3,156 @@
 {% block yeild %}
 
     {% include 'components/loader.html' %}
-    
+    <style>
+
+        .message {
+            color: #000;
+            line-height: 18px;
+            font-size: 15px;
+            padding: 8px;
+            position: relative;
+            word-wrap: break-word;
+        }
+
+        .message:after {
+            position: absolute;
+            content: "";
+            width: 0;
+            height: 0;
+            border-style: solid;
+        }
+
+        .metadata {
+            display: inline-block;
+            padding: 0 0 0 7px;
+            position: relative;
+            bottom: -4px;
+        }
+
+        .metadata .time {
+            color: rgba(0, 0, 0, .45);
+            font-size: 11px;
+            display: inline-block;
+        }
+/* 
+        .metadata .tick {
+            display: inline-block;
+            margin-left: 2px;
+            position: relative;
+            top: 4px;
+            height: 16px;
+            width: 16px;
+        }
+
+        .metadata .tick svg {
+            position: absolute;
+            transition: .5s ease-in-out;
+        }
+
+        .metadata .tick svg:first-child {
+            -webkit-backface-visibility: hidden;
+                    backface-visibility: hidden;
+            -webkit-transform: perspective(800px) rotateY(180deg);
+                    transform: perspective(800px) rotateY(180deg);
+        }
+
+        .metadata .tick svg:last-child {
+            -webkit-backface-visibility: hidden;
+                    backface-visibility: hidden;
+            -webkit-transform: perspective(800px) rotateY(0deg);
+                    transform: perspective(800px) rotateY(0deg);
+        }
+
+        .metadata .tick-animation svg:first-child {
+            -webkit-transform: perspective(800px) rotateY(0);
+                    transform: perspective(800px) rotateY(0);
+        }
+
+        .metadata .tick-animation svg:last-child {
+            -webkit-transform: perspective(800px) rotateY(-179.9deg);
+                    transform: perspective(800px) rotateY(-179.9deg);
+        }
+ */
+
+        .message.received {
+            background: #fff;
+            border-radius: 5px 5px 5px 0px;
+        }
+
+        .message.received .metadata {
+            padding: 0 0 0 16px;
+        }
+
+        .message.received:after {
+            border-width: 10px 10px 0 0;
+            border-color: transparent #fff transparent transparent;
+            bottom: 0;
+            left: -10px;
+        }
+
+        .message.sent {
+            background: #e1ffc7;
+            border-radius: 5px 5px 0px 5px;
+        }
+
+        .message.sent:after {
+            border-width: 10px 0 0 10px;
+            border-color: transparent transparent transparent #e1ffc7;
+            bottom: 0;
+            right: -10px;
+        }
+
+        /* Compose */
+
+        .conversation-compose .emoji {
+            border-radius: 5px 0 0 5px;
+            margin-left: 8px;
+            width: 48px;
+        }
+
+        .conversation-compose .input-msg {
+            border: 0;
+            font-size: 16px;
+            margin: 0;
+            outline: none;
+            min-width: 50px;
+        }
+
+        .conversation-compose .photo {
+            border-radius: 0 0 5px 0;
+            text-align: center;
+            position: relative;
+            width: 48px;
+        }
+
+        
+        .conversation-compose .send {
+            border: 0;
+            cursor: pointer;
+            margin-left: 8px;
+            margin-right: 8px;
+            padding: 0;
+            position: relative;
+        }
+
+        .conversation-compose .send .circle {
+            background: #008a7c;
+            border-radius: 50%;
+            color: #fff;
+            position: relative;
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .conversation-compose .send .circle i {
+            font-size: 24px;
+            margin-left: 5px;
+        }
+
+    </style>
     <div class="container mxw960 mA mt56 ffR">
         
         {% include 'components/header.html' with data=header %}
@@ -121,56 +270,140 @@
 
         <div class="p24 bs bdbE bs">
             <div class="fs14 fwR c9b lh30">Comments . {{ answers|length }}</div>
-            <div class="pR">
-                {% if request.user.is_authenticated %}
-                    {% if member_state.state == 3 or member_state.state == 0 %}
-                        <div class="pA t0 b0 l0 r0 z1 joinComm"></div>
-                    {% endif %}
-                {% else %}
-                    <div class="pA t0 b0 l0 r0 z1 joinComm"></div>
-                {% endif %}
-                <form class="h40 pt16 bs dT wp100" id="submit_commit">
-                    <div class="dTc vM">
-                        <input class="h40 p1224 bs bgf2 br20 bd0 wp100 c9b" placeholder="Type your comment" id="comment_inp"/>
-                    </div>
-                </form>
-            </div>
-            <div class="pR pt16" id="comments">
+            <div class="p12 bs pR bgd0d8e2" id="comments">
                 {% for answer in answers %}
-                    <div class="dT wp100 pb12 pt16 bs member_link" member_id="{{answer.member.id}}">
-                        <div class="dTc vT w48 h48">
-                            <img class="dB w48 h48 brp50" src="{{ answer.member.image_url }}">
-                        </div>
-                        <div class="dTc vT pl12 bs">
-                            <div class="dT wp100 tlF">
-                                <div class="dTc vM c0 lh18 fs14 fwM">{{ answer.member.name }}</div>
-                                <div class="dTc vM taR fs12 c9b">{{ answer.created_at }}</div>
+                    {% if forloop.counter == 1 %}
+                        <div class="taC"><div class="bgE br24 c6 dIb fs14 lh30 p012 vM">{{ collabcard.member.name }} started this chatroom</div></div>
+                    {% else %}
+                        {% if answer.member.id == current_user.id %}
+                            <div class="dT wp100 pb12 bs">
+                                <div class="dTc vB taR">
+                                    <div class="dIb message sent vM wbBa mxwp100">
+                                        {{ answer.answer }}
+                                        <span class="metadata">
+                                            <span class="time">{{ answer.created_at }}</span>
+                                            <!-- <span class="tick">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="15" id="msg-dblcheck-ack" x="2063" y="2076">
+                                                <path d="M15.01 3.316l-.478-.372a.365.365 0 0 0-.51.063L8.666 9.88a.32.32 0 0 1-.484.032l-.358-.325a.32.32 0 0 0-.484.032l-.378.48a.418.418 0 0 0 .036.54l1.32 1.267a.32.32 0 0 0 .484-.034l6.272-8.048a.366.366 0 0 0-.064-.512zm-4.1 0l-.478-.372a.365.365 0 0 0-.51.063L4.566 9.88a.32.32 0 0 1-.484.032L1.892 7.77a.366.366 0 0 0-.516.005l-.423.433a.364.364 0 0 0 .006.514l3.255 3.185a.32.32 0 0 0 .484-.033l6.272-8.048a.365.365 0 0 0-.063-.51z" fill="#4fc3f7"></path>
+                                                </svg>
+                                            </span> -->
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="dTc vB h48 member_link pl12 bs w12" member_id="{{answer.member.id}}">
+                                    <!-- <img class="bd2F brp50 bs bxs dB h48 w48" src="{{ answer.member.image_url }}"> -->
+                                </div>
                             </div>
-                            <div class="bdbE bs c4a fs13 lh20 pb24 pt8">
-                                {{ answer.answer }}
+                        {% else %}
+                            <div class="dT wp100 pb12 bs">
+                                <div class="dTc vB w48 h48 member_link" member_id="{{answer.member.id}}">
+                                    <img class="bd2F brp50 bs bxs dB h48 w48" src="{{ answer.member.image_url }}">
+                                </div>
+                                <div class="dTc vB pl12 bs">
+                                    <div class="dIb message received vM wbBa mxwp100">
+                                        {{ answer.answer }}
+                                        <span class="metadata">
+                                            <span class="time">{{ answer.created_at }}</span>
+                                            <!-- <span class="tick">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="15" id="msg-dblcheck-ack" x="2063" y="2076">
+                                                <path d="M15.01 3.316l-.478-.372a.365.365 0 0 0-.51.063L8.666 9.88a.32.32 0 0 1-.484.032l-.358-.325a.32.32 0 0 0-.484.032l-.378.48a.418.418 0 0 0 .036.54l1.32 1.267a.32.32 0 0 0 .484-.034l6.272-8.048a.366.366 0 0 0-.064-.512zm-4.1 0l-.478-.372a.365.365 0 0 0-.51.063L4.566 9.88a.32.32 0 0 1-.484.032L1.892 7.77a.366.366 0 0 0-.516.005l-.423.433a.364.364 0 0 0 .006.514l3.255 3.185a.32.32 0 0 0 .484-.033l6.272-8.048a.365.365 0 0 0-.063-.51z" fill="#4fc3f7"></path>
+                                                </svg>
+                                            </span> -->
+                                        </span>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-                    </div>
+                        {% endif %}
+                    {% endif %}
                 {% endfor %}
-                {% if request.user.is_authenticated %}
-                    {% if member_state.state == 3 or member_state.state == 0 %}
-                        <!-- if pending or declined member -->
+                {% if collabcard.type == 2 %}
+                    {% if request.user.is_authenticated %}
+                        {% if member_state.state == 3 or member_state.state == 0 %}
+                            <!-- if pending or declined member -->
+                            <div class=mnh200></div>
+                            <div class="pA t0 b0 l0 r0 bgFo96 z1" onclick="attend(true)">
+                                <div class="dT wp100 hp100 taC">
+                                    <div class="c0 fs15 lh20 dTc vM">You must be a member of the community to view the conversations.</div>
+                                </div>
+                            </div>
+                        {% endif %}
+                    {% else  %}
+                        <!-- if not logged in -->
                         <div class=mnh200></div>
-                        <div class="pA t0 b0 l0 r0 bgFo96 z1 joinComm">
+                        <div class="pA t0 b0 l0 r0 bgFo96 z1" onclick="attend(true)">
                             <div class="dT wp100 hp100 taC">
                                 <div class="c0 fs15 lh20 dTc vM">You must be a member of the community to view the conversations.</div>
                             </div>
                         </div>
                     {% endif %}
-                {% else  %}
-                    <!-- if not logged in -->
-                    <div class=mnh200></div>
-                    <div class="pA t0 b0 l0 r0 bgFo96 z1 joinComm">
-                        <div class="dT wp100 hp100 taC">
-                            <div class="c0 fs15 lh20 dTc vM">You must be a member of the community to view the conversations.</div>
+                {% endif %}
+            </div>
+            
+            <div class="b0 bgd0d8e2 pS pt2 z14 bs">
+                {% if request.user.is_authenticated %}
+                    {% if collabcard.type == 2 %}
+                        {% if member_state.state == 3 or member_state.state == 0 %}
+                            <div class="pA t0 b0 l0 r0 z1" onclick="attend(true)"></div>
+                        {% endif %}
+                    {% endif %}
+                {% else %}
+                    <div class="pA t0 b0 l0 r0 z1" onclick="attend(true)"></div>
+                {% endif %}
+                <div id="attach" class="bgF br8 bs m12 mb0 p12 taC dN">
+                    <div class="dIb m16 vM">
+                        <div class="bgE brp50 dIb h48 vM w48">
+                            <input onchange="readURL(this);" data-type="image" type="file" class="h48 w48 o0 bd0 bg" accept="image/*">
+                        </div>
+                        <div class="c9b fs13 mt8">Image</div>
+                    </div>
+                    <div class="dIb m16 vM">
+                        <div class="bgE brp50 dIb h48 vM w48">
+                            <input onchange="readURL(this);" data-type="any" type="file" class="h48 w48 o0 bd0 bg" accept="*">
+                        </div>
+                        <div class="c9b fs13 mt8">Gallery</div>
+                    </div>
+                    <div class="dIb m16 vM">
+                        <div class="bgE brp50 dIb h48 vM w48">
+                            <input onchange="readURL(this);" data-type="video" type="file" class="h48 w48 o0 bd0 bg" accept="video/*">
+                        </div>
+                        <div class="c9b fs13 mt8">Video</div>
+                    </div>
+                    <div class="dIb m16 vM">
+                        <div class="bgE brp50 dIb h48 vM w48">
+                            <input onchange="readURL(this);" data-type="doc" type="file" class="h48 w48 o0 bd0 bg" accept=".pdf,.doc,.docx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document">
+                        </div>
+                        <div class="c9b fs13 mt8">Docs</div>
+                    </div>
+                </div>
+                <form class="bs conversation-compose h60" id="submit_commit">
+                    <div class="dT h60 wp100 p012">
+                        <div class="dTc vM">
+                            <div class="dT wp100 bgF br24 h48">
+                                <div class="emoji dTc vM taC">
+                                    <div class="dIb h24 vM w24">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" id="smiley" x="3147" y="3209">
+                                            <path fill-rule="evenodd" clip-rule="evenodd" d="M9.153 11.603c.795 0 1.44-.88 1.44-1.962s-.645-1.96-1.44-1.96c-.795 0-1.44.88-1.44 1.96s.645 1.965 1.44 1.965zM5.95 12.965c-.027-.307-.132 5.218 6.062 5.55 6.066-.25 6.066-5.55 6.066-5.55-6.078 1.416-12.13 0-12.13 0zm11.362 1.108s-.67 1.96-5.05 1.96c-3.506 0-5.39-1.165-5.608-1.96 0 0 5.912 1.055 10.658 0zM11.804 1.01C5.61 1.01.978 6.034.978 12.23s4.826 10.76 11.02 10.76S23.02 18.424 23.02 12.23c0-6.197-5.02-11.22-11.216-11.22zM12 21.355c-5.273 0-9.38-3.886-9.38-9.16 0-5.272 3.94-9.547 9.214-9.547a9.548 9.548 0 0 1 9.548 9.548c0 5.272-4.11 9.16-9.382 9.16zm3.108-9.75c.795 0 1.44-.88 1.44-1.963s-.645-1.96-1.44-1.96c-.795 0-1.44.878-1.44 1.96s.645 1.963 1.44 1.963z" fill="#7d8489"></path>
+                                        </svg>
+                                    </div>
+                                </div>
+                                <input class="input-msg dTc vM wp100 h48" name="input" placeholder="Type a message" autocomplete="off" id="comment_inp">
+                                <div class="photo dTc vM taC" onclick="$('#attach').toggleClass('dN');$('html, body').animate({ scrollTop: $(document).height() }, 100);">
+                                    <div class="dIb h24 vM w24">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24"><path d="M16.5 6v11.5c0 2.21-1.79 4-4 4s-4-1.79-4-4V5c0-1.38 1.12-2.5 2.5-2.5s2.5 1.12 2.5 2.5v10.5c0 .55-.45 1-1 1s-1-.45-1-1V6H10v9.5c0 1.38 1.12 2.5 2.5 2.5s2.5-1.12 2.5-2.5V5c0-2.21-1.79-4-4-4S7 2.79 7 5v12.5c0 3.04 2.46 5.5 5.5 5.5s5.5-2.46 5.5-5.5V6h-1.5z"/><path d="M0 0h24v24H0z" fill="none"/></svg>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="send dTc vM pl12 bs w48">
+                            <div class="circle dIb vM">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#fff" width="24" height="24"><path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/><path d="M0 0h24v24H0z" fill="none"/></svg>
+                            </div>
                         </div>
                     </div>
-                {% endif %}
+                    <!-- <div class="dTc vM">
+                        <input class="h40 p1224 bs bgf2 br20 bd0 wp100 c9b" placeholder="Type your comment" id="comment_inp"/>
+                    </div> -->
+                </form>
             </div>
         </div>
     </div>
@@ -286,6 +519,124 @@
     <div class="dN answers">{{answers}}</div>
 
     <script>
+        function readURL(input) {
+            if (input.files && input.files[0]) {
+                
+                var reader = new FileReader();
+                var type = $(input).attr('data-type');
+                var idDocs = idVdo = false;
+                if(type=="image"){
+                    type = '<img src="" class="mediaAttach mxh240 wp100">';
+                }else if(type=="video"){
+                    type= '<video controls class="mxh240 wp100"><source src="" class="videoURL"></video>';
+                    idVdo = true;
+                }else if(type=="docs"){
+                    type= '<canvas id="pdfViewer" class="mxh240 wp100"></canvas>';
+                    idDocs = true;
+                }
+
+                if(idDocs){
+                    // Loaded via <script> tag, create shortcut to access PDF.js exports.
+                    var pdfjsLib = window['pdfjs-dist/build/pdf'];
+                    // The workerSrc property shall be specified.
+                    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://mozilla.github.io/pdf.js/build/pdf.worker.js';
+
+
+                        var file = input.files[0]
+                        if(file.type == "application/pdf"){
+                            var fileReader = new FileReader();  
+                            fileReader.onload = function() {
+                                var pdfData = new Uint8Array(this.result);
+                                // Using DocumentInitParameters object to load binary data.
+                                var loadingTask = pdfjsLib.getDocument({data: pdfData});
+
+                                $('html, body').animate({ scrollTop: $(document).height() }, 100);
+                                var html= `
+                                <div class="dT wp100 pb12 bs">
+                                    <div class="dTc vB taR">
+                                        <div class="dIb message sent vM wbBa mxwp100">
+                                            ${type}
+                                            <span class="metadata">
+                                                <span class="time">Just Now</span>
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="dTc vB h48 member_link pl12 bs w12"></div>
+                                    <div class="commentStatus dTr"><div class="taR cStatus c9b fs13 pt4">sending...</div></div>
+                                </div>
+                                `;
+                                $('#comments').append(html);
+                                
+                                loadingTask.promise.then(function(pdf) {
+                                console.log('PDF loaded');
+                                
+                                // Fetch the first page
+                                var pageNumber = 1;
+                                pdf.getPage(pageNumber).then(function(page) {
+                                    console.log('Page loaded');
+                                    
+                                    var scale = 1.5;
+                                    var viewport = page.getViewport({scale: scale});
+
+                                    // Prepare canvas using PDF page dimensions
+                                    var canvas = $("#pdfViewer")[0];
+                                    var context = canvas.getContext('2d');
+                                    canvas.height = viewport.height;
+                                    canvas.width = viewport.width;
+
+                                    // Render PDF page into canvas context
+                                    var renderContext = {
+                                    canvasContext: context,
+                                    viewport: viewport
+                                    };
+                                    var renderTask = page.render(renderContext);
+                                    renderTask.promise.then(function () {
+                                    console.log('Page rendered');
+                                    });
+                                });
+                                }, function (reason) {
+                                // PDF loading error
+                                console.error(reason);
+                                });
+                            };
+                            fileReader.readAsArrayBuffer(file);
+                        }
+                }else{
+                
+                    reader.onload = function (e) {
+                        $('html, body').animate({ scrollTop: $(document).height() }, 100);
+                        var html= `
+                        <div class="dT wp100 pb12 bs">
+                            <div class="dTc vB taR">
+                                <div class="dIb message sent vM wbBa mxwp100">
+                                    ${type}
+                                    <span class="metadata">
+                                        <span class="time">Just Now</span>
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="dTc vB h48 member_link pl12 bs w12"></div>
+                            <div class="commentStatus dTr"><div class="taR cStatus c9b fs13 pt4">sending...</div></div>
+                        </div>
+                        `;
+                        $('#comments').append(html);
+                        if(idVdo){
+                            var $source = $('.videoURL');
+                            $source[0].src = URL.createObjectURL(input.files[0]);
+                            $source.parent()[0].load();
+                            $source.removeClass('videoURL');
+                        }else{
+                            $('.mediaAttach')
+                            .attr('src', e.target.result).removeClass('mediaAttach');
+                        }
+                        $('#attach').addClass('dN');
+                    // $('#comment_inp').val('');
+                    };
+
+                    reader.readAsDataURL(input.files[0]);
+                }
+            }
+        }
         $(document).ready(function(){
             $(document.body).on('click','.vote_poll',function(e){
                 {% if request.user.is_authenticated %}
@@ -623,36 +974,58 @@
                     //     'member_id': member_id,
                     //     'title': msg
                     // }
-                    $(".ldrT", $('#loader')[0]).text("Submitting your comment...");
-                    $('#loader').show();
+                    var html= `
+                                <div class="dT wp100 pb12 bs">
+                                    <div class="dTc vB taR">
+                                        <div class="dIb message sent vM wbBa mxwp100">
+                                            ${msg}
+                                            <span class="metadata">
+                                                <span class="time">Just Now</span>
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="dTc vB h48 member_link pl12 bs w12"></div>
+                                    <div class="commentStatus dTr"><div class="taR cStatus c9b fs13 pt4">sending...</div></div>
+                                </div>
+                            `;
+                        $('#comments').append(html);
+                        $('#comment_inp').val('');
                     $.ajax({
                         url: '/api/create_answer?member_id='+member_id+"&collabcard_id="+collabcard_id,
                         data: JSON.stringify({"title":msg}),
                         type: 'POST',
                         dataType: 'json',
                         success: function(data){
-                            var html = `
-                                <div class="dT wp100 pb12 pt16 bs member_link" member_id="{{ current_user.id }}">
-                                    <div class="dTc vT w48 h48">
-                                        <img class="dB w48 h48 brp50" src="{{ current_user.image_url }}">
-                                    </div>
-                                    <div class="dTc vT pl12 bs">
-                                        <div class="dT wp100 tlF">
-                                            <div class="dTc vM c0 lh18 fs14 fwM">{{ current_user.name }}</div>
-                                            <div class="dTc vM taR fs12 c9b">Just Now</div>
-                                        </div>
-                                        <div class="bdbE bs c4a fs13 lh20 pb24 pt8">${msg}</div>
-                                    </div>
-                                </div>
-                                `;
-                            $('#comments').append(html);
-                            $('#comment_inp').val('');
-                            $('#loader').hide();
+                            // var html = `
+                            //     <div class="dT wp100 pb12 pt16 bs member_link" member_id="{{ current_user.id }}">
+                            //         <div class="dTc vT w48 h48">
+                            //             <img class="dB w48 h48 brp50" src="{{ current_user.image_url }}">
+                            //         </div>
+                            //         <div class="dTc vT pl12 bs">
+                            //             <div class="dT wp100 tlF">
+                            //                 <div class="dTc vM c0 lh18 fs14 fwM">{{ current_user.name }}</div>
+                            //                 <div class="dTc vM taR fs12 c9b">Just Now</div>
+                            //             </div>
+                            //             <div class="bdbE bs c4a fs13 lh20 pb24 pt8">${msg}</div>
+                            //         </div>
+                            //     </div>
+                            //     `;
+                            // $('#comments').append(html);
+                            // $('#comment_inp').val('');
+                            // $('#loader').hide();
+                            $('.cStatus').text('sent sucessfully');
+                            $('.commentStatus').delay(2000).fadeOut(300, function() { 
+                                $(this).remove(); 
+                            });
                         },
                         error: function(){
-                            $('#loader').hide();
+                            // $('#loader').hide();
+                            $('.cStatus').text('sent sucessfully');
+                            $('.commentStatus').delay(2000).fadeOut(300, function() { 
+                                $(this).remove(); 
+                            });
                         }
-                    })
+                    });
                 {% endif %}
             });
 

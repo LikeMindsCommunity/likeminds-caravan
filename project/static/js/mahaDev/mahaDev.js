@@ -1,29 +1,29 @@
 var mahaDev = (function() {
     'use strict';
   
-    var AN = {}, $;
+    var MD = {}, $$;
   
-    function an(elements, selector) {
+    function md(elements, selector) {
       /*jshint validthis: true */
       var i = 0, length = (elements && elements[0]) ? elements.length : 0;
       for (; i < length; i++) this[i] = elements[i];
       this.length = length;
-      this.selector = selector ? $.trim(selector) : '';
+      this.selector = selector ? $$.trim(selector) : '';
     }
   
-    AN.an = function(elements, selector) {
-      return new an(elements, selector);
+    MD.md = function(elements, selector) {
+      return new md(elements, selector);
     };
   
-    AN.isAN = function(object) {
-      return object instanceof AN.an;
+    MD.isMD = function(object) {
+      return object instanceof MD.md;
     };
   
-    AN.selector = function(selector, context){
+    MD.selector = function(selector, context){
       if(!selector) return [];
       var elements = [],
           parent = context || document,
-          _selector = $.trim(selector);
+          _selector = $$.trim(selector);
       if(_selector.split(' ').length > 1 || _selector.indexOf(',') > -1){
         elements = parent.querySelectorAll(_selector);
       }else{
@@ -40,14 +40,14 @@ var mahaDev = (function() {
       return elements;
     };
   
-    AN.init = function(selector, parent) {
-      if(!selector) return AN.an();
-      if(AN.isAN(selector)){
+    MD.init = function(selector, parent) {
+      if(!selector) return MD.md();
+      if(MD.isMD(selector)){
         return selector;
       }
       var elements = [];
       if(typeof selector == 'string'){
-        elements = AN.selector(selector, parent);
+        elements = MD.selector(selector, parent);
       }else{
         if(selector instanceof Array){
           elements = selector;
@@ -55,14 +55,14 @@ var mahaDev = (function() {
           elements = [selector];
         }
       }
-      return AN.an(elements, selector);
+      return MD.md(elements, selector);
     };
   
-    $ = function(selector, context){
-      return AN.init(selector, context);
+    $$ = function(selector, context){
+      return MD.init(selector, context);
     };
   
-    $.regexp = function(name, type) {
+    $$.regexp = function(name, type) {
       var regexp = "";
       switch(type){
         case "className":
@@ -75,23 +75,23 @@ var mahaDev = (function() {
       return new RegExp(regexp);
     };
   
-    $.trim = function(string){
+    $$.trim = function(string){
       return (string && string.trim ? string.trim() : '');
     };
   
-    $.createElement = function(tagName){
-      return $(document.createElement(tagName));
+    $$.createElement = function(tagName){
+      return $$(document.createElement(tagName));
     };
   
-    $.parseJSON = JSON.parse;
-    $.stringifyJSON = JSON.stringify;
-    $.decodeURI = window.decodeURI;
-    $.decodeURIComponent = window.decodeURIComponent;
-    $.encodeURI = window.encodeURI;
-    $.encodeURIComponent = window.encodeURIComponent;
-    $.parseInt = window.parseInt;
-    $.parseFloat = window.parseFloat;
-    $.extend = Object.assign || function (target) { // extend object
+    $$.parseJSON = JSON.parse;
+    $$.stringifyJSON = JSON.stringify;
+    $$.decodeURI = window.decodeURI;
+    $$.decodeURIComponent = window.decodeURIComponent;
+    $$.encodeURI = window.encodeURI;
+    $$.encodeURIComponent = window.encodeURIComponent;
+    $$.parseInt = window.parseInt;
+    $$.parseFloat = window.parseFloat;
+    $$.extend = Object.assign || function (target) { // extend object
       for (var i = 1; i < arguments.length; i++) { 
         var source = arguments[i]; 
         for (var key in source) { 
@@ -104,8 +104,8 @@ var mahaDev = (function() {
     };
     
   
-    $.fn = {
-      constructor: AN.an,
+    $$.fn = {
+      constructor: MD.md,
       length: 0,
       // l: function(){
       //   return this.length;
@@ -133,19 +133,19 @@ var mahaDev = (function() {
         });
       },
       hasClass: function(className) {
-        return $.regexp(className, "className").test(this[0].className);
+        return $$.regexp(className, "className").test(this[0].className);
       },
       addClass: function(className) {
         return this.each(function(){
-          if(!$.regexp(className, "className").test(this.className)){
-            this.className = $.trim(this.className + " " + className);
+          if(!$$.regexp(className, "className").test(this.className)){
+            this.className = $$.trim(this.className + " " + className);
           }
         });
       },
       removeClass: function(className) {
         return this.each(function(){
-          if($.regexp(className, "className").test(this.className)){
-            this.className = $.trim(this.className.replace(className, ""));
+          if($$.regexp(className, "className").test(this.className)){
+            this.className = $$.trim(this.className.replace(className, ""));
           }
         });
       },
@@ -179,7 +179,7 @@ var mahaDev = (function() {
           }else{
             this[0].appendChild(element);
           }
-          return $(element);
+          return $$(element);
         }
         return this;
       },
@@ -187,7 +187,7 @@ var mahaDev = (function() {
         var element = this[0];
         do { element = element.nextElementSibling || false; }
         while (element && element.nodeType !== 1);
-        return $(element);
+        return $$(element);
       },
       nextAll: function(element){
         var nextElements = [];
@@ -197,13 +197,13 @@ var mahaDev = (function() {
           nextElements.push(nextElement.nextElementSibling);
           nextElement = nextElement.nextElementSibling;
         }
-        return $(nextElements);
+        return $$(nextElements);
       },
       // prev: function() {
       //   var element = this[0];
       //   do { element = element.previousElementSibling || []; }
       //   while (element.nodeType !== 1);
-      //   return $(element);
+      //   return $$(element);
       // },
       html: function(string) {
         if (!this[0]) {
@@ -217,10 +217,10 @@ var mahaDev = (function() {
         }
       },
       children: function(){
-        return $(this[0].children);
+        return $$(this[0].children);
       },
       parent: function(){
-        return $(this[0].parentElement);
+        return $$(this[0].parentElement);
       },
       parents: function(selectorClass, notSame){
         var elem = this, notsame = notSame || false;
@@ -235,8 +235,8 @@ var mahaDev = (function() {
             elementRect = element.getBoundingClientRect(),
             eHeight = elementRect.height,
             eWidth = elementRect.width,
-            dHeight = $.anConstants.deviceHeight,
-            dWidth = $.anConstants.deviceWidth;
+            dHeight = $$.mdConstants.deviceHeight,
+            dWidth = $$.mdConstants.deviceWidth;
             
         return {
           complete: (
@@ -254,14 +254,13 @@ var mahaDev = (function() {
         };
       }
     };
-    AN.an.prototype = an.prototype = $.fn;
-    return $;
+    MD.md.prototype = md.prototype = $$.fn;
+    return $$;
   })();
   
   window.mahaDev = mahaDev;
   window.$$ = mahaDev;
-  window.$ = mahaDev;
-  window.$.anConstants = window.anConstants || {};
+  window.$$.mdConstants = window.mdConstants || {};
   
   
   

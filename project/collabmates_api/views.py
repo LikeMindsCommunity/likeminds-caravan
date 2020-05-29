@@ -4156,7 +4156,7 @@ def collabcard(request, card_id):
         if card_category == "POLL_CARD":
             return render(request, 'poll.html', context)
         else:
-            return render(request, 'collabcard.html', context)
+            return render(request, 'chatroom.html', context)
 
     else:
         return JsonResponse({"collabcard": card, 'answers': answers})
@@ -4260,7 +4260,8 @@ def get_collabcard_details_for_web(request,card_instance,card,current_user_id,an
             'answers': answers,
             'header': header,
             'google_oauth_client_id': settings.GOOGLE_OAUTH_CLIENT_ID,
-            'facebook_auth_id':settings.SOCIAL_AUTH_FACEBOOK_KEY
+            'facebook_auth_id':settings.SOCIAL_AUTH_FACEBOOK_KEY,
+            'firebase_config': settings.FIREBASE_CONFIG
         }
 
         if is_logged:
@@ -4324,6 +4325,7 @@ def get_collabcard_details_for_web(request,card_instance,card,current_user_id,an
             'header': header,
             'google_oauth_client_id': settings.GOOGLE_OAUTH_CLIENT_ID,
             'facebook_auth_id': settings.SOCIAL_AUTH_FACEBOOK_KEY,
+            'firebase_config': settings.FIREBASE_CONFIG
         }
 
         if is_logged:
@@ -4354,6 +4356,7 @@ def get_collabcard_details_for_web(request,card_instance,card,current_user_id,an
             'header': header,
             'google_oauth_client_id': settings.GOOGLE_OAUTH_CLIENT_ID,
             'facebook_auth_id': settings.SOCIAL_AUTH_FACEBOOK_KEY,
+            'firebase_config': settings.FIREBASE_CONFIG
         }
         print(context)
         return context,"SIMPLE_CARD"
@@ -6099,9 +6102,11 @@ def fetch_chatroom_feed(request):
 @csrf_exempt
 def upload_files(request):
     '''function to upload files'''
-
     body = request.GET
+    print('body', body)
     member_id=get_member_id_from_headers(request)
+    if request.user.is_authenticated and is_request_web(request):
+        current_member_id = request.user.id
 
     if 'community_id' in body:
         # if image to be updated in community
@@ -8446,7 +8451,8 @@ def email_verify(request):
             context = {
                 'verification': True,
                 'google_oauth_client_id': settings.GOOGLE_OAUTH_CLIENT_ID,
-                'facebook_auth_id':settings.SOCIAL_AUTH_FACEBOOK_KEY
+                'facebook_auth_id':settings.SOCIAL_AUTH_FACEBOOK_KEY,
+                'firebase_config': settings.FIREBASE_CONFIG
             }
 
             #if the link is verified

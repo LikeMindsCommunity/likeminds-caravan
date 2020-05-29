@@ -1,0 +1,26 @@
+<script>
+    function loadScript(u, cb){
+        var f=document.getElementsByTagName('script')[0],
+            j=document.createElement('script');
+            j.async=true;
+            j.onload=cb;
+            j.src=u;;
+            f.parentNode.insertBefore(j,f);
+    }
+    loadScript('https://www.gstatic.com/firebasejs/7.14.5/firebase-app.js', 
+                function(){
+                    // loadScript('https://www.gstatic.com/firebasejs/7.14.5/firebase-analytics.js',
+                    loadScript('https://www.gstatic.com/firebasejs/7.14.5/firebase-storage.js',
+                                function(){
+                                    firebase.initializeApp({
+                                        {% for key, value in firebase_config.items %}
+                                            {{ key }}: "{{ value }}",
+                                        {% endfor %}
+                                    });
+                                    // firebase.analytics();
+                                    // firebaseStorage();
+                                }
+                            )
+                }
+            );
+</script>
