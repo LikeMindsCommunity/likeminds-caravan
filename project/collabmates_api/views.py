@@ -4384,14 +4384,13 @@ def fetch_chatroom(request):
     context = get_chatroom_internal(request,card_instance,current_user_id,page,conversation_id,scroll_direction)
     return JsonResponse(context)
 
-@csrf_exempt
+
 def conversation_meta(request):
 
     '''api to perfrom firebase operations on conversation for real time messaging'''
 
-    conversation_id = request.POST.get('conversation_id')
-    chatroom_id = request.POST.get('chatroom_id')
-
+    conversation_id = request.GET.get('conversation_id')
+    chatroom_id = request.GET.get('chatroom_id')
     if not conversation_id or not chatroom_id:
         context = get_error_context(False,"send conversation_id and chatroom_id in post params")
         return JsonResponse(context)
