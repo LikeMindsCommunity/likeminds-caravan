@@ -4367,7 +4367,7 @@ def fetch_chatroom(request):
 
     '''api to get the chatroom'''
 
-    card_id = request.GET.get('chat_room_id','')
+    card_id = request.GET.get('chatroom_id','')
 
     if not card_id:
         context = get_error_context(False,"send chat_room_id as a get params")
