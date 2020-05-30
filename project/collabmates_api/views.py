@@ -2695,10 +2695,10 @@ def create_card(request,req_dict=None):
         typ = int(res['type']) if 'type' in res else card_types.CARD_NORMAL
 
 
-        card = Collabcard.objects.filter(community=community, user=user_instance, type=card_types.CARD_INTRO)
-        if card.exists():
-            # if welcome card for user is already existing
-            return JsonResponse({'success': False,"errro_message" : "Introduction already exists"})
+        # card = Collabcard.objects.filter(community=community, user=user_instance, type=card_types.CARD_INTRO)
+        # if card.exists() and card.type == card_types.CARD_INTRO:
+        #     # if welcome card for user is already existing
+        #     return JsonResponse({'success': False,"errro_message" : "Introduction already exists"})
 
         if 'date_time' in res:
             date_time = res['date_time'] if (str(typ) == '2' or str(typ) == '3') else 0
