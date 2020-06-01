@@ -51,7 +51,7 @@ from utility.utils import (decode_meta_from_url, update_tag_image,
                            is_member_verified, community_default_image, community_default_thumbnail, is_member_promoter,
                            is_member_present, generate_private_link, generate_random, get_time_text,
                            community_default_image_round, decode_option, get_user_communities_by_rank_web,
-                           user_onbaord,get_time_text_for_my_chatrooms,
+                           user_onbaord,get_time_text_for_my_chatrooms,get_members_count_in_community
 
                            )
 
@@ -4363,6 +4363,47 @@ def get_collabcard_details_for_web(request,card_instance,card,current_user_id,an
         #return render(request, 'collabcard.html', context)
 
 
+def ConvertSectoDay(n):
+
+    n=int(n)
+
+    day = n // (24 * 3600)
+
+    n = n % (24 * 3600)
+    hour = n // 3600
+
+    n %= 3600
+    minutes = n // 60
+
+    n %= 60
+    seconds = n
+    time_text = ""
+
+    #checking day
+    if day !=0:
+        if day == 1:
+            time_text = str(day)+" day "
+        else:
+            time_text = str(day) + " days "
+
+    if hour != 0:
+        if hour == 1:
+            time_text = time_text + str(hour) + " hour "
+        else:
+            time_text = time_text + str(hour) + " hours "
+
+
+    if minutes != 0:
+        if minutes == 1:
+            time_text = time_text+ "and " + str(minutes) + " minute "
+        else:
+            time_text = time_text +  "and " + str(minutes) + " minutes "
+
+
+
+
+    return time_text
+
 def fetch_chatroom(request):
 
     '''api to get the chatroom'''
@@ -4715,24 +4756,13 @@ def community_collabcard_invite(request,community_id):
 
 
 
-    number_of_members = community.members_count
+    number_of_members = get_members_count_in_community(community)
     members_left = ig_members_count - number_of_members
     card_list = []
 
     # prompt for invite  for ig and lg community
+    unlock_prompt = get_unlock_prompt(members_left)
 
-    unlock_title = "Invite members"
-    if members_left == 1:
-        unlock_sub_title = "To start a conversation, invite %s more member to this community and make this community live." % (
-            members_left)
-        community_live_title = "more member required"
-    else:
-        unlock_sub_title = "To start a conversation, invite %s more members to this community and make this community live." % (
-            members_left)
-        community_live_title = "more members required"
-
-    unlock_action_title = "OK, INVITE NOW"
-    unlock_action = """route://community?community_id=%s&share=true&source=community_live_unlock"""
 
 
     # community live for ig communities
@@ -4746,77 +4776,8 @@ def community_collabcard_invite(request,community_id):
         member_types = member_types.lower()
         member_type = member_type.lower()
 
-        # community live sub_title logic
-
-        community_live_subtitle = """Every community needs its members to make purposeful conversations. Invite %s or more members to start conversations.""" % (
-            members_left)
-        if number_of_members == 1:
-            community_live_subtitle = """Awesome, you have taken the first step! Be the spark to ignite this community by inviting other %s from your network.""" % (
-                member_types)
-        elif number_of_members == 2:
-
-            member_list = Members.objects.filter(community_id=community_id)
-            print(member_list)
-            member_name = ""
-            for member in member_list:
-                if member_id == str(member.member_id.id):
-                    continue
-                if member.state == 4:
-                    member_name = member.member_id.userinfo.name
-            community_live_subtitle = """Superb, you and %s are now together for your shared interest! Invite 2 other %s and let them join you in this community.""" % (
-            member_name, member_types)
-
-        elif number_of_members == 3:
-
-            member_list = Members.objects.filter(community_id=community_id).order_by('-id')
-            other_member_list = []
-            for member in member_list:
-                if member_id == str(member.member_id.id):
-                    continue
-                member_name = member.member_id.userinfo.name
-                if member.state == 4:
-                    other_member_list.append(member_name)
-            if other_member_list:
-                community_live_subtitle = """You, %s  and %s  make a great group! Make it a community by inviting 1 more %s.""" % (
-                other_member_list[0], other_member_list[1], member_type)
-
-        # invite prompt logic
-        invite_prompt = {}
-
-        ref_members = get_referred_members_of_a_member(community_id, member_id)
-        ref_members_count = len(ref_members)
-
-        if ref_members_count == 0:
-            invite_prompt['title'] = """Know any %s?""" % (member_type)
-            invite_prompt['sub_title'] = """Invite a new member here and unlock a tool"""
-            invite_prompt['action_title'] = """Invite"""
-            invite_prompt['action'] = """route://community?community_id=%s&share=true&source=invite_prompt""" % (community_id)
-        elif ref_members_count == 1:
-            invite_prompt['title'] = """Unlock a new tool"""
-            invite_prompt['sub_title'] = """By inviting 2 more members to this community"""
-            invite_prompt['action_title'] = """Invite"""
-            invite_prompt['action'] = """route://community?community_id=%s&share=true&source=invite_prompt""" % (community_id)
-        elif ref_members_count == 2:
-            invite_prompt['title'] = """Unlock a new tool"""
-            invite_prompt['sub_title'] = """By inviting 1 more member to this community"""
-            invite_prompt['action_title'] = """Invite"""
-            invite_prompt['action'] = """route://community?community_id=%s&share=true&source=invite_prompt""" % (community_id)
-        elif ref_members_count == 3:
-            invite_prompt['title'] = """Become a promoter"""
-            invite_prompt['sub_title'] = """Get recognised by inviting 2 more members"""
-            invite_prompt['action_title'] = """Invite"""
-            invite_prompt['action'] = """route://community?community_id=%s&share=true&source=invite_prompt""" % (community_id)
-        elif ref_members_count == 4:
-            invite_prompt['title'] = """Become a promoter"""
-            invite_prompt['sub_title'] = """Get recognised by inviting 1 more member"""
-            invite_prompt['action_title'] = """Invite"""
-            invite_prompt['action'] = """route://community?community_id=%s&share=true&source=invite_prompt""" % (community_id)
-        else:
-            invite_prompt['title'] = """Promote your community"""
-            invite_prompt['sub_title'] = """Let other %s discover this community""" % (member_types)
-            invite_prompt['action_title'] = """Invite"""
-            invite_prompt['action'] = """route://community?community_id=%s&share=true&source=invite_prompt""" % (community_id)
-
+        community_live_subtitle = compute_community_live_subtitle_for_Ig(community,member_id,number_of_members)
+        invite_prompt = get_invite_prompt_for_members(community_id,member_type,member_types,member_id)
 
 
     #community live for lg communities
@@ -4853,63 +4814,21 @@ def community_collabcard_invite(request,community_id):
         # invite prompt logic for lg
         member_type="relevant alumnus"
         member_types="relevant alumini"
-        invite_prompt = {}
-
-        ref_members = get_referred_members_of_a_member(community_id, member_id)
-        ref_members_count = len(ref_members)
-
-        if ref_members_count == 0:
-            invite_prompt['title'] = """Know any %s?""" % (member_type)
-            invite_prompt['sub_title'] = """Invite a new member here and unlock a tool"""
-            invite_prompt['action_title'] = """Invite"""
-            invite_prompt['action'] = """route://community?community_id=%s&share=true&source=invite_prompt""" % (
-                community_id)
-        elif ref_members_count == 1:
-            invite_prompt['title'] = """Unlock a new tool"""
-            invite_prompt['sub_title'] = """By inviting 2 more members to this community"""
-            invite_prompt['action_title'] = """Invite"""
-            invite_prompt['action'] = """route://community?community_id=%s&share=true&source=invite_prompt""" % (
-                community_id)
-        elif ref_members_count == 2:
-            invite_prompt['title'] = """Unlock a new tool"""
-            invite_prompt['sub_title'] = """By inviting 1 more member to this community"""
-            invite_prompt['action_title'] = """Invite"""
-            invite_prompt['action'] = """route://community?community_id=%s&share=true&source=invite_prompt""" % (
-                community_id)
-        elif ref_members_count == 3:
-            invite_prompt['title'] = """Become a promoter"""
-            invite_prompt['sub_title'] = """Get recognised by inviting 2 more members"""
-            invite_prompt['action_title'] = """Invite"""
-            invite_prompt['action'] = """route://community?community_id=%s&share=true&source=invite_prompt""" % (
-                community_id)
-        elif ref_members_count == 4:
-            invite_prompt['title'] = """Become a promoter"""
-            invite_prompt['sub_title'] = """Get recognised by inviting 1 more member"""
-            invite_prompt['action_title'] = """Invite"""
-            invite_prompt['action'] = """route://community?community_id=%s&share=true&source=invite_prompt""" % (
-                community_id)
-        else:
-            invite_prompt['title'] = """Promote your community"""
-            invite_prompt['sub_title'] = """Let other %s discover this community""" % (member_types)
-            invite_prompt['action_title'] = """Invite"""
-            invite_prompt['action'] = """route://community?community_id=%s&share=true&source=invite_prompt""" % (
-                community_id)
-
-
+        invite_prompt = get_invite_prompt_for_members(community_id,member_type,member_types,request)
 
     if members_left > 0:
 
         community_live = {
             'members_left': members_left,
-            'title': community_live_title,
+            'title': unlock_prompt['community_live_title'],
             'sub_title': community_live_subtitle,
             'action_title': "Invite Friends",
             'action': """route://community?community_id=%s&share=true&source=community_live""" % (community_id),
 
-            'unlock_title': unlock_title,
-            'unlock_sub_title': unlock_sub_title,
-            'unlock_action_title': unlock_action_title,
-            'unlock_action': unlock_action
+            'unlock_title': unlock_prompt['unlock_title'],
+            'unlock_sub_title': unlock_prompt['unlock_sub_title'],
+            'unlock_action_title': unlock_prompt['unlock_action_title'],
+            'unlock_action': unlock_prompt['unlock_action']
 
         }
 
@@ -4942,7 +4861,7 @@ def community_collabcard_invite(request,community_id):
 
 def text_for_community_live_subtitile(total_count,intro_collabcard_list,verified_members_list):
 
-    '''function to return intro collabcard and verified list'''
+    '''function to return intro collabcard and verified list in case of lg communities'''
 
     diff = total_count - len(intro_collabcard_list)
 
@@ -4972,50 +4891,6 @@ def text_for_community_live_subtitile(total_count,intro_collabcard_list,verified
         for instance in intro_collabcard_list:
             intro_name_list.append(instance.member.userinfo.name)
         return intro_name_list
-
-
-def ConvertSectoDay(n):
-
-    n=int(n)
-
-    day = n // (24 * 3600)
-
-    n = n % (24 * 3600)
-    hour = n // 3600
-
-    n %= 3600
-    minutes = n // 60
-
-    n %= 60
-    seconds = n
-    time_text = ""
-
-    #checking day
-    if day !=0:
-        if day == 1:
-            time_text = str(day)+" day "
-        else:
-            time_text = str(day) + " days "
-
-    if hour != 0:
-        if hour == 1:
-            time_text = time_text + str(hour) + " hour "
-        else:
-            time_text = time_text + str(hour) + " hours "
-
-
-    if minutes != 0:
-        if minutes == 1:
-            time_text = time_text+ "and " + str(minutes) + " minute "
-        else:
-            time_text = time_text +  "and " + str(minutes) + " minutes "
-
-
-
-
-    return time_text
-
-
 
 
 def compute_community_live_subtitle_for_lg(total_count,count_of_verified_members,user_instance,community):
@@ -5206,6 +5081,112 @@ def compute_community_live_subtitle_for_lg(total_count,count_of_verified_members
     return community_live_subtitle
 
 
+def compute_community_live_subtitle_for_Ig(community_instance,member_id,members_count):
+
+    '''function to get community_live  subtitle for IG communities'''
+
+    community_name = community_instance.name
+    member_types = community_name.split("of")[0].strip()
+    member_type = member_types
+    if member_types[-1] == "s":
+        member_type = member_types[0:-1]
+
+    member_types = member_types.lower()
+    member_type = member_type.lower()
+
+    #members_count = get_members_count_in_community(community_instance)
+
+    if members_count == 1:
+        community_live_subtitle = """Awesome, you have taken the first step! Be the spark to ignite this community by inviting other %s from your network.""" % (
+            member_types)
+    elif members_count == 2:
+
+        member_filter = Members.objects.filter(community_id=community_instance).filter(~Q(member_id=member_id))
+        member_name = member_filter[0].member_id.userinfo.name
+        community_live_subtitle = """Superb, you and %s are now together for your shared interest! Invite 2 other %s and let them join you in this community.""" % (
+            member_name, member_types)
+
+    elif members_count == 3:
+
+        member_filter =  Members.objects.filter(community=community_instance).filter(~Q(member_id=member_id)).order_by('-id')
+        member_name1 = member_filter[0].member_id.userinfo.name
+        member_name2 = member_filter[1].member_id.userinfo.name
+
+        community_live_subtitle = """You, %s  and %s  make a great group! Make it a community by inviting 1 more %s.""" % (
+            member_name1, member_name2, member_type)
+    else:
+        members_left = ig_members_count - members_count
+        community_live_subtitle = """Every community needs its members to make purposeful conversations. Invite %s or more members to start conversations.""" %(members_left)
+
+    return community_live_subtitle
+
+
+def get_invite_prompt_for_members(community_id,member_type,member_types,member_id):
+
+
+    invite_prompt = {}
+    ref_members = get_referred_members_of_a_member(community_id, member_id)
+    ref_members_count = len(ref_members)
+
+    if ref_members_count == 0:
+        invite_prompt['title'] = """Know any %s?""" % (member_type)
+        invite_prompt['sub_title'] = """Invite a new member here and unlock a tool"""
+        invite_prompt['action_title'] = """Invite"""
+        invite_prompt['action'] = """route://community?community_id=%s&share=true&source=invite_prompt""" % (
+            community_id)
+    elif ref_members_count == 1:
+        invite_prompt['title'] = """Unlock a new tool"""
+        invite_prompt['sub_title'] = """By inviting 2 more members to this community"""
+        invite_prompt['action_title'] = """Invite"""
+        invite_prompt['action'] = """route://community?community_id=%s&share=true&source=invite_prompt""" % (
+            community_id)
+    elif ref_members_count == 2:
+        invite_prompt['title'] = """Unlock a new tool"""
+        invite_prompt['sub_title'] = """By inviting 1 more member to this community"""
+        invite_prompt['action_title'] = """Invite"""
+        invite_prompt['action'] = """route://community?community_id=%s&share=true&source=invite_prompt""" % (
+            community_id)
+    elif ref_members_count == 3:
+        invite_prompt['title'] = """Become a promoter"""
+        invite_prompt['sub_title'] = """Get recognised by inviting 2 more members"""
+        invite_prompt['action_title'] = """Invite"""
+        invite_prompt['action'] = """route://community?community_id=%s&share=true&source=invite_prompt""" % (
+            community_id)
+    elif ref_members_count == 4:
+        invite_prompt['title'] = """Become a promoter"""
+        invite_prompt['sub_title'] = """Get recognised by inviting 1 more member"""
+        invite_prompt['action_title'] = """Invite"""
+        invite_prompt['action'] = """route://community?community_id=%s&share=true&source=invite_prompt""" % (
+            community_id)
+    else:
+        invite_prompt['title'] = """Promote your community"""
+        invite_prompt['sub_title'] = """Let other %s discover this community""" % (member_types)
+        invite_prompt['action_title'] = """Invite"""
+        invite_prompt['action'] = """route://community?community_id=%s&share=true&source=invite_prompt""" % (
+            community_id)
+
+    return invite_prompt
+
+
+def get_unlock_prompt(members_left):
+
+    '''function to get unlock prompt'''
+
+    temp = {}
+    temp['unlock_title'] = "Invite members"
+    if members_left == 1:
+        temp['unlock_sub_title'] = "To start a conversation, invite %s more member to this community and make this community live." % (
+            members_left)
+        temp['community_live_title'] = "more member required"
+    else:
+        temp['unlock_sub_title'] = "To start a conversation, invite %s more members to this community and make this community live." % (
+            members_left)
+        temp['community_live_title'] = "more members required"
+
+    temp['unlock_action_title'] = "OK, INVITE NOW"
+    temp['unlock_action'] = """route://community?community_id=%s&share=true&source=community_live_unlock"""
+
+    return temp
 
 
 
