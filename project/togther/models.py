@@ -788,3 +788,38 @@ class userEmails(models.Model):
         super(userEmails, self).save(*args, **kwargs)
 
 
+class membersEngagePilot(models.Model):
+
+    '''models to save member engage pilot for backuping pilot community users'''
+
+    member = models.ForeignKey(User, on_delete=models.CASCADE)
+    community = models.ForeignKey(Community, on_delete=models.CASCADE)
+    last_unseen_conversation = models.ForeignKey(Collabcard, on_delete=models.SET_NULL, null=True)
+    last_unseen_count = models.IntegerField(default=0, null=True)
+    pending_members = models.IntegerField(default=0, null=True)
+    updated_at = models.BigIntegerField(default=0, null=True)
+    member_referral = models.CharField(default='', max_length=1024)
+    member_state = models.IntegerField(null=True)
+
+
+
+class membersPilot(models.Model):
+
+    '''model to create members pilot for backuping pilot community users'''
+
+    member_id = models.ForeignKey(User, on_delete=models.CASCADE)
+    community_id = models.ForeignKey(Community, on_delete=models.CASCADE)
+    state = models.IntegerField(null=True)
+    created_at = models.BigIntegerField(default = 0)
+    tool_state = models.IntegerField(default=0)
+
+    #columns for referal in LG communities
+    ask_member_id = models.IntegerField(null=True)
+    approved_member_id = models.IntegerField(null=True)
+
+
+    #columns for edit member profile required
+    edit_required = models.BooleanField(default=False)
+
+    #column to edit actions required
+    actions_required = models.BooleanField(null=True)
