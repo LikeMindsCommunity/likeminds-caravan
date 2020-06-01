@@ -105,6 +105,17 @@ def is_member_present(community_id,member_id):
     return is_member.exists()
 
 
+def get_members_count_in_community(community_id):
+
+    '''function to get members count in a community'''
+
+    instance = Members.objects.filter(community_id=community_id).filter(
+        Q(state=member_states.ADMIN) | Q(state=member_states.TEMP_ADMIN) |
+        Q(state=member_states.MEMBER) | Q(state=member_states.KNOWN_NOMINATED_PROMOTER))
+
+    return instance.count()
+
+
 #community related functions
 def generate_private_link(community_instance,promoter_instance):
 
