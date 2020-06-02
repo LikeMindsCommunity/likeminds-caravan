@@ -4688,7 +4688,9 @@ def get_chatroom_internal(request,card_instance,user_id,page,conversation_id,scr
         scroll_direction = int(scroll_direction)
         conversation_id = int(conversation_id)
         if scroll_direction == 0:               #upward scroll
-            conversations = conversations_filter.filter(id__lt=conversation_id).order_by('-id')[:10]
+            upward_list = conversations_filter.filter(id__lt=conversation_id).order_by('-id')[:10]
+            conversations = reverse_conversations_for_upward_pagination(upward_list)
+
         elif scroll_direction == 1:           #downward scroll
             conversations = conversations_filter.filter(id__gt=conversation_id)[:10]
         else:
@@ -4738,7 +4740,15 @@ def save_the_latest_conversation(card_instance,user_id):
                     last_conversation=conversation_instance,unseen_count=0,updated_at=time.time())
 
 
+def reverse_conversations_for_upward_pagination(upward_list):
 
+    conversations = []
+
+    for data in upward_list:
+        conversations.append(data)
+
+    conversations.reverse()
+    return conversations
 
 
 
