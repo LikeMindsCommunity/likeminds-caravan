@@ -4722,13 +4722,13 @@ def save_the_latest_conversation(card_instance,user_id):
             conversation_member_instance.user = user_instance
             conversation_member_instance.save()
         else:
-            # if the last seen conversation is the latest conversation
-            conversation_engage_filter = conversationEngage.objects.filter(card=card_instance,user=user_id)
-            if conversation_engage_filter.exists() and conversation_engage_filter[0].last_conversation:
-                if conversation_engage_filter[0].last_conversation.id == conversation_instance.id:
-                    return
-            conversation_member_filter.update(conversation=conversation_instance, updated_at=time.time())
-        update_my_chatrooms_for_users(card_instance,user_instance.id)
+            if conversation_instance.id != conversation_member_filter[0].conversation.id:
+                conversation_member_filter.update(conversation=conversation_instance, updated_at=time.time())
+                conversationEngage.objects.filter(user=user_instance,card=card_instance).update(
+                    last_conversation=conversation_instance,unseen_count=0,updated_at=time.time())
+
+
+
 
 
 
@@ -5422,9 +5422,11 @@ def create_answer(request):
         card_id = body['collabcard_id']
         user = User.objects.get(id=user_id)
         card = Collabcard.objects.get(id=card_id)
-    except:
+    except :
         context = get_error_context(False,"Send params correctly")
         return JsonResponse(context)
+
+
 
 
     res = json.loads(request.body)
@@ -8459,3 +8461,6 @@ def email_verify(request):
 
 
     return render(request, 'email_verify_landing.html', {'verification':False})
+
+
+
