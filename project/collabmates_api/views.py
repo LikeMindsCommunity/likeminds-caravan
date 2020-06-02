@@ -2904,11 +2904,10 @@ def create_chatroom(card_instance,user_instance,state,current_user_id=None,answe
             user_route = "route://member_profile/" + str(user_instance.id)
         user_name = "<<" + user_name + "|" + user_route + "&community_id=" + str(card_instance.community.id) + ">>"
 
-        
         if state == chatroom_states.CHATROOM_HEADER:
 
             community = CommunitySerializer(card_instance.community)
-            community_route = "route://community/"+str(community['id'])
+            community_route = "route://community?community_id="+str(community['id'])
             community_name = "<<"+str(community['name'])+"|"+community_route+">>"
             answer = user_name + " started this chatroom in " + community_name
         elif state == chatroom_states.CHATROOM_FOLLOW:
