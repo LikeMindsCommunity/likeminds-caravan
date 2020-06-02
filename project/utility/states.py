@@ -14,6 +14,8 @@ class CollabcardTypes:
 card_types = CollabcardTypes()
 
 class CollabcardStates:
+
+    COLLABCARD_STATE_UNSEEN = 0
     COLLABCARD_STATE_SEEN = 1
     COLLABCARD_STATE_FOLLOW = 2
 

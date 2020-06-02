@@ -4651,7 +4651,7 @@ def get_chatroom_internal(request,card_instance,user_id,page,conversation_id,scr
 
     #sending the chatroom telescope icon
     card['show_follow_telescope'] = False
-    if card['state'] == collabcard_states.COLLABCARD_STATE_SEEN or card['state'] == collabcard_states.COLLABCARD_STATE_ATTEND_UNFOLLOWING:
+    if card['state'] == collabcard_states.COLLABCARD_STATE_SEEN or card['state'] == collabcard_states.COLLABCARD_STATE_ATTEND_UNFOLLOWING or card['state'] == collabcard_states.COLLABCARD_STATE_UNSEEN:
         card['show_follow_telescope'] = True
 
     if card_instance.user.id == user_id:
