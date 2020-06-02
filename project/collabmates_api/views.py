@@ -4828,7 +4828,7 @@ def community_collabcard_invite(request,community_id):
         # invite prompt logic for lg
         member_type="relevant alumnus"
         member_types="relevant alumini"
-        invite_prompt = get_invite_prompt_for_members(community_id,member_type,member_types,request)
+        invite_prompt = get_invite_prompt_for_members(community_id,member_type,member_types,member_id)
 
     if members_left > 0:
 
