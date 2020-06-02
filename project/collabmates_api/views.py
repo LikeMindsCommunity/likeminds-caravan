@@ -4722,6 +4722,11 @@ def save_the_latest_conversation(card_instance,user_id):
             conversation_member_instance.user = user_instance
             conversation_member_instance.save()
         else:
+            # if the last seen conversation is the latest conversation
+            conversation_engage_filter = conversationEngage.objects.filter(card=card_instance,user=user_id)
+            if conversation_engage_filter.exists() and conversation_engage_filter[0].last_conversation:
+                if conversation_engage_filter[0].last_conversation.id == conversation_instance.id:
+                    return
             conversation_member_filter.update(conversation=conversation_instance, updated_at=time.time())
         update_my_chatrooms_for_users(card_instance,user_instance.id)
 
