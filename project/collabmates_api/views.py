@@ -5533,6 +5533,9 @@ def collabcard_follow(request, function_dict=None):
     community_instance = collabcard.community
     user_instance = User.objects.get(id=member_id)
 
+    if not status and collabcard.user.id == user_instance.id:
+        return JsonResponse({'success':True})
+
     #if the collabcard is an event card
     event_status = set_state_for_event_cards(collabcard,community_instance,user_instance,status,explicit_call,current_member_id)
     if event_status['success']:
