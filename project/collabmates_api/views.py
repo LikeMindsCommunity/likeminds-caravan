@@ -2902,7 +2902,9 @@ def create_chatroom(card_instance,user_instance,state,current_user_id=None,answe
             user_route = "route://member_profile/" + str(user_instance.id) + "?member=" + quote(str(community_profile))
         else:
             user_route = "route://member_profile/" + str(user_instance.id)
-        user_name = "<<" + user_name + "|" + user_route + ">>"
+        user_name = "<<" + user_name + "|" + user_route + "&community_id=" + str(card_instance.community.id) + ">>"
+
+        
         if state == chatroom_states.CHATROOM_HEADER:
 
             community = CommunitySerializer(card_instance.community)
