@@ -275,10 +275,11 @@ def your_communities(request, user_id):
             community['member_referral'] = each_community.member_referral
         if each_community.member_state:
             community['member_state'] = each_community.member_state
-        if each_community.member_state == 1 or each_community.member_state == 2 or each_community.member_state == 4 or each_community.member_state == 7:
+        if each_community.member_state == member_states.ADMIN or each_community.member_state == member_states.TEMP_ADMIN or each_community.member_state == member_states.MEMBER or each_community.member_state == member_states.KNOWN_NOMINATED_PROMOTER:
             community['collabcard_unseen'] = each_community.last_unseen_count
         else:
             community['collabcard_unseen'] = 0
+
         if community['state'] != community_states.DELETED:
             my_community.append(community)
 
