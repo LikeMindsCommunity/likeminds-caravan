@@ -4651,15 +4651,6 @@ def get_chatroom_internal(request,card_instance,user_id,page,conversation_id,scr
         context = {'chat_room': card}
         return context
 
-    #sending the chatroom telescope icon
-    card['show_follow_telescope'] = False
-    if card['state'] == collabcard_states.COLLABCARD_STATE_SEEN or card['state'] == collabcard_states.COLLABCARD_STATE_ATTEND_UNFOLLOWING or card['state'] == collabcard_states.COLLABCARD_STATE_UNSEEN:
-        card['show_follow_telescope'] = True
-
-    if card_instance.user.id == user_id:
-        card['show_follow_telescope'] = False
-
-
     # conversations  functionality
 
     #user has not done the scrolling
@@ -4709,11 +4700,17 @@ def get_chatroom_internal(request,card_instance,user_id,page,conversation_id,scr
 
         chatroom_actions = get_chatroom_actions(creator = False)
 
+
+
+    save_the_latest_conversation(card_instance, user_id)
     context = {'chatroom': card,
                'conversations': conversations,
                'chatroom_actions':chatroom_actions
                }
-    save_the_latest_conversation(card_instance, user_id)
+
+    #sending the follow telescope
+    latest_conversation = conversations_filter.last()
+    card['show_follow_telescope'] = show_follow_telescope(card['state'], card_instance, user_id, latest_conversation,conversations)
     return context
 
 
@@ -4721,23 +4718,26 @@ def save_the_latest_conversation(card_instance,user_id):
 
     '''function to save the latest seen conversation'''
 
+
     latest_card = card_answers.objects.filter(card=card_instance,state=chatroom_states.ANSWER).last()
 
-    if latest_card:
-        user_instance = User.objects.get(id=user_id)
-        conversation_member_filter = conversationMemberState.objects.filter(user=user_instance, card=card_instance)
-        conversation_instance = latest_card
-        if not conversation_member_filter.exists():
-            conversation_member_instance = conversationMemberState()
-            conversation_member_instance.card = card_instance
-            conversation_member_instance.conversation = conversation_instance
-            conversation_member_instance.user = user_instance
-            conversation_member_instance.save()
-        else:
-            if conversation_instance.id != conversation_member_filter[0].conversation.id:
-                conversation_member_filter.update(conversation=conversation_instance, updated_at=time.time())
-                conversationEngage.objects.filter(user=user_instance,card=card_instance).update(
-                    last_conversation=conversation_instance,unseen_count=0,updated_at=time.time())
+    if is_member_verified(card_instance.community,user_id):
+        if latest_card:
+            user_instance = User.objects.get(id=user_id)
+            conversation_member_filter = conversationMemberState.objects.filter(user=user_instance, card=card_instance)
+            conversation_instance = latest_card
+            if not conversation_member_filter.exists():
+                conversation_member_instance = conversationMemberState()
+                conversation_member_instance.card = card_instance
+                conversation_member_instance.conversation = conversation_instance
+                conversation_member_instance.user = user_instance
+                conversation_member_instance.save()
+            else:
+                if conversation_instance.id != conversation_member_filter[0].conversation.id:
+                    conversation_member_filter.update(conversation=conversation_instance, updated_at=time.time())
+                    conversationEngage.objects.filter(user=user_instance,card=card_instance).update(
+                        last_conversation=conversation_instance,unseen_count=0,updated_at=time.time())
+
 
 
 def reverse_conversations_for_upward_pagination(upward_list):
@@ -4750,7 +4750,33 @@ def reverse_conversations_for_upward_pagination(upward_list):
     conversations.reverse()
     return conversations
 
+def show_follow_telescope(collabcard_state,card_instance,user_id,latest_conversation,conversations):
 
+    '''function to show follow telescope of user'''
+
+    show = False
+    if collabcard_state == collabcard_states.COLLABCARD_STATE_SEEN or collabcard_state == collabcard_states.COLLABCARD_STATE_ATTEND_UNFOLLOWING or collabcard_state == collabcard_states.COLLABCARD_STATE_UNSEEN:
+        show = True
+
+    if card_instance.user.id == user_id:
+        show = False
+
+    if show:
+        last = False
+        if latest_conversation:
+            for conversation in conversations:
+                if latest_conversation.id == conversation.id:
+                    last = True
+        else:
+            last = True
+
+        if last:
+            show = True
+        else:
+            show = False
+
+
+    return show
 
 def community_collabcard_invite(request,community_id):
 
@@ -8481,6 +8507,5 @@ def email_verify(request):
 
 
     return render(request, 'email_verify_landing.html', {'verification':False})
-
 
 
