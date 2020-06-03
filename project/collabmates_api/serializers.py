@@ -57,7 +57,7 @@ def CommunitySerializer(community,promoter_id=0):
     else:
         new_dict['share_url'] = ""
     new_dict['date'] = community.active_since
-    new_dict['members_count'] = community.members_count
+    new_dict['members_count'] = get_members_count_in_community(community.id)
     new_dict['state']=int(community.hide_community)
 
     #generating private link
