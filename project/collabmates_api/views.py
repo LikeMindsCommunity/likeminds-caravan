@@ -4765,7 +4765,7 @@ def show_follow_telescope(collabcard_state,card_instance,user_id,latest_conversa
         last = False
         if latest_conversation:
             for conversation in conversations:
-                if latest_conversation.id == conversation.id:
+                if latest_conversation.id == conversation['id']:
                     last = True
         else:
             last = True
