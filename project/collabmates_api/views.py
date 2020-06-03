@@ -4702,11 +4702,14 @@ def get_chatroom_internal(request,card_instance,user_id,page,conversation_id,scr
 
 
 
-    latest_conversation = save_the_latest_conversation(card_instance, user_id)
+    save_the_latest_conversation(card_instance, user_id)
     context = {'chatroom': card,
                'conversations': conversations,
                'chatroom_actions':chatroom_actions
                }
+
+    #sending the follow telescope
+    latest_conversation = conversations_filter.last()
     card['show_follow_telescope'] = show_follow_telescope(card['state'], card_instance, user_id, latest_conversation,conversations)
     return context
 
@@ -4735,7 +4738,6 @@ def save_the_latest_conversation(card_instance,user_id):
                     conversationEngage.objects.filter(user=user_instance,card=card_instance).update(
                         last_conversation=conversation_instance,unseen_count=0,updated_at=time.time())
 
-    return latest_card
 
 
 def reverse_conversations_for_upward_pagination(upward_list):
