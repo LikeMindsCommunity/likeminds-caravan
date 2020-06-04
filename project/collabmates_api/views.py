@@ -4679,11 +4679,11 @@ def get_chatroom_internal(request,card_instance,user_id,page,conversation_id,scr
         scroll_direction = int(scroll_direction)
         conversation_id = int(conversation_id)
         if scroll_direction == 0:               #upward scroll
-            upward_list = conversations_filter.filter(id__lt=conversation_id).order_by('-id')[:10]
+            upward_list = conversations_filter.filter(id__lt=conversation_id).order_by('-id')[:20]
             conversations = reverse_conversations_for_upward_pagination(upward_list)
 
         elif scroll_direction == 1:           #downward scroll
-            conversations = conversations_filter.filter(id__gt=conversation_id)[:10]
+            conversations = conversations_filter.filter(id__gt=conversation_id)[:20]
         else:
             conversations = conversations_filter
 
