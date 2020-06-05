@@ -6,7 +6,7 @@ from django.db.models import Q
 from togther.models import *
 from togther.models import *
 from utility.utils import is_IG_community,is_LG_or_LP_community,feedback_community_id,\
-    generate_private_link,generate_random,get_time_text,eligibility_count
+    generate_private_link,generate_random,get_time_text,eligibility_count,get_members_count_in_community
 from utility.states import card_types
 url = settings.URL
 import ast
@@ -57,7 +57,7 @@ def CommunitySerializer(community,promoter_id=0):
     else:
         new_dict['share_url'] = ""
     new_dict['date'] = community.active_since
-    new_dict['members_count'] = get_member_count(community)
+    new_dict['members_count'] = get_members_count_in_community(community.id)
     new_dict['state']=int(community.hide_community)
 
     #generating private link
@@ -327,9 +327,9 @@ def poll_percentage(card, poll):
     return selected_polls,selected_polls/total_polls * 100
 
 
-def get_member_count(community):
-    return Members.objects.filter(community_id=community).filter(
-        Q(state=1) | Q(state=2) | Q(state=4) | Q(state=7) | Q(state = 8)).count()
+# def get_member_count(community):
+#     return Members.objects.filter(community_id=community).filter(
+#         Q(state=1) | Q(state=2) | Q(state=4) | Q(state=7) | Q(state = 8)).count()
 
 def get_members_profile(member_ids,community_id,current_user_id=None):
 
