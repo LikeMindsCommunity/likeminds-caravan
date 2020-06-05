@@ -4082,23 +4082,28 @@ def collabcard(request, card_id):
     # coverting current time into epoch time for getting time stamp of answers and card
 
     # get all the answers of the card
-    answer = card_answers.objects.filter(card=card_instance).order_by('id')
-    #answer=pagination(answer,page,paginate_by=3)
+    # answer = card_answers.objects.filter(card=card_instance).order_by('id')
+    # answer=pagination(answer,page,paginate_by=3)
+
+    if is_request_web(request) and request.user.is_authenticated:
+        current_user_id = request.user.id
+
+    answers = get_chatroom_internal(request,card_instance,current_user_id,page,'','')
 
     answer_id = request.GET.get('answer_id', '')
     user_id = request.GET.get('member_id', '')
 
 
 
-    if answer_id:
-        answer_id = int(answer_id)
+    # if answer_id:
+    #     answer_id = int(answer_id)
 
-        answer = card_answers.objects.filter(card=card_instance, id__gte=answer_id).filter(~Q(user__id=user_id))
-        # answer = pagination(answer, page, paginate_by=10)
-        answers = get_answer_data(answer,feedback,card_instance.community.id,current_user_id=current_user_id)         #if the feedback is true don't send id in userinfo
-        return JsonResponse({'answers': answers})
-    else:
-        answers = get_answer_data(answer,feedback,card_instance.community.id,current_user_id=current_user_id)
+    #     answer = card_answers.objects.filter(card=card_instance, id__gte=answer_id).filter(~Q(user__id=user_id))
+    #     # answer = pagination(answer, page, paginate_by=10)
+    #     answers = get_answer_data(answer,feedback,card_instance.community.id,current_user_id=current_user_id)         #if the feedback is true don't send id in userinfo
+    #     return JsonResponse({'answers': answers})
+    # else:
+    #     answers = get_answer_data(answer,feedback,card_instance.community.id,current_user_id=current_user_id)
 
     # serializing Collabcard
 
@@ -4153,10 +4158,11 @@ def collabcard(request, card_id):
 
         if card_category == "EVENT_CARD":
             return render(request, 'event.html', context)
+
         if card_category == "POLL_CARD":
             return render(request, 'poll.html', context)
-        else:
-            return render(request, 'chatroom.html', context)
+
+        return render(request, 'chatroom.html', context)
 
     else:
         return JsonResponse({"collabcard": card, 'answers': answers})
@@ -4246,8 +4252,8 @@ def get_collabcard_details_for_web(request,card_instance,card,current_user_id,an
         # set header
         header = {
             'back': True,
-            'title': community.name,
-            'subTitle': False,
+            'title': card['member']['name'] + " 's Event",
+            'subTitle': "in " + community.name,
             'background': 'Wa',
             'color': 'F'
         }
@@ -4310,8 +4316,8 @@ def get_collabcard_details_for_web(request,card_instance,card,current_user_id,an
         # set header
         header = {
             'back': True,
-            'title': community.name,
-            'subTitle': False,
+            'title': card['member']['name'] + " 's Poll",
+            'subTitle': community.name,
             'background': 'Wa',
             'color': 'F'
         }
@@ -4337,6 +4343,9 @@ def get_collabcard_details_for_web(request,card_instance,card,current_user_id,an
         return context,"POLL_CARD"
     else:
         print('collab card')
+
+        community = card_instance.community
+
         if request.user.is_authenticated:
             header_back_link = "/dashboard"
         else:
@@ -4344,9 +4353,9 @@ def get_collabcard_details_for_web(request,card_instance,card,current_user_id,an
 
         header = {
             'back': True,
-            # 'title': collabcard_dict['collabcard']['member']['name'] + "'s Collabcard",
+            'title': card['member']['name'] + "'s Conversations",
             'backLink': header_back_link,
-            'subTitle': False,
+            'subTitle': 'in ' + community.name,
             'background': 'Wa',
             'color': 'F'
         }
@@ -4359,10 +4368,11 @@ def get_collabcard_details_for_web(request,card_instance,card,current_user_id,an
             'firebase_config': settings.FIREBASE_CONFIG
         }
         print(context)
-        return context,"SIMPLE_CARD"
+        return context, "SIMPLE_CARD"
         #return render(request, 'collabcard.html', context)
 
-
+@api_view(['GET', 'POST'])
+@renderer_classes([JSONRenderer, TemplateHTMLRenderer])
 def fetch_chatroom(request):
 
     '''api to get the chatroom'''
@@ -4381,7 +4391,22 @@ def fetch_chatroom(request):
     card_instance = Collabcard.objects.get(id=card_id)
     page = request.GET.get('page',1)
     current_user_id = get_member_id_from_headers(request)
+
+    if is_request_web(request) and request.user.is_authenticated:
+        current_user_id = request.user.id
+        current_user_instance = Userinfo.objects.get(user_id=current_user_id)
+        current_user = UserinfoSerializer(user=current_user_instance)
+
     context = get_chatroom_internal(request,card_instance,current_user_id,page,conversation_id,scroll_direction)
+
+    if request.accepted_renderer.format == 'html' and conversation_id:
+        context['conversations'] = context['conversations'][::-1]
+        context = {
+            'answers': context,
+            'current_user': current_user
+        }
+        return render(request, 'components/chat_bubbles.html', context)
+
     return JsonResponse(context)
 
 @csrf_exempt
@@ -4557,6 +4582,7 @@ def get_chatroom_actions(creator):
 def get_chatroom_internal(request,card_instance,user_id,page,conversation_id,scroll_direction):
 
     '''internal function to get the chatroom can be used to handle web and android '''
+
 
     # if is_request_web(request):
     #     #code to handle web requests
