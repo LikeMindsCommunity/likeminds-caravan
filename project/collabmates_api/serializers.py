@@ -4,7 +4,6 @@ import time
 from django.conf import settings
 from django.db.models import Q
 from togther.models import *
-from togther.models import *
 from utility.utils import is_IG_community,is_LG_or_LP_community,feedback_community_id,\
     generate_private_link,generate_random,get_time_text,eligibility_count,get_members_count_in_community
 from utility.states import card_types
@@ -232,6 +231,37 @@ def conversationSerializer(conversation):
     }
 
     return temp
+
+def get_answer_files(answer_id):
+    '''function to return pdf and image files of a collabcard'''
+
+    attachments = answerAttachment.objects.filter(answer=answer_id)
+    img_list = []
+    pdf = []
+    files = {}
+    for file in attachments:
+        if file.type == 'image':
+            if file.file_url:
+                img = {'image_url': file.file_url}
+                img_list.append(img)
+        elif file.type == 'pdf':
+            if file.file_url:
+                pdf_url = {'pdf_file': file.file_url}
+                pdf.append(pdf_url)
+        elif file.type == "location":
+            location = {
+                'location_name' : file.location_name,
+                'location_lat' : file.location_lat,
+                'location_long' : file.location_long
+
+            }
+            files['location'] = location
+
+
+    files['image'] = img_list
+    files['pdf'] =pdf
+    return files
+
 
 def get_chatroom_name(user_name,type):
 

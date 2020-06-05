@@ -4548,37 +4548,6 @@ def get_answer_data(answer_filter,feedback,community_id,current_user_id,last_see
     return answers
 
 
-def get_answer_files(answer_id):
-    '''function to return pdf and image files of a collabcard'''
-
-    attachments = answerAttachment.objects.filter(answer=answer_id)
-    img_list = []
-    pdf = []
-    files = {}
-    for file in attachments:
-        if file.type == 'image':
-            if file.file_url:
-                img = {'image_url': file.file_url}
-                img_list.append(img)
-        elif file.type == 'pdf':
-            if file.file_url:
-                pdf_url = {'pdf_file': file.file_url}
-                pdf.append(pdf_url)
-        elif file.type == "location":
-            location = {
-                'location_name' : file.location_name,
-                'location_lat' : file.location_lat,
-                'location_long' : file.location_long
-
-            }
-            files['location'] = location
-
-
-    files['image'] = img_list
-    files['pdf'] =pdf
-    return files
-
-
 def get_chatroom_actions(creator):
 
     '''function to get chatroom actions'''
@@ -6035,10 +6004,24 @@ def get_last_conversation(conversation_filter,member_id,chatroom_id):
         else:
             conversation = conversationSerializer(next_conversation)
 
+        conversation_files = get_answer_files(conversation['id'])
+
+        if 'location' in conversation_files:
+            conversation['location'] = conversation_files['location']
+        conversation['images'] = conversation_files['image']
+        conversation['pdf'] = conversation_files['pdf']
+
         return (conversation,unseen_count)
     elif conversation_filter.exists():
         conversation = conversationSerializer(conversation_filter[0])
         unseen_count = conversation_filter.count()
+        conversation_files = get_answer_files(conversation['id'])
+
+        if 'location' in conversation_files:
+            conversation['location'] = conversation_files['location']
+        conversation['images'] = conversation_files['image']
+        conversation['pdf'] = conversation_files['pdf']
+
         return (conversation,unseen_count)
     else:
         return (None,0)
