@@ -93,14 +93,14 @@
 
         if ($('#scroll_state_1').isInViewport() && scroll_state === 1 && window.fetching_chatroom !== 1) {
             $('#scroll_state_1 .ldr').removeClass('dN');
-            var conversation_id = $('#commentsCon > div.dT:last-child')[0].id;
+            var conversation_id = $('#commentsCon .chatID').last().attr('data-id');
             console.log('scrolled down', 'conversation_id ' + conversation_id);
         }
         
         if(scroll_state === 0 && window.fetching_chatroom !== 0){
             $('#scroll_state_0 .ldr').removeClass('dN');
             $('#scroll_state_0 .ldrText').html('Loading older chats ');
-            var conversation_id = $('#commentsCon > div.dT:first-child')[0].id;
+            var conversation_id = $('#commentsCon .chatID').first().attr('data-id');
             console.log('get older chat clicked', 'conversation_id ' + conversation_id);
         }
 
@@ -109,23 +109,27 @@
         window.fetching_chatroom = scroll_state;
 
         $.ajax({
-            url: '/api/fetch_chatroom?chat_room_id={{collabcard.id}}&conversation_id='+ conversation_id +'&scroll_direction=' + scroll_state,
+            url: '/api/fetch_chatroom?chatroom_id={{collabcard.id}}&conversation_id='+ conversation_id +'&scroll_direction=' + scroll_state,
             dataType : 'html',
             success: function(data){
                 console.log(data);
-                if(scroll_state == 1){
-                    $('#commentsCon').append(data);
-                    makeTags();
-                    $('.answerText').removeClass('answerText');
-                    $('#scroll_state_1 .ldr').addClass('dN');
-                    fetch_chatroom(1);
-                }else{
-                    $('#commentsCon').prepend(data);
-                    makeTags();
-                    $('.answerText').removeClass('answerText');
-                    $('#scroll_state_0 .ldr').addClass('dN');
-                    $('#scroll_state_0 .ldrText').html('Load older chats ');
-                }
+                // if(typeof data.success != 'undefined'){
+                    if(scroll_state == 1){
+                        $('#commentsCon').append(data);
+                        makeTags();
+                        $('.answerText').removeClass('answerText');
+                        $('#scroll_state_1 .ldr').addClass('dN');
+                        fetch_chatroom(1);
+                    }else{
+                        $('#commentsCon').prepend(data);
+                        makeTags();
+                        $('.answerText').removeClass('answerText');
+                        $('#scroll_state_0 .ldr').addClass('dN');
+                        $('#scroll_state_0 .ldrText').html('Load older chats ');
+                    }
+                // }else{
+
+                // }
                 window.fetching_chatroom = null;
             },
             error: function(data){
