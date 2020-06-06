@@ -6121,7 +6121,7 @@ def fetch_chatroom_feed(request):
             downward = chatroom_filter.filter(id__gt=chatroom_id).order_by('id')[:5]
             chatrooms = get_chatrooms(downward,member_id)
 
-    return JsonResponse({'chatroooms':chatrooms})
+    return JsonResponse({'chatrooms':chatrooms})
 
 
 
