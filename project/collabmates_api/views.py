@@ -6114,6 +6114,8 @@ def fetch_chatroom_feed(request):
         if scroll_direction == 0:                                   #upward scroll
 
             upward = chatroom_filter.filter(id__lt=chatroom_id).order_by('-id')[:5]
+            upward = reverse_conversations_for_upward_pagination(upward)
+            #print(upward)
             chatrooms = get_chatrooms(upward,member_id)
 
         elif scroll_direction == 1:                                 #downward scroll
