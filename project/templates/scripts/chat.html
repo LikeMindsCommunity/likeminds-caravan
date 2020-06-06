@@ -1,5 +1,18 @@
 <script>
-
+    function makeTags(){
+        var answerTexts = document.getElementsByClassName('answerText');
+        for(var i = 0; i < answerTexts.length; i++){
+            var answerText = answerTexts[i].textContent;
+            if(answerText.indexOf('<<') > -1 && answerText.indexOf('>>') > 3){
+                var arrStr = answerText.split('<<');
+                answerText = arrStr[0] + `<a href="${arrStr[1].split('|')[1].split('route:/')[1].split('>>')[0] }">${arrStr[1].split('|')[0]}</a> `;
+                //fwefwefgw <<Natesh Relhan|route://member/456>> afqefweqfqw
+                answerText = answerText + arrStr[1].split('>>')[1];
+                answerTexts[i].innerHTML = answerText;
+            }
+        }
+    }
+    makeTags();
     function textareaInput(ele, eve){
         // debugger;
         ele.style.height = "auto";
@@ -31,7 +44,7 @@
                     type= '<video controls class="mxh240 dIb vM mxhp100"><source src="" class="videoURL"></video>';
                     idVdo = true;
                 }else if(filetype == "pdf"){
-                    type= '<div class="dT wp100"><div class="dTc vM"><img src="https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Fpdf.png?alt=media&token=0e7542ec-3e74-4e06-8b73-569b92adacf6" class="h48"></div><div class="dTc vM cF">Document</div></div>';
+                    type= '<div class="dT wp100"><div class="dTc vM"><img src="https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Fdocument.png?alt=media&token=9b472105-c50c-49d6-818c-59fa983a6cf4" class="h48"></div><div class="dTc vM cF">Document</div></div>';
                     idDocs = true;
                 }
                 $('#filesType').html(filetype);
@@ -74,247 +87,337 @@
         }
     }
 
-    //$(document).ready(function(){
+    function fetch_chatroom(scroll_state){
+        
+        if((typeof scroll_state === 'undefined')) return;
 
-        $.fn.isInViewport = function() {
-            var elementTop = $(this).offset().top;
-            var elementBottom = elementTop + $(this).outerHeight();
+        if ($('#scroll_state_1').isInViewport() && scroll_state === 1 && window.fetching_chatroom !== 1) {
+            $('#scroll_state_1 .ldr').removeClass('dN');
+            var conversation_id = $('#commentsCon .chatID').last().attr('data-id');
+            console.log('scrolled down', 'conversation_id ' + conversation_id);
+        }
+        
+        if(scroll_state === 0 && window.fetching_chatroom !== 0){
+            $('#scroll_state_0 .ldr').removeClass('dN');
+            $('#scroll_state_0 .ldrText').html('Loading older chats ');
+            var conversation_id = $('#commentsCon .chatID').first().attr('data-id');
+            console.log('get older chat clicked', 'conversation_id ' + conversation_id);
+        }
 
-            var viewportTop = $(window).scrollTop();
-            var viewportBottom = viewportTop + $(window).height();
+        if((typeof conversation_id === 'undefined')) return;
 
-            return elementBottom > viewportTop && elementTop < viewportBottom;
-        };
+        window.fetching_chatroom = scroll_state;
 
-        $(window).on('resize scroll', function() {
-            $('#attach').addClass('dN');
-            console.log('scroll');
-            if ($('#comments').isInViewport()) {
-                $('#bottomButton').hide();
-                $('.chatInput').show();
-            } else {
-                $('#bottomButton').show();
-                $('.chatInput').hide();
+        $.ajax({
+            url: '/api/fetch_chatroom?chatroom_id={{collabcard.id}}&conversation_id='+ conversation_id +'&scroll_direction=' + scroll_state,
+            dataType : 'html',
+            success: function(data){
+                console.log(data);
+                // if(typeof data.success != 'undefined'){
+                    if(scroll_state == 1){
+                        $('#commentsCon').append(data);
+                        makeTags();
+                        $('.answerText').removeClass('answerText');
+                        $('#scroll_state_1 .ldr').addClass('dN');
+                        fetch_chatroom(1);
+                    }else{
+                        $('#commentsCon').prepend(data);
+                        makeTags();
+                        $('.answerText').removeClass('answerText');
+                        $('#scroll_state_0 .ldr').addClass('dN');
+                        $('#scroll_state_0 .ldrText').html('Load older chats ');
+                    }
+                // }else{
+
+                // }
+                window.fetching_chatroom = null;
+            },
+            error: function(data){
+                console.log(data);
+                window.fetching_chatroom = null;
             }
         });
 
-        
-        {% if user.is_authenticated %}
+    }
+    
+    $(document).ready(function(){
+        $('.answerText').removeClass('answerText');
+        window.fetching_chatroom = null;
+        $('#comments').scrollTop($('#comments')[0].scrollHeight);
+    })
 
-            $(document).on("click",'#allMedia img', function(){
-                // debugger;
-                $('#allMedia .imgSelected').removeClass('imgSelected');
-                $(this).addClass('imgSelected');
-                $('#media img').attr('src', $(this).attr('src'));
+    $.fn.isInViewport = function() {
+        var elementTop = $(this).offset().top;
+        var elementBottom = elementTop + $(this).outerHeight();
+
+        var viewportTop = $(window).scrollTop();
+        var viewportBottom = viewportTop + $(window).height();
+
+        return elementBottom > viewportTop && elementTop < viewportBottom;
+    };
+
+    
+    $(window).on('resize scroll', function() {
+        $('#attach').addClass('dN');
+        console.log('scroll');
+        if ($('#comments').isInViewport()) {
+            $('#bottomButton').hide();
+            $('.chatInput').show();
+            fetch_chatroom(1)
+        } else {
+            $('#bottomButton').show();
+            $('.chatInput').hide();
+        }
+    });
+
+    
+    {% if user.is_authenticated %}
+
+        $(document).on("click",'.imgSview', function(){
+            // debugger;
+            $('#viewOverlay .media').html(
+                `<img src="${$(this).attr('src')}" class="wp100" onclick="$('#viewOverlay').hide()">`
+            );
+            $('#viewOverlay').show();
+        });
+
+        $(document).on("click",'.openVewOverlay', function(){
+            // debugger;
+            var parent = $(this).parent();
+            $('#viewOverlayAll .media').html('');
+            $('.imgView', parent[0]).each(function(){
+                $('#viewOverlayAll .media').append(
+                    `<div><img src="${$(this).attr('src')}" class="imgSview m8A mxw960 mxwp100"></div>`
+                );
+            });
+            $('.pdfView', parent[0]).each(function(){
+                $('#viewOverlayAll .media').append(
+                    `<a target="_blank" href="${$(this).attr('data-src')}" class="dB m80 m8A mxw960 pdfSview wp100 br10 oH">
+                        <div class="bgF bs dT p8 pdfView wp100" data-src="{{ pdf.pdf_file }}"><div class="dTc vM w48"><img src="https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Fdocument.png?alt=media&token=9b472105-c50c-49d6-818c-59fa983a6cf4" class="h48 dIb vM"></div><div class="bs c3 dTc fs14 mnw100 p12 taL vM">Document</div></div>
+                    </a>`
+                );
             })
-            
-            $('#submit_commit').submit(function(e){
-                e.preventDefault();
-                create_new_message();
+            $('#viewOverlayAll').show();
+        });
+
+        $(document).on("click",'#allMedia img', function(){
+            // debugger;
+            $('#allMedia .imgSelected').removeClass('imgSelected');
+            $(this).addClass('imgSelected');
+            $('#media img').attr('src', $(this).attr('src'));
+        });
+
+        $('#scroll_state_0').click(function(){
+            fetch_chatroom(0);
+        })
+        
+        $('#submit_commit').submit(function(e){
+            e.preventDefault();
+            create_new_message();
+        });
+
+        $('#submit_media').submit(function(e){
+            // debugger;
+            e.preventDefault();
+            // $('#uploadOverlay').hide();
+            create_new_media();
+        });
+
+        
+        function create_new_message(){
+            var member_id= {{request.user.id}};
+            var collabcard_id = {{collabcard.id}};
+
+            var msg = $('#comment_inp').val();
+            if(msg == ''){return}
+            var html= `
+                        <div class="dT wp100 pb12 bs">
+                            <div class="dTc vB taR">
+                                <div class="dIb message sent vM wbBa mxwp100">
+                                    ${msg}
+                                    <span class="metadata">
+                                        <span class="time">Just Now</span>
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="dTc vB h48 member_link pl12 bs w12"></div>
+                            <div class="commentStatus dTr"><div class="taR cStatus c9b fs13 pt4">sending...</div></div>
+                        </div>
+                    `;
+                $('#comments').append(html);
+                $('#comment_inp').val('');
+            $.ajax({
+                url: '/api/create_answer?member_id='+member_id+"&collabcard_id="+collabcard_id,
+                data: JSON.stringify({"title":msg}),
+                type: 'POST',
+                dataType: 'json',
+                success: function(data){
+                    $('.cStatus').text('sent sucessfully');
+                    $('.commentStatus').delay(2000).fadeOut(300, function() { 
+                        $(this).remove(); 
+                    });
+                },
+                error: function(){
+                    $('.cStatus').text('sent sucessfully');
+                    $('.commentStatus').delay(2000).fadeOut(300, function() { 
+                        $(this).remove(); 
+                    });
+                }
             });
 
-            $('#submit_media').submit(function(e){
-                // debugger;
-                e.preventDefault();
-                // $('#uploadOverlay').hide();
-                create_new_media();
-            });
+        }
 
-            
-            function create_new_message(){
-                var member_id= {{request.user.id}};
-                var collabcard_id = {{collabcard.id}};
-
-                var msg = $('#comment_inp').val();
-                if(msg == ''){return}
-                var html= `
-                            <div class="dT wp100 pb12 bs">
-                                <div class="dTc vB taR">
+        function create_new_media(file){
+            $('#uploadOverlay').hide();
+            var member_id= {{request.user.id}};
+            var collabcard_id = {{collabcard.id}};
+            var type = $('#filesType').html();
+            var files = $('[data-type="'+ type +'"]')[0].files;
+            var msg = $('#mediaComment').val() || '';
+            // debugger;
+            if(type == 'pdf'){
+                var html = `<div class="dT wp100 pb12 bs">
+                                <div class="dTc vB taR">`;
+                            for (var i = 0; i < files.length; i++) {
+                                html = html + `
+                                    <div class="dIb message mxwp100 sent vM wbBa noTri mb4">
+                                        <div class="fs0 mxw360">
+                                            <div class="dT wp100"><div class="dTc vM"><img src="https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Fdocument.png?alt=media&token=9b472105-c50c-49d6-818c-59fa983a6cf4" class="h48"></div><div class="bs c3 dTc fs14 p8 vM">Document</div></div>
+                                        </div>
+                                    </div>
+                                    <div class="commentStatus_${i}"><div class="taR cStatus c9b fs13 pt4">sending...</div></div>
+                                    <br>
+                                `;
+                            }
+                                html = html + `
                                     <div class="dIb message sent vM wbBa mxwp100">
                                         ${msg}
                                         <span class="metadata">
                                             <span class="time">Just Now</span>
                                         </span>
                                     </div>
+                                `;
+                html = html + `
                                 </div>
                                 <div class="dTc vB h48 member_link pl12 bs w12"></div>
                                 <div class="commentStatus dTr"><div class="taR cStatus c9b fs13 pt4">sending...</div></div>
-                            </div>
-                        `;
-                    $('#comments').append(html);
-                    $('#comment_inp').val('');
-                $.ajax({
-                    url: '/api/create_answer?member_id='+member_id+"&collabcard_id="+collabcard_id,
-                    data: JSON.stringify({"title":msg}),
-                    type: 'POST',
-                    dataType: 'json',
-                    success: function(data){
-                        $('.cStatus').text('sent sucessfully');
-                        $('.commentStatus').delay(2000).fadeOut(300, function() { 
-                            $(this).remove(); 
-                        });
-                    },
-                    error: function(){
-                        $('.cStatus').text('sent sucessfully');
-                        $('.commentStatus').delay(2000).fadeOut(300, function() { 
-                            $(this).remove(); 
-                        });
-                    }
-                });
-
-            }
-
-            function create_new_media(file){
-                $('#uploadOverlay').hide();
-                var member_id= {{request.user.id}};
-                var collabcard_id = {{collabcard.id}};
-                var type = $('#filesType').html();
-                var files = $('[data-type="'+ type +'"]')[0].files;
-                var msg = $('#mediaComment').val() || '';
-                // debugger;
-                if(type == 'pdf'){
-                    var html = `<div class="dT wp100 pb12 bs">
-                                    <div class="dTc vB taR">`;
-                                for (var i = 0; i < files.length; i++) {
-                                    html = html + `
-                                        <div class="dIb message mxwp100 sent vM wbBa noTri mb4">
-                                            <div class="fs0 mxw360">
-                                                <div class="dT wp100"><div class="dTc vM"><img src="https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Fpdf.png?alt=media&token=0e7542ec-3e74-4e06-8b73-569b92adacf6" class="h48"></div><div class="bs c3 dTc fs14 p8 vM">Document</div></div>
-                                            </div>
-                                        </div>
-                                        <div class="commentStatus_${i}"><div class="taR cStatus c9b fs13 pt4">sending...</div></div>
-                                        <br>
-                                    `;
-                                }
-                                    html = html + `
-                                        <div class="dIb message sent vM wbBa mxwp100">
-                                            ${msg}
-                                            <span class="metadata">
-                                                <span class="time">Just Now</span>
-                                            </span>
-                                        </div>
-                                    `;
-                    html = html + `
-                                    </div>
-                                    <div class="dTc vB h48 member_link pl12 bs w12"></div>
-                                    <div class="commentStatus dTr"><div class="taR cStatus c9b fs13 pt4">sending...</div></div>
-                                </div>`;
-                    $('#comments').append(html);
-                    $('#mediaComment').val('');
-                }else if(type == 'image'){
-                    var html = `<div class="dT wp100 pb12 bs">
-                                    <div class="dTc vB taR">`;
-                                for (var i = 0; i < $('#allMedia img').length; i++) {
-                                    html = html + `
-                                        <div class="dT wp100"><div class="dTc vM"><img src="https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Fpdf.png?alt=media&token=0e7542ec-3e74-4e06-8b73-569b92adacf6" class="h48"></div><div class="dTc vM">Document</div></div>
-                                        <div class="commentStatus_${i}"><div class="taR cStatus c9b fs13 pt4">sending...</div></div>
-                                        <br>
-                                    `;
-                                }
-                                    html = html + `
-                                        <div class="dIb message sent vM wbBa mxwp100">
-                                            ${msg}
-                                            <span class="metadata">
-                                                <span class="time">Just Now</span>
-                                            </span>
-                                        </div>
-                                    `;
-                    html = html + `
-                                    </div>
-                                    <div class="dTc vB h48 member_link pl12 bs w12"></div>
-                                    <div class="commentStatus dTr"><div class="taR cStatus c9b fs13 pt4">sending...</div></div>
-                                </div>`;
-                    $('#comments').append(html);
-                }
-                $('html, body').animate({ scrollTop: $(document).height() }, 100);
-                // debugger;
-                var answerID;
-                $.ajax({
-                    url: '/api/create_answer?member_id='+member_id+"&collabcard_id="+collabcard_id,
-                    data: JSON.stringify({"title":msg}),
-                    type: 'POST',
-                    dataType: 'json',
-                    success: function(data){
-                        // debugger;
-                        for (var i = 0; i < files.length; i++) {
-                            if(files[i]){
-                                var metadata = { contentType: files[i].type };
-                                var name = +new Date; //files[i].name;
-                                answerID = data.id;
-                                firebaseUpload(member_id, answerID, files[i], type, name, metadata, i)
+                            </div>`;
+                $('#comments').append(html);
+                $('#mediaComment').val('');
+            }else if(type == 'image'){
+                var html = `<div class="dT wp100 pb12 bs">
+                                <div class="dTc vB taR">`;
+                            for (var i = 0; i < $('#allMedia img').length; i++) {
+                                html = html + `
+                                    <div class="dT wp100"><div class="dTc vM"><img src="https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Fpdf.png?alt=media&token=0e7542ec-3e74-4e06-8b73-569b92adacf6" class="h48"></div><div class="dTc vM">Document</div></div>
+                                    <div class="commentStatus_${i}"><div class="taR cStatus c9b fs13 pt4">sending...</div></div>
+                                    <br>
+                                `;
                             }
-                        }
-                        $('[data-type="'+ $('#filesType').html() +'"]')[0].value = "";
-                        $('#filesType').html('');
-                        $('#allMedia').html('');
-                        $('#media').html('');
-                        $('.commentStatus .cStatus').text('sent successfully');
-                        $('.commentStatus').delay(2000).fadeOut(300, function() { 
-                            $(this).remove(); 
-                        });
-                    },
-                    error: function(){
-                        // $('#loader').hide();
-                        $('.cStatus').text('error occured');
-                        $('.commentStatus').delay(2000).fadeOut(300, function() { 
-                            $(this).remove(); 
-                        });
-                    }
-                });
-
+                                html = html + `
+                                    <div class="dIb message sent vM wbBa mxwp100">
+                                        ${msg}
+                                        <span class="metadata">
+                                            <span class="time">Just Now</span>
+                                        </span>
+                                    </div>
+                                `;
+                html = html + `
+                                </div>
+                                <div class="dTc vB h48 member_link pl12 bs w12"></div>
+                                <div class="commentStatus dTr"><div class="taR cStatus c9b fs13 pt4">sending...</div></div>
+                            </div>`;
+                $('#comments').append(html);
             }
-
-            function firebaseUpload(member_id, answerID, file, type, name, metadata, index){
-                var storageRef = firebase.storage().ref();
-                var uploadTask = storageRef.child('files/collabcard/{{ collabcard.id }}/conversation/'+ answerID +'/'+name).put(file, metadata);
-
-                uploadTask.on('state_changed', function(snapshot){
-                
-                    var progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                    console.log('Upload is ' + progress + '% done');
-                    switch (snapshot.state) {
-                        case firebase.storage.TaskState.PAUSED: // or 'paused'
-                        console.log('Upload is paused');
-                        break;
-                        case firebase.storage.TaskState.RUNNING: // or 'running'
-                        console.log('Upload is running');
-                        break;
+            $('html, body').animate({ scrollTop: $(document).height() }, 100);
+            // debugger;
+            var answerID;
+            $.ajax({
+                url: '/api/create_answer?member_id='+member_id+"&collabcard_id="+collabcard_id,
+                data: JSON.stringify({"title":msg}),
+                type: 'POST',
+                dataType: 'json',
+                success: function(data){
+                    // debugger;
+                    for (var i = 0; i < files.length; i++) {
+                        if(files[i]){
+                            var metadata = { contentType: files[i].type };
+                            var name = +new Date; //files[i].name;
+                            answerID = data.id;
+                            firebaseUpload(member_id, answerID, files[i], type, name, metadata, i)
+                        }
                     }
-                }, function(error) {
-                    // Handle unsuccessful uploads
-                    $('.commentStatus_'+ index +' .cStatus').text('error occured');
-                    $('.commentStatus_'+ index).delay(2000).fadeOut(300, function() { 
+                    $('[data-type="'+ $('#filesType').html() +'"]')[0].value = "";
+                    $('#filesType').html('');
+                    $('#allMedia').html('');
+                    $('#media').html('');
+                    $('.commentStatus .cStatus').text('sent successfully');
+                    $('.commentStatus').delay(2000).fadeOut(300, function() { 
                         $(this).remove(); 
                     });
-                }, function() {
-                    // Handle successful uploads on complete
-                    // For instance, get the download URL: https://firebasestorage.googleapis.com/...
-                    uploadTask.snapshot.ref.getDownloadURL().then(function(downloadURL) {
-                        console.log('File available at', downloadURL);
-                        // debugger;
-                        $.ajax({
-                            url: '/api/upload_files?member_id='+member_id+"&type="+ type +"&answer_id="+answerID+"&url="+encodeURI(downloadURL),
-                            success: function(data){
-                                // debugger;
-                                $('.commentStatus_'+ index +' .cStatus').text('sent sucessfully');
-                                $('.commentStatus_'+ index).delay(2000).fadeOut(300, function() { 
-                                    $(this).remove(); 
-                                });
-                            },
-                            error: function(data){
-                                // debugger;
-                                $('.commentStatus_'+ index +' .cStatus').text('error occured');
-                                $('.commentStatus_'+ index).delay(2000).fadeOut(300, function() { 
-                                    $(this).remove(); 
-                                });
-                            }
-                        });
-
-
-
+                },
+                error: function(){
+                    // $('#loader').hide();
+                    $('.cStatus').text('error occured');
+                    $('.commentStatus').delay(2000).fadeOut(300, function() { 
+                        $(this).remove(); 
                     });
+                }
+            });
+
+        }
+
+        function firebaseUpload(member_id, answerID, file, type, name, metadata, index){
+            var storageRef = firebase.storage().ref();
+            var uploadTask = storageRef.child('files/collabcard/{{ collabcard.id }}/conversation/'+ answerID +'/'+name).put(file, metadata);
+
+            uploadTask.on('state_changed', function(snapshot){
+            
+                var progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                console.log('Upload is ' + progress + '% done');
+                switch (snapshot.state) {
+                    case firebase.storage.TaskState.PAUSED: // or 'paused'
+                    console.log('Upload is paused');
+                    break;
+                    case firebase.storage.TaskState.RUNNING: // or 'running'
+                    console.log('Upload is running');
+                    break;
+                }
+            }, function(error) {
+                // Handle unsuccessful uploads
+                $('.commentStatus_'+ index +' .cStatus').text('error occured');
+                $('.commentStatus_'+ index).delay(2000).fadeOut(300, function() { 
+                    $(this).remove(); 
                 });
-            }
-        {% endif %}
-    // });
+            }, function() {
+                // Handle successful uploads on complete
+                // For instance, get the download URL: https://firebasestorage.googleapis.com/...
+                uploadTask.snapshot.ref.getDownloadURL().then(function(downloadURL) {
+                    console.log('File available at', downloadURL);
+                    // debugger;
+                    $.ajax({
+                        url: '/api/upload_files?member_id='+member_id+"&type="+ type +"&answer_id="+answerID+"&url="+encodeURI(downloadURL),
+                        success: function(data){
+                            // debugger;
+                            $('.commentStatus_'+ index +' .cStatus').text('sent sucessfully');
+                            $('.commentStatus_'+ index).delay(2000).fadeOut(300, function() { 
+                                $(this).remove(); 
+                            });
+                        },
+                        error: function(data){
+                            // debugger;
+                            $('.commentStatus_'+ index +' .cStatus').text('error occured');
+                            $('.commentStatus_'+ index).delay(2000).fadeOut(300, function() { 
+                                $(this).remove(); 
+                            });
+                        }
+                    });
+
+
+
+                });
+            });
+        }
+    {% endif %}
+
 </script>

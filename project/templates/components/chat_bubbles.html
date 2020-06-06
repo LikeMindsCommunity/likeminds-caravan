@@ -1,0 +1,270 @@
+
+{% regroup answers.conversations by date as groupedByDate %}
+{% for groupDate in groupedByDate %}
+    <div class="taC m160"><div class="bgE br24 c6 dIb fs14 lh30 p012 vM">{{ groupDate.grouper }}</div></div>
+    {% for answer in groupDate.list %}
+        {% if answer.state == 0 %}
+            {% if answer.member.id == current_user.id %}
+                <div data-id="{{answer.id}}" class="chatID dT wp100 pb12 bs">
+                    <div class="dTc vB w48"></div>
+                    <div class="dTc vB taR">
+                        <div class="dIb message sent vM wbBa mxwp100 bxs">
+                            <div class="fs0 mxw360">
+                                <div class="pR">
+                                    {% for image in answer.images %}
+                                        {% if forloop.counter > 4 %}
+                                            <div class="dN imgHolder">
+                                                <img src="{{ image.image_url }}" class="dN imgView">
+                                            </div>
+                                        {% else %}
+                                            <div class="dIb vT wp50 m2 oH h150 imgHolder br10">
+                                                <img src="{{ image.image_url }}" class="ofC wp100 hp100 imgView">
+                                            </div>
+                                        {% endif %}
+                                    {% endfor %}
+                                    {% if  answer.images|length > 0 %}
+                                        <div class="pA t0 b0 l0 r0 openVewOverlay">
+                                            {% if answer.images|length > 4 %}
+                                                <div>{{ answer.images|length }}</div>
+                                            {% endif %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <div class="pR">
+                                    {% for pdf in answer.pdf %}
+                                        {% if forloop.counter > 4 %}
+                                            <div class="dN imgHolder">
+                                                <div class="dN pdfView" data-src="{{ pdf.pdf_file }}"></div>
+                                            </div>
+                                        {% else %}
+                                            <div class="dIb vT wp50 m2 oH imgHolder br10 bdE bs">
+                                                <div class="bgF bs dT p8 pdfView wp100" data-src="{{ pdf.pdf_file }}"><div class="dTc vM"><img src="https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Fdocument.png?alt=media&token=9b472105-c50c-49d6-818c-59fa983a6cf4" class="h48"></div><div class="bs c3 dTc fs14 mnw100 p12 taL vM">Document</div></div>
+                                            </div>
+                                        {% endif %}
+                                    {% endfor %}
+                                    {% if  answer.pdf|length > 0 %}
+                                        <div class="pA t0 b0 l0 r0 openVewOverlay">
+                                            {% if answer.pdf|length > 4 %}
+                                                <div>{{ answer.pdf|length }}</div>
+                                            {% endif %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="bs dIb p8 vM answerText">{{ answer.answer }}</div>
+                            <span class="metadata">
+                                <span class="time dIb fs12 c9b p8 bs">{{ answer.created_at }}</span>
+                                <!-- <span class="tick">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="15" id="msg-dblcheck-ack" x="2063" y="2076">
+                                    <path d="M15.01 3.316l-.478-.372a.365.365 0 0 0-.51.063L8.666 9.88a.32.32 0 0 1-.484.032l-.358-.325a.32.32 0 0 0-.484.032l-.378.48a.418.418 0 0 0 .036.54l1.32 1.267a.32.32 0 0 0 .484-.034l6.272-8.048a.366.366 0 0 0-.064-.512zm-4.1 0l-.478-.372a.365.365 0 0 0-.51.063L4.566 9.88a.32.32 0 0 1-.484.032L1.892 7.77a.366.366 0 0 0-.516.005l-.423.433a.364.364 0 0 0 .006.514l3.255 3.185a.32.32 0 0 0 .484-.033l6.272-8.048a.365.365 0 0 0-.063-.51z" fill="#4fc3f7"></path>
+                                    </svg>
+                                </span> -->
+                            </span>
+                        </div>
+                    </div>
+                    <div class="dTc vB h48 member_link pl12 bs w12" member_id="{{answer.member.id}}">
+                        <!-- <img class="bd2F brp50 bs bxs dB h48 w48" src="{{ answer.member.image_url }}"> -->
+                    </div>
+                </div>
+            {% else %}
+                <div data-id="{{answer.id}}" class="chatID dT wp100 pb12 bs">
+                    <div class="dTc vB w48 h48 member_link" member_id="{{answer.member.id}}">
+                        <img class="bd2F brp50 bs bxs dB h48 w48" src="{{ answer.member.image_url }}">
+                    </div>
+                    <div class="dTc vB pl12 bs">
+                        <div class="dIb message received vM wbBa mxwp100 bxs">
+                            <div class="bs c6 fwM p8 pb0 fs12">{{answer.member.name}}</div>
+                            <div class="fs0 mxw360">
+                                <div class="pR">
+                                    {% for image in answer.images %}
+                                        {% if forloop.counter > 4 %}
+                                            <div class="dN imgHolder">
+                                                <img src="{{ image.image_url }}" class="dN imgView">
+                                            </div>
+                                        {% else %}
+                                            <div class="dIb vT wp50 m2 oH h150 imgHolder br10">
+                                                <img src="{{ image.image_url }}" class="ofC wp100 hp100 imgView">
+                                            </div>
+                                        {% endif %}
+                                    {% endfor %}
+                                    {% if  answer.images|length > 0 %}
+                                        <div class="pA t0 b0 l0 r0 openVewOverlay">
+                                            {% if answer.images|length > 4 %}
+                                                <div>{{ answer.images|length }}</div>
+                                            {% endif %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <div class="pR">
+                                    {% for pdf in answer.pdf %}
+                                        {% if forloop.counter > 4 %}
+                                            <div class="dN imgHolder">
+                                                <div class="dN pdfView" data-src="{{ pdf.pdf_file }}"></div>
+                                            </div>
+                                        {% else %}
+                                            <div class="dIb vT wp50 m2 oH imgHolder br10 bdE bs">
+                                                <div class="bgF bs dT p8 pdfView wp100" data-src="{{ pdf.pdf_file }}"><div class="dTc vM"><img src="https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Fdocument.png?alt=media&token=9b472105-c50c-49d6-818c-59fa983a6cf4" class="h48"></div><div class="bs c3 dTc fs14 mnw100 p12 taL vM">Document</div></div>
+                                            </div>
+                                        {% endif %}
+                                    {% endfor %}
+                                    {% if  answer.pdf|length > 0 %}
+                                        <div class="pA t0 b0 l0 r0 openVewOverlay">
+                                            {% if answer.pdf|length > 4 %}
+                                                <div>{{ answer.pdf|length }}</div>
+                                            {% endif %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="bs dIb p8 vM answerText">{{ answer.answer }}</div>
+                            <span class="metadata">
+                                <span class="time dIb fs12 c9b p8 bs">{{ answer.created_at }}</span>
+                                <!-- <span class="tick">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="15" id="msg-dblcheck-ack" x="2063" y="2076">
+                                    <path d="M15.01 3.316l-.478-.372a.365.365 0 0 0-.51.063L8.666 9.88a.32.32 0 0 1-.484.032l-.358-.325a.32.32 0 0 0-.484.032l-.378.48a.418.418 0 0 0 .036.54l1.32 1.267a.32.32 0 0 0 .484-.034l6.272-8.048a.366.366 0 0 0-.064-.512zm-4.1 0l-.478-.372a.365.365 0 0 0-.51.063L4.566 9.88a.32.32 0 0 1-.484.032L1.892 7.77a.366.366 0 0 0-.516.005l-.423.433a.364.364 0 0 0 .006.514l3.255 3.185a.32.32 0 0 0 .484-.033l6.272-8.048a.365.365 0 0 0-.063-.51z" fill="#4fc3f7"></path>
+                                    </svg>
+                                </span> -->
+                            </span>
+                        </div>
+                    </div>
+                    <div class="dTc vB w48"></div>
+                </div>
+            {% endif %}
+        {% elif answer.state == 1 %}
+            <style>#scroll_state_0{display:none!important}#comments{padding-top:12px!important}</style>
+            <a href="/member_profile/{{ answer.member.id }}" data-id="{{answer.id}}" class="chatID taC m160 dB tdN"><div class="bgE br24 c6 dIb fs14 lh30 p012 vM">{{ answer.member.name }} started this chatroom in {{ answers.chatroom.title }}</div></a>
+            <div>
+                {% if answers.chatroom.member.id == current_user.id %}
+                    <div class="dT wp100 pb12 bs">
+                        <div class="dTc vB w48"></div>
+                        <div class="dTc vB taR">
+                            <div class="dIb message sent vM wbBa mxwp100 bxs">
+                                <div class="fs0 mxw360">
+                                    <div class="pR">
+                                        {% for image in answers.chatroom.images %}
+                                            {% if forloop.counter > 4 %}
+                                                <div class="dN imgHolder">
+                                                    <img src="{{ image.image_url }}" class="dN imgView">
+                                                </div>
+                                            {% else %}
+                                                <div class="dIb vT wp50 m2 oH h150 imgHolder br10">
+                                                    <img src="{{ image.image_url }}" class="ofC wp100 hp100 imgView">
+                                                </div>
+                                            {% endif %}
+                                        {% endfor %}
+                                        {% if  answers.chatroom.images|length > 0 %}
+                                            <div class="pA t0 b0 l0 r0 openVewOverlay">
+                                                {% if answers.chatroom.images|length > 4 %}
+                                                    <div>{{ answer.images|length }}</div>
+                                                {% endif %}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="pR">
+                                        {% for pdf in answers.chatroom.pdf %}
+                                            {% if forloop.counter > 4 %}
+                                                <div class="dN imgHolder">
+                                                    <div class="dN pdfView" data-src="{{ pdf.pdf_file }}"></div>
+                                                </div>
+                                            {% else %}
+                                                <div class="dIb vT wp50 m2 oH imgHolder br10 bdE bs">
+                                                    <div class="bgF bs dT p8 pdfView wp100" data-src="{{ pdf.pdf_file }}"><div class="dTc vM"><img src="https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Fdocument.png?alt=media&token=9b472105-c50c-49d6-818c-59fa983a6cf4" class="h48"></div><div class="bs c3 dTc fs14 mnw100 p12 taL vM">Document</div></div>
+                                                </div>
+                                            {% endif %}
+                                        {% endfor %}
+                                        {% if  answers.chatroom.pdf|length > 0 %}
+                                            <div class="pA t0 b0 l0 r0 openVewOverlay">
+                                                {% if answers.chatroom.pdf|length > 4 %}
+                                                    <div>{{ answers.chatroom.pdf|length }}</div>
+                                                {% endif %}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="bs dIb p8 vM answerText">{{ answers.chatroom.answer_text }}</div>
+                                <span class="metadata">
+                                    <span class="time dIb fs12 c9b p8 bs">{{ answers.chatroom.card_creation_time }}</span>
+                                    <!-- <span class="tick">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="15" id="msg-dblcheck-ack" x="2063" y="2076">
+                                        <path d="M15.01 3.316l-.478-.372a.365.365 0 0 0-.51.063L8.666 9.88a.32.32 0 0 1-.484.032l-.358-.325a.32.32 0 0 0-.484.032l-.378.48a.418.418 0 0 0 .036.54l1.32 1.267a.32.32 0 0 0 .484-.034l6.272-8.048a.366.366 0 0 0-.064-.512zm-4.1 0l-.478-.372a.365.365 0 0 0-.51.063L4.566 9.88a.32.32 0 0 1-.484.032L1.892 7.77a.366.366 0 0 0-.516.005l-.423.433a.364.364 0 0 0 .006.514l3.255 3.185a.32.32 0 0 0 .484-.033l6.272-8.048a.365.365 0 0 0-.063-.51z" fill="#4fc3f7"></path>
+                                        </svg>
+                                    </span> -->
+                                </span>
+                            </div>
+                        </div>
+                        <div class="dTc vB h48 member_link pl12 bs w12" member_id="{{answers.chatroom.member.id}}">
+                            <!-- <img class="bd2F brp50 bs bxs dB h48 w48" src="{{ answer.member.image_url }}"> -->
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="dT wp100 pb12 bs">
+                        <div class="dTc vB w48 h48 member_link" member_id="{{answers.chatroom.member.id}}">
+                            <img class="bd2F brp50 bs bxs dB h48 w48" src="{{ answers.chatroom.member.image_url }}">
+                        </div>
+                        <div class="dTc vB pl12 bs">
+                            <div class="dIb message received vM wbBa mxwp100 bxs">
+                                <div class="bs c6 fwM p8 pb0 fs12">{{answers.chatroom.member.name}}</div>
+                                <div class="fs0 mxw360">
+                                    <div class="pR">
+                                        {% for image in answers.chatroom.images %}
+                                            {% if forloop.counter > 4 %}
+                                                <div class="dN imgHolder">
+                                                    <img src="{{ image.image_url }}" class="dN imgView">
+                                                </div>
+                                            {% else %}
+                                                <div class="dIb vT wp50 m2 oH h150 imgHolder br10">
+                                                    <img src="{{ image.image_url }}" class="ofC wp100 hp100 imgView">
+                                                </div>
+                                            {% endif %}
+                                        {% endfor %}
+                                        {% if  answers.chatroom.images|length > 0 %}
+                                            <div class="pA t0 b0 l0 r0 openVewOverlay">
+                                                {% if answers.chatroom.images|length > 4 %}
+                                                    <div>{{ answers.chatroom.images|length }}</div>
+                                                {% endif %}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="pR">
+                                        {% for pdf in answers.chatroom.pdf %}
+                                            {% if forloop.counter > 4 %}
+                                                <div class="dN imgHolder">
+                                                    <div class="dN pdfView" data-src="{{ pdf.pdf_file }}"></div>
+                                                </div>
+                                            {% else %}
+                                                <div class="dIb vT wp50 m2 oH imgHolder br10 bdE bs">
+                                                    <div class="bgF bs dT p8 pdfView wp100" data-src="{{ pdf.pdf_file }}"><div class="dTc vM"><img src="https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Fdocument.png?alt=media&token=9b472105-c50c-49d6-818c-59fa983a6cf4" class="h48"></div><div class="bs c3 dTc fs14 mnw100 p12 taL vM">Document</div></div>
+                                                </div>
+                                            {% endif %}
+                                        {% endfor %}
+                                        {% if  answers.chatroom.pdf|length > 0 %}
+                                            <div class="pA t0 b0 l0 r0 openVewOverlay">
+                                                {% if answers.chatroom.pdf|length > 4 %}
+                                                    <div>{{ answers.chatroom.pdf|length }}</div>
+                                                {% endif %}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="bs dIb p8 vM answerText">{{ answers.chatroom.answer_text }}</div>
+                                <span class="metadata">
+                                    <span class="time dIb fs12 c9b p8 bs">{{ answers.chatroom.card_creation_time }}</span>
+                                    <!-- <span class="tick">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="15" id="msg-dblcheck-ack" x="2063" y="2076">
+                                        <path d="M15.01 3.316l-.478-.372a.365.365 0 0 0-.51.063L8.666 9.88a.32.32 0 0 1-.484.032l-.358-.325a.32.32 0 0 0-.484.032l-.378.48a.418.418 0 0 0 .036.54l1.32 1.267a.32.32 0 0 0 .484-.034l6.272-8.048a.366.366 0 0 0-.064-.512zm-4.1 0l-.478-.372a.365.365 0 0 0-.51.063L4.566 9.88a.32.32 0 0 1-.484.032L1.892 7.77a.366.366 0 0 0-.516.005l-.423.433a.364.364 0 0 0 .006.514l3.255 3.185a.32.32 0 0 0 .484-.033l6.272-8.048a.365.365 0 0 0-.063-.51z" fill="#4fc3f7"></path>
+                                        </svg>
+                                    </span> -->
+                                </span>
+                            </div>
+                        </div>
+                        <div class="dTc vB w48"></div>
+                    </div>
+                {% endif %}
+            </div>
+        {% elif answer.state == 2 %}
+            <a href="/member_profile/{{ answer.member.id }}" data-id="{{answer.id}}" class="chatID taC m160 dB tdN"><div class="bgE br24 c6 dIb fs14 lh30 p012 vM">{{ answer.member.name }} follwed this chatroom</div></a>
+        {% elif answer.state == 3 %}
+            <a href="/member_profile/{{ answer.member.id }}" data-id="{{answer.id}}" class="chatID taC m160 dB tdN"><div class="bgE br24 c6 dIb fs14 lh30 p012 vM">{{ answer.member.name }} unfollwed this chatroom</div></a>
+        {% endif %}
+    {% endfor %}
+{% endfor %}
