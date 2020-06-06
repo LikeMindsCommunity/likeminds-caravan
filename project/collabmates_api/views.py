@@ -6028,9 +6028,10 @@ def get_last_conversation(conversation_filter,member_id,chatroom_id):
         unseen_count = next_conversation.count()
 
         if not next_conversation:
+
             conversation = conversationSerializer(has_seen[0].conversation)
         else:
-            conversation = conversationSerializer(next_conversation)
+            conversation = conversationSerializer(next_conversation[0])
 
         conversation_files = get_answer_files(conversation['id'])
 
@@ -6066,6 +6067,7 @@ def get_chatrooms(chatroom_list,member_id):
         conversation_filter = card_answers.objects.filter(card=card_instance.id,
                                                           state=chatroom_states.ANSWER).order_by('id')
         chatroom_instance['total_response_count'] = conversation_filter.count()
+
         conversation = get_last_conversation(conversation_filter, member_id, chatroom_instance['id'])
 
         if conversation[0]:
