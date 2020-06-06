@@ -4208,6 +4208,10 @@ def get_collabcard_details_for_web(request,card_instance,card,current_user_id,an
 
         is_logged = True
 
+    if type(answers) is list:
+        _answers = answers
+        answers = {}
+        answers['conversations'] = _answers
 
     #print('in html')
     # check for event card
@@ -4250,7 +4254,7 @@ def get_collabcard_details_for_web(request,card_instance,card,current_user_id,an
         # set header
         header = {
             'back': True,
-            'title': card['member']['name'] + " 's Event",
+            'title': card['header'],
             'subTitle': "in " + community.name,
             'background': 'Wa',
             'color': 'F'
@@ -4314,7 +4318,7 @@ def get_collabcard_details_for_web(request,card_instance,card,current_user_id,an
         # set header
         header = {
             'back': True,
-            'title': card['member']['name'] + " 's Poll",
+            'title': card['header'],
             'subTitle': community.name,
             'background': 'Wa',
             'color': 'F'
@@ -4351,12 +4355,13 @@ def get_collabcard_details_for_web(request,card_instance,card,current_user_id,an
 
         header = {
             'back': True,
-            'title': card['member']['name'] + "'s Conversations",
+            'title': card['header'],
             'backLink': header_back_link,
             'subTitle': 'in ' + community.name,
             'background': 'Wa',
             'color': 'F'
         }
+
         context = {
             'collabcard': card,
             'answers': answers,
