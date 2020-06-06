@@ -135,17 +135,21 @@
     }
 
 </style>
-<div class="p12 bs pR bgd0d8e2 pt60" id="comments">
-    <div id="scroll_state_0" class="bg06C3AF bgE br24 cF l0 mA p8 pA r0 t0 t12 taC w228">
-        <div class="dIb vM ldrText">Load older chats</div>
-        <div class="dIb h16 m04 vM w16 cF ldr dN"><svg viewBox="25 25 50 50" class="rotate"><circle class="rotatePath" cx="50" cy="50" r="20" fill="none" stroke-width="4" stroke-miterlimit="10"></circle></svg></div>
-    </div>
+<div class="p12 bs pR bgd0d8e2 {% if request.user.is_authenticated %}pt60{% endif %}" id="comments">
+    {% if request.user.is_authenticated %}
+        <div id="scroll_state_0" class="bg06C3AF bgE br24 cF l0 mA p8 pA r0 t0 t12 taC w228">
+            <div class="dIb vM ldrText">Load older chats</div>
+            <div class="dIb h16 m04 vM w16 cF ldr dN"><svg viewBox="25 25 50 50" class="rotate"><circle class="rotatePath" cx="50" cy="50" r="20" fill="none" stroke-width="4" stroke-miterlimit="10"></circle></svg></div>
+        </div>
+    {% endif %}
     <div id="commentsCon">
         {% include 'components/chat_bubbles.html' with answers=answers current_user=current_user %}
     </div>
-    <div id="scroll_state_1" class="h24 mt16 pR taC">
-        <div class="dIb h24 vM w24 cF ldr dN"><svg viewBox="25 25 50 50" class="rotate"><circle class="rotatePath" cx="50" cy="50" r="20" fill="none" stroke-width="4" stroke-miterlimit="10"></circle></svg></div>
-    </div>
+    {% if request.user.is_authenticated %}
+        <div id="scroll_state_1" class="h24 mt16 pR taC">
+            <div class="dIb h24 vM w24 cF ldr dN"><svg viewBox="25 25 50 50" class="rotate"><circle class="rotatePath" cx="50" cy="50" r="20" fill="none" stroke-width="4" stroke-miterlimit="10"></circle></svg></div>
+        </div>
+    {% endif %}
 </div>
 
 <form class="bs conversation-compose chatInput pF b0 l0 r0" id="submit_commit">
