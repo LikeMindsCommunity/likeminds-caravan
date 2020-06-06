@@ -306,6 +306,10 @@ def get_status_of_collabcard(member_id,card):
         'state' : 0,
         'mute_status' : False
     }
+
+    if not member_id:
+        return collabcard_status
+
     member_id = User.objects.get(id=member_id)
     collabcard_state = collabcardState.objects.filter(card=card, user=member_id)
 
