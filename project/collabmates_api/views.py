@@ -4083,29 +4083,25 @@ def collabcard(request, card_id):
 
     # coverting current time into epoch time for getting time stamp of answers and card
 
-    # get all the answers of the card
-    # answer = card_answers.objects.filter(card=card_instance).order_by('id')
-    # answer=pagination(answer,page,paginate_by=3)
-
-    if is_request_web(request) and request.user.is_authenticated:
-        current_user_id = request.user.id
-
-    answers = get_chatroom_internal(request,card_instance,current_user_id,page,'','')
-
     answer_id = request.GET.get('answer_id', '')
     user_id = request.GET.get('member_id', '')
+    
+    if is_request_web(request) and request.user.is_authenticated:
+        current_user_id = request.user.id
+        answers = get_chatroom_internal(request,card_instance,current_user_id,page,'','')
+    else :
+        # get all the answers of the card
+        answer = card_answers.objects.filter(card=card_instance).order_by('id')
+        answer=pagination(answer,page,paginate_by=3)
+        if answer_id:
+            answer_id = int(answer_id)
+            answer = card_answers.objects.filter(card=card_instance, id__gte=answer_id).filter(~Q(user__id=user_id))
+            # answer = pagination(answer, page, paginate_by=10)
+            answers = get_answer_data(answer,feedback,card_instance.community.id,current_user_id=current_user_id)         #if the feedback is true don't send id in userinfo
+            return JsonResponse({'answers': answers})
+        else:
+            answers = get_answer_data(answer,feedback,card_instance.community.id,current_user_id=current_user_id)
 
-
-
-    # if answer_id:
-    #     answer_id = int(answer_id)
-
-    #     answer = card_answers.objects.filter(card=card_instance, id__gte=answer_id).filter(~Q(user__id=user_id))
-    #     # answer = pagination(answer, page, paginate_by=10)
-    #     answers = get_answer_data(answer,feedback,card_instance.community.id,current_user_id=current_user_id)         #if the feedback is true don't send id in userinfo
-    #     return JsonResponse({'answers': answers})
-    # else:
-    #     answers = get_answer_data(answer,feedback,card_instance.community.id,current_user_id=current_user_id)
 
     # serializing Collabcard
 
@@ -4696,7 +4692,6 @@ def get_chatroom_internal(request,card_instance,user_id,page,conversation_id,scr
     else:
 
         chatroom_actions = get_chatroom_actions(creator = False)
-
 
 
     save_the_latest_conversation(card_instance, user_id)
