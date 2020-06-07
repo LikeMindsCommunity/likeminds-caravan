@@ -221,6 +221,27 @@ def CollabcardSerializer(card,user,community=None):
     return collabcard
 
 
+def get_collabcard_files(card_id):
+    '''function to return pdf and image files of a collabcard'''
+
+    files = Card_Attachment.objects.filter(collabcard=card_id)
+    img_list = []
+    pdf = []
+    for file in files:
+        if file.type == 'image':
+            if file.file_url:
+                img = {'image_url': file.file_url}
+            else:
+                img = {'image_url': url + file.attachment.url}
+            img_list.append(img)
+        elif file.type == 'pdf':
+            if file.file_url:
+                pdf_url = {'pdf_file': file.file_url}
+            else:
+                pdf_url = {'pdf_file': url + file.attachment.url}
+            pdf.append(pdf_url)
+    return (img_list, pdf)
+
 def conversationSerializer(conversation):
 
     temp = {
@@ -296,6 +317,11 @@ def get_chatroom_instance(card_instance,member_id):
     status = get_status_of_collabcard(member_id,card_instance)
     collabcard_serializer['state'] = status['state']
     collabcard_serializer['mute_status'] = status['mute_status']
+
+    collabcard_files = get_collabcard_files(collabcard_serializer['id'])
+
+    collabcard_serializer['images'] = collabcard_files[0]
+    collabcard_serializer['pdf'] = collabcard_files[1]
     return collabcard_serializer
 
 
