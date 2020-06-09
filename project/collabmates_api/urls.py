@@ -13,20 +13,17 @@ urlpatterns = [
     path('v2/community/<int:community_id>', api_views.community_version_2, name="community_version_2"),
 
     path('similar_communities/<int:community_id>', api_views.similar_community, name="similar_community"),
-    path('community/<int:community_id>/questions', api_views.join_community, name="join"),
 
-    path('join_community', views.join_community_responses, name="join_community_responses"),
     path('v1/join_community', views.join_community_responses_version_1, name="join_community_responses_version_1"),
 
-    path('categories', api_views.categories, name="categories"),
 
-    path('create_community', api_views.create_community, name="create_community"),
+
     path('v1/create_community',api_views.create_community_version_1,name='create_community_version_1'),
     path('v1/edit_questions', api_views.edit_questions_version_1,
          name="edit_questions_version_1"),
     path('dismiss', api_views.dismiss,name="dismiss"),
 
-    path('community/<str:category>', api_views.category_filter, name="category_filter"),
+
     path('user/<int:user_id>', api_views.user, name="user"),
     path('admins/<int:community_id>', api_views.admins, name="admins"),
     path('members/<int:community_id>', api_views.members, name="members"),
@@ -84,7 +81,7 @@ urlpatterns = [
     path('decode_url', api_views.decode_url, name='decode_url'),
     path('all_members', api_views.all_members, name='all_members'),
     path('member_activity', api_views.member_activity, name='member_activity'),
-    path('accept_promotership', api_views.accept_promotership, name='accept_promotership'),
+
     path('invite_members', api_views.invite_members, name='invite_members'),
     path('get_profile', api_views.get_profile, name='get_profile'),
     path('config', api_views.config, name='config'),
