@@ -4555,11 +4555,11 @@ def get_answer_data(answer_filter,feedback,community_id,current_user_id,last_see
     return answers
 
 
-def get_chatroom_actions(creator):
+def get_chatroom_actions(card_status,creator):
 
     '''function to get chatroom actions'''
     if creator:
-        instance_list = chatroomActions.objects.all().order_by('id')
+        instance_list = chatroomActions.objects.filter(~Q(id=4)&~Q(id=9)).order_by('id')
     else:
         instance_list = chatroomActions.objects.filter(creator=False).order_by('id')
 
@@ -4567,6 +4567,21 @@ def get_chatroom_actions(creator):
     for instance in instance_list:
 
         temp = chatroomActionsSerializer(instance)
+
+        if card_status['mute_status'] and temp['id'] == 6:
+            continue
+        if not card_status['mute_status'] and temp['id'] == 8:
+            continue
+
+        if not creator and (card_status['state'] == collabcard_states.COLLABCARD_STATE_FOLLOW or card_status['state'] == collabcard_states.COLLABCARD_STATE_ATTEND_FOLLOWING) and temp['id'] == 4:
+            continue
+
+        if not creator and (card_status['state'] != collabcard_states.COLLABCARD_STATE_FOLLOW and card_status['state'] != collabcard_states.COLLABCARD_STATE_ATTEND_FOLLOWING) and temp['id'] == 9:
+            continue
+
+
+
+
         action_list.append(temp)
 
     return action_list
@@ -4672,10 +4687,10 @@ def get_chatroom_internal(request,card_instance,user_id,page,conversation_id,scr
     #sending the chatroom actions
     if int(user_id) == card_instance.user.id:
 
-        chatroom_actions = get_chatroom_actions(creator = True)
+        chatroom_actions = get_chatroom_actions(card_status,creator=True)
     else:
 
-        chatroom_actions = get_chatroom_actions(creator = False)
+        chatroom_actions = get_chatroom_actions(card_status,creator=False)
 
 
     save_the_latest_conversation(card_instance, user_id)
