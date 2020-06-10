@@ -745,6 +745,20 @@ class createCommunityAction(models.Model):
     community = models.ForeignKey(Community, on_delete=models.CASCADE)
     current_point_value = models.IntegerField(default=0)
 
+class communityLevels(models.Model):
+
+    '''model to save the levels of the community'''
+
+    level = models.TextField(null=True)
+    title = models.TextField(null=True)
+    sub_title = models.TextField(null=True)
+    action = models.TextField(null=True)
+    joined_members = models.IntegerField(null=True)
+    max_members = models.IntegerField(null=True)
+    state = models.IntegerField(default=0)
+    image = models.TextField(null=True)
+    community = models.ForeignKey(Community, on_delete=models.CASCADE)
+
 
 class communityUpdate(models.Model):
 
