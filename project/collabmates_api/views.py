@@ -75,6 +75,7 @@ from .serializers import *
 from .tasks import send_email_to_nominated_admin, send_email_for_new_collabcard_posted, send_welcome_mail, \
     send_verification_mail_for_email_sync
 
+from .chatroom_actions import *
 # CACHE_TTL = getattr(settings, 'CACHE_TTL', cache_timeout)
 
 url = settings.URL
@@ -3962,33 +3963,26 @@ def get_answer_data(answer_filter,feedback,community_id,current_user_id,last_see
 def get_chatroom_actions(card_status,creator):
 
     '''function to get chatroom actions'''
-    if creator:
-        instance_list = chatroomActions.objects.filter(~Q(id=4)&~Q(id=9)).order_by('id')
-    else:
-        instance_list = chatroomActions.objects.filter(creator=False).order_by('id')
 
-    action_list = []
-    for instance in instance_list:
+    if creator and card_status['mute_status']:
 
-        temp = chatroomActionsSerializer(instance)
+        return (chatroom_actions_creator_mute)
 
-        if card_status['mute_status'] and temp['id'] == 6:
-            continue
-        if not card_status['mute_status'] and temp['id'] == 8:
-            continue
-
-        if not creator and (card_status['state'] == collabcard_states.COLLABCARD_STATE_FOLLOW or card_status['state'] == collabcard_states.COLLABCARD_STATE_ATTEND_FOLLOWING) and temp['id'] == 4:
-            continue
-
-        if not creator and (card_status['state'] != collabcard_states.COLLABCARD_STATE_FOLLOW and card_status['state'] != collabcard_states.COLLABCARD_STATE_ATTEND_FOLLOWING) and temp['id'] == 9:
-            continue
+    if creator and not card_status['mute_status']:
+        return (chatroom_actions_creator_unmute)
 
 
+    if(card_status['state'] == collabcard_states.COLLABCARD_STATE_FOLLOW or card_status['state'] == collabcard_states.COLLABCARD_STATE_ATTEND_FOLLOWING) and not card_status['mute_status']:
+
+        return (collabcard_action_user_follow_unmute)
 
 
-        action_list.append(temp)
+    if(card_status['state'] == collabcard_states.COLLABCARD_STATE_FOLLOW or card_status['state'] == collabcard_states.COLLABCARD_STATE_ATTEND_FOLLOWING) and  card_status['mute_status']:
 
-    return action_list
+        return (collabcard_action_user_follow_mute)
+
+
+    return (collabcard_action_user_unfollow)
 
 
 def get_chatroom_internal(request,card_instance,user_id,page,conversation_id,scroll_direction):
