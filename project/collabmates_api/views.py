@@ -7171,6 +7171,20 @@ def is_request_web(request):
 
     return False
 
+def check_android_request(request):
+
+    '''function to check whether the request is android or not'''
+    headers = request.META
+
+    platform_code = 0
+    if 'HTTP_X_PLATFORM_CODE' in headers:
+        platform_code = headers['HTTP_X_PLATFORM_CODE']
+        if platform_code == "an":
+            return True
+
+    return True
+
+
 ################ functions for getting and setting of tags ##########################################
 
 

@@ -219,6 +219,17 @@ def get_user_communities(request):
 
 def community(request, community_id):
 
+
+    aj = request.GET.get('aj', False)                           #auto join check functionality
+
+    if aj and check_android_request(request):
+
+        private_link = "http://" + request.META['HTTP_HOST'] +"/community/"+str(community_id)+"?aj="+str(aj)
+
+        
+        return redirect(private_link)
+
+
     is_member = False
     if request.user.is_authenticated:
         try:
