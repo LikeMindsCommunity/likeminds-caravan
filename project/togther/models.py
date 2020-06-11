@@ -230,21 +230,21 @@ class conversationEngage(models.Model):
 
 
 
-class chatroomActions(models.Model):
-
-    '''table to add chatroom actions'''
-
-    title = models.TextField(null=True)
-    route = models.TextField(null=True)
-    created_at = models.BigIntegerField(default=0)
-    creator = models.BooleanField(default=False)
-
-
-
-    def save(self, *args, **kwargs):
-        if self.created_at == 0:
-            self.created_at = time.time()
-        super(chatroomActions, self).save(*args, **kwargs)
+# class chatroomActions(models.Model):
+#
+#     '''table to add chatroom actions'''
+#
+#     title = models.TextField(null=True)
+#     route = models.TextField(null=True)
+#     created_at = models.BigIntegerField(default=0)
+#     creator = models.BooleanField(default=False)
+#
+#
+#
+#     def save(self, *args, **kwargs):
+#         if self.created_at == 0:
+#             self.created_at = time.time()
+#         super(chatroomActions, self).save(*args, **kwargs)
 
 
 class temp_admin(models.Model):
