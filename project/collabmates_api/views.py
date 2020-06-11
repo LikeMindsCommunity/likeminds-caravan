@@ -5,7 +5,6 @@ import os
 import re
 from datetime import datetime
 from urllib.parse import unquote, quote
-
 import googlemaps
 import requests as rqst
 from celery import shared_task
@@ -2388,6 +2387,11 @@ def chatroom_rename(request):
 
     return JsonResponse({"success":True})
 
+
+
+
+
+
 @csrf_exempt
 def chatroom_delete(request):
 
@@ -2402,18 +2406,18 @@ def chatroom_delete(request):
 
     try:
         collabcard_instance = Collabcard.objects.get(id=chatroom_id)
-
+        community_id = collabcard_instance.community.id
         if collabcard_instance.user.id != int(member_id):
             context = get_error_context(False,"You are not the card creator you cannot delete this chatroom")
             return JsonResponse(context)
 
-        collabcard_instance.type = card_types.CARD_HIDDEN
+        delete_status=Collabcard.objects.filter(id=chatroom_id).delete()
+        info_logger.info(delete_status)
+        update_last_unseen_in_engage_on_card_creation.delay(community_id)
 
-        collabcard_instance.save()
+    except Exception as e:
 
-    except:
-
-        context = get_error_context(False,"Collabcard does'nt exists")
+        context = get_error_context(False,str(e))
         return JsonResponse(context)
 
 
