@@ -54,22 +54,7 @@ from utility.utils import (decode_meta_from_url, update_tag_image,
 
                            )
 
-from .notification import (send_follow_notification, send_notification_to_admins,
-                           send_notification_for_join_requests,
-                           send_notification_for_new_collabcard_posted,
-                           send_notification_to_proposed_admin,
-                           send_notification_to_proposer,
-                           send_notification_to_eligible_member,
-                           send_notification_to_all_admins,
-                           send_notification_to_tagged_users,
-                           send_poll_or_event_notification,
-                           send_notification_to_promoter_of_ig_community,
-                           send_notification_to_referrer_of_ig_community,
-                           send_notification_to_referrer_of_lg_community,
-                           ask_approval_notification,
-                           send_notification_for_tool_unlocked_for_live_community,
-                           send_notification_for_tool_unlocked_for_pilot,
-                           send_notification_to_event_co_hosts)
+from .notification import *
 from .raw_queries import compute_rank
 from .serializers import *
 from .tasks import send_email_to_nominated_admin, send_email_for_new_collabcard_posted, send_welcome_mail, \
@@ -4872,13 +4857,17 @@ def create_answer(request):
     ans.created_at = time.time()
     ans.save()
     update_last_answer_id(card_id, ans.id)
-        # auto following the collabcard if answer is created
+    # auto following the collabcard if answer is created
     function_dict = {
         'member_id': user_id,
             'collabcard_id': card_id,
             'status': True
         }
     collabcard_follow(request, function_dict)
+
+
+    #sending the tagged member list
+    auto_follow_chatrooms_in_case_of_tagging(request, res['title'], card_id)
 
     send_follow_notification.delay(card_id=card_id, user_id=user_id, answer=res['title'])
 
@@ -4893,6 +4882,27 @@ def create_answer(request):
     update_my_chatrooms_for_users(chatroom_id=card_id)
 
     return JsonResponse({'success': True,'id':ans.id})
+
+
+
+def auto_follow_chatrooms_in_case_of_tagging(request,conversation,card_id):
+
+    '''function to follow tagged chatrooms'''
+
+    tagged_members = get_tagged_members_list(conversation)
+
+    tagged_member_list = tagged_members[0]
+
+    for user_id in tagged_member_list:
+
+        function_dict = {
+            'member_id': user_id,
+            'collabcard_id': card_id,
+            'status': True
+        }
+        print(function_dict)
+        collabcard_follow(request, function_dict)
+
 
 
 
