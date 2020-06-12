@@ -358,13 +358,14 @@ def community(request, community_id,req_dict=None):
     is_promoter = False
     block_leave_community = False
     member_list = Members.objects.filter(community_id=community, member_id=member_id)
-
+    promoter_instance = 0
     if member_list.exists():
 
         state = member_list[0].state
 
         if state == member_states.ADMIN:
             is_promoter = True
+            promoter_instance = member_list[0].member_id
             block_leave_community = True
 
 
@@ -375,15 +376,17 @@ def community(request, community_id,req_dict=None):
 
 
     if is_promoter:
-        serialized_object = CommunitySerializer(community,promoter_id=member_id)
+        serialized_object = CommunitySerializer(community,promoter_id=promoter_instance)
     else:
         serialized_object = CommunitySerializer(community)
     new_dict = {}
 
     community_state = get_state_of_community(community)
+
     if member_id and (community_state== community_states.PILOT or community_state == community_states.PILOT_ACTIVE):
         serialized_object['share_url'] = serialized_object['share_url'] + "?ref_id=" + str(member_id)
-    elif community_state== community_states.PRIVATE or community_state == community_states.HIDDEN:
+
+    elif community_state== community_states.PRIVATE or community_state == community_states.HIDDEN or community_state == community_states.WHATSAPP:
         serialized_object['share_url'] = serialized_object['share_url'] + "?cta=share"
 
 
@@ -421,6 +424,7 @@ def community(request, community_id,req_dict=None):
         return new_dict
 
     return JsonResponse({'community': new_dict})
+
 
 
 def similar_community(request, community_id,req_dict=None):
@@ -701,6 +705,16 @@ def questions(request):
     community_instance = Community.objects.get(id=community_id)
     community = CommunitySerializer(community_instance)
 
+    created_by = get_community_creator(community_instance)
+
+    community['created_by'] = created_by
+
+    ##private link share flow
+    aj = request.GET.get('aj')
+
+
+    auto_join = private_link_app_invite(community_instance,aj,created_by)
+
 
     questions = []
 
@@ -715,8 +729,40 @@ def questions(request):
         if not question.remove_state:
             questions.append(serialized_question)
     questions = sorted(questions, key=lambda i: i['rank'])
-    return JsonResponse({'questions': questions, 'community': community})
 
+    context = {'questions': questions, 'community': community}
+
+    if aj:
+        context.update(auto_join)
+    return JsonResponse(context)
+
+def private_link_app_invite(community_instance,unique_code,created_by):
+
+    '''function to send private link for app invite on playstore'''
+
+    expiry_filter = communityExpiryCodes.objects.filter(community=community_instance, unique_code=unique_code)
+
+    auto_join ={
+        'toast': """The private invite link has expired. Continue to join the community and wait for admin’s approval. Or, ask %s to resend a private invite link."""%(created_by),
+        'aj_expired': True
+    }
+
+    if expiry_filter.exists():
+        created_at = expiry_filter[0].created_at
+        expire_duration = expiry_filter[0].expire_duration
+        current_time = time.time()
+
+        if current_time - created_at <= expire_duration:
+            auto_join['aj_expired'] = False
+
+        time_left = created_at + expire_duration - current_time
+        time_left = ConvertSectoDay(time_left)
+
+        if not auto_join['aj_expired']:
+            auto_join['toast'] = """This private invite link expires in %s"""%(time_left)
+
+
+    return auto_join
 
 
 @csrf_exempt
@@ -3775,6 +3821,7 @@ def ConvertSectoDay(n):
             time_text = time_text + str(hour) + " hours "
 
 
+
     if minutes != 0:
         if minutes == 1:
             time_text = time_text+ "and " + str(minutes) + " minute "
@@ -3782,7 +3829,15 @@ def ConvertSectoDay(n):
             time_text = time_text +  "and " + str(minutes) + " minutes "
 
 
+    if hour == 0 and minutes != 0:
+        
+        if minutes == 1:
+            time_text =  str(minutes) + " minute "
+        else:
+            time_text = str(minutes) + " minutes "
 
+    if hour == 0 and minutes == 0:
+        time_text = str(seconds)+" seconds"
 
     return time_text
 
