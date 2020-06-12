@@ -5948,7 +5948,8 @@ def login_with_google(google_id_token,request,login_type="google"):
         if is_request_web(request):
             login(request,user=userinfo.user_id,backend="django.contrib.auth.backends.ModelBackend")
 
-        context = {'user': usr, 'has_tags': has_tags}
+        access = is_user_community_part(usr['id'])
+        context = {'user': usr, 'has_tags': has_tags,'access':access}
 
     return context
 
@@ -6009,7 +6010,8 @@ def login_with_facebook(request,res,json_to_save,login_type="facebook"):
     else:
         create_member_for_feedback_community(userinfo.user_id)
 
-    context = {'user': usr, 'has_tags': has_tags}
+    access = is_user_community_part(usr['id'])
+    context = {'user': usr, 'has_tags': has_tags, 'access': access}
     return context
 
 def login_with_linkedin(request,res,json_to_save,login_type="linkedIn"):
@@ -6056,7 +6058,8 @@ def login_with_linkedin(request,res,json_to_save,login_type="linkedIn"):
     else:
         create_member_for_feedback_community(userinfo.user_id)
 
-    context = {'user': usr, 'has_tags': has_tags}
+    access = is_user_community_part(usr['id'])
+    context = {'user': usr, 'has_tags': has_tags, 'access': access}
     #print(context)
     return context
 
@@ -6109,9 +6112,9 @@ def login_with_apple(request,res,json_to_save,login_type="apple"):
         usr['tags'] = tags
     else:
         create_member_for_feedback_community(userinfo.user_id)
-
-    return {'user': usr, 'has_tags': has_tags}
-
+    access = is_user_community_part(usr['id'])
+    context = {'user': usr, 'has_tags': has_tags, 'access': access}
+    return context
 
 
 def save_user_primary_email(user_instance,email):
@@ -6140,17 +6143,15 @@ def get_user_from_email(email):
     return user
 
 
-def notify_referred_member_after_join(joined_member_id, joined_member_name, community_name, community_id):
-    community = get_object_or_404(Community, pk=community_id)
-    refer = Referal.objects.filter(invited_member=joined_member_id,
-                                   community=community)
-    if refer.exists():
-        referred_member_id = refer[0].member.id
+def is_user_community_part(user_id):
 
-        notify_referred_member.delay(referred_member_id=referred_member_id,
-                                     joined_member_name=joined_member_name,
-                                     community_name=community_name,
-                                     community_id=community_id)
+    '''function to tell whether the user is a part of any community or nor'''
+
+    members_filter = Members.objects.filter(member_id=user_id).filter(
+        Q(state=member_states.ADMIN)|Q(state=member_states.TEMP_ADMIN)|
+        Q(state=member_states.MEMBER)|Q(state=member_states.KNOWN_NOMINATED_PROMOTER))
+
+    return members_filter.exists()
 
 
 def get_state_of_community(community):
