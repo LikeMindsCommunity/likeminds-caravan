@@ -272,13 +272,12 @@
             <div class="fs14 fwR c6 lh30 p24 bs pb12">Comments . {{ answers.conversations|length }}</div>
             <div class="pR">
 
-                {% include 'components/chat.html' with answers=answers current_user=current_user collabcard=collabcard request=request user=user %}
+                {% include 'components/chat.html' with answers=answers current_user=current_user collabcard=collabcard request=request user=user community=community %}
 
                 {% if collabcard.type == 2 %}
                     {% if request.user.is_authenticated %}
                         {% if member_state.state == 3 or member_state.state == 0 %}
                             <!-- if pending or declined member -->
-                            <div class=mnh200></div>
                             <div class="pA t0 b0 l0 r0 bgFo96 z1" onclick="attend(true)">
                                 <div class="dT wp100 hp100 taC">
                                     <div class="c0 fs15 lh20 dTc vM">You must be a member of the community to view the conversations.</div>
@@ -287,7 +286,6 @@
                         {% endif %}
                     {% else  %}
                         <!-- if not logged in -->
-                        <div class=mnh200></div>
                         <div class="pA t0 b0 l0 r0 bgFo96 z1" onclick="attend(true)">
                             <div class="dT wp100 hp100 taC">
                                 <div class="c0 fs15 lh20 dTc vM">You must be a member of the community to view the conversations.</div>
@@ -299,11 +297,11 @@
                 {% if request.user.is_authenticated %}
                     {% if collabcard.type == 2 %}
                         {% if member_state.state == 3 or member_state.state == 0 %}
-                            <div class="pF b0 l0 r0 z1 h60 chatInput" onclick="attend(true)"></div>
+                            <div class="pF b0 l0 r0 z2 h60 chatInput" onclick="attend(true)"></div>
                         {% endif %}
                     {% endif %}
                 {% else %}
-                    <div class="pF b0 l0 r0 z1 h60 chatInput" onclick="attend(true)"></div>
+                    <div class="pF b0 l0 r0 z2 h60 chatInput" onclick="attend(true)"></div>
                 {% endif %}
 
             </div>
