@@ -24,7 +24,7 @@ from utility.utils import (get_city_address, update_tag_image,
                            is_request_android, is_request_ios,
                            is_request_pc, android_app_download_link, is_IG_community, ios_app_download_link,is_member_verified,feedback_community_id,decode_option)
 from utility.firebase import upload_image_to_firebase
-from urllib.parse import urlencode, quote
+from urllib.parse import urlencode, quote,unquote
 from collabmates_api.tasks import send_email
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from user_agents import parse
@@ -218,6 +218,24 @@ def get_user_communities(request):
 
 
 def community(request, community_id):
+
+
+    aj = request.GET.get('aj', False)                           #auto join check functionality
+
+    if aj and check_android_request(request):
+
+        # #private_link = "http://" + request.META['HTTP_HOST'] +"/community/"+str(community_id)+"?aj="+str(aj)
+        # private_link = "https://beta.likeminds.community/community/53?aj=123456"
+        # redirect_link =  android_app_download_link
+        # #check = android_app_download_link+"&referrer=utm_source"+ quote("""utm_source=google &utm_medium=cpc &utm_term=checking &utm_content=testing &utm_campaign=spring_sale&private_link=https://beta.likeminds.community/community/53?aj=123456""")
+        #
+        # check = android_app_download_link+"""&referrer=%s"""%(quote(private_link))
+        # print(check)
+        # # print("\n\n")
+        # # r=unquote(x)
+        # print(r)
+        return redirect(android_app_download_link)
+
 
     is_member = False
     if request.user.is_authenticated:

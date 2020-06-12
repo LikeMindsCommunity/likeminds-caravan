@@ -57,6 +57,7 @@ from utility.utils import (decode_meta_from_url, update_tag_image,
 from .notification import *
 from .raw_queries import compute_rank
 from .serializers import *
+from .static_files import *
 from .tasks import send_email_to_nominated_admin, send_email_for_new_collabcard_posted, send_welcome_mail, \
     send_verification_mail_for_email_sync
 
@@ -5948,7 +5949,8 @@ def login_with_google(google_id_token,request,login_type="google"):
         if is_request_web(request):
             login(request,user=userinfo.user_id,backend="django.contrib.auth.backends.ModelBackend")
 
-        context = {'user': usr, 'has_tags': has_tags}
+        access = is_user_community_part(usr['id'])
+        context = {'user': usr, 'has_tags': has_tags,'access':access}
 
     return context
 
@@ -6009,7 +6011,8 @@ def login_with_facebook(request,res,json_to_save,login_type="facebook"):
     else:
         create_member_for_feedback_community(userinfo.user_id)
 
-    context = {'user': usr, 'has_tags': has_tags}
+    access = is_user_community_part(usr['id'])
+    context = {'user': usr, 'has_tags': has_tags, 'access': access}
     return context
 
 def login_with_linkedin(request,res,json_to_save,login_type="linkedIn"):
@@ -6056,7 +6059,8 @@ def login_with_linkedin(request,res,json_to_save,login_type="linkedIn"):
     else:
         create_member_for_feedback_community(userinfo.user_id)
 
-    context = {'user': usr, 'has_tags': has_tags}
+    access = is_user_community_part(usr['id'])
+    context = {'user': usr, 'has_tags': has_tags, 'access': access}
     #print(context)
     return context
 
@@ -6109,9 +6113,9 @@ def login_with_apple(request,res,json_to_save,login_type="apple"):
         usr['tags'] = tags
     else:
         create_member_for_feedback_community(userinfo.user_id)
-
-    return {'user': usr, 'has_tags': has_tags}
-
+    access = is_user_community_part(usr['id'])
+    context = {'user': usr, 'has_tags': has_tags, 'access': access}
+    return context
 
 
 def save_user_primary_email(user_instance,email):
@@ -6140,18 +6144,56 @@ def get_user_from_email(email):
     return user
 
 
-def notify_referred_member_after_join(joined_member_id, joined_member_name, community_name, community_id):
-    community = get_object_or_404(Community, pk=community_id)
-    refer = Referal.objects.filter(invited_member=joined_member_id,
-                                   community=community)
-    if refer.exists():
-        referred_member_id = refer[0].member.id
+def is_user_community_part(user_id):
 
-        notify_referred_member.delay(referred_member_id=referred_member_id,
-                                     joined_member_name=joined_member_name,
-                                     community_name=community_name,
-                                     community_id=community_id)
+    '''function to tell whether the user is a part of any community or nor'''
 
+    members_filter = Members.objects.filter(member_id=user_id).filter(
+        Q(state=member_states.ADMIN)|Q(state=member_states.TEMP_ADMIN)|
+        Q(state=member_states.MEMBER)|Q(state=member_states.KNOWN_NOMINATED_PROMOTER))
+
+    return members_filter.exists()
+
+def limit_access(request):
+
+    '''function to limit the access of app and sending details on web screen'''
+
+    member_id = get_member_id_from_headers(request)
+    context ={}
+
+    context['header_image'] = LIMIT_ACCESS_HEADER_IMAGE
+    context['image'] = LIMIT_ACCESS_IMAGE
+    context['title'] = "You are on the waiting list!"
+    context['sub_title'] = "Your application to join this community has been submitted. You will have access to your community and other awesome features on this app as soon as you are approved."
+
+    members_filter =  Members.objects.filter(member_id=member_id).filter(state=member_states.PENDING_MEMBER)
+
+    community_list = []
+    for member in members_filter:
+        community_instance = member.community_id
+        community = CommunitySerializer(community_instance)
+
+        community_creator = get_community_creator(community_instance)
+        if community_creator:
+            community['created_by'] = community_creator
+
+        community_list.append(community)
+
+    context['communities'] = community_list
+
+
+    return JsonResponse(context)
+
+def get_community_creator(community_instance):
+
+    '''function to get the creator of community'''
+    member_filter = Members.objects.filter(community_id=community_instance,state=member_states.ADMIN).order_by('id')
+    created_by=""
+    if member_filter.exists():
+        promoter_instance = member_filter[0].member_id
+        created_by = promoter_instance.userinfo.name
+
+    return created_by
 
 def get_state_of_community(community):
 
@@ -7170,6 +7212,20 @@ def is_request_web(request):
         return True
 
     return False
+
+def check_android_request(request):
+
+    '''function to check whether the request is android or not'''
+    headers = request.META
+
+    platform_code = 0
+    if 'HTTP_X_PLATFORM_CODE' in headers:
+        platform_code = headers['HTTP_X_PLATFORM_CODE']
+        if platform_code == "an":
+            return True
+
+    return False
+
 
 ################ functions for getting and setting of tags ##########################################
 
