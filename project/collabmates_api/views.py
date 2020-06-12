@@ -7182,7 +7182,7 @@ def check_android_request(request):
         if platform_code == "an":
             return True
 
-    return True
+    return False
 
 
 ################ functions for getting and setting of tags ##########################################
