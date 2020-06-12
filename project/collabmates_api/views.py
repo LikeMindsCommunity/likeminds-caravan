@@ -6171,15 +6171,29 @@ def limit_access(request):
     community_list = []
     for member in members_filter:
         community_instance = member.community_id
-        temp = CommunitySerializer(community_instance)
-        community_list.append(temp)
+        community = CommunitySerializer(community_instance)
+
+        community_creator = get_community_creator(community_instance)
+        if community_creator:
+            community['created_by'] = community_creator
+
+        community_list.append(community)
 
     context['communities'] = community_list
 
 
     return JsonResponse(context)
 
+def get_community_creator(community_instance):
 
+    '''function to get the creator of community'''
+    member_filter = Members.objects.filter(community_id=community_instance,state=member_states.ADMIN).order_by('id')
+    created_by=""
+    if member_filter.exists():
+        promoter_instance = member_filter[0].member_id
+        created_by = promoter_instance.userinfo.name
+
+    return created_by
 
 def get_state_of_community(community):
 
