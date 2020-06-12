@@ -57,6 +57,7 @@ from utility.utils import (decode_meta_from_url, update_tag_image,
 from .notification import *
 from .raw_queries import compute_rank
 from .serializers import *
+from .static_files import *
 from .tasks import send_email_to_nominated_admin, send_email_for_new_collabcard_posted, send_welcome_mail, \
     send_verification_mail_for_email_sync
 
@@ -6152,6 +6153,32 @@ def is_user_community_part(user_id):
         Q(state=member_states.MEMBER)|Q(state=member_states.KNOWN_NOMINATED_PROMOTER))
 
     return members_filter.exists()
+
+def limit_access(request):
+
+    '''function to limit the access of app and sending details on web screen'''
+
+    member_id = get_member_id_from_headers(request)
+    context ={}
+
+    context['header_image'] = LIMIT_ACCESS_HEADER_IMAGE
+    context['image'] = LIMIT_ACCESS_IMAGE
+    context['title'] = "You are on the waiting list!"
+    context['sub_title'] = "Your application to join this community has been submitted. You will have access to your community and other awesome features on this app as soon as you are approved."
+
+    members_filter =  Members.objects.filter(member_id=member_id).filter(state=member_states.PENDING_MEMBER)
+
+    community_list = []
+    for member in members_filter:
+        community_instance = member.community_id
+        temp = CommunitySerializer(community_instance)
+        community_list.append(temp)
+
+    context['communities'] = community_list
+
+
+    return JsonResponse(context)
+
 
 
 def get_state_of_community(community):
