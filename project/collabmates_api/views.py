@@ -6256,6 +6256,36 @@ def get_community_creator(community_instance):
 
     return created_by
 
+@csrf_exempt
+def skip_community(request):
+
+    '''api to skip the community'''
+    member_id = get_member_id_from_headers(request)
+    community_id = request.POST.get('community_id')
+
+    #adding the members data
+    member_filter = Members.objects.filter(member_id=member_id,community_id=community_id)
+    user_instance = User.objects.get(id=member_id)
+    community_instance = Community.objects.get(id=community_id)
+
+    if not member_filter.exists():
+        member_instance = Members()
+        member_instance.member_id = user_instance
+        member_instance.community_id = community_instance
+        member_instance.state = member_states.PROFILE_UNAVAILABLE
+        member_instance.created_at=time.time()
+        member_instance.save()
+
+    if not is_member_engage(community_id,member_id):
+        engage = Member_Engage()
+        engage.member_id = user_instance
+        engage.community_id = community_instance
+        engage.updated_at = time.time()
+        engage.member_state = member_states.PROFILE_UNAVAILABLE
+        engage.save()
+
+    return JsonResponse({'success':True})
+
 def get_state_of_community(community):
 
     if community.hide_community:
