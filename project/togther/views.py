@@ -224,17 +224,13 @@ def community(request, community_id):
 
     if aj and check_android_request(request):
 
-        # #private_link = "http://" + request.META['HTTP_HOST'] +"/community/"+str(community_id)+"?aj="+str(aj)
-        # private_link = "https://beta.likeminds.community/community/53?aj=123456"
+        private_link = "https://" + request.META['HTTP_HOST'] +"/community/"+str(community_id)+"?aj="+str(aj)
         # redirect_link =  android_app_download_link
         # #check = android_app_download_link+"&referrer=utm_source"+ quote("""utm_source=google &utm_medium=cpc &utm_term=checking &utm_content=testing &utm_campaign=spring_sale&private_link=https://beta.likeminds.community/community/53?aj=123456""")
         #
-        # check = android_app_download_link+"""&referrer=%s"""%(quote(private_link))
-        # print(check)
-        # # print("\n\n")
-        # # r=unquote(x)
-        # print(r)
-        return redirect(android_app_download_link)
+        playstore_ref_link = android_app_download_link+"""&referrer=%s"""%(quote(private_link))
+
+        return redirect(playstore_ref_link)
 
 
     is_member = False
