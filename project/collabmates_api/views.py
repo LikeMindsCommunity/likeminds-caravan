@@ -3830,7 +3830,7 @@ def ConvertSectoDay(n):
 
 
     if hour == 0 and minutes != 0:
-        
+
         if minutes == 1:
             time_text =  str(minutes) + " minute "
         else:
