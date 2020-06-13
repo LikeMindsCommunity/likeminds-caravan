@@ -136,6 +136,7 @@ body ::-webkit-scrollbar { display: none; }
 .fwL { font-weight:100!important; }
 .fwR { font-weight:400!important; }
 .fwM { font-weight:500!important; }
+.fwB { font-weight:bold!important; }
 
 .fR { float: right; }
 .fL { float: left; }
@@ -252,6 +253,7 @@ body ::-webkit-scrollbar { display: none; }
 .pt48 { padding-top: 48px; }
 
 .wsN { white-space: nowrap; }
+.wsPw { white-space: pre-wrap; }
 
 .toE { text-overflow: ellipsis; }
 .lc2 { -webkit-line-clamp: 2; }
@@ -318,6 +320,7 @@ body ::-webkit-scrollbar { display: none; }
 .r12 { right: 12px; }
 .b0 { bottom: 0; }
 .b12 { bottom: 12px; }
+.b60 { bottom: 60px; }
 .t0 { top: 0; }
 .t12 { top: 12px; }
 .t48 { top: 48px; }

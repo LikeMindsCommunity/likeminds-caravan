@@ -3780,13 +3780,18 @@ def get_collabcard_details_for_web(request,card_instance,card,current_user_id,an
 
         context = {
             'collabcard': card,
+            'community': community,
             'answers': answers,
             'header': header,
             'google_oauth_client_id': settings.GOOGLE_OAUTH_CLIENT_ID,
             'facebook_auth_id': settings.SOCIAL_AUTH_FACEBOOK_KEY,
             'firebase_config': settings.FIREBASE_CONFIG
         }
-        print(context)
+        # print(context)
+        if is_logged:
+            if current_user['collabcard_state'] == 0:
+                collabcards_seen_internal(card_instance.community.id, card_instance.id, card['type'], current_user_id)
+            context["current_user"] = current_user
         return context, "SIMPLE_CARD"
         #return render(request, 'collabcard.html', context)
 
@@ -3871,7 +3876,7 @@ def fetch_chatroom(request):
     context = get_chatroom_internal(request,card_instance,current_user_id,page,conversation_id,scroll_direction)
 
     if request.accepted_renderer.format == 'html' and conversation_id:
-        context['conversations'] = context['conversations'][::-1]
+        context['conversations'] = context['conversations']
         context = {
             'answers': context,
             'current_user': current_user

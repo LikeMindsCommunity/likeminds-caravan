@@ -332,11 +332,14 @@ def community(request, community_id):
                 else:
                     isFromEvent = request.GET.get('event', '')
                     isFromPoll = request.GET.get('poll', '')
+                    isCollabCard = request.GET.get('collabcard', '')
                     # if from event/poll page and already a member redirect to event/poll page
                     if isFromEvent:
                         return redirect("/collabcard/"+isFromEvent+"?email=true")
                     elif isFromPoll:
                         return redirect("/collabcard/"+isFromPoll+"?email=true")
+                    elif isCollabCard:
+                        return redirect("/collabcard/"+isCollabCard)
                     else:
                         pass
             else:
