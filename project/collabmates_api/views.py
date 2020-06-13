@@ -3765,7 +3765,7 @@ def get_collabcard_details_for_web(request,card_instance,card,current_user_id,an
         community = card_instance.community
 
         if request.user.is_authenticated:
-            header_back_link = "/dashboard"
+            header_back_link = "/community/"+str(community.id)
         else:
             header_back_link = ""
 

@@ -133,7 +133,7 @@
             <style>#scroll_state_0{display:none!important}#comments{padding-top:12px!important}</style>
             <div data-id="{{answer.id}}" class="chatID taC m160">
                 <div class="bgE br24 c6 dIb fs14 lh30 p012 vM">
-                    <a href="/member_profile/{{ answer.member.id }}" class="dIb vM c6 tdN">{{ answer.member.name }}</a>
+                    <a href="#" class="dIb vM c6 tdN">{{ answer.member.name }}</a>
                     <div class="dIb vM">started this chatroom in </div>
                     <a href="/community/{{community.id}}"class="dIb vM c6 tdN">{{ community.name }}</a>
                 </div>
@@ -267,9 +267,9 @@
                 {% endif %}
             </div>
         {% elif answer.state == 2 %}
-            <a href="/member_profile/{{ answer.member.id }}" data-id="{{answer.id}}" class="chatID taC m160 dB tdN"><div class="bgE br24 c6 dIb fs14 lh30 p012 vM">{{ answer.member.name }} follwed this chatroom</div></a>
+            <a href="#" data-id="{{answer.id}}" class="chatID taC m160 dB tdN"><div class="bgE br24 c6 dIb fs14 lh30 p012 vM">{{ answer.member.name }} follwed this chatroom</div></a>
         {% elif answer.state == 3 %}
-            <a href="/member_profile/{{ answer.member.id }}" data-id="{{answer.id}}" class="chatID taC m160 dB tdN"><div class="bgE br24 c6 dIb fs14 lh30 p012 vM">{{ answer.member.name }} unfollwed this chatroom</div></a>
+            <a href="#" data-id="{{answer.id}}" class="chatID taC m160 dB tdN"><div class="bgE br24 c6 dIb fs14 lh30 p012 vM">{{ answer.member.name }} unfollwed this chatroom</div></a>
         {% endif %}
     {% endfor %}
 {% endfor %}
