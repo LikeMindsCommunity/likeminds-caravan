@@ -6895,6 +6895,7 @@ def get_all_members(request, req_dict=None):
         community_id = request.GET.get('community_id')
         collabcard_id = request.GET.get('collabcard_id', None)
 
+
     else:
         community_id = req_dict['community_id']
         collabcard_id = req_dict['collabcard_id'] if 'collabcard_id' in req_dict else None
@@ -6907,8 +6908,7 @@ def get_all_members(request, req_dict=None):
     context = {}
     if collabcard_id:
         state_list = [collabcard_states.COLLABCARD_STATE_ATTEND_FOLLOWING,
-                      collabcard_states.COLLABCARD_STATE_ATTEND_UNFOLLOWING]
-
+                      collabcard_states.COLLABCARD_STATE_ATTEND_UNFOLLOWING,collabcard_states.COLLABCARD_STATE_FOLLOW]
         members = get_members_data_for_collabcard(collabcard_id, community_id, current_user_id,state_list,page_no=page)
         # print(members)
         context = {'members': members}
