@@ -3663,7 +3663,7 @@ def get_collabcard_details_for_web(request,card_instance,card,current_user_id,an
         # get members
         state_list = [collabcard_states.COLLABCARD_STATE_ATTEND_FOLLOWING,
                       collabcard_states.COLLABCARD_STATE_ATTEND_UNFOLLOWING]
-        members = get_members_data_for_collabcard(card_instance.id, card_instance.community.id, current_user_id, state_list)
+        members = get_members_data_for_collabcard(card_instance.id, card_instance.community.id, current_user_id)
 
 
 
