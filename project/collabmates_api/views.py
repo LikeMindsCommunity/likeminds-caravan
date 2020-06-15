@@ -6911,7 +6911,7 @@ def all_members(request):
     #print('in all members')
     '''function to send all members of community '''
 
-    context=get_all_members(request)
+    context = get_all_members(request)
 
     if request.accepted_renderer.format == 'html':
         print('in html')
@@ -6940,11 +6940,11 @@ def get_all_members(request, req_dict=None):
 
     # functionality for user filteration based on options
     context = {}
-    if collabcard_id:
+    if collabcard_id and is_request_web(request):
 
         members = get_members_data_for_collabcard(collabcard_id, community_id, current_user_id,page_no=page)
         # print(members)
-        context = {'members': members}
+        context = {'members': members['members']}
         return context
 
     is_filter = request.GET.get('is_filter', False)
@@ -6959,19 +6959,28 @@ def get_all_members(request, req_dict=None):
 
         if filter_list:
             filter_list = json.loads(filter_list)
-            info_logger.info(filter_list)
-            # filter_list =[{'question_id': '48219', 'value': 'Not Bowler'}, {'question_id': '48220', 'value': 'Middle order'}, {'question_id': '48219', 'value': 'Fast bowler'}, {'question_id': '48220', 'value': 'Tail hander'}]
+            #info_logger.info(filter_list)
             member_set = get_filtered_users(filter_list, member_list)
             members = get_member_instances(member_list, current_user_id, community_id, is_filter=is_filter,
                                            member_set=member_set)
+            if collabcard_id:
+                card_members = get_members_data_for_collabcard(collabcard_id, community_id, current_user_id, page_no = page)
+                members = get_collabcard_participants(members,card_members['participants'])
+
         else:
             # is_filter = False
-            member_list = Members.objects.filter(community_id=community_id).filter(
-                Q(state=member_states.ADMIN) | Q(state=member_states.MEMBER) | Q(
-                    state=member_states.KNOWN_NOMINATED_PROMOTER) | Q(state=member_states.PENDING_MEMBER)).order_by(
-                'id')
-            member_list = pagination(member_list, page, paginate_by=20)
-            members = get_member_instances(member_list, current_user_id, community_id)
+            if not collabcard_id:
+                member_list = Members.objects.filter(community_id=community_id).filter(
+                    Q(state=member_states.ADMIN) | Q(state=member_states.MEMBER) | Q(
+                        state=member_states.KNOWN_NOMINATED_PROMOTER) | Q(state=member_states.PENDING_MEMBER)).order_by(
+                    'id')
+                member_list = pagination(member_list, page, paginate_by=20)
+                members = get_member_instances(member_list, current_user_id, community_id)
+            else:
+                card_members = get_members_data_for_collabcard(collabcard_id, community_id, current_user_id, page_no = page)
+                print(card_members)
+                members = card_members['members']
+
 
 
     else:
@@ -6984,6 +6993,7 @@ def get_all_members(request, req_dict=None):
 
     context = {'members': members}
     return context
+
 
 def get_member_instances(member_list,current_user_id,community_id,is_filter=False,member_set=None):
 
@@ -7075,18 +7085,17 @@ def get_members_data_for_collabcard(card_id,community_id,current_user_id,page_no
         state_list = [collabcard_states.COLLABCARD_STATE_ATTEND_FOLLOWING,
                   collabcard_states.COLLABCARD_STATE_ATTEND_UNFOLLOWING]
     else:
-        state_list = [collabcard_states.COLLABCARD_STATE_FOLLOW]
+        state_list = [collabcard_states.COLLABCARD_STATE_FOLLOW,collabcard_states.COLLABCARD_STATE_ATTEND_FOLLOWING]
 
 
-    if state_list:
-        collabcard_state_list = collabcardState.objects.filter(card=card_id).filter(state__in=state_list).order_by('-id')
-    else:
-        collabcard_state_list = collabcardState.objects.filter(card=card_id)
+    print(state_list)
+    collabcard_state_list = collabcardState.objects.filter(card=card_id).filter(state__in=state_list).order_by('-id')
+
 
 
     collabcard_state_list = pagination(collabcard_state_list,page_no,paginate_by=20)
     members = []
-
+    collabcard_participants = []
     for instance in collabcard_state_list:
 
         user_instance = instance.user
@@ -7101,11 +7110,20 @@ def get_members_data_for_collabcard(card_id,community_id,current_user_id,page_no
             userinfo_serialized_object['question_answers'] = form_response[1]
 
         members.append(userinfo_serialized_object)
+        collabcard_participants.append(user_instance.id)
 
 
-    return members
+    return {'members':members,'participants':collabcard_participants}
 
 
+def get_collabcard_participants(all_members,collabcard_members):
+
+    collabcard_participants = []
+    for member in all_members:
+        if member['id'] in collabcard_members:
+            collabcard_participants.append(member)
+
+    return collabcard_participants
 
 
 #functionality for filters
