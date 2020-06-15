@@ -2004,13 +2004,14 @@ def create_community_version_1(request):
     #
     # log = """questions added in community questions table"""
     # info_logger.info(log)
-    communty_serailized_object = CommunitySerializer(community_instance)
+    communty_serailized_object = CommunitySerializer(community_instance,promoter_id=user_instance)
     return JsonResponse({'success':True,'community':communty_serailized_object})
 
+@csrf_exempt
 def create_community_questions(request):
 
     '''function to create community questions'''
-    res = request.body
+    res = json.loads(request.body)
 
     community_id = res['community_id']
     community_instance = Community.objects.get(id=community_id)
@@ -7006,10 +7007,6 @@ def get_all_members(request, req_dict=None):
                 if collabcard_id:
                     card_members = get_members_data_for_collabcard(collabcard_id, community_id, current_user_id, page_no = page)
                     members = get_collabcard_participants(members, card_members['participants'])
-
-                
-
-
 
     else:
         # is_filter = False
