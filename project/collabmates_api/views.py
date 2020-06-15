@@ -1428,7 +1428,7 @@ def update_community_actions(community_instance):
         elif instance.level == "Level 4" and instance.state == community_level_states.PENDING:
 
             if instance.joined_members < instance.max_members:
-                instance.state = community_level_states.COMPLETE
+                instance.joined_members = instance.joined_members + 1
                 instance.save()
 
             if instance.joined_members >= instance.max_members:
