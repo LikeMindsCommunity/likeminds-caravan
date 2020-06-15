@@ -566,3 +566,26 @@ def chatroomActionsSerializer(instance):
         temp['route']  = instance.route
 
     return temp
+
+
+
+
+def communityLevelsSerializer(instance):
+
+    temp = {}
+    temp['level_no'] = instance.level
+    temp['title'] = instance.title
+    temp['sub_title'] = instance.sub_title
+    temp['state'] = instance.state
+    temp['image'] = instance.image
+
+    if instance.joined_members != None:
+        temp['joined_members'] = instance.joined_members
+
+    if instance.max_members != None:
+        temp['max_members'] = instance.max_members
+
+    if instance.action:
+        temp['action'] = instance.action
+
+    return temp
