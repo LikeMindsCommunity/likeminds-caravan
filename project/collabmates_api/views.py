@@ -1387,6 +1387,12 @@ def update_community_actions(community_instance):
 
     '''function to update community actions steps'''
 
+    promoter_filter = Members.objects.filter(community_id=community_instance, state=member_states.ADMIN)
+
+    if promoter_filter.exists():
+        if not promoter_filter[0].actions_required:
+            return
+
     instance_list = communityLevels.objects.filter(community=community_instance).order_by('id')
     community_level_filter = instance_list
     for instance in instance_list:
@@ -1394,10 +1400,13 @@ def update_community_actions(community_instance):
         if instance.level == "Level 2" and instance.state == community_level_states.PENDING:
 
             if instance.joined_members < instance.max_members:
-                instance.update(joined_members=F(instance.joined_members)+1)
+                instance.joined_members = instance.joined_members + 1
+                instance.save()
+                #instance.update(joined_members=F(instance.joined_members)+1)
 
             if instance.joined_members >= instance.max_members:
-                instance.update(state=community_level_states.COMPLETE)
+                instance.state = community_level_states.COMPLETE
+                instance.save()
 
                 community_level_filter.filter(level="Level 3").update(title="Set up community directory",
                                                                       sub_title="Help members know each other. Give 10 members a community-specific identity.",
@@ -1410,17 +1419,22 @@ def update_community_actions(community_instance):
         elif instance.level == "Level 3" and instance.state == community_level_states.PENDING:
 
             if instance.joined_members < instance.max_members:
-                instance.update(joined_members=F(instance.joined_members)+1)
+                instance.joined_members = instance.joined_members + 1
+                instance.save()
 
             if instance.joined_members >= instance.max_members:
-                instance.update(state=community_level_states.COMPLETE)
+                instance.state = community_level_states.COMPLETE
+                instance.save()
         elif instance.level == "Level 4" and instance.state == community_level_states.PENDING:
 
             if instance.joined_members < instance.max_members:
-                instance.update(joined_members=F(instance.joined_members)+1)
+                instance.state = community_level_states.COMPLETE
+                instance.save()
 
             if instance.joined_members >= instance.max_members:
-                instance.update(state=community_level_states.COMPLETE)
+                instance.state = community_level_states.COMPLETE
+                promoter_filter.update(actions_required = False)
+                instance.save()
 
 
 
@@ -6368,23 +6382,7 @@ def members_state(request,req_dict=None):
 
         ref_members = get_referred_members_of_a_member(community_id, member_id)
 
-    # if state == 0:
-    #     '''checking if user DETAILS EXIST in temp admin table in case he is a newly registered user'''
-    #     user = Userinfo.objects.get(user_id=member_id)
-    #     community = get_object_or_404(Community, pk=community_id)
-    #     check = get_nominated_admin_details(community_id=community_id, email=user.email)
-    #     if check:
-    #         '''creating a new row in members table making current
-    #         user a nominated promoter of this community,if he is a newly
-    #         registered user and his details are present in temp admin table'''
-    #         member = Members()
-    #         member.member_id = user.user_id
-    #         member.community_id = community
-    #         member.state = 6
-    #         member.save()
-    #         state = 6
-    #     else:
-    #         state = 0
+
     referred_members_count=len(ref_members)
     tool_unlock_sub_title=""
     if referred_members_count == 0:
@@ -6450,51 +6448,33 @@ def members_state(request,req_dict=None):
 
     if state == member_states.ADMIN and (community_state == community_states.PRIVATE or community_state ==  community_states.WHATSAPP or community_state == community_states.HIDDEN):
         if actions_required:
-            json_response['create_community_action'] = get_create_community_actions(community_id)
+            promoter_name = query_set[0].member_id.userinfo.name
+            json_response['community_levels'] = get_create_community_actions(community_id,promoter_name)
 
     if req_dict:
         return json_response
     return JsonResponse(json_response)
 
 
-def get_create_community_actions(community_id):
+def get_create_community_actions(community_id,promoter_name):
+
+    level_filter = communityLevels.objects.filter(community=community_id).order_by('id')
+
+    actions = {}
+    levels =  []
+
+    actions['header'] = """Welcome to your community, %s"""%(promoter_name)
+    actions['sub_header'] = "Now, step-by-step, complete each level to unlock the full potential of your community."
+
+    for level in level_filter:
+        temp = communityLevelsSerializer(level)
+        levels.append(temp)
+
+    actions['levels'] = levels
+
+    return actions
 
 
-    step_list = createCommunityAction.objects.filter(community=community_id).order_by('id')
-    actions = []
-    current_point_sum = 0
-    max_point_sum = 0
-    for step in step_list:
-        temp = createCommunityActionSerializer(step)
-
-        if temp['step_no'] == "Step 3" or temp['step_no'] == "Step 4":
-            temp['current_point_value'] = step.current_point_value
-
-        current_point_sum = current_point_sum + temp['current_point']
-        max_point_sum = max_point_sum + temp['max_point']
-        actions.append(temp)
-
-    if current_point_sum == max_point_sum:
-        create_community_action = {
-            'community_id': community_id,
-            'toast_title': "Congrats! Community actions completed",
-            'toast_action': "DISMISS",
-
-        }
-
-    else:
-        create_community_action={
-            'community_id': community_id,
-            'toast_title': "Actions needed for community.",
-            'toast_action': "TAKE ACTION",
-
-            'header' : "Community actions needed",
-            'actions': actions,
-            'bottom_bar_title':"We recommend you to complete all the steps above.",
-            'current_point_sum' : current_point_sum
-
-        }
-    return create_community_action
 
 @csrf_exempt
 def dismiss(request):
