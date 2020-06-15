@@ -57,8 +57,6 @@ from utility.utils import (decode_meta_from_url, update_tag_image,
 from .notification import *
 from .raw_queries import compute_rank
 from .serializers import *
-from .static_images import *
-from .state_enums import *
 from .static_files import *
 from .tasks import send_email_to_nominated_admin, send_email_for_new_collabcard_posted, send_welcome_mail, \
     send_verification_mail_for_email_sync
