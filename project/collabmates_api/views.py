@@ -269,6 +269,8 @@ def your_communities(request, user_id):
         if community['state'] != community_states.DELETED:
             my_community.append(community)
 
+        community['click_state'] = each_community.click_state
+
     return JsonResponse({'your_communities': my_community})
 
 
@@ -1103,7 +1105,7 @@ def join_promoter_created_community_version_1(res,request):
             generate_private_link(community_instance, user_instance)
 
             Member_Engage.objects.filter(member_id=user_instance, community_id=community_instance).update(
-                member_referral="")
+                member_referral="",click_state = click_states.DEFAULT)
         else:
 
             Members.objects.filter(member_id=user_instance, community_id=community_instance).update(
@@ -1128,6 +1130,7 @@ def join_promoter_created_community_version_1(res,request):
         engage.community_id = community_instance
         engage.updated_at = time.time()
         engage.member_state = member_states.PENDING_MEMBER
+        engage.click_state = click_states.PENDING_APPROVAL
         engage.save()
         update_pending_member_count_in_engage(community_instance)
         send_notification_to_admins.delay(community_id, user_instance.userinfo.name)
@@ -1209,7 +1212,7 @@ def join_whatsapp_community(res,request):
             generate_private_link(community_instance,user_instance)
 
             Member_Engage.objects.filter(member_id=user_instance, community_id=community_instance).update(
-                member_referral="")
+                member_referral="",click_state = click_states.DEFAULT)
         else:
 
             Members.objects.filter(member_id=user_instance,community_id=community_instance).update(
@@ -1234,6 +1237,7 @@ def join_whatsapp_community(res,request):
         engage.community_id = community_instance
         engage.updated_at = time.time()
         engage.member_state = member_states.PENDING_MEMBER
+        engage.click_state = click_states.PENDING_APPROVAL
         engage.save()
         update_pending_member_count_in_engage(community_instance)
         send_notification_to_admins.delay(community_id,user_instance.userinfo.name)
@@ -1978,6 +1982,7 @@ def create_community_version_1(request):
     engage.updated_at = time.time()
     engage.member_state = member_states.ADMIN
     engage.member_referral = "Finish setting up your community"
+    engage.click_state = click_states.SET_COMMUNITY
     engage.save()
 
 
@@ -1985,23 +1990,44 @@ def create_community_version_1(request):
     log = """%s is the promoter of %s"""%(user_instance.userinfo.name,community_instance.name)
     info_logger.info(log)
 
-    if 'questions' in res:
-        for question in res['questions']:
-
-            questions_instance=communityQuestions()
-            questions_instance.community=community_instance
-            questions_instance.question_title=question['question_title']
-            questions_instance.question_state=question['state']
-            questions_instance.value = question['value'] if 'value' in question else None
-            questions_instance.optional=question['optional']
-            questions_instance.help_text = question['help_text'] if 'help_text' in question else None
-            questions_instance.save()
-
-    log = """questions added in community questions table"""
-    info_logger.info(log)
+    # if 'questions' in res:
+    #     for question in res['questions']:
+    #
+    #         questions_instance=communityQuestions()
+    #         questions_instance.community=community_instance
+    #         questions_instance.question_title=question['question_title']
+    #         questions_instance.question_state=question['state']
+    #         questions_instance.value = question['value'] if 'value' in question else None
+    #         questions_instance.optional=question['optional']
+    #         questions_instance.help_text = question['help_text'] if 'help_text' in question else None
+    #         questions_instance.save()
+    #
+    # log = """questions added in community questions table"""
+    # info_logger.info(log)
     communty_serailized_object = CommunitySerializer(community_instance)
     return JsonResponse({'success':True,'community':communty_serailized_object})
 
+def create_community_questions(request):
+
+    '''function to create community questions'''
+    res = request.body
+
+    community_id = res['community_id']
+    community_instance = Community.objects.get(id=community_id)
+
+    if 'questions' in res:
+        for question in res['questions']:
+            questions_instance = communityQuestions()
+            questions_instance.community = community_instance
+            questions_instance.question_title = question['question_title']
+            questions_instance.question_state = question['state']
+            questions_instance.value = question['value'] if 'value' in question else None
+            questions_instance.optional = question['optional']
+            questions_instance.help_text = question['help_text'] if 'help_text' in question else None
+            questions_instance.save()
+
+
+    return JsonResponse({'success':True})
 
 
 def update_community(res):
@@ -3379,7 +3405,7 @@ def approve_or_decline_whatsapp_community(req_dict,request):
 
             Member_Engage.objects.filter(member_id=req_dict['member_id'],
                                          community_id=req_dict['community_id']).update(member_state=member_states.MEMBER,
-                                                                                       updated_at=time.time())
+                                                                                       updated_at=time.time(),click_state=click_states.DEFAULT)
 
             # updating pending member count
             community = Community.objects.get(id=req_dict['community_id'])
@@ -3432,7 +3458,8 @@ def approve_or_decline_private_community(req_dict,request):
 
             Member_Engage.objects.filter(member_id=req_dict['member_id'],
                                          community_id=req_dict['community_id']).update(member_state=member_states.MEMBER,
-                                                                                       updated_at=time.time())
+                                                                                       updated_at=time.time(),click_state = click_states.DEFAULT)
+
 
             # updating pending member count
             community = Community.objects.get(id=req_dict['community_id'])
@@ -6969,17 +6996,18 @@ def get_all_members(request, req_dict=None):
 
         else:
             # is_filter = False
-            if not collabcard_id:
                 member_list = Members.objects.filter(community_id=community_id).filter(
                     Q(state=member_states.ADMIN) | Q(state=member_states.MEMBER) | Q(
                         state=member_states.KNOWN_NOMINATED_PROMOTER) | Q(state=member_states.PENDING_MEMBER)).order_by(
                     'id')
                 member_list = pagination(member_list, page, paginate_by=20)
                 members = get_member_instances(member_list, current_user_id, community_id)
-            else:
-                card_members = get_members_data_for_collabcard(collabcard_id, community_id, current_user_id, page_no = page)
-                print(card_members)
-                members = card_members['members']
+
+                if collabcard_id:
+                    card_members = get_members_data_for_collabcard(collabcard_id, community_id, current_user_id, page_no = page)
+                    members = get_collabcard_participants(members, card_members['participants'])
+
+                
 
 
 

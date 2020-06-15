@@ -382,6 +382,8 @@ class Member_Engage(models.Model):
     member_referral = models.CharField(default='', max_length=1024)
     member_state = models.IntegerField(null=True)
 
+    click_state = models.IntegerField(default=0)
+
 
 # community lpig
 

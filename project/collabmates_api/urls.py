@@ -19,8 +19,11 @@ urlpatterns = [
 
 
     path('v1/create_community',api_views.create_community_version_1,name='create_community_version_1'),
+    path('v1/create_community_questions',api_views.create_community_questions,name='create_community_questions'),
     path('v1/edit_questions', api_views.edit_questions_version_1,
          name="edit_questions_version_1"),
+
+
     path('dismiss', api_views.dismiss,name="dismiss"),
 
 
