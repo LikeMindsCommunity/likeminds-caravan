@@ -24,7 +24,7 @@ from utility.utils import (get_city_address, update_tag_image,
                            is_request_android, is_request_ios,
                            is_request_pc, android_app_download_link, is_IG_community, ios_app_download_link,is_member_verified,feedback_community_id,decode_option)
 from utility.firebase import upload_image_to_firebase
-from urllib.parse import urlencode, quote
+from urllib.parse import urlencode, quote,unquote
 from collabmates_api.tasks import send_email
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from user_agents import parse
@@ -219,6 +219,20 @@ def get_user_communities(request):
 
 def community(request, community_id):
 
+
+    aj = request.GET.get('aj', False)                           #auto join check functionality
+
+    if aj and check_android_request(request):
+
+        private_link = "https://" + request.META['HTTP_HOST'] +"/community/"+str(community_id)+"?aj="+str(aj)
+        # redirect_link =  android_app_download_link
+        # #check = android_app_download_link+"&referrer=utm_source"+ quote("""utm_source=google &utm_medium=cpc &utm_term=checking &utm_content=testing &utm_campaign=spring_sale&private_link=https://beta.likeminds.community/community/53?aj=123456""")
+        #
+        playstore_ref_link = android_app_download_link+"""&referrer=%s"""%(quote(private_link))
+        print(playstore_ref_link)
+        return redirect(playstore_ref_link)
+
+
     is_member = False
     if request.user.is_authenticated:
         try:
@@ -318,11 +332,14 @@ def community(request, community_id):
                 else:
                     isFromEvent = request.GET.get('event', '')
                     isFromPoll = request.GET.get('poll', '')
+                    isCollabCard = request.GET.get('collabcard', '')
                     # if from event/poll page and already a member redirect to event/poll page
                     if isFromEvent:
                         return redirect("/collabcard/"+isFromEvent+"?email=true")
                     elif isFromPoll:
                         return redirect("/collabcard/"+isFromPoll+"?email=true")
+                    elif isCollabCard:
+                        return redirect("/collabcard/"+isCollabCard)
                     else:
                         pass
             else:

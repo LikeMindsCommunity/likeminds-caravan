@@ -1,13 +1,13 @@
 {% regroup answers.conversations by date as groupedByDate %}
 {% for groupDate in groupedByDate %}
-    <div class="taC m160"><div class="bgE br24 c6 dIb fs14 lh30 p012 vM">{{ groupDate.grouper }}</div></div>
+    <div class="taC m160" data-date="{{ groupDate.grouper }}"><div class="bgE br24 c6 dIb fs14 lh30 p012 vM">{{ groupDate.grouper }}</div></div>
     {% for answer in groupDate.list %}
         {% if answer.state == 0 %}
             {% if answer.member.id == current_user.id %}
                 <div data-id="{{answer.id}}" class="chatID dT wp100 pb12 bs">
                     <div class="dTc vB w48"></div>
                     <div class="dTc vB taR">
-                        <div class="dIb message sent vM wbBa mxwp100 bxs">
+                        <div class="dIb message sent vM wbBa mxwp100 bxs taR">
                             <div class="fs0 mxw360">
                                 <div class="pR">
                                     {% for image in answer.images %}
@@ -24,7 +24,7 @@
                                     {% if  answer.images|length > 0 %}
                                         <div class="pA t0 b0 l0 r0 openVewOverlay">
                                             {% if answer.images|length > 4 %}
-                                                <div>{{ answer.images|length }}</div>
+                                                <div class="plusCon bg0o05 cF taC">+ {{ answer.images|length|add:"-3" }}</div>
                                             {% endif %}
                                         </div>
                                     {% endif %}
@@ -44,13 +44,13 @@
                                     {% if  answer.pdf|length > 0 %}
                                         <div class="pA t0 b0 l0 r0 openVewOverlay">
                                             {% if answer.pdf|length > 4 %}
-                                                <div>{{ answer.pdf|length }}</div>
+                                                <div class="plusCon bg0o05 cF taC">+ {{ answer.pdf|length|add:"-3" }}</div>
                                             {% endif %}
                                         </div>
                                     {% endif %}
                                 </div>
                             </div>
-                            <div class="bs dIb p8 vM answerText">{{ answer.answer }}</div>
+                            <div class="bs dIb p8 vB answerText wsPw taL">{{ answer.answer }}</div>
                             <span class="metadata">
                                 <span class="time dIb fs12 c9b p8 bs">{{ answer.created_at }}</span>
                                 <!-- <span class="tick">
@@ -71,8 +71,8 @@
                         <img class="bd2F brp50 bs bxs dB h48 w48" src="{{ answer.member.image_url }}">
                     </div>
                     <div class="dTc vB pl12 bs">
-                        <div class="dIb message received vM wbBa mxwp100 bxs">
-                            <div class="bs c6 fwM p8 pb0 fs12">{{answer.member.name}}</div>
+                        <div class="dIb message received vM wbBa mxwp100 bxs taR">
+                            <div class="bs c6 fwM p8 pb0 fs12 taL fwB c06C3AF">{{answer.member.name}}</div>
                             <div class="fs0 mxw360">
                                 <div class="pR">
                                     {% for image in answer.images %}
@@ -89,7 +89,7 @@
                                     {% if  answer.images|length > 0 %}
                                         <div class="pA t0 b0 l0 r0 openVewOverlay">
                                             {% if answer.images|length > 4 %}
-                                                <div>{{ answer.images|length }}</div>
+                                                <div class="plusCon bg0o05 cF taC">+ {{ answer.images|length|add:"-3" }}</div>
                                             {% endif %}
                                         </div>
                                     {% endif %}
@@ -109,13 +109,13 @@
                                     {% if  answer.pdf|length > 0 %}
                                         <div class="pA t0 b0 l0 r0 openVewOverlay">
                                             {% if answer.pdf|length > 4 %}
-                                                <div>{{ answer.pdf|length }}</div>
+                                                <div class="plusCon bg0o05 cF taC">+ {{ answer.pdf|length|add:"-3" }}</div>
                                             {% endif %}
                                         </div>
                                     {% endif %}
                                 </div>
                             </div>
-                            <div class="bs dIb p8 vM answerText">{{ answer.answer }}</div>
+                            <div class="bs dIb p8 vB answerText wsPw taL">{{ answer.answer }}</div>
                             <span class="metadata">
                                 <span class="time dIb fs12 c9b p8 bs">{{ answer.created_at }}</span>
                                 <!-- <span class="tick">
@@ -131,10 +131,16 @@
             {% endif %}
         {% elif answer.state == 1 %}
             <style>#scroll_state_0{display:none!important}#comments{padding-top:12px!important}</style>
-            <a href="/member_profile/{{ answer.member.id }}" data-id="{{answer.id}}" class="chatID taC m160 dB tdN"><div class="bgE br24 c6 dIb fs14 lh30 p012 vM">{{ answer.member.name }} started this chatroom in {{ answers.chatroom.title }}</div></a>
+            <div data-id="{{answer.id}}" class="chatID taC m160">
+                <div class="bgE br24 c6 dIb fs14 lh30 p012 vM">
+                    <a href="#" class="dIb vM c6 tdN">{{ answer.member.name }}</a>
+                    <div class="dIb vM">started this chatroom in </div>
+                    <a href="/community/{{community.id}}"class="dIb vM c6 tdN">{{ community.name }}</a>
+                </div>
+            </div>
             <div>
                 {% if answers.chatroom.member.id == current_user.id %}
-                    <div class="dT wp100 pb12 bs">
+                    <div class="dT wp100 pb12 bs yy">
                         <div class="dTc vB w48"></div>
                         <div class="dTc vB taR">
                             <div class="dIb message sent vM wbBa mxwp100 bxs">
@@ -154,7 +160,7 @@
                                         {% if  answers.chatroom.images|length > 0 %}
                                             <div class="pA t0 b0 l0 r0 openVewOverlay">
                                                 {% if answers.chatroom.images|length > 4 %}
-                                                    <div>{{ answer.images|length }}</div>
+                                                    <div class="plusCon bg0o05 cF taC">+ {{ answer.images|length|add:"-3" }}</div>
                                                 {% endif %}
                                             </div>
                                         {% endif %}
@@ -174,13 +180,13 @@
                                         {% if  answers.chatroom.pdf|length > 0 %}
                                             <div class="pA t0 b0 l0 r0 openVewOverlay">
                                                 {% if answers.chatroom.pdf|length > 4 %}
-                                                    <div>{{ answers.chatroom.pdf|length }}</div>
+                                                    <div class="plusCon bg0o05 cF taC">+ {{ answers.chatroom.pdf|length|add:"-3" }}</div>
                                                 {% endif %}
                                             </div>
                                         {% endif %}
                                     </div>
                                 </div>
-                                <div class="bs dIb p8 vM answerText">{{ answers.chatroom.answer_text }}</div>
+                                <div class="bs dIb p8 vB answerText wsPw taL">{{ answers.chatroom.title }}</div>
                                 <span class="metadata">
                                     <span class="time dIb fs12 c9b p8 bs">{{ answers.chatroom.card_creation_time }}</span>
                                     <!-- <span class="tick">
@@ -196,13 +202,13 @@
                         </div>
                     </div>
                 {% else %}
-                    <div class="dT wp100 pb12 bs">
+                    <div class="dT wp100 pb12 bs bb">
                         <div class="dTc vB w48 h48 member_link" member_id="{{answers.chatroom.member.id}}">
                             <img class="bd2F brp50 bs bxs dB h48 w48" src="{{ answers.chatroom.member.image_url }}">
                         </div>
                         <div class="dTc vB pl12 bs">
                             <div class="dIb message received vM wbBa mxwp100 bxs">
-                                <div class="bs c6 fwM p8 pb0 fs12">{{answers.chatroom.member.name}}</div>
+                                <div class="bs c6 fwM p8 pb0 fs12 fwB c06C3AF">{{answers.chatroom.member.name}}</div>
                                 <div class="fs0 mxw360">
                                     <div class="pR">
                                         {% for image in answers.chatroom.images %}
@@ -219,7 +225,7 @@
                                         {% if  answers.chatroom.images|length > 0 %}
                                             <div class="pA t0 b0 l0 r0 openVewOverlay">
                                                 {% if answers.chatroom.images|length > 4 %}
-                                                    <div>{{ answers.chatroom.images|length }}</div>
+                                                    <div class="plusCon bg0o05 cF taC">+ {{ answers.chatroom.images|length|add:"-3" }}</div>
                                                 {% endif %}
                                             </div>
                                         {% endif %}
@@ -239,13 +245,13 @@
                                         {% if  answers.chatroom.pdf|length > 0 %}
                                             <div class="pA t0 b0 l0 r0 openVewOverlay">
                                                 {% if answers.chatroom.pdf|length > 4 %}
-                                                    <div>{{ answers.chatroom.pdf|length }}</div>
+                                                    <div class="plusCon bg0o05 cF taC">+ {{ answers.chatroom.pdf|length|add:"-3" }}</div>
                                                 {% endif %}
                                             </div>
                                         {% endif %}
                                     </div>
                                 </div>
-                                <div class="bs dIb p8 vM answerText">{{ answers.chatroom.answer_text }}</div>
+                                <div class="bs dIb p8 vB answerText wsPw taL">{{ answers.chatroom.title }}</div>
                                 <span class="metadata">
                                     <span class="time dIb fs12 c9b p8 bs">{{ answers.chatroom.card_creation_time }}</span>
                                     <!-- <span class="tick">
@@ -261,9 +267,26 @@
                 {% endif %}
             </div>
         {% elif answer.state == 2 %}
-            <a href="/member_profile/{{ answer.member.id }}" data-id="{{answer.id}}" class="chatID taC m160 dB tdN"><div class="bgE br24 c6 dIb fs14 lh30 p012 vM">{{ answer.member.name }} follwed this chatroom</div></a>
+            <a href="#" data-id="{{answer.id}}" class="chatID taC m160 dB tdN"><div class="bgE br24 c6 dIb fs14 lh30 p012 vM">{{ answer.member.name }} follwed this chatroom</div></a>
         {% elif answer.state == 3 %}
-            <a href="/member_profile/{{ answer.member.id }}" data-id="{{answer.id}}" class="chatID taC m160 dB tdN"><div class="bgE br24 c6 dIb fs14 lh30 p012 vM">{{ answer.member.name }} unfollwed this chatroom</div></a>
+            <a href="#" data-id="{{answer.id}}" class="chatID taC m160 dB tdN"><div class="bgE br24 c6 dIb fs14 lh30 p012 vM">{{ answer.member.name }} unfollwed this chatroom</div></a>
         {% endif %}
     {% endfor %}
 {% endfor %}
+
+{% if answers.chatroom.show_follow_telescope %}
+    <div class="mb36 mt48 taC" id="followChat" id="follow_poll" data-status="{% if current_user.collabcard_state == 2 or current_user.collabcard_state == 3 %}false{% else %}true{% endif %}">
+        <img src="https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Ffollow_icon.png?alt=media&amp;token=6a4641fe-4ab2-4e21-b235-8d820a67843b">
+        <div class="c6 fs14 lh18 mA p160 w228">
+            Track this conversation by following this chatroom.
+        </div>
+        <div class="bg06C3AF br10 bs cF dIb mA p016 p024 vM wsN">
+            <div class="dIb h36 vM">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="dIb h36 vM w24">
+                    <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2zm-2 1H8v-6c0-2.48 1.51-4.5 4-4.5s4 2.02 4 4.5v6z"></path>
+                </svg>
+            </div>
+            <div class="bs dIb fs16 lh44 pl12 vM" id="follow_poll">Follow</div>
+        </div>
+    </div>
+{% endif %}

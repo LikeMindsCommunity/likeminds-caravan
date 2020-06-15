@@ -144,6 +144,37 @@
         $('.answerText').removeClass('answerText');
         window.fetching_chatroom = null;
         $('#comments').scrollTop($('#comments')[0].scrollHeight);
+        $(document.body).on('click','#follow_poll',function(e){
+            {% if request.user.is_authenticated %}
+                {% if member_state.state == 0 %}
+                    $(".ldrT", $('#loader')[0]).text("Making request...");
+                    $('#loader').show();
+                    window.location.href = "/community/{{community.id}}?cta=join&poll={{collabcard.id}}";
+                {% elif member_state.state == 3 %}
+                    $('#add_email_pop').modal('show');
+                {% else %}
+                    var status = true;//$(this).attr('data-status');
+                    // console.log(status)
+                    $(".ldrT", $('#loader')[0]).text(`Requesting to follow chatroom...`);
+                    $('#loader').show();
+                    $.ajax({
+                        url: "/api/collabcard_follow",
+                        data: {collabcard_id: {{collabcard.id}}, member_id: {{current_user.id}}, value: status},
+                        type: "GET",
+                        dataType: 'json',
+                        success: function(data) {
+                            $('#followChat').hide();
+                            $('#loader').hide();
+                        },
+                        error: function(){
+                            $('#loader').hide();
+                        }
+                    })
+                {% endif %}
+            {% else %}
+                $('.test').modal('show');
+            {% endif %}
+        });
     })
 
     $.fn.isInViewport = function() {
@@ -163,7 +194,9 @@
         if ($('#comments').isInViewport()) {
             $('#bottomButton').hide();
             $('.chatInput').show();
-            fetch_chatroom(1)
+            {% if request.user.is_authenticated %}
+                fetch_chatroom(1)
+            {% endif %}
         } else {
             $('#bottomButton').show();
             $('.chatInput').hide();
@@ -187,7 +220,7 @@
             $('#viewOverlayAll .media').html('');
             $('.imgView', parent[0]).each(function(){
                 $('#viewOverlayAll .media').append(
-                    `<div><img src="${$(this).attr('src')}" class="imgSview m8A mxw960 mxwp100"></div>`
+                    `<div><img src="${$(this).attr('src')}" class="imgSview m8A mxw960 wp100"></div>`
                 );
             });
             $('.pdfView', parent[0]).each(function(){

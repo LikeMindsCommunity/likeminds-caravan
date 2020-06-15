@@ -708,6 +708,8 @@
                             location.href = "/collabcard/{{request.GET.event}}?email=true";
                         {% elif request.GET.poll %}
                             location.href = "/collabcard/{{request.GET.poll}}?email=true";
+                        {% elif request.GET.collabcard %}
+                            location.href = "/collabcard/{{request.GET.collabcard}}?email=true";
                         {% else %}
                             {% if community.hide_community == '5' %}
                                 location.href="/community/"+'{{community.id}}?profile='+{{request.user.id}};

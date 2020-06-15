@@ -63,6 +63,8 @@ urlpatterns = [
 
 
     path('fetch_info', api_views.fetch_info, name='fetch_info'),
+    path('limit_access', api_views.limit_access, name='limit_access'),
+    path('skip_community', api_views.skip_community, name='skip_community'),
 
     path('members_state',api_views.members_state,name='members_state'),
     path('edit_member_profile',api_views.edit_member_profile,name='edit_member_profile'),

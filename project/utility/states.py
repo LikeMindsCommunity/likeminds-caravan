@@ -55,7 +55,7 @@ class MemberStates:
     UNKNOWN_NOMINATED_PROMOTER = 6
     KNOWN_NOMINATED_PROMOTER = 7
     INTERESTED_MEMBER = 8
-    ELIGIBLE_MEMBER = 9
+    PROFILE_UNAVAILABLE = 9
 
 member_states = MemberStates()
 
