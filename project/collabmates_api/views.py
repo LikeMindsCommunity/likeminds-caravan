@@ -882,8 +882,8 @@ def join_community_responses_version_1(request):
     elif is_private:
         info_logger.info("Inside private\n")
         join_promoter_created_community_version_1(res, request)
-        new_member_request.delay(member_id=user_id, community_id=community_id, ref_id=ref_id,
-                                 form_response=res['questions'])
+        # new_member_request.delay(member_id=user_id, community_id=community_id, ref_id=ref_id,
+        #                          form_response=res['questions'])
 
     return JsonResponse({'success': True})
 
@@ -1084,8 +1084,8 @@ def join_promoter_created_community_version_1(res,request):
                 auto_join_community(community_instance, user_instance)
                 post_introduction_card_for_community(community_id, member_id, request)
 
-                # saving create community action step 3
-                update_community_actions(community_instance, step_no="Step 3", increment=5)
+                # saving create community action level3
+                update_community_actions(community_instance)
 
                 log = """Auto join community for community_id=%s for user=%s""" % (community_id, member_id)
                 info_logger.info(log)
@@ -1187,7 +1187,7 @@ def join_whatsapp_community(res,request):
                 post_introduction_card_for_community(community_id, member_id, request)
 
                 #saving create community action step 3
-                update_community_actions(community_instance,step_no="Step 3",increment=5)
+                update_community_actions(community_instance)
 
 
                 log="""Auto join community for community_id=%s for user=%s"""%(community_id,member_id)
@@ -1383,18 +1383,50 @@ def creating_collabcard_for_lg_communities(community,user,introduction_answer,re
 
 
 
-def update_community_actions(community_instance,step_no,increment):
+def update_community_actions(community_instance):
 
     '''function to update community actions steps'''
 
-    instance_list = createCommunityAction.objects.filter(community=community_instance,
-                                                         step_no=step_no)
-    if instance_list.exists():
-        instance = instance_list[0]
-        instance.current_point = instance.current_point + increment if (
-                    instance.current_point < instance.max_point) else instance.current_point
-        instance.current_point_value = instance.current_point_value + 1
-        instance.save()
+    instance_list = communityLevels.objects.filter(community=community_instance).order_by('id')
+    community_level_filter = instance_list
+    for instance in instance_list:
+
+        if instance.level == "Level 2" and instance.state == community_level_states.PENDING:
+
+            if instance.joined_members < instance.max_members:
+                instance.update(joined_members=F(instance.joined_members)+1)
+
+            if instance.joined_members >= instance.max_members:
+                instance.update(state=community_level_states.COMPLETE)
+
+                community_level_filter.filter(level="Level 3").update(title="Set up community directory",
+                                                                      sub_title="Help members know each other. Give 10 members a community-specific identity.",
+                                                                      state = community_level_states.PENDING)
+
+                community_level_filter.filter(level="Level 4").update(title="Invite new member applications",
+                                                                      sub_title="Grow your community. Start social sharing and approve 10 new members.",
+                                                                      state=community_level_states.PENDING)
+
+        elif instance.level == "Level 3" and instance.state == community_level_states.PENDING:
+
+            if instance.joined_members < instance.max_members:
+                instance.update(joined_members=F(instance.joined_members)+1)
+
+            if instance.joined_members >= instance.max_members:
+                instance.update(state=community_level_states.COMPLETE)
+        elif instance.level == "Level 4" and instance.state == community_level_states.PENDING:
+
+            if instance.joined_members < instance.max_members:
+                instance.update(joined_members=F(instance.joined_members)+1)
+
+            if instance.joined_members >= instance.max_members:
+                instance.update(state=community_level_states.COMPLETE)
+
+
+
+
+
+
 
 
 def save_user_selected_options(question_instance,user_instance,community_instance,selected_choices):
@@ -1934,38 +1966,26 @@ def create_community_version_1(request):
     engage.member_referral = "Finish setting up your community"
     engage.save()
 
-    #completing the first community action
-    createCommunityAction.objects.filter(community=community_instance,step_no="Step 1").update(current_point=10)
+
 
     log = """%s is the promoter of %s"""%(user_instance.userinfo.name,community_instance.name)
     info_logger.info(log)
 
+    if 'questions' in res:
+        for question in res['questions']:
 
-    for question in res['questions']:
-
-        questions_instance=communityQuestions()
-        questions_instance.community=community_instance
-        questions_instance.question_title=question['question_title']
-        questions_instance.question_state=question['state']
-        questions_instance.value = question['value'] if 'value' in question else None
-        questions_instance.optional=question['optional']
-        questions_instance.help_text = question['help_text'] if 'help_text' in question else None
-        questions_instance.save()
+            questions_instance=communityQuestions()
+            questions_instance.community=community_instance
+            questions_instance.question_title=question['question_title']
+            questions_instance.question_state=question['state']
+            questions_instance.value = question['value'] if 'value' in question else None
+            questions_instance.optional=question['optional']
+            questions_instance.help_text = question['help_text'] if 'help_text' in question else None
+            questions_instance.save()
 
     log = """questions added in community questions table"""
     info_logger.info(log)
-
-
-    # check_data=communityExpire.objects.filter(community=community_instance)
-    # if not check_data:
-    #     communityExpireInstance=communityExpire()
-    #     communityExpireInstance.community=community_instance
-    #     communityExpireInstance.duration = 86400                  #for 24 hours saving in community
-    #     communityExpireInstance.save()
-
     communty_serailized_object = CommunitySerializer(community_instance)
-
-
     return JsonResponse({'success':True,'community':communty_serailized_object})
 
 
@@ -2042,61 +2062,56 @@ def set_community_actions(community_instance):
 
     '''function to set community action for community profiling'''
 
-    action_status = createCommunityAction.objects.filter(community=community_instance)
+    action_status = communityLevels.objects.filter(community=community_instance)
 
     if not action_status:
 
-        #first step
-        instance = createCommunityAction()
+        #first level
+        instance = communityLevels()
         instance.community = community_instance
-        instance.step_no = "Step 1"
-        instance.step_title = "Create community with basic details"
-        instance.max_point = 10
-        instance.current_point = 0
-        instance.step_subtitle = None
+        instance.level = "Level 1"
+        instance.title = "Create onboarding room"
+        instance.sub_title = "Break the ice for new members. Tell what this community stands for."
+        instance.state = community_level_states.COMPLETE
+        instance.image = IMAGE_LEVEL_1
         instance.save()
 
-        #second step
-        instance = createCommunityAction()
+        #second level
+        instance = communityLevels()
         instance.community = community_instance
-        instance.step_no = "Step 2"
-        instance.step_title = "Add Banner to your community"
-        instance.max_point = 10
-        instance.current_point = 0
-        instance.step_subtitle = None
+        instance.level = "Level 2"
+        instance.title = "Invite your inner circle"
+        instance.sub_title = "Bring 5 trusted people you want to build this community with."
+        instance.joined_members = 0
+        instance.max_members = 5
+        instance.state = community_level_states.PENDING
+        instance.image = IMAGE_LEVEL_2
         instance.save()
 
-        #third step
-        instance = createCommunityAction()
+        #third level
+        instance = communityLevels()
         instance.community = community_instance
-        instance.step_no = "Step 3"
-        instance.step_title = "Invite your inner circle"
-        instance.max_point = 25
-        instance.current_point = 0
-        instance.step_subtitle = "Add at-least 5 pre-approved members privately."
+        instance.level = "Level 3"
+        instance.title = "Community Directory"
+        instance.state = community_level_states.LOCKED
+        instance.joined_members = 0
+        instance.max_members = 10
+        instance.image = IMAGE_LEVEL_3
         instance.save()
 
-        #fourth step
-        instance = createCommunityAction()
+        #fourth level
+        instance = communityLevels()
         instance.community = community_instance
-        instance.step_no = "Step 4"
-        instance.step_title = "Invite new member applications"
-        instance.max_point = 40
-        instance.current_point = 0
-        instance.step_subtitle = "Share on social media & approve 10+ relevant members."
+        instance.level = "Level 4"
+        instance.title = "Growth"
+        instance.state = community_level_states.LOCKED
+        instance.joined_members = 0
+        instance.max_members = 10
+        instance.image = IMAGE_LEVEL_4
         instance.save()
 
-        #fifth step
-        instance = createCommunityAction()
-        instance.community = community_instance
-        instance.step_no = "Step 5"
-        instance.step_title = "Add ‘About Community’"
-        instance.max_point = 15
-        instance.current_point = 0
-        instance.step_subtitle = None
-        instance.save()
-
-
+# community_instance = Community.objects.get(id=2114)
+# set_community_actions(community_instance)
 
 # /api/create_collabcard?community_id=&member_id=
 @csrf_exempt
@@ -3365,7 +3380,7 @@ def approve_or_decline_whatsapp_community(req_dict,request):
             post_introduction_card_for_community(req_dict['community_id'], req_dict['member_id'], request)
 
             # saving create community action step 4
-            update_community_actions(community_instance=community, step_no="Step 4", increment=4)
+            update_community_actions(community_instance=community)
 
             #sending mails and notifications
 
@@ -3418,7 +3433,7 @@ def approve_or_decline_private_community(req_dict,request):
             post_introduction_card_for_community(req_dict['community_id'], req_dict['member_id'], request)
 
             # saving create community action step 4
-            update_community_actions(community_instance=community, step_no="Step 4", increment=4)
+            update_community_actions(community_instance=community)
 
             #sending mails and notifications
 
