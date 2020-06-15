@@ -157,3 +157,10 @@ class CommunityLevelsState:
 community_level_states = CommunityLevelsState()
 
 
+class ClickState:
+
+    DEFAULT = 0
+    SET_COMMUNITY = 1
+    PENDING_APPROVAL = 2
+
+click_states = ClickState()
