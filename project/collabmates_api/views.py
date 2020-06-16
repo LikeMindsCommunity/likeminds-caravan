@@ -6969,6 +6969,9 @@ def get_all_members(request, req_dict=None):
 
     current_user_id = get_member_id_from_headers(request)
 
+    community_instance = Community.objects.get(id=community_id)
+
+
     # functionality for user filteration based on options
     context = {}
     if collabcard_id and is_request_web(request):
@@ -7019,7 +7022,10 @@ def get_all_members(request, req_dict=None):
         member_list = pagination(member_list, page, paginate_by=20)
         members = get_member_instances(member_list, current_user_id, community_id)
 
-    context = {'members': members}
+    promoter_instance = is_member_promoter(community_instance,current_user_id)
+
+    community = CommunitySerializer(community_instance,promoter_id=promoter_instance)
+    context = {'members': members,'community':community}
     return context
 
 
