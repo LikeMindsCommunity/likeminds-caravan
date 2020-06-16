@@ -1990,20 +1990,20 @@ def create_community_version_1(request):
     log = """%s is the promoter of %s"""%(user_instance.userinfo.name,community_instance.name)
     info_logger.info(log)
 
-    # if 'questions' in res:
-    #     for question in res['questions']:
-    #
-    #         questions_instance=communityQuestions()
-    #         questions_instance.community=community_instance
-    #         questions_instance.question_title=question['question_title']
-    #         questions_instance.question_state=question['state']
-    #         questions_instance.value = question['value'] if 'value' in question else None
-    #         questions_instance.optional=question['optional']
-    #         questions_instance.help_text = question['help_text'] if 'help_text' in question else None
-    #         questions_instance.save()
-    #
-    # log = """questions added in community questions table"""
-    # info_logger.info(log)
+    if 'questions' in res:
+        for question in res['questions']:
+
+            questions_instance=communityQuestions()
+            questions_instance.community=community_instance
+            questions_instance.question_title=question['question_title']
+            questions_instance.question_state=question['state']
+            questions_instance.value = question['value'] if 'value' in question else None
+            questions_instance.optional=question['optional']
+            questions_instance.help_text = question['help_text'] if 'help_text' in question else None
+            questions_instance.save()
+
+    log = """questions added in community questions table"""
+    info_logger.info(log)
     communty_serailized_object = CommunitySerializer(community_instance,promoter_id=user_instance)
     return JsonResponse({'success':True,'community':communty_serailized_object})
 
