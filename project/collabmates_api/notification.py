@@ -45,6 +45,8 @@ def send_notification_for_android(token_list,message):
     push_service = FCMNotification(api_key=server_key)
     result = push_service.notify_multiple_devices(registration_ids=token_list,
                                                   data_message=message['payload'])
+    print(result)
+
 
 
 
@@ -78,6 +80,7 @@ def notification_meta(notification_list,message):
             token_list_android.append(data['fcm_token'])
         else:
             token_list_ios.append(data['fcm_token'])
+        print(data['user_id'])
 
     if token_list_android:
         send_notification_for_android(token_list_android,message)
