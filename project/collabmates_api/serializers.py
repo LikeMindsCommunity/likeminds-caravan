@@ -61,8 +61,10 @@ def CommunitySerializer(community,promoter_id=0):
 
     #generating private link
     if promoter_id:
-        new_dict['private_link'] = generate_private_link(community_instance=community,
+        private_link = generate_private_link(community_instance=community,
                                                                   promoter_instance=promoter_id)
+        new_dict['private_link'] = private_link
+        new_dict['private_link_members_directory'] = private_link + "&source=members_directory"
 
 
     is_ig = is_IG_community(community)

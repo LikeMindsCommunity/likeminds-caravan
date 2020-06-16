@@ -89,7 +89,11 @@ def is_member_promoter(community_id,member_id):
 
     is_promoter = Members.objects.filter(community_id=community_id,member_id=member_id,state=member_states.ADMIN)
 
-    return is_promoter.exists()
+    if is_promoter.exists():
+
+        return is_promoter[0].member_id
+
+    return False
 
 def is_member_pending(community_id, member_id):
 
