@@ -61,7 +61,7 @@ from .static_files import *
 from .tasks import send_email_to_nominated_admin, send_email_for_new_collabcard_posted, send_welcome_mail, \
     send_verification_mail_for_email_sync
 
-from .chatroom_actions import *
+from .static_text import *
 # CACHE_TTL = getattr(settings, 'CACHE_TTL', cache_timeout)
 
 url = settings.URL
@@ -2030,6 +2030,12 @@ def create_community_questions(request):
 
     return JsonResponse({'success':True})
 
+def get_onboarding_examples(request):
+
+    community_id = request.GET.get('community_id')
+    context= ONBOARDING_EXAMPLES
+    return JsonResponse(context)
+
 
 def update_community(res):
 
@@ -2151,10 +2157,7 @@ def set_community_actions(community_instance):
         instance.image = IMAGE_LEVEL_4
         instance.save()
 
-# community_instance = Community.objects.get(id=2114)
-# set_community_actions(community_instance)
 
-# /api/create_collabcard?community_id=&member_id=
 @csrf_exempt
 def create_card(request,req_dict=None):
     ''' function to create a card '''

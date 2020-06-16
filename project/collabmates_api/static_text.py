@@ -181,3 +181,39 @@ collabcard_action_user_unfollow = [
 
 
 ]
+
+
+
+
+#get onboarding examples
+ONBOARDING_EXAMPLES = {
+"onboarding_examples":[
+
+    {
+    "header":"Sample community purposes",
+    "sub_header" : "Here are few examples of other communities’ purpose.",
+    "title" : "IIT Delhi Entrepreneurs in NCR",
+    "sub_title":"This community is created for all the Alumni of IIT Delhi residing in and around Delhi-NCR. We can empower each other and the grow in our path. No spams are accepted. Violators will be removed from the community."
+
+    },
+
+    # {
+    # "header":"Sample community purposes",
+    # "sub_header" : "Here are few examples of other communities’ purpose.".
+    # "title" : "IIT Delhi Entrepreneurs in NCR",
+    # "sub_title":"This community is created for all the Alumni of IIT Delhi residing in and around Delhi-NCR. We can empower each other and the grow in our path. No spams are accepted. Violators will be removed from the community."
+    #
+    # },
+    #
+    # {
+    # "header":"Sample community purposes",
+    # "sub_header" : "Here are few examples of other communities’ purpose.".
+    # "title" : "IIT Delhi Entrepreneurs in NCR",
+    # "sub_title":"This community is created for all the Alumni of IIT Delhi residing in and around Delhi-NCR. We can empower each other and the grow in our path. No spams are accepted. Violators will be removed from the community."
+    #
+    # },
+
+
+
+]
+}
