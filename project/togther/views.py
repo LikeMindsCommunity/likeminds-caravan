@@ -273,6 +273,7 @@ def community_questions(request,community_id):
     question_format = get_community_questions(community_id)
     community_instance = Community.objects.get(id=community_id)
 
+
     user_instance = None
     state = 0
     if request.user.is_authenticated:

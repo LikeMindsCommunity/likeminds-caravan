@@ -393,19 +393,19 @@
                 <p class="c0 fs13 fwR lh22 ls05 mb10 mt12 o25 p0">Login to continue</p>
                 <div class="p160 ls05">
                     <div class="fs12 mb16">
-                        <div class="googleSignin p12 bs br20 bgF c79 ffR fwM bdE c79h dN" data-next="/community/{{community.id}}?cta=join&poll={{collabcard.id}}">
+                        <div class="googleSignin p12 bs br20 bgF c79 ffR fwM bdE c79h dN" data-next="/community_questions/{{community.id}}?poll={{collabcard.id}}">
                             <i class="dIb fa fa-google fs15 lh16 vM"></i>
                             <span  class="dIb lh16 pl12 vM">LOGIN WITH GOOGLE</span>
                         </div>
                     </div>
                     <div class="fs12 mb16">
-                        <a class="linkedinSignin p12 bs dB br20 tdN bgLi cF ffR fwM cFh" data-next="/community/{{community.id}}?cta=join&poll={{collabcard.id}}">
+                        <a class="linkedinSignin p12 bs dB br20 tdN bgLi cF ffR fwM cFh" data-next="/community_questions/{{community.id}}?poll={{collabcard.id}}">
                             <i class="dIb fa fa-linkedin fs15 lh16 vM"></i>
                             <span  class="dIb lh16 pl12 vM">LOGIN WITH LINKEDIN</span>
                         </a>
                     </div>
                     <div class="fs12">
-                        <a class="facebookSignin p12 bs dB br20 tdN bgFb cF ffR fwM cFh"  data-next="/community/{{community.id}}?cta=join&poll={{collabcard.id}}">
+                        <a class="facebookSignin p12 bs dB br20 tdN bgFb cF ffR fwM cFh"  data-next="/community_questions/{{community.id}}?poll={{collabcard.id}}">
                             <i class="fa fa-facebook dIb fs15 lh16 vM" ></i>
                             <span class="dIb lh16 pl12 vM">LOGIN WITH FACEBOOK</span>
                         </a>
@@ -430,7 +430,7 @@
                     {% if member_state.state == 0 %}
                         $(".ldrT", $('#loader')[0]).text("Making request...");
                         $('#loader').show();
-                        window.location.href = "/community/{{community.id}}?cta=join&poll={{collabcard.id}}";
+                        window.location.href = "/community_questions/{{community.id}}?poll={{collabcard.id}}";
                     {% elif member_state.state == 3 %}
                         $('#add_email_pop').modal('show');
                     {% else %}
@@ -463,7 +463,7 @@
                     {% if member_state.state == 0 %}
                         $(".ldrT", $('#loader')[0]).text("Making request...");
                         $('#loader').show();
-                        window.location.href = "/community/{{community.id}}?cta=join&poll={{collabcard.id}}";
+                        window.location.href = "/community_questions/{{community.id}}?poll={{collabcard.id}}";
                     {% elif member_state.state == 3 %}
                         $('#add_email_pop').modal('show');
                     {% else %}
@@ -491,7 +491,7 @@
                         {% if member_state.state == 0 %}
                             $(".ldrT", $('#loader')[0]).text("Making request...");
                             $('#loader').show();
-                            window.location.href = "/community/{{community.id}}?cta=join&poll={{collabcard.id}}";
+                            window.location.href = "/community_questions/{{community.id}}?poll={{collabcard.id}}";
                         {% elif member_state.state == 3 %}
                             $('#add_email_pop').modal('show');
                         {% else %}
@@ -530,7 +530,7 @@
                     {% if member_state.state == 0 %}
                         $(".ldrT", $('#loader')[0]).text("Making request...");
                         $('#loader').show();
-                        window.location.href = "/community/{{community.id}}?cta=join&poll={{collabcard.id}}";
+                        window.location.href = "/community_questions/{{community.id}}?poll={{collabcard.id}}";
                     {% elif member_state.state == 3 %}
                         $('#add_email_pop').modal('show');
                     {% else %}
@@ -736,7 +736,7 @@
                     {% if member_state.state == 0 %}
                         $(".ldrT", $('#loader')[0]).text("Making request...");
                         $('#loader').show();
-                        window.location.href = "/community/{{community.id}}?cta=join&poll={{collabcard.id}}";
+                        window.location.href = "/community_questions/{{community.id}}?poll={{collabcard.id}}";
                     {% else %}
                         {% if member_state.state == 3 %}
                             $('.test').modal('show');
