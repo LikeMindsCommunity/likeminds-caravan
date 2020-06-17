@@ -222,7 +222,7 @@ def community(request, community_id):
 
     aj = request.GET.get('aj', False)                           #auto join check functionality
 
-    if aj and check_android_request(request):
+    if aj and is_request_android(request):
 
         private_link = "https://" + request.META['HTTP_HOST'] +"/community/"+str(community_id)+"?aj="+str(aj)
         # redirect_link =  android_app_download_link
