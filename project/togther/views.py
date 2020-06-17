@@ -515,7 +515,6 @@ def community(request, community_id):
     # user_email = True
     if aj:
         community_creator = get_community_creator(community)
-        created_by = ""
         if community_creator:
             created_by = community_creator
             auto_join = private_link_app_invite(community, aj, created_by)
@@ -1363,10 +1362,10 @@ def join_community(request, community_id, ref_id, aj=False, member_state=None):
     else:
         question_format = get_community_questions(community_id)
         community_creator = get_community_creator(community)
-        created_by = ""
+        auto_join = {}
         if community_creator:
             created_by = community_creator
-        auto_join = private_link_app_invite(community, aj, created_by)
+            auto_join = private_link_app_invite(community, aj, created_by)
         if not question_format:
             json_dict = {'user_id': request.user.id}
             params = {'member_id': member_id, 'community_id': community_id}
