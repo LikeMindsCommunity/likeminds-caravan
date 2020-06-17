@@ -506,12 +506,6 @@
             //jquery
 
             $(document).ready(function() {
-                for(var i=0;i<={{similar_community_length}};i++){
-                    ans=$('#'+i).text();
-                    ans=ans.substring(0,42)
-                    ans=ans+'...';
-                    $('#'+i).html(ans)
-                }
 
                 //function to auto accept the invitation
                 var community_id={{community.id}};
