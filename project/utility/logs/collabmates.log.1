@@ -1,0 +1,1107 @@
+2020-06-06 10:09:46,469  ERROR Internal Server Error: /api/fetch_chatroom  
+Traceback (most recent call last):
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/core/handlers/base.py", line 115, in _get_response
+    response = self.process_exception_by_middleware(e, request)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/core/handlers/base.py", line 113, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/views/decorators/csrf.py", line 54, in wrapped_view
+    return view_func(*args, **kwargs)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/views/generic/base.py", line 71, in view
+    return self.dispatch(request, *args, **kwargs)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/rest_framework/views.py", line 505, in dispatch
+    response = self.handle_exception(exc)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/rest_framework/views.py", line 465, in handle_exception
+    self.raise_uncaught_exception(exc)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/rest_framework/views.py", line 476, in raise_uncaught_exception
+    raise exc
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/rest_framework/views.py", line 502, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/rest_framework/decorators.py", line 50, in handler
+    return func(*args, **kwargs)
+  File "/Users/limeroad/repos/personal/collabmate/Togther/project/collabmates_api/views.py", line 4446, in fetch_chatroom
+    context = get_chatroom_internal(request,card_instance,current_user_id,page,conversation_id,scroll_direction)
+  File "/Users/limeroad/repos/personal/collabmate/Togther/project/collabmates_api/views.py", line 4636, in get_chatroom_internal
+    card_status = get_status_of_collabcard(user_id,card_instance)
+  File "/Users/limeroad/repos/personal/collabmate/Togther/project/collabmates_api/serializers.py", line 309, in get_status_of_collabcard
+    member_id = User.objects.get(id=member_id)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/db/models/manager.py", line 82, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/db/models/query.py", line 417, in get
+    self.model._meta.object_name
+django.contrib.auth.models.User.DoesNotExist: User matching query does not exist.
+2020-06-06 10:09:47,688  ERROR "GET /api/fetch_chatroom?chatroom_id=1096&conversation_id=279&scroll_direction=1 HTTP/1.1" 500 4314  
+2020-06-06 10:09:49,946  ERROR Internal Server Error: /api/fetch_chatroom  
+Traceback (most recent call last):
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/core/handlers/base.py", line 115, in _get_response
+    response = self.process_exception_by_middleware(e, request)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/core/handlers/base.py", line 113, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/views/decorators/csrf.py", line 54, in wrapped_view
+    return view_func(*args, **kwargs)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/views/generic/base.py", line 71, in view
+    return self.dispatch(request, *args, **kwargs)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/rest_framework/views.py", line 505, in dispatch
+    response = self.handle_exception(exc)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/rest_framework/views.py", line 465, in handle_exception
+    self.raise_uncaught_exception(exc)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/rest_framework/views.py", line 476, in raise_uncaught_exception
+    raise exc
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/rest_framework/views.py", line 502, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/rest_framework/decorators.py", line 50, in handler
+    return func(*args, **kwargs)
+  File "/Users/limeroad/repos/personal/collabmate/Togther/project/collabmates_api/views.py", line 4446, in fetch_chatroom
+    context = get_chatroom_internal(request,card_instance,current_user_id,page,conversation_id,scroll_direction)
+  File "/Users/limeroad/repos/personal/collabmate/Togther/project/collabmates_api/views.py", line 4636, in get_chatroom_internal
+    card_status = get_status_of_collabcard(user_id,card_instance)
+  File "/Users/limeroad/repos/personal/collabmate/Togther/project/collabmates_api/serializers.py", line 309, in get_status_of_collabcard
+    member_id = User.objects.get(id=member_id)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/db/models/manager.py", line 82, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/db/models/query.py", line 417, in get
+    self.model._meta.object_name
+django.contrib.auth.models.User.DoesNotExist: User matching query does not exist.
+2020-06-06 10:09:51,078  ERROR "GET /api/fetch_chatroom?chatroom_id=1096&conversation_id=279&scroll_direction=1 HTTP/1.1" 500 4314  
+2020-06-06 10:09:53,192  ERROR Internal Server Error: /api/fetch_chatroom  
+Traceback (most recent call last):
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/core/handlers/base.py", line 115, in _get_response
+    response = self.process_exception_by_middleware(e, request)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/core/handlers/base.py", line 113, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/views/decorators/csrf.py", line 54, in wrapped_view
+    return view_func(*args, **kwargs)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/views/generic/base.py", line 71, in view
+    return self.dispatch(request, *args, **kwargs)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/rest_framework/views.py", line 505, in dispatch
+    response = self.handle_exception(exc)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/rest_framework/views.py", line 465, in handle_exception
+    self.raise_uncaught_exception(exc)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/rest_framework/views.py", line 476, in raise_uncaught_exception
+    raise exc
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/rest_framework/views.py", line 502, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/rest_framework/decorators.py", line 50, in handler
+    return func(*args, **kwargs)
+  File "/Users/limeroad/repos/personal/collabmate/Togther/project/collabmates_api/views.py", line 4446, in fetch_chatroom
+    context = get_chatroom_internal(request,card_instance,current_user_id,page,conversation_id,scroll_direction)
+  File "/Users/limeroad/repos/personal/collabmate/Togther/project/collabmates_api/views.py", line 4636, in get_chatroom_internal
+    card_status = get_status_of_collabcard(user_id,card_instance)
+  File "/Users/limeroad/repos/personal/collabmate/Togther/project/collabmates_api/serializers.py", line 309, in get_status_of_collabcard
+    member_id = User.objects.get(id=member_id)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/db/models/manager.py", line 82, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/db/models/query.py", line 417, in get
+    self.model._meta.object_name
+django.contrib.auth.models.User.DoesNotExist: User matching query does not exist.
+2020-06-06 10:09:54,340  ERROR "GET /api/fetch_chatroom?chatroom_id=1096&conversation_id=279&scroll_direction=1 HTTP/1.1" 500 4314  
+2020-06-06 10:14:30,444  INFO Watching for file changes with StatReloader  
+2020-06-06 10:15:26,733  INFO Watching for file changes with StatReloader  
+2020-06-06 10:15:40,114  INFO "GET /collabcard/1156 HTTP/1.1" 200 39204  
+2020-06-06 10:15:40,426  INFO "GET /static/css/mahaDev/mahaDev.css HTTP/1.1" 200 17886  
+2020-06-12 06:45:39,494  INFO Watching for file changes with StatReloader  
+2020-06-12 06:55:05,040  INFO "GET /collabcard/1156 HTTP/1.1" 200 39196  
+2020-06-12 06:55:05,526  INFO "GET /static/css/mahaDev/mahaDev.css HTTP/1.1" 304 0  
+2020-06-12 06:55:34,578  INFO "GET /collabcard/1156 HTTP/1.1" 200 39196  
+2020-06-12 06:55:35,812  INFO "GET /static/css/mahaDev/mahaDev.css HTTP/1.1" 304 0  
+2020-06-12 06:56:05,770  INFO "GET /collabcard/1098 HTTP/1.1" 200 57001  
+2020-06-12 07:00:21,312  INFO "GET /collabcard/1156 HTTP/1.1" 200 39196  
+2020-06-12 07:03:38,036  INFO "GET /collabcard/1178 HTTP/1.1" 200 37092  
+2020-06-12 07:03:38,757  INFO "GET /static/css/mahaDev/mahaDev.css HTTP/1.1" 200 17909  
+2020-06-12 07:06:54,126  INFO Watching for file changes with StatReloader  
+2020-06-12 07:09:30,692  INFO "GET /collabcard/1178 HTTP/1.1" 200 37035  
+2020-06-12 07:09:30,876  INFO "GET /static/css/mahaDev/mahaDev.css HTTP/1.1" 200 17909  
+2020-06-12 07:10:24,527  INFO "POST /api/v1/login HTTP/1.1" 200 7134  
+2020-06-12 07:11:10,297  INFO "GET /static/css/mahaDev/mahaDev.css HTTP/1.1" 304 0  
+2020-06-12 07:14:04,333  INFO "GET /collabcard/1178 HTTP/1.1" 200 88499  
+2020-06-12 07:14:04,523  INFO "GET /static/css/mahaDev/mahaDev.css HTTP/1.1" 200 17909  
+2020-06-12 07:14:44,345  INFO "GET /api/fetch_chatroom?chatroom_id=1178&conversation_id=730&scroll_direction=1 HTTP/1.1" 200 41146  
+2020-06-12 07:14:56,737  INFO "GET /api/fetch_chatroom?chatroom_id=1178&conversation_id=731&scroll_direction=1 HTTP/1.1" 200 41146  
+2020-06-12 07:16:51,631  INFO Watching for file changes with StatReloader  
+2020-06-12 07:21:49,279  INFO Watching for file changes with StatReloader  
+2020-06-12 07:22:14,367  INFO "GET /collabcard/1178 HTTP/1.1" 200 88701  
+2020-06-12 07:22:14,439  INFO "GET /static/css/mahaDev/mahaDev.css HTTP/1.1" 200 17909  
+2020-06-12 07:22:33,197  INFO "GET /api/fetch_chatroom?chatroom_id=1178&conversation_id=730&scroll_direction=1 HTTP/1.1" 200 41170  
+2020-06-12 07:23:55,276  INFO "GET /api/fetch_chatroom?chatroom_id=1178&conversation_id=731&scroll_direction=1 HTTP/1.1" 200 41170  
+2020-06-12 07:24:42,257  INFO Watching for file changes with StatReloader  
+2020-06-12 07:25:24,713  INFO Watching for file changes with StatReloader  
+2020-06-12 07:26:24,013  INFO "GET /collabcard/1178 HTTP/1.1" 200 117090  
+2020-06-12 07:26:24,062  INFO "GET /static/css/mahaDev/mahaDev.css HTTP/1.1" 200 17909  
+2020-06-12 07:28:46,482  INFO "GET /collabcard/1176 HTTP/1.1" 200 68166  
+2020-06-12 07:28:46,551  INFO "GET /static/css/mahaDev/mahaDev.css HTTP/1.1" 200 17909  
+2020-06-12 07:28:53,429  INFO "GET /api/fetch_chatroom?chatroom_id=1176&conversation_id=927&scroll_direction=1 HTTP/1.1" 200 15  
+2020-06-12 07:38:03,479  INFO Watching for file changes with StatReloader  
+2020-06-12 07:38:22,482  INFO "GET /collabcard/1176 HTTP/1.1" 200 68265  
+2020-06-12 07:38:22,533  INFO "GET /static/css/mahaDev/mahaDev.css HTTP/1.1" 200 17909  
+2020-06-12 07:39:03,237  INFO Watching for file changes with StatReloader  
+2020-06-12 07:39:24,063  INFO "GET /collabcard/1176 HTTP/1.1" 200 68303  
+2020-06-12 07:39:24,117  INFO "GET /static/css/mahaDev/mahaDev.css HTTP/1.1" 200 17909  
+2020-06-12 07:43:06,829  INFO /Users/limeroad/repos/personal/collabmate/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-06-12 07:43:18,375  INFO Watching for file changes with StatReloader  
+2020-06-12 07:43:28,589  ERROR Internal Server Error: /api/fetch_chatroom  
+Traceback (most recent call last):
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/core/handlers/base.py", line 115, in _get_response
+    response = self.process_exception_by_middleware(e, request)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/core/handlers/base.py", line 113, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/views/decorators/csrf.py", line 54, in wrapped_view
+    return view_func(*args, **kwargs)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/views/generic/base.py", line 71, in view
+    return self.dispatch(request, *args, **kwargs)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/rest_framework/views.py", line 505, in dispatch
+    response = self.handle_exception(exc)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/rest_framework/views.py", line 465, in handle_exception
+    self.raise_uncaught_exception(exc)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/rest_framework/views.py", line 476, in raise_uncaught_exception
+    raise exc
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/rest_framework/views.py", line 502, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/rest_framework/decorators.py", line 50, in handler
+    return func(*args, **kwargs)
+  File "/Users/limeroad/repos/personal/collabmate/Togther/project/collabmates_api/views.py", line 3825, in fetch_chatroom
+    return render(request, 'components/chat_bubbles.html', context)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/shortcuts.py", line 19, in render
+    content = loader.render_to_string(template_name, context, request, using=using)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/loader.py", line 61, in render_to_string
+    template = get_template(template_name, using=using)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/loader.py", line 15, in get_template
+    return engine.get_template(template_name)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/backends/django.py", line 34, in get_template
+    return Template(self.engine.get_template(template_name), self)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/engine.py", line 143, in get_template
+    template, origin = self.find_template(template_name)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/engine.py", line 125, in find_template
+    template = loader.get_template(name, skip=skip)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/loaders/cached.py", line 53, in get_template
+    template = super().get_template(template_name, skip)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/loaders/base.py", line 30, in get_template
+    contents, origin, origin.template_name, self.engine,
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/base.py", line 156, in __init__
+    self.nodelist = self.compile_nodelist()
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/base.py", line 194, in compile_nodelist
+    return parser.parse()
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/base.py", line 477, in parse
+    raise self.error(token, e)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/base.py", line 475, in parse
+    compiled_result = compile_func(self, token)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/defaulttags.py", line 811, in do_for
+    nodelist_loop = parser.parse(('empty', 'endfor',))
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/base.py", line 477, in parse
+    raise self.error(token, e)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/base.py", line 475, in parse
+    compiled_result = compile_func(self, token)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/defaulttags.py", line 811, in do_for
+    nodelist_loop = parser.parse(('empty', 'endfor',))
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/base.py", line 477, in parse
+    raise self.error(token, e)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/base.py", line 475, in parse
+    compiled_result = compile_func(self, token)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/defaulttags.py", line 960, in do_if
+    nodelist = parser.parse(('elif', 'else', 'endif'))
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/base.py", line 448, in parse
+    raise self.error(token, e)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/base.py", line 446, in parse
+    filter_expression = self.compile_filter(token.contents)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/base.py", line 562, in compile_filter
+    return FilterExpression(token, self)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/base.py", line 662, in __init__
+    "from '%s'" % (token[upto:], token))
+django.template.exceptions.TemplateSyntaxError: Could not parse the remainder: '[0].community_id' from 'answer.member.question_answers[0].community_id'
+2020-06-12 07:43:33,557  ERROR "GET /api/fetch_chatroom?chatroom_id=1176&conversation_id=927&scroll_direction=1 HTTP/1.1" 500 4314  
+2020-06-12 07:44:04,582  ERROR Internal Server Error: /collabcard/1176  
+Traceback (most recent call last):
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/core/handlers/base.py", line 115, in _get_response
+    response = self.process_exception_by_middleware(e, request)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/core/handlers/base.py", line 113, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/views/decorators/csrf.py", line 54, in wrapped_view
+    return view_func(*args, **kwargs)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/views/generic/base.py", line 71, in view
+    return self.dispatch(request, *args, **kwargs)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/rest_framework/views.py", line 505, in dispatch
+    response = self.handle_exception(exc)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/rest_framework/views.py", line 465, in handle_exception
+    self.raise_uncaught_exception(exc)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/rest_framework/views.py", line 476, in raise_uncaught_exception
+    raise exc
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/rest_framework/views.py", line 502, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/rest_framework/decorators.py", line 50, in handler
+    return func(*args, **kwargs)
+  File "/Users/limeroad/repos/personal/collabmate/Togther/project/collabmates_api/views.py", line 3555, in collabcard
+    return render(request, 'chatroom.html', context)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/shortcuts.py", line 19, in render
+    content = loader.render_to_string(template_name, context, request, using=using)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/loader.py", line 62, in render_to_string
+    return template.render(context, request)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/backends/django.py", line 61, in render
+    return self.template.render(context)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/base.py", line 171, in render
+    return self._render(context)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/base.py", line 163, in _render
+    return self.nodelist.render(context)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/base.py", line 936, in render
+    bit = node.render_annotated(context)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/base.py", line 903, in render_annotated
+    return self.render(context)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/loader_tags.py", line 150, in render
+    return compiled_parent._render(context)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/base.py", line 163, in _render
+    return self.nodelist.render(context)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/base.py", line 936, in render
+    bit = node.render_annotated(context)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/base.py", line 903, in render_annotated
+    return self.render(context)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/loader_tags.py", line 62, in render
+    result = block.nodelist.render(context)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/base.py", line 936, in render
+    bit = node.render_annotated(context)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/base.py", line 903, in render_annotated
+    return self.render(context)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/loader_tags.py", line 188, in render
+    return template.render(context)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/base.py", line 173, in render
+    return self._render(context)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/base.py", line 163, in _render
+    return self.nodelist.render(context)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/base.py", line 936, in render
+    bit = node.render_annotated(context)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/base.py", line 903, in render_annotated
+    return self.render(context)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/loader_tags.py", line 176, in render
+    template = context.template.engine.get_template(template_name)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/engine.py", line 143, in get_template
+    template, origin = self.find_template(template_name)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/engine.py", line 125, in find_template
+    template = loader.get_template(name, skip=skip)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/loaders/cached.py", line 53, in get_template
+    template = super().get_template(template_name, skip)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/loaders/base.py", line 30, in get_template
+    contents, origin, origin.template_name, self.engine,
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/base.py", line 156, in __init__
+    self.nodelist = self.compile_nodelist()
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/base.py", line 194, in compile_nodelist
+    return parser.parse()
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/base.py", line 477, in parse
+    raise self.error(token, e)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/base.py", line 475, in parse
+    compiled_result = compile_func(self, token)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/defaulttags.py", line 811, in do_for
+    nodelist_loop = parser.parse(('empty', 'endfor',))
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/base.py", line 477, in parse
+    raise self.error(token, e)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/base.py", line 475, in parse
+    compiled_result = compile_func(self, token)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/defaulttags.py", line 811, in do_for
+    nodelist_loop = parser.parse(('empty', 'endfor',))
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/base.py", line 477, in parse
+    raise self.error(token, e)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/base.py", line 475, in parse
+    compiled_result = compile_func(self, token)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/defaulttags.py", line 960, in do_if
+    nodelist = parser.parse(('elif', 'else', 'endif'))
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/base.py", line 448, in parse
+    raise self.error(token, e)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/base.py", line 446, in parse
+    filter_expression = self.compile_filter(token.contents)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/base.py", line 562, in compile_filter
+    return FilterExpression(token, self)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/base.py", line 662, in __init__
+    "from '%s'" % (token[upto:], token))
+django.template.exceptions.TemplateSyntaxError: Could not parse the remainder: '[0].community_id' from 'answer.member.question_answers[0].community_id'
+2020-06-12 07:44:08,784  ERROR "GET /collabcard/1176 HTTP/1.1" 500 4314  
+2020-06-12 07:44:30,212  INFO /Users/limeroad/repos/personal/collabmate/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-06-12 07:44:36,993  INFO Watching for file changes with StatReloader  
+2020-06-12 07:44:50,687  INFO "GET /collabcard/1176 HTTP/1.1" 200 68235  
+2020-06-12 07:44:50,849  INFO "GET /static/css/mahaDev/mahaDev.css HTTP/1.1" 200 17909  
+2020-06-12 07:45:39,350  INFO /Users/limeroad/repos/personal/collabmate/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-06-12 07:45:44,659  INFO Watching for file changes with StatReloader  
+2020-06-12 07:47:54,891  INFO /Users/limeroad/repos/personal/collabmate/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-06-12 07:48:02,110  INFO Watching for file changes with StatReloader  
+2020-06-12 07:50:16,047  INFO "GET /collabcard/1176 HTTP/1.1" 200 68580  
+2020-06-12 07:50:16,189  INFO "GET /static/css/mahaDev/mahaDev.css HTTP/1.1" 200 17909  
+2020-06-12 07:53:57,957  INFO Watching for file changes with StatReloader  
+2020-06-12 07:54:10,936  INFO "GET /collabcard/1176 HTTP/1.1" 200 81789  
+2020-06-12 07:54:11,020  INFO "GET /static/css/mahaDev/mahaDev.css HTTP/1.1" 200 17909  
+2020-06-12 07:54:12,764  INFO "GET /api/fetch_chatroom?chatroom_id=1176&conversation_id=927&scroll_direction=1 HTTP/1.1" 200 15  
+2020-06-12 07:54:24,466  INFO "GET /api/fetch_chatroom?chatroom_id=1176&conversation_id=927&scroll_direction=1 HTTP/1.1" 200 15  
+2020-06-12 07:56:56,776  INFO Watching for file changes with StatReloader  
+2020-06-12 07:57:53,103  INFO "GET /collabcard/1176 HTTP/1.1" 200 81816  
+2020-06-12 07:57:53,205  INFO "GET /api/fetch_chatroom?chatroom_id=1176&conversation_id=927&scroll_direction=1 HTTP/1.1" 200 15  
+2020-06-12 07:57:55,583  INFO "GET /static/css/mahaDev/mahaDev.css HTTP/1.1" 200 17909  
+2020-06-12 07:58:47,936  INFO "GET /collabcard/1206 HTTP/1.1" 200 130016  
+2020-06-12 07:58:48,347  INFO "GET /static/css/mahaDev/mahaDev.css HTTP/1.1" 200 17909  
+2020-06-12 07:59:25,757  INFO "GET /api/fetch_chatroom?chatroom_id=1206&conversation_id=920&scroll_direction=1 HTTP/1.1" 200 15  
+2020-06-12 08:06:13,235  INFO Watching for file changes with StatReloader  
+2020-06-12 08:07:26,847  INFO Watching for file changes with StatReloader  
+2020-06-12 08:08:09,533  INFO "GET /collabcard/1206 HTTP/1.1" 200 111832  
+2020-06-12 08:08:09,739  INFO "GET /static/css/mahaDev/mahaDev.css HTTP/1.1" 200 17909  
+2020-06-12 08:11:42,043  INFO Watching for file changes with StatReloader  
+2020-06-12 08:12:26,582  INFO "GET /collabcard/1206 HTTP/1.1" 200 111948  
+2020-06-12 08:12:26,786  INFO "GET /static/css/mahaDev/mahaDev.css HTTP/1.1" 200 17942  
+2020-06-12 08:13:36,055  INFO "GET /api/fetch_chatroom?chatroom_id=1206&conversation_id=920&scroll_direction=1 HTTP/1.1" 200 1  
+2020-06-12 08:13:38,693  INFO "GET /api/fetch_chatroom?chatroom_id=1206&conversation_id=920&scroll_direction=1 HTTP/1.1" 200 1  
+2020-06-12 08:14:43,433  INFO "GET /api/fetch_chatroom?chatroom_id=1206&conversation_id=920&scroll_direction=1 HTTP/1.1" 200 1  
+2020-06-12 08:15:01,242  INFO "GET /api/fetch_chatroom?chatroom_id=1206&conversation_id=920&scroll_direction=1 HTTP/1.1" 200 1  
+2020-06-12 08:15:07,462  INFO "GET /api/similar_communities/48850?member_id=469 HTTP/1.1" 200 19605  
+2020-06-12 08:15:09,683  INFO "GET /community/48850 HTTP/1.1" 200 42023  
+2020-06-12 08:15:26,032  INFO "GET /collabcard/1206 HTTP/1.1" 200 46126  
+2020-06-12 08:15:26,127  INFO "GET /static/css/mahaDev/mahaDev.css HTTP/1.1" 200 17942  
+2020-06-12 08:17:17,847  INFO Watching for file changes with StatReloader  
+2020-06-12 08:17:49,473  INFO "GET /collabcard/1206 HTTP/1.1" 200 46151  
+2020-06-12 08:17:49,527  INFO "GET /static/css/mahaDev/mahaDev.css HTTP/1.1" 304 0  
+2020-06-12 08:19:43,139  INFO "GET /collabcard/1206 HTTP/1.1" 200 46151  
+2020-06-12 08:19:43,251  INFO "GET /static/css/mahaDev/mahaDev.css HTTP/1.1" 200 17942  
+2020-06-12 08:20:32,730  INFO "GET /collabcard/1206 HTTP/1.1" 200 46151  
+2020-06-12 08:20:41,439  INFO "GET /collabcard/1206 HTTP/1.1" 200 46151  
+2020-06-12 08:20:41,526  INFO "GET /static/css/mahaDev/mahaDev.css HTTP/1.1" 200 17942  
+2020-06-12 08:21:04,512  INFO "POST /api/v1/login HTTP/1.1" 200 2281  
+2020-06-12 08:21:05,371  INFO "GET /community/48850?cta=join&event=1206&type=0 HTTP/1.1" 302 0  
+2020-06-12 08:21:13,162  INFO "GET /collabcard/1206?email=true HTTP/1.1" 200 97099  
+2020-06-12 08:21:13,235  INFO "GET /static/css/mahaDev/mahaDev.css HTTP/1.1" 200 17942  
+2020-06-12 08:22:05,130  INFO "GET /api/fetch_chatroom?chatroom_id=1206&conversation_id=920&scroll_direction=1 HTTP/1.1" 200 1  
+2020-06-12 08:22:07,540  INFO "GET /api/fetch_chatroom?chatroom_id=1206&conversation_id=920&scroll_direction=1 HTTP/1.1" 200 1  
+2020-06-12 08:22:10,969  INFO "GET /api/fetch_chatroom?chatroom_id=1206&conversation_id=829&scroll_direction=0 HTTP/1.1" 200 9816  
+2020-06-12 08:22:54,290  INFO Watching for file changes with StatReloader  
+2020-06-12 08:23:31,646  INFO "GET /collabcard/1206?email=true HTTP/1.1" 200 97139  
+2020-06-12 08:23:31,729  INFO "GET /static/css/mahaDev/mahaDev.css HTTP/1.1" 304 0  
+2020-06-12 08:33:02,646  INFO "GET /api/fetch_chatroom?chatroom_id=1206&conversation_id=920&scroll_direction=1 HTTP/1.1" 200 1  
+2020-06-12 08:33:13,896  INFO "GET /api/fetch_chatroom?chatroom_id=1206&conversation_id=829&scroll_direction=0 HTTP/1.1" 200 9832  
+2020-06-12 08:33:28,905  INFO "GET /api/similar_communities/48850?member_id=462 HTTP/1.1" 200 19428  
+2020-06-12 08:33:31,168  INFO "GET /community/48850 HTTP/1.1" 200 42883  
+2020-06-12 08:34:13,497  INFO "GET /static/css/mahaDev/mahaDev.css HTTP/1.1" 304 0  
+2020-06-12 08:34:43,294  INFO "GET /api/similar_communities/48850?member_id=462 HTTP/1.1" 200 19428  
+2020-06-12 08:34:45,521  INFO "GET /community/48850 HTTP/1.1" 200 42883  
+2020-06-12 08:35:46,243  INFO Watching for file changes with StatReloader  
+2020-06-12 08:36:10,108  INFO "GET /collabcard/1172 HTTP/1.1" 200 92901  
+2020-06-12 08:36:10,200  INFO "GET /static/css/mahaDev/mahaDev.css HTTP/1.1" 200 17942  
+2020-06-12 08:36:16,383  INFO "GET /api/fetch_chatroom?chatroom_id=1172&conversation_id=921&scroll_direction=1 HTTP/1.1" 200 1  
+2020-06-12 08:36:18,113  INFO "GET /api/fetch_chatroom?chatroom_id=1172&conversation_id=921&scroll_direction=1 HTTP/1.1" 200 1  
+2020-06-12 08:36:21,480  INFO "GET /api/fetch_chatroom?chatroom_id=1172&conversation_id=921&scroll_direction=1 HTTP/1.1" 200 1  
+2020-06-12 08:36:31,221  INFO "GET /api/fetch_chatroom?chatroom_id=1172&conversation_id=525&scroll_direction=0 HTTP/1.1" 200 44428  
+2020-06-12 08:38:19,941  INFO /Users/limeroad/repos/personal/collabmate/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-06-12 08:38:26,003  INFO Watching for file changes with StatReloader  
+2020-06-12 08:39:44,543  INFO /Users/limeroad/repos/personal/collabmate/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-06-12 08:39:47,376  INFO Watching for file changes with StatReloader  
+2020-06-12 08:40:31,017  INFO "GET /collabcard/1172 HTTP/1.1" 200 92901  
+2020-06-12 08:40:31,204  INFO "GET /static/css/mahaDev/mahaDev.css HTTP/1.1" 200 17942  
+2020-06-12 08:40:35,530  INFO "GET /api/fetch_chatroom?chatroom_id=1172&conversation_id=921&scroll_direction=1 HTTP/1.1" 200 1  
+2020-06-12 08:40:46,376  INFO "GET /api/fetch_chatroom?chatroom_id=1172&conversation_id=525&scroll_direction=0 HTTP/1.1" 200 44428  
+2020-06-12 08:41:05,240  INFO "GET /api/fetch_chatroom?chatroom_id=1172&conversation_id=505&scroll_direction=0 HTTP/1.1" 200 44416  
+2020-06-12 08:41:14,819  INFO "GET /api/fetch_chatroom?chatroom_id=1172&conversation_id=485&scroll_direction=0 HTTP/1.1" 200 3057  
+2020-06-12 08:41:16,369  INFO "GET /collabcard/1206 HTTP/1.1" 200 112066  
+2020-06-12 08:41:16,586  INFO "GET /static/css/mahaDev/mahaDev.css HTTP/1.1" 200 17942  
+2020-06-12 08:41:27,564  INFO "GET /api/fetch_chatroom?chatroom_id=1206&conversation_id=920&scroll_direction=1 HTTP/1.1" 200 1  
+2020-06-12 08:41:28,940  INFO "GET /api/fetch_chatroom?chatroom_id=1206&conversation_id=920&scroll_direction=1 HTTP/1.1" 200 1  
+2020-06-12 08:42:32,245  INFO "GET /api/fetch_chatroom?chatroom_id=1206&conversation_id=920&scroll_direction=1 HTTP/1.1" 200 1  
+2020-06-12 08:42:34,246  INFO "GET /api/fetch_chatroom?chatroom_id=1206&conversation_id=920&scroll_direction=1 HTTP/1.1" 200 1  
+2020-06-12 08:42:55,554  INFO "GET /collabcard/1206 HTTP/1.1" 200 112066  
+2020-06-12 08:42:55,744  INFO "GET /static/css/mahaDev/mahaDev.css HTTP/1.1" 200 17942  
+2020-06-12 08:43:08,283  INFO "GET /collabcard/1206 HTTP/1.1" 200 112066  
+2020-06-12 08:43:08,561  INFO "GET /static/css/mahaDev/mahaDev.css HTTP/1.1" 200 17942  
+2020-06-12 08:45:44,550  INFO "GET /api/fetch_chatroom?chatroom_id=1206&conversation_id=920&scroll_direction=1 HTTP/1.1" 200 1  
+2020-06-12 08:46:03,186  INFO "GET /collabcard/1206 HTTP/1.1" 200 112066  
+2020-06-12 08:46:03,365  INFO "GET /static/css/mahaDev/mahaDev.css HTTP/1.1" 200 17942  
+2020-06-12 08:46:04,800  INFO "GET /collabcard/1096 HTTP/1.1" 200 129775  
+2020-06-12 08:46:04,868  INFO "GET /static/css/mahaDev/mahaDev.css HTTP/1.1" 200 17942  
+2020-06-12 08:46:13,550  INFO "GET /api/fetch_chatroom?chatroom_id=1096&conversation_id=591&scroll_direction=1 HTTP/1.1" 200 1  
+2020-06-12 08:46:15,523  INFO "GET /api/fetch_chatroom?chatroom_id=1096&conversation_id=591&scroll_direction=1 HTTP/1.1" 200 1  
+2020-06-12 08:46:36,410  INFO "GET /api/fetch_chatroom?chatroom_id=1096&conversation_id=301&scroll_direction=0 HTTP/1.1" 200 54936  
+2020-06-12 08:46:48,283  INFO "GET /api/fetch_chatroom?chatroom_id=1096&conversation_id=280&scroll_direction=0 HTTP/1.1" 200 7495  
+2020-06-12 08:47:19,083  INFO Watching for file changes with StatReloader  
+2020-06-12 08:49:32,755  INFO "GET /api/fetch_chatroom?chatroom_id=1206&conversation_id=920&scroll_direction=1 HTTP/1.1" 200 1  
+2020-06-12 08:49:35,397  INFO "GET /api/fetch_chatroom?chatroom_id=1206&conversation_id=920&scroll_direction=1 HTTP/1.1" 200 1  
+2020-06-12 08:50:00,598  INFO "GET /api/fetch_chatroom?chatroom_id=1206&conversation_id=920&scroll_direction=1 HTTP/1.1" 200 1  
+2020-06-12 08:50:02,186  INFO "GET /api/fetch_chatroom?chatroom_id=1206&conversation_id=920&scroll_direction=1 HTTP/1.1" 200 1  
+2020-06-12 08:51:17,263  INFO "GET /api/fetch_chatroom?chatroom_id=1096&conversation_id=591&scroll_direction=1 HTTP/1.1" 200 1  
+2020-06-12 08:51:17,547  INFO "GET /collabcard/1206 HTTP/1.1" 200 112064  
+2020-06-12 08:51:17,823  INFO "GET /static/css/mahaDev/mahaDev.css HTTP/1.1" 200 17942  
+2020-06-12 08:51:21,758  INFO "GET /api/fetch_chatroom?chatroom_id=1206&conversation_id=920&scroll_direction=1 HTTP/1.1" 200 1  
+2020-06-12 08:53:00,478  INFO "GET /api/fetch_chatroom?chatroom_id=1096&conversation_id=591&scroll_direction=1 HTTP/1.1" 200 1  
+2020-06-12 08:53:19,622  INFO "GET /collabcard/1172 HTTP/1.1" 200 45870  
+2020-06-12 08:53:19,668  INFO "GET /static/css/mahaDev/mahaDev.css HTTP/1.1" 200 17942  
+2020-06-12 08:54:09,813  INFO "GET /collabcard/1172 HTTP/1.1" 200 45870  
+2020-06-12 08:54:48,362  INFO "POST /api/v1/login HTTP/1.1" 200 7134  
+2020-06-12 08:55:03,009  INFO "GET /community/48850?cta=join&event=1172&type=0 HTTP/1.1" 200 26047  
+2020-06-12 08:57:47,783  INFO /Users/limeroad/repos/personal/collabmate/Togther/project/togther/views.py changed, reloading.  
+2020-06-12 08:58:06,623  INFO Watching for file changes with StatReloader  
+2020-06-12 08:58:15,826  INFO "GET /community/48850?cta=join&event=1172&type=0 HTTP/1.1" 302 0  
+2020-06-12 08:58:27,900  INFO "GET /collabcard/1172?email=true HTTP/1.1" 200 124509  
+2020-06-12 08:58:28,023  INFO "GET /static/css/mahaDev/mahaDev.css HTTP/1.1" 304 0  
+2020-06-12 09:00:27,238  INFO "GET /api/fetch_chatroom?chatroom_id=1172&conversation_id=503&scroll_direction=1 HTTP/1.1" 200 44428  
+2020-06-12 09:00:46,737  INFO "GET /api/fetch_chatroom?chatroom_id=1172&conversation_id=504&scroll_direction=1 HTTP/1.1" 200 44428  
+2020-06-12 09:01:06,651  INFO /Users/limeroad/repos/personal/collabmate/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-06-12 09:01:20,499  INFO Watching for file changes with StatReloader  
+2020-06-12 09:03:37,301  INFO Watching for file changes with StatReloader  
+2020-06-12 09:04:33,097  INFO "GET /api/fetch_chatroom?chatroom_id=1096&conversation_id=591&scroll_direction=1 HTTP/1.1" 200 1  
+2020-06-12 09:04:33,165  INFO "GET /collabcard/1172?email=true HTTP/1.1" 200 124509  
+2020-06-12 09:04:33,227  INFO "GET /static/css/mahaDev/mahaDev.css HTTP/1.1" 304 0  
+2020-06-12 09:04:38,878  INFO "GET /api/fetch_chatroom?chatroom_id=1206&conversation_id=920&scroll_direction=1 HTTP/1.1" 200 1  
+2020-06-12 09:04:49,169  INFO "GET /collabcard/1206 HTTP/1.1" 200 112064  
+2020-06-12 09:04:49,429  INFO "GET /static/css/mahaDev/mahaDev.css HTTP/1.1" 200 17942  
+2020-06-12 09:07:00,228  INFO "GET /api/fetch_chatroom?chatroom_id=1172&conversation_id=503&scroll_direction=1 HTTP/1.1" 200 44428  
+2020-06-12 09:08:24,575  INFO "GET /api/fetch_chatroom?chatroom_id=1172&conversation_id=523&scroll_direction=1 HTTP/1.1" 200 24822  
+2020-06-12 09:08:27,851  INFO "GET /api/fetch_chatroom?chatroom_id=1172&conversation_id=921&scroll_direction=1 HTTP/1.1" 200 1  
+2020-06-12 09:12:40,150  INFO /Users/limeroad/repos/personal/collabmate/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-06-12 09:12:43,209  INFO Watching for file changes with StatReloader  
+2020-06-12 09:30:26,550  INFO Watching for file changes with StatReloader  
+2020-06-12 09:31:01,913  INFO "GET /collabcard/1206 HTTP/1.1" 200 112940  
+2020-06-12 09:31:02,141  INFO "GET /static/css/mahaDev/mahaDev.css HTTP/1.1" 200 17979  
+2020-06-12 09:31:06,655  INFO "GET /api/fetch_chatroom?chatroom_id=1206&conversation_id=920&scroll_direction=1 HTTP/1.1" 200 4  
+2020-06-12 09:31:09,803  INFO "GET /api/fetch_chatroom?chatroom_id=1206&conversation_id=920&scroll_direction=1 HTTP/1.1" 200 4  
+2020-06-12 09:31:19,304  INFO "GET /api/fetch_chatroom?chatroom_id=1206&conversation_id=920&scroll_direction=1 HTTP/1.1" 200 4  
+2020-06-12 09:34:40,576  INFO "GET /api/fetch_chatroom?chatroom_id=1206&conversation_id=920&scroll_direction=1 HTTP/1.1" 200 4  
+2020-06-12 09:35:37,615  INFO "GET /api/fetch_chatroom?chatroom_id=1206&conversation_id=920&scroll_direction=1 HTTP/1.1" 200 4  
+2020-06-12 09:36:06,823  INFO "GET /api/fetch_chatroom?chatroom_id=1206&conversation_id=920&scroll_direction=1 HTTP/1.1" 200 4  
+2020-06-12 09:42:48,287  INFO /Users/limeroad/repos/personal/collabmate/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-06-12 09:43:00,616  INFO Watching for file changes with StatReloader  
+2020-06-12 09:45:43,647  INFO Watching for file changes with StatReloader  
+2020-06-12 09:46:07,292  INFO "GET /collabcard/1206 HTTP/1.1" 200 114161  
+2020-06-12 09:46:07,544  INFO "GET /static/css/mahaDev/mahaDev.css HTTP/1.1" 200 17979  
+2020-06-12 09:46:15,474  INFO "GET /collabcard/1172?email=true HTTP/1.1" 200 125695  
+2020-06-12 09:46:15,551  INFO "GET /static/css/mahaDev/mahaDev.css HTTP/1.1" 200 17979  
+2020-06-12 09:50:44,855  INFO Watching for file changes with StatReloader  
+2020-06-12 09:51:51,821  INFO "GET /collabcard/1206 HTTP/1.1" 200 114664  
+2020-06-12 09:51:51,899  INFO "GET /static/css/mahaDev/mahaDev.css HTTP/1.1" 200 17979  
+2020-06-12 09:51:54,799  INFO "GET /api/fetch_chatroom?chatroom_id=1206&conversation_id=920&scroll_direction=1 HTTP/1.1" 200 4  
+2020-06-12 09:51:57,567  INFO "GET /api/fetch_chatroom?chatroom_id=1206&conversation_id=920&scroll_direction=1 HTTP/1.1" 200 4  
+2020-06-12 09:51:59,493  INFO "GET /api/fetch_chatroom?chatroom_id=1206&conversation_id=920&scroll_direction=1 HTTP/1.1" 200 4  
+2020-06-12 09:52:17,052  INFO "GET /api/fetch_chatroom?chatroom_id=1206&conversation_id=920&scroll_direction=1 HTTP/1.1" 200 4  
+2020-06-12 09:52:19,905  INFO "GET /api/fetch_chatroom?chatroom_id=1206&conversation_id=920&scroll_direction=1 HTTP/1.1" 200 4  
+2020-06-12 09:53:52,474  INFO "GET /api/fetch_chatroom?chatroom_id=1206&conversation_id=920&scroll_direction=1 HTTP/1.1" 200 4  
+2020-06-12 09:53:54,221  INFO "GET /api/fetch_chatroom?chatroom_id=1206&conversation_id=920&scroll_direction=1 HTTP/1.1" 200 4  
+2020-06-12 09:55:34,870  INFO "GET /api/fetch_chatroom?chatroom_id=1206&conversation_id=920&scroll_direction=1 HTTP/1.1" 200 4  
+2020-06-12 09:55:36,713  INFO "GET /api/fetch_chatroom?chatroom_id=1206&conversation_id=920&scroll_direction=1 HTTP/1.1" 200 4  
+2020-06-12 09:55:55,342  INFO "GET /collabcard/1156 HTTP/1.1" 200 140125  
+2020-06-12 09:55:55,463  INFO "GET /static/css/mahaDev/mahaDev.css HTTP/1.1" 200 17979  
+2020-06-12 09:56:08,952  INFO "GET /api/fetch_chatroom?chatroom_id=1156&conversation_id=937&scroll_direction=1 HTTP/1.1" 200 42318  
+2020-06-12 10:03:57,063  INFO Watching for file changes with StatReloader  
+2020-06-12 10:04:08,116  ERROR Internal Server Error: /api/fetch_chatroom  
+Traceback (most recent call last):
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/core/handlers/base.py", line 115, in _get_response
+    response = self.process_exception_by_middleware(e, request)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/core/handlers/base.py", line 113, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/views/decorators/csrf.py", line 54, in wrapped_view
+    return view_func(*args, **kwargs)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/views/generic/base.py", line 71, in view
+    return self.dispatch(request, *args, **kwargs)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/rest_framework/views.py", line 505, in dispatch
+    response = self.handle_exception(exc)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/rest_framework/views.py", line 465, in handle_exception
+    self.raise_uncaught_exception(exc)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/rest_framework/views.py", line 476, in raise_uncaught_exception
+    raise exc
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/rest_framework/views.py", line 502, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/rest_framework/decorators.py", line 50, in handler
+    return func(*args, **kwargs)
+  File "/Users/limeroad/repos/personal/collabmate/Togther/project/collabmates_api/views.py", line 3828, in fetch_chatroom
+    return render(request, 'components/chat_bubbles.html', context)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/shortcuts.py", line 19, in render
+    content = loader.render_to_string(template_name, context, request, using=using)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/loader.py", line 61, in render_to_string
+    template = get_template(template_name, using=using)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/loader.py", line 15, in get_template
+    return engine.get_template(template_name)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/backends/django.py", line 34, in get_template
+    return Template(self.engine.get_template(template_name), self)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/engine.py", line 143, in get_template
+    template, origin = self.find_template(template_name)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/engine.py", line 125, in find_template
+    template = loader.get_template(name, skip=skip)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/loaders/cached.py", line 53, in get_template
+    template = super().get_template(template_name, skip)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/loaders/base.py", line 30, in get_template
+    contents, origin, origin.template_name, self.engine,
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/base.py", line 156, in __init__
+    self.nodelist = self.compile_nodelist()
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/base.py", line 194, in compile_nodelist
+    return parser.parse()
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/base.py", line 477, in parse
+    raise self.error(token, e)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/base.py", line 475, in parse
+    compiled_result = compile_func(self, token)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/defaulttags.py", line 811, in do_for
+    nodelist_loop = parser.parse(('empty', 'endfor',))
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/base.py", line 477, in parse
+    raise self.error(token, e)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/base.py", line 475, in parse
+    compiled_result = compile_func(self, token)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/defaulttags.py", line 811, in do_for
+    nodelist_loop = parser.parse(('empty', 'endfor',))
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/base.py", line 477, in parse
+    raise self.error(token, e)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/base.py", line 475, in parse
+    compiled_result = compile_func(self, token)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/defaulttags.py", line 952, in do_if
+    nodelist = parser.parse(('elif', 'else', 'endif'))
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/base.py", line 477, in parse
+    raise self.error(token, e)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/base.py", line 475, in parse
+    compiled_result = compile_func(self, token)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/defaulttags.py", line 952, in do_if
+    nodelist = parser.parse(('elif', 'else', 'endif'))
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/base.py", line 477, in parse
+    raise self.error(token, e)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/base.py", line 475, in parse
+    compiled_result = compile_func(self, token)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/defaulttags.py", line 952, in do_if
+    nodelist = parser.parse(('elif', 'else', 'endif'))
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/base.py", line 477, in parse
+    raise self.error(token, e)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/base.py", line 475, in parse
+    compiled_result = compile_func(self, token)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/defaulttags.py", line 952, in do_if
+    nodelist = parser.parse(('elif', 'else', 'endif'))
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/base.py", line 448, in parse
+    raise self.error(token, e)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/base.py", line 446, in parse
+    filter_expression = self.compile_filter(token.contents)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/base.py", line 562, in compile_filter
+    return FilterExpression(token, self)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/base.py", line 635, in __init__
+    token[start:]))
+django.template.exceptions.TemplateSyntaxError: Could not parse some characters: |(answer.images||length)|add:"-3"
+2020-06-12 10:04:12,111  ERROR "GET /api/fetch_chatroom?chatroom_id=1206&conversation_id=920&scroll_direction=1 HTTP/1.1" 500 4314  
+2020-06-12 10:04:34,135  ERROR Internal Server Error: /collabcard/1156  
+Traceback (most recent call last):
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/core/handlers/base.py", line 115, in _get_response
+    response = self.process_exception_by_middleware(e, request)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/core/handlers/base.py", line 113, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/views/decorators/csrf.py", line 54, in wrapped_view
+    return view_func(*args, **kwargs)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/views/generic/base.py", line 71, in view
+    return self.dispatch(request, *args, **kwargs)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/rest_framework/views.py", line 505, in dispatch
+    response = self.handle_exception(exc)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/rest_framework/views.py", line 465, in handle_exception
+    self.raise_uncaught_exception(exc)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/rest_framework/views.py", line 476, in raise_uncaught_exception
+    raise exc
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/rest_framework/views.py", line 502, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/rest_framework/decorators.py", line 50, in handler
+    return func(*args, **kwargs)
+  File "/Users/limeroad/repos/personal/collabmate/Togther/project/collabmates_api/views.py", line 3555, in collabcard
+    return render(request, 'chatroom.html', context)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/shortcuts.py", line 19, in render
+    content = loader.render_to_string(template_name, context, request, using=using)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/loader.py", line 62, in render_to_string
+    return template.render(context, request)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/backends/django.py", line 61, in render
+    return self.template.render(context)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/base.py", line 171, in render
+    return self._render(context)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/base.py", line 163, in _render
+    return self.nodelist.render(context)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/base.py", line 936, in render
+    bit = node.render_annotated(context)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/base.py", line 903, in render_annotated
+    return self.render(context)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/loader_tags.py", line 150, in render
+    return compiled_parent._render(context)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/base.py", line 163, in _render
+    return self.nodelist.render(context)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/base.py", line 936, in render
+    bit = node.render_annotated(context)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/base.py", line 903, in render_annotated
+    return self.render(context)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/loader_tags.py", line 62, in render
+    result = block.nodelist.render(context)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/base.py", line 936, in render
+    bit = node.render_annotated(context)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/base.py", line 903, in render_annotated
+    return self.render(context)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/loader_tags.py", line 188, in render
+    return template.render(context)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/base.py", line 173, in render
+    return self._render(context)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/base.py", line 163, in _render
+    return self.nodelist.render(context)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/base.py", line 936, in render
+    bit = node.render_annotated(context)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/base.py", line 903, in render_annotated
+    return self.render(context)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/loader_tags.py", line 176, in render
+    template = context.template.engine.get_template(template_name)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/engine.py", line 143, in get_template
+    template, origin = self.find_template(template_name)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/engine.py", line 125, in find_template
+    template = loader.get_template(name, skip=skip)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/loaders/cached.py", line 53, in get_template
+    template = super().get_template(template_name, skip)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/loaders/base.py", line 30, in get_template
+    contents, origin, origin.template_name, self.engine,
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/base.py", line 156, in __init__
+    self.nodelist = self.compile_nodelist()
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/base.py", line 194, in compile_nodelist
+    return parser.parse()
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/base.py", line 477, in parse
+    raise self.error(token, e)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/base.py", line 475, in parse
+    compiled_result = compile_func(self, token)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/defaulttags.py", line 811, in do_for
+    nodelist_loop = parser.parse(('empty', 'endfor',))
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/base.py", line 477, in parse
+    raise self.error(token, e)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/base.py", line 475, in parse
+    compiled_result = compile_func(self, token)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/defaulttags.py", line 811, in do_for
+    nodelist_loop = parser.parse(('empty', 'endfor',))
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/base.py", line 477, in parse
+    raise self.error(token, e)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/base.py", line 475, in parse
+    compiled_result = compile_func(self, token)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/defaulttags.py", line 952, in do_if
+    nodelist = parser.parse(('elif', 'else', 'endif'))
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/base.py", line 477, in parse
+    raise self.error(token, e)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/base.py", line 475, in parse
+    compiled_result = compile_func(self, token)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/defaulttags.py", line 952, in do_if
+    nodelist = parser.parse(('elif', 'else', 'endif'))
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/base.py", line 477, in parse
+    raise self.error(token, e)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/base.py", line 475, in parse
+    compiled_result = compile_func(self, token)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/defaulttags.py", line 952, in do_if
+    nodelist = parser.parse(('elif', 'else', 'endif'))
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/base.py", line 477, in parse
+    raise self.error(token, e)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/base.py", line 475, in parse
+    compiled_result = compile_func(self, token)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/defaulttags.py", line 952, in do_if
+    nodelist = parser.parse(('elif', 'else', 'endif'))
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/base.py", line 448, in parse
+    raise self.error(token, e)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/base.py", line 446, in parse
+    filter_expression = self.compile_filter(token.contents)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/base.py", line 562, in compile_filter
+    return FilterExpression(token, self)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/template/base.py", line 635, in __init__
+    token[start:]))
+django.template.exceptions.TemplateSyntaxError: Could not parse some characters: |(answer.images||length)|add:"-3"
+2020-06-12 10:04:39,350  ERROR "GET /collabcard/1156 HTTP/1.1" 500 4314  
+2020-06-12 10:07:25,992  INFO Watching for file changes with StatReloader  
+2020-06-12 10:07:34,438  INFO "GET /api/fetch_chatroom?chatroom_id=1206&conversation_id=920&scroll_direction=1 HTTP/1.1" 200 4  
+2020-06-12 10:07:49,710  INFO "GET /collabcard/1156 HTTP/1.1" 200 140391  
+2020-06-12 10:07:49,786  INFO "GET /static/css/mahaDev/mahaDev.css HTTP/1.1" 200 17979  
+2020-06-12 10:08:50,373  INFO "GET /api/fetch_chatroom?chatroom_id=1156&conversation_id=937&scroll_direction=1 HTTP/1.1" 200 42335  
+2020-06-12 10:11:57,107  INFO Watching for file changes with StatReloader  
+2020-06-12 10:12:02,994  INFO "GET /api/fetch_chatroom?chatroom_id=1206&conversation_id=920&scroll_direction=1 HTTP/1.1" 200 4  
+2020-06-12 10:12:04,203  INFO "GET /api/fetch_chatroom?chatroom_id=1206&conversation_id=920&scroll_direction=1 HTTP/1.1" 200 4  
+2020-06-12 10:12:19,957  INFO "GET /collabcard/1156 HTTP/1.1" 200 140393  
+2020-06-12 10:12:20,039  INFO "GET /static/css/mahaDev/mahaDev.css HTTP/1.1" 200 17979  
+2020-06-12 10:12:40,381  INFO "GET /api/fetch_chatroom?chatroom_id=1156&conversation_id=937&scroll_direction=1 HTTP/1.1" 200 42335  
+2020-06-12 10:15:39,844  INFO "GET /api/fetch_chatroom?chatroom_id=1156&conversation_id=1027&scroll_direction=1 HTTP/1.1" 200 4  
+2020-06-12 10:20:20,629  INFO Watching for file changes with StatReloader  
+2020-06-12 10:21:18,187  INFO "GET /api/fetch_chatroom?chatroom_id=1156&conversation_id=1027&scroll_direction=1 HTTP/1.1" 200 4  
+2020-06-12 10:21:22,727  INFO "GET /api/fetch_chatroom?chatroom_id=1156&conversation_id=1027&scroll_direction=1 HTTP/1.1" 200 4  
+2020-06-12 10:21:24,284  INFO "GET /api/fetch_chatroom?chatroom_id=1156&conversation_id=1027&scroll_direction=1 HTTP/1.1" 200 4  
+2020-06-12 10:21:27,295  INFO "GET /api/fetch_chatroom?chatroom_id=1156&conversation_id=1027&scroll_direction=1 HTTP/1.1" 200 4  
+2020-06-12 10:21:36,470  INFO "GET /api/fetch_chatroom?chatroom_id=1156&conversation_id=1027&scroll_direction=1 HTTP/1.1" 200 4  
+2020-06-12 10:21:48,907  INFO "GET /api/fetch_chatroom?chatroom_id=1156&conversation_id=1027&scroll_direction=1 HTTP/1.1" 200 4  
+2020-06-12 10:22:13,697  INFO "GET /collabcard/1098 HTTP/1.1" 200 91761  
+2020-06-12 10:22:25,667  INFO "GET /collabcard/1096 HTTP/1.1" 200 130952  
+2020-06-12 10:22:25,849  INFO "GET /static/css/mahaDev/mahaDev.css HTTP/1.1" 200 17979  
+2020-06-12 10:22:52,599  INFO "GET /api/fetch_chatroom?chatroom_id=1096&conversation_id=591&scroll_direction=1 HTTP/1.1" 200 4  
+2020-06-12 10:25:24,391  INFO Watching for file changes with StatReloader  
+2020-06-12 10:27:48,793  INFO "GET /collabcard/1096 HTTP/1.1" 200 130951  
+2020-06-12 10:27:48,957  INFO "GET /static/css/mahaDev/mahaDev.css HTTP/1.1" 200 17979  
+2020-06-12 10:27:52,053  INFO "GET /api/fetch_chatroom?chatroom_id=1096&conversation_id=591&scroll_direction=1 HTTP/1.1" 200 4  
+2020-06-12 10:29:52,955  INFO "GET /collabcard/1096 HTTP/1.1" 200 130951  
+2020-06-12 10:29:53,037  INFO "GET /static/css/mahaDev/mahaDev.css HTTP/1.1" 200 17979  
+2020-06-12 10:29:55,598  INFO "GET /api/fetch_chatroom?chatroom_id=1096&conversation_id=591&scroll_direction=1 HTTP/1.1" 200 4  
+2020-06-12 10:30:51,651  INFO Watching for file changes with StatReloader  
+2020-06-12 10:31:18,119  INFO Watching for file changes with StatReloader  
+2020-06-12 10:36:06,995  INFO Watching for file changes with StatReloader  
+2020-06-12 10:36:40,231  INFO "GET /collabcard/1096 HTTP/1.1" 200 130953  
+2020-06-12 10:36:40,451  INFO "GET /static/css/mahaDev/mahaDev.css HTTP/1.1" 200 17979  
+2020-06-12 10:36:45,438  INFO "GET /api/fetch_chatroom?chatroom_id=1096&conversation_id=591&scroll_direction=1 HTTP/1.1" 200 4  
+2020-06-12 10:36:55,665  INFO "GET /api/fetch_chatroom?chatroom_id=1096&conversation_id=591&scroll_direction=1 HTTP/1.1" 200 4  
+2020-06-12 10:37:37,278  INFO "GET /api/fetch_chatroom?chatroom_id=1096&conversation_id=591&scroll_direction=1 HTTP/1.1" 200 2271  
+2020-06-12 10:37:39,233  INFO "GET /api/fetch_chatroom?chatroom_id=1096&conversation_id=1094&scroll_direction=1 HTTP/1.1" 200 4  
+2020-06-12 10:37:47,910  INFO "GET /api/fetch_chatroom?chatroom_id=1096&conversation_id=1094&scroll_direction=1 HTTP/1.1" 200 4  
+2020-06-12 10:37:50,929  INFO "GET /api/fetch_chatroom?chatroom_id=1096&conversation_id=1094&scroll_direction=1 HTTP/1.1" 200 4  
+2020-06-12 10:37:52,713  INFO "GET /api/fetch_chatroom?chatroom_id=1096&conversation_id=1094&scroll_direction=1 HTTP/1.1" 200 4  
+2020-06-12 10:39:11,630  INFO Watching for file changes with StatReloader  
+2020-06-12 10:39:27,119  INFO "GET /collabcard/1096 HTTP/1.1" 200 124637  
+2020-06-12 10:39:27,318  INFO "GET /static/css/mahaDev/mahaDev.css HTTP/1.1" 200 17979  
+2020-06-12 10:40:55,178  INFO "GET /api/fetch_chatroom?chatroom_id=1096&conversation_id=1094&scroll_direction=1 HTTP/1.1" 200 4  
+2020-06-12 10:40:58,492  INFO "GET /api/fetch_chatroom?chatroom_id=1096&conversation_id=1094&scroll_direction=1 HTTP/1.1" 200 4  
+2020-06-12 10:41:00,324  INFO "GET /api/fetch_chatroom?chatroom_id=1096&conversation_id=1094&scroll_direction=1 HTTP/1.1" 200 4  
+2020-06-12 10:41:03,042  INFO "GET /api/fetch_chatroom?chatroom_id=1096&conversation_id=1094&scroll_direction=1 HTTP/1.1" 200 4  
+2020-06-16 16:22:06,190  INFO Watching for file changes with StatReloader  
+2020-06-16 16:22:29,861  INFO "GET /api/similar_communities/48842?member_id=469 HTTP/1.1" 200 19605  
+2020-06-16 16:22:30,808  INFO "GET /community/48842 HTTP/1.1" 200 37144  
+2020-06-16 16:22:31,005  INFO "GET /static/css/mahaDev/mahaDev.css HTTP/1.1" 200 17979  
+2020-06-16 16:30:22,620  INFO "GET /community/48842 HTTP/1.1" 200 36899  
+2020-06-16 16:30:22,791  INFO "GET /static/css/mahaDev/mahaDev.css HTTP/1.1" 200 17979  
+2020-06-16 16:34:41,669  INFO /Users/limeroad/repos/personal/collabmate/Togther/project/togther/views.py changed, reloading.  
+2020-06-16 16:34:48,093  INFO Watching for file changes with StatReloader  
+2020-06-16 16:35:39,929  INFO "GET /community/48842 HTTP/1.1" 200 27466  
+2020-06-16 16:36:45,789  INFO /Users/limeroad/repos/personal/collabmate/Togther/project/togther/views.py changed, reloading.  
+2020-06-16 16:36:48,275  INFO Watching for file changes with StatReloader  
+2020-06-16 16:37:59,395  INFO /Users/limeroad/repos/personal/collabmate/Togther/project/collabmates_api/views.py changed, reloading.  
+2020-06-16 16:38:01,214  INFO Watching for file changes with StatReloader  
+2020-06-16 16:38:15,467  INFO /Users/limeroad/repos/personal/collabmate/Togther/project/utility/utils.py changed, reloading.  
+2020-06-16 16:38:16,823  INFO Watching for file changes with StatReloader  
+2020-06-16 16:38:20,851  INFO /Users/limeroad/repos/personal/collabmate/Togther/project/utility/utils.py changed, reloading.  
+2020-06-16 16:38:22,139  INFO Watching for file changes with StatReloader  
+2020-06-16 16:38:25,075  INFO /Users/limeroad/repos/personal/collabmate/Togther/project/togther/views.py changed, reloading.  
+2020-06-16 16:38:26,336  INFO Watching for file changes with StatReloader  
+2020-06-16 16:39:29,546  INFO /Users/limeroad/repos/personal/collabmate/Togther/project/togther/views.py changed, reloading.  
+2020-06-16 16:39:30,855  INFO Watching for file changes with StatReloader  
+2020-06-16 16:39:40,516  INFO "GET /community/48842 HTTP/1.1" 200 27466  
+2020-06-16 16:39:59,933  INFO "GET /community/48842 HTTP/1.1" 200 27466  
+2020-06-16 16:39:59,978  INFO "GET /static/css/mahaDev/mahaDev.css HTTP/1.1" 200 17979  
+2020-06-16 16:41:22,560  INFO Watching for file changes with StatReloader  
+2020-06-16 16:41:29,434  INFO "GET /community/48842 HTTP/1.1" 200 27466  
+2020-06-16 16:41:29,513  INFO "GET /static/css/mahaDev/mahaDev.css HTTP/1.1" 200 17979  
+2020-06-16 16:43:09,621  INFO Watching for file changes with StatReloader  
+2020-06-16 16:43:21,741  INFO "GET /community/48842 HTTP/1.1" 200 27492  
+2020-06-16 16:43:21,779  INFO "GET /static/css/mahaDev/mahaDev.css HTTP/1.1" 200 17979  
+2020-06-16 16:44:33,477  INFO Watching for file changes with StatReloader  
+2020-06-16 16:44:40,982  INFO "GET /community/48842 HTTP/1.1" 200 27550  
+2020-06-16 16:44:41,032  INFO "GET /static/css/mahaDev/mahaDev.css HTTP/1.1" 200 17979  
+2020-06-16 16:45:29,987  INFO "GET /community/48842 HTTP/1.1" 200 27550  
+2020-06-16 16:45:30,034  INFO "GET /static/css/mahaDev/mahaDev.css HTTP/1.1" 200 17979  
+2020-06-16 16:47:06,715  INFO Watching for file changes with StatReloader  
+2020-06-16 16:47:10,361  INFO "GET /community/48842 HTTP/1.1" 200 27850  
+2020-06-16 16:47:10,433  INFO "GET /static/css/mahaDev/mahaDev.css HTTP/1.1" 200 17979  
+2020-06-16 16:52:47,074  INFO /Users/limeroad/repos/personal/collabmate/Togther/project/togther/views.py changed, reloading.  
+2020-06-16 16:52:48,394  INFO Watching for file changes with StatReloader  
+2020-06-16 16:52:56,317  INFO "GET /community/48842 HTTP/1.1" 200 27850  
+2020-06-16 16:52:56,374  INFO "GET /static/css/mahaDev/mahaDev.css HTTP/1.1" 200 17979  
+2020-06-16 16:53:34,802  INFO /Users/limeroad/repos/personal/collabmate/Togther/project/togther/views.py changed, reloading.  
+2020-06-16 16:53:36,298  INFO Watching for file changes with StatReloader  
+2020-06-16 16:53:43,417  INFO /Users/limeroad/repos/personal/collabmate/Togther/project/togther/views.py changed, reloading.  
+2020-06-16 16:53:44,955  INFO Watching for file changes with StatReloader  
+2020-06-16 16:53:49,338  INFO "GET /community/48842 HTTP/1.1" 200 27850  
+2020-06-16 16:53:49,416  INFO "GET /static/css/mahaDev/mahaDev.css HTTP/1.1" 200 17979  
+2020-06-16 16:57:58,530  INFO /Users/limeroad/repos/personal/collabmate/Togther/project/togther/views.py changed, reloading.  
+2020-06-16 16:58:00,602  INFO Watching for file changes with StatReloader  
+2020-06-16 16:58:08,793  INFO "GET /community/48842 HTTP/1.1" 200 27850  
+2020-06-16 16:58:08,852  INFO "GET /static/css/mahaDev/mahaDev.css HTTP/1.1" 200 17979  
+2020-06-16 16:59:24,058  INFO /Users/limeroad/repos/personal/collabmate/Togther/project/togther/views.py changed, reloading.  
+2020-06-16 16:59:25,644  INFO Watching for file changes with StatReloader  
+2020-06-16 16:59:30,539  ERROR Internal Server Error: /community/48842  
+Traceback (most recent call last):
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/core/handlers/base.py", line 115, in _get_response
+    response = self.process_exception_by_middleware(e, request)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/core/handlers/base.py", line 113, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/limeroad/repos/personal/collabmate/Togther/project/togther/views.py", line 283, in community
+    print("wcwewecvwwcwewecvwwcwewecvwwcwewecvw", context['community']['name'])
+TypeError: 'Community' object is not subscriptable
+2020-06-16 16:59:33,394  ERROR "GET /community/48842 HTTP/1.1" 500 4314  
+2020-06-16 16:59:46,670  INFO /Users/limeroad/repos/personal/collabmate/Togther/project/togther/views.py changed, reloading.  
+2020-06-16 16:59:48,646  INFO Watching for file changes with StatReloader  
+2020-06-16 16:59:51,573  INFO "GET /community/48842 HTTP/1.1" 200 27850  
+2020-06-16 16:59:51,621  INFO "GET /static/css/mahaDev/mahaDev.css HTTP/1.1" 200 17979  
+2020-06-16 17:00:10,493  INFO /Users/limeroad/repos/personal/collabmate/Togther/project/togther/views.py changed, reloading.  
+2020-06-16 17:00:12,174  INFO Watching for file changes with StatReloader  
+2020-06-16 17:00:16,764  ERROR Internal Server Error: /community/48842  
+Traceback (most recent call last):
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/core/handlers/base.py", line 115, in _get_response
+    response = self.process_exception_by_middleware(e, request)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/core/handlers/base.py", line 113, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/limeroad/repos/personal/collabmate/Togther/project/togther/views.py", line 283, in community
+    print("wcwewecvwwcwewecvwwcwewecvwwcwewecvw", context['community'].members)
+AttributeError: 'Community' object has no attribute 'members'
+2020-06-16 17:00:17,855  ERROR "GET /community/48842 HTTP/1.1" 500 4314  
+2020-06-16 17:05:28,551  INFO /Users/limeroad/repos/personal/collabmate/Togther/project/togther/views.py changed, reloading.  
+2020-06-16 17:05:30,632  INFO Watching for file changes with StatReloader  
+2020-06-16 17:05:38,756  ERROR Internal Server Error: /community/48842  
+Traceback (most recent call last):
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/core/handlers/base.py", line 115, in _get_response
+    response = self.process_exception_by_middleware(e, request)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/core/handlers/base.py", line 113, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/limeroad/repos/personal/collabmate/Togther/project/togther/views.py", line 285, in community
+    print("wcwewecvwwcwewecvwwcwewecvwwcwewecvw", list(context['community']))
+TypeError: 'Community' object is not iterable
+2020-06-16 17:05:41,255  ERROR "GET /community/48842 HTTP/1.1" 500 4314  
+2020-06-16 17:05:57,301  INFO /Users/limeroad/repos/personal/collabmate/Togther/project/togther/views.py changed, reloading.  
+2020-06-16 17:05:59,022  INFO Watching for file changes with StatReloader  
+2020-06-16 17:06:02,717  INFO "GET /community/48842 HTTP/1.1" 200 27850  
+2020-06-16 17:06:02,782  INFO "GET /static/css/mahaDev/mahaDev.css HTTP/1.1" 200 17979  
+2020-06-16 17:06:27,932  INFO /Users/limeroad/repos/personal/collabmate/Togther/project/togther/views.py changed, reloading.  
+2020-06-16 17:06:29,926  INFO Watching for file changes with StatReloader  
+2020-06-16 17:06:34,743  ERROR Internal Server Error: /community/48842  
+Traceback (most recent call last):
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/core/handlers/base.py", line 115, in _get_response
+    response = self.process_exception_by_middleware(e, request)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/core/handlers/base.py", line 113, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/limeroad/repos/personal/collabmate/Togther/project/togther/views.py", line 285, in community
+    print("wcwewecvwwcwewecvwwcwewecvwwcwewecvw", dict(context['community']))
+TypeError: 'Community' object is not iterable
+2020-06-16 17:06:35,923  ERROR "GET /community/48842 HTTP/1.1" 500 4314  
+2020-06-16 17:07:09,756  INFO /Users/limeroad/repos/personal/collabmate/Togther/project/togther/views.py changed, reloading.  
+2020-06-16 17:07:11,787  INFO Watching for file changes with StatReloader  
+2020-06-16 17:07:16,507  INFO "GET /community/48842 HTTP/1.1" 200 27850  
+2020-06-16 17:07:16,545  INFO "GET /static/css/mahaDev/mahaDev.css HTTP/1.1" 200 17979  
+2020-06-16 17:09:16,384  INFO /Users/limeroad/repos/personal/collabmate/Togther/project/togther/views.py changed, reloading.  
+2020-06-16 17:09:17,919  INFO Watching for file changes with StatReloader  
+2020-06-16 17:09:21,459  INFO "GET /community/48842 HTTP/1.1" 200 27850  
+2020-06-16 17:09:21,514  INFO "GET /static/css/mahaDev/mahaDev.css HTTP/1.1" 200 17979  
+2020-06-16 17:13:24,991  INFO /Users/limeroad/repos/personal/collabmate/Togther/project/togther/views.py changed, reloading.  
+2020-06-16 17:13:26,487  INFO Watching for file changes with StatReloader  
+2020-06-16 17:13:39,055  INFO "GET /community/48842 HTTP/1.1" 200 27850  
+2020-06-16 17:13:39,101  INFO "GET /static/css/mahaDev/mahaDev.css HTTP/1.1" 200 17979  
+2020-06-16 17:17:48,457  INFO /Users/limeroad/repos/personal/collabmate/Togther/project/togther/views.py changed, reloading.  
+2020-06-16 17:17:50,105  INFO Watching for file changes with StatReloader  
+2020-06-16 17:17:56,511  ERROR Internal Server Error: /community/48842  
+Traceback (most recent call last):
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/core/handlers/base.py", line 115, in _get_response
+    response = self.process_exception_by_middleware(e, request)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/core/handlers/base.py", line 113, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/limeroad/repos/personal/collabmate/Togther/project/togther/views.py", line 290, in community
+    if member.state == 1:
+AttributeError: 'dict' object has no attribute 'state'
+2020-06-16 17:18:02,029  ERROR "GET /community/48842 HTTP/1.1" 500 4314  
+2020-06-16 17:18:36,352  INFO /Users/limeroad/repos/personal/collabmate/Togther/project/togther/views.py changed, reloading.  
+2020-06-16 17:18:38,162  INFO Watching for file changes with StatReloader  
+2020-06-16 17:18:41,939  ERROR Internal Server Error: /community/48842  
+Traceback (most recent call last):
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/core/handlers/base.py", line 115, in _get_response
+    response = self.process_exception_by_middleware(e, request)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/core/handlers/base.py", line 113, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/limeroad/repos/personal/collabmate/Togther/project/togther/views.py", line 291, in community
+    if member.state == 1:
+AttributeError: 'dict' object has no attribute 'state'
+2020-06-16 17:18:44,947  ERROR "GET /community/48842 HTTP/1.1" 500 4314  
+2020-06-16 17:19:27,470  INFO /Users/limeroad/repos/personal/collabmate/Togther/project/togther/views.py changed, reloading.  
+2020-06-16 17:19:29,018  INFO Watching for file changes with StatReloader  
+2020-06-16 17:19:36,250  INFO /Users/limeroad/repos/personal/collabmate/Togther/project/togther/views.py changed, reloading.  
+2020-06-16 17:19:37,414  INFO Watching for file changes with StatReloader  
+2020-06-16 17:19:43,152  ERROR Internal Server Error: /community/48842  
+Traceback (most recent call last):
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/core/handlers/base.py", line 115, in _get_response
+    response = self.process_exception_by_middleware(e, request)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/core/handlers/base.py", line 113, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/limeroad/repos/personal/collabmate/Togther/project/togther/views.py", line 293, in community
+    admin = member.name
+AttributeError: 'dict' object has no attribute 'name'
+2020-06-16 17:19:46,492  ERROR "GET /community/48842 HTTP/1.1" 500 4314  
+2020-06-16 17:20:05,218  INFO /Users/limeroad/repos/personal/collabmate/Togther/project/togther/views.py changed, reloading.  
+2020-06-16 17:20:07,219  INFO Watching for file changes with StatReloader  
+2020-06-16 17:20:15,549  INFO "GET /community/48842 HTTP/1.1" 200 27850  
+2020-06-16 17:20:15,587  INFO "GET /static/css/mahaDev/mahaDev.css HTTP/1.1" 200 17979  
+2020-06-16 21:33:45,086  INFO /Users/limeroad/repos/personal/collabmate/Togther/project/togther/views.py changed, reloading.  
+2020-06-16 21:34:06,509  INFO Watching for file changes with StatReloader  
+2020-06-16 21:34:16,131  INFO /Users/limeroad/repos/personal/collabmate/Togther/project/togther/views.py changed, reloading.  
+2020-06-16 21:34:17,560  INFO Watching for file changes with StatReloader  
+2020-06-16 21:34:26,142  ERROR Internal Server Error: /community/48842  
+Traceback (most recent call last):
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/core/handlers/base.py", line 115, in _get_response
+    response = self.process_exception_by_middleware(e, request)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/core/handlers/base.py", line 113, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/limeroad/repos/personal/collabmate/Togther/project/togther/views.py", line 287, in community
+    'members': "Members : " + len(members)
+TypeError: can only concatenate str (not "int") to str
+2020-06-16 21:34:28,656  ERROR "GET /community/48842 HTTP/1.1" 500 4314  
+2020-06-16 21:35:46,846  INFO /Users/limeroad/repos/personal/collabmate/Togther/project/togther/views.py changed, reloading.  
+2020-06-16 21:35:48,983  INFO Watching for file changes with StatReloader  
+2020-06-16 21:35:52,885  INFO "GET /community/48842 HTTP/1.1" 200 27848  
+2020-06-16 21:35:52,918  INFO "GET /static/css/mahaDev/mahaDev.css HTTP/1.1" 200 17979  
+2020-06-16 21:36:23,734  INFO /Users/limeroad/repos/personal/collabmate/Togther/project/togther/views.py changed, reloading.  
+2020-06-16 21:36:25,149  INFO Watching for file changes with StatReloader  
+2020-06-16 21:36:30,068  INFO "GET /community/48842 HTTP/1.1" 200 27848  
+2020-06-16 21:36:30,114  INFO "GET /static/css/mahaDev/mahaDev.css HTTP/1.1" 200 17979  
+2020-06-16 21:37:22,950  INFO /Users/limeroad/repos/personal/collabmate/Togther/project/togther/views.py changed, reloading.  
+2020-06-16 21:37:24,768  INFO Watching for file changes with StatReloader  
+2020-06-16 21:37:29,260  INFO "GET /community/48842 HTTP/1.1" 200 27848  
+2020-06-16 21:37:29,317  INFO "GET /static/css/mahaDev/mahaDev.css HTTP/1.1" 200 17979  
+2020-06-16 21:46:31,072  INFO "GET /api/similar_communities/48842?member_id=469 HTTP/1.1" 200 19605  
+2020-06-16 21:46:31,777  INFO "GET /community/48842 HTTP/1.1" 200 37144  
+2020-06-16 21:51:07,315  INFO /Users/limeroad/repos/personal/collabmate/Togther/project/togther/views.py changed, reloading.  
+2020-06-16 21:51:21,699  INFO Watching for file changes with StatReloader  
+2020-06-16 21:51:52,028  INFO /Users/limeroad/repos/personal/collabmate/Togther/project/togther/views.py changed, reloading.  
+2020-06-16 21:52:01,634  INFO Watching for file changes with StatReloader  
+2020-06-16 21:54:37,306  INFO "GET /community/48842 HTTP/1.1" 200 27848  
+2020-06-16 21:54:37,361  INFO "GET /static/css/mahaDev/mahaDev.css HTTP/1.1" 200 17979  
+2020-06-16 22:03:28,604  INFO /Users/limeroad/repos/personal/collabmate/Togther/project/togther/views.py changed, reloading.  
+2020-06-16 22:03:42,515  INFO Watching for file changes with StatReloader  
+2020-06-16 22:03:52,417  ERROR Internal Server Error: /community/48842  
+Traceback (most recent call last):
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/core/handlers/base.py", line 115, in _get_response
+    response = self.process_exception_by_middleware(e, request)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/core/handlers/base.py", line 113, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/limeroad/repos/personal/collabmate/Togther/project/togther/views.py", line 267, in community
+    questions, validation_error, user, data, community, filled_answers = join_community(request, community_id, ref_id, aj=aj, member_state=member_state)
+  File "/Users/limeroad/repos/personal/collabmate/Togther/project/togther/views.py", line 1358, in join_community
+    auto_join = private_link_app_invite(community_instance,aj,created_by)
+NameError: name 'community_instance' is not defined
+2020-06-16 22:03:56,403  ERROR "GET /community/48842 HTTP/1.1" 500 4314  
+2020-06-16 22:11:18,681  INFO /Users/limeroad/repos/personal/collabmate/Togther/project/togther/views.py changed, reloading.  
+2020-06-16 22:11:36,160  INFO Watching for file changes with StatReloader  
+2020-06-16 22:11:47,307  ERROR Internal Server Error: /community/48842  
+Traceback (most recent call last):
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/core/handlers/base.py", line 115, in _get_response
+    response = self.process_exception_by_middleware(e, request)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/core/handlers/base.py", line 113, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/limeroad/repos/personal/collabmate/Togther/project/togther/views.py", line 267, in community
+    questions, validation_error, user, data, community, filled_answers = join_community(request, community_id, ref_id, aj=aj, member_state=member_state)
+  File "/Users/limeroad/repos/personal/collabmate/Togther/project/togther/views.py", line 1358, in join_community
+    auto_join = private_link_app_invite(community,aj,created_by)
+NameError: name 'created_by' is not defined
+2020-06-16 22:11:52,203  ERROR "GET /community/48842 HTTP/1.1" 500 4314  
+2020-06-16 22:11:57,357  INFO /Users/limeroad/repos/personal/collabmate/Togther/project/togther/views.py changed, reloading.  
+2020-06-16 22:12:04,950  INFO Watching for file changes with StatReloader  
+2020-06-16 22:12:14,004  ERROR Internal Server Error: /community/48842  
+Traceback (most recent call last):
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/core/handlers/base.py", line 115, in _get_response
+    response = self.process_exception_by_middleware(e, request)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/core/handlers/base.py", line 113, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/limeroad/repos/personal/collabmate/Togther/project/togther/views.py", line 267, in community
+    questions, validation_error, user, data, community, filled_answers = join_community(request, community_id, ref_id, aj=aj, member_state=member_state)
+  File "/Users/limeroad/repos/personal/collabmate/Togther/project/togther/views.py", line 1358, in join_community
+    auto_join = private_link_app_invite(community,aj,created_by)
+NameError: name 'created_by' is not defined
+2020-06-16 22:12:15,947  ERROR "GET /community/48842 HTTP/1.1" 500 4314  
+2020-06-16 22:12:44,332  INFO /Users/limeroad/repos/personal/collabmate/Togther/project/togther/views.py changed, reloading.  
+2020-06-16 22:12:47,314  INFO Watching for file changes with StatReloader  
+2020-06-16 22:12:51,180  ERROR Internal Server Error: /community/48842  
+Traceback (most recent call last):
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/core/handlers/base.py", line 115, in _get_response
+    response = self.process_exception_by_middleware(e, request)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/core/handlers/base.py", line 113, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/limeroad/repos/personal/collabmate/Togther/project/togther/views.py", line 267, in community
+    questions, validation_error, user, data, community, filled_answers = join_community(request, community_id, ref_id, aj=aj, member_state=member_state)
+ValueError: too many values to unpack (expected 6)
+2020-06-16 22:12:52,361  ERROR "GET /community/48842 HTTP/1.1" 500 4314  
+2020-06-16 22:18:36,467  INFO /Users/limeroad/repos/personal/collabmate/Togther/project/togther/urls.py changed, reloading.  
+2020-06-16 22:18:40,294  INFO Watching for file changes with StatReloader  
+2020-06-16 22:18:44,000  INFO "GET /community/48842 HTTP/1.1" 200 1001  
+2020-06-16 22:38:21,148  INFO /Users/limeroad/repos/personal/collabmate/Togther/project/togther/urls.py changed, reloading.  
+2020-06-16 22:38:25,472  INFO Watching for file changes with StatReloader  
+2020-06-16 22:38:37,809  ERROR Internal Server Error: /community/48842  
+Traceback (most recent call last):
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/core/handlers/base.py", line 115, in _get_response
+    response = self.process_exception_by_middleware(e, request)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/core/handlers/base.py", line 113, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/limeroad/repos/personal/collabmate/Togther/project/togther/views.py", line 267, in community
+    questions, validation_error, user, data, community, filled_answers = join_community(request, community_id, ref_id, aj=aj, member_state=member_state)
+ValueError: too many values to unpack (expected 6)
+2020-06-16 22:38:41,805  ERROR "GET /community/48842 HTTP/1.1" 500 4314  
+2020-06-16 22:40:07,792  INFO /Users/limeroad/repos/personal/collabmate/Togther/project/togther/views.py changed, reloading.  
+2020-06-16 22:40:10,822  INFO Watching for file changes with StatReloader  
+2020-06-16 22:40:17,319  ERROR Internal Server Error: /community/48842  
+Traceback (most recent call last):
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/core/handlers/base.py", line 115, in _get_response
+    response = self.process_exception_by_middleware(e, request)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/core/handlers/base.py", line 113, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/limeroad/repos/personal/collabmate/Togther/project/togther/views.py", line 271, in community
+    questions, validation_error, user, data, community, filled_answers = join_community(request, community_id, ref_id, aj=aj, member_state=member_state)
+  File "/Users/limeroad/repos/personal/collabmate/Togther/project/togther/views.py", line 1362, in join_community
+    auto_join = private_link_app_invite(community,aj,created_by)
+NameError: name 'created_by' is not defined
+2020-06-16 22:40:18,858  ERROR "GET /community/48842 HTTP/1.1" 500 4314  
+2020-06-16 22:40:42,774  INFO /Users/limeroad/repos/personal/collabmate/Togther/project/togther/views.py changed, reloading.  
+2020-06-16 22:40:46,091  INFO Watching for file changes with StatReloader  
+2020-06-16 22:40:53,157  INFO /Users/limeroad/repos/personal/collabmate/Togther/project/togther/views.py changed, reloading.  
+2020-06-16 22:40:56,035  INFO Watching for file changes with StatReloader  
+2020-06-16 22:41:06,966  INFO "GET /community/48842 HTTP/1.1" 200 27848  
+2020-06-16 22:41:07,014  INFO "GET /static/css/mahaDev/mahaDev.css HTTP/1.1" 200 17979  
+2020-06-16 22:41:28,340  INFO /Users/limeroad/repos/personal/collabmate/Togther/project/togther/views.py changed, reloading.  
+2020-06-16 22:41:30,596  INFO Watching for file changes with StatReloader  
+2020-06-16 22:41:35,122  ERROR Internal Server Error: /community/48842  
+Traceback (most recent call last):
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/core/handlers/base.py", line 115, in _get_response
+    response = self.process_exception_by_middleware(e, request)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/core/handlers/base.py", line 113, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/limeroad/repos/personal/collabmate/Togther/project/togther/views.py", line 271, in community
+    questions, validation_error, user, data, community, filled_answers = join_community(request, community_id, ref_id, aj=aj, member_state=member_state)
+ValueError: too many values to unpack (expected 6)
+2020-06-16 22:41:36,231  ERROR "GET /community/48842 HTTP/1.1" 500 4314  
+2020-06-16 22:43:11,241  INFO /Users/limeroad/repos/personal/collabmate/Togther/project/togther/views.py changed, reloading.  
+2020-06-16 22:43:14,562  INFO Watching for file changes with StatReloader  
+2020-06-16 22:43:18,153  ERROR Internal Server Error: /community/48842  
+Traceback (most recent call last):
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/core/handlers/base.py", line 115, in _get_response
+    response = self.process_exception_by_middleware(e, request)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/core/handlers/base.py", line 113, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/limeroad/repos/personal/collabmate/Togther/project/togther/views.py", line 271, in community
+    questions, validation_error, user, data, community, filled_answers = join_community(request, community_id, ref_id, aj=aj, member_state=member_state)
+ValueError: too many values to unpack (expected 6)
+2020-06-16 22:43:22,103  ERROR "GET /community/48842 HTTP/1.1" 500 4314  
+2020-06-16 22:44:53,283  INFO /Users/limeroad/repos/personal/collabmate/Togther/project/togther/views.py changed, reloading.  
+2020-06-16 22:44:56,080  INFO Watching for file changes with StatReloader  
+2020-06-16 22:44:59,873  ERROR Internal Server Error: /community/48842  
+Traceback (most recent call last):
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/core/handlers/base.py", line 115, in _get_response
+    response = self.process_exception_by_middleware(e, request)
+  File "/Users/limeroad/repos/personal/collabmate/venv/lib/python3.7/site-packages/django/core/handlers/base.py", line 113, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/limeroad/repos/personal/collabmate/Togther/project/togther/views.py", line 271, in community
+    questions, validation_error, user, data, community, filled_answers = join_community(request, community_id, ref_id, aj=aj, member_state=member_state)
+ValueError: too many values to unpack (expected 6)
+2020-06-16 22:45:01,002  ERROR "GET /community/48842 HTTP/1.1" 500 4314  
+2020-06-16 22:45:14,085  INFO /Users/limeroad/repos/personal/collabmate/Togther/project/togther/views.py changed, reloading.  
+2020-06-16 22:45:16,852  INFO Watching for file changes with StatReloader  
+2020-06-16 22:49:04,243  INFO /Users/limeroad/repos/personal/collabmate/Togther/project/togther/views.py changed, reloading.  
+2020-06-16 22:49:13,881  INFO Watching for file changes with StatReloader  
