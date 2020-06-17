@@ -359,13 +359,9 @@ def community(request, community_id):
                     else:
                         pass
             else:
-                if request.is_ajax:
-                    return JsonResponse({'success': True})
-                else:
-                    if community.hide_community == '5':
-                        return redirect("/community/"+str(community_id)+"?profile="+str(request.user.id))
-                    else:
-                        return redirect("refer_members", community_id)
+
+                 return redirect("/community/"+str(community_id)+"?profile="+str(request.user.id))
+
         elif cta == 'share':
             cta = 'join'
 
@@ -1357,7 +1353,7 @@ def join_community(request, community_id, ref_id, aj=False, member_state=None):
             params = {'member_id': member_id, 'community_id': community_id, 'ref_id': ref_id}
             rqst.post(join_url, params=params, json=json_dict)
         # return false to show thank you page the user has now answered the questions
-        return False, validation_error, user, similar_communities, community, []
+        return False, validation_error, user, similar_communities, community, [],{}
 
     else:
         question_format = get_community_questions(community_id)
@@ -1372,7 +1368,7 @@ def join_community(request, community_id, ref_id, aj=False, member_state=None):
             rqst.post(join_url, params=params, json=json_dict)
             # return false to show thank you page as there are no questions for this community
 
-            return False, validation_error, user, similar_communities, community, []
+            return False, validation_error, user, similar_communities, community, [],auto_join
         else:
             # return true to take the user to questions page
             return True, validation_error, user, question_format, community, [], auto_join

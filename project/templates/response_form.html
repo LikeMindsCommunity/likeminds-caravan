@@ -716,11 +716,9 @@
                         {% elif request.GET.collabcard %}
                             location.href = "/collabcard/{{request.GET.collabcard}}?email=true";
                         {% else %}
-                            {% if community.hide_community == '5' %}
-                                location.href="/community/"+'{{community.id}}?profile='+{{request.user.id}};
-                            {% else %}
-                                location.href="/refer_members/"+'{{community.id}}';
-                            {% endif %}
+
+                            location.href="/community/"+'{{community.id}}?profile='+{{request.user.id}};
+
                         {% endif %}
                     }
                 });
