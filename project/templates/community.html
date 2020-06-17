@@ -173,11 +173,11 @@
 
             <div class="h60"></div>
             
-            {% if auto_join %}
+            {% if footer %}
                 <div class="h60"></div>
                 <div class="taC pF b60 l0 r0 bg0 z1 p8 bs">
                     <div class="mxw960 mA cF taL">
-                        {{auto_join.toast}}
+                        {{footer.toast}}
                     </div>
                 </div>
             {% endif %}
@@ -192,13 +192,13 @@
                 {% elif Nom_mem_state == 3 %}
                     <button class="m80 h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" disabled>Pending Approval</button>
                 {% elif Nom_mem_state == 1%}
-                    {% include 'components/download_app_bar.html' with title='Use the LikeMinds app' subtitle='You are a promoter, track all updates on app' auto_join=auto_join %}
+                    {% include 'components/download_app_bar.html' with title='Use the LikeMinds app' subtitle='You are a promoter, track all updates on app' auto_join=footer %}
                     <!-- <button class="h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" onclick="window.location.href='/download_the_app'">Open in App You are a promoter</button> -->
                 {% elif Nom_mem_state == 2 %}
-                    {% include 'components/download_app_bar.html' with title='Use the LikeMinds app' subtitle='You are a promoter, track all updates on app' auto_join=auto_join %}
+                    {% include 'components/download_app_bar.html' with title='Use the LikeMinds app' subtitle='You are a promoter, track all updates on app' auto_join=footer %}
                     <!-- <button class="h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" onclick="window.location.href='/download_the_app'">Open in App You are a promoter</button> -->
                 {% elif Nom_mem_state == 4 %}
-                    {% include 'components/download_app_bar.html' with title='Use the LikeMinds app' subtitle='Already a Member, track all updates on app' auto_join=auto_join %}
+                    {% include 'components/download_app_bar.html' with title='Use the LikeMinds app' subtitle='Already a Member, track all updates on app' auto_join=footer %}
                     <!-- <button class="h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" onclick="window.location.href='/download_the_app'">Open in App Already a Member</button> -->
                 {% elif Nom_mem_state == 5 %}
                     <button class="m80 h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" onclick="join('{{community.id}}')">Join Community (Declined)</button>

@@ -22,7 +22,7 @@ from utility.utils import (get_city_address, update_tag_image,
                            update_user_geography_tags, create_or_categorize_tag,
                            referal, insert_user_home_town_tags, user_onbaord,
                            is_request_android, is_request_ios,
-                           is_request_pc, android_app_download_link, is_IG_community, ios_app_download_link,is_member_verified,feedback_community_id,decode_option)
+                           is_request_pc, android_app_download_link, is_IG_community, ios_app_download_link,is_member_verified,feedback_community_id,decode_option,get_members_count_in_community)
 from utility.firebase import upload_image_to_firebase
 from urllib.parse import urlencode, quote,unquote
 from collabmates_api.tasks import send_email
@@ -233,7 +233,7 @@ def community(request, community_id):
 
 
 
-    profile = request.GET.get('profile')
+    #profile = request.GET.get('profile')
 
     profile_list = []
 
@@ -246,8 +246,8 @@ def community(request, community_id):
         state_data = members_state(request,{'community_id':community_id,'member_id':request.user.id})
         state = state_data['state']
         user_instance = request.user
-        if profile:
-            profile_list = get_member_profile(community_id,user_instance.id)
+        # if profile:
+        #     profile_list = get_member_profile(community_id,user_instance.id)
 
         is_member = is_member_verified(community_id,request.user)
 
@@ -298,14 +298,27 @@ def community_questions(request,community_id):
             'userImage': request.user.userinfo.image_link if user_instance else ""
         }
 
-        context = {"data": question_format, 'usr': user_instance, 'header': header,
-                   'community': community_instance,
+
+        context = {
+                    "data": question_format, 'usr': user_instance, 'header': header,
+                    'community': community_instance,
                     'header_showcase': header_showcase,
-                   'google_oauth_client_id': settings.GOOGLE_OAUTH_CLIENT_ID,
-                   'facebook_auth_id': settings.SOCIAL_AUTH_FACEBOOK_KEY,
-                   'firebase_config': settings.FIREBASE_CONFIG
+                    'google_oauth_client_id': settings.GOOGLE_OAUTH_CLIENT_ID,
+                    'facebook_auth_id': settings.SOCIAL_AUTH_FACEBOOK_KEY,
+                    'firebase_config': settings.FIREBASE_CONFIG
 
                    }
+        admin = get_community_creator(community_instance)
+        members_count = get_members_count_in_community(community_instance)
+        context['header_showcase']['subHeader'] = ""
+        context['header_showcase']['header'] = admin + " invited you to join this community"
+        context['header_showcase']['communityBlock'] = {
+            'title': community_instance.name,
+            'creator': "Created by " + admin,
+            'members':  str(members_count) + " members",
+            'imgURL': community_instance.thumbnail
+        }
+
         return render(request, 'response_form.html', context)
     else:
         question_data = request.POST.dict().get("data")
@@ -405,6 +418,12 @@ def get_community_context(request,community_instance,user_instance,state,profile
                'facebook_auth_id': settings.SOCIAL_AUTH_FACEBOOK_KEY,
                'firebase_config': settings.FIREBASE_CONFIG
                }
+
+    print(state)
+    if state == member_states.PENDING_MEMBER:
+        context['footer'] = {
+            'toast':"Request to join community is pending"
+        }
 
     return context
 
