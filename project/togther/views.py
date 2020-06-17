@@ -264,13 +264,29 @@ def community(request, community_id):
             member = Members.objects.filter(member_id=request.user, community_id=community)
             member_state = member[0].state if member.exists() else 0
 
-        questions, validation_error, user, data, community, filled_answers = join_community(request, community_id, ref_id, aj=aj, member_state=member_state)
+        questions, validation_error, user, data, community, filled_answers, auto_join = join_community(request, community_id, ref_id, aj=aj, member_state=member_state)
         if questions:
             if member_state == 0 or member_state == 5:
-                context = get_join_community_context(request, ref_id, aj, validation_error, user, data, community, filled_answers)
+                
+                context = get_join_community_context(request, ref_id, aj, validation_error, user, data, community, filled_answers, auto_join)
                 context['google_oauth_client_id'] = settings.GOOGLE_OAUTH_CLIENT_ID
                 context['facebook_auth_id'] = settings.SOCIAL_AUTH_FACEBOOK_KEY
                 context['firebase_config'] = settings.FIREBASE_CONFIG
+                
+                if not request.user.is_authenticated:
+                    members = get_member_details(context['community'])
+                    admin = ""
+                    for member in members:
+                        if member['state'] == 1:
+                            admin = member['name']
+                    context['header_showcase']['subHeader'] = ""
+                    context['header_showcase']['header'] = admin + " invited you to join this community"
+                    context['header_showcase']['communityBlock'] = {
+                        'title': community.name,
+                        'creator': "Created by " + admin,
+                        'members': str(len(members)) + " members",
+                        'imgURL': community.thumbnail
+                    }
                 return render(request, 'response_form.html', context)
 
         else:
@@ -297,7 +313,7 @@ def community(request, community_id):
             member = Members.objects.filter(member_id=request.user, community_id=community)
             member_state = member[0].state if member.exists() else 0
 
-            questions, validation_error, user, data, community, filled_answers = join_community(request, community_id,
+            questions, validation_error, user, data, community, filled_answers, auto_join = join_community(request, community_id,
                                                                                                 ref_id,aj=aj,member_state=member_state)
             if questions:
 
@@ -469,6 +485,7 @@ def community(request, community_id):
     }
 
     aj = request.GET.get('aj', False)
+
     context = {'usr': user, 'similar_communities': communities,
                'community': community, 'admins': admin_details,
                'header': header, 'header_showcase': header_showcase,
@@ -496,10 +513,17 @@ def community(request, community_id):
                'firebase_config': settings.FIREBASE_CONFIG
                }
     # user_email = True
+    if aj:
+        community_creator = get_community_creator(community)
+        if community_creator:
+            created_by = community_creator
+            auto_join = private_link_app_invite(community, aj, created_by)
+            context['auto_join'] = auto_join
     return render(request, 'community.html', context)
 
 
-def get_join_community_context(request, ref_id, aj, validation_error, user, data, community, filled_answers):
+def get_join_community_context(request, ref_id, aj, validation_error, user, data, community, filled_answers, auto_join):
+    aj = request.GET.get('aj')
     header = {
         'back': True,
         'title': 'Welcome to LikeMinds!',
@@ -519,6 +543,8 @@ def get_join_community_context(request, ref_id, aj, validation_error, user, data
                'validation_error': validation_error,
                'filled_answers': filled_answers,
                'aj': aj, 'header_showcase': header_showcase}
+    if aj:
+        context['auto_join'] = auto_join
 
     return context
 
@@ -1335,7 +1361,11 @@ def join_community(request, community_id, ref_id, aj=False, member_state=None):
 
     else:
         question_format = get_community_questions(community_id)
-
+        community_creator = get_community_creator(community)
+        auto_join = {}
+        if community_creator:
+            created_by = community_creator
+            auto_join = private_link_app_invite(community, aj, created_by)
         if not question_format:
             json_dict = {'user_id': request.user.id}
             params = {'member_id': member_id, 'community_id': community_id}
@@ -1345,7 +1375,7 @@ def join_community(request, community_id, ref_id, aj=False, member_state=None):
             return False, validation_error, user, similar_communities, community, []
         else:
             # return true to take the user to questions page
-            return True, validation_error, user, question_format, community, []
+            return True, validation_error, user, question_format, community, [], auto_join
 
 
 def get_community_questions(community_id):

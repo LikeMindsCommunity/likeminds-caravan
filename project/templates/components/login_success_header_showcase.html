@@ -15,8 +15,22 @@
                     {{data.header}}
                 {% endif %}
             </div>
+            {% if data.subHeader %}
             <div>{{data.subHeader}}</div>
+            {% endif %}
         </h1>
+        {% if data.communityBlock %}
+            <div class="bg0o05 br8 bs cF dT mA mxw360 oH p8 taL wp80">
+                <div class="dTc vM w48">
+                    <img src="{{data.communityBlock.imgURL}}" class="bd2E bgE brp50 bxs dIb h48 ofC vM w48">
+                </div>
+                <div class="bs dTc fs13 fwL lh16 pl12 vM">
+                    <div>{{data.communityBlock.title}}</div>
+                    <div class="o5">{{data.communityBlock.creator}}</div>
+                    <div class="o5">{{data.communityBlock.members}}</div>
+                </div>
+            </div>
+        {% endif %}
     </div>
     <div class="bd2F bgT bn24 brp50 bs bxs h86 l0 mA oH pA r0 w86">
         <img class="h82 w82 ofC" src="{{data.userImage}}">

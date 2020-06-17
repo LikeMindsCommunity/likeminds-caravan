@@ -103,6 +103,7 @@ body ::-webkit-scrollbar { display: none; }
 .w320, .w320.w320  { width: 300px; }
 .w100 { width: 100px; }
 .w150 { width: 150px; }
+.wp80 {width: 80%}
 
 .w228 { width: 228px; }
 
