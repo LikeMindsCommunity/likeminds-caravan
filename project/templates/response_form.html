@@ -42,6 +42,7 @@
                 <!--    PROFILE_LINK=8-->
                 <!--    MOBILE_NO = 9-->
                 <!--    EMAIL_ID = 10-->
+                {{ footer }}
                 {% for question in data %}
                     {% if question.optional %}
                         <div class="field mb30" id="div_{{question.id}}">
@@ -163,12 +164,21 @@
 
             <!-- Displaying Buttons -->
             <div class="p8 bs taC pF b0 l0 r0 h60 bdtE bgBg z1">
-                <button class="ui button h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU ls05" id="simple_button" type="submit">SUBMIT</button>
+                <button class="ui button h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU ls05" id="simple_button" type="submit">DONE</button>
             </div>
 
             <div class="p8 bs taC pF b0 l0 r0 h60 bdtE bgBg z1 dN" id="loading_button">
-                <button class="ui button loading h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU ls05" type="submit">SUBMIT</button>
+                <button class="ui button loading h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU ls05" type="submit">DONE</button>
             </div>
+
+                  {% if footer %}
+                    <div class="h60"></div>
+                    <div class="taC pF b60 l0 r0 bg0 z1 p8 bs">
+                        <div class="mxw960 mA cF taL">
+                            {{footer.toast}}
+                        </div>
+                    </div>
+                {% endif %}
 
             <!-- login model for exclusive communities -->
             <div class="ui modal image_container_login w300" id="login_popup">
@@ -205,6 +215,11 @@
             </div>
             <!-- -->
         </div>
+
+{% include 'components/community_question_footer.html' with title='' auto_join=footer %}
+
+
+
         <!-- Scripts -->
         <script>
             function showLoginPopup(){
@@ -696,12 +711,12 @@
                 }
 
                 $("#loading_button").removeClass("dN");
-                console.log(values_list);
-                console.log(JSON.stringify(values_list));
+
+                var questions = {"data": JSON.stringify(values_list)}
                 $.ajax({
                     url:url,
                     type:"POST",
-                    data:{"data": JSON.stringify(values_list)},
+                    data:questions,
                     dataType:'json',
                     success:function(data){
                         console.log(data);

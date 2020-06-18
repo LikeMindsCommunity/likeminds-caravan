@@ -9,7 +9,7 @@ urlpatterns = [
     # path('communities/', views.dashboard, name="dashboard"),
 
     path('community/<int:community_id>', views.community, name="community"),
-    path('community_questions/<int:community_id>', views.community_questions, name="community_questions"),
+    path('community_questions/<str:params>', views.community_questions, name="community_questions"),
 
     path('logout',views.logout_view, name = "logout_view"),
     path('thankyou', views.thankyou, name="thankyou"),

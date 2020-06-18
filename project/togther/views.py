@@ -221,7 +221,7 @@ def community(request, community_id):
 
 
     aj = request.GET.get('aj', False)                           #auto join check functionality
-
+    source = request.GET.get('source')
     if aj and is_request_android(request):
 
         private_link = "https://" + request.META['HTTP_HOST'] +"/community/"+str(community_id)+"?aj="+str(aj)
@@ -232,7 +232,8 @@ def community(request, community_id):
         return redirect(playstore_ref_link)
 
 
-
+    # print(aj)
+    # print(source)
     #profile = request.GET.get('profile')
 
     profile_list = []
@@ -252,7 +253,12 @@ def community(request, community_id):
         is_member = is_member_verified(community_id,request.user)
 
     if state == 0:
-        return redirect('community_questions',community_id=community_id)
+
+        if aj and source:
+            params = str(community_id)+"+"+str(aj)+"+"+str(source)
+        else:
+            params = community_id
+        return redirect('community_questions',params=params)
 
     community_instance = Community.objects.get(id=community_id)
 
@@ -265,14 +271,30 @@ def community(request, community_id):
 
 
 
-def community_questions(request,community_id):
+def community_questions(request,params):
 
 
     '''function to get community questions'''
 
+    url_details = {}
+    user_directory = False
+    if params.find("+") == -1:
+        community_id = params
+    else:
+        params = params.split("+")
+
+        if len(params) == 3:
+            community_id = params[0]
+            user_directory = True
+            url_details['community_id'] = params[0]
+            url_details['aj'] = params[1]
+            url_details['source'] = params[2]
+        else:
+            return HttpResponse("invalid url")
+
     question_format = get_community_questions(community_id)
     community_instance = Community.objects.get(id=community_id)
-
+    admin = get_community_creator(community_instance)
 
     user_instance = None
     state = 0
@@ -308,7 +330,7 @@ def community_questions(request,community_id):
                     'firebase_config': settings.FIREBASE_CONFIG
 
                    }
-        admin = get_community_creator(community_instance)
+
         members_count = get_members_count_in_community(community_instance)
         context['header_showcase']['subHeader'] = ""
         context['header_showcase']['header'] = admin + " invited you to join this community"
@@ -319,10 +341,13 @@ def community_questions(request,community_id):
             'imgURL': community_instance.thumbnail
         }
 
+        if user_directory:
+            footer = private_link_app_invite(community_instance, url_details['aj'], admin)
+            context['footer'] = footer
+
         return render(request, 'response_form.html', context)
     else:
         question_data = request.POST.dict().get("data")
-
         question_data = ast.literal_eval(question_data)
         response_list = []
 
@@ -343,15 +368,10 @@ def community_questions(request,community_id):
         json_dict['questions'] = response_list
         json_dict['user_id'] = request.user.id
 
-
         if state['state'] == 0:
-
             join_url = api_url + 'v1/join_community'
             params = {'member_id': user_instance.id, 'community_id': community_id}
             rqst.post(join_url, params=params, json=json_dict)
-
-
-
         return JsonResponse({'success':True})
 
 
@@ -419,7 +439,6 @@ def get_community_context(request,community_instance,user_instance,state,profile
                'firebase_config': settings.FIREBASE_CONFIG
                }
 
-    print(state)
     if state == member_states.PENDING_MEMBER:
         context['footer'] = {
             'toast':"Request to join community is pending"
