@@ -253,6 +253,16 @@ def conversationSerializer(conversation):
         "member" : UserinfoSerializer(conversation.user.userinfo)
     }
 
+    answer_files = get_answer_files(temp['id'])
+
+    temp['images'] = answer_files['image']
+    temp['pdf'] = answer_files['pdf']
+
+    if 'location' in answer_files:
+        temp['location'] = answer_files['location']
+
+
+
     return temp
 
 def get_answer_files(answer_id):
