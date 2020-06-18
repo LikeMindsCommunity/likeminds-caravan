@@ -2617,6 +2617,14 @@ def collabcard_poll_version_1(request):
         if not str(member_id) == str(card_instance.user.id):
             send_poll_or_event_notification.delay(card_id=collabcard_id, user_id=member_id)
 
+
+        #autofollowing the collabcard
+        function_dict = {
+            'member_id': user_instance.id,
+            'collabcard_id': card_instance.id,
+            'status': True
+        }
+        collabcard_follow(request,function_dict)
         return JsonResponse({"success": True})
 
     return JsonResponse({"success": False})
@@ -4230,7 +4238,7 @@ def save_the_latest_conversation(card_instance,user_id):
 
 
     latest_card = card_answers.objects.filter(card=card_instance,state=chatroom_states.ANSWER).last()
-
+    print(latest_card)
     if is_member_verified(card_instance.community,user_id):
         if latest_card:
             user_instance = User.objects.get(id=user_id)
@@ -4242,6 +4250,10 @@ def save_the_latest_conversation(card_instance,user_id):
                 conversation_member_instance.conversation = conversation_instance
                 conversation_member_instance.user = user_instance
                 conversation_member_instance.save()
+
+                conversationEngage.objects.filter(user=user_instance, card=card_instance).update(
+                    last_conversation=conversation_instance, unseen_count=0, updated_at=time.time())
+
             else:
                 if conversation_instance.id != conversation_member_filter[0].conversation.id:
                     conversation_member_filter.update(conversation=conversation_instance, updated_at=time.time())
@@ -5238,6 +5250,8 @@ def set_state_for_event_cards(collabcard,community_instance,user_instance,status
             if explicit_call:
                 create_chatroom(card_instance=collabcard, user_instance=user_instance,
                                 state=chatroom_states.CHATROOM_UNFOLLOW, current_user_id=current_member_id)
+
+        update_my_chatrooms_for_users(chatroom_id=collabcard.id, user_id=current_member_id)
         return {'success':True}
     else:
         return {'success': False}
@@ -5318,8 +5332,11 @@ def collabcard_attend(request):
     if status:
         # if the user clicks on attend but not following collabcard
         collabcard_state_instance = collabcardState.objects.get(card=collabcard_instance, user=user_instance)
+
+        # collabcard_state_instance.state = collabcard_states.COLLABCARD_STATE_ATTEND_FOLLOWING
+        # collabcard_state_instance.save()
         if collabcard_state_instance.state == collabcard_states.COLLABCARD_STATE_SEEN:
-            collabcard_state_instance.state = collabcard_states.COLLABCARD_STATE_ATTEND_UNFOLLOWING
+            collabcard_state_instance.state = collabcard_states.COLLABCARD_STATE_ATTEND_FOLLOWING
             collabcard_state_instance.updated_at = time.time()
             collabcard_state_instance.save()
 
@@ -5350,6 +5367,8 @@ def collabcard_attend(request):
     # print("status--",status)
     if not str(member_id) == str(collabcard_instance.user.id) and status:
         send_poll_or_event_notification.delay(card_id=collabcard_id, user_id=member_id)
+
+    #update_my_chatrooms_for_users(chatroom_id=collabcard_instance.id,user_id=user_instance.id)
     return JsonResponse({'success': True})
 
 
@@ -5637,18 +5656,17 @@ def fetch_chatroom_feed(request):
 
     member_id = get_member_id_from_headers(request)
 
-    chatroom_filter = Collabcard.objects.filter(community=community_id)
+    chatroom_filter = Collabcard.objects.filter(community=community_id).order_by('id')
 
     chatrooms = []
     if not chatroom_id and not scroll_direction:
 
-        last_seen = collabcardState.objects.filter(community=community_id,user = member_id).last()
-
-        if not last_seen:
+        last_seen = collabcardState.objects.filter(community=community_id,user = member_id).order_by('-card_id')
+        if not last_seen.exists():
             chatroom_list = pagination(chatroom_filter,page,paginate_by=5)
             chatrooms = get_chatrooms(chatroom_list,member_id)
         else:
-
+            last_seen = last_seen[0]
             upward = chatroom_filter.filter(id__lte=last_seen.card.id).order_by('-id')[:3]
             downward = chatroom_filter.filter(id__gt=last_seen.card.id)[:3]
             # upward = Collabcard.objects.filter(id__lt=last_seen.card.id,community=community_id).order_by('id')[:3]
