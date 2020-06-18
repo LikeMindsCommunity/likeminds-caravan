@@ -4237,7 +4237,7 @@ def save_the_latest_conversation(card_instance,user_id):
 
 
     latest_card = card_answers.objects.filter(card=card_instance,state=chatroom_states.ANSWER).last()
-
+    print(latest_card)
     if is_member_verified(card_instance.community,user_id):
         if latest_card:
             user_instance = User.objects.get(id=user_id)
@@ -4249,6 +4249,10 @@ def save_the_latest_conversation(card_instance,user_id):
                 conversation_member_instance.conversation = conversation_instance
                 conversation_member_instance.user = user_instance
                 conversation_member_instance.save()
+
+                conversationEngage.objects.filter(user=user_instance, card=card_instance).update(
+                    last_conversation=conversation_instance, unseen_count=0, updated_at=time.time())
+
             else:
                 if conversation_instance.id != conversation_member_filter[0].conversation.id:
                     conversation_member_filter.update(conversation=conversation_instance, updated_at=time.time())
