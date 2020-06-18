@@ -2616,6 +2616,14 @@ def collabcard_poll_version_1(request):
         if not str(member_id) == str(card_instance.user.id):
             send_poll_or_event_notification.delay(card_id=collabcard_id, user_id=member_id)
 
+
+        #autofollowing the collabcard
+        function_dict = {
+            'member_id': user_instance.id,
+            'collabcard_id': card_instance.id,
+            'status': True
+        }
+        collabcard_follow(request,function_dict)
         return JsonResponse({"success": True})
 
     return JsonResponse({"success": False})
@@ -5237,6 +5245,8 @@ def set_state_for_event_cards(collabcard,community_instance,user_instance,status
             if explicit_call:
                 create_chatroom(card_instance=collabcard, user_instance=user_instance,
                                 state=chatroom_states.CHATROOM_UNFOLLOW, current_user_id=current_member_id)
+
+        update_my_chatrooms_for_users(chatroom_id=collabcard.id, user_id=current_member_id)
         return {'success':True}
     else:
         return {'success': False}
@@ -5317,16 +5327,19 @@ def collabcard_attend(request):
     if status:
         # if the user clicks on attend but not following collabcard
         collabcard_state_instance = collabcardState.objects.get(card=collabcard_instance, user=user_instance)
-        if collabcard_state_instance.state == collabcard_states.COLLABCARD_STATE_SEEN:
-            collabcard_state_instance.state = collabcard_states.COLLABCARD_STATE_ATTEND_UNFOLLOWING
-            collabcard_state_instance.updated_at = time.time()
-            collabcard_state_instance.save()
 
-        elif collabcard_state_instance.state == collabcard_states.COLLABCARD_STATE_UNATTEND_FOLLOWING:
-            # if the user clicks on attend and following collabcard
-            collabcard_state_instance.state = collabcard_states.COLLABCARD_STATE_ATTEND_FOLLOWING
-            collabcard_state_instance.updated_at = time.time()
-            collabcard_state_instance.save()
+        collabcard_state_instance.state = collabcard_states.COLLABCARD_STATE_ATTEND_FOLLOWING
+        collabcard_state_instance.save()
+        # if collabcard_state_instance.state == collabcard_states.COLLABCARD_STATE_SEEN:
+        #     collabcard_state_instance.state = collabcard_states.COLLABCARD_STATE_ATTEND_FOLLOWING
+        #     collabcard_state_instance.updated_at = time.time()
+        #     collabcard_state_instance.save()
+        #
+        # elif collabcard_state_instance.state == collabcard_states.COLLABCARD_STATE_UNATTEND_FOLLOWING:
+        #     # if the user clicks on attend and following collabcard
+        #     collabcard_state_instance.state = collabcard_states.COLLABCARD_STATE_ATTEND_FOLLOWING
+        #     collabcard_state_instance.updated_at = time.time()
+        #     collabcard_state_instance.save()
     else:
         collabcard_state_instance = collabcardState.objects.get(card=collabcard_instance, user=user_instance)
 
@@ -5349,6 +5362,8 @@ def collabcard_attend(request):
     # print("status--",status)
     if not str(member_id) == str(collabcard_instance.user.id) and status:
         send_poll_or_event_notification.delay(card_id=collabcard_id, user_id=member_id)
+
+    update_my_chatrooms_for_users(chatroom_id=collabcard.id,user_id=user_instance.id)
     return JsonResponse({'success': True})
 
 
