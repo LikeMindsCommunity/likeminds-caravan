@@ -5328,18 +5328,18 @@ def collabcard_attend(request):
         # if the user clicks on attend but not following collabcard
         collabcard_state_instance = collabcardState.objects.get(card=collabcard_instance, user=user_instance)
 
-        collabcard_state_instance.state = collabcard_states.COLLABCARD_STATE_ATTEND_FOLLOWING
-        collabcard_state_instance.save()
-        # if collabcard_state_instance.state == collabcard_states.COLLABCARD_STATE_SEEN:
-        #     collabcard_state_instance.state = collabcard_states.COLLABCARD_STATE_ATTEND_FOLLOWING
-        #     collabcard_state_instance.updated_at = time.time()
-        #     collabcard_state_instance.save()
-        #
-        # elif collabcard_state_instance.state == collabcard_states.COLLABCARD_STATE_UNATTEND_FOLLOWING:
-        #     # if the user clicks on attend and following collabcard
-        #     collabcard_state_instance.state = collabcard_states.COLLABCARD_STATE_ATTEND_FOLLOWING
-        #     collabcard_state_instance.updated_at = time.time()
-        #     collabcard_state_instance.save()
+        # collabcard_state_instance.state = collabcard_states.COLLABCARD_STATE_ATTEND_FOLLOWING
+        # collabcard_state_instance.save()
+        if collabcard_state_instance.state == collabcard_states.COLLABCARD_STATE_SEEN:
+            collabcard_state_instance.state = collabcard_states.COLLABCARD_STATE_ATTEND_FOLLOWING
+            collabcard_state_instance.updated_at = time.time()
+            collabcard_state_instance.save()
+
+        elif collabcard_state_instance.state == collabcard_states.COLLABCARD_STATE_UNATTEND_FOLLOWING:
+            # if the user clicks on attend and following collabcard
+            collabcard_state_instance.state = collabcard_states.COLLABCARD_STATE_ATTEND_FOLLOWING
+            collabcard_state_instance.updated_at = time.time()
+            collabcard_state_instance.save()
     else:
         collabcard_state_instance = collabcardState.objects.get(card=collabcard_instance, user=user_instance)
 
@@ -5363,7 +5363,7 @@ def collabcard_attend(request):
     if not str(member_id) == str(collabcard_instance.user.id) and status:
         send_poll_or_event_notification.delay(card_id=collabcard_id, user_id=member_id)
 
-    update_my_chatrooms_for_users(chatroom_id=collabcard_instance.id,user_id=user_instance.id)
+    #update_my_chatrooms_for_users(chatroom_id=collabcard_instance.id,user_id=user_instance.id)
     return JsonResponse({'success': True})
 
 
