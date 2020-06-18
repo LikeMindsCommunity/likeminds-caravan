@@ -1084,6 +1084,7 @@ def join_promoter_created_community_version_1(res,request):
             info_logger.info(validate_time)
             if validate_time:
                 auto_join_community(community_instance, user_instance)
+                set_state_for_onboarding_chatroom(community_instance, user_instance.id, request)
                 post_introduction_card_for_community(community_id, member_id, request)
 
                 # saving create community action level3
@@ -1106,6 +1107,15 @@ def join_promoter_created_community_version_1(res,request):
 
             Member_Engage.objects.filter(member_id=user_instance, community_id=community_instance).update(
                 member_referral="",click_state = click_states.DEFAULT)
+
+        elif member_state == member_states.PROFILE_UNAVAILABLE:
+
+            Members.objects.filter(member_id=user_instance, community_id=community_instance).update(
+                state=member_states.MEMBER)
+
+            Member_Engage.objects.filter(member_id=user_instance, community_id=community_instance).update(
+                member_state=member_states.MEMBER)
+            post_introduction_card_for_community(community_id, member_id, request)
         else:
 
             Members.objects.filter(member_id=user_instance, community_id=community_instance).update(
@@ -1187,6 +1197,7 @@ def join_whatsapp_community(res,request):
             info_logger.info(validate_time)
             if validate_time:
                 auto_join_community(community_instance,user_instance)
+                set_state_for_onboarding_chatroom(community_instance, user_instance.id, request)
                 post_introduction_card_for_community(community_id, member_id, request)
 
                 #saving create community action step 3
@@ -1213,11 +1224,18 @@ def join_whatsapp_community(res,request):
 
             Member_Engage.objects.filter(member_id=user_instance, community_id=community_instance).update(
                 member_referral="",click_state = click_states.DEFAULT)
-        else:
+        elif member_state == member_states.PROFILE_UNAVAILABLE:
 
             Members.objects.filter(member_id=user_instance,community_id=community_instance).update(
-                        state=member_states.PENDING_MEMBER)
+                        state=member_states.MEMBER)
 
+            Member_Engage.objects.filter(member_id=user_instance,community_id=community_instance).update(
+                member_state=member_states.MEMBER)
+            post_introduction_card_for_community(community_id, member_id, request)
+
+        else:
+            Members.objects.filter(member_id=user_instance,community_id=community_instance).update(
+                        state=member_states.PENDING_MEMBER)
             Member_Engage.objects.filter(member_id=user_instance,community_id=community_instance).update(
                 member_state=member_states.PENDING_MEMBER)
         update_pending_member_count_in_engage(community_instance)
@@ -1439,9 +1457,6 @@ def update_community_actions(community_instance):
                 instance.state = community_level_states.COMPLETE
                 promoter_filter.update(actions_required = False)
                 instance.save()
-
-
-
 
 
 
@@ -3505,10 +3520,9 @@ def set_state_for_onboarding_chatroom(community_instance,user_id,request):
 
     '''function to autofollow onboarding chatroom'''
     onboarding_chatroom_instance = Collabcard.objects.filter(community=community_instance,type=card_types.CARD_PURPOSE)
-
+    print("onboarding--",onboarding_chatroom_instance)
     if onboarding_chatroom_instance.exists():
         instance = onboarding_chatroom_instance[0]
-
         collabcard_follow(request,function_dict={
             'collabcard_id':instance.id,
             'member_id' : user_id,
@@ -5115,8 +5129,8 @@ def collabcard_follow(request, function_dict=None):
     if event_status['success']:
         return JsonResponse(event_status)
 
-    is_present = collabcardState.objects.filter(card=collabcard, user=user_instance)
-    if not is_present:
+    collabcard_state_filter = collabcardState.objects.filter(card=collabcard, user=user_instance)
+    if not collabcard_state_filter:
         collabcard_state_instance = collabcardState()
         collabcard_state_instance.card = collabcard
         collabcard_state_instance.community = community_instance
@@ -5135,8 +5149,15 @@ def collabcard_follow(request, function_dict=None):
 
     else:
 
+        if status and collabcard_state_filter[0].state == collabcard_states.COLLABCARD_STATE_FOLLOW:
+            return JsonResponse({'success': True})
+
+        if not status and collabcard_state_filter[0].state == collabcard_states.COLLABCARD_STATE_SEEN:
+            return JsonResponse({'success': True})
+
+
         if status:
-            collabcardState.objects.filter(card=collabcard, user=user_instance).update(state=collabcard_states.COLLABCARD_STATE_FOLLOW,
+            collabcard_state_filter.update(state=collabcard_states.COLLABCARD_STATE_FOLLOW,
                                                                                     updated_at=time.time())
             if explicit_call:
                 create_chatroom(card_instance=collabcard, user_instance=user_instance,
@@ -5145,7 +5166,7 @@ def collabcard_follow(request, function_dict=None):
             create_chatroom_engagement(card_instance=collabcard, user_instance=user_instance)
 
         else:
-            collabcardState.objects.filter(card=collabcard, user=user_instance).update(state=collabcard_states.COLLABCARD_STATE_SEEN,
+            collabcard_state_filter.update(state=collabcard_states.COLLABCARD_STATE_SEEN,
                                                                                    updated_at=time.time())
 
             #deleting the conversation engage
@@ -6346,6 +6367,8 @@ def skip_community(request):
         engage.updated_at = time.time()
         engage.member_state = member_states.PROFILE_UNAVAILABLE
         engage.save()
+
+    set_state_for_onboarding_chatroom(community_instance,user_instance.id,request)
 
     return JsonResponse({'success':True})
 
