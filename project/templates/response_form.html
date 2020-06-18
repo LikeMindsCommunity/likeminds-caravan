@@ -712,7 +712,7 @@
 
                 $("#loading_button").removeClass("dN");
 
-                var questions = {"data": JSON.stringify(values_list)}
+                var questions = {"data": JSON.stringify(values_list),"aj":'{{footer.aj}}'}
                 $.ajax({
                     url:url,
                     type:"POST",
@@ -720,6 +720,15 @@
                     dataType:'json',
                     success:function(data){
                         console.log(data);
+                        if('source' in data){
+                            if(data['source'] == "members_directory"){
+
+                             location.href="/members_directory/"+'{{community.id}}'
+                             return
+
+                            }
+
+                        }
                         {% if request.GET.event %}
                             location.href = "/collabcard/{{request.GET.event}}?email=true";
                         {% elif request.GET.poll %}

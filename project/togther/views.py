@@ -340,14 +340,16 @@ def community_questions(request,params):
             'members':  str(members_count) + " members",
             'imgURL': community_instance.thumbnail
         }
-
         if user_directory:
             footer = private_link_app_invite(community_instance, url_details['aj'], admin)
+            footer['aj']=url_details['aj']
             context['footer'] = footer
 
         return render(request, 'response_form.html', context)
     else:
         question_data = request.POST.dict().get("data")
+        aj = request.POST.get('aj')
+        print(aj)
         question_data = ast.literal_eval(question_data)
         response_list = []
 
@@ -370,9 +372,16 @@ def community_questions(request,params):
 
         if state['state'] == 0:
             join_url = api_url + 'v1/join_community'
+
             params = {'member_id': user_instance.id, 'community_id': community_id}
+            if aj:
+                json_dict['aj'] = int(aj)
             rqst.post(join_url, params=params, json=json_dict)
-        return JsonResponse({'success':True})
+
+        if not aj:
+            return JsonResponse({'success':True})
+        else:
+            return JsonResponse({'success':True,'source':"members_directory"})
 
 
 
