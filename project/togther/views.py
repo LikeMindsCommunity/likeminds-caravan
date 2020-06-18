@@ -222,7 +222,7 @@ def community(request, community_id):
 
     aj = request.GET.get('aj', False)                           #auto join check functionality
     source = request.GET.get('source')
-    if aj and is_request_android(request):
+    if aj and is_request_android(request) and not source:
 
         private_link = "https://" + request.META['HTTP_HOST'] +"/community/"+str(community_id)+"?aj="+str(aj)
         # redirect_link =  android_app_download_link
@@ -349,7 +349,8 @@ def community_questions(request,params):
     else:
         question_data = request.POST.dict().get("data")
         aj = request.POST.get('aj')
-        print(aj)
+        aj_expired = request.POST.get('')
+        aj_expired = bool(aj_expired)
         question_data = ast.literal_eval(question_data)
         response_list = []
 
@@ -374,11 +375,11 @@ def community_questions(request,params):
             join_url = api_url + 'v1/join_community'
 
             params = {'member_id': user_instance.id, 'community_id': community_id}
-            if aj:
+            if not aj_expired:
                 json_dict['aj'] = int(aj)
             rqst.post(join_url, params=params, json=json_dict)
 
-        if not aj:
+        if aj_expired:
             return JsonResponse({'success':True})
         else:
             return JsonResponse({'success':True,'source':"members_directory"})
