@@ -5651,18 +5651,17 @@ def fetch_chatroom_feed(request):
 
     member_id = get_member_id_from_headers(request)
 
-    chatroom_filter = Collabcard.objects.filter(community=community_id)
+    chatroom_filter = Collabcard.objects.filter(community=community_id).order_by('id')
 
     chatrooms = []
     if not chatroom_id and not scroll_direction:
 
-        last_seen = collabcardState.objects.filter(community=community_id,user = member_id).last()
-
-        if not last_seen:
+        last_seen = collabcardState.objects.filter(community=community_id,user = member_id).order_by('-card_id')
+        if not last_seen.exists():
             chatroom_list = pagination(chatroom_filter,page,paginate_by=5)
             chatrooms = get_chatrooms(chatroom_list,member_id)
         else:
-
+            last_seen = last_seen[0]
             upward = chatroom_filter.filter(id__lte=last_seen.card.id).order_by('-id')[:3]
             downward = chatroom_filter.filter(id__gt=last_seen.card.id)[:3]
             # upward = Collabcard.objects.filter(id__lt=last_seen.card.id,community=community_id).order_by('id')[:3]
