@@ -584,6 +584,8 @@ class collabcardState(models.Model):
     removed_status = models.IntegerField(null=True)
     mute_status = models.BooleanField(default=False)
 
+    follow_status = models.BooleanField(default=False)
+
 
 
 class CollabcardPolls(models.Model):
