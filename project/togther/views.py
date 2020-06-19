@@ -349,8 +349,7 @@ def community_questions(request,params):
     else:
         question_data = request.POST.dict().get("data")
         aj = request.POST.get('aj')
-        aj_expired = request.POST.get('')
-        aj_expired = bool(aj_expired)
+        aj_expired = request.POST.get('aj_expired')
         question_data = ast.literal_eval(question_data)
         response_list = []
 
@@ -375,11 +374,11 @@ def community_questions(request,params):
             join_url = api_url + 'v1/join_community'
 
             params = {'member_id': user_instance.id, 'community_id': community_id}
-            if not aj_expired:
+            if  aj_expired == 'False':
                 json_dict['aj'] = int(aj)
             rqst.post(join_url, params=params, json=json_dict)
 
-        if aj_expired:
+        if aj_expired == "" or aj_expired == "True":
             return JsonResponse({'success':True})
         else:
             return JsonResponse({'success':True,'source':"members_directory"})
