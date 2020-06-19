@@ -105,19 +105,19 @@
                     <p class="c0 fs13 fwR lh22 ls05 mb10 mt12 o25 p0">Login to continue</p>
                     <div class="p160 ls05">
                         <div class="fs12 mb16">
-                            <div class="googleSignin p12 bs br20 bgF c79 ffR fwM bdE c79h dN" data-next="/community/{{community.id}}?cta=join&collabcard={{collabcard.id}}&type={{collabcard.type}}">
+                            <div class="googleSignin p12 bs br20 bgF c79 ffR fwM bdE c79h dN" data-next="/community_questions/{{community.id}}?collabcard={{collabcard.id}}&type={{collabcard.type}}">
                                 <i class="dIb fa fa-google fs15 lh16 vM"></i>
                                 <span  class="dIb lh16 pl12 vM">LOGIN WITH GOOGLE</span>
                             </div>
                         </div>
                         <div class="fs12 mb16">
-                            <a class="linkedinSignin p12 bs dB br20 tdN bgLi cF ffR fwM cFh" data-next="/community/{{community.id}}?cta=join&collabcard={{collabcard.id}}&type={{collabcard.type}}">
+                            <a class="linkedinSignin p12 bs dB br20 tdN bgLi cF ffR fwM cFh" data-next="/community_questions/{{community.id}}?collabcard={{collabcard.id}}&type={{collabcard.type}}">
                                 <i class="dIb fa fa-linkedin fs15 lh16 vM"></i>
                                 <span  class="dIb lh16 pl12 vM">LOGIN WITH LINKEDIN</span>
                             </a>
                         </div>
                         <div class="fs12">
-                            <a class="facebookSignin p12 bs dB br20 tdN bgFb cF ffR fwM cFh"  data-next="/community/{{community.id}}?cta=join&collabcard={{collabcard.id}}&type={{collabcard.type}}">
+                            <a class="facebookSignin p12 bs dB br20 tdN bgFb cF ffR fwM cFh"  data-next="/community_questions/{{community.id}}?collabcard={{collabcard.id}}&type={{collabcard.type}}">
                                 <i class="fa fa-facebook dIb fs15 lh16 vM" ></i>
                                 <span class="dIb lh16 pl12 vM">LOGIN WITH FACEBOOK</span>
                             </a>
@@ -143,13 +143,13 @@
                     {% if collabcard.type == 2 %}
                         $(".ldrT", $('#loader')[0]).text("Making request...");
                         $('#loader').show();
-                        window.location.href = "/community/{{community.id}}?cta=join&collabcard={{collabcard.id}}&type={{collabcard.type}}";
+                        window.location.href = "/community_questions/{{community.id}}?collabcard={{collabcard.id}}&type={{collabcard.type}}";
                     {% else %}
                         $('#open_event_join').modal('show');
                         $("#open_event").click(function(){
                             $(".ldrT", $('#loader')[0]).text("Loading...");
                             $('#loader').show();
-                            location.href = "/community/{{community.id}}?cta=join&collabcard={{collabcard.id}}&type={{collabcard.type}}";
+                            location.href = "/community_questions/{{community.id}}?collabcard={{collabcard.id}}&type={{collabcard.type}}";
                         });
                         $('#dismiss_open_event').click(function(e){
                             $('#open_event_join').modal('hide');
@@ -363,7 +363,7 @@
                 {% if member_state.state == 0 and collabcard.type == 2 %}
                     $(".ldrT", $('#loader')[0]).text("Making request...");
                     $('#loader').show();
-                    window.location.href = "/community/{{community.id}}?cta=join&collabcard={{collabcard.id}}&type={{collabcard.type}}";
+                    window.location.href = "/community_questions/{{community.id}}?collabcard={{collabcard.id}}&type={{collabcard.type}}";
                 {% else %}
                     {% if member_state.state == 3 %}
                         $('.test').modal('show');

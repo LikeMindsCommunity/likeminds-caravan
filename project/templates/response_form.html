@@ -163,12 +163,21 @@
 
             <!-- Displaying Buttons -->
             <div class="p8 bs taC pF b0 l0 r0 h60 bdtE bgBg z1">
-                <button class="ui button h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU ls05" id="simple_button" type="submit">SUBMIT</button>
+                <button class="ui button h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU ls05" id="simple_button" type="submit">DONE</button>
             </div>
 
             <div class="p8 bs taC pF b0 l0 r0 h60 bdtE bgBg z1 dN" id="loading_button">
-                <button class="ui button loading h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU ls05" type="submit">SUBMIT</button>
+                <button class="ui button loading h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU ls05" type="submit">DONE</button>
             </div>
+
+                  {% if footer %}
+                    <div class="h60"></div>
+                    <div class="taC pF b60 l0 r0 bg0 z1 p8 bs">
+                        <div class="mxw960 mA cF taL">
+                            {{footer.toast}}
+                        </div>
+                    </div>
+                {% endif %}
 
             <!-- login model for exclusive communities -->
             <div class="ui modal image_container_login w300" id="login_popup">
@@ -183,19 +192,19 @@
                     <!-- <p class="m0 p0 fs15 lh22 c9 mb16">This is an exclusive community. To view member details please login/signup and join the community.</p> -->
                     <div class="p160 ls05">
                         <div class="fs12 mb16">
-                            <div class="googleSignin p12 bs br20 bgF c79 ffR fwM bdE c79h dN" data-next="{% if auto_join and not auto_join.aj_expired %}/members_directory/{{community.id}}?cta=join-aj-{{aj}}&aj={{aj}}{% else %}{{ request.path }}?cta=join-aj-{{aj}}&aj={{aj}}{% endif %}">
+                            <div class="googleSignin p12 bs br20 bgF c79 ffR fwM bdE c79h dN" data-next="{{request.path}}">
                                 <i class="dIb fa fa-google fs15 lh16 vM"></i>
                                 <span  class="dIb lh16 pl12 vM">LOGIN WITH GOOGLE</span>
                             </div>
                         </div>
                         <div class="fs12 mb16">
-                            <a class="linkedinSignin p12 bs dB br20 tdN bgLi cF ffR fwM cFh"  data-next="{% if auto_join and not auto_join.aj_expired %}/members_directory/{{community.id}}?cta=join-aj-{{aj}}&aj={{aj}}{% else %}{{ request.path }}?cta=join-aj-{{aj}}&aj={{aj}}{% endif %}">
+                            <a class="linkedinSignin p12 bs dB br20 tdN bgLi cF ffR fwM cFh"  data-next="{{request.path}}">
                                 <i class="dIb fa fa-linkedin fs15 lh16 vM"></i>
                                 <span  class="dIb lh16 pl12 vM">LOGIN WITH LINKEDIN</span>
                             </a>
                         </div>
                         <div class="fs12">
-                            <a class="facebookSignin p12 bs dB br20 tdN bgFb cF ffR fwM cFh" data-next="{% if auto_join and not auto_join.aj_expired %}/members_directory/{{community.id}}?cta=join-aj-{{aj}}&aj={{aj}}{% else %}{{ request.path }}?cta=join-aj-{{aj}}&aj={{aj}}{% endif %}">
+                            <a class="facebookSignin p12 bs dB br20 tdN bgFb cF ffR fwM cFh" data-next="{{request.path}}">
                                 <i class="fa fa-facebook dIb fs15 lh16 vM" ></i>
                                 <span class="dIb lh16 pl12 vM">LOGIN WITH FACEBOOK</span>
                             </a>
@@ -205,6 +214,11 @@
             </div>
             <!-- -->
         </div>
+
+{% include 'components/community_question_footer.html' with title='' auto_join=footer %}
+
+
+
         <!-- Scripts -->
         <script>
             function showLoginPopup(){
@@ -390,13 +404,9 @@
                 var community_id='{{community.id}}';
                 var url;
 
-                {% if aj %}
-                    url="/community/"+community_id+"?cta=join-aj-{{aj}}";
-                {% elif ref_id %}
-                    url="/community/"+community_id+"?cta=join-ref_id-{{ref_id}}";
-                {% else %}
-                    url="/community/"+community_id+"?cta=join";
-                {% endif %}
+
+
+                url = "/community_questions/"+community_id
 
                 var files_exist = false;
                 var files_array = [];
@@ -700,15 +710,24 @@
                 }
 
                 $("#loading_button").removeClass("dN");
-                console.log(values_list);
-                console.log(JSON.stringify(values_list));
+
+                var questions = {"data": JSON.stringify(values_list),"aj":'{{footer.aj}}',"aj_expired":'{{footer.aj_expired}}'}
                 $.ajax({
                     url:url,
                     type:"POST",
-                    data:{"data": JSON.stringify(values_list)},
+                    data:questions,
                     dataType:'json',
                     success:function(data){
                         console.log(data);
+                        if('source' in data){
+                            if(data['source'] == "members_directory"){
+
+                             location.href="/members_directory/"+'{{community.id}}'
+                             return
+
+                            }
+
+                        }
                         {% if request.GET.event %}
                             location.href = "/collabcard/{{request.GET.event}}?email=true";
                         {% elif request.GET.poll %}
@@ -717,7 +736,7 @@
                             location.href = "/collabcard/{{request.GET.collabcard}}?email=true";
                         {% else %}
 
-                            location.href="/community/"+'{{community.id}}?profile='+{{request.user.id}};
+                            location.href="/community/"+'{{community.id}}';
 
                         {% endif %}
                     }

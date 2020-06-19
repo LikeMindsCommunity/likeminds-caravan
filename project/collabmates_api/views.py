@@ -1094,6 +1094,7 @@ def join_promoter_created_community_version_1(res,request):
                 info_logger.info(log)
                 return
 
+
     member_list = Members.objects.filter(member_id=user_instance, community_id=community_instance)
 
     if member_list:

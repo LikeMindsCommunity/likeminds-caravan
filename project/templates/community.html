@@ -173,12 +173,19 @@
 
             <div class="h60"></div>
             
-            {% if auto_join %}
+            {% if footer %}
                 <div class="h60"></div>
                 <div class="taC pF b60 l0 r0 bg0 z1 p8 bs">
-                    <div class="mxw960 mA cF taL">
-                        {{auto_join.toast}}
+
+                    <div class="dT mxw960 p8 bs">
+                        <div class="dTc vM taL mA p0 cF  ">{{footer.toast}}</div>
+                        <div id="download_pending" class="dTc vM taR w96 cT p6 " ><span class="lh16 fs14">DETAILS</span></div>
                     </div>
+
+<!--                    <div class="mxw960 mA cF taL">-->
+<!--                        {{footer.toast}} -->
+<!--                    </div>-->
+
                 </div>
             {% endif %}
             <!-- Displaying Buttons -->
@@ -192,13 +199,13 @@
                 {% elif Nom_mem_state == 3 %}
                     <button class="m80 h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" disabled>Pending Approval</button>
                 {% elif Nom_mem_state == 1%}
-                    {% include 'components/download_app_bar.html' with title='Use the LikeMinds app' subtitle='You are a promoter, track all updates on app' auto_join=auto_join %}
+                    {% include 'components/download_app_bar.html' with title='Use the LikeMinds app' subtitle='You are a promoter, track all updates on app' auto_join=footer %}
                     <!-- <button class="h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" onclick="window.location.href='/download_the_app'">Open in App You are a promoter</button> -->
                 {% elif Nom_mem_state == 2 %}
-                    {% include 'components/download_app_bar.html' with title='Use the LikeMinds app' subtitle='You are a promoter, track all updates on app' auto_join=auto_join %}
+                    {% include 'components/download_app_bar.html' with title='Use the LikeMinds app' subtitle='You are a promoter, track all updates on app' auto_join=footer %}
                     <!-- <button class="h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" onclick="window.location.href='/download_the_app'">Open in App You are a promoter</button> -->
                 {% elif Nom_mem_state == 4 %}
-                    {% include 'components/download_app_bar.html' with title='Use the LikeMinds app' subtitle='Already a Member, track all updates on app' auto_join=auto_join %}
+                    {% include 'components/download_app_bar.html' with title='Use the LikeMinds app' subtitle='Already a Member, track all updates on app' auto_join=footer %}
                     <!-- <button class="h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" onclick="window.location.href='/download_the_app'">Open in App Already a Member</button> -->
                 {% elif Nom_mem_state == 5 %}
                     <button class="m80 h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" onclick="join('{{community.id}}')">Join Community (Declined)</button>
@@ -431,30 +438,43 @@
         <!-- profile pop-up -->
         <div class="ui modal image_container_verified w320" id="display"></div>
 
-        <!-- update secondary email -->
-        <div class="ui modal" id="secondary_email" style="width:65%;">
-            <div class="profile_name" style="margin-top:6%;margin-left:20px;">
-                <p align="left" style="font-family:Roboto;sans-serif;font-weight:500;color:black;font-size:17px;line-height:22px;opacity:.87;">Change Email ID</p>
+        <!-- update approval pending email -->
+
+        <div class="ui modal ffR p24 bs w280 pb12" id="secondary_email">
+            <p class="c0 fs16 fwM lh24 mb16">Change Email ID</p>
+            <p class="c9 fs15 fwR lh22 mb16">
+                Update your email ID below for further communications.
+            </p>
+            <form class="ui form mb16 p0">
+                <input class="bd0 br8 bxs p16 h48 oH pR fs15" type="text" name="first-name" placeholder="Enter your email id" id="secondary_email_text">
+            </form>
+            <div class="taR fs13 ">
+                <div class="bs cT dIb fs13 fwM ls05 p120 taC vM" id="update_secondary_email">SUBMIT</div>
             </div>
-            <br/>
-            <div style="margin-top:5%;margin-left:20px;margin-right:18px;text-align:left;">
-                <p style="font-size:15px;line-height:22px;font-family:Roboto;sans-serif;font-weight:400;color:#000000;opacity:54%;">Update your email ID below for further communications.</p>
-            </div>
-            <div style="margin-top:5%;margin-left:20px;margin-right:18px;text-align:left;">
-                <form class="ui form">
-                    <div class="field">
-                        <input type="text" name="first-name" placeholder="Enter your email id" id="secondary_email_text">
-                    </div>
-                </form>
-            </div>
-            <br/>
-            <div style="margin-top:5%;margin-left:16px;margin-right:16px;text-align:right">
-                <p class="Roboto" style="font-size:13px;font-weight:500;color:#009688;letter-spacing:0.46px;opacity:100%" id="update_secondary_email">SUBMIT</p>
-            </div>
-            <br/>
         </div>
 
+
+        <!-- approval pending pop-up-->
+        <div class="ui modal ffR p24 bs w280" id="approval_pending">
+                    <p class="c0 fs16 fwM lh24 mb16">Approval pending</p>
+                    <p class="c9 fs15 fwR lh22 mb16">
+The admin has received your request and would take a decision on your membership based on your profile. If you wish to edit your profile, download app.
+                    </p>
+
+
+                     <div class="taR fs13 ">
+                         <span class="c9 fs13 fwM ls05 pr12  taL dismiss">DISMISS</span ><div class="bs cT dIb fs13 fwM ls05 p120 taC vM" onclick="window.location.href='{{android_app_link}}';">DOWNLOAD APP</div>
+                     </div>
+
+                </div>
+
+
+
+
         <!-- scripts for the page -->
+
+
+
         <script>
             console.log('{{request.path}}')
             function open_community(id){
@@ -506,12 +526,6 @@
             //jquery
 
             $(document).ready(function() {
-                for(var i=0;i<={{similar_community_length}};i++){
-                    ans=$('#'+i).text();
-                    ans=ans.substring(0,42)
-                    ans=ans+'...';
-                    $('#'+i).html(ans)
-                }
 
                 //function to auto accept the invitation
                 var community_id={{community.id}};
@@ -824,6 +838,23 @@
                 $("#purpose").removeClass('bxs2');
                 $('#members').addClass('bxs2');
                 location.href ="#members"
+            })
+
+
+
+
+
+            $('#download_pending').click(function(e){
+
+                $('#approval_pending').modal('show')
+            })
+
+
+            $('.dismiss').click(function(e){
+
+
+            $('#approval_pending').modal('hide')
+
             })
 
         </script>
