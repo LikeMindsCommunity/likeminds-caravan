@@ -329,6 +329,7 @@ def get_chatroom_instance(card_instance,member_id):
     status = get_status_of_collabcard(member_id,card_instance)
     collabcard_serializer['state'] = status['state']
     collabcard_serializer['mute_status'] = status['mute_status']
+    collabcard_serializer['follow_status'] = status['follow_status']
 
     collabcard_files = get_collabcard_files(collabcard_serializer['id'])
 

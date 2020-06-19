@@ -1066,7 +1066,7 @@ def join_promoter_created_community_version_1(res,request):
             answer_instance.community = community_instance
             answer_instance.question_answer = question['value']
             answer_instance.question_title = question_instance.question_title
-            answer_instance.save()
+            #answer_instance.save()
 
             if question_instance.question_state == question_states.CHOICE_SINGLE or question_instance.question_state == question_states.CHOICE_MULTIPLE:
 
@@ -5219,7 +5219,7 @@ def collabcard_follow(request, function_dict=None):
     return JsonResponse({'success': True})
 
 
-def collabcard_follow_internal(func_dict,state=collabcard_states.COLLABCARD_STATE_SEEN):
+def collabcard_follow_internal(func_dict,state=collabcard_states.COLLABCARD_STATE_FOLLOW):
 
     '''folowing collabcard internally'''
 
@@ -5241,10 +5241,10 @@ def collabcard_follow_internal(func_dict,state=collabcard_states.COLLABCARD_STAT
 
     else:
         collabcard_state_instance = collabcardState()
-        collabcard_state_instance.card = collabcard
+        collabcard_state_instance.card = card_instance
         collabcard_state_instance.community = card_instance.community
         collabcard_state_instance.user = user_instance
-        collabcard_state_instance.state = collabcard_states.COLLABCARD_STATE_FOLLOW
+        collabcard_state_instance.state = state
         collabcard_state_instance.created_at = time.time()
         collabcard_state_instance.updated_at = time.time()
         collabcard_state_instance.follow_status = status
@@ -5252,9 +5252,9 @@ def collabcard_follow_internal(func_dict,state=collabcard_states.COLLABCARD_STAT
 
 
     if status:
-        create_chatroom_engagement(card_instance=collabcard, user_instance=user_instance)
+        create_chatroom_engagement(card_instance=card_instance, user_instance=user_instance)
 
-    update_my_chatrooms_for_users(chatroom_id=collabcard.id, user_id=member_id)
+    update_my_chatrooms_for_users(chatroom_id=card_instance.id, user_id=member_id)
 
 
 
@@ -5357,7 +5357,7 @@ def collabcards_seen_internal(community_id, card_id, collabcard_type, user_id):
 
     # saving the state in collabcard state table if it is not present
     is_present = collabcardState.objects.filter(card=card_instance, user=user_instance)
-    if not is_present:
+    if not is_present.exists():
         collabcard_state_instance = collabcardState()
         collabcard_state_instance.card = card_instance
         collabcard_state_instance.community = community
@@ -5367,10 +5367,12 @@ def collabcards_seen_internal(community_id, card_id, collabcard_type, user_id):
         collabcard_state_instance.updated_at = time.time()
         collabcard_state_instance.save()
     else:
-        state_instance = is_present[0].state
-
+        state_instance = is_present[0]
         if state_instance.state == 0:
-            state_instance = collabcard_states.COLLABCARD_STATE_SEEN
+            if state_instance.follow_status:
+                state_instance.state = collabcard_states.COLLABCARD_STATE_FOLLOW
+            else:
+                state_instance.state = collabcard_states.COLLABCARD_STATE_SEEN
             state_instance.save()
 
 
