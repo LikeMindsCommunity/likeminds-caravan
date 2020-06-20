@@ -5181,10 +5181,6 @@ def collabcard_follow(request, function_dict=None):
 
     else:
         follow_status = collabcard_state_filter[0].follow_status
-        print(status)
-        print(type(status))
-        print(collabcard_state_filter[0].follow_status)
-        print(type(follow_status))
         if status and collabcard_state_filter[0].follow_status:
             return JsonResponse({'success': True})
 
