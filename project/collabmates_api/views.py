@@ -5447,9 +5447,6 @@ def collabcard_attend(request):
             collabcard_state_instance.save()
 
 
-        func_dict = {'member_id': member_id, 'collabcard_id': card_instance.id, 'status': True}
-        collabcard_follow_internal(func_dict,state)
-
     update_event_answer_text(collabcard_id)  # function to update the text when a user attends an event
 
 
