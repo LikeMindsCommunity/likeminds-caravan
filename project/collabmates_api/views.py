@@ -5431,7 +5431,7 @@ def collabcard_attend(request):
     else:
         try:
             state_instance = collabcardState.objects.get(card=card_instance, user=user_instance)
-            state_instance.state = collabcard_states.COLLABCARD_STATE_ATTENDING
+            state_instance.state = collabcard_states.COLLABCARD_STATE_SEEN
             state_instance.save()
 
         except:
