@@ -5419,7 +5419,7 @@ def collabcard_attend(request):
            collabcard_state_instance.save()
 
        func_dict = {'member_id': member_id, 'collabcard_id': card_instance.id, 'status': True}
-       collabcard_follow_internal(func_dict)
+       collabcard_follow_internal(func_dict,state=collabcard_states.COLLABCARD_STATE_ATTENDING)
 
 
     else:
