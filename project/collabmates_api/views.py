@@ -2272,7 +2272,7 @@ def create_card(request,req_dict=None):
                     'collabcard_id' : card.id,
                     'status' : True
                 }
-                collabcard_follow(request,req_dict)
+                collabcard_follow_internal(req_dict)
 
 
             send_notification_to_event_co_hosts.delay(co_hosts,card.id,card.title,user_instance.userinfo.name)
@@ -2324,10 +2324,20 @@ def create_card(request,req_dict=None):
             return JsonResponse({'success': True, 'collabcard': collabcard,'collabcard_feedback_popup':collabcard_feedback_popup})
 
 
-        # #saving the state in collabcardState table instead of follow collabcard
-        create_collabcard_state_for_user(card_instance=card, user_instance=user_instance,
-                                         state=collabcard_states.COLLABCARD_STATE_FOLLOW,
-                                         community=community)
+        # # #saving the state in collabcardState table instead of follow collabcard
+        # create_collabcard_state_for_user(card_instance=card, user_instance=user_instance,
+        #                                  state=collabcard_states.COLLABCARD_STATE_SEEN,
+        #                                  community=community)
+
+        func_dict = {
+            'member_id':user_id,
+            'collabcard_id':card.id,
+            'status' : True
+        }
+        if create_intro:
+            collabcard_follow_internal(func_dict,state=0)
+        else:
+            collabcard_follow_internal(func_dict)
 
         update_last_answer_id(card.id, "")
 
@@ -2335,7 +2345,7 @@ def create_card(request,req_dict=None):
         create_chatroom(card_instance=card,user_instance=user_instance
                         ,state=chatroom_states.CHATROOM_HEADER,current_user_id=user_id)
 
-        create_chatroom_engagement(card_instance=card,user_instance=user_instance)
+        #create_chatroom_engagement(card_instance=card,user_instance=user_instance)
 
 
 
@@ -2392,6 +2402,7 @@ def create_collabcard_state_for_user(card_instance, user_instance, state, commun
         collabcard_state_instance.user = user_instance
         collabcard_state_instance.community = community
         collabcard_state_instance.state = state  # user has created the card and he is autofollowing
+        collabcard_state_instance.follow_status = True
         collabcard_state_instance.created_at = time.time()
         collabcard_state_instance.updated_at = time.time()
         collabcard_state_instance.save()
@@ -2624,7 +2635,7 @@ def collabcard_poll_version_1(request):
             'collabcard_id': card_instance.id,
             'status': True
         }
-        collabcard_follow(request,function_dict)
+        collabcard_follow_internal(function_dict)
         return JsonResponse({"success": True})
 
     return JsonResponse({"success": False})
@@ -3532,11 +3543,12 @@ def set_state_for_onboarding_chatroom(community_instance,user_id,request):
     print("onboarding--",onboarding_chatroom_instance)
     if onboarding_chatroom_instance.exists():
         instance = onboarding_chatroom_instance[0]
-        collabcard_follow(request,function_dict={
-            'collabcard_id':instance.id,
-            'member_id' : user_id,
-            'status' : True
-        })
+        function_dict = {
+            'collabcard_id': instance.id,
+            'member_id': user_id,
+            'status': True
+        }
+        collabcard_follow_internal(function_dict)
         print("onboarding state set for user")
 
 
@@ -3663,6 +3675,8 @@ def collabcard(request, card_id):
         collabcard_status = get_status_of_collabcard(member_id=user_id, card=card_instance)
         card['state'] = collabcard_status['state']
         card['mute_status'] = collabcard_status['mute_status']
+        card['follow_status'] = collabcard_status['follow_status']
+
     # get tine stamp for card
     time_text = get_time_text(card_instance.date_epoch)
     card['created_at'] = time_text
@@ -3704,7 +3718,7 @@ def get_collabcard_details_for_web(request,card_instance,card,current_user_id,an
         collabcard_status = get_status_of_collabcard(member_id=current_user_id, card=card_instance)
         current_user['collabcard_state'] = collabcard_status['state']
         current_user['mute_status'] = collabcard_status['mute_status']
-
+        current_user['follow_status'] = collabcard_status['follow_status']
         is_logged = True
 
     if type(answers) is list:
@@ -4157,6 +4171,7 @@ def get_chatroom_internal(request,card_instance,user_id,page,conversation_id,scr
     card_status = get_status_of_collabcard(user_id,card_instance)
     card['state'] = card_status['state']
     card['mute_status'] = card_status['mute_status']
+    card['follow_status'] = card_status['follow_status']
 
 
 
@@ -4811,6 +4826,8 @@ def community_cards_version_1(request,community_id,req_dict=None):
                                                      card=card_instance)
         card_dict['state'] = collabcard_status['state']
         card_dict['mute_status'] = collabcard_status['mute_status']
+        card_dict['follow_status'] = collabcard_status['follow_status']
+
         card_dict['created_at'] = time_text
         card_dict['member'] = usr
         card_dict['images'] = files[0]
@@ -5011,7 +5028,7 @@ def create_answer(request):
             'collabcard_id': card_id,
             'status': True
         }
-    collabcard_follow(request, function_dict)
+    collabcard_follow_internal(function_dict)
 
 
     #sending the tagged member list
@@ -5049,7 +5066,7 @@ def auto_follow_chatrooms_in_case_of_tagging(request,conversation,card_id):
             'status': True
         }
         print(function_dict)
-        collabcard_follow(request, function_dict)
+        collabcard_follow_internal(function_dict)
 
 
 
@@ -5129,11 +5146,13 @@ def collabcard_follow(request, function_dict=None):
         status = function_dict['status']
         print(function_dict)
 
+
     collabcard = Collabcard.objects.get(id=collabcard_id)
 
     community_instance = collabcard.community
     user_instance = User.objects.get(id=member_id)
 
+    #user cant unfollow hit own collabcard
     if not status and collabcard.user.id == user_instance.id:
         return JsonResponse({'success':True})
 
@@ -5143,7 +5162,7 @@ def collabcard_follow(request, function_dict=None):
         return JsonResponse(event_status)
 
     collabcard_state_filter = collabcardState.objects.filter(card=collabcard, user=user_instance)
-    if not collabcard_state_filter:
+    if not collabcard_state_filter.exists():
         collabcard_state_instance = collabcardState()
         collabcard_state_instance.card = collabcard
         collabcard_state_instance.community = community_instance
@@ -5151,41 +5170,46 @@ def collabcard_follow(request, function_dict=None):
         collabcard_state_instance.state = collabcard_states.COLLABCARD_STATE_FOLLOW
         collabcard_state_instance.created_at = time.time()
         collabcard_state_instance.updated_at = time.time()
+        collabcard_state_instance.follow_status = status
         collabcard_state_instance.save()
 
         if status:
-            if explicit_call:
-                create_chatroom(card_instance=collabcard, user_instance=user_instance,
+
+            create_chatroom(card_instance=collabcard, user_instance=user_instance,
                             state=chatroom_states.CHATROOM_FOLLOW, current_user_id=current_member_id)
 
             create_chatroom_engagement(card_instance=collabcard,user_instance=user_instance)
 
     else:
 
-        if status and collabcard_state_filter[0].state == collabcard_states.COLLABCARD_STATE_FOLLOW:
+        if status and collabcard_state_filter[0].follow_status:
             return JsonResponse({'success': True})
 
-        if not status and collabcard_state_filter[0].state == collabcard_states.COLLABCARD_STATE_SEEN:
+        if not status and not collabcard_state_filter[0].follow_status:
             return JsonResponse({'success': True})
 
 
         if status:
-            collabcard_state_filter.update(state=collabcard_states.COLLABCARD_STATE_FOLLOW,
-                                                                                    updated_at=time.time())
-            if explicit_call:
-                create_chatroom(card_instance=collabcard, user_instance=user_instance,
+
+            state = collabcard_states.COLLABCARD_STATE_FOLLOW
+            if collabcard_state_filter[0].card.type == card_types.CARD_EVENT or collabcard_state_filter[0].card.type == card_types.CARD_PUBLIC_EVENT:
+                collabcard_state_filter.update(follow_status = status,updated_at=time.time())
+            else:
+                collabcard_state_filter.update(state=state, updated_at=time.time())
+
+            create_chatroom(card_instance=collabcard, user_instance=user_instance,
                             state=chatroom_states.CHATROOM_FOLLOW, current_user_id=current_member_id)
 
             create_chatroom_engagement(card_instance=collabcard, user_instance=user_instance)
 
         else:
-            collabcard_state_filter.update(state=collabcard_states.COLLABCARD_STATE_SEEN,
+            collabcard_state_filter.update(state=collabcard_states.COLLABCARD_STATE_SEEN,follow_status = status,
                                                                                    updated_at=time.time())
 
             #deleting the conversation engage
             conversationEngage.objects.filter(card=collabcard,user=user_instance).delete()
-            if explicit_call:
-                create_chatroom(card_instance=collabcard, user_instance=user_instance,
+
+            create_chatroom(card_instance=collabcard, user_instance=user_instance,
                             state=chatroom_states.CHATROOM_UNFOLLOW, current_user_id=current_member_id)
 
 
@@ -5193,6 +5217,46 @@ def collabcard_follow(request, function_dict=None):
     # custom_cache.clear()
     update_my_chatrooms_for_users(chatroom_id=collabcard.id,user_id=current_member_id)
     return JsonResponse({'success': True})
+
+
+def collabcard_follow_internal(func_dict,state=collabcard_states.COLLABCARD_STATE_FOLLOW):
+
+    '''folowing collabcard internally'''
+
+    card_id = func_dict['collabcard_id']
+    member_id = func_dict['member_id']
+    status = func_dict['status']
+
+
+    card_instance = Collabcard.objects.get(id=card_id)
+    user_instance = User.objects.get(id=member_id)
+
+    collabcard_state_filter = collabcardState.objects.filter(card=card_instance, user=user_instance)
+
+    if collabcard_state_filter.exists():
+        state_instance = collabcard_state_filter[0]
+
+        if state_instance.status != status:
+            collabcard_state_filter.update(follow_status=status)
+
+    else:
+        collabcard_state_instance = collabcardState()
+        collabcard_state_instance.card = card_instance
+        collabcard_state_instance.community = card_instance.community
+        collabcard_state_instance.user = user_instance
+        collabcard_state_instance.state = state
+        collabcard_state_instance.created_at = time.time()
+        collabcard_state_instance.updated_at = time.time()
+        collabcard_state_instance.follow_status = status
+        collabcard_state_instance.save()
+
+
+    if status:
+        create_chatroom_engagement(card_instance=card_instance, user_instance=user_instance)
+
+    update_my_chatrooms_for_users(chatroom_id=card_instance.id, user_id=member_id)
+
+
 
 
 def set_state_for_event_cards(collabcard,community_instance,user_instance,status,explicit_call,current_member_id):
@@ -5293,7 +5357,7 @@ def collabcards_seen_internal(community_id, card_id, collabcard_type, user_id):
 
     # saving the state in collabcard state table if it is not present
     is_present = collabcardState.objects.filter(card=card_instance, user=user_instance)
-    if not is_present:
+    if not is_present.exists():
         collabcard_state_instance = collabcardState()
         collabcard_state_instance.card = card_instance
         collabcard_state_instance.community = community
@@ -5302,6 +5366,15 @@ def collabcards_seen_internal(community_id, card_id, collabcard_type, user_id):
         collabcard_state_instance.created_at = time.time()
         collabcard_state_instance.updated_at = time.time()
         collabcard_state_instance.save()
+    else:
+        state_instance = is_present[0]
+        if state_instance.state == 0:
+            if state_instance.follow_status:
+                state_instance.state = collabcard_states.COLLABCARD_STATE_FOLLOW
+            else:
+                state_instance.state = collabcard_states.COLLABCARD_STATE_SEEN
+            state_instance.save()
+
 
     update_last_unseen_in_engage(user=user_instance, community=community,is_seen=False)
 
@@ -5320,55 +5393,59 @@ def collabcard_attend(request):
     collabcard_id = request.GET.get('collabcard_id')
     status = request.GET.get('value', 'true')
 
-    collabcard_instance = Collabcard.objects.get(id=collabcard_id)
+    card_instance = Collabcard.objects.get(id=collabcard_id)
 
     user_instance = User.objects.get(id=member_id)
+
 
     if status != 'true':
         status = False
     else:
         status = True
 
+    #event attending
     if status:
-        # if the user clicks on attend but not following collabcard
-        collabcard_state_instance = collabcardState.objects.get(card=collabcard_instance, user=user_instance)
 
-        # collabcard_state_instance.state = collabcard_states.COLLABCARD_STATE_ATTEND_FOLLOWING
-        # collabcard_state_instance.save()
-        if collabcard_state_instance.state == collabcard_states.COLLABCARD_STATE_SEEN:
-            collabcard_state_instance.state = collabcard_states.COLLABCARD_STATE_ATTEND_FOLLOWING
-            collabcard_state_instance.updated_at = time.time()
-            collabcard_state_instance.save()
+       try:
+           state_instance = collabcardState.objects.get(card=collabcard_instance, user=user_instance)
+           state_instance.state = collabcard_states.COLLABCARD_STATE_ATTENDING
+           state_instance.save()
 
-        elif collabcard_state_instance.state == collabcard_states.COLLABCARD_STATE_UNATTEND_FOLLOWING:
-            # if the user clicks on attend and following collabcard
-            collabcard_state_instance.state = collabcard_states.COLLABCARD_STATE_ATTEND_FOLLOWING
-            collabcard_state_instance.updated_at = time.time()
-            collabcard_state_instance.save()
+       except:
+           collabcard_state_instance = collabcardState()
+           collabcard_state_instance.card = collabcard
+           collabcard_state_instance.community = card_instance.community
+           collabcard_state_instance.user = user_instance
+           collabcard_state_instance.state = collabcard_states.COLLABCARD_STATE_ATTENDING
+           collabcard_state_instance.created_at = time.time()
+           collabcard_state_instance.updated_at = time.time()
+           collabcard_state_instance.save()
+
     else:
-        collabcard_state_instance = collabcardState.objects.get(card=collabcard_instance, user=user_instance)
+        try:
+            state_instance = collabcardState.objects.get(card=card_instance, user=user_instance)
+            state_instance.state = collabcard_states.COLLABCARD_STATE_ATTENDING
+            state_instance.save()
 
-        if collabcard_state_instance.state == collabcard_states.COLLABCARD_STATE_ATTEND_UNFOLLOWING:
-            collabcard_state_instance.state = collabcard_states.COLLABCARD_STATE_SEEN
+        except:
+            collabcard_state_instance = collabcardState()
+            collabcard_state_instance.card = collabcard
+            collabcard_state_instance.community = card_instance.community
+            collabcard_state_instance.user = user_instance
+            collabcard_state_instance.state = collabcard_states.COLLABCARD_STATE_FOLLOW
+            collabcard_state_instance.created_at = time.time()
             collabcard_state_instance.updated_at = time.time()
             collabcard_state_instance.save()
 
-        elif collabcard_state_instance.state == collabcard_states.COLLABCARD_STATE_ATTEND_FOLLOWING:
-            # if the user clicks on attend and following collabcard
-
-            collabcard_state_instance.state = collabcard_states.COLLABCARD_STATE_UNATTEND_FOLLOWING
-            collabcard_state_instance.updated_at = time.time()
-            collabcard_state_instance.save()
     update_event_answer_text(collabcard_id)  # function to update the text when a user attends an event
-    # print('here 2')
-    # print("member_id---",member_id)
-    # print("instance",collabcard_instance.user.id)
-    # print("collabcard--",collabcard_id)
-    # print("status--",status)
-    if not str(member_id) == str(collabcard_instance.user.id) and status:
+
+    func_dict = {'member_id':member_id,'collabcard_id':card_instance.id,'status':True}
+    collabcard_follow_internal(func_dict)
+
+
+    if not str(member_id) == str(card_instance.user.id) and status:
         send_poll_or_event_notification.delay(card_id=collabcard_id, user_id=member_id)
 
-    #update_my_chatrooms_for_users(chatroom_id=collabcard_instance.id,user_id=user_instance.id)
     return JsonResponse({'success': True})
 
 
@@ -5567,6 +5644,7 @@ def community_collabcard_meta(request):
 
         card_dict['state'] = collabard_status['state']
         card_dict['mute_status'] = collabard_status['mute_status']
+        card_dict['follow_status'] = collabard_status['follow_status']
 
         card_dict['created_at'] = time_text
         card_dict['member'] = usr
@@ -5661,7 +5739,7 @@ def fetch_chatroom_feed(request):
     chatrooms = []
     if not chatroom_id and not scroll_direction:
 
-        last_seen = collabcardState.objects.filter(community=community_id,user = member_id).order_by('-card_id')
+        last_seen = collabcardState.objects.filter(community=community_id,user = member_id).filter(~Q(state=0)).order_by('-card_id')
         if not last_seen.exists():
             chatroom_list = pagination(chatroom_filter,page,paginate_by=5)
             chatrooms = get_chatrooms(chatroom_list,member_id)
@@ -7016,8 +7094,8 @@ def get_all_members(request, req_dict=None):
 
     # functionality for user filteration based on options
     context = {}
-    if collabcard_id and is_request_web(request):
 
+    if collabcard_id and is_request_web(request):
         members = get_members_data_for_collabcard(collabcard_id, community_id, current_user_id,page_no=page)
         # print(members)
         context = {'members': members['members']}
@@ -7030,7 +7108,7 @@ def get_all_members(request, req_dict=None):
         member_list = Members.objects.filter(community_id=community_id).filter(
             Q(state=member_states.ADMIN) | Q(state=member_states.MEMBER) | Q(
                 state=member_states.KNOWN_NOMINATED_PROMOTER) | Q(state=member_states.PENDING_MEMBER)).order_by('id')
-        member_list = pagination(member_list, page, paginate_by=20)
+        member_list = pagination(member_list, page, paginate_by=10)
         filter_list = request.GET.get('filter', None)
 
         if filter_list:
@@ -7049,11 +7127,11 @@ def get_all_members(request, req_dict=None):
                     Q(state=member_states.ADMIN) | Q(state=member_states.MEMBER) | Q(
                         state=member_states.KNOWN_NOMINATED_PROMOTER) | Q(state=member_states.PENDING_MEMBER)).order_by(
                     'id')
-                member_list = pagination(member_list, page, paginate_by=20)
+                member_list = pagination(member_list, page, paginate_by=10)
                 members = get_member_instances(member_list, current_user_id, community_id)
-
                 if collabcard_id:
                     card_members = get_members_data_for_collabcard(collabcard_id, community_id, current_user_id, page_no = page)
+
                     members = get_collabcard_participants(members, card_members['participants'])
 
     else:
@@ -7061,7 +7139,7 @@ def get_all_members(request, req_dict=None):
         member_list = Members.objects.filter(community_id=community_id).filter(
             Q(state=member_states.ADMIN) | Q(state=member_states.MEMBER) | Q(
                 state=member_states.KNOWN_NOMINATED_PROMOTER)).order_by('id')
-        member_list = pagination(member_list, page, paginate_by=20)
+        member_list = pagination(member_list, page, paginate_by=10)
         members = get_member_instances(member_list, current_user_id, community_id)
 
     promoter_instance = is_member_promoter(community_instance,current_user_id)
@@ -7159,22 +7237,22 @@ def get_members_data_for_collabcard(card_id,community_id,current_user_id,page_no
 
     if card_instance.type == card_types.CARD_EVENT or card_instance.type == card_types.CARD_PUBLIC_EVENT:
         state_list = [collabcard_states.COLLABCARD_STATE_ATTEND_FOLLOWING,
-                  collabcard_states.COLLABCARD_STATE_ATTEND_UNFOLLOWING]
+                  collabcard_states.COLLABCARD_STATE_ATTEND_UNFOLLOWING,]
     else:
         state_list = [collabcard_states.COLLABCARD_STATE_FOLLOW,collabcard_states.COLLABCARD_STATE_ATTEND_FOLLOWING]
 
 
-    print(state_list)
     collabcard_state_list = collabcardState.objects.filter(card=card_id).filter(state__in=state_list).order_by('-id')
 
 
 
-    collabcard_state_list = pagination(collabcard_state_list,page_no,paginate_by=20)
+    collabcard_state_list = pagination(collabcard_state_list,page_no,paginate_by=10)
     members = []
     collabcard_participants = []
     for instance in collabcard_state_list:
 
         user_instance = instance.user
+
 
         userinfo_serialized_object = UserinfoSerializer(user_instance.userinfo)
         userinfo_serialized_object['collabcard_state'] = instance.state
@@ -7186,7 +7264,12 @@ def get_members_data_for_collabcard(card_id,community_id,current_user_id,page_no
             userinfo_serialized_object['question_answers'] = form_response[1]
 
         members.append(userinfo_serialized_object)
-        collabcard_participants.append(user_instance.id)
+
+        #sending state also
+        temp={}
+        temp['user_id'] = user_instance.id
+        temp['collabcard_state'] = instance.state
+        collabcard_participants.append(temp)
 
 
     return {'members':members,'participants':collabcard_participants}
@@ -7196,8 +7279,11 @@ def get_collabcard_participants(all_members,collabcard_members):
 
     collabcard_participants = []
     for member in all_members:
-        if member['id'] in collabcard_members:
-            collabcard_participants.append(member)
+        for participant in collabcard_members:
+            if member['id'] == participant['user_id']:
+                member['collabcard_state'] = participant['collabcard_state']
+                collabcard_participants.append(member)
+
 
     return collabcard_participants
 
@@ -7400,8 +7486,7 @@ def is_request_web(request):
     '''function to tell if the request is web or not'''
 
     platform_code = get_platform_code_from_headers(request)
-
-    if not platform_code:
+    if platform_code == 0:
         return True
 
     return False
