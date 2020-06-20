@@ -5181,10 +5181,6 @@ def collabcard_follow(request, function_dict=None):
 
     else:
         follow_status = collabcard_state_filter[0].follow_status
-        print(status)
-        print(type(status))
-        print(collabcard_state_filter[0].follow_status)
-        print(type(follow_status))
         if status and collabcard_state_filter[0].follow_status:
             return JsonResponse({'success': True})
 
@@ -5239,12 +5235,11 @@ def collabcard_follow_internal(func_dict,state=collabcard_states.COLLABCARD_STAT
 
     if collabcard_state_filter.exists():
         state_instance = collabcard_state_filter[0]
-
-        if state_instance.follow_status != status:
-            if card_instance.type == card_types.CARD_PUBLIC_EVENT or card_instance.type == card_types.CARD_EVENT:
-                collabcard_state_filter.update(follow_status=status)
-            else:
-                collabcard_state_filter.update(follow_status=status,state=state)
+        follow_status = state_instance.follow_status
+        if follow_status:
+            collabcard_state_filter.update(follow_status=status,state=collabcard_states.COLLABCARD_STATE_FOLLOW)
+        else:
+            collabcard_state_filter.update(follow_status=status, state=collabcard_states.COLLABCARD_STATE_SEEN)
 
     else:
         collabcard_state_instance = collabcardState()
@@ -5257,7 +5252,7 @@ def collabcard_follow_internal(func_dict,state=collabcard_states.COLLABCARD_STAT
         collabcard_state_instance.follow_status = status
         collabcard_state_instance.save()
 
-
+    print("collabcard follow internal hit")
     if status:
         create_chatroom_engagement(card_instance=card_instance, user_instance=user_instance)
 
