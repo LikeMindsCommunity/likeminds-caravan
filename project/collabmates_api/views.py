@@ -5192,7 +5192,7 @@ def collabcard_follow(request, function_dict=None):
         if status:
 
             state = collabcard_states.COLLABCARD_STATE_FOLLOW
-            if collabcard_state_filter[0].card.type == card_types.CARD_PUBLIC_EVENT or collabcard_state_filter[0].card.type == card_types.CARD_PUBLIC_EVENT:
+            if collabcard_state_filter[0].card.type == card_types.CARD_EVENT or collabcard_state_filter[0].card.type == card_types.CARD_PUBLIC_EVENT:
                 collabcard_state_filter.update(follow_status = status,updated_at=time.time())
             else:
                 collabcard_state_filter.update(state=state, updated_at=time.time())
