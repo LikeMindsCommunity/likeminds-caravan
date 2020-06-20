@@ -5234,12 +5234,7 @@ def collabcard_follow_internal(func_dict,state=collabcard_states.COLLABCARD_STAT
     collabcard_state_filter = collabcardState.objects.filter(card=card_instance, user=user_instance)
 
     if collabcard_state_filter.exists():
-        state_instance = collabcard_state_filter[0]
-        follow_status = state_instance.follow_status
-        if follow_status:
-            collabcard_state_filter.update(follow_status=status,state=collabcard_states.COLLABCARD_STATE_FOLLOW)
-        else:
-            collabcard_state_filter.update(follow_status=status, state=collabcard_states.COLLABCARD_STATE_SEEN)
+        collabcard_state_filter.update(follow_status=status,state=state)
 
     else:
         collabcard_state_instance = collabcardState()
@@ -5423,10 +5418,22 @@ def collabcard_attend(request):
            collabcard_state_instance.updated_at = time.time()
            collabcard_state_instance.save()
 
+       func_dict = {'member_id': member_id, 'collabcard_id': card_instance.id, 'status': True}
+       collabcard_follow_internal(func_dict)
+
+
     else:
+
+        state = collabcard_states.COLLABCARD_STATE_SEEN
         try:
             state_instance = collabcardState.objects.get(card=card_instance, user=user_instance)
-            state_instance.state = collabcard_states.COLLABCARD_STATE_SEEN
+
+            if state_instance.follow_status:
+                state_instance.state = collabcard_states.COLLABCARD_STATE_FOLLOW
+                state = collabcard_states.COLLABCARD_STATE_FOLLOW
+            else:
+                state_instance.state=collabcard_states.COLLABCARD_STATE_SEEN
+                state = collabcard_states.COLLABCARD_STATE_SEEN
             state_instance.save()
 
         except:
@@ -5434,15 +5441,17 @@ def collabcard_attend(request):
             collabcard_state_instance.card = card_instance
             collabcard_state_instance.community = card_instance.community
             collabcard_state_instance.user = user_instance
-            collabcard_state_instance.state = collabcard_states.COLLABCARD_STATE_FOLLOW
+            collabcard_state_instance.state = state
             collabcard_state_instance.created_at = time.time()
             collabcard_state_instance.updated_at = time.time()
             collabcard_state_instance.save()
 
+
+        func_dict = {'member_id': member_id, 'collabcard_id': card_instance.id, 'status': True}
+        collabcard_follow_internal(func_dict,state)
+
     update_event_answer_text(collabcard_id)  # function to update the text when a user attends an event
 
-    func_dict = {'member_id':member_id,'collabcard_id':card_instance.id,'status':True}
-    collabcard_follow_internal(func_dict)
 
 
     if not str(member_id) == str(card_instance.user.id) and status:
