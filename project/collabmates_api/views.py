@@ -5240,8 +5240,11 @@ def collabcard_follow_internal(func_dict,state=collabcard_states.COLLABCARD_STAT
     if collabcard_state_filter.exists():
         state_instance = collabcard_state_filter[0]
 
-        if state_instance.status != status:
-            collabcard_state_filter.update(follow_status=status)
+        if state_instance.follow_status != status:
+            if card_instance.type == card_types.CARD_PUBLIC_EVENT or card_instance.type == card_types.CARD_EVENT:
+                collabcard_state_filter.update(follow_status=status)
+            else:
+                collabcard_state_filter.update(follow_status=status,state=state)
 
     else:
         collabcard_state_instance = collabcardState()
