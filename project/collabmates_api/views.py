@@ -4243,7 +4243,7 @@ def get_chatroom_internal(request,card_instance,user_id,page,conversation_id,scr
 
     #sending the follow telescope
     latest_conversation = conversations_filter.last()
-    card['show_follow_telescope'] = show_follow_telescope(card['state'], card_instance, user_id, latest_conversation,conversations)
+    card['show_follow_telescope'] = show_follow_telescope(card_status, card_instance, user_id, latest_conversation,conversations)
     return context
 
 
@@ -4287,12 +4287,12 @@ def reverse_conversations_for_upward_pagination(upward_list):
     conversations.reverse()
     return conversations
 
-def show_follow_telescope(collabcard_state,card_instance,user_id,latest_conversation,conversations):
+def show_follow_telescope(card_status,card_instance,user_id,latest_conversation,conversations):
 
     '''function to show follow telescope of user'''
 
     show = False
-    if collabcard_state == collabcard_states.COLLABCARD_STATE_SEEN or collabcard_state == collabcard_states.COLLABCARD_STATE_ATTEND_UNFOLLOWING or collabcard_state == collabcard_states.COLLABCARD_STATE_UNSEEN:
+    if not card_status['follow_status']:
         show = True
 
     if card_instance.user.id == user_id:
@@ -5431,7 +5431,7 @@ def collabcard_attend(request):
     else:
         try:
             state_instance = collabcardState.objects.get(card=card_instance, user=user_instance)
-            state_instance.state = collabcard_states.COLLABCARD_STATE_ATTENDING
+            state_instance.state = collabcard_states.COLLABCARD_STATE_SEEN
             state_instance.save()
 
         except:
