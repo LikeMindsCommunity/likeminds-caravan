@@ -7233,16 +7233,13 @@ def get_filtered_users(filter_list,member_list):
 def get_members_data_for_collabcard(card_id,community_id,current_user_id,page_no=1):
 
 
-    card_instance = Collabcard.objects.get(id=card_id)
-
-    # if card_instance.type == card_types.CARD_EVENT or card_instance.type == card_types.CARD_PUBLIC_EVENT:
-    #     state_list = [collabcard_states.COLLABCARD_STATE_ATTEND_FOLLOWING,
-    #               collabcard_states.COLLABCARD_STATE_ATTEND_UNFOLLOWING,]
-    # else:
-    #     state_list = [collabcard_states.COLLABCARD_STATE_FOLLOW,collabcard_states.COLLABCARD_STATE_ATTEND_FOLLOWING]
+    #card_instance = Collabcard.objects.get(id=card_id)
 
 
-    collabcard_state_list = collabcardState.objects.filter(follow_status=True).order_by('-id')
+    state_list = [collabcard_states.COLLABCARD_STATE_FOLLOW,collabcard_states.COLLABCARD_STATE_ATTEND_FOLLOWING,collabcard_states.COLLABCARD_STATE_ATTEND_UNFOLLOWING]
+
+
+    collabcard_state_list = collabcardState.objects.filter(card=card_id).filter(state__in=state_list).order_by('-user_id')
 
 
 
