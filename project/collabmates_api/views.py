@@ -5144,7 +5144,6 @@ def collabcard_follow(request, function_dict=None):
         collabcard_id = function_dict['collabcard_id']
         member_id = function_dict['member_id']
         status = function_dict['status']
-        print(function_dict)
 
 
     collabcard = Collabcard.objects.get(id=collabcard_id)
@@ -5181,7 +5180,11 @@ def collabcard_follow(request, function_dict=None):
             create_chatroom_engagement(card_instance=collabcard,user_instance=user_instance)
 
     else:
-
+        follow_status = collabcard_state_filter[0].follow_status
+        print(status)
+        print(type(status))
+        print(collabcard_state_filter[0].follow_status)
+        print(type(follow_status))
         if status and collabcard_state_filter[0].follow_status:
             return JsonResponse({'success': True})
 
@@ -5195,7 +5198,7 @@ def collabcard_follow(request, function_dict=None):
             if collabcard_state_filter[0].card.type == card_types.CARD_EVENT or collabcard_state_filter[0].card.type == card_types.CARD_PUBLIC_EVENT:
                 collabcard_state_filter.update(follow_status = status,updated_at=time.time())
             else:
-                collabcard_state_filter.update(state=state, updated_at=time.time())
+                collabcard_state_filter.update(state=state, follow_status = status,updated_at=time.time())
 
             create_chatroom(card_instance=collabcard, user_instance=user_instance,
                             state=chatroom_states.CHATROOM_FOLLOW, current_user_id=current_member_id)
@@ -5207,7 +5210,8 @@ def collabcard_follow(request, function_dict=None):
                                                                                    updated_at=time.time())
 
             #deleting the conversation engage
-            conversationEngage.objects.filter(card=collabcard,user=user_instance).delete()
+            delete_status = conversationEngage.objects.filter(card=collabcard,user=user_instance).delete()
+            print(delete_status)
 
             create_chatroom(card_instance=collabcard, user_instance=user_instance,
                             state=chatroom_states.CHATROOM_UNFOLLOW, current_user_id=current_member_id)
@@ -7233,7 +7237,7 @@ def get_filtered_users(filter_list,member_list):
 def get_members_data_for_collabcard(card_id,community_id,current_user_id,page_no=1):
 
 
-    card_instance = Collabcard.objects.get(id=card_id)
+    #card_instance = Collabcard.objects.get(id=card_id)
 
     state_list = [collabcard_states.COLLABCARD_STATE_FOLLOW, collabcard_states.COLLABCARD_STATE_ATTEND_FOLLOWING,
                   collabcard_states.COLLABCARD_STATE_ATTEND_UNFOLLOWING]
