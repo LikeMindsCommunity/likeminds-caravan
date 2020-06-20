@@ -7235,14 +7235,14 @@ def get_members_data_for_collabcard(card_id,community_id,current_user_id,page_no
 
     card_instance = Collabcard.objects.get(id=card_id)
 
-    if card_instance.type == card_types.CARD_EVENT or card_instance.type == card_types.CARD_PUBLIC_EVENT:
-        state_list = [collabcard_states.COLLABCARD_STATE_ATTEND_FOLLOWING,
-                  collabcard_states.COLLABCARD_STATE_ATTEND_UNFOLLOWING,]
-    else:
-        state_list = [collabcard_states.COLLABCARD_STATE_FOLLOW,collabcard_states.COLLABCARD_STATE_ATTEND_FOLLOWING]
+    # if card_instance.type == card_types.CARD_EVENT or card_instance.type == card_types.CARD_PUBLIC_EVENT:
+    #     state_list = [collabcard_states.COLLABCARD_STATE_ATTEND_FOLLOWING,
+    #               collabcard_states.COLLABCARD_STATE_ATTEND_UNFOLLOWING,]
+    # else:
+    #     state_list = [collabcard_states.COLLABCARD_STATE_FOLLOW,collabcard_states.COLLABCARD_STATE_ATTEND_FOLLOWING]
 
 
-    collabcard_state_list = collabcardState.objects.filter(card=card_id).filter(state__in=state_list).order_by('-id')
+    collabcard_state_list = collabcardState.objects.filter(follow_status=True).order_by('-id')
 
 
 
