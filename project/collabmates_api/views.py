@@ -7096,7 +7096,7 @@ def get_all_members(request, req_dict=None):
     context = {}
 
     if collabcard_id and is_request_web(request):
-        members = get_members_data_for_collabcard(collabcard_id, community_id, current_user_id,page_no=page,web=True)
+        members = get_members_data_for_collabcard(collabcard_id, community_id, current_user_id,page_no=page)
         # print(members)
         context = {'members': members['members']}
         return context
@@ -7230,18 +7230,13 @@ def get_filtered_users(filter_list,member_list):
     return member_set
 
 
-def get_members_data_for_collabcard(card_id,community_id,current_user_id,page_no=1,web=False):
+def get_members_data_for_collabcard(card_id,community_id,current_user_id,page_no=1):
 
 
     card_instance = Collabcard.objects.get(id=card_id)
 
-    if not web:
-        state_list = [collabcard_states.COLLABCARD_STATE_FOLLOW,collabcard_states.COLLABCARD_STATE_ATTEND_FOLLOWING,collabcard_states.COLLABCARD_STATE_ATTEND_UNFOLLOWING]
-    else:
-        state_list = [collabcard_states.COLLABCARD_STATE_ATTEND_FOLLOWING,collabcard_states.COLLABCARD_STATE_ATTEND_UNFOLLOWING]
-        if card_instance.type != card_types.CARD_EVENT or card_instance.type != card_types.CARD_PUBLIC_EVENT:
-            state_list.append(collabcard_states.COLLABCARD_STATE_FOLLOW)
-
+    state_list = [collabcard_states.COLLABCARD_STATE_FOLLOW, collabcard_states.COLLABCARD_STATE_ATTEND_FOLLOWING,
+                  collabcard_states.COLLABCARD_STATE_ATTEND_UNFOLLOWING]
 
     collabcard_state_list = collabcardState.objects.filter(card=card_id).filter(state__in=state_list).order_by('-user_id')
 
