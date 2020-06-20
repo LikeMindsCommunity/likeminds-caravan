@@ -5156,9 +5156,9 @@ def collabcard_follow(request, function_dict=None):
         return JsonResponse({'success':True})
 
     #if the collabcard is an event card
-    event_status = set_state_for_event_cards(collabcard,community_instance,user_instance,status,explicit_call,current_member_id)
-    if event_status['success']:
-        return JsonResponse(event_status)
+    # event_status = set_state_for_event_cards(collabcard,community_instance,user_instance,status,explicit_call,current_member_id)
+    # if event_status['success']:
+    #     return JsonResponse(event_status)
 
     collabcard_state_filter = collabcardState.objects.filter(card=collabcard, user=user_instance)
     if not collabcard_state_filter.exists():
@@ -5414,13 +5414,13 @@ def collabcard_attend(request):
     if status:
 
        try:
-           state_instance = collabcardState.objects.get(card=collabcard_instance, user=user_instance)
+           state_instance = collabcardState.objects.get(card=card_instance, user=user_instance)
            state_instance.state = collabcard_states.COLLABCARD_STATE_ATTENDING
            state_instance.save()
 
        except:
            collabcard_state_instance = collabcardState()
-           collabcard_state_instance.card = collabcard
+           collabcard_state_instance.card = card_instance
            collabcard_state_instance.community = card_instance.community
            collabcard_state_instance.user = user_instance
            collabcard_state_instance.state = collabcard_states.COLLABCARD_STATE_ATTENDING
@@ -5436,7 +5436,7 @@ def collabcard_attend(request):
 
         except:
             collabcard_state_instance = collabcardState()
-            collabcard_state_instance.card = collabcard
+            collabcard_state_instance.card = card_instance
             collabcard_state_instance.community = card_instance.community
             collabcard_state_instance.user = user_instance
             collabcard_state_instance.state = collabcard_states.COLLABCARD_STATE_FOLLOW
