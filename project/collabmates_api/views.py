@@ -2210,10 +2210,7 @@ def create_card(request,req_dict=None):
         #     # if welcome card for user is already existing
         #     return JsonResponse({'success': False,"errro_message" : "Introduction already exists"})
 
-        if 'date_time' in res:
-            date_time = res['date_time'] if (str(typ) == '2' or str(typ) == '3') else 0
-        else:
-            date_time=0
+        date_time = res['date_time'] if ('date_time' in res) else 0
 
         #if the community is a ig community
         create_intro=False
@@ -2243,7 +2240,6 @@ def create_card(request,req_dict=None):
         card.about = res['about'] if ('about' in res) else None
         card.co_hosts = json.dumps(res['co_hosts']) if ('co_hosts' in res) else None
         card.online_link = res['online_link'] if ('online_link' in res) else None
-
 
         #for poll card
         card.multiple_select = res['multiple_select'] if ('multiple_select' in res) else False
@@ -2277,8 +2273,6 @@ def create_card(request,req_dict=None):
 
             send_notification_to_event_co_hosts.delay(co_hosts,card.id,card.title,user_instance.userinfo.name)
 
-
-
         #saving poll card details
         polls = res['polls'] if 'polls' in res else []
         for poll in polls:
@@ -2287,9 +2281,6 @@ def create_card(request,req_dict=None):
             collabcardpolls_instance.text = poll['text']
             collabcardpolls_instance.sub_text = poll['sub_text'] if ('sub_text' in poll) else None
             collabcardpolls_instance.save()
-
-
-
 
         collabcard = CollabcardSerializer(card, user_id, community)
 
@@ -2347,9 +2338,6 @@ def create_card(request,req_dict=None):
 
         #create_chatroom_engagement(card_instance=card,user_instance=user_instance)
 
-
-
-
         if is_member_engage(community, user_instance):
 
             if create_intro:
@@ -2370,16 +2358,13 @@ def create_card(request,req_dict=None):
         #update_referral_text_in_engage_table.delay(community_id)
         update_last_unseen_in_engage_on_card_creation.delay(community_id=community_id)
 
-
-
-
         # custom_cache.clear()
 
         #sending notification to the user
-
         send_notification_for_new_collabcard_posted.delay(community_id, res['title'],
                                                           user_id, userinfo_instance.name,
-                                                          type=typ, date_time=date_time,
+                                                          type=typ,
+                                                          date_time=card.end_date if str(typ) == '3' else card.date_time,
                                                           card_id=card.id,
                                                           community_name=community_name,
                                                           community_state=community_state)
