@@ -375,8 +375,7 @@ def CollabcardPollsSerializer(poll, user, card):
     if poll.image_url:
         polls['image_url'] = poll.image_url
 
-
-    if card.date_time // 1000 <= time.time():
+    if card.end_date // 1000 <= time.time():
         poll_detail = poll_percentage(card, poll)
 
         polls['poll_count'] = poll_detail[0]
