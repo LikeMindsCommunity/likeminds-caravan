@@ -4315,13 +4315,13 @@ def save_the_latest_conversation(card_instance,user_id):
                 conversation_member_instance.save()
 
                 conversationEngage.objects.filter(user=user_instance, card=card_instance).update(
-                    last_conversation=conversation_instance, unseen_count=0, updated_at=time.time())
+                    last_conversation=conversation_instance, unseen_count=0)
 
             else:
                 if conversation_instance.id != conversation_member_filter[0].conversation.id:
                     conversation_member_filter.update(conversation=conversation_instance, updated_at=time.time())
                     conversationEngage.objects.filter(user=user_instance,card=card_instance).update(
-                        last_conversation=conversation_instance,unseen_count=0,updated_at=time.time())
+                        last_conversation=conversation_instance,unseen_count=0)
 
 
 
