@@ -16,6 +16,30 @@ except:
     from scripts.connection import get_connection
     from project.celery import app
 
+
+def update_conversation_engage_for_chatrooms(card_id,user_id,last_conversation_id,unseen_count):
+
+    '''function to update chatroom data'''
+
+    try:
+        conn = get_connection()
+        curr = conn.cursor()
+        sql="""update togther_conversationengage set last_conversation_id = %s ,unseen_count = %s where card_id=%s and user_id = %s"""
+        paramter_list = [last_conversation_id,unseen_count,card_id,user_id]
+        curr.execute(sql,paramter_list)
+        conn.commit()
+        print("conversation engage updated successfully")
+        curr.close()
+        conn.close()
+
+
+    except (Exception, psycopg2.Error) as error:
+        print("Error while connecting to PostgreSQL  ", error)
+
+
+
+
+
 @shared_task
 def update_community_purpose_card(community_id,card_id):
 
