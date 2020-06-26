@@ -6608,6 +6608,7 @@ def get_create_community_actions(community_id,promoter_name):
     levels =  []
 
     actions['header'] = """Welcome to your community, %s"""%(promoter_name)
+    actions['header_image'] = HEADER_IMAGE
     actions['sub_header'] = "Now, step-by-step, complete each level to unlock the full potential of your community."
 
     for level in level_filter:

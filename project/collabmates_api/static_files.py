@@ -10,6 +10,8 @@ LIMIT_ACCESS_IMAGE = "https://firebasestorage.googleapis.com/v0/b/collabmates-3d
 
 #community actions levels
 
+HEADER_IMAGE = "https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Fhello.png?alt=media&token=e21aea35-cadf-44cf-96d9-5f3ec2001306"
+
 IMAGE_LEVEL_1 = "https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Fmain_website%2Flevel1.png?alt=media&token=fd1e8b7f-8ffe-46ee-b36e-d76a7751736c"
 IMAGE_LEVEL_2 = "https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Fmain_website%2Flevel2.png?alt=media&token=48cff958-b2c9-4dbe-89e3-ffed3b438ef9"
 IMAGE_LEVEL_3 = "https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Fmain_website%2Flevel3.png?alt=media&token=3b87eb15-2103-4df4-bbad-91461437e9ce"
