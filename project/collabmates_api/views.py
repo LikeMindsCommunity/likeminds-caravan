@@ -2507,6 +2507,8 @@ def create_chatroom_engagement(card_instance,user_instance,last_conversation=Non
         instance.user = user_instance
         instance.last_conversation = last_conversation
         instance.unseen_count = unseen_count
+        instance.created_at = time.time()
+        instance.updated_at = time.time()
         instance.save()
     else:
         instance = instance_list[0]
@@ -4314,14 +4316,29 @@ def save_the_latest_conversation(card_instance,user_id):
                 conversation_member_instance.user = user_instance
                 conversation_member_instance.save()
 
-                conversationEngage.objects.filter(user=user_instance, card=card_instance).update(
-                    last_conversation=conversation_instance, unseen_count=0)
+                conversation_engage_filter = conversationEngage.objects.filter(user=user_instance, card=card_instance)
+                # conversation_engage_filter.update(
+                #     last_conversation=conversation_instance, unseen_count=0)
+
+                if conversation_engage_filter.exists():
+                    engage_instance = conversation_engage_filter[0]
+                    engage_instance.last_conversation = conversation_instance
+                    engage_instance.unseen_count = 0
+                    engage_instance.save()
 
             else:
                 if conversation_instance.id != conversation_member_filter[0].conversation.id:
                     conversation_member_filter.update(conversation=conversation_instance, updated_at=time.time())
-                    conversationEngage.objects.filter(user=user_instance,card=card_instance).update(
-                        last_conversation=conversation_instance,unseen_count=0)
+                    conversation_engage_filter = conversationEngage.objects.filter(user=user_instance,
+                                                                                   card=card_instance)
+                    # conversation_engage_filter.update(
+                    #     last_conversation=conversation_instance, unseen_count=0)
+
+                    if conversation_engage_filter.exists():
+                        engage_instance = conversation_engage_filter[0]
+                        engage_instance.last_conversation = conversation_instance
+                        engage_instance.unseen_count = 0
+                        engage_instance.save()
 
 
 
