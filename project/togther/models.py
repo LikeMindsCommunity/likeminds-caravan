@@ -198,8 +198,7 @@ class conversationEngage(models.Model):
         if self.created_at == 0:
             self.created_at = time.time()
 
-        if self.updated_at == 0 :
-            self.updated_at = self.created_at
+        
 
         super(conversationEngage, self).save(*args, **kwargs)
 
