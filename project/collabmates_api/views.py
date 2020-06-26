@@ -2081,7 +2081,9 @@ def fetch_community_types(request):
 
         types.append(temp)
 
-    return JsonResponse({'types':types})
+    context = {'types':types}
+    context['onboarding_examples'] = ONBOARDING_EXAMPLES
+    return JsonResponse(context)
 
 
 def get_basic_directory_options(request):
