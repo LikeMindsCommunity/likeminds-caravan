@@ -55,7 +55,7 @@ from utility.utils import (decode_meta_from_url, update_tag_image,
                            )
 
 from .notification import *
-from .raw_queries import compute_rank
+from .raw_queries import compute_rank,update_conversation_engage_for_chatrooms
 from .serializers import *
 from .static_files import *
 from .tasks import send_email_to_nominated_admin, send_email_for_new_collabcard_posted, send_welcome_mail, \
@@ -4316,29 +4316,26 @@ def save_the_latest_conversation(card_instance,user_id):
                 conversation_member_instance.user = user_instance
                 conversation_member_instance.save()
 
-                conversation_engage_filter = conversationEngage.objects.filter(user=user_instance, card=card_instance)
+                update_conversation_engage_for_chatrooms(card_id=card_instance.id,user_id=user_instance.id,
+                                                         last_conversation_id=conversation_instance.id,unseen_count=0)
+
                 # conversation_engage_filter.update(
                 #     last_conversation=conversation_instance, unseen_count=0)
 
-                if conversation_engage_filter.exists():
-                    engage_instance = conversation_engage_filter[0]
-                    engage_instance.last_conversation = conversation_instance
-                    engage_instance.unseen_count = 0
-                    engage_instance.save()
+
 
             else:
                 if conversation_instance.id != conversation_member_filter[0].conversation.id:
                     conversation_member_filter.update(conversation=conversation_instance, updated_at=time.time())
-                    conversation_engage_filter = conversationEngage.objects.filter(user=user_instance,
-                                                                                   card=card_instance)
+
+                    update_conversation_engage_for_chatrooms(card_id=card_instance.id, user_id=user_instance.id,
+                                                             last_conversation_id=conversation_instance.id,
+                                                             unseen_count=0)
+
                     # conversation_engage_filter.update(
                     #     last_conversation=conversation_instance, unseen_count=0)
 
-                    if conversation_engage_filter.exists():
-                        engage_instance = conversation_engage_filter[0]
-                        engage_instance.last_conversation = conversation_instance
-                        engage_instance.unseen_count = 0
-                        engage_instance.save()
+
 
 
 
