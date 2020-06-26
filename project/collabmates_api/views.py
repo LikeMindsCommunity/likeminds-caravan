@@ -1101,7 +1101,7 @@ def join_promoter_created_community_version_1(res,request):
         member_state = member_list[0].state
         if member_state == member_states.ADMIN:
 
-            post_purpose_collabcard_for_community(request, community_instance, member_id)
+            #post_purpose_collabcard_for_community(request, community_instance, member_id)
             post_introduction_card_for_community(community_id, member_id, request)
 
             generate_private_link(community_instance, user_instance)
@@ -1115,8 +1115,9 @@ def join_promoter_created_community_version_1(res,request):
                 state=member_states.MEMBER)
 
             Member_Engage.objects.filter(member_id=user_instance, community_id=community_instance).update(
-                member_state=member_states.MEMBER)
+                member_state=member_states.MEMBER,click_state=click_states.DEFAULT)
             post_introduction_card_for_community(community_id, member_id, request)
+            set_state_for_onboarding_chatroom(community_instance, user_instance.id, request)
         else:
 
             Members.objects.filter(member_id=user_instance, community_id=community_instance).update(
@@ -1218,7 +1219,6 @@ def join_whatsapp_community(res,request):
         member_state = member_list[0].state
         if member_state == member_states.ADMIN:
 
-            post_purpose_collabcard_for_community(request,community_instance,member_id)
             post_introduction_card_for_community(community_id,member_id,request)
 
             generate_private_link(community_instance,user_instance)
@@ -1933,6 +1933,11 @@ def create_community_version_1(request):
     community_type = None
     sub_type = None
 
+    page = 1
+
+    if 'page' in res:
+        page = res['page']
+
     if 'name' in res:
         community_name=res['name']
 
@@ -1945,9 +1950,9 @@ def create_community_version_1(request):
     if 'sub_type' in res:
         sub_type = res['sub_type']
 
+    community_id = None
     if 'community_id' in res:
-        community_serialized_object = update_community(res)
-        return JsonResponse({'success':True,'community':community_serialized_object})
+        community_id = res['community_id']
 
     community_state = 0
     if 'state' in res:
@@ -1957,77 +1962,87 @@ def create_community_version_1(request):
     if 'about' in res:
         about = res['about']
 
+    if page == 1:
 
-    community_instance=Community()
-    community_instance.name=community_name
-    community_instance.purpose=purpose
-    community_instance.members_count=1
-    community_instance.about = about
-    community_instance.image_link = community_default_image
-    community_instance.thumbnail = community_default_thumbnail
-    community_instance.image_link_round = community_default_image_round
-    if community_type:
-        community_instance.community_type=community_type
-    community_instance.created_at=time.time()
-    community_instance.updated_at=time.time()
-    community_instance.hide_community = community_state
-    if sub_type:
-        community_instance.sub_type = sub_type
-    community_instance.save()
+        community_instance=Community()
+        community_instance.name=community_name
+        community_instance.members_count=1
+        community_instance.about = about
+        community_instance.image_link = community_default_image
+        community_instance.thumbnail = community_default_thumbnail
+        community_instance.image_link_round = community_default_image_round
+        community_instance.community_type = community_type if community_type else None
+        community_instance.sub_type = sub_type if sub_type else None
+        community_instance.created_at = time.time()
+        community_instance.updated_at = time.time()
+        community_instance.hide_community = community_state
+        community_instance.save()
 
-    log = """%s community created in community table"""%(community_name)
-    info_logger.info(log)
+        set_community_actions(community_instance)
 
-    #for setting community actions
-    set_community_actions(community_instance)
+        # making the member instance for created community
+        member_instance = Members()
+        member_instance.member_id = user_instance
+        member_instance.community_id = community_instance
+        member_instance.state = member_states.ADMIN
+        member_instance.actions_required = True
+        member_instance.created_at = time.time()
+        member_instance.save()
 
+        # making the member enage instance for created community
+        engage = Member_Engage()
+        engage.member_id = user_instance
+        engage.community_id = community_instance
+        engage.updated_at = time.time()
+        engage.member_state = member_states.ADMIN
+        engage.member_referral = "Finish setting up your community"
+        engage.click_state = click_states.SET_PURPOSE
+        engage.save()
 
-    #making the member instance for created community
-    member_instance=Members()
-    member_instance.member_id=user_instance
-    member_instance.community_id=community_instance
-    member_instance.state = member_states.ADMIN
-    member_instance.actions_required = True
-    member_instance.created_at=time.time()
-    member_instance.save()
-
-    #making the member enage instance for created community
-    engage = Member_Engage()
-    engage.member_id = user_instance
-    engage.community_id = community_instance
-    engage.updated_at = time.time()
-    engage.member_state = member_states.ADMIN
-    engage.member_referral = "Finish setting up your community"
-    engage.click_state = click_states.SET_COMMUNITY
-    engage.save()
+        community_serializer = CommunitySerializer(community_instance,promoter_id=user_instance)
+        return JsonResponse({'success':True,'community':community_serializer})
 
 
 
-    log = """%s is the promoter of %s"""%(user_instance.userinfo.name,community_instance.name)
-    info_logger.info(log)
+    elif page == 2:
 
-    if 'questions' in res:
-        for question in res['questions']:
+        try:
+            community_instance = Community.objects.filter(id=community_id)
+            community_instance.purpose = purpose
+            community_instance.save()
 
-            questions_instance=communityQuestions()
-            questions_instance.community=community_instance
-            questions_instance.question_title=question['question_title']
-            questions_instance.question_state=question['state']
-            questions_instance.value = question['value'] if 'value' in question else None
-            questions_instance.optional=question['optional']
-            questions_instance.help_text = question['help_text'] if 'help_text' in question else None
-            questions_instance.save()
+            engage_filter = Member_Engage.objects.filter(community_id=community_instance.id,member_id=member_id)
+            engage_filter.update(click_state = click_states.SET_COMMUNITY)
 
-    log = """questions added in community questions table"""
-    info_logger.info(log)
-    communty_serailized_object = CommunitySerializer(community_instance,promoter_id=user_instance)
-    return JsonResponse({'success':True,'community':communty_serailized_object})
+            post_purpose_collabcard_for_community(request,community_instance,member_id)
 
-@csrf_exempt
-def create_community_questions(request):
+        except Exception as e:
+
+           context = get_error_context(False,e)
+           return JsonResponse(context)
+
+        community_serializer = CommunitySerializer(community_instance, promoter_id=user_instance)
+        return JsonResponse({'success': True, 'community': community_serializer})
+
+    elif page == 3:
+
+        try:
+            community_instance = Community.objects.filter(id=community_id)
+            create_community_questions(res)
+
+        except Exception as e:
+
+            context = get_error_context(False, e)
+            return JsonResponse(context)
+
+        community_serializer = CommunitySerializer(community_instance, promoter_id=user_instance)
+        return JsonResponse({'success': True, 'community': community_serializer})
+
+
+def create_community_questions(res):
 
     '''function to create community questions'''
-    res = json.loads(request.body)
+
 
     community_id = res['community_id']
     community_instance = Community.objects.get(id=community_id)
@@ -2046,11 +2061,60 @@ def create_community_questions(request):
 
     return JsonResponse({'success':True})
 
-def get_onboarding_examples(request):
 
-    community_id = request.GET.get('community_id')
-    context= ONBOARDING_EXAMPLES
-    return JsonResponse(context)
+def fetch_community_types(request):
+
+    '''api to get type and sub-type of community'''
+
+    type_filter = communityFieldTypes.objects.all()
+
+    types = []
+    for instance in type_filter:
+        temp = communityFieldTypeSerializer(instance)
+        sub_type_list = []
+        subtype_queryset = communityFieldSubTypes.objects.filter(type=instance.id)
+
+        if subtype_queryset.exists():
+            for subtype_instance in subtype_queryset:
+                subtype_temp = communityFieldSubTypesSerializer(subtype_instance)
+                sub_type_list.append(subtype_temp)
+
+        if sub_type_list:
+            temp['sub_types'] = sub_type_list
+
+        types.append(temp)
+
+    return JsonResponse({'types':types})
+
+
+def get_basic_directory_options(request):
+
+    '''api to get basic diretory options'''
+
+    type_id = request.GET.get('type')
+    sub_type_id = request.GET.get('sub_type')
+
+    if not type_id or not sub_type_id :
+        context = get_error_context(False,"send type  sub_type  in get params")
+        return JsonResponse(context)
+
+    field_filter = communityField.objects.filter(type=type_id,sub_type=sub_type_id)
+
+    questions = []
+    for field in field_filter:
+
+        temp  = communityFieldSerializer(field)
+        questions.append(temp)
+
+    return JsonResponse({'questions':questions})
+
+
+
+
+
+
+
+
 
 
 def update_community(res):
@@ -6456,6 +6520,7 @@ def skip_community(request):
         engage.community_id = community_instance
         engage.updated_at = time.time()
         engage.member_state = member_states.PROFILE_UNAVAILABLE
+
         engage.save()
 
     set_state_for_onboarding_chatroom(community_instance,user_instance.id,request)
