@@ -164,4 +164,6 @@ class ClickState:
     SET_COMMUNITY = 1
     PENDING_APPROVAL = 2
 
+    SET_PURPOSE = 3
+
 click_states = ClickState()

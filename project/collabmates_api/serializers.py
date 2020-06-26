@@ -603,3 +603,34 @@ def communityLevelsSerializer(instance):
         temp['action'] = instance.action
 
     return temp
+
+
+def communityFieldTypeSerializer(instance):
+
+    return {
+        'id' : instance.id,
+        'type':instance.type
+    }
+
+
+def communityFieldSubTypesSerializer(instance):
+
+    return {
+        'id': instance.id,
+        'sub_type': instance.sub_type
+    }
+
+
+def communityFieldSerializer(instance):
+
+    return {
+        'id': instance.id,
+        'question_title': instance.question_title,
+        'value': instance.value,
+        'optional': instance.optional,
+        'state': instance.state,
+        'help_text': instance.help_text if instance.help_text else '',
+        'type' : instance.type.id,
+        'sub_type':instance.sub_type.id,
+        'field':instance.field
+    }

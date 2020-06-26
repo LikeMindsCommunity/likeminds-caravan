@@ -19,10 +19,13 @@ urlpatterns = [
 
 
     path('v1/create_community',api_views.create_community_version_1,name='create_community_version_1'),
-    path('v1/create_community_questions',api_views.create_community_questions,name='create_community_questions'),
+    path('fetch_community_types', api_views.fetch_community_types, name='fetch_community_types'),
+    path('get_basic_directory_options', api_views.get_basic_directory_options, name='get_basic_directory_options'),
+
+    #path('v1/create_community_questions',api_views.create_community_questions,name='create_community_questions'),
     path('v1/edit_questions', api_views.edit_questions_version_1,
          name="edit_questions_version_1"),
-    path('get_onboarding_examples', api_views.get_onboarding_examples,name="get_onboarding_examples"),
+    #path('get_onboarding_examples', api_views.get_onboarding_examples,name="get_onboarding_examples"),
 
 
 
