@@ -194,6 +194,8 @@ class conversationEngage(models.Model):
     created_at = models.BigIntegerField(default=0)
     updated_at = models.BigIntegerField(default=0)
 
+    def save(self, *args, **kwargs):
+        super(conversationEngage, self).save(*args, **kwargs)
 
 
 
