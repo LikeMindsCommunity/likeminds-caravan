@@ -74,34 +74,9 @@ class Members(models.Model):
     #     super(Members, self).save(*args, **kwargs)
 
 
-# class Admins (models.Model):
-#     admin_id = models.ForeignKey(User, on_delete=models.CASCADE)
-#     community_id = models.ForeignKey(Community, on_delete = models.CASCADE)
+
+
 #
-#     def __str__(self):
-#         return self.community_id.name
-
-# class Community_tags(models.Model):
-#     community_id = models.ForeignKey(Community, on_delete=models.CASCADE)
-#     category = models.CharField(max_length=200, null=True)
-#     tags_id = models.IntegerField(default=0, null=True)
-#     state = models.CharField(max_length=40, null=True)
-#
-#     def __str__(self):
-#         return self.category
-
-
-class Form_data(models.Model):
-    community_id = models.ForeignKey(Community, on_delete=models.CASCADE)
-    data = models.CharField(max_length=400)
-    data_type = models.CharField(max_length=20, choices=response_choices, default='text')
-    question_state = models.IntegerField(default=0)
-    dropdown_list = models.TextField(null=True)
-    dropdown_selection_limit = models.IntegerField(null=True)
-
-    def __str__(self):
-        return self.community_id.name
-
 
 class Userinfo(models.Model):
     user_id = models.OneToOneField(User, on_delete=models.CASCADE)
@@ -230,22 +205,6 @@ class conversationEngage(models.Model):
 
 
 
-# class chatroomActions(models.Model):
-#
-#     '''table to add chatroom actions'''
-#
-#     title = models.TextField(null=True)
-#     route = models.TextField(null=True)
-#     created_at = models.BigIntegerField(default=0)
-#     creator = models.BooleanField(default=False)
-#
-#
-#
-#     def save(self, *args, **kwargs):
-#         if self.created_at == 0:
-#             self.created_at = time.time()
-#         super(chatroomActions, self).save(*args, **kwargs)
-
 
 class temp_admin(models.Model):
     name = models.CharField(max_length=200)
@@ -283,10 +242,6 @@ class answerAttachment(models.Model):
         if self.created_at == 0:
             self.created_at = time.time()
         super(answerAttachment, self).save(*args, **kwargs)
-
-
-
-
 
 
 class get_notified(models.Model):
@@ -841,3 +796,57 @@ class membersPilot(models.Model):
 
     #column to edit actions required
     actions_required = models.BooleanField(null=True)
+
+
+
+
+class communityFieldTypes(models.Model):
+
+    type = models.TextField(null=True)
+    created_at = models.BigIntegerField(default=0)
+
+    def save(self, *args, **kwargs):
+        if self.created_at == 0:
+            self.created_at = time.time()
+        super(communityFieldTypes, self).save(*args, **kwargs)
+
+
+
+class communityFieldSubTypes(models.Model):
+
+
+    type = models.ForeignKey(communityFieldTypes,on_delete=models.CASCADE)
+    sub_type = models.TextField(null=True)
+    created_at = models.BigIntegerField(default=0)
+
+    def save(self, *args, **kwargs):
+        if self.created_at == 0:
+            self.created_at = time.time()
+        super(communityFieldSubTypes, self).save(*args, **kwargs)
+
+
+
+
+class communityField(models.Model):
+
+
+    type = models.ForeignKey(communityFieldTypes,on_delete=models.CASCADE)
+    sub_type = models.ForeignKey(communityFieldSubTypes,on_delete=models.CASCADE)
+
+    question_title = models.TextField(null=True)
+    state = models.IntegerField(default=0)
+    value = models.TextField(null=True)
+    optional = models.BooleanField(default=False)
+    help_text = models.TextField(null=True)
+    field = models.BooleanField(default = False)
+    created_at = models.BigIntegerField(default=0)
+
+    def save(self, *args, **kwargs):
+        if self.created_at == 0:
+            self.created_at = time.time()
+        super(communityField, self).save(*args, **kwargs)
+
+
+
+
+
