@@ -1926,7 +1926,7 @@ def create_community_version_1(request):
     member_id=get_member_id_from_headers(request)
     user_instance=User.objects.get(pk=member_id)
     res=json.loads(request.body)
-    info_logger.info(res)
+    print(res)
 
     community_name=""
     purpose=""
@@ -1971,7 +1971,7 @@ def create_community_version_1(request):
         community_instance.image_link = community_default_image
         community_instance.thumbnail = community_default_thumbnail
         community_instance.image_link_round = community_default_image_round
-        community_instance.community_type = community_type if community_type else None
+        community_instance.type = community_type if community_type else None
         community_instance.sub_type = sub_type if sub_type else None
         community_instance.created_at = time.time()
         community_instance.updated_at = time.time()
@@ -2006,20 +2006,17 @@ def create_community_version_1(request):
 
     elif page == 2:
 
-        try:
-            community_instance = Community.objects.filter(id=community_id)
-            community_instance.purpose = purpose
-            community_instance.save()
 
-            engage_filter = Member_Engage.objects.filter(community_id=community_instance.id,member_id=member_id)
-            engage_filter.update(click_state = click_states.SET_COMMUNITY)
+        community_instance = Community.objects.get(id=community_id)
+        community_instance.purpose = purpose
+        community_instance.save()
 
-            post_purpose_collabcard_for_community(request,community_instance,member_id)
+        engage_filter = Member_Engage.objects.filter(community_id=community_instance.id,member_id=member_id)
+        engage_filter.update(click_state = click_states.SET_COMMUNITY)
 
-        except Exception as e:
+        post_purpose_collabcard_for_community(request,community_instance,member_id)
 
-           context = get_error_context(False,e)
-           return JsonResponse(context)
+
 
         community_serializer = CommunitySerializer(community_instance, promoter_id=user_instance)
         return JsonResponse({'success': True, 'community': community_serializer})
