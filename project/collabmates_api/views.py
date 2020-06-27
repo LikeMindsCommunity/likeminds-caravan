@@ -2309,8 +2309,8 @@ def create_card(request,req_dict=None):
         card.multiple_select_no = res['multiple_select_no'] if ('multiple_select_no' in res) else 1
         card.multiple_select_state = res['multiple_select_state'] if ('multiple_select_state' in res) else 0
 
-        #for chatroom rename
-        card.header = get_chatroom_name(user_instance.userinfo.name,typ)
+        #for chatroom header
+        card.header = res['header'] if('header' in res) else get_chatroom_name(user_instance.userinfo.name,typ)
 
         if 'share_link' in res:
             card.share_link = res['share_link']
