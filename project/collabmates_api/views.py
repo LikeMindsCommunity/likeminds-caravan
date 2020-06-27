@@ -1449,7 +1449,7 @@ def update_community_actions(community_instance):
                 instance.state = community_level_states.COMPLETE
                 instance.save()
 
-            community_level_filter.filter(level="Level 4").update(title="Invite new member applications",
+                community_level_filter.filter(level="Level 4").update(title="Invite new member applications",
                                                                   sub_title="Grow your community. Start social sharing and approve 10 new members.",
                                                                   state=community_level_states.PENDING)
             
