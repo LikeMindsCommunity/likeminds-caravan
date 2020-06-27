@@ -1435,9 +1435,9 @@ def update_community_actions(community_instance):
                                                                       sub_title="Help members know each other. Give 10 members a community-specific identity.",
                                                                       state = community_level_states.PENDING)
 
-                community_level_filter.filter(level="Level 4").update(title="Invite new member applications",
-                                                                      sub_title="Grow your community. Start social sharing and approve 10 new members.",
-                                                                      state=community_level_states.PENDING)
+                # community_level_filter.filter(level="Level 4").update(title="Invite new member applications",
+                #                                                       sub_title="Grow your community. Start social sharing and approve 10 new members.",
+                #                                                       state=community_level_states.PENDING)
 
         elif instance.level == "Level 3" and instance.state == community_level_states.PENDING:
 
@@ -1448,6 +1448,11 @@ def update_community_actions(community_instance):
             if instance.joined_members >= instance.max_members:
                 instance.state = community_level_states.COMPLETE
                 instance.save()
+
+            community_level_filter.filter(level="Level 4").update(title="Invite new member applications",
+                                                                  sub_title="Grow your community. Start social sharing and approve 10 new members.",
+                                                                  state=community_level_states.PENDING)
+            
         elif instance.level == "Level 4" and instance.state == community_level_states.PENDING:
 
             if instance.joined_members < instance.max_members:
