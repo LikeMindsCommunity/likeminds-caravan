@@ -1439,9 +1439,9 @@ def update_community_actions(community_instance):
                                                                       sub_title="Help members know each other. Give 10 members a community-specific identity.",
                                                                       state = community_level_states.PENDING)
 
-                community_level_filter.filter(level="Level 4").update(title="Invite new member applications",
-                                                                      sub_title="Grow your community. Start social sharing and approve 10 new members.",
-                                                                      state=community_level_states.PENDING)
+                # community_level_filter.filter(level="Level 4").update(title="Invite new member applications",
+                #                                                       sub_title="Grow your community. Start social sharing and approve 10 new members.",
+                #                                                       state=community_level_states.PENDING)
 
         elif instance.level == "Level 3" and instance.state == community_level_states.PENDING:
 
@@ -1452,6 +1452,11 @@ def update_community_actions(community_instance):
             if instance.joined_members >= instance.max_members:
                 instance.state = community_level_states.COMPLETE
                 instance.save()
+
+                community_level_filter.filter(level="Level 4").update(title="Invite new member applications",
+                                                                  sub_title="Grow your community. Start social sharing and approve 10 new members.",
+                                                                  state=community_level_states.PENDING)
+
         elif instance.level == "Level 4" and instance.state == community_level_states.PENDING:
 
             if instance.joined_members < instance.max_members:
@@ -2101,7 +2106,7 @@ def get_basic_directory_options(request):
         context = get_error_context(False,"send type  sub_type  in get params")
         return JsonResponse(context)
 
-    field_filter = communityField.objects.filter(type=type_id,sub_type=sub_type_id)
+    field_filter = communityField.objects.filter(type=type_id,sub_type=sub_type_id).order_by('-rank')
 
     questions = []
     for field in field_filter:
@@ -2213,7 +2218,7 @@ def set_community_actions(community_instance):
         instance.title = "Invite your inner circle"
         instance.sub_title = "Bring 5 trusted people you want to build this community with."
         instance.joined_members = 0
-        instance.max_members = 5
+        instance.max_members = 2
         instance.state = community_level_states.PENDING
         instance.image = IMAGE_LEVEL_2
         instance.save()
@@ -2225,7 +2230,7 @@ def set_community_actions(community_instance):
         instance.title = "Community Directory"
         instance.state = community_level_states.LOCKED
         instance.joined_members = 0
-        instance.max_members = 10
+        instance.max_members = 2
         instance.image = IMAGE_LEVEL_3
         instance.save()
 
@@ -2236,7 +2241,7 @@ def set_community_actions(community_instance):
         instance.title = "Growth"
         instance.state = community_level_states.LOCKED
         instance.joined_members = 0
-        instance.max_members = 10
+        instance.max_members = 2
         instance.image = IMAGE_LEVEL_4
         instance.save()
 

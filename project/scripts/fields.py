@@ -210,7 +210,7 @@ def create_profile_link(profile_field,subtype):
                 instance.value = json.dumps(value_list)
                 instance.field = True
                 instance.save()
-            print(profile)
+                print(profile)
 
 def create_subtype_fields(networking):
 
@@ -353,6 +353,36 @@ def get_option_data(field,options,user_added=False):
 
     return json.dumps(option_list)
 
+def create_name_email_mobile(title,sub_type,state,rank,field=False,compulsary=False):
+
+    type_instance = communityFieldTypes.objects.get(id=1)
+    subtype_instance = communityFieldSubTypes.objects.get(sub_type=sub_type)
+
+    if state == 9 or state == 10:
+        value_list = [{"answer_privacy":"Private"}]
+    else :
+        value_list = None
+
+    field_filter = communityField.objects.filter(type=type_instance,sub_type=subtype_instance,question_title=title,state=state)
+
+    if not field_filter.exists():
+        instance = communityField()
+
+        instance.type = type_instance
+        instance.sub_type = subtype_instance
+        instance.question_title = title
+        instance.state = state
+        instance.value = json.dumps(value_list) if value_list else None
+        instance.optional = False
+        instance.help_text = ''
+        instance.field = field
+        instance.rank = rank
+        instance.is_compulsory = compulsary
+        instance.save()
+
+        print(title)
+
+
 
 def create_all_fields(networking):
 
@@ -380,6 +410,10 @@ def create_all_fields(networking):
 
         create_user_created_mcq(field['mcq-1'], field['subtype'], state=2, field=False)
         create_user_created_mcq(field['mcq-2'], field['subtype'], state=2, field=False)
+
+        create_name_email_mobile("Name",field['subtype'],state=4,rank=3,field=True,compulsary=True)
+        create_name_email_mobile("Email", field['subtype'], state=9, rank=2, field=True, compulsary=True)
+        create_name_email_mobile("Phone No.", field['subtype'], state=10, rank=1, field=True, compulsary=False)
 
         print("subtype--------------------------",field['subtype'])
 

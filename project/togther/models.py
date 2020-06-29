@@ -874,6 +874,9 @@ class communityField(models.Model):
     field = models.BooleanField(default = False)
     created_at = models.BigIntegerField(default=0)
 
+    is_compulsory = models.BooleanField(default=False)
+    rank = models.IntegerField(default=0)
+
     def save(self, *args, **kwargs):
         if self.created_at == 0:
             self.created_at = time.time()
