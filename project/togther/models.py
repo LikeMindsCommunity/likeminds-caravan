@@ -188,7 +188,7 @@ class conversationEngage(models.Model):
     '''model to map to conversation engage screen'''
 
     user = models.ForeignKey(User,on_delete=models.CASCADE)
-    card = models.ForeignKey(Collabcard,on_delete=models.CASCADE)
+    card = models.ForeignKey(Collabcard,on_delete=models.CASCADE,null=True)
     last_conversation = models.ForeignKey(card_answers,on_delete=models.CASCADE,null=True)
     unseen_count = models.IntegerField(default=0)
     created_at = models.BigIntegerField(default=0)
@@ -834,6 +834,9 @@ class communityField(models.Model):
     help_text = models.TextField(null=True)
     field = models.BooleanField(default = False)
     created_at = models.BigIntegerField(default=0)
+
+    is_compulsory = models.BooleanField(default=False)
+    rank = models.IntegerField(default=0)
 
     def save(self, *args, **kwargs):
         if self.created_at == 0:
