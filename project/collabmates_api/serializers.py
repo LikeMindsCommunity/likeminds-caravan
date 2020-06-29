@@ -617,5 +617,6 @@ def communityFieldSerializer(instance):
         'help_text': instance.help_text if instance.help_text else '',
         'type' : instance.type.id,
         'sub_type':instance.sub_type.id,
-        'field':instance.field
+        'field':instance.field,
+        'is_compulsory':instance.is_compulsory
     }
