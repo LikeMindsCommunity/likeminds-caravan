@@ -68,7 +68,13 @@ def CommunitySerializer(community,promoter_id=0):
         private_link = generate_private_link(community_instance=community,
                                                                   promoter_instance=promoter_id)
         new_dict['private_link'] = private_link
+        if new_dict['members_count'] <= 10:
+            new_dict['private_link_text_admin'] = """I have started %s community on LikeMinds and I am inviting you to build this community together with me. Join now with this exclusive link. Auto-verification is enabled for 24 hours: %s"""%(community.name,private_link)
+        else:
+            new_dict['private_link_text_admin'] = """Join %s community on LikeMinds with my exclusive link. Auto-verification is enabled for 24 hours: %s"""%(community.name,private_link)
+
         new_dict['private_link_members_directory'] = private_link + "&source=members_directory"
+        new_dict['private_link_text_members_directory'] = """I have created a community directory for <<community name>> on LikeMinds. Signup and complete your profile to see detailed profiles of other members in the community using this exclusive link. Auto-verification is enabled for 24 hours: %s"""%(new_dict['private_link_members_directory'])
 
 
 
@@ -78,14 +84,15 @@ def CommunitySerializer(community,promoter_id=0):
         new_dict['sub_type'] = community.sub_type
 
 
-    new_dict['share_text_admin'] = """Hi, I am trying to gather %s community on LikeMinds. It will be good if you can join it.\n""" % (
+    new_dict['share_text_admin'] = """I am building %s community on LikeMinds. %s Apply to join our community. %s\n""" % (
+    new_dict['name'],new_dict['purpose'],new_dict['share_url'])
+
+    new_dict['share_text_member'] = """I am part of %s community on LikeMinds. %s Apply to join our community. %s\n""" % (
+    new_dict['name'],new_dict['purpose'],new_dict['share_url'])
+
+    new_dict['share_text_anonymous'] = """I recently discovered %s community on LikeMinds. You can join this community using this link.\n""" % (
     new_dict['name'])
-    new_dict[
-            'share_text_member'] = """I recently joined %s community on LikeMinds. It will be good if you also join this community.\n""" % (
-    new_dict['name'])
-    new_dict[
-            'share_text_anonymous'] = """I recently discovered %s community on LikeMinds. You can join this community using this link.\n""" % (
-    new_dict['name'])
+
 
 
     new_dict['min_referrer_member'] = eligibility_count
