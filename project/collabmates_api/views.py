@@ -2029,7 +2029,8 @@ def create_community_version_1(request):
     elif page == 3:
 
         try:
-            community_instance = Community.objects.filter(id=community_id)
+            community_instance = Community.objects.get(id=community_id)
+
             create_community_questions(res)
 
         except Exception as e:
