@@ -188,7 +188,7 @@ class draftChatroom(models.Model):
     multiple_select_no = models.IntegerField(null=True)
     multiple_select_state = models.IntegerField(default=0)
 
-    polls = models.TextField(null=True)
+
 
     # for saving chatroom name
     header = models.TextField(null=True)
@@ -591,6 +591,18 @@ class CollabcardPolls(models.Model):
 
     def get_card_polls(self, card_id):
         pass
+
+class draftPolls(models.Model):
+
+
+    draft = models.ForeignKey(draftChatroom, on_delete=models.CASCADE)
+    text = models.CharField(max_length=2048, null=True)
+    sub_text = models.TextField(null=True)
+    image_url = models.TextField(null=True)
+
+
+
+
 
 
 class MemberPollVotes(models.Model):

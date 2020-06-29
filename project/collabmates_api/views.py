@@ -2445,6 +2445,8 @@ def create_card(request,req_dict=None):
         if 'draft_id' in res:
             conversationEngage.objects.filter(draft_id=res['draft_id']).delete()
             draftChatroom.objects.filter(id=res['draft_id']).delete()
+            draftPolls.objects.filter(draft=res['draft_id']).delete()
+
 
 
         return JsonResponse({'success': True, 'collabcard': collabcard})
@@ -2501,6 +2503,16 @@ def create_draft_collabcard(request):
 
     card.date_epoch = time.time()  # card creation time
     card.save()
+
+    polls = res['polls'] if 'polls' in res else []
+    for poll in polls:
+        poll_instance = draftPolls()
+        poll_instance.draft = card
+        poll_instance.text = poll['text']
+        poll_instance.sub_text = poll['sub_text'] if ('sub_text' in poll) else None
+        poll_instance.save()
+
+
 
     chatroom =  draftChatroomSerializer(card,user_instance)
 

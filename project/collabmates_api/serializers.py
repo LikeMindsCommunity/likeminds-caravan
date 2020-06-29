@@ -284,6 +284,13 @@ def draftChatroomSerializer(card,user,community=None):
         og_tags = json.loads(card.og_tags)
         chatroom['og_tags'] = og_tags
 
+    polls = []
+    cardPolls = draftPolls.objects.filter(draft=card).order_by('id')
+    for poll in cardPolls:
+        polls.append(draftPollsSerializers(poll))
+
+    chatroom['polls'] = polls
+
 
     return chatroom
 
@@ -467,9 +474,28 @@ def poll_percentage(card, poll):
     return selected_polls,selected_polls/total_polls * 100
 
 
-# def get_member_count(community):
-#     return Members.objects.filter(community_id=community).filter(
-#         Q(state=1) | Q(state=2) | Q(state=4) | Q(state=7) | Q(state = 8)).count()
+def draftPollsSerializers(poll):
+
+    polls = {
+        'id': poll.id,
+        'text': poll.text,
+        'is_selected': False
+    }
+
+    if poll.sub_text:
+        polls['sub_text'] = poll.sub_text
+
+    if poll.image_url:
+        polls['image_url'] = poll.image_url
+
+    # if card.end_date // 1000 <= time.time():
+    #     poll_detail = poll_percentage(card, poll)
+
+        polls['poll_count'] = 0
+        polls['percentage'] = 0
+
+    return polls
+
 
 def get_members_profile(member_ids,community_id,current_user_id=None):
 
