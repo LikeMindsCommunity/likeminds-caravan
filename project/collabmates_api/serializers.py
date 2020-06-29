@@ -5,7 +5,7 @@ from django.conf import settings
 from django.db.models import Q
 from togther.models import *
 from utility.utils import is_IG_community,is_LG_or_LP_community,feedback_community_id,\
-    generate_private_link,generate_random,get_time_text,eligibility_count,get_members_count_in_community
+    generate_private_link,generate_random,get_time_text,eligibility_count,get_members_count_in_community,is_member_promoter
 from utility.states import card_types
 url = settings.URL
 import ast
@@ -51,10 +51,14 @@ def CommunitySerializer(community,promoter_id=0):
     elif not community.image_link:
         new_dict['image_url'] = url + new_dict['image_url']
     new_dict['is_member'] = ''
+
+
     if feedback_community_id != community.id:
         new_dict['share_url'] = url + '/community/' + str(new_dict['id'])
     else:
         new_dict['share_url'] = ""
+
+
     new_dict['date'] = community.active_since
     new_dict['members_count'] = get_members_count_in_community(community.id)
     new_dict['state']=int(community.hide_community)
@@ -74,8 +78,7 @@ def CommunitySerializer(community,promoter_id=0):
         new_dict['sub_type'] = community.sub_type
 
 
-    new_dict[
-            'share_text_admin'] = """Hi, I am trying to gather %s community on LikeMinds. It will be good if you can join it.\n""" % (
+    new_dict['share_text_admin'] = """Hi, I am trying to gather %s community on LikeMinds. It will be good if you can join it.\n""" % (
     new_dict['name'])
     new_dict[
             'share_text_member'] = """I recently joined %s community on LikeMinds. It will be good if you also join this community.\n""" % (
@@ -120,7 +123,7 @@ def CollabcardSerializer(card,user,community=None):
         'id': card.id,
         'title': card.title,
         'community_id': card.community_id,
-        'share_url': url + '/collabcard/' + str(card.id), #+ "?ref_id=" + str(card.user.id),
+
         'answer_text': card.answer_text,
         'share_link': card.share_link,
         'image_count': card.image_count,
@@ -204,6 +207,10 @@ def CollabcardSerializer(card,user,community=None):
     if card.updated_time:
         collabcard['updated_time'] = get_time_text(card.updated_time)
 
+    share = get_share_url_text(card,user_id)
+    collabcard['share_url'] =  share['share_url']
+    collabcard['creator_share_url'] = share['creator_share_url']
+
     return collabcard
 
 
@@ -227,6 +234,52 @@ def get_collabcard_files(card_id):
                 pdf_url = {'pdf_file': url + file.attachment.url}
             pdf.append(pdf_url)
     return (img_list, pdf)
+
+
+def get_share_url_text(card,user_id):
+
+    '''function to share url text'''
+
+    share = {}
+    card_url = url + '/collabcard/' + str(card.id)
+    share['share_url'] = card_url
+    share['creator_share_url'] = card_url
+
+    if card.type == card_types.CARD_PUBLIC_EVENT:
+
+        share['share_url']  = """Check out this interesting event on LikeMinds: %s"""%(card_url)
+        share['creator_share_url'] = """Hosting this open event for %s on LikeMinds. RSVP on this link to join us: %s"""%(card.community.name,card_url)
+
+    elif card.type == card_types.CARD_EVENT:
+
+        share['share_url'] = """Join us for this event: %s"""%(card_url)
+        share['creator_share_url'] = """Hosting this event for %s. RSVP on this link to join us: %s"""%(card.community.name,card_url)
+
+    elif card.type == card_types.CARD_POLL:
+
+        share['share_url'] = """Express your views on this poll. %s"""%(card_url)
+        share['creator_share_url'] = """Conducting this poll for %s. Please express your views: %s"""%(card.community.name,card_url)
+
+    elif card.type == card_types.CARD_NORMAL:
+
+        share['share_url'] = """We are having this conversation on LikeMinds. I have enabled guest access for you for the next 24 hours. Join now with my link %s"""%(card_url)
+        share['creator_share_url'] = """Join my chat room on LikeMinds using this exclusive link. I have enabled guest access for you for the next 24 hours. %s"""%(card_url)
+
+    elif card.type == card_types.CARD_INTRO:
+
+        is_promoter = is_member_promoter(card.community.id,user_id)
+
+        if is_promoter:
+            share['share_url'] = """%s joined %s on LikeMinds. Know more about him or join him for a chat on this link: %s"""%(card.user.userinfo.name,card.community.name,card_url)
+
+
+        share['creator_share_url'] = """I have joined %s on LikeMinds. Know more about me or join me for a chat on this link: %s"""%(card.community.name,card_url)
+
+
+    return share
+
+
+
 
 def conversationSerializer(conversation):
 
