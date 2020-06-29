@@ -12,7 +12,7 @@ LIMIT_ACCESS_IMAGE = "https://firebasestorage.googleapis.com/v0/b/collabmates-3d
 
 HEADER_IMAGE = "https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Fhello.png?alt=media&token=e21aea35-cadf-44cf-96d9-5f3ec2001306"
 
-IMAGE_LEVEL_1 = "https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Fmain_website%2Flevel1.png?alt=media&token=fd1e8b7f-8ffe-46ee-b36e-d76a7751736c"
-IMAGE_LEVEL_2 = "https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Fmain_website%2Flevel2.png?alt=media&token=48cff958-b2c9-4dbe-89e3-ffed3b438ef9"
-IMAGE_LEVEL_3 = "https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Fmain_website%2Flevel3.png?alt=media&token=3b87eb15-2103-4df4-bbad-91461437e9ce"
-IMAGE_LEVEL_4 = "https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Fmain_website%2Flevel4.png?alt=media&token=cb35b759-e3cb-4e5b-abc9-fede1bd0bb48"
+IMAGE_LEVEL_1 = "https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Fmain_website%2Fcommunity_levels%2Flevel1.png?alt=media&token=d520dfc4-8d16-497f-918d-3ae665869fbb"
+IMAGE_LEVEL_2 = "https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Fmain_website%2Fcommunity_levels%2Flevel2.png?alt=media&token=1517a5fa-1719-48b1-8311-e62eb4468e69"
+IMAGE_LEVEL_3 = "https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Fmain_website%2Fcommunity_levels%2Flevel3.png?alt=media&token=284e2cd3-db9d-4d71-9a65-a9eee7be190a"
+IMAGE_LEVEL_4 = "https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Fmain_website%2Fcommunity_levels%2Flevel4.png?alt=media&token=a04193e0-a82e-42c8-b176-ddb1d83a3323"
