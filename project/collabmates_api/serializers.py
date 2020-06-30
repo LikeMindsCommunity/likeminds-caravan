@@ -53,10 +53,9 @@ def CommunitySerializer(community,promoter_id=0):
     new_dict['is_member'] = ''
 
 
-    if feedback_community_id != community.id:
-        new_dict['share_url'] = url + '/community/' + str(new_dict['id'])
-    else:
-        new_dict['share_url'] = ""
+
+    new_dict['share_url'] = url + '/community/' + str(new_dict['id'])
+
 
 
     new_dict['date'] = community.active_since
