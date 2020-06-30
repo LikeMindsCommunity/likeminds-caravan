@@ -1672,8 +1672,8 @@ def create_community_version_1(request):
         community_instance.purpose = purpose
         community_instance.save()
 
-        # engage_filter = Member_Engage.objects.filter(community_id=community_instance.id,member_id=member_id)
-        # engage_filter.update(click_state = click_states.SET_COMMUNITY)
+        engage_filter = Member_Engage.objects.filter(community_id=community_instance.id,member_id=member_id)
+        engage_filter.update(click_state = click_states.DEFAULT)
 
         post_purpose_collabcard_for_community(request,community_instance,member_id)
 
