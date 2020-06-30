@@ -711,6 +711,8 @@ class communityLevels(models.Model):
     image = models.TextField(null=True)
     community = models.ForeignKey(Community, on_delete=models.CASCADE)
 
+    level_click_state = models.IntegerField(default=0)
+
 
 class communityUpdate(models.Model):
 

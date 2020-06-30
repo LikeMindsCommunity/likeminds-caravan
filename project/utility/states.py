@@ -165,5 +165,16 @@ class ClickState:
     PENDING_APPROVAL = 2
 
     SET_PURPOSE = 3
+    SKIP_COMMUNITY = 4
 
 click_states = ClickState()
+
+
+
+class LevelClickStates:
+
+    DEFAULT = 0
+    DIRECTORY_CREATED = 1
+    COMMUNITY_JOINED = 2
+
+level_click_states = LevelClickStates()
