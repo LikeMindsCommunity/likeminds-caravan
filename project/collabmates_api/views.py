@@ -2286,10 +2286,7 @@ def create_card(request,req_dict=None):
         if 'create_intro' in res:
             create_intro=True
 
-        is_feedback=False
-        if int(community_id) == int(feedback_community_id):
-            typ=4
-            is_feedback=True
+
         card = Collabcard()
         card.title = res['title']
         card.community = community
@@ -2359,35 +2356,10 @@ def create_card(request,req_dict=None):
         user_info_serializer = UserinfoSerializer(userinfo_instance)
         collabcard['member'] = user_info_serializer
 
-        if is_feedback:                                      #if the collabcard created in feedback community
-
-            mail_dict={}
-            mail_dict['user_name']=user_info_serializer['name']
-            mail_dict['email']=user_info_serializer['email']
-            mail_dict['collabcard_link']=collabcard['share_url']
-            mail_dict['content']=collabcard['title']
-            mail_dict['collabcard_id']=collabcard['id']
-            mail_dict['url']=url
-
-            send_mail_for_query_and_feedback(mail_dict)          #sending mail to collabmates for posting
-
-            #sending text for pop-up:
-
-            collabcard_feedback_popup={
-
-                'title':"Thanks for writing to us",
-                'sub_title':"We may reply privately to your query/feedback via email or feature it in this community depending on its utility for everyone.",
-                'action_title':"OK",
-                'action':'route://community_collabcard?community_id=' + str(community.id) + '&community_name=' + str(
-            community.name) + '&community_state=' + str(community.hide_community)
-            }
-            return JsonResponse({'success': True, 'collabcard': collabcard,'collabcard_feedback_popup':collabcard_feedback_popup})
 
 
-        # # #saving the state in collabcardState table instead of follow collabcard
-        # create_collabcard_state_for_user(card_instance=card, user_instance=user_instance,
-        #                                  state=collabcard_states.COLLABCARD_STATE_SEEN,
-        #                                  community=community)
+
+
 
         func_dict = {
             'member_id':user_id,
@@ -6061,10 +6033,7 @@ def login_authenticate(request):
         if has_tags:
             tags = get_user_lpig_tags(usr['id'])
             usr['tags'] = tags
-            return JsonResponse({'user': usr, 'has_tags': has_tags})
-        else:
-            create_member_for_feedback_community(userinfo.user_id)
-            return JsonResponse({'user': usr, 'has_tags': has_tags})
+        return JsonResponse({'user': usr, 'has_tags': has_tags})
 
     return HttpResponse('Login Api')
 
@@ -6172,7 +6141,7 @@ def create_member_for_feedback_community(user_instance):
         member_instance.community_id=community_instance
         member_instance.state=member_states.MEMBER
         member_instance.created_at=time.time()
-        member_instance.save()
+        #member_instance.save()
 
 
     if not is_member_engage(community_instance,user_instance):          #not is_member_engage(community_instance,user_instance)
@@ -6184,7 +6153,7 @@ def create_member_for_feedback_community(user_instance):
         engage.last_unseen_conversation = card_instance
         engage.updated_at = time.time()
         engage.member_state = member_states.MEMBER
-        engage.save()
+        #engage.save()
 
 
 def fetch_google_auth_data(google_id_token):
@@ -6257,8 +6226,7 @@ def login_with_google(google_id_token,request,login_type="google"):
             tags = get_user_lpig_tags(usr['id'])
             usr['tags'] = tags
 
-        else:
-            create_member_for_feedback_community(userinfo.user_id)
+
 
 
         if is_request_web(request):
@@ -6323,8 +6291,7 @@ def login_with_facebook(request,res,json_to_save,login_type="facebook"):
     if has_tags:
         tags = get_user_lpig_tags(usr['id'])
         usr['tags'] = tags
-    else:
-        create_member_for_feedback_community(userinfo.user_id)
+
 
     access = is_user_community_part(usr['id'])
     context = {'user': usr, 'has_tags': has_tags, 'access': access}
@@ -6371,8 +6338,7 @@ def login_with_linkedin(request,res,json_to_save,login_type="linkedIn"):
     if has_tags:
         tags = get_user_lpig_tags(usr['id'])
         usr['tags'] = tags
-    else:
-        create_member_for_feedback_community(userinfo.user_id)
+
 
     access = is_user_community_part(usr['id'])
     context = {'user': usr, 'has_tags': has_tags, 'access': access}
@@ -6426,8 +6392,7 @@ def login_with_apple(request,res,json_to_save,login_type="apple"):
     if has_tags:
         tags = get_user_lpig_tags(usr['id'])
         usr['tags'] = tags
-    else:
-        create_member_for_feedback_community(userinfo.user_id)
+
     access = is_user_community_part(usr['id'])
     context = {'user': usr, 'has_tags': has_tags, 'access': access}
     return context
