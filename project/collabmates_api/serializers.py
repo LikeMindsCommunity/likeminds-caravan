@@ -273,12 +273,7 @@ def get_share_url_text(card,user_id):
 
     elif card.type == card_types.CARD_INTRO:
 
-        is_promoter = is_member_promoter(card.community.id,user_id)
-
-        if is_promoter:
-            share['share_url'] = """%s joined %s on LikeMinds. Know more about him or join him for a chat on this link: %s"""%(card.user.userinfo.name,card.community.name,card_url)
-
-
+        share['share_url'] = """%s joined %s on LikeMinds. Know more about him or join him for a chat on this link: %s"""%(card.user.userinfo.name,card.community.name,card_url)
         share['creator_share_url'] = """I have joined %s on LikeMinds. Know more about me or join me for a chat on this link: %s"""%(card.community.name,card_url)
 
 
