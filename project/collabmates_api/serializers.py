@@ -636,6 +636,8 @@ def communityLevelsSerializer(instance):
     temp['state'] = instance.state
     temp['image'] = instance.image
 
+    temp['level_click_state'] = instance.level_click_state
+
     if instance.joined_members != None:
         temp['joined_members'] = instance.joined_members
 
