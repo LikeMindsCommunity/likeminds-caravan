@@ -73,7 +73,7 @@ def CommunitySerializer(community,promoter_id=0):
             new_dict['private_link_text_admin'] = """Join %s community on LikeMinds with my exclusive link. Auto-verification is enabled for 24 hours: %s"""%(community.name,private_link)
 
         new_dict['private_link_members_directory'] = private_link + "&source=members_directory"
-        new_dict['private_link_text_members_directory'] = """I have created a community directory for <<community name>> on LikeMinds. Signup and complete your profile to see detailed profiles of other members in the community using this exclusive link. Auto-verification is enabled for 24 hours: %s"""%(new_dict['private_link_members_directory'])
+        new_dict['private_link_text_members_directory'] = """I have created a community directory for %s on LikeMinds. Signup and complete your profile to see detailed profiles of other members in the community using this exclusive link. Auto-verification is enabled for 24 hours: %s"""%(community.name,new_dict['private_link_members_directory'])
 
 
 
