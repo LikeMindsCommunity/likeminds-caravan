@@ -214,7 +214,7 @@ def CollabcardSerializer(card,user,community=None):
     if card.updated_time:
         collabcard['updated_time'] = get_time_text(card.updated_time)
 
-    share = get_share_url_text(card,user_id)
+    share = get_share_url_text(card,user)
     collabcard['share_url'] =  share['share_url']
     collabcard['creator_share_url'] = share['creator_share_url']
 
