@@ -83,10 +83,10 @@ def CommunitySerializer(community,promoter_id=0):
         new_dict['sub_type'] = community.sub_type
 
 
-    new_dict['share_text_admin'] = """I am building %s community on LikeMinds. %s Apply to join our community. %s\n""" % (
+    new_dict['share_text_admin'] = """I am building %s community on LikeMinds.\n %s \nApply to join our community. %s\n""" % (
     new_dict['name'],new_dict['purpose'],new_dict['share_url'])
 
-    new_dict['share_text_member'] = """I am part of %s community on LikeMinds. %s Apply to join our community. %s\n""" % (
+    new_dict['share_text_member'] = """I am part of %s community on LikeMinds.\n %s \nApply to join our community. %s\n""" % (
     new_dict['name'],new_dict['purpose'],new_dict['share_url'])
 
     new_dict['share_text_anonymous'] = """I recently discovered %s community on LikeMinds. You can join this community using this link.\n""" % (
