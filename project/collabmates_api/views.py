@@ -1269,6 +1269,9 @@ def edit_member_profile(request):
                 collabcard_id = collabcard_filter[0].id
 
 
+
+
+
     delete_filters = questionFilters.objects.filter(member=user_instance,community=community_instance).delete()
     delete_answers = answer_filter.delete()
 
@@ -1313,6 +1316,11 @@ def edit_member_profile(request):
 
     #setting edit status in members table
     Members.objects.filter(community_id=community_instance,member_id=user_instance).update(edit_required=False)
+
+    #posting a introduction collabcard
+    if collabcard_id == 0:
+        post_introduction_card_for_community(community_instance.id,user_instance.id,request)
+
 
 
     question_answer=""
