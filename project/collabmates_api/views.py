@@ -1721,6 +1721,10 @@ def create_community_questions(res):
             questions_instance.save()
 
 
+    #setting the state of community in order to make it editable
+    Members.objects.filter(community_id=community_instance,state=member_states.MEMBER).update(edit_required=True)
+
+
 
 
 
