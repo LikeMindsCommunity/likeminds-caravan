@@ -412,8 +412,8 @@ def create_all_fields(networking):
         create_user_created_mcq(field['mcq-2'], field['subtype'], state=2, field=False)
 
         create_name_email_mobile("Name",field['subtype'],state=4,rank=3,field=True,compulsary=True)
-        create_name_email_mobile("Email", field['subtype'], state=9, rank=2, field=True, compulsary=True)
-        create_name_email_mobile("Phone No.", field['subtype'], state=10, rank=1, field=True, compulsary=False)
+        create_name_email_mobile("Email", field['subtype'], state=10, rank=2, field=True, compulsary=True)
+        create_name_email_mobile("Phone No.", field['subtype'], state=9, rank=1, field=True, compulsary=False)
 
         print("subtype--------------------------",field['subtype'])
 

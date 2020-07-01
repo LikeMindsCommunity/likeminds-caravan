@@ -818,10 +818,8 @@ def join_promoter_created_community_version_1(res,request):
 
         for question in res['questions']:
 
-            if 'value' not in question:
-                continue
 
-            if not question['value']:
+            if 'value' not in question or not question['value']:
                 continue
 
             question_instance = communityQuestions.objects.get(id=question['id'])
@@ -1718,6 +1716,7 @@ def create_community_questions(res):
             questions_instance.value = question['value'] if 'value' in question else None
             questions_instance.optional = question['optional']
             questions_instance.help_text = question['help_text'] if 'help_text' in question else None
+            questions_instance.is_hidden = question['is_compulsory'] if 'is_compulsory' in question else False
             questions_instance.save()
 
 

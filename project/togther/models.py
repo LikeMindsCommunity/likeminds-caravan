@@ -595,6 +595,10 @@ class communityQuestions(models.Model):
     #when the promoter deletes a question from v1/edit_questions api
     remove_state = models.BooleanField(default=False)
 
+    is_hidden = models.BooleanField(default=False)
+
+
+
 
 class communityAnswers(models.Model):
 

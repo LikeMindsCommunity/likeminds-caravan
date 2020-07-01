@@ -497,6 +497,7 @@ def FormResponseSerilaizer(community_id, user_id,current_user_id=None,bl=False):
             temp['value'] = response.question_answer
             temp['question_id'] = response.question_id
             temp['state'] = questions['state']
+            temp['is_hidden'] = questions['is_hidden']
             #temp['question_instance'] = questions               #sending the question instance
             new_response.append(temp)
 
@@ -542,7 +543,8 @@ def CommunityQuestionsSerializer(community_question_instance):
         'optional':community_question_instance.optional,
         'community_id':community_question_instance.community_id,
         'state':community_question_instance.question_state,
-        'help_text':community_question_instance.help_text if community_question_instance.help_text else ''
+        'help_text':community_question_instance.help_text if community_question_instance.help_text else '',
+        'is_hidden': community_question_instance.is_hidden
     }
 
 
