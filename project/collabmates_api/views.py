@@ -840,6 +840,9 @@ def join_promoter_created_community_version_1(res,request):
 
                 save_user_selected_options(question_instance, user_instance, community_instance, selected_choices)
 
+
+            update_hidden_fields_in_questions(question_instance,user_instance,community_instance)
+
     #saving data directly
     if 'aj' in res:
         if res['aj']:
@@ -995,6 +998,25 @@ def post_purpose_collabcard_for_community(request,community_instance,member_id):
     }
     request.method = "POST"
     create_card(request, req_dict=req_dict)
+
+
+def update_hidden_fields_in_questions(question_instance,user_instance,community_instance):
+
+    '''api to update hidden fields in questions'''
+
+    if question_instance.is_hidden:
+
+        if question_instance.question_state == question_states.EMAIL_ID:
+
+            answer_instance = communityAnswers()
+            answer_instance.question = question_instance
+            answer_instance.member = user_instance
+            answer_instance.community = community_instance
+            answer_instance.question_answer = user_instance.userinfo.email
+            answer_instance.question_title = question_instance.question_title
+            answer_instance.save()
+
+
 
 
 
