@@ -3904,11 +3904,16 @@ def get_answer_data(answer_filter,feedback,community_id,current_user_id,last_see
               'state': ans.state,
         }
 
+        if ans.og_tags:
+            context['og_tags'] = json.loads(ans.og_tags)
+
         if last_seen and last_seen.id == ans.id:
             context['last_seen'] = True
 
         if 'location' in attachements:
             context['location'] = attachements['location']
+
+
 
         answers.append(context)
     return answers
@@ -4828,22 +4833,20 @@ def create_answer(request):
     try:
         user_id = body['member_id']
         card_id = body['collabcard_id']
-        user = User.objects.get(id=user_id)
-        card = Collabcard.objects.get(id=card_id)
+        user_instance = User.objects.get(id=user_id)
+        card_instance = Collabcard.objects.get(id=card_id)
     except :
         context = get_error_context(False,"Send params correctly")
         return JsonResponse(context)
 
-
-
-
     res = json.loads(request.body)
     ans = card_answers()
     ans.answer = res['title']
-    ans.card = card
-    ans.user = user
+    ans.card = card_instance
+    ans.user = user_instance
     ans.created_at = time.time()
     ans.save()
+
     update_last_answer_id(card_id, ans.id)
     # auto following the collabcard if answer is created
     function_dict = {
@@ -4859,10 +4862,10 @@ def create_answer(request):
 
     send_follow_notification.delay(card_id=card_id, user_id=user_id, answer=res['title'])
 
-        # calling update_answer_text
-    if card.type == card_types.CARD_NORMAL or card.type == card_types.CARD_INTRO:
-        print("type === ", card.type)
-        update_answer_text(card_id)
+    #     # calling update_answer_text
+    # if card.type == card_types.CARD_NORMAL or card.type == card_types.CARD_INTRO:
+    #     print("type === ", card.type)
+    #     update_answer_text(card_id)
 
 
     #updating the conversationEngage table
@@ -4870,6 +4873,63 @@ def create_answer(request):
     update_my_chatrooms_for_users(chatroom_id=card_id)
 
     return JsonResponse({'success': True,'id':ans.id})
+
+
+@csrf_exempt
+def create_conversation(request):
+
+    '''api to create the conversation'''
+
+    member_id = get_member_id_from_headers(request)
+
+    if not member_id:
+        context = get_error_context(False,"send member id in headers")
+        return JsonResponse(context)
+
+    res = json.loads(request.body)
+    print(res)
+    card_instance = Collabcard.objects.get(id=res['chatroom_id'])
+    user_instance = User.objects.get(id=member_id)
+
+    ans = card_answers()
+    ans.answer = res['text']
+    ans.card = card_instance
+    ans.user = user_instance
+    ans.created_at = time.time()
+    ans.save()
+
+
+    #saving the og tags if present
+    if 'og_tags' in res:
+        ans.og_tags = json.dumps(res['og_tags'])
+        ans.save()
+    elif 'share_link' in res:
+        ans.og_tags = json.dumps(decode_meta_from_url(res['share_link']))
+        ans.save()
+
+    update_last_answer_id(card_instance.id, ans.id)
+
+    # auto following the collabcard if answer is created
+    function_dict = {
+        'member_id': member_id,
+        'collabcard_id': card_instance.id,
+        'status': True
+    }
+    collabcard_follow_internal(function_dict)
+
+    # sending the tagged member list
+    auto_follow_chatrooms_in_case_of_tagging(request, res['text'], card_instance.id)
+
+    send_follow_notification.delay(card_id=card_instance.id, user_id=user_instance.id, answer=res['text'])
+
+    # # updating the conversationEngage table
+    # conversation_seen(request, {'member_id': user_instance.id, 'conversation_id': ans.id})
+    #update_my_chatrooms_for_users.delay(chatroom_id=card_instance.id)
+
+    return JsonResponse({'success': True, 'id': ans.id})
+
+
+
 
 
 

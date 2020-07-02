@@ -52,6 +52,7 @@ urlpatterns = [
 
 
     path('create_answer', api_views.create_answer, name="create_answer"),
+    path('create_conversation', api_views.create_conversation, name="create_conversation"),
 
     path('login',api_views.login_authenticate,name = 'login'),
     path('v1/login',api_views.login_authenticate_version_1,name = 'v1/login'),

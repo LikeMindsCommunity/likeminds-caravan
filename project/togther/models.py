@@ -202,6 +202,8 @@ class card_answers(models.Model):
     created_at = models.BigIntegerField(default=-9223372036854775808)
     state = models.IntegerField(default=0)
 
+    og_tags = models.TextField(null=True)
+
 
 class conversationMemberState(models.Model):
 
