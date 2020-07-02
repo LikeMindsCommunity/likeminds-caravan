@@ -2011,11 +2011,15 @@ def create_card(request,req_dict=None):
         #for chatroom header
         has_been_named = False
         if 'header' in res:
+
             card.header = res['header']
             has_been_named = True
             card.has_been_named = has_been_named
         else:
-            card.header = get_chatroom_name(user_instance.userinfo.name,typ)
+
+            header = res['title']
+            card.header = header[:30]
+            
             card.has_been_named = has_been_named
 
         if 'share_link' in res:

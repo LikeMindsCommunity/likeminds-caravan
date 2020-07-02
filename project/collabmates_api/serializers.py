@@ -199,7 +199,7 @@ def CollabcardSerializer(card,user,community=None):
     if card.header:
         collabcard['header'] = card.header
     else:
-        collabcard['header'] = get_chatroom_name(card.user.userinfo.name,card.type)
+        collabcard['header'] = card.title[:30]
 
     if card.og_tags:
         og_tags = json.loads(card.og_tags)
