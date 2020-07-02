@@ -2009,7 +2009,14 @@ def create_card(request,req_dict=None):
         card.multiple_select_state = res['multiple_select_state'] if ('multiple_select_state' in res) else 0
 
         #for chatroom header
-        card.header = res['header'] if('header' in res) else get_chatroom_name(user_instance.userinfo.name,typ)
+        has_been_named = False
+        if 'header' in res:
+            card.header = res['header']
+            has_been_named = True
+            card.has_been_named = has_been_named
+        else:
+            card.header = get_chatroom_name(user_instance.userinfo.name,typ)
+            card.has_been_named = has_been_named
 
         if 'share_link' in res:
             card.share_link = res['share_link']
@@ -2098,16 +2105,10 @@ def create_card(request,req_dict=None):
         # custom_cache.clear()
 
         #sending notification to the user
-        send_notification_for_new_collabcard_posted.delay(community_id, res['title'],
-                                                          user_id, userinfo_instance.name,
-                                                          type=typ,
-                                                          date_time=card.end_date if str(typ) == '3' else card.date_time,
-                                                          card_id=card.id,
-                                                          community_name=community_name,
-                                                          community_state=community_state)
 
-        if typ != card_types.CARD_INTRO:  # stopping mail for introduction cards
-            send_email_for_collabcard(community, userinfo_instance, card, typ)
+        if has_been_named:
+            send_chatroom_creation_notifications_and_mails(card_instance=card,user_instance=user_instance)
+
 
 
         #deleting the draft chatroom
@@ -2121,6 +2122,20 @@ def create_card(request,req_dict=None):
         return JsonResponse({'success': True, 'collabcard': collabcard})
     return JsonResponse({'success': False})
 
+def send_chatroom_creation_notifications_and_mails(card_instance,user_instance):
+
+    '''function to send mail and notifications for chatroom creations'''
+
+    send_notification_for_new_collabcard_posted.delay(card_instance.community.id, card_instance.title,
+                                                      user_instance.id, user_instance.userinfo.name,
+                                                      type=card_instance.type,
+                                                      date_time=card_instance.end_date if card_instance.type == card_types.CARD_POLL else card_instance.date_time,
+                                                      card_id=card_instance.id,
+                                                      community_name=card_instance.community.name,
+                                                      community_state=card_instance.community.hide_community)
+
+    if card_instance.type != card_types.CARD_INTRO:  # stopping mail for introduction cards
+        send_email_for_collabcard(card_instance.community, user_instance.userinfo, card_instance, card_instance.type)
 
 @csrf_exempt
 def create_draft_collabcard(request):
@@ -2307,13 +2322,31 @@ def chatroom_mute(request):
 def chatroom_rename(request):
 
     chatroom_id = request.POST.get('chatroom_id')
+    first_time_rename = request.POST.get('first_time_rename')
 
-    if not chatroom_id:
-        context = get_error_context(False,"send chatroom id in post params")
+    member_id = get_member_id_from_headers(request)
+
+    if not chatroom_id or not member_id:
+        context = get_error_context(False,"send params correctly")
         return JsonResponse(context)
 
     chatroom_name = request.POST.get("header",None)
-    Collabcard.objects.filter(id=chatroom_id).update(header=chatroom_name)
+
+    collabcard_filter = Collabcard.objects.filter(id=chatroom_id)
+    if collabcard_filter.exists():
+        collabcard_filter.update(header=chatroom_name)
+
+        if first_time_rename == "true":
+            collabcard_filter.update(has_been_named=True)
+            card_instance = collabcard_filter[0]
+            user_instance = User.objects.get(id=member_id)
+
+            send_chatroom_creation_notifications_and_mails(card_instance,user_instance)
+
+    else:
+        context = get_error_context(False, "send correct chatroom id in post params")
+        return JsonResponse(context)
+
 
     return JsonResponse({"success":True})
 
@@ -3412,7 +3445,7 @@ def send_email_for_collabcard(community, user, card, type):
 @api_view(['GET', 'POST'])
 @renderer_classes([JSONRenderer, TemplateHTMLRenderer])
 def collabcard(request, card_id):
-    
+
     ''' function to get card details, answers and images '''
     # get the card object
 
@@ -3430,7 +3463,7 @@ def collabcard(request, card_id):
 
     answer_id = request.GET.get('answer_id', '')
     user_id = request.GET.get('member_id', '')
-    
+
     if is_request_web(request) and request.user.is_authenticated:
         current_user_id = request.user.id
         answers = get_chatroom_internal(request,card_instance,current_user_id,page,'','')
@@ -5399,7 +5432,7 @@ def member_activity(request):
     if community.id == feedback_community_id:
         state = 1
         return JsonResponse({'state': state})
-    
+
     if community.introduction_text_state:
         state = 1
         return JsonResponse({'state': state})
@@ -6540,7 +6573,7 @@ def dismiss(request):
 
 
     is_promoter = is_member_promoter(community_id=community_id,member_id=member_id)
-    
+
     if type == "community_actions" and is_promoter:
         Members.objects.filter(community_id=community_id,member_id=member_id).update(actions_required=False)
         context['success'] = True
@@ -8083,7 +8116,7 @@ def email_verify(request):
 
                 else:
                     user_email_list.update(user=user_instance,email_state=email_state,email=instance.email)
-                
+
 
                 return render(request, 'email_verify_landing.html', context)
 

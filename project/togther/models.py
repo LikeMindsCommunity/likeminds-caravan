@@ -153,6 +153,7 @@ class Collabcard(models.Model):
 
     # for saving chatroom name
     header = models.TextField(null=True)
+    has_been_named = models.BooleanField(default=True)      #for notification access
 
 
 class draftChatroom(models.Model):
