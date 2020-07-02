@@ -2019,7 +2019,7 @@ def create_card(request,req_dict=None):
 
             header = res['title']
             card.header = header[:30]
-            print(len(card.header))
+            
             card.has_been_named = has_been_named
 
         if 'share_link' in res:
