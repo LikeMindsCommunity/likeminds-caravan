@@ -36,7 +36,9 @@ urlpatterns = [
     path('admins/<int:community_id>', api_views.admins, name="admins"),
     path('members/<int:community_id>', api_views.members, name="members"),
     path('ask_approval', api_views.ask_approval, name="ask_approval"),
+
     path('create_collabcard', api_views.create_card, name="create_card"),
+    path('create_draft_collabcard', api_views.create_draft_collabcard, name="create_draft_collabcard"),
 
     path('collabcard/<int:card_id>', api_views.collabcard, name="collabcard"),
     path('fetch_chatroom', api_views.fetch_chatroom, name="fetch_chatroom"),

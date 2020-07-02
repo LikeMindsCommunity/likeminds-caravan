@@ -155,6 +155,44 @@ class Collabcard(models.Model):
     header = models.TextField(null=True)
 
 
+class draftChatroom(models.Model):
+
+    title = models.TextField()
+    community = models.ForeignKey(Community, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    answer_text = models.CharField(max_length=100, default='')
+    share_link = models.CharField(max_length=2048, default='')
+    og_tags = models.CharField(max_length=2048, default='')
+    image_count = models.IntegerField(default=0, null=True)
+    pdf_count = models.IntegerField(default=0, null=True)
+    type = models.IntegerField(default=0)                    # state=0 (Normal Collabcard);state=1(Introduction Collabcard)
+    date_time = models.BigIntegerField(default=0)            # for saving date of event and due date for polling
+    duration = models.BigIntegerField(default=0)             # for saving duration of event
+    date_epoch = models.BigIntegerField(default=0)
+    #for polls count
+    polls_count = models.IntegerField(default=0)
+    attending_count = models.IntegerField(default=0)
+
+    #for event cards
+    location = models.TextField(null=True)
+    location_lat = models.FloatField(null=True)
+    location_long = models.FloatField(null=True)
+    start_date = models.BigIntegerField(default=0)
+    end_date = models.BigIntegerField(default=0)
+    about = models.TextField(null=True)
+    co_hosts = models.TextField(null=True)
+    online_link = models.TextField(null=True)
+
+    # for poll functionality
+    multiple_select = models.BooleanField(default=False)
+    multiple_select_no = models.IntegerField(null=True)
+    multiple_select_state = models.IntegerField(default=0)
+
+
+
+    # for saving chatroom name
+    header = models.TextField(null=True)
+
 
 class card_answers(models.Model):
 
@@ -193,6 +231,7 @@ class conversationEngage(models.Model):
     unseen_count = models.IntegerField(default=0)
     created_at = models.BigIntegerField(default=0)
     updated_at = models.BigIntegerField(default=0)
+    draft = models.ForeignKey(draftChatroom,on_delete=models.CASCADE,null=True)
 
 
 
@@ -552,6 +591,18 @@ class CollabcardPolls(models.Model):
 
     def get_card_polls(self, card_id):
         pass
+
+class draftPolls(models.Model):
+
+
+    draft = models.ForeignKey(draftChatroom, on_delete=models.CASCADE)
+    text = models.CharField(max_length=2048, null=True)
+    sub_text = models.TextField(null=True)
+    image_url = models.TextField(null=True)
+
+
+
+
 
 
 class MemberPollVotes(models.Model):

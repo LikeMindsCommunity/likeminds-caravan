@@ -220,6 +220,95 @@ def CollabcardSerializer(card,user,community=None):
     return collabcard
 
 
+def draftChatroomSerializer(card,user,community=None):
+    # function to serialize a community object
+    chatroom={
+        'id': card.id,
+        'title': card.title,
+        'community_id': card.community_id,
+        #'share_url': url + '/collabcard/' + str(card.id), #+ "?ref_id=" + str(card.user.id),
+        'answer_text': card.answer_text,
+        'share_link': card.share_link,
+        'image_count': card.image_count,
+        'pdf_count': card.pdf_count,
+        'type': card.type,
+        'date_time': card.date_time,
+        'duration': card.duration,
+
+        'attending_count': card.attending_count,
+        'polls_count': card.polls_count,
+        'card_creation_time' : time.strftime('%B %d at %H:%M',time.localtime(card.date_epoch))
+    }
+
+
+    #for poll card
+    if card.type == card_types.CARD_POLL:
+        polls = []
+        # cardPolls = CollabcardPolls.objects.filter(card=card).order_by('id')
+        # for poll in cardPolls:
+        #     polls.append(CollabcardPollsSerializer(poll, user, card))
+
+        chatroom['polls'] = polls
+
+        chatroom['multiple_select'] = card.multiple_select
+        chatroom['multiple_select_no'] = card.multiple_select_no
+        chatroom['multiple_select_state'] = card.multiple_select_state
+
+    #for event card
+    if card.type == card_types.CARD_EVENT or card.type == card_types.CARD_PUBLIC_EVENT or card.type == card_types.CARD_POLL:
+        if card.location:
+            chatroom['location'] = card.location
+
+        if card.location_lat:
+            chatroom['location_lat'] = card.location_lat
+
+        if card.location_long:
+            chatroom['location_long'] = card.location_long
+
+        if card.start_date:
+            chatroom['start_date'] = card.start_date
+
+        if card.end_date:
+            chatroom['end_date'] = card.end_date
+
+        if card.about:
+            chatroom['about'] = card.about
+
+        if card.co_hosts:
+            co_host_list = json.loads(card.co_hosts)
+            if not user:
+                user = None
+
+            chatroom['co_hosts'] = get_members_profile(member_ids=co_host_list,community_id=card.community.id,
+                                                         current_user_id=user)
+
+        if card.online_link:
+            chatroom['online_link'] = card.online_link
+
+
+
+    #for sending header
+    if card.header:
+        chatroom['header'] = card.header
+    else:
+        chatroom['header'] = get_chatroom_name(card.user.userinfo.name,card.type)
+
+    if card.og_tags:
+        og_tags = json.loads(card.og_tags)
+        chatroom['og_tags'] = og_tags
+
+    polls = []
+    cardPolls = draftPolls.objects.filter(draft=card).order_by('id')
+    for poll in cardPolls:
+        polls.append(draftPollsSerializers(poll))
+
+    chatroom['polls'] = polls
+
+
+    return chatroom
+
+
+
 def get_collabcard_files(card_id):
     '''function to return pdf and image files of a collabcard'''
 
@@ -439,9 +528,28 @@ def poll_percentage(card, poll):
     return selected_polls,selected_polls/total_polls * 100
 
 
-# def get_member_count(community):
-#     return Members.objects.filter(community_id=community).filter(
-#         Q(state=1) | Q(state=2) | Q(state=4) | Q(state=7) | Q(state = 8)).count()
+def draftPollsSerializers(poll):
+
+    polls = {
+        'id': poll.id,
+        'text': poll.text,
+        'is_selected': False
+    }
+
+    if poll.sub_text:
+        polls['sub_text'] = poll.sub_text
+
+    if poll.image_url:
+        polls['image_url'] = poll.image_url
+
+    # if card.end_date // 1000 <= time.time():
+    #     poll_detail = poll_percentage(card, poll)
+
+        polls['poll_count'] = 0
+        polls['percentage'] = 0
+
+    return polls
+
 
 def get_members_profile(member_ids,community_id,current_user_id=None):
 

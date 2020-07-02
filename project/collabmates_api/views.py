@@ -273,7 +273,6 @@ def your_communities(request, user_id):
 
     return JsonResponse({'your_communities': my_community})
 
-
 def my_chatrooms(request):
 
     '''functions to get chatrooms for users'''
@@ -292,9 +291,15 @@ def my_chatrooms(request):
 
         chatroom = {}
         card_instance = instance.card
-        chatroom['community'] = CommunitySerializer(card_instance.community)
-
-        chatroom['chatroom'] = get_chatroom_instance(card_instance,member_id)
+        draft_instance = instance.draft
+        if card_instance:
+            chatroom['chatroom'] = get_chatroom_instance(card_instance,member_id)
+            chatroom['community'] = CommunitySerializer(card_instance.community)
+            chatroom['is_draft'] = False
+        elif draft_instance:
+            chatroom['chatroom'] = draftChatroomSerializer(draft_instance,member_id)
+            chatroom['community'] = CommunitySerializer(draft_instance.community)
+            chatroom['is_draft'] = True
 
         last_conversation = instance.last_conversation
 
@@ -765,7 +770,6 @@ def private_link_app_invite(community_instance,unique_code,created_by):
 
 
     return auto_join
-
 
 @csrf_exempt
 def join_community_responses_version_1(request):
@@ -2004,8 +2008,8 @@ def create_card(request,req_dict=None):
         card.multiple_select_no = res['multiple_select_no'] if ('multiple_select_no' in res) else 1
         card.multiple_select_state = res['multiple_select_state'] if ('multiple_select_state' in res) else 0
 
-        #for chatroom rename
-        card.header = get_chatroom_name(user_instance.userinfo.name,typ)
+        #for chatroom header
+        card.header = res['header'] if('header' in res) else get_chatroom_name(user_instance.userinfo.name,typ)
 
         if 'share_link' in res:
             card.share_link = res['share_link']
@@ -2106,8 +2110,96 @@ def create_card(request,req_dict=None):
             send_email_for_collabcard(community, userinfo_instance, card, typ)
 
 
+        #deleting the draft chatroom
+        if 'draft_id' in res:
+            conversationEngage.objects.filter(draft_id=res['draft_id']).delete()
+            draftChatroom.objects.filter(id=res['draft_id']).delete()
+            draftPolls.objects.filter(draft=res['draft_id']).delete()
+
+
+
         return JsonResponse({'success': True, 'collabcard': collabcard})
     return JsonResponse({'success': False})
+
+
+@csrf_exempt
+def create_draft_collabcard(request):
+
+    '''function to create draft collabcard'''
+
+    member_id = get_member_id_from_headers(request)
+    res = json.loads(request.body)
+
+    community_id = res['community_id']
+
+    community_instance = Community.objects.get(id=community_id)
+    user_instance =  User.objects.get(id=member_id)
+
+    typ = int(res['type']) if 'type' in res else card_types.CARD_NORMAL
+
+    card = draftChatroom()
+    card.title = res['title']
+    card.community = community_instance
+    card.user = user_instance
+    card.type = typ
+    card.image_count = res['image_count'] if ('image_count' in res) else 0
+    card.pdf_count = res['pdf_count'] if ('pdf_count' in res) else 0
+    card.date_time = res['date_time'] if ('date_time' in res) else 0
+    card.duration = res['duration'] if ('duration' in res) else 0
+
+    # for event card
+    card.location = res['location'] if ('location' in res) else None
+    card.location_lat = res['location_lat'] if ('location_lat' in res) else None
+    card.location_long = res['location_long'] if ('location_long' in res) else None
+    card.start_date = res['start_date'] if ('start_date' in res) else 0
+    card.end_date = res['end_date'] if ('end_date' in res) else 0
+    card.about = res['about'] if ('about' in res) else None
+    card.co_hosts = json.dumps(res['co_hosts']) if ('co_hosts' in res) else None
+    card.online_link = res['online_link'] if ('online_link' in res) else None
+
+    # for poll card
+    card.multiple_select = res['multiple_select'] if ('multiple_select' in res) else False
+    card.multiple_select_no = res['multiple_select_no'] if ('multiple_select_no' in res) else 1
+    card.multiple_select_state = res['multiple_select_state'] if ('multiple_select_state' in res) else 0
+
+    # for chatroom header
+    card.header = res['header'] if ('header' in res) else get_chatroom_name(user_instance.userinfo.name, typ)
+
+    if 'share_link' in res:
+        card.share_link = res['share_link']
+        og_tags = decode_meta_from_url(res['share_link'])
+        card.og_tags = json.dumps(og_tags)
+
+    card.date_epoch = time.time()  # card creation time
+    card.save()
+
+    polls = res['polls'] if 'polls' in res else []
+    for poll in polls:
+        poll_instance = draftPolls()
+        poll_instance.draft = card
+        poll_instance.text = poll['text']
+        poll_instance.sub_text = poll['sub_text'] if ('sub_text' in poll) else None
+        poll_instance.save()
+
+
+
+    chatroom =  draftChatroomSerializer(card,user_instance)
+
+    engage_filter = conversationEngage.objects.filter(user=user_instance,draft=card)
+
+    if not engage_filter.exists():
+        instance = conversationEngage()
+        instance.user = user_instance
+        instance.draft = card
+        instance.created_at = time.time()
+        instance.updated_at = time.time()
+        instance.save()
+    else:
+        engage_filter.update(updated_at=time.time())
+
+
+    return JsonResponse({'success':True,"chatroom":chatroom})
+
 
 
 def create_collabcard_state_for_user(card_instance, user_instance, state, community):
@@ -2124,7 +2216,6 @@ def create_collabcard_state_for_user(card_instance, user_instance, state, commun
         collabcard_state_instance.created_at = time.time()
         collabcard_state_instance.updated_at = time.time()
         collabcard_state_instance.save()
-
 
 def create_chatroom(card_instance,user_instance,state,current_user_id=None,answer=""):
 
