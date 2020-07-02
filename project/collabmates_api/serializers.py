@@ -388,9 +388,15 @@ def conversationSerializer(conversation):
     if 'location' in answer_files:
         temp['location'] = answer_files['location']
 
+    if conversation.og_tags:
+        temp['og_tags'] = json.loads(conversation.og_tags)
+
 
 
     return temp
+
+
+
 
 def get_answer_files(answer_id):
     '''function to return pdf and image files of a collabcard'''
