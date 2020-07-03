@@ -2158,9 +2158,12 @@ def create_draft_collabcard(request):
 
     if 'draft_id' in res:
         draft_chatroom_filter = draftChatroom.objects.filter(id=res['draft_id'])
-        
+
         if draft_chatroom_filter.exists():
             card = draft_chatroom_filter[0]
+
+            #deleting the chatrooms
+            draftChatroomFiles.objects.filter(draft=card).delete()
         else:
             card = draftChatroom()
     else:
