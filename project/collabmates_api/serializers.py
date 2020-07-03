@@ -479,7 +479,7 @@ def get_draft_chatroom_instance(draft_instance,member_id):
 
     draft_member = get_members_profile([draft_instance.user.id], draft_instance.community.id)
     if draft_member:
-        draft_serializer['member'] = draft_serializer[0]
+        draft_serializer['member'] = draft_member[0]
 
     # status = get_status_of_collabcard(member_id, card_instance)
     # collabcard_serializer['state'] = status['state']
