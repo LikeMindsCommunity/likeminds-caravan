@@ -5712,7 +5712,6 @@ def fetch_chatroom_feed(request):
 def upload_files(request):
     '''function to upload files'''
     body = request.GET
-    print('body', body)
     member_id=get_member_id_from_headers(request)
     if request.user.is_authenticated and is_request_web(request):
         current_member_id = request.user.id
@@ -5775,6 +5774,25 @@ def upload_files(request):
             instance.save()
         except:
             return JsonResponse({'success': False, 'error_message': "Send valid poll id"})
+    elif 'draft_id' in body:
+        attachment_type = body['type']
+        draft_id = body['draft_id']
+        draft_instance = draftChatroom.objects.get(id=draft_id)
+
+        instance = draftChatroomFiles()
+        instance.draft= draft_instance
+        instance.file_url = body['url']
+        instance.type = attachment_type
+        instance.save()
+
+    elif 'draft_poll_id' in body:
+
+        try:
+            instance = draftPolls.objects.get(id=body['draft_poll_id'])
+            instance.image_url = body['url']
+            instance.save()
+        except:
+            return JsonResponse({'success': False, 'error_message': "Send valid draft poll id"})
 
     return JsonResponse({'success': True})
 

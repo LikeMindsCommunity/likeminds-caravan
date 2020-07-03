@@ -259,6 +259,26 @@ class Card_Attachment(models.Model):
     type = models.CharField(max_length=50, default='')
 
 
+
+class draftChatroomFiles(models.Model):
+    '''model to save files of collabcard'''
+
+    draft = models.ForeignKey(draftChatroom, on_delete=models.CASCADE)
+
+    file_url = models.TextField(null=True)
+    type = models.CharField(max_length=50, default='')
+
+    created_at = models.BigIntegerField(default=0)
+
+    def save(self, *args, **kwargs):
+        if self.created_at == 0:
+            self.created_at = time.time()
+        super(draftChatroomFiles, self).save(*args, **kwargs)
+
+
+
+
+
 class answerAttachment(models.Model):
     '''model to save files of collabcard'''
 
@@ -266,6 +286,8 @@ class answerAttachment(models.Model):
 
     file_url = models.TextField(null=True)
     type = models.CharField(max_length=50, default='')
+
+
 
     location_name = models.TextField(null=True)
     location_lat = models.FloatField(null=True)
@@ -602,6 +624,7 @@ class draftPolls(models.Model):
     text = models.CharField(max_length=2048, null=True)
     sub_text = models.TextField(null=True)
     image_url = models.TextField(null=True)
+
 
 
 
