@@ -2156,7 +2156,15 @@ def create_draft_collabcard(request):
 
     typ = int(res['type']) if 'type' in res else card_types.CARD_NORMAL
 
-    card = draftChatroom()
+    if 'draft_id' in res:
+        draft_chatroom_filter = draftChatroom.objects.filter(id=res['draft_id'])
+        
+        if draft_chatroom_filter.exists():
+            card = draft_chatroom_filter[0]
+        else:
+            card = draftChatroom()
+    else:
+        card = draftChatroom()
     card.title = res['title']
     card.community = community_instance
     card.user = user_instance
