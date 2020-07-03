@@ -312,10 +312,13 @@ def draftChatroomSerializer(card,user,community=None):
 
 
 
-def get_collabcard_files(card_id):
+def get_collabcard_files(card_id,draft=False):
     '''function to return pdf and image files of a collabcard'''
 
-    files = Card_Attachment.objects.filter(collabcard=card_id)
+    if not draft:
+        files = Card_Attachment.objects.filter(collabcard=card_id)
+    else:
+        files = draftChatroomFiles.objects.filter(draft=card_id)
     img_list = []
     pdf = []
     for file in files:
@@ -488,10 +491,10 @@ def get_draft_chatroom_instance(draft_instance,member_id):
     # collabcard_serializer['mute_status'] = status['mute_status']
     # collabcard_serializer['follow_status'] = status['follow_status']
 
-    # collabcard_files = get_collabcard_files(collabcard_serializer['id'])
-    #
-    # collabcard_serializer['images'] = collabcard_files[0]
-    # collabcard_serializer['pdf'] = collabcard_files[1]
+    draft_files = get_collabcard_files(draft_instance.id,draft=True)
+
+    draft_serializer['images'] = draft_files[0]
+    draft_serializer['pdf'] = draft_files[1]
     return draft_serializer
 
 
