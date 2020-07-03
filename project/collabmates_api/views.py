@@ -2367,6 +2367,12 @@ def chatroom_delete(request):
     member_id = get_member_id_from_headers(request)
     chatroom_id = request.POST.get('chatroom_id',None)
 
+    draft_id = request.POST.get('draft_id')
+
+    if draft_id:
+        draftChatroom.objects.filter(id=draft_id).delete()
+        return JsonResponse({'success':True})
+
     if not chatroom_id:
         context = get_error_context(False,"send the chatroom_id in post params")
         return JsonResponse(context)

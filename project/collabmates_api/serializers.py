@@ -142,7 +142,7 @@ def CollabcardSerializer(card,user,community=None):
         'polls_count': card.polls_count,
         'card_creation_time' : time.strftime('%B %d at %H:%M',time.localtime(card.date_epoch)),
     }
-  
+
     if user == card.user.id:
         collabcard['has_been_named'] = card.has_been_named
 
@@ -247,9 +247,9 @@ def draftChatroomSerializer(card,user,community=None):
     #for poll card
     if card.type == card_types.CARD_POLL:
         polls = []
-        # cardPolls = CollabcardPolls.objects.filter(card=card).order_by('id')
-        # for poll in cardPolls:
-        #     polls.append(CollabcardPollsSerializer(poll, user, card))
+        cardPolls = draftPolls.objects.filter(card=card).order_by('id')
+        for poll in cardPolls:
+            polls.append(draftPollsSerializers(poll))
 
         chatroom['polls'] = polls
 
@@ -561,7 +561,7 @@ def poll_percentage(card, poll):
 def draftPollsSerializers(poll):
 
     polls = {
-        'id': poll.id,
+        'draft_poll_id': poll.id,
         'text': poll.text,
         'is_selected': False
     }
