@@ -297,7 +297,7 @@ def my_chatrooms(request):
             chatroom['community'] = CommunitySerializer(card_instance.community)
             chatroom['is_draft'] = False
         elif draft_instance:
-            chatroom['chatroom'] = draftChatroomSerializer(draft_instance,member_id)
+            chatroom['chatroom'] = get_draft_chatroom_instance(draft_instance,member_id)
             chatroom['community'] = CommunitySerializer(draft_instance.community)
             chatroom['is_draft'] = True
 
@@ -2019,7 +2019,7 @@ def create_card(request,req_dict=None):
 
             header = res['title']
             card.header = header[:30]
-            
+
             card.has_been_named = has_been_named
 
         if 'share_link' in res:
