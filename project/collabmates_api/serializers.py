@@ -471,6 +471,27 @@ def get_chatroom_instance(card_instance,member_id):
     collabcard_serializer['pdf'] = collabcard_files[1]
     return collabcard_serializer
 
+def get_draft_chatroom_instance(draft_instance,member_id):
+
+    '''function to save draft'''
+
+    draft_serializer =  draftChatroomSerializer(draft_instance,member_id)
+
+    draft_member = get_members_profile([draft_instance.user.id], draft_instance.community.id)
+    if draft_member:
+        draft_serializer['member'] = draft_serializer[0]
+
+    # status = get_status_of_collabcard(member_id, card_instance)
+    # collabcard_serializer['state'] = status['state']
+    # collabcard_serializer['mute_status'] = status['mute_status']
+    # collabcard_serializer['follow_status'] = status['follow_status']
+
+    # collabcard_files = get_collabcard_files(collabcard_serializer['id'])
+    #
+    # collabcard_serializer['images'] = collabcard_files[0]
+    # collabcard_serializer['pdf'] = collabcard_files[1]
+    return draft_serializer
+
 
 def get_status_of_collabcard(member_id,card):
     '''function to get the state of collabcard'''
