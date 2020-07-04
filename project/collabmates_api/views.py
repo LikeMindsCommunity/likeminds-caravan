@@ -799,13 +799,13 @@ def join_community_responses_version_1(request):
     community_state = get_state_of_community(community_instance)
 
 
-    is_private = False
-    if community_state == community_states.PRIVATE or community_state == community_states.HIDDEN:
-        is_private = True
-
-    if is_private:
-        info_logger.info("Inside private\n")
-        join_promoter_created_community_version_1(res, request)
+    # is_private = False
+    # if community_state == community_states.PRIVATE or community_state == community_states.HIDDEN:
+    #     is_private = True
+    #
+    # if is_private:
+    info_logger.info("Inside private\n")
+    join_promoter_created_community_version_1(res, request)
 
     return JsonResponse({'success': True})
 
