@@ -707,6 +707,8 @@ def questions(request):
 
     '''api to send the questions for a particular community'''
 
+    member_id = get_member_id_from_headers(request)
+
     community_id = request.GET.get('community_id')
     data = communityQuestions.objects.filter(community=community_id).order_by("id")
     community_instance = Community.objects.get(id=community_id)
@@ -729,6 +731,12 @@ def questions(request):
         serialized_question = CommunityQuestionsSerializer(question)
         if serialized_question['state'] == question_states.INTRODUCTION:
             serialized_question['rank'] = 0
+            answers_filter = communityAnswers.objects.filter(question=serialized_question['id'],member=member_id)
+            if answers_filter.exists():
+                answer_instance = answers_filter[0]
+                introduction_answer = answer_instance.question_answer
+                serialized_question['previous_answer'] = introduction_answer
+
         else:
             serialized_question['rank'] = 1
 
@@ -1709,6 +1717,8 @@ def create_community_version_1(request):
 
         post_purpose_collabcard_for_community(request,community_instance,member_id)
 
+        create_introduction_question_in_community(community_instance)
+
 
 
         community_serializer = CommunitySerializer(community_instance, promoter_id=user_instance)
@@ -1743,21 +1753,50 @@ def create_community_questions(res):
 
     if 'questions' in res:
         for question in res['questions']:
-            questions_instance = communityQuestions()
-            questions_instance.community = community_instance
-            questions_instance.question_title = question['question_title']
-            questions_instance.question_state = question['state']
-            questions_instance.value = question['value'] if 'value' in question else None
-            questions_instance.optional = question['optional']
-            questions_instance.help_text = question['help_text'] if 'help_text' in question else None
-            questions_instance.is_hidden = question['is_compulsory'] if 'is_compulsory' in question else False
-            questions_instance.save()
+
+            if question['state'] == question_states.INTRODUCTION:
+                question_filter = communityQuestions.objects.filter(question_state=question_states.INTRODUCTION,community=community_instance)
+                if question_filter.exists():
+                    question_instance = question_filter[0]
+                    question_instance.community = community_instance
+                    question_instance.question_title = question['question_title']
+                    question_instance.question_state = question['state']
+                    question_instance.value = question['value'] if 'value' in question else None
+                    question_instance.optional = question['optional']
+                    question_instance.help_text = question['help_text'] if 'help_text' in question else None
+                    question_instance.is_hidden = question['is_compulsory'] if 'is_compulsory' in question else False
+                    question_instance.save()
+
+            else:
+                questions_instance = communityQuestions()
+                questions_instance.community = community_instance
+                questions_instance.question_title = question['question_title']
+                questions_instance.question_state = question['state']
+                questions_instance.value = question['value'] if 'value' in question else None
+                questions_instance.optional = question['optional']
+                questions_instance.help_text = question['help_text'] if 'help_text' in question else None
+                questions_instance.is_hidden = question['is_compulsory'] if 'is_compulsory' in question else False
+                questions_instance.save()
 
 
     #setting the state of community in order to make it editable
     Members.objects.filter(community_id=community_instance,state=member_states.MEMBER).update(edit_required=True)
 
 
+def create_introduction_question_in_community(community_instance):
+
+    '''function to create introduction question in community'''
+
+    value_list = [{"min_chars": "50", "max_chars": "No limit"}]
+    questions_instance = communityQuestions()
+    questions_instance.community = community_instance
+    questions_instance.question_title = "Introduce Yourself to the community"
+    questions_instance.question_state = question_states.INTRODUCTION
+    questions_instance.value = json.dumps(value_list)
+    questions_instance.optional =False
+    questions_instance.help_text = None
+    questions_instance.is_hidden = False
+    questions_instance.save()
 
 
 
