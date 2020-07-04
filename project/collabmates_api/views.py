@@ -729,6 +729,14 @@ def questions(request):
         serialized_question = CommunityQuestionsSerializer(question)
         if serialized_question['state'] == question_states.INTRODUCTION:
             serialized_question['rank'] = 0
+
+            #saving the previous introduction case
+            answers_filter = communityAnswers.objects.filter(question=serialized_question['id'])
+            if answers_filter.exists():
+                answer_instance = answers_filter[0]
+                introduction_answer = answer_instance.question_answer
+                serialized_question['previous_answer'] = introduction_answer
+
         else:
             serialized_question['rank'] = 1
 
