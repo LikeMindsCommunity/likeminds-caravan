@@ -294,7 +294,7 @@ def draftChatroomSerializer(card,user,community=None):
     if card.header:
         chatroom['header'] = card.header
     else:
-        chatroom['header'] = get_chatroom_name(card.user.userinfo.name,card.type)
+        chatroom['header'] = card.title[:30]
 
     if card.og_tags:
         og_tags = json.loads(card.og_tags)
