@@ -3947,22 +3947,12 @@ def get_chatroom_internal(request,card_instance,user_id,page,conversation_id,scr
     '''internal function to get the chatroom can be used to handle web and android '''
 
 
-    # if is_request_web(request):
-    #     #code to handle web requests
-
-    # sending collabcard object
-
-    #for feedback community
-    feedback = True
-    if card_instance.community.id == feedback_community_id:
-        feedback = False
-
     card = CollabcardSerializer(card_instance, user_id, card_instance.community)
     card_id = card['id']
     user = Userinfo.objects.get(user_id=card_instance.user.id)
 
     usr = UserinfoSerializer(user)
-    usr['is_clickable'] = feedback
+    #usr['is_clickable'] = feedback
 
     # when the member is removed
     removed_state = removedMembersSerializer(card_instance.community.id, usr['id'])
@@ -4004,6 +3994,10 @@ def get_chatroom_internal(request,card_instance,user_id,page,conversation_id,scr
     #user has not done the scrolling
     conversations_filter = card_answers.objects.filter(card=card_instance).order_by('id')
     if not conversation_id and not scroll_direction:
+
+        source_id = request.GET.get('source_id')
+        aj = request.GET.get('aj')
+
         instance_filter = conversationMemberState.objects.filter(user_id=user_id,card = card_instance)
         if not instance_filter.exists():
 
@@ -4100,7 +4094,11 @@ def save_the_latest_conversation(card_instance,user_id):
                     #     last_conversation=conversation_instance, unseen_count=0)
 
 
+def is_chatroom_join_expired(aj,source_id):
 
+    '''function to check weather joining time of chatroom is valid or not'''
+    chatroomExpiryCodes.objects.filter(unique_code=aj,source=source_id)
+    pass
 
 
 def reverse_conversations_for_upward_pagination(upward_list):
