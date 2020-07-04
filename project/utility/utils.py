@@ -172,6 +172,58 @@ def generate_random(unique_code_list):
 
   return generate_random(unique_code_list) if randInt in unique_code_list else randInt
 
+
+
+
+#private link generation for chatrooms
+def generate_private_link_for_chatroom(card_instance,user_instance):
+
+    '''function to generate private links for chatrooms'''
+
+
+    chatroom_expire_filter = chatroomExpiryCodes.objects.filter(card=card_instance,source=user_instance).order_by('-id')
+    unique_code_list = list(chatroom_expire_filter.values_list('unique_code',flat=True))
+
+
+
+    if not unique_code_list:
+
+        unique_code = generate_random(unique_code_list)
+        expireInstance = chatroomExpiryCodes()
+        expireInstance.card = card_instance
+        expireInstance.source = user_instance
+        expireInstance.created_at = time.time()
+        expireInstance.unique_code = unique_code
+        expireInstance.private_link = url + '/collabcard/' + str(card_instance.id) + "?aj=" + str(
+            unique_code) + "&source_id=" + str(user_instance.id)
+
+        expireInstance.expire_duration = 86400
+        expireInstance.save()
+
+        return expireInstance.private_link
+
+    else:
+
+        current_time = int(time.time())
+        last_created_time = chatroom_expire_filter[0].created_at
+
+        if current_time - last_created_time > 3600:
+            unique_code = generate_random(unique_code_list)
+            expireInstance = chatroomExpiryCodes()
+            expireInstance.card = card_instance
+            expireInstance.source = user_instance
+            expireInstance.created_at = time.time()
+            expireInstance.unique_code = unique_code
+            expireInstance.private_link = url + '/collabcard/' + str(card_instance.id) + "?aj=" + str(unique_code)+"&source_id="+str(user_instance.id)
+
+            expireInstance.expire_duration = 86400
+            expireInstance.save()
+
+            return expireInstance.private_link
+
+    return chatroom_expire_filter[0].private_link
+
+
 def decode_option(value):
 
     if not value:

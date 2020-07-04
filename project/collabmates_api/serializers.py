@@ -5,7 +5,7 @@ from django.conf import settings
 from django.db.models import Q
 from togther.models import *
 from utility.utils import is_IG_community,is_LG_or_LP_community,feedback_community_id,\
-    generate_private_link,generate_random,get_time_text,eligibility_count,get_members_count_in_community,is_member_promoter
+    generate_private_link,generate_random,get_time_text,eligibility_count,get_members_count_in_community,is_member_promoter,generate_private_link_for_chatroom
 from utility.states import card_types
 url = settings.URL
 import ast
@@ -342,7 +342,13 @@ def get_share_url_text(card,user_id):
     '''function to share url text'''
 
     share = {}
-    card_url = url + '/collabcard/' + str(card.id)
+
+    if not user_id:
+        card_url = url + '/collabcard/' + str(card.id)
+
+    else:
+        user_instance = User.objects.get(id=user_id)
+        card_url = generate_private_link_for_chatroom(card,user_instance)
     share['share_url'] = card_url
     share['creator_share_url'] = card_url
 
