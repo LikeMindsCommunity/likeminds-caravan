@@ -707,6 +707,8 @@ def questions(request):
 
     '''api to send the questions for a particular community'''
 
+    member_id = get_member_id_from_headers(request)
+
     community_id = request.GET.get('community_id')
     data = communityQuestions.objects.filter(community=community_id).order_by("id")
     community_instance = Community.objects.get(id=community_id)
@@ -729,9 +731,7 @@ def questions(request):
         serialized_question = CommunityQuestionsSerializer(question)
         if serialized_question['state'] == question_states.INTRODUCTION:
             serialized_question['rank'] = 0
-
-            #saving the previous introduction case
-            answers_filter = communityAnswers.objects.filter(question=serialized_question['id'])
+            answers_filter = communityAnswers.objects.filter(question=serialized_question['id'],member=member_id)
             if answers_filter.exists():
                 answer_instance = answers_filter[0]
                 introduction_answer = answer_instance.question_answer
