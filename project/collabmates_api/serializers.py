@@ -247,7 +247,7 @@ def draftChatroomSerializer(card,user,community=None):
     #for poll card
     if card.type == card_types.CARD_POLL:
         polls = []
-        cardPolls = draftPolls.objects.filter(card=card).order_by('id')
+        cardPolls = draftPolls.objects.filter(draft=card).order_by('id')
         for poll in cardPolls:
             polls.append(draftPollsSerializers(poll))
 
