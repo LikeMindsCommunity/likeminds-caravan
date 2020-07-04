@@ -2242,6 +2242,9 @@ def create_draft_collabcard(request):
     card.date_epoch = time.time()  # card creation time
     card.save()
 
+
+    #deleting the existing polls
+    draftPolls.objects.filter(draft=card).delete()
     polls = res['polls'] if 'polls' in res else []
     for poll in polls:
         poll_instance = draftPolls()
