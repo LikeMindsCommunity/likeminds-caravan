@@ -270,6 +270,9 @@
             <a href="#" data-id="{{answer.id}}" class="chatID taC m160 dB tdN"><div class="bgE br24 c6 dIb fs14 lh30 p012 vM">{{ answer.member.name }} follwed this chatroom</div></a>
         {% elif answer.state == 3 %}
             <a href="#" data-id="{{answer.id}}" class="chatID taC m160 dB tdN"><div class="bgE br24 c6 dIb fs14 lh30 p012 vM">{{ answer.member.name }} unfollwed this chatroom</div></a>
+
+        {% elif answer.state == 6 %}
+            <a href="#" data-id="{{answer.id}}" class="chatID taC m160 dB tdN"><div class="bgE br24 c6 dIb fs14 lh30 p012 vM">{{ answer.member.name }}</div></a>
         {% endif %}
     {% endfor %}
 {% endfor %}

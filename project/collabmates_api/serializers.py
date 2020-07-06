@@ -481,6 +481,10 @@ def get_chatroom_instance(card_instance,member_id):
 
     collabcard_serializer['images'] = collabcard_files[0]
     collabcard_serializer['pdf'] = collabcard_files[1]
+
+
+
+
     return collabcard_serializer
 
 def get_draft_chatroom_instance(draft_instance,member_id):
