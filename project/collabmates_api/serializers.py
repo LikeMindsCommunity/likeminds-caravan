@@ -475,6 +475,7 @@ def get_chatroom_instance(card_instance,member_id):
     collabcard_serializer['state'] = status['state']
     collabcard_serializer['mute_status'] = status['mute_status']
     collabcard_serializer['follow_status'] = status['follow_status']
+    collabcard_serializer['is_guest'] = status['is_guest']
 
     collabcard_files = get_collabcard_files(collabcard_serializer['id'])
 
@@ -510,7 +511,8 @@ def get_status_of_collabcard(member_id,card):
     collabcard_status = {
         'state' : 0,
         'mute_status' : False,
-        'follow_status' : False
+        'follow_status' : False,
+        'is_guest' : False
     }
 
     if not member_id:
@@ -523,6 +525,7 @@ def get_status_of_collabcard(member_id,card):
         collabcard_status['state'] = collabcard_state[0].state
         collabcard_status['mute_status'] = collabcard_state[0].mute_status
         collabcard_status['follow_status'] = collabcard_state[0].follow_status
+        collabcard_status['is_guest'] = collabcard_status[0].is_guest
     return collabcard_status
 
 

@@ -598,6 +598,8 @@ class collabcardState(models.Model):
 
     follow_status = models.BooleanField(default=False)
 
+    is_guest = models.BooleanField(default=False)
+
 
 
 class CollabcardPolls(models.Model):

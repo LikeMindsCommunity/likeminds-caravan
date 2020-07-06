@@ -83,7 +83,9 @@ def is_member_verified(community,user_instance):
         Q(state=member_states.ADMIN)|Q(state=member_states.TEMP_ADMIN)|
         Q(state=member_states.MEMBER)|Q(state=member_states.KNOWN_NOMINATED_PROMOTER))
 
-    return is_verified.exists()
+    if is_verified.exists():
+        return is_verified[0]
+    return False
 
 def is_member_promoter(community_id,member_id):
 

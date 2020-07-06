@@ -37,6 +37,8 @@ class ChatroomStates:
     CHATROOM_CREATER = 4
     CHATROOM_PURPOSE_EDIT = 5
 
+    CHATROOM_GUEST = 6
+
 chatroom_states = ChatroomStates()
 
 class MultipleSelectPoll:
@@ -48,6 +50,9 @@ multiple_select_poll = MultipleSelectPoll()
 
 # member state
 class MemberStates:
+
+    GUEST = 0
+
     ADMIN = 1
     TEMP_ADMIN = 2
     PENDING_MEMBER = 3
