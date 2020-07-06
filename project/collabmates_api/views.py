@@ -3443,10 +3443,10 @@ def collabcard(request, card_id):
             answer_id = int(answer_id)
             answer = card_answers.objects.filter(card=card_instance, id__gte=answer_id).filter(~Q(user__id=user_id))
             # answer = pagination(answer, page, paginate_by=10)
-            answers = get_answer_data(answer,feedback,card_instance.community.id,current_user_id=current_user_id)         #if the feedback is true don't send id in userinfo
+            answers = get_answer_data(answer,card_instance.community.id,current_user_id=current_user_id)         #if the feedback is true don't send id in userinfo
             return JsonResponse({'answers': answers})
         else:
-            answers = get_answer_data(answer,feedback,card_instance.community.id,current_user_id=current_user_id)
+            answers = get_answer_data(answer,card_instance.community.id,current_user_id=current_user_id)
 
 
     # serializing Collabcard
@@ -3773,7 +3773,14 @@ def fetch_chatroom(request):
 
 
 
-    card_instance = Collabcard.objects.get(id=card_id)
+    card_filter = Collabcard.objects.filter(id=card_id)
+
+    if card_filter.exists():
+        card_instance = card_filter[0]
+    else:
+        context={'chatroom':{}}
+        return JsonResponse(context)
+
     page = request.GET.get('page',1)
     current_user_id = get_member_id_from_headers(request)
 
@@ -4063,9 +4070,6 @@ def get_chatroom_internal(request,card_instance,user_id,page,conversation_id,scr
     card['show_follow_telescope'] = show_follow_telescope(card_status, card_instance, user_id, latest_conversation,conversations)
 
 
-
-
-
     context['chatroom'] = card
     context['conversations'] = conversations
     context['chatroom_actions'] =  chatroom_actions
@@ -4146,16 +4150,11 @@ def adding_guest_in_chatroom(request,context,card_instance,aj,source_id,communit
         aj_expired_disclaimer['title'] = "Oops! The private link to participate in this chat room has expired. Join the following community to access this chat room."
         if status:
             #for promoter
-            aj_expired_disclaimer['community'] = CommunitySerializer(community,status.member_id)
+            aj_expired_disclaimer['community'] = CommunitySerializer(card_instance.community,status.member_id)
         else:
-            aj_expired_disclaimer['community'] = CommunitySerializer(community)
+            aj_expired_disclaimer['community'] = CommunitySerializer(card_instance.community)
 
         context['aj_expired_disclaimer'] = aj_expired_disclaimer
-
-
-
-
-
 
 
     return context
@@ -4180,7 +4179,6 @@ def create_guest_header(guest_id,invitee_id,card_instance,current_user_id):
     instance.state = chatroom_states.CHATROOM_GUEST
     instance.created_at = time.time()
     instance.save()
-
 
 
 
