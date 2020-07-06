@@ -20,42 +20,36 @@
         {% endif %}
 
 
-        <!-- login popup -->
-<!--        <div class="ui modal test w300">-->
-<!--                <div class="h72 w72 brp50 bd2F bs bxs oH bgT mtn22 mA">-->
-<!--                    <img class="h72 ofC w72 mtn2 mln2" src="https://beta.likeminds.community/media/media/ic_launcher_round.png">-->
-<!--                </div>-->
-<!--                <div class="h18 mt12 taC">-->
-<!--                    <img class="h18 dIb vM" src="https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Flikeminds_logo_hdpi.png?alt=media&token=5f532ef2-20c6-4448-8efa-16e084494417"/>-->
-<!--                </div>-->
-<!--                <div class="p24 bs taC ffR">-->
-<!--                    <p class="p0 fs15 lh22 c9 mb16" id="login_text">-->
-<!--                        You must be logged in to participate in this chat room-->
-<!--                    </p>-->
-<!--                    <div class="w120 bdtE bs mA"></div>-->
-<!--                    <p class="c0 fs13 fwR lh22 ls05 mb10 mt12 o25 p0">Login to continue</p>-->
-<!--                    <div class="p160 ls05">-->
-<!--                        <div class="fs12 mb16">-->
-<!--                            <div class="googleSignin p12 bs br20 bgF c79 ffR fwM bdE c79h dN" data-next="/collabcard/{{collabcard.id}}">-->
-<!--                                <i class="dIb fa fa-google fs15 lh16 vM"></i>-->
-<!--                                <span  class="dIb lh16 pl12 vM">LOGIN WITH GOOGLE</span>-->
-<!--                            </div>-->
-<!--                        </div>-->
-<!--                        <div class="fs12 mb16">-->
-<!--                            <a class="linkedinSignin p12 bs dB br20 tdN bgLi cF ffR fwM cFh" data-next="/collabcard/{{collabcard.id}}">-->
-<!--                                <i class="dIb fa fa-linkedin fs15 lh16 vM"></i>-->
-<!--                                <span  class="dIb lh16 pl12 vM">LOGIN WITH LINKEDIN</span>-->
-<!--                            </a>-->
-<!--                        </div>-->
-<!--                        <div class="fs12">-->
-<!--                            <a class="facebookSignin p12 bs dB br20 tdN bgFb cF ffR fwM cFh"  data-next="/collabcard/{{collabcard.id}}">-->
-<!--                                <i class="fa fa-facebook dIb fs15 lh16 vM" ></i>-->
-<!--                                <span class="dIb lh16 pl12 vM">LOGIN WITH FACEBOOK</span>-->
-<!--                            </a>-->
-<!--                        </div>-->
-<!--                    </div>-->
-<!--                </div>-->
-<!--            </div>-->
+         <div class="pF l0 r0 t0 b0 dN z12" id="attend_overlay">
+                    <div onclick="$('#attend_overlay').hide()" class="pA t0 b0 l0 r0 bg0o05 fadeIn ad04 o0"></div>
+                    <div class="pF b0 mxw640 mA l0 r0 fadeInUp bgF ad04 btlr8 btrr8 oH bxs">
+                        <div class="bgE br8 h8 mA mt8 w100"></div>
+                        <div class="h20 p016 taR vM" onclick="$('#attend_overlay').hide()">
+                            <svg viewBox="0 0 24 24" class="h20 w20"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path></svg>
+                        </div>
+                        <div class="bs c0 ffR fs16">
+                            <div class="bs fwM lh18 p024 taC ">
+                                <img src="https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Fmain_website%2Fwarning.png?alt=media&token=0d040e5a-a7a1-4ddf-9eef-c707944f6f45" class="w54 h48"/>
+
+                            </div>
+                            <div class="bs lh24 oA p024 bdbE">
+                                <div class="bs p160">
+                                </div>
+                                <div class="c9b fs14 lh17 mb16 taC">
+                                Oops! The private link to participate in this chat room has expired. Join the following community to access this chat room.                                </div>
+
+                            </div>
+                            <div class="bs lh24 oA p024 bdbE">
+                                <div class="bs p160 taC">
+
+                                    <button class="m80 h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" onclick="#">Join Community</button>
+
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
 
         {% include 'components/login_popup.html' with popup_text="you must be logged in to participate in this chatroom"  redirect_link=redirect_link %}
 
@@ -290,7 +284,7 @@
         }
 
 
-
+    $('#attend_overlay').show();
 
     </script>
 
