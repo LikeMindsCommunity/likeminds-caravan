@@ -143,7 +143,7 @@ def CollabcardSerializer(card,user,community=None):
         'card_creation_time' : time.strftime('%B %d at %H:%M',time.localtime(card.date_epoch)),
     }
 
-    if user == card.user.id:
+    if user and int(user) == card.user.id:
         collabcard['has_been_named'] = card.has_been_named
 
     if card.community.image_link_round:
