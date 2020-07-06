@@ -598,6 +598,8 @@ class collabcardState(models.Model):
 
     follow_status = models.BooleanField(default=False)
 
+    is_guest = models.BooleanField(default=False)
+
 
 
 class CollabcardPolls(models.Model):
@@ -753,6 +755,17 @@ class communityExpiryCodes(models.Model):
     private_link = models.CharField(max_length=2048, null=True)
     expire_duration = models.BigIntegerField(default=0, null=True)
 
+
+class chatroomExpiryCodes(models.Model):
+
+    '''api to generate private links for chatrooms'''
+
+    card = models.ForeignKey(Collabcard,on_delete=models.CASCADE)
+    source = models.ForeignKey(User,on_delete=models.CASCADE)
+    created_at = models.BigIntegerField(default=0)
+    unique_code = models.IntegerField(default=0)
+    private_link = models.CharField(max_length=2048, null=True)
+    expire_duration = models.BigIntegerField(default=0, null=True)
 
 class removedMembers(models.Model):
 

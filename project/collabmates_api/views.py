@@ -3443,10 +3443,10 @@ def collabcard(request, card_id):
             answer_id = int(answer_id)
             answer = card_answers.objects.filter(card=card_instance, id__gte=answer_id).filter(~Q(user__id=user_id))
             # answer = pagination(answer, page, paginate_by=10)
-            answers = get_answer_data(answer,feedback,card_instance.community.id,current_user_id=current_user_id)         #if the feedback is true don't send id in userinfo
+            answers = get_answer_data(answer,card_instance.community.id,current_user_id=current_user_id)         #if the feedback is true don't send id in userinfo
             return JsonResponse({'answers': answers})
         else:
-            answers = get_answer_data(answer,feedback,card_instance.community.id,current_user_id=current_user_id)
+            answers = get_answer_data(answer,card_instance.community.id,current_user_id=current_user_id)
 
 
     # serializing Collabcard
@@ -3773,7 +3773,14 @@ def fetch_chatroom(request):
 
 
 
-    card_instance = Collabcard.objects.get(id=card_id)
+    card_filter = Collabcard.objects.filter(id=card_id)
+
+    if card_filter.exists():
+        card_instance = card_filter[0]
+    else:
+        context={'chatroom':{}}
+        return JsonResponse(context)
+
     page = request.GET.get('page',1)
     current_user_id = get_member_id_from_headers(request)
 
@@ -3818,7 +3825,7 @@ def conversation_meta(request):
 
     answer_id = int(conversation_id)
     answer = card_answers.objects.filter(card=card_instance, id__gte=answer_id).filter(~Q(user__id=user_id))
-    chatroom = get_answer_data(answer, feedback, card_instance.community.id,
+    chatroom = get_answer_data(answer, card_instance.community.id,
                                    current_user_id=user_id)
 
     context = {
@@ -3868,14 +3875,14 @@ def conversation_seen(request,req_dict=None):
 
 
 
-def get_answer_data(answer_filter,feedback,community_id,current_user_id,last_seen=None):
+def get_answer_data(answer_filter,community_id,current_user_id,last_seen=None):
     '''function to get answer for a particular collabcard '''
 
     answers = []
     for ans in answer_filter:
         user = Userinfo.objects.filter(user_id=ans.user.id)
         usr = UserinfoSerializer(user[0])
-        usr['is_clickable']=feedback
+        #usr['is_clickable']=feedback
 
         removed_state = removedMembersSerializer(community_id, usr['id'])
 
@@ -3949,25 +3956,23 @@ def get_chatroom_internal(request,card_instance,user_id,page,conversation_id,scr
 
     '''internal function to get the chatroom can be used to handle web and android '''
 
+    source_id = request.GET.get('source_id')
+    aj = request.GET.get('aj')
 
-    # if is_request_web(request):
-    #     #code to handle web requests
+    is_guest = False
+    if source_id and aj:
+        is_guest = True
 
-    # sending collabcard object
-
-    #for feedback community
-    feedback = True
-    if card_instance.community.id == feedback_community_id:
-        feedback = False
 
     card = CollabcardSerializer(card_instance, user_id, card_instance.community)
     card_id = card['id']
     user = Userinfo.objects.get(user_id=card_instance.user.id)
 
     usr = UserinfoSerializer(user)
-    usr['is_clickable'] = feedback
+    #usr['is_clickable'] = feedback
 
     # when the member is removed
+    context={}
     removed_state = removedMembersSerializer(card_instance.community.id, usr['id'])
     if removed_state != False:
         usr['remove_state'] = removed_state
@@ -3984,11 +3989,6 @@ def get_chatroom_internal(request,card_instance,user_id,page,conversation_id,scr
     card['member'] = usr
     card['pdf'] = files[1]
 
-    #get status of chatroom
-    card_status = get_status_of_collabcard(user_id,card_instance)
-    card['state'] = card_status['state']
-    card['mute_status'] = card_status['mute_status']
-    card['follow_status'] = card_status['follow_status']
 
 
 
@@ -4007,11 +4007,15 @@ def get_chatroom_internal(request,card_instance,user_id,page,conversation_id,scr
     #user has not done the scrolling
     conversations_filter = card_answers.objects.filter(card=card_instance).order_by('id')
     if not conversation_id and not scroll_direction:
+
+        if is_guest:
+           context = adding_guest_in_chatroom(request,context,card_instance,aj,source_id,card_instance.community.id,current_user_id=user_id)
+
         instance_filter = conversationMemberState.objects.filter(user_id=user_id,card = card_instance)
         if not instance_filter.exists():
 
             conversations = pagination(conversations_filter,page,paginate_by=20)
-            conversations = get_answer_data(conversations, feedback, card_instance.community.id, current_user_id=user_id)
+            conversations = get_answer_data(conversations, card_instance.community.id, current_user_id=user_id)
         else:
             conversation_instance = instance_filter[0].conversation
 
@@ -4022,7 +4026,7 @@ def get_chatroom_internal(request,card_instance,user_id,page,conversation_id,scr
             #merging both conversations
             conversations = upward_conversation|downward_conversation
             conversations = conversations.order_by('id')
-            conversations = get_answer_data(conversations,feedback,card_instance.community.id,
+            conversations = get_answer_data(conversations,card_instance.community.id,
                                             current_user_id=user_id,last_seen=conversation_instance)
 
     else:
@@ -4038,10 +4042,14 @@ def get_chatroom_internal(request,card_instance,user_id,page,conversation_id,scr
         else:
             conversations = conversations_filter
 
-        conversations = get_answer_data(conversations, feedback, card_instance.community.id, current_user_id=user_id)
+        conversations = get_answer_data(conversations, card_instance.community.id, current_user_id=user_id)
 
-
-
+    # get status of chatroom
+    card_status = get_status_of_collabcard(user_id, card_instance)
+    card['state'] = card_status['state']
+    card['mute_status'] = card_status['mute_status']
+    card['follow_status'] = card_status['follow_status']
+    card['is_guest'] = card_status['is_guest']
 
     #sending the chatroom actions
     if int(user_id) == card_instance.user.id:
@@ -4053,14 +4061,19 @@ def get_chatroom_internal(request,card_instance,user_id,page,conversation_id,scr
 
 
     save_the_latest_conversation(card_instance, user_id)
-    context = {'chatroom': card,
-               'conversations': conversations,
-               'chatroom_actions':chatroom_actions
-               }
+
+
+
 
     #sending the follow telescope
     latest_conversation = conversations_filter.last()
     card['show_follow_telescope'] = show_follow_telescope(card_status, card_instance, user_id, latest_conversation,conversations)
+
+
+    context['chatroom'] = card
+    context['conversations'] = conversations
+    context['chatroom_actions'] =  chatroom_actions
+
     return context
 
 
@@ -4103,7 +4116,87 @@ def save_the_latest_conversation(card_instance,user_id):
                     #     last_conversation=conversation_instance, unseen_count=0)
 
 
+def is_chatroom_join_expired(aj,source_id):
 
+    '''function to check weather joining time of chatroom is valid or not'''
+
+    expiry_filter = chatroomExpiryCodes.objects.filter(unique_code=aj,source=source_id)
+    if expiry_filter.exists():
+        expiry_instance = expiry_filter[0]
+        time_stamp = int(time.time())
+        expiry_time = int(expiry_instance.created_at)
+
+        if (time_stamp - expiry_time) <= expiry_instance.expire_duration:
+            return False
+
+    return True
+
+
+def adding_guest_in_chatroom(request,context,card_instance,aj,source_id,community_id,current_user_id):
+
+
+
+    context['aj_expired'] = is_chatroom_join_expired(aj, source_id)
+    status = is_member_verified(community_id, current_user_id)
+    if not context['aj_expired'] and not status:
+            create_guest_header(current_user_id,source_id,card_instance,current_user_id)
+            func_dict = {'collabcard_id': card_instance.id, 'member_id': current_user_id, 'status': True, 'is_guest': True}
+            collabcard_follow_internal(func_dict)
+
+    else:
+
+        aj_expired_disclaimer = {}
+        aj_expired_disclaimer['image_url'] = WARNING_IMAGE
+        aj_expired_disclaimer['title'] = "Oops! The private link to participate in this chat room has expired. Join the following community to access this chat room."
+        if status:
+            #for promoter
+            aj_expired_disclaimer['community'] = CommunitySerializer(card_instance.community,status.member_id)
+        else:
+            aj_expired_disclaimer['community'] = CommunitySerializer(card_instance.community)
+
+        context['aj_expired_disclaimer'] = aj_expired_disclaimer
+
+
+    return context
+
+
+def create_guest_header(guest_id,invitee_id,card_instance,current_user_id):
+
+    guest_instance = User.objects.get(id=guest_id)
+
+    invitee_instance = User.objects.get(id=invitee_id)
+
+    guest_user_name = get_user_in_route_form(card_instance,guest_instance,current_user_id)
+
+    invitee_user_name =  get_user_in_route_form(card_instance,invitee_instance,current_user_id)
+
+    answer = guest_user_name + " joined via "+invitee_user_name+"'s link"
+
+    instance = card_answers()
+    instance.answer = answer
+    instance.card = card_instance
+    instance.user = guest_instance
+    instance.state = chatroom_states.CHATROOM_GUEST
+    instance.created_at = time.time()
+    instance.save()
+
+
+
+
+def get_user_in_route_form(card_instance,user_instance,current_user_id):
+
+
+    user_name = user_instance.userinfo.name
+    member_ids = [user_instance.id]
+    community_profile = get_members_profile(member_ids, card_instance.community.id, current_user_id)
+    if community_profile:
+        community_profile = community_profile[0]
+        user_route = "route://member_profile/" + str(user_instance.id) + "?member=" + quote(str(community_profile))
+    else:
+        user_route = "route://member_profile/" + str(user_instance.id)
+    user_name = "<<" + user_name + "|" + user_route + "&community_id=" + str(card_instance.community.id) + ">>"
+
+    return user_name
 
 
 def reverse_conversations_for_upward_pagination(upward_list):
@@ -5110,6 +5203,9 @@ def collabcard_follow_internal(func_dict,state=collabcard_states.COLLABCARD_STAT
     card_id = func_dict['collabcard_id']
     member_id = func_dict['member_id']
     status = func_dict['status']
+    is_guest = False
+    if 'is_guest' in func_dict:
+        is_guest = func_dict['is_guest']
 
 
     card_instance = Collabcard.objects.get(id=card_id)
@@ -5118,7 +5214,7 @@ def collabcard_follow_internal(func_dict,state=collabcard_states.COLLABCARD_STAT
     collabcard_state_filter = collabcardState.objects.filter(card=card_instance, user=user_instance)
 
     if collabcard_state_filter.exists():
-        collabcard_state_filter.update(follow_status=status,state=state)
+        collabcard_state_filter.update(follow_status=status,state=state,is_guest=is_guest)
 
     else:
         collabcard_state_instance = collabcardState()
@@ -5129,6 +5225,7 @@ def collabcard_follow_internal(func_dict,state=collabcard_states.COLLABCARD_STAT
         collabcard_state_instance.created_at = time.time()
         collabcard_state_instance.updated_at = time.time()
         collabcard_state_instance.follow_status = status
+        collabcard_state_instance.is_guest = is_guest
         collabcard_state_instance.save()
 
     print("collabcard follow internal hit")
@@ -6461,15 +6558,15 @@ def members_state(request,req_dict=None):
     if diff <= 0:
         json_response = {'state': state,
                          'tool_state': tool_state,
-                         'referred_members_count': referred_members_count,
-                         'tool_unlock_title': "Unlock Feature",
-                         'tool_unlock_sub_title': tool_unlock_sub_title,
-                         'tool_unlock_action_title': "OK, INVITE NOW",
-                         'tool_unlock_action': """route://community?community_id=%s&share=true&source=tool_unlock""" % (community_id),
-                         'unlock_title':unlock_title,
-                         'unlock_sub_title':unlock_sub_title,
-                         'unlock_action':unlock_action,
-                         'unlock_action_title':unlock_action_title,
+                         # 'referred_members_count': referred_members_count,
+                         # 'tool_unlock_title': "Unlock Feature",
+                         # 'tool_unlock_sub_title': tool_unlock_sub_title,
+                         # 'tool_unlock_action_title': "OK, INVITE NOW",
+                         # 'tool_unlock_action': """route://community?community_id=%s&share=true&source=tool_unlock""" % (community_id),
+                         # 'unlock_title':unlock_title,
+                         # 'unlock_sub_title':unlock_sub_title,
+                         # 'unlock_action':unlock_action,
+                         # 'unlock_action_title':unlock_action_title,
                          'edit_required' : edit_required
                          }
     else:
@@ -6483,16 +6580,16 @@ def members_state(request,req_dict=None):
 
         json_response={'state': state,
                    'tool_state': tool_state,
-                   'referred_members_count':referred_members_count,
-                   'tool_title':tool_title,
-                   'tool_unlock_title':"Unlock Feature",
-                   'tool_unlock_sub_title':tool_unlock_sub_title,
-                   'tool_unlock_action_title':"OK, INVITE NOW",
-                   'tool_unlock_action':"""route://community?community_id=%s&share=true&source=tool_unlock""" % (community_id),
-                   'unlock_title': unlock_title,
-                   'unlock_sub_title': unlock_sub_title,
-                   'unlock_action': unlock_action,
-                   'unlock_action_title':unlock_action_title,
+                   # 'referred_members_count':referred_members_count,
+                   # 'tool_title':tool_title,
+                   # 'tool_unlock_title':"Unlock Feature",
+                   # 'tool_unlock_sub_title':tool_unlock_sub_title,
+                   # 'tool_unlock_action_title':"OK, INVITE NOW",
+                   # 'tool_unlock_action':"""route://community?community_id=%s&share=true&source=tool_unlock""" % (community_id),
+                   # 'unlock_title': unlock_title,
+                   # 'unlock_sub_title': unlock_sub_title,
+                   # 'unlock_action': unlock_action,
+                   # 'unlock_action_title':unlock_action_title,
                    'edit_required': edit_required
 
                    }
