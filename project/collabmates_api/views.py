@@ -6558,15 +6558,15 @@ def members_state(request,req_dict=None):
     if diff <= 0:
         json_response = {'state': state,
                          'tool_state': tool_state,
-                         # 'referred_members_count': referred_members_count,
-                         # 'tool_unlock_title': "Unlock Feature",
-                         # 'tool_unlock_sub_title': tool_unlock_sub_title,
-                         # 'tool_unlock_action_title': "OK, INVITE NOW",
-                         # 'tool_unlock_action': """route://community?community_id=%s&share=true&source=tool_unlock""" % (community_id),
-                         # 'unlock_title':unlock_title,
-                         # 'unlock_sub_title':unlock_sub_title,
-                         # 'unlock_action':unlock_action,
-                         # 'unlock_action_title':unlock_action_title,
+                         'referred_members_count': referred_members_count,
+                         'tool_unlock_title': "Unlock Feature",
+                         'tool_unlock_sub_title': tool_unlock_sub_title,
+                         'tool_unlock_action_title': "OK, INVITE NOW",
+                         'tool_unlock_action': """route://community?community_id=%s&share=true&source=tool_unlock""" % (community_id),
+                         'unlock_title':unlock_title,
+                         'unlock_sub_title':unlock_sub_title,
+                         'unlock_action':unlock_action,
+                         'unlock_action_title':unlock_action_title,
                          'edit_required' : edit_required
                          }
     else:
@@ -6580,16 +6580,16 @@ def members_state(request,req_dict=None):
 
         json_response={'state': state,
                    'tool_state': tool_state,
-                   # 'referred_members_count':referred_members_count,
-                   # 'tool_title':tool_title,
-                   # 'tool_unlock_title':"Unlock Feature",
-                   # 'tool_unlock_sub_title':tool_unlock_sub_title,
-                   # 'tool_unlock_action_title':"OK, INVITE NOW",
-                   # 'tool_unlock_action':"""route://community?community_id=%s&share=true&source=tool_unlock""" % (community_id),
-                   # 'unlock_title': unlock_title,
-                   # 'unlock_sub_title': unlock_sub_title,
-                   # 'unlock_action': unlock_action,
-                   # 'unlock_action_title':unlock_action_title,
+                   'referred_members_count':referred_members_count,
+                   'tool_title':tool_title,
+                   'tool_unlock_title':"Unlock Feature",
+                   'tool_unlock_sub_title':tool_unlock_sub_title,
+                   'tool_unlock_action_title':"OK, INVITE NOW",
+                   'tool_unlock_action':"""route://community?community_id=%s&share=true&source=tool_unlock""" % (community_id),
+                   'unlock_title': unlock_title,
+                   'unlock_sub_title': unlock_sub_title,
+                   'unlock_action': unlock_action,
+                   'unlock_action_title':unlock_action_title,
                    'edit_required': edit_required
 
                    }
