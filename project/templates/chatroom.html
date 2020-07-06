@@ -30,19 +30,30 @@
                         <div class="bs c0 ffR fs16">
                             <div class="bs fwM lh18 p024 taC ">
                                 <img src="https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Fmain_website%2Fwarning.png?alt=media&token=0d040e5a-a7a1-4ddf-9eef-c707944f6f45" class="w54 h48"/>
-
                             </div>
-                            <div class="bs lh24 oA p024 bdbE">
-                                <div class="bs p160">
+                            <div class="bs lh24 oA p024 ">
+                                <div class="bs p10">
                                 </div>
                                 <div class="c9b fs14 lh17 mb16 taC">
                                 Oops! The private link to participate in this chat room has expired. Join the following community to access this chat room.                                </div>
 
                             </div>
+
+                        <div class="bgd0d8e2 br8 bs c0 dT mA mxw360 oH p8 taL wp80">
+                                <div class="dTc vM w48">
+                                    <img src="{{community_block.imgURL}}" class="bd2E bgE brp50 bxs dIb h48 ofC vM w48">
+                                </div>
+                                <div class="bs dTc fs13 fwL lh16 pl12 vM">
+                                    <div>{{community_block.title}}</div>
+                                    <div class="o5">{{community_block.creator}}</div>
+                                    <div class="o5">{{community_block.members}}</div>
+                                </div>
+                         </div>
+
                             <div class="bs lh24 oA p024 bdbE">
                                 <div class="bs p160 taC">
 
-                                    <button class="m80 h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" onclick="#">Join Community</button>
+                                    <button class="m80 h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" onclick="location.href = '/community_questions/{{community.id}}';">Join Community</button>
 
                                 </div>
                             </div>
@@ -284,7 +295,9 @@
         }
 
 
-    $('#attend_overlay').show();
+    {% if aj_expired == True %}
+        $('#attend_overlay').show();
+    {% endif %}
 
     </script>
 

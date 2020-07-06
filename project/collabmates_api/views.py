@@ -3667,6 +3667,8 @@ def get_collabcard_details_for_web(request,card_instance,card,current_user_id,an
             'color': 'F'
         }
 
+
+
         context = {
             'collabcard': card,
             'community': community,
@@ -3674,7 +3676,7 @@ def get_collabcard_details_for_web(request,card_instance,card,current_user_id,an
             'header': header,
             'google_oauth_client_id': settings.GOOGLE_OAUTH_CLIENT_ID,
             'facebook_auth_id': settings.SOCIAL_AUTH_FACEBOOK_KEY,
-            'firebase_config': settings.FIREBASE_CONFIG
+            'firebase_config': settings.FIREBASE_CONFIG,
         }
         # print(context)
         if is_logged:
@@ -3725,6 +3727,16 @@ def get_normal_chatroom_context(request,card_instance):
         'color': 'F'
     }
 
+    # community block
+    admin = get_community_creator(community_instance)
+    members_count = get_members_count_in_community(community_instance)
+    communityBlock = {
+        'title': community_instance.name,
+        'creator': "Created by " + admin,
+        'members': str(members_count) + " members",
+        'imgURL': community_instance.thumbnail
+    }
+
     context = {
         'collabcard': chatroom_dict['chatroom'],
         'community': community_instance,
@@ -3734,7 +3746,8 @@ def get_normal_chatroom_context(request,card_instance):
         'facebook_auth_id': settings.SOCIAL_AUTH_FACEBOOK_KEY,
         'firebase_config': settings.FIREBASE_CONFIG,
         'member_state' : member_state,
-        'redirect_link':"/collabcard/"+str(card_instance.id)
+        'redirect_link':"/collabcard/"+str(card_instance.id),
+        'community_block':communityBlock
 
     }
     if is_logged:
