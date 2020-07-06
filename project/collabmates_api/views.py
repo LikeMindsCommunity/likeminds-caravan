@@ -4002,8 +4002,7 @@ def get_chatroom_internal(request,card_instance,user_id,page,conversation_id,scr
     if not conversation_id and not scroll_direction:
 
         if is_guest:
-           context =  adding_guest_in_chatroom(request,context,card_instance,aj,source_id,card_instance.community.id,current_user_id=user_id)
-
+           context = adding_guest_in_chatroom(request,context,card_instance,aj,source_id,card_instance.community.id,current_user_id=user_id)
 
         instance_filter = conversationMemberState.objects.filter(user_id=user_id,card = card_instance)
         if not instance_filter.exists():
@@ -4044,7 +4043,7 @@ def get_chatroom_internal(request,card_instance,user_id,page,conversation_id,scr
     card['mute_status'] = card_status['mute_status']
     card['follow_status'] = card_status['follow_status']
     card['is_guest'] = card_status['is_guest']
-        
+
     #sending the chatroom actions
     if int(user_id) == card_instance.user.id:
 
@@ -4137,6 +4136,8 @@ def adding_guest_in_chatroom(request,context,card_instance,aj,source_id,communit
     status = is_member_verified(community_id, current_user_id)
     if not context['aj_expired'] and not status:
             create_guest_header(current_user_id,source_id,card_instance,current_user_id)
+            func_dict = {'collabcard_id': card_instance.id, 'member_id': current_user_id, 'status': True, 'is_guest': True}
+            collabcard_follow_internal(func_dict)
 
     else:
 
@@ -4150,6 +4151,12 @@ def adding_guest_in_chatroom(request,context,card_instance,aj,source_id,communit
             aj_expired_disclaimer['community'] = CommunitySerializer(community)
 
         context['aj_expired_disclaimer'] = aj_expired_disclaimer
+
+
+
+
+
+
 
     return context
 
@@ -5198,6 +5205,9 @@ def collabcard_follow_internal(func_dict,state=collabcard_states.COLLABCARD_STAT
     card_id = func_dict['collabcard_id']
     member_id = func_dict['member_id']
     status = func_dict['status']
+    is_guest = False
+    if 'is_guest' in func_dict:
+        is_guest = func_dict['is_guest']
 
 
     card_instance = Collabcard.objects.get(id=card_id)
@@ -5206,7 +5216,7 @@ def collabcard_follow_internal(func_dict,state=collabcard_states.COLLABCARD_STAT
     collabcard_state_filter = collabcardState.objects.filter(card=card_instance, user=user_instance)
 
     if collabcard_state_filter.exists():
-        collabcard_state_filter.update(follow_status=status,state=state)
+        collabcard_state_filter.update(follow_status=status,state=state,is_guest=is_guest)
 
     else:
         collabcard_state_instance = collabcardState()
@@ -5217,6 +5227,7 @@ def collabcard_follow_internal(func_dict,state=collabcard_states.COLLABCARD_STAT
         collabcard_state_instance.created_at = time.time()
         collabcard_state_instance.updated_at = time.time()
         collabcard_state_instance.follow_status = status
+        collabcard_state_instance.is_guest = is_guest
         collabcard_state_instance.save()
 
     print("collabcard follow internal hit")
