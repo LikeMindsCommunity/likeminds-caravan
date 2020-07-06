@@ -525,7 +525,7 @@ def get_status_of_collabcard(member_id,card):
         collabcard_status['state'] = collabcard_state[0].state
         collabcard_status['mute_status'] = collabcard_state[0].mute_status
         collabcard_status['follow_status'] = collabcard_state[0].follow_status
-        collabcard_status['is_guest'] = collabcard_status[0].is_guest
+        collabcard_status['is_guest'] = collabcard_state[0].is_guest
     return collabcard_status
 
 
