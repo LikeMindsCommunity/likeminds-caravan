@@ -2065,7 +2065,7 @@ def create_card(request,req_dict=None):
                 card.header = get_chatroom_name(user_instance.userinfo.name, card.type)
                 card.has_been_named = True
             else:
-                 card.has_been_named = has_been_named
+                card.has_been_named = has_been_named
 
         if 'share_link' in res:
             card.share_link = res['share_link']
