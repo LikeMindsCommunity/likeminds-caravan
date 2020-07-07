@@ -3468,7 +3468,14 @@ def collabcard(request, card_id):
     if card_filter.exists():
         card_instance = card_filter[0]
     else:
-        return redirect("community_questions",params=str(2784)+"+deleted")
+
+        backup_filter = deletedChatrooms.objects.filter(card_id=card_id)
+
+        if backup_filter.exists():
+            community_id = backup_filter[0].community.id
+            return redirect("community_questions",params=str(community_id)+"+deleted")
+        else:
+            return render(request,"__404__.html",{})
 
     page = request.GET.get('page', 1)
 
