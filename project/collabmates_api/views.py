@@ -3547,6 +3547,7 @@ def collabcard(request, card_id):
         card['mute_status'] = collabcard_status['mute_status']
         card['follow_status'] = collabcard_status['follow_status']
 
+
     # get tine stamp for card
     time_text = get_time_text(card_instance.date_epoch)
     card['created_at'] = time_text
@@ -3727,7 +3728,7 @@ def get_collabcard_details_for_web(request,card_instance,card,current_user_id,an
         #print(context['collabcard']['polls'])
         return context,"POLL_CARD"
     else:
-        # print('collab card')
+        print('collab card')
         #
         # community = card_instance.community
         #
@@ -3775,6 +3776,9 @@ def get_normal_chatroom_context(request,card_instance):
     page = request.GET.get('page',1)
     community_instance = card_instance.community
 
+    aj = request.GET.get('aj')
+    source_id = request.GET.get('source_id')
+
     if is_request_web(request) and request.user.is_authenticated:
 
         is_logged = True
@@ -3786,6 +3790,8 @@ def get_normal_chatroom_context(request,card_instance):
         current_user['mute_status'] = collabcard_status['mute_status']
         current_user['follow_status'] = collabcard_status['follow_status']
 
+
+    print(current_user_id)
     chatroom_dict = get_chatroom_internal(request, card_instance, current_user_id, page, conversation_id=None,
                                      scroll_direction=None)
 
@@ -3827,16 +3833,19 @@ def get_normal_chatroom_context(request,card_instance):
         'facebook_auth_id': settings.SOCIAL_AUTH_FACEBOOK_KEY,
         'firebase_config': settings.FIREBASE_CONFIG,
         'member_state' : member_state,
-        'redirect_link':"/collabcard/"+str(card_instance.id),
         'community_block':communityBlock
-
     }
+
+    if aj and source_id:
+        context['redirect_link'] = "/collabcard/"+str(card_instance.id)+"?aj="+str(aj)+"&source_id="+str(source_id)
+    else:
+        context['redirect_link'] = "/collabcard/" + str(card_instance.id)
     if is_logged:
         context['current_user'] = current_user
 
     if 'aj_expired' in chatroom_dict:
         context['aj_expired'] = chatroom_dict['aj_expired']
-    elif not request.GET.get('aj') and not request.GET.get('source_id'):
+    elif not aj and not source_id:
         context['aj_expired'] = True
 
 
@@ -4331,9 +4340,13 @@ def adding_guest_in_chatroom(request,context,card_instance,aj,source_id,communit
 
 def create_guest_header(guest_id,invitee_id,card_instance,current_user_id):
 
-    guest_instance = User.objects.get(id=guest_id)
+    try:
+        guest_instance = User.objects.get(id=guest_id)
+        invitee_instance = User.objects.get(id=invitee_id)
+    except:
+        return
 
-    invitee_instance = User.objects.get(id=invitee_id)
+
 
     guest_user_name = get_user_in_route_form(card_instance,guest_instance,current_user_id)
 
@@ -5378,9 +5391,11 @@ def collabcard_follow_internal(func_dict,state=collabcard_states.COLLABCARD_STAT
     if 'is_guest' in func_dict:
         is_guest = func_dict['is_guest']
 
-
-    card_instance = Collabcard.objects.get(id=card_id)
-    user_instance = User.objects.get(id=member_id)
+    try:
+        card_instance = Collabcard.objects.get(id=card_id)
+        user_instance = User.objects.get(id=member_id)
+    except:
+        return
 
     collabcard_state_filter = collabcardState.objects.filter(card=card_instance, user=user_instance)
 
