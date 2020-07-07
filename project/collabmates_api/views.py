@@ -3778,6 +3778,8 @@ def get_normal_chatroom_context(request,card_instance):
 
     if 'aj_expired' in chatroom_dict:
         context['aj_expired'] = chatroom_dict['aj_expired']
+    elif not request.GET.get('aj') and not request.GET.get('source_id'):
+        context['aj_expired'] = True
 
 
     return context
