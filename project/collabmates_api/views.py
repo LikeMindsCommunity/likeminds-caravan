@@ -2057,8 +2057,14 @@ def create_card(request,req_dict=None):
 
             header = res['title']
             card.header = header[:30]
-
-            card.has_been_named = has_been_named
+            if card.type == card_types.CARD_PURPOSE:
+                card.header = get_chatroom_name(user_instance.userinfo.name,card.type)
+                card.has_been_named = True
+            elif card.type == card_types.CARD_INTRO:
+                card.header = get_chatroom_name(user_instance.userinfo.name, card.type)
+                card.has_been_named = True
+            else:
+                card.has_been_named = has_been_named
 
         if 'share_link' in res:
             card.share_link = res['share_link']
@@ -2176,8 +2182,8 @@ def send_chatroom_creation_notifications_and_mails(card_instance,user_instance):
                                                       community_name=card_instance.community.name,
                                                       community_state=card_instance.community.hide_community)
 
-    if card_instance.type != card_types.CARD_INTRO:  # stopping mail for introduction cards
-        send_email_for_collabcard(card_instance.community, user_instance.userinfo, card_instance, card_instance.type)
+    # if card_instance.type != card_types.CARD_INTRO:  # stopping mail for introduction cards
+    #     send_email_for_collabcard(card_instance.community, user_instance.userinfo, card_instance, card_instance.type)
 
 @csrf_exempt
 def create_draft_collabcard(request):
