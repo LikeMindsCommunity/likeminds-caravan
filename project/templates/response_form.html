@@ -218,6 +218,18 @@
 {% include 'components/community_question_footer.html' with title='' auto_join=footer %}
 
 
+        <!-- join community back click pop-ups-->
+
+         <div class="ui modal ffR p24 bs w280" id="back_popup">
+                    <p class="c0 fs16 fwM lh24 mb16">Leave without Joining?</p>
+                    <p class="c9 fs15 fwR lh22 mb16">
+You are one step away from being a part of this amazing community. Are you sure you want to leave without joining?
+
+                     <div class="taR fs13 ">
+                         <span class="c9 fs13 fwM ls05 pr12  taL leave" >LEAVE</span ><div class="bs cT dIb fs13 fwM ls05 p120 taC vM stay">STAY</div>
+                     </div>
+        </div>
+
 
         <!-- Scripts -->
         <script>
@@ -395,7 +407,12 @@
             {% endfor %}
 
             $('#back_click').click(function(e){
-                window.history.back();
+
+                {% if request.user.is_authenticated  %}
+                    $('#back_popup').modal('show')
+                {% else %}
+                    window.history.back()
+                {% endif %}
             });
 
             //form submit click handling
@@ -749,6 +766,19 @@
                     location.href = "/collabcard/{{request.GET.event}}";
                 });
             {% endif %}
+
+
+
+
+            $('.leave').click(function(){
+                window.history.back()
+            })
+
+
+            $('.stay').click(function(){
+
+            $('#back_popup').modal('hide')
+            })
         </script>
         {% include 'scripts/google_auth.html' with client_id=google_oauth_client_id  %}
         {% include 'scripts/facebook_auth.html' with facebook_auth_id=facebook_auth_id%}
