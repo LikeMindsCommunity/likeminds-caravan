@@ -2177,8 +2177,8 @@ def send_chatroom_creation_notifications_and_mails(card_instance,user_instance):
                                                       community_name=card_instance.community.name,
                                                       community_state=card_instance.community.hide_community)
 
-    if card_instance.type != card_types.CARD_INTRO:  # stopping mail for introduction cards
-        send_email_for_collabcard(card_instance.community, user_instance.userinfo, card_instance, card_instance.type)
+    # if card_instance.type != card_types.CARD_INTRO:  # stopping mail for introduction cards
+    #     send_email_for_collabcard(card_instance.community, user_instance.userinfo, card_instance, card_instance.type)
 
 @csrf_exempt
 def create_draft_collabcard(request):
