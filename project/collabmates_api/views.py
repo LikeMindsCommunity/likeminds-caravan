@@ -2436,6 +2436,8 @@ def chatroom_delete(request):
             context = get_error_context(False,"You are not the card creator you cannot delete this chatroom")
             return JsonResponse(context)
 
+        create_chatroom_delete_backup(collabcard_instance)
+
         delete_status=Collabcard.objects.filter(id=chatroom_id).delete()
         info_logger.info(delete_status)
         update_last_unseen_in_engage_on_card_creation.delay(community_id)
@@ -2448,6 +2450,51 @@ def chatroom_delete(request):
 
 
     return JsonResponse({'success':True})
+
+
+def create_chatroom_delete_backup(card_instance):
+
+    deleted_filter = deletedChatrooms.objects.filter(card_id=card_instance.id)
+
+    if deleted_filter.exists():
+        return
+    card = deletedChatrooms()
+    card.title = card_instance.title
+    card.community = card_instance.community
+    card.user = card_instance.user
+    card.type = card_instance.type
+    card.image_count = card_instance.image_count
+    card.pdf_count = card_instance.pdf_count
+    card.date_time = card_instance.date_time
+    card.duration = card_instance.duration
+
+    # for event card
+    card.location = card_instance.location
+    card.location_lat = card_instance.location_lat
+    card.location_long = card_instance.location_long
+    card.start_date = card_instance.start_date
+    card.end_date = card_instance.end_date
+    card.about = card_instance.about
+    card.co_hosts = card_instance.co_hosts
+    card.online_link = card_instance.online_link
+
+    # for poll card
+    card.multiple_select = card_instance.multiple_select
+    card.multiple_select_no = card_instance.multiple_select_no
+    card.multiple_select_state = card_instance.multiple_select_state
+
+    # for chatroom header
+    card.header = card_instance.header
+
+
+    card.share_link =card_instance.share_link
+    card.og_tags = card_instance.og_tags
+
+    card.date_epoch = time.time()  # card creation time
+    card.card_id = card_instance.id
+    card.save()
+
+
 
 #api to deprecate
 @csrf_exempt
