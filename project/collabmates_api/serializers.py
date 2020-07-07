@@ -445,9 +445,9 @@ def get_chatroom_name(user_name,type):
 
     '''function to create chatroom name'''
 
-    if len(user_name) > 1:
-        user_name = user_name.split(" ")
-        user_name = user_name[0]
+    # if len(user_name) > 1:
+    #     user_name = user_name.split(" ")
+    #     user_name = user_name[0]
 
     if type == card_types.CARD_PUBLIC_EVENT  or type == card_types.CARD_EVENT:
         chatroom_name = """%s's Event"""%(user_name)

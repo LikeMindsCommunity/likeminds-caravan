@@ -2058,8 +2058,14 @@ def create_card(request,req_dict=None):
 
             header = res['title']
             card.header = header[:30]
-
-            card.has_been_named = has_been_named
+            if card.type == card_types.CARD_PURPOSE:
+                card.header = get_chatroom_name(user_instance.userinfo.name,card.type)
+                card.has_been_named = True
+            elif card.type == card_types.CARD_INTRO:
+                card.header = get_chatroom_name(user_instance.userinfo.name, card.type)
+                card.has_been_named = True
+            else:
+                 card.has_been_named = has_been_named
 
         if 'share_link' in res:
             card.share_link = res['share_link']
