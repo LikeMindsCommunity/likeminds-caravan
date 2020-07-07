@@ -3091,8 +3091,24 @@ def request_response(request, req_dict=None):
         res = json.loads(request.body)
     else:
         res = req_dict
-
+    member_id = None
+    community_id = None
     info_logger.info("private_community")
+
+    if 'member_id' in res:
+        member_id = res['member_id']
+    if 'community_id' in res:
+        community_id = res['community_id']
+
+    accepted = False
+    if 'accepted' in res:
+        accepted = res['accepted']
+
+    req_dict = {
+        'member_id': member_id,
+        'community_id': community_id,
+        'accepted': accepted
+    }
     approve_or_decline_private_community(req_dict, request)
     update_pending_member_count_in_engage(req_dict['community_id'])
     return  JsonResponse({'success': True})
