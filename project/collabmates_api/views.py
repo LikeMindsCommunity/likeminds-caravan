@@ -3417,81 +3417,101 @@ def collabcard(request, card_id):
     ''' function to get card details, answers and images '''
     # get the card object
 
-
-    chatroom_filter = Collabcard.objects.filter(id=card_id)
-    if chatroom_filter.exists():
-        card_instance = chatroom_filter[0]
-    else:
-        return render(request,'__404__.html',{})
-
+    card_instance = Collabcard.objects.get(id=card_id)
 
     page = request.GET.get('page', 1)
+
+    current_user_id = get_member_id_from_headers(request)
+
+    feedback=True
+    if card_instance.community.id == feedback_community_id:
+        feedback = False
+
+    # coverting current time into epoch time for getting time stamp of answers and card
 
     answer_id = request.GET.get('answer_id', '')
     user_id = request.GET.get('member_id', '')
 
-    aj = request.GET.get('aj')
-    source_id = request.GET.get('source_id')
+    if is_request_web(request) and request.user.is_authenticated:
+        current_user_id = request.user.id
+        answers = get_chatroom_internal(request,card_instance,current_user_id,page,'','')
+    else :
+        # get all the answers of the card
+        answer = card_answers.objects.filter(card=card_instance).order_by('id')
+        answer=pagination(answer,page,paginate_by=3)
+        if answer_id:
+            answer_id = int(answer_id)
+            answer = card_answers.objects.filter(card=card_instance, id__gte=answer_id).filter(~Q(user__id=user_id))
+            # answer = pagination(answer, page, paginate_by=10)
+            answers = get_answer_data(answer,card_instance.community.id,current_user_id=current_user_id)         #if the feedback is true don't send id in userinfo
+            return JsonResponse({'answers': answers})
+        else:
+            answers = get_answer_data(answer,card_instance.community.id,current_user_id=current_user_id)
 
-    current_user_id = None
 
+    # serializing Collabcard
 
+    if not user_id:
+        #handling the web case
+        if request.user.is_authenticated and is_request_web(request):
+            user_id=request.user.id
 
+    card = CollabcardSerializer(card_instance, user_id, card_instance.community)
 
+    user = Userinfo.objects.get(user_id=card_instance.user.id)
 
+    # if request.user.is_authenticated and not get_request_type(request):
+    #     # set current user if user in logged in
+    #     current_user = User.objects.get(user_id=current_user_id)
 
-    # card = CollabcardSerializer(card_instance, user_id, card_instance.community)
-    #
-    # user = Userinfo.objects.get(user_id=card_instance.user.id)
-    #
-    #
-    # usr = UserinfoSerializer(user)
-    # usr['is_clickable']=feedback
-    #
-    # #when the member is removed
-    # removed_state = removedMembersSerializer(card_instance.community.id,usr['id'])
-    # if removed_state != False:
-    #     usr['remove_state'] = removed_state
-    #
-    # # user form response serialzer
-    # form_response = FormResponseSerilaizer(card_instance.community.id, card_instance.user.id,bl=True,current_user_id=current_user_id)
-    # if form_response:
-    #     #usr['response'] = form_response[0]
-    #     usr['question_answers'] =form_response[1]
-    # # get the card image if any
-    # files = get_collabcard_files(card_id)
-    # card['images'] = files[0]
-    # card['member'] = usr
-    # card['pdf'] = files[1]
-    # if user_id:
-    #     collabcard_status = get_status_of_collabcard(member_id=user_id, card=card_instance)
-    #     card['state'] = collabcard_status['state']
-    #     card['mute_status'] = collabcard_status['mute_status']
-    #     card['follow_status'] = collabcard_status['follow_status']
-    #
-    # # get tine stamp for card
-    # time_text = get_time_text(card_instance.date_epoch)
-    # card['created_at'] = time_text
+    # serializing user object
+    usr = UserinfoSerializer(user)
+    usr['is_clickable']=feedback
 
-    # card = get_chatroom_instance(card_instance,current_user_id)
+    #when the member is removed
+    removed_state = removedMembersSerializer(card_instance.community.id,usr['id'])
+    if removed_state != False:
+        usr['remove_state'] = removed_state
+
+    # user form response serialzer
+    form_response = FormResponseSerilaizer(card_instance.community.id, card_instance.user.id,bl=True,current_user_id=current_user_id)
+    if form_response:
+        #usr['response'] = form_response[0]
+        usr['question_answers'] =form_response[1]
+    # get the card image if any
+    files = get_collabcard_files(card_id)
+    card['images'] = files[0]
+    card['member'] = usr
+    card['pdf'] = files[1]
+    if user_id:
+        collabcard_status = get_status_of_collabcard(member_id=user_id, card=card_instance)
+        card['state'] = collabcard_status['state']
+        card['mute_status'] = collabcard_status['mute_status']
+        card['follow_status'] = collabcard_status['follow_status']
+
+    # get tine stamp for card
+    time_text = get_time_text(card_instance.date_epoch)
+    card['created_at'] = time_text
+
 
     #request is made from web
     if request.accepted_renderer.format == 'html':
 
+        web_data = get_collabcard_details_for_web(request,card_instance,card,current_user_id,answers)
+        context = web_data[0]
+        card_category = web_data[1]
 
-        context = get_normal_chatroom_context(request,card_instance)
-        # card_category = web_data[1]
-        # print(context['conversations'])
-        #
-        # if card_category == "EVENT_CARD":
-        #     return render(request, 'event.html', context)
-        #
-        # if card_category == "POLL_CARD":
-        #     return render(request, 'poll.html', context)
+
+        if card_category == "EVENT_CARD":
+            return render(request, 'event.html', context)
+
+        if card_category == "POLL_CARD":
+            return render(request, 'poll.html', context)
 
         return render(request, 'chatroom.html', context)
 
-
+    else:
+        return JsonResponse({"collabcard": card, 'answers': answers})
 
 
 
@@ -3649,42 +3669,43 @@ def get_collabcard_details_for_web(request,card_instance,card,current_user_id,an
         #print(context['collabcard']['polls'])
         return context,"POLL_CARD"
     else:
-        print('collab card')
+        # print('collab card')
+        #
+        # community = card_instance.community
+        #
+        # if request.user.is_authenticated:
+        #     header_back_link = "/community/"+str(community.id)
+        # else:
+        #     header_back_link = ""
+        #
+        # header = {
+        #     'back': True,
+        #     'title': card['header'],
+        #     'backLink': header_back_link,
+        #     'subTitle': 'in ' + community.name,
+        #     'background': 'Wa',
+        #     'color': 'F'
+        # }
+        #
+        # context = {
+        #     'collabcard': card,
+        #     'community': community,
+        #     'answers': answers,
+        #     'header': header,
+        #     'google_oauth_client_id': settings.GOOGLE_OAUTH_CLIENT_ID,
+        #     'facebook_auth_id': settings.SOCIAL_AUTH_FACEBOOK_KEY,
+        #     'firebase_config': settings.FIREBASE_CONFIG
+        # }
+        # # print(context)
+        # if is_logged:
+        #     if current_user['collabcard_state'] == 0:
+        #         collabcards_seen_internal(card_instance.community.id, card_instance.id, card['type'], current_user_id)
+        #     context["current_user"] = current_user
 
-        community = card_instance.community
-
-        if request.user.is_authenticated:
-            header_back_link = "/community/"+str(community.id)
-        else:
-            header_back_link = ""
-
-        header = {
-            'back': True,
-            'title': card['header'],
-            'backLink': header_back_link,
-            'subTitle': 'in ' + community.name,
-            'background': 'Wa',
-            'color': 'F'
-        }
-
-
-
-        context = {
-            'collabcard': card,
-            'community': community,
-            'answers': answers,
-            'header': header,
-            'google_oauth_client_id': settings.GOOGLE_OAUTH_CLIENT_ID,
-            'facebook_auth_id': settings.SOCIAL_AUTH_FACEBOOK_KEY,
-            'firebase_config': settings.FIREBASE_CONFIG,
-        }
-        # print(context)
-        if is_logged:
-            if current_user['collabcard_state'] == 0:
-                collabcards_seen_internal(card_instance.community.id, card_instance.id, card['type'], current_user_id)
-            context["current_user"] = current_user
+        context = get_normal_chatroom_context(request,card_instance)
         return context, "SIMPLE_CARD"
         #return render(request, 'collabcard.html', context)
+
 
 
 def get_normal_chatroom_context(request,card_instance):
