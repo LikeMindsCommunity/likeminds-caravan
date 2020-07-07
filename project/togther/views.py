@@ -278,6 +278,7 @@ def community_questions(request,params):
 
     url_details = {}
     user_directory = False
+    chatroom_deleted = None
     if params.find("+") == -1:
         community_id = params
     else:
@@ -289,6 +290,9 @@ def community_questions(request,params):
             url_details['community_id'] = params[0]
             url_details['aj'] = params[1]
             url_details['source'] = params[2]
+        elif len(params) == 2:                  #deleted card
+            community_id = params[0]
+            chatroom_deleted = params[1]
         else:
             return HttpResponse("invalid url")
 
@@ -343,6 +347,14 @@ def community_questions(request,params):
         if user_directory:
             footer = private_link_app_invite(community_instance, url_details['aj'], admin)
             footer['aj']=url_details['aj']
+            context['footer'] = footer
+
+
+        if chatroom_deleted:
+
+            footer = {
+                'toast':"Oops Your chatroom is deleted. Don't worry you can still view and participate in other chatrooms after joining the community"
+                      }
             context['footer'] = footer
 
         return render(request, 'response_form.html', context)

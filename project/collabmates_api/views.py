@@ -2,7 +2,6 @@ from __future__ import absolute_import, unicode_literals
 from celery import shared_task
 import logging
 import os
-import re
 from datetime import datetime
 from urllib.parse import unquote, quote
 import googlemaps
@@ -16,7 +15,7 @@ from django.db.models import F
 from django.db.models import Q
 from django.http import HttpResponse
 from django.http.response import JsonResponse
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import get_object_or_404, render,redirect
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.decorators import api_view, renderer_classes
 from rest_framework.renderers import JSONRenderer, TemplateHTMLRenderer
@@ -3417,7 +3416,12 @@ def collabcard(request, card_id):
     ''' function to get card details, answers and images '''
     # get the card object
 
-    card_instance = Collabcard.objects.get(id=card_id)
+    card_filter = Collabcard.objects.filter(id=card_id)
+
+    if card_filter.exists():
+        card_instance = card_filter[0]
+    else:
+        return redirect("community_questions",params=str(2784)+"+deleted")
 
     page = request.GET.get('page', 1)
 
@@ -4000,10 +4004,43 @@ def get_answer_data(answer_filter,community_id,current_user_id,last_seen=None):
         if 'location' in attachements:
             context['location'] = attachements['location']
 
+        context['answer_bubble'] = get_answer_bubble_context_for_web(ans)
+
 
 
         answers.append(context)
     return answers
+
+
+def get_answer_bubble_context_for_web(ans):
+
+    '''function to get answer bubble context'''
+    answer_bubble=""
+    if ans.state == chatroom_states.CHATROOM_GUEST:
+
+        ans = re.findall("""\<<.*?\|""",ans.answer,re.DOTALL)
+        user_list = []
+        for user in ans:
+
+            user = user.replace("<<","")
+            user = user.replace("|","")
+            user_list.append(user)
+
+        if len(user_list) == 2:
+            answer_bubble = user_list[0] + " joined via a "+ user_list[1]+"'s invite"
+
+    elif ans.state == chatroom_states.CHATROOM_FOLLOW:
+        answer_bubble = str(ans.user.userinfo.name) +  " follwed this chatroom"
+    elif ans.state == chatroom_states.CHATROOM_UNFOLLOW:
+        answer_bubble= str(ans.user.userinfo.name) +  " unfollwed this chatroom"
+    elif ans.state == chatroom_states.CHATROOM_PURPOSE_EDIT:
+        answer_bubble= str(ans.user.userinfo.name) +  " edited community purpose"
+    return answer_bubble
+
+
+
+
+
 
 
 def get_chatroom_actions(card_status,creator):
