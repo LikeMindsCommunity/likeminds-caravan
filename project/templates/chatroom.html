@@ -73,6 +73,8 @@
         <div class="pF b0 l0 r0 z2 h60 chatInput" onclick="showJoinPopUp()"></div>
     {% endif %}
 
+
+        <!-- join community front pop-ups -->
         <div class="ui modal ffR p24 bs w280" id="join_popup">
                     <p class="c0 fs16 fwM lh24 mb16">Join Community</p>
                     <p class="c9 fs15 fwR lh22 mb16">
@@ -81,7 +83,21 @@
 
 
                      <div class="taR fs13 ">
-                         <span class="c9 fs13 fwM ls05 pr12  taL not_now">NOT NOW</span ><div class="bs cT dIb fs13 fwM ls05 p120 taC vM" onclick="window.location.href='/community_questions/{{community.id}}';">JOIN</div>
+                         <span class="c9 fs13 fwM ls05 pr12  taL join_not_now">NOT NOW</span ><div class="bs cT dIb fs13 fwM ls05 p120 taC vM" onclick="window.location.href='/community_questions/{{community.id}}';">JOIN</div>
+                     </div>
+        </div>
+
+
+        <!-- join community back click pop-ups-->
+
+         <div class="ui modal ffR p24 bs w280" id="back_popup">
+                    <p class="c0 fs16 fwM lh24 mb16">Join Community</p>
+                    <p class="c9 fs15 fwR lh22 mb16">
+Are you sure, you want to leave this chat room? You can apply to join this community to see detailed member profiles and other relevant chatrooms.                    </p>
+
+
+                     <div class="taR fs13 ">
+                         <span class="c9 fs13 fwM ls05 pr12  taL back_not_now">NOT NOW</span ><div class="bs cT dIb fs13 fwM ls05 p120 taC vM" onclick="window.location.href='/community_questions/{{community.id}}';">JOIN</div>
                      </div>
         </div>
 
@@ -290,9 +306,10 @@
         {% endif %}
 
         $('#back_click').click(function(){
-            {% if user.is_authenticated %}
-                $('#loader').show();
-                location.href = "/community/{{ community.id }}";
+            {% if user.is_authenticated and member_state.state == 0 %}
+                //$('#loader').show();
+                $('#back_popup').modal('show')
+
             {% else %}
                 $('.test').modal('show');
             {% endif %}
@@ -315,9 +332,15 @@
 
 
 
-        $(document.body).on('click','.not_now',function(e){
+        $(document.body).on('click','.join_not_now',function(e){
 
             $('#join_popup').modal('hide')
+        })
+
+
+             $(document.body).on('click','.back_not_now',function(e){
+
+            $('#back_popup').modal('hide')
         })
 
 

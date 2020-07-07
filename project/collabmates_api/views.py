@@ -3710,13 +3710,15 @@ def get_normal_chatroom_context(request,card_instance):
     chatroom_dict = get_chatroom_internal(request, card_instance, current_user_id, page, conversation_id=None,
                                      scroll_direction=None)
 
-    if request.user.is_authenticated:
-        header_back_link = "/community/" + str(community_instance.id)
-    else:
-        header_back_link = ""
+
 
     member_state = members_state(request,
                                  req_dict={'community_id': card_instance.community.id, 'member_id': current_user_id})
+
+    if request.user.is_authenticated and member_state['state'] != 0:
+        header_back_link = "/community/" + str(community_instance.id)
+    else:
+        header_back_link = ""
 
     header = {
         'back': True,
