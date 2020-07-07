@@ -2148,8 +2148,8 @@ def create_card(request,req_dict=None):
 
         #sending notification to the user
 
-        if has_been_named:
-            send_chatroom_creation_notifications_and_mails(card_instance=card,user_instance=user_instance)
+        # if has_been_named:
+        #     send_chatroom_creation_notifications_and_mails(card_instance=card,user_instance=user_instance)
 
 
 
@@ -2807,17 +2807,17 @@ def check_member(email, community_id, member_id, nominated_member_name,community
             Member_Engage.objects.filter(community_id=community,member_id=user[0].user_id.id).update(
                 member_state=member_states.KNOWN_NOMINATED_PROMOTER)
             # send mail and notification
-            send_email_to_nominated_admin.delay(NominatedAdmin=NominatedAdmin, email=email, ProposedAdmin=ProposedAdmin,
-                                                proposedAdminState=proposedAdminState, CommunityName=CommunityName,
-                                                community_id=community.id)
+            # send_email_to_nominated_admin.delay(NominatedAdmin=NominatedAdmin, email=email, ProposedAdmin=ProposedAdmin,
+            #                                     proposedAdminState=proposedAdminState, CommunityName=CommunityName,
+            #                                     community_id=community.id)
             send_notification_to_proposed_admin.delay(nominated_admin_id=NominatedAdmin_id, community_id=community.id,
                                                       proposed_admin_name=ProposedAdmin)
 
         elif member and (member[0].state == 6 or member[0].state == 7):
             # if he is nominated again just send hime a remainding mail and notification
-            send_email_to_nominated_admin.delay(NominatedAdmin=NominatedAdmin, email=email, ProposedAdmin=ProposedAdmin,
-                                                proposedAdminState=proposedAdminState, CommunityName=CommunityName,
-                                                community_id=community.id)
+            # send_email_to_nominated_admin.delay(NominatedAdmin=NominatedAdmin, email=email, ProposedAdmin=ProposedAdmin,
+            #                                     proposedAdminState=proposedAdminState, CommunityName=CommunityName,
+            #                                     community_id=community.id)
             send_notification_to_proposed_admin.delay(nominated_admin_id=NominatedAdmin_id, community_id=community.id,
                                                       proposed_admin_name=ProposedAdmin)
 
@@ -2826,9 +2826,9 @@ def check_member(email, community_id, member_id, nominated_member_name,community
 
         elif member and (member[0].state == 3 or member[0].state == 5):
             Members.objects.filter(community_id=community, member_id=user[0].user_id.id).update(state=6)
-            send_email_to_nominated_admin.delay(NominatedAdmin=NominatedAdmin, email=email, ProposedAdmin=ProposedAdmin,
-                                                proposedAdminState=proposedAdminState, CommunityName=CommunityName,
-                                                community_id=community.id)
+            # send_email_to_nominated_admin.delay(NominatedAdmin=NominatedAdmin, email=email, ProposedAdmin=ProposedAdmin,
+            #                                     proposedAdminState=proposedAdminState, CommunityName=CommunityName,
+            #                                     community_id=community.id)
             send_notification_to_proposed_admin.delay(nominated_admin_id=NominatedAdmin_id, community_id=community.id,
                                                       proposed_admin_name=ProposedAdmin)
 
@@ -2842,9 +2842,9 @@ def check_member(email, community_id, member_id, nominated_member_name,community
             member.state = 6
             member.save()
             # send mail and notification
-            send_email_to_nominated_admin.delay(NominatedAdmin=NominatedAdmin, email=email, ProposedAdmin=ProposedAdmin,
-                                                proposedAdminState=proposedAdminState, CommunityName=CommunityName,
-                                                community_id=community.id)
+            # send_email_to_nominated_admin.delay(NominatedAdmin=NominatedAdmin, email=email, ProposedAdmin=ProposedAdmin,
+            #                                     proposedAdminState=proposedAdminState, CommunityName=CommunityName,
+            #                                     community_id=community.id)
             send_notification_to_proposed_admin.delay(nominated_admin_id=NominatedAdmin_id, community_id=community.id,
                                                       proposed_admin_name=ProposedAdmin)
         return True
@@ -3054,9 +3054,9 @@ def accept_invitation(request):
                 # updating member count of the community
                 update_member_count(community.id)
                 # sending email to promoter , that user has accepted his request to beacome a promoter
-                send_email_to_proposed_admin.delay(NominatedAdmin=nom_admin[0].name, email=prop_admin.email,
-                                                   ProposedAdmin=prop_admin.name, proposedAdminState=1,
-                                                   CommunityName=community.name, community_id=community.id)
+                # send_email_to_proposed_admin.delay(NominatedAdmin=nom_admin[0].name, email=prop_admin.email,
+                #                                    ProposedAdmin=prop_admin.name, proposedAdminState=1,
+                #                                    CommunityName=community.name, community_id=community.id)
                 proposer_id = prop_admin.user_id.id
                 nom_admin_name = nom_admin[0].name
                 send_notification_to_proposer.delay(proposer_id, community_name=community.name,
@@ -3074,9 +3074,9 @@ def accept_invitation(request):
                 # updating member count of the community
                 update_member_count(community.id)
                 # sending email to promoter , that user has accepted his request to beacome a promoter
-                send_email_to_proposed_admin.delay(NominatedAdmin=nom_admin[0].name, email=prop_admin.email,
-                                                   ProposedAdmin=prop_admin.name, proposedAdminState=2,
-                                                   CommunityName=community.name, community_id=community.id)
+                # send_email_to_proposed_admin.delay(NominatedAdmin=nom_admin[0].name, email=prop_admin.email,
+                #                                    ProposedAdmin=prop_admin.name, proposedAdminState=2,
+                #                                    CommunityName=community.name, community_id=community.id)
                 proposer_id = prop_admin.user_id.id
                 nom_admin_name = nom_admin[0].name
                 send_notification_to_proposer.delay(proposer_id, community_name=community.name,
@@ -3096,9 +3096,9 @@ def accept_invitation(request):
             # updating member count of the community
             update_member_count(community.id)
             # sending email to promoter , that user has accepted his request to become a promoter
-            send_email_to_proposed_admin.delay(NominatedAdmin=nom_admin[0].name, email=prop_admin.email,
-                                               ProposedAdmin=prop_admin.name, proposedAdminState=1,
-                                               CommunityName=community.name, community_id=community.id)
+            # send_email_to_proposed_admin.delay(NominatedAdmin=nom_admin[0].name, email=prop_admin.email,
+            #                                    ProposedAdmin=prop_admin.name, proposedAdminState=1,
+            #                                    CommunityName=community.name, community_id=community.id)
             proposer_id = prop_admin.user_id.id
             nom_admin_name = nom_admin[0].name
             send_notification_to_proposer.delay(proposer_id, community_name=community.name, community_id=community.id,
@@ -8014,7 +8014,7 @@ def push_onboarding(request):
     info_logger.info(log)
 
     compute_rank.delay(user_id=user_id)
-    send_mail_after_rank_computation.delay(user_id)  # both mail and notification will be sent here
+    #send_mail_after_rank_computation.delay(user_id)  # both mail and notification will be sent here
     Userinfo.objects.filter(user_id=user_id).update(has_tags=True)
     return JsonResponse({'success': True})
 
@@ -8140,10 +8140,10 @@ def push_report(request):
                 reported_user_name = reported_user_instance.userinfo.name
             else:
                 reported_user_name = None
-            send_mail_for_report_abuse.delay(user_instance.userinfo.name, collabcard_instance.title,
-                                                            report_tags_instance.tag_name,
-                                                            collabcard_instance.community.name,
-                                                            community_url, reported_user_name, reason)
+            # send_mail_for_report_abuse.delay(user_instance.userinfo.name, collabcard_instance.title,
+            #                                                 report_tags_instance.tag_name,
+            #                                                 collabcard_instance.community.name,
+            #                                                 community_url, reported_user_name, reason)
         except Exception as e:
             log = """Unmatched object for user_id=%s""" % (request_body['reported_member_id'])
             info_logger.info(log)
