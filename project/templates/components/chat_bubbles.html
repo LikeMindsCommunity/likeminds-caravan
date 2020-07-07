@@ -266,10 +266,8 @@
                     </div>
                 {% endif %}
             </div>
-        {% elif answer.state == 2 %}
-            <a href="#" data-id="{{answer.id}}" class="chatID taC m160 dB tdN"><div class="bgE br24 c6 dIb fs14 lh30 p012 vM">{{ answer.member.name }} follwed this chatroom</div></a>
-        {% elif answer.state == 3 %}
-            <a href="#" data-id="{{answer.id}}" class="chatID taC m160 dB tdN"><div class="bgE br24 c6 dIb fs14 lh30 p012 vM">{{ answer.member.name }} unfollwed this chatroom</div></a>
+        {% elif answer.answer_bubble %}
+            <a href="#" data-id="{{answer.id}}" class="chatID taC m160 dB tdN"><div class="bgE br24 c6 dIb fs14 lh30 p012 vM">{{ answer.answer_bubble }}</div></a>
         {% endif %}
     {% endfor %}
 {% endfor %}

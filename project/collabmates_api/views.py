@@ -2,7 +2,6 @@ from __future__ import absolute_import, unicode_literals
 from celery import shared_task
 import logging
 import os
-import re
 from datetime import datetime
 from urllib.parse import unquote, quote
 import googlemaps
@@ -16,7 +15,7 @@ from django.db.models import F
 from django.db.models import Q
 from django.http import HttpResponse
 from django.http.response import JsonResponse
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import get_object_or_404, render,redirect
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.decorators import api_view, renderer_classes
 from rest_framework.renderers import JSONRenderer, TemplateHTMLRenderer
@@ -2149,8 +2148,8 @@ def create_card(request,req_dict=None):
 
         #sending notification to the user
 
-        if has_been_named:
-            send_chatroom_creation_notifications_and_mails(card_instance=card,user_instance=user_instance)
+        # if has_been_named:
+        #     send_chatroom_creation_notifications_and_mails(card_instance=card,user_instance=user_instance)
 
 
 
@@ -2437,6 +2436,8 @@ def chatroom_delete(request):
             context = get_error_context(False,"You are not the card creator you cannot delete this chatroom")
             return JsonResponse(context)
 
+        create_chatroom_delete_backup(collabcard_instance)
+
         delete_status=Collabcard.objects.filter(id=chatroom_id).delete()
         info_logger.info(delete_status)
         update_last_unseen_in_engage_on_card_creation.delay(community_id)
@@ -2449,6 +2450,51 @@ def chatroom_delete(request):
 
 
     return JsonResponse({'success':True})
+
+
+def create_chatroom_delete_backup(card_instance):
+
+    deleted_filter = deletedChatrooms.objects.filter(card_id=card_instance.id)
+
+    if deleted_filter.exists():
+        return
+    card = deletedChatrooms()
+    card.title = card_instance.title
+    card.community = card_instance.community
+    card.user = card_instance.user
+    card.type = card_instance.type
+    card.image_count = card_instance.image_count
+    card.pdf_count = card_instance.pdf_count
+    card.date_time = card_instance.date_time
+    card.duration = card_instance.duration
+
+    # for event card
+    card.location = card_instance.location
+    card.location_lat = card_instance.location_lat
+    card.location_long = card_instance.location_long
+    card.start_date = card_instance.start_date
+    card.end_date = card_instance.end_date
+    card.about = card_instance.about
+    card.co_hosts = card_instance.co_hosts
+    card.online_link = card_instance.online_link
+
+    # for poll card
+    card.multiple_select = card_instance.multiple_select
+    card.multiple_select_no = card_instance.multiple_select_no
+    card.multiple_select_state = card_instance.multiple_select_state
+
+    # for chatroom header
+    card.header = card_instance.header
+
+
+    card.share_link =card_instance.share_link
+    card.og_tags = card_instance.og_tags
+
+    card.date_epoch = time.time()  # card creation time
+    card.card_id = card_instance.id
+    card.save()
+
+
 
 #api to deprecate
 @csrf_exempt
@@ -2761,17 +2807,17 @@ def check_member(email, community_id, member_id, nominated_member_name,community
             Member_Engage.objects.filter(community_id=community,member_id=user[0].user_id.id).update(
                 member_state=member_states.KNOWN_NOMINATED_PROMOTER)
             # send mail and notification
-            send_email_to_nominated_admin.delay(NominatedAdmin=NominatedAdmin, email=email, ProposedAdmin=ProposedAdmin,
-                                                proposedAdminState=proposedAdminState, CommunityName=CommunityName,
-                                                community_id=community.id)
+            # send_email_to_nominated_admin.delay(NominatedAdmin=NominatedAdmin, email=email, ProposedAdmin=ProposedAdmin,
+            #                                     proposedAdminState=proposedAdminState, CommunityName=CommunityName,
+            #                                     community_id=community.id)
             send_notification_to_proposed_admin.delay(nominated_admin_id=NominatedAdmin_id, community_id=community.id,
                                                       proposed_admin_name=ProposedAdmin)
 
         elif member and (member[0].state == 6 or member[0].state == 7):
             # if he is nominated again just send hime a remainding mail and notification
-            send_email_to_nominated_admin.delay(NominatedAdmin=NominatedAdmin, email=email, ProposedAdmin=ProposedAdmin,
-                                                proposedAdminState=proposedAdminState, CommunityName=CommunityName,
-                                                community_id=community.id)
+            # send_email_to_nominated_admin.delay(NominatedAdmin=NominatedAdmin, email=email, ProposedAdmin=ProposedAdmin,
+            #                                     proposedAdminState=proposedAdminState, CommunityName=CommunityName,
+            #                                     community_id=community.id)
             send_notification_to_proposed_admin.delay(nominated_admin_id=NominatedAdmin_id, community_id=community.id,
                                                       proposed_admin_name=ProposedAdmin)
 
@@ -2780,9 +2826,9 @@ def check_member(email, community_id, member_id, nominated_member_name,community
 
         elif member and (member[0].state == 3 or member[0].state == 5):
             Members.objects.filter(community_id=community, member_id=user[0].user_id.id).update(state=6)
-            send_email_to_nominated_admin.delay(NominatedAdmin=NominatedAdmin, email=email, ProposedAdmin=ProposedAdmin,
-                                                proposedAdminState=proposedAdminState, CommunityName=CommunityName,
-                                                community_id=community.id)
+            # send_email_to_nominated_admin.delay(NominatedAdmin=NominatedAdmin, email=email, ProposedAdmin=ProposedAdmin,
+            #                                     proposedAdminState=proposedAdminState, CommunityName=CommunityName,
+            #                                     community_id=community.id)
             send_notification_to_proposed_admin.delay(nominated_admin_id=NominatedAdmin_id, community_id=community.id,
                                                       proposed_admin_name=ProposedAdmin)
 
@@ -2796,9 +2842,9 @@ def check_member(email, community_id, member_id, nominated_member_name,community
             member.state = 6
             member.save()
             # send mail and notification
-            send_email_to_nominated_admin.delay(NominatedAdmin=NominatedAdmin, email=email, ProposedAdmin=ProposedAdmin,
-                                                proposedAdminState=proposedAdminState, CommunityName=CommunityName,
-                                                community_id=community.id)
+            # send_email_to_nominated_admin.delay(NominatedAdmin=NominatedAdmin, email=email, ProposedAdmin=ProposedAdmin,
+            #                                     proposedAdminState=proposedAdminState, CommunityName=CommunityName,
+            #                                     community_id=community.id)
             send_notification_to_proposed_admin.delay(nominated_admin_id=NominatedAdmin_id, community_id=community.id,
                                                       proposed_admin_name=ProposedAdmin)
         return True
@@ -3008,9 +3054,9 @@ def accept_invitation(request):
                 # updating member count of the community
                 update_member_count(community.id)
                 # sending email to promoter , that user has accepted his request to beacome a promoter
-                send_email_to_proposed_admin.delay(NominatedAdmin=nom_admin[0].name, email=prop_admin.email,
-                                                   ProposedAdmin=prop_admin.name, proposedAdminState=1,
-                                                   CommunityName=community.name, community_id=community.id)
+                # send_email_to_proposed_admin.delay(NominatedAdmin=nom_admin[0].name, email=prop_admin.email,
+                #                                    ProposedAdmin=prop_admin.name, proposedAdminState=1,
+                #                                    CommunityName=community.name, community_id=community.id)
                 proposer_id = prop_admin.user_id.id
                 nom_admin_name = nom_admin[0].name
                 send_notification_to_proposer.delay(proposer_id, community_name=community.name,
@@ -3028,9 +3074,9 @@ def accept_invitation(request):
                 # updating member count of the community
                 update_member_count(community.id)
                 # sending email to promoter , that user has accepted his request to beacome a promoter
-                send_email_to_proposed_admin.delay(NominatedAdmin=nom_admin[0].name, email=prop_admin.email,
-                                                   ProposedAdmin=prop_admin.name, proposedAdminState=2,
-                                                   CommunityName=community.name, community_id=community.id)
+                # send_email_to_proposed_admin.delay(NominatedAdmin=nom_admin[0].name, email=prop_admin.email,
+                #                                    ProposedAdmin=prop_admin.name, proposedAdminState=2,
+                #                                    CommunityName=community.name, community_id=community.id)
                 proposer_id = prop_admin.user_id.id
                 nom_admin_name = nom_admin[0].name
                 send_notification_to_proposer.delay(proposer_id, community_name=community.name,
@@ -3050,9 +3096,9 @@ def accept_invitation(request):
             # updating member count of the community
             update_member_count(community.id)
             # sending email to promoter , that user has accepted his request to become a promoter
-            send_email_to_proposed_admin.delay(NominatedAdmin=nom_admin[0].name, email=prop_admin.email,
-                                               ProposedAdmin=prop_admin.name, proposedAdminState=1,
-                                               CommunityName=community.name, community_id=community.id)
+            # send_email_to_proposed_admin.delay(NominatedAdmin=nom_admin[0].name, email=prop_admin.email,
+            #                                    ProposedAdmin=prop_admin.name, proposedAdminState=1,
+            #                                    CommunityName=community.name, community_id=community.id)
             proposer_id = prop_admin.user_id.id
             nom_admin_name = nom_admin[0].name
             send_notification_to_proposer.delay(proposer_id, community_name=community.name, community_id=community.id,
@@ -3417,7 +3463,19 @@ def collabcard(request, card_id):
     ''' function to get card details, answers and images '''
     # get the card object
 
-    card_instance = Collabcard.objects.get(id=card_id)
+    card_filter = Collabcard.objects.filter(id=card_id)
+
+    if card_filter.exists():
+        card_instance = card_filter[0]
+    else:
+
+        backup_filter = deletedChatrooms.objects.filter(card_id=card_id)
+
+        if backup_filter.exists():
+            community_id = backup_filter[0].community.id
+            return redirect("community_questions",params=str(community_id)+"+deleted")
+        else:
+            return render(request,"__404__.html",{})
 
     page = request.GET.get('page', 1)
 
@@ -3488,6 +3546,7 @@ def collabcard(request, card_id):
         card['state'] = collabcard_status['state']
         card['mute_status'] = collabcard_status['mute_status']
         card['follow_status'] = collabcard_status['follow_status']
+
 
     # get tine stamp for card
     time_text = get_time_text(card_instance.date_epoch)
@@ -3670,40 +3729,127 @@ def get_collabcard_details_for_web(request,card_instance,card,current_user_id,an
         return context,"POLL_CARD"
     else:
         print('collab card')
+        #
+        # community = card_instance.community
+        #
+        # if request.user.is_authenticated:
+        #     header_back_link = "/community/"+str(community.id)
+        # else:
+        #     header_back_link = ""
+        #
+        # header = {
+        #     'back': True,
+        #     'title': card['header'],
+        #     'backLink': header_back_link,
+        #     'subTitle': 'in ' + community.name,
+        #     'background': 'Wa',
+        #     'color': 'F'
+        # }
+        #
+        # context = {
+        #     'collabcard': card,
+        #     'community': community,
+        #     'answers': answers,
+        #     'header': header,
+        #     'google_oauth_client_id': settings.GOOGLE_OAUTH_CLIENT_ID,
+        #     'facebook_auth_id': settings.SOCIAL_AUTH_FACEBOOK_KEY,
+        #     'firebase_config': settings.FIREBASE_CONFIG
+        # }
+        # # print(context)
+        # if is_logged:
+        #     if current_user['collabcard_state'] == 0:
+        #         collabcards_seen_internal(card_instance.community.id, card_instance.id, card['type'], current_user_id)
+        #     context["current_user"] = current_user
 
-        community = card_instance.community
-
-        if request.user.is_authenticated:
-            header_back_link = "/community/"+str(community.id)
-        else:
-            header_back_link = ""
-
-        header = {
-            'back': True,
-            'title': card['header'],
-            'backLink': header_back_link,
-            'subTitle': 'in ' + community.name,
-            'background': 'Wa',
-            'color': 'F'
-        }
-
-        context = {
-            'collabcard': card,
-            'community': community,
-            'answers': answers,
-            'header': header,
-            'google_oauth_client_id': settings.GOOGLE_OAUTH_CLIENT_ID,
-            'facebook_auth_id': settings.SOCIAL_AUTH_FACEBOOK_KEY,
-            'firebase_config': settings.FIREBASE_CONFIG
-        }
-        # print(context)
-        if is_logged:
-            if current_user['collabcard_state'] == 0:
-                collabcards_seen_internal(card_instance.community.id, card_instance.id, card['type'], current_user_id)
-            context["current_user"] = current_user
+        context = get_normal_chatroom_context(request,card_instance)
         return context, "SIMPLE_CARD"
         #return render(request, 'collabcard.html', context)
 
+
+
+def get_normal_chatroom_context(request,card_instance):
+
+
+    is_logged = False
+    current_user = None
+    current_user_id  = None
+    page = request.GET.get('page',1)
+    community_instance = card_instance.community
+
+    aj = request.GET.get('aj')
+    source_id = request.GET.get('source_id')
+
+    if is_request_web(request) and request.user.is_authenticated:
+
+        is_logged = True
+        current_user_id = request.user.id
+        current_user_instance = Userinfo.objects.get(user_id=current_user_id)
+        current_user = UserinfoSerializer(user=current_user_instance)
+        collabcard_status = get_status_of_collabcard(member_id=current_user_id, card=card_instance)
+        current_user['collabcard_state'] = collabcard_status['state']
+        current_user['mute_status'] = collabcard_status['mute_status']
+        current_user['follow_status'] = collabcard_status['follow_status']
+
+
+    print(current_user_id)
+    chatroom_dict = get_chatroom_internal(request, card_instance, current_user_id, page, conversation_id=None,
+                                     scroll_direction=None)
+
+
+
+    member_state = members_state(request,
+                                 req_dict={'community_id': card_instance.community.id, 'member_id': current_user_id})
+
+    if request.user.is_authenticated and member_state['state'] != 0:
+        header_back_link = "/community/" + str(community_instance.id)
+    else:
+        header_back_link = ""
+
+    header = {
+        'back': True,
+        'title': card_instance.header,
+        'backLink': header_back_link,
+        'subTitle': 'in ' + community_instance.name,
+        'background': 'Wa',
+        'color': 'F'
+    }
+
+    # community block
+    admin = get_community_creator(community_instance)
+    members_count = get_members_count_in_community(community_instance)
+    communityBlock = {
+        'title': community_instance.name,
+        'creator': "Created by " + admin,
+        'members': str(members_count) + " members",
+        'imgURL': community_instance.thumbnail
+    }
+
+    context = {
+        'collabcard': chatroom_dict['chatroom'],
+        'community': community_instance,
+        'answers': chatroom_dict,
+        'header': header,
+        'google_oauth_client_id': settings.GOOGLE_OAUTH_CLIENT_ID,
+        'facebook_auth_id': settings.SOCIAL_AUTH_FACEBOOK_KEY,
+        'firebase_config': settings.FIREBASE_CONFIG,
+        'member_state' : member_state,
+        'community_block':communityBlock
+    }
+
+    if aj and source_id:
+        context['redirect_link'] = "/collabcard/"+str(card_instance.id)+"?aj="+str(aj)+"&source_id="+str(source_id)
+    else:
+        context['redirect_link'] = "/collabcard/" + str(card_instance.id)
+    if is_logged:
+        context['current_user'] = current_user
+
+    if 'aj_expired' in chatroom_dict:
+        context['aj_expired'] = chatroom_dict['aj_expired']
+    elif not aj and not source_id:
+        context['aj_expired'] = True
+
+
+    return context
 
 def ConvertSectoDay(n):
 
@@ -3783,7 +3929,7 @@ def fetch_chatroom(request):
 
     page = request.GET.get('page',1)
     current_user_id = get_member_id_from_headers(request)
-
+    current_user = None
     if is_request_web(request) and request.user.is_authenticated:
         current_user_id = request.user.id
         current_user_instance = Userinfo.objects.get(user_id=current_user_id)
@@ -3921,10 +4067,43 @@ def get_answer_data(answer_filter,community_id,current_user_id,last_seen=None):
         if 'location' in attachements:
             context['location'] = attachements['location']
 
+        context['answer_bubble'] = get_answer_bubble_context_for_web(ans)
+
 
 
         answers.append(context)
     return answers
+
+
+def get_answer_bubble_context_for_web(ans):
+
+    '''function to get answer bubble context'''
+    answer_bubble=""
+    if ans.state == chatroom_states.CHATROOM_GUEST:
+
+        ans = re.findall("""\<<.*?\|""",ans.answer,re.DOTALL)
+        user_list = []
+        for user in ans:
+
+            user = user.replace("<<","")
+            user = user.replace("|","")
+            user_list.append(user)
+
+        if len(user_list) == 2:
+            answer_bubble = user_list[0] + " joined via a "+ user_list[1]+"'s invite"
+
+    elif ans.state == chatroom_states.CHATROOM_FOLLOW:
+        answer_bubble = str(ans.user.userinfo.name) +  " follwed this chatroom"
+    elif ans.state == chatroom_states.CHATROOM_UNFOLLOW:
+        answer_bubble= str(ans.user.userinfo.name) +  " unfollwed this chatroom"
+    elif ans.state == chatroom_states.CHATROOM_PURPOSE_EDIT:
+        answer_bubble= str(ans.user.userinfo.name) +  " edited community purpose"
+    return answer_bubble
+
+
+
+
+
 
 
 def get_chatroom_actions(card_status,creator):
@@ -3962,7 +4141,6 @@ def get_chatroom_internal(request,card_instance,user_id,page,conversation_id,scr
     is_guest = False
     if source_id and aj:
         is_guest = True
-
 
     card = CollabcardSerializer(card_instance, user_id, card_instance.community)
     card_id = card['id']
@@ -4052,7 +4230,7 @@ def get_chatroom_internal(request,card_instance,user_id,page,conversation_id,scr
     card['is_guest'] = card_status['is_guest']
 
     #sending the chatroom actions
-    if int(user_id) == card_instance.user.id:
+    if user_id and int(user_id) == card_instance.user.id:
 
         chatroom_actions = get_chatroom_actions(card_status,creator=True)
     else:
@@ -4162,9 +4340,13 @@ def adding_guest_in_chatroom(request,context,card_instance,aj,source_id,communit
 
 def create_guest_header(guest_id,invitee_id,card_instance,current_user_id):
 
-    guest_instance = User.objects.get(id=guest_id)
+    try:
+        guest_instance = User.objects.get(id=guest_id)
+        invitee_instance = User.objects.get(id=invitee_id)
+    except:
+        return
 
-    invitee_instance = User.objects.get(id=invitee_id)
+
 
     guest_user_name = get_user_in_route_form(card_instance,guest_instance,current_user_id)
 
@@ -4172,13 +4354,15 @@ def create_guest_header(guest_id,invitee_id,card_instance,current_user_id):
 
     answer = guest_user_name + " joined via "+invitee_user_name+"'s link"
 
-    instance = card_answers()
-    instance.answer = answer
-    instance.card = card_instance
-    instance.user = guest_instance
-    instance.state = chatroom_states.CHATROOM_GUEST
-    instance.created_at = time.time()
-    instance.save()
+    cardAnswer_filter = card_answers.objects.filter(card=card_instance,user=guest_instance,state=chatroom_states.CHATROOM_GUEST)
+    if not cardAnswer_filter.exists():
+        instance = card_answers()
+        instance.answer = answer
+        instance.card = card_instance
+        instance.user = guest_instance
+        instance.state = chatroom_states.CHATROOM_GUEST
+        instance.created_at = time.time()
+        instance.save()
 
 
 
@@ -5207,9 +5391,11 @@ def collabcard_follow_internal(func_dict,state=collabcard_states.COLLABCARD_STAT
     if 'is_guest' in func_dict:
         is_guest = func_dict['is_guest']
 
-
-    card_instance = Collabcard.objects.get(id=card_id)
-    user_instance = User.objects.get(id=member_id)
+    try:
+        card_instance = Collabcard.objects.get(id=card_id)
+        user_instance = User.objects.get(id=member_id)
+    except:
+        return
 
     collabcard_state_filter = collabcardState.objects.filter(card=card_instance, user=user_instance)
 
@@ -7828,7 +8014,7 @@ def push_onboarding(request):
     info_logger.info(log)
 
     compute_rank.delay(user_id=user_id)
-    send_mail_after_rank_computation.delay(user_id)  # both mail and notification will be sent here
+    #send_mail_after_rank_computation.delay(user_id)  # both mail and notification will be sent here
     Userinfo.objects.filter(user_id=user_id).update(has_tags=True)
     return JsonResponse({'success': True})
 
@@ -7954,10 +8140,10 @@ def push_report(request):
                 reported_user_name = reported_user_instance.userinfo.name
             else:
                 reported_user_name = None
-            send_mail_for_report_abuse.delay(user_instance.userinfo.name, collabcard_instance.title,
-                                                            report_tags_instance.tag_name,
-                                                            collabcard_instance.community.name,
-                                                            community_url, reported_user_name, reason)
+            # send_mail_for_report_abuse.delay(user_instance.userinfo.name, collabcard_instance.title,
+            #                                                 report_tags_instance.tag_name,
+            #                                                 collabcard_instance.community.name,
+            #                                                 community_url, reported_user_name, reason)
         except Exception as e:
             log = """Unmatched object for user_id=%s""" % (request_body['reported_member_id'])
             info_logger.info(log)
@@ -8135,6 +8321,10 @@ def generating_verification_link_for_email(token_list,user_id):
 
     return temp
 
+
+
+# web apis  flow
+
 @api_view(['GET', 'POST'])
 @renderer_classes([JSONRenderer, TemplateHTMLRenderer])
 def email_verify(request):
@@ -8214,5 +8404,6 @@ def email_verify(request):
 
 
     return render(request, 'email_verify_landing.html', {'verification':False})
+
 
 
