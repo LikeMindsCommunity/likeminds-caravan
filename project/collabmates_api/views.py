@@ -283,7 +283,7 @@ def my_chatrooms(request):
         return JsonResponse(context)
 
 
-    instance_list = conversationEngage.objects.filter(user=member_id).order_by('-updated_at')
+    instance_list = conversationEngage.objects.filter(user=member_id).order_by('-updated_at','-id')
     instance_list = pagination(instance_list,page,paginate_by=10)
     my_chatrooms = []
     for instance in instance_list:
