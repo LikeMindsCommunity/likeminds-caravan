@@ -388,7 +388,7 @@ def send_follow_notification(card_id,user_id,answer):
 
     '''function to send notification to followed members who have responded or follow'''
 
-    try:
+    if True:
         connection=get_connection()
         curr=connection.cursor()
         sql="select user_id from togther_collabcardstate where card_id=%s and state=%s and removed_status is null and mute_status = False"
@@ -436,9 +436,9 @@ def send_follow_notification(card_id,user_id,answer):
                                                   user_id=member_id, user_names=user_names)
 
 
-
-    except (Exception, psycopg2.Error) as error:
-        print ("Error while connecting to PostgreSQL", error)
+    #
+    # except (Exception, psycopg2.Error) as error:
+    #     print ("Error while connecting to PostgreSQL", error)
 
 
 @shared_task
