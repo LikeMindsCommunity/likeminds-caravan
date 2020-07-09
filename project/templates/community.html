@@ -542,15 +542,7 @@ The admin has received your request and would take a decision on your membership
                 //localStorage.clear()
                 //showing not interested popup when back button is clicked
                 $('#back_click').click(function(){
-                    ct=false;
-                    {% if ref_id %}
-                        ct=true;
-                    {% endif %}
-                    if(ct){
-                        $('#back').modal('show');
-                    }else{
-                        location.href="/communities";
-                    }
+                  console.log("back clicked")
                 })
 
                 $("#yes").click(function(){
