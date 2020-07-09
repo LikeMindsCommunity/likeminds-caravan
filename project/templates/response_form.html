@@ -8,6 +8,10 @@
 
         {% include 'components/login_success_header_showcase.html' with data=header_showcase request=request %}
 
+        <head>
+             {% include 'scripts/mixpanel.html' %}
+        </head>
+
         <div class="container mxw960 mA ffR">
             <style>
                 /* create header selector partial */
@@ -233,6 +237,11 @@ You are one step away from being a part of this amazing community. Are you sure 
 
         <!-- Scripts -->
         <script>
+
+
+
+
+
             function showLoginPopup(){
                 $('#login_popup').modal('show');
                 $('#login_popup').modal({
@@ -308,6 +317,24 @@ You are one step away from being a part of this amazing community. Are you sure 
                 remove_error(id);
             }
 
+
+
+            function create_user_in_mixpanel(){
+
+                var USER_ID = "{{request.user.id}}";
+                mixpanel.identify(USER_ID);
+
+                  mixpanel.people.set({
+                  "name":"{{request.user.userinfo.name}}",
+                  "$email": "{{request.user.userinfo.email}}",
+                  "USER_ID": USER_ID
+                });
+
+
+        }
+
+
+
             function autoGrow (oField) {
                 if (oField.scrollHeight > oField.clientHeight) {
                     oField.style.height = oField.scrollHeight + "px";
@@ -337,6 +364,8 @@ You are one step away from being a part of this amazing community. Are you sure 
                     return true
                 }
             }
+
+
 
 
             {% for question in data %}
@@ -727,6 +756,15 @@ You are one step away from being a part of this amazing community. Are you sure 
                 }
 
                 $("#loading_button").removeClass("dN");
+
+
+                create_user_in_mixpanel()
+                mixpanel.track("{{community.name}}: "+"response submit",{
+                "community name":'{{community.name}}'
+
+
+                })
+
 
                 var questions = {"data": JSON.stringify(values_list),"aj":'{{footer.aj}}',"aj_expired":'{{footer.aj_expired}}'}
                 $.ajax({
