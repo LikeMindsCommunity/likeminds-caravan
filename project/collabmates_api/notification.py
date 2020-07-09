@@ -80,7 +80,8 @@ def notification_meta(notification_list,message):
             token_list_android.append(data['fcm_token'])
         else:
             token_list_ios.append(data['fcm_token'])
-        print(data['user_id'])
+
+        print(data)
 
     if token_list_android:
         send_notification_for_android(token_list_android,message)
@@ -388,7 +389,8 @@ def send_follow_notification(card_id,user_id,answer):
 
     '''function to send notification to followed members who have responded or follow'''
 
-    if True:
+
+    try:
         connection=get_connection()
         curr=connection.cursor()
         sql="select user_id from togther_collabcardstate where card_id=%s and state=%s and removed_status is null and mute_status = False"
@@ -415,6 +417,7 @@ def send_follow_notification(card_id,user_id,answer):
         }
 
         notification_list=[]
+
         for member in member_list:
             if str(member[0]) != user_id and str(member[0]) not in tagged_users_list:
                 temp={}
@@ -436,9 +439,9 @@ def send_follow_notification(card_id,user_id,answer):
                                                   user_id=member_id, user_names=user_names)
 
 
-    #
-    # except (Exception, psycopg2.Error) as error:
-    #     print ("Error while connecting to PostgreSQL", error)
+
+    except (Exception, psycopg2.Error) as error:
+        print ("Error while connecting to PostgreSQL", error)
 
 
 @shared_task
