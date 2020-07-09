@@ -2100,6 +2100,9 @@ def create_chatroom_instance(res,community_instance,user_instance):
         else:
             card.has_been_named = has_been_named
 
+
+
+
     if 'share_link' in res:
         card.share_link = res['share_link']
         og_tags = decode_meta_from_url(res['share_link'])
@@ -2107,6 +2110,11 @@ def create_chatroom_instance(res,community_instance,user_instance):
 
     card.date_epoch = time.time()  # card creation time
     card.save()
+
+
+    #send notification to new chatroom posted
+    if has_been_named:
+        send_chatroom_creation_notifications_and_mails(card,user_instance)
 
     # sending notification to co-hosts
     if card.co_hosts:
