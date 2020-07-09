@@ -5184,7 +5184,7 @@ def create_conversation(request):
         return JsonResponse(context)
 
     res = json.loads(request.body)
-    print(res)
+
     card_instance = Collabcard.objects.get(id=res['chatroom_id'])
     user_instance = User.objects.get(id=member_id)
 
@@ -5217,11 +5217,12 @@ def create_conversation(request):
     # sending the tagged member list
     auto_follow_chatrooms_in_case_of_tagging(request, res['text'], card_instance.id)
 
-    send_follow_notification.delay(card_id=card_instance.id, user_id=user_instance.id, answer=res['text'])
+    user_id  = str(user_instance.id)
+    send_follow_notification.delay(card_id=card_instance.id, user_id=user_id, answer=res['text'])
 
     # # updating the conversationEngage table
-    # conversation_seen(request, {'member_id': user_instance.id, 'conversation_id': ans.id})
-    #update_my_chatrooms_for_users.delay(chatroom_id=card_instance.id)
+    conversation_seen(request, {'member_id': user_instance.id, 'conversation_id': ans.id})
+    update_my_chatrooms_for_users.delay(chatroom_id=card_instance.id)
 
     return JsonResponse({'success': True, 'id': ans.id})
 
