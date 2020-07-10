@@ -1008,7 +1008,9 @@ def post_purpose_collabcard_for_community(request,community_instance,member_id):
         'type': card_types.CARD_PURPOSE,
     }
     request.method = "POST"
-    create_card(request, req_dict=req_dict)
+    context = create_card(request, req_dict=req_dict)
+
+    return context['card_instance']
 
 
 def update_hidden_fields_in_questions(question_instance,user_instance,community_instance):
@@ -1714,8 +1716,6 @@ def create_community_version_1(request):
         engage_filter = Member_Engage.objects.filter(community_id=community_instance.id,member_id=member_id)
         engage_filter.update(click_state = click_states.DEFAULT)
 
-        post_purpose_collabcard_for_community(request,community_instance,member_id)
-
         create_introduction_question_in_community(community_instance)
 
 
@@ -1732,6 +1732,9 @@ def create_community_version_1(request):
 
             #updating the community level click state
             communityLevels.objects.filter(community=community_instance,level="Level 3").update(level_click_state=level_click_states.DIRECTORY_CREATED)
+
+            card_instance = post_purpose_collabcard_for_community(request, community_instance, member_id)
+            post_member_directly_link(card_instance, user_instance, community_instance)
 
         except Exception as e:
 
@@ -1797,6 +1800,14 @@ def create_introduction_question_in_community(community_instance):
     questions_instance.is_hidden = False
     questions_instance.save()
 
+def post_member_directly_link(card_instance,user_instance,community_instance):
+
+    member_directory_link = url + "/members_directory/"+str(community_instance.id)
+    conversation = card_answers()
+    conversation.answer = """Here is a link to our member directory: %s"""%(member_directory_link)
+    conversation.card = card_instance
+    conversation.user = user_instance
+    conversation.save()
 
 
 def fetch_community_types(request):
@@ -1984,70 +1995,18 @@ def create_card(request,req_dict=None):
     if not req_dict:
         user_id = request.GET.get('member_id')
         community_id = request.GET.get('community_id')
-    else:
-
-        user_id=req_dict['member_id']
-        community_id=req_dict['community_id']
-
-
-    user_instance = User.objects.get(id=user_id)
-    userinfo_instance = user_instance.userinfo
-    community_instance = Community.objects.get(id=community_id)
-
-
-    if not req_dict:
         res = json.loads(request.body)
     else:
-        res=req_dict
+        user_id=req_dict['member_id']
+        community_id=req_dict['community_id']
+        res = req_dict
 
+    context = create_card_internal(user_id,community_id,res)
 
-    card_instance = create_chatroom_instance(res,community_instance,user_instance)
+    if req_dict:
+        return context
 
-    #if the community is a ig community
-    create_intro=False
-    if 'create_intro' in res:
-        create_intro=True
-
-
-    collabcard = CollabcardSerializer(card_instance, user_id, community_instance)
-
-    collabcard['date'] = datetime.today().strftime('%d-%m-%Y')
-
-    # get user object's serialized json
-    user_info_serializer = UserinfoSerializer(userinfo_instance)
-    collabcard['member'] = user_info_serializer
-
-
-    if create_intro:
-        update_seen_status_for_new_user_in_chatroom(community_instance,user_instance)
-
-    #following the user created chatroom
-    func_dict = {
-        'member_id': user_id,
-        'collabcard_id': card_instance.id,
-        'status': True
-    }
-    collabcard_follow_internal(func_dict)
-
-    update_last_answer_id(card_instance.id, "")
-
-    #creating a chatroom for the collabcard posted
-    create_chatroom(card_instance=card_instance,user_instance=user_instance
-                        ,state=chatroom_states.CHATROOM_HEADER,current_user_id=user_id)
-
-    update_last_unseen_in_engage_on_card_creation.delay(community_id=community_id)
-
-
-
-    #deleting the draft chatroom
-    if 'draft_id' in res:
-        conversationEngage.objects.filter(draft_id=res['draft_id']).delete()
-        draftChatroom.objects.filter(id=res['draft_id']).delete()
-        draftPolls.objects.filter(draft=res['draft_id']).delete()
-
-
-
-    return JsonResponse({'success': True, 'collabcard': collabcard})
+    return JsonResponse({'success': True, 'collabcard': context['collabcard']})
 
 
 
@@ -2092,10 +2051,10 @@ def create_chatroom_instance(res,community_instance,user_instance):
         header = res['title']
         card.header = header[:30]
         if card.type == card_types.CARD_PURPOSE:
-            card.header = get_chatroom_name(user_instance.userinfo.name, card.type)
+            card.header = get_chatroom_name(user_instance.userinfo.name, card)
             card.has_been_named = True
         elif card.type == card_types.CARD_INTRO:
-            card.header = get_chatroom_name(user_instance.userinfo.name, card.type)
+            card.header = get_chatroom_name(user_instance.userinfo.name, card)
             card.has_been_named = True
         else:
             card.has_been_named = has_been_named
@@ -2142,6 +2101,68 @@ def create_chatroom_instance(res,community_instance,user_instance):
 
 
     return card
+
+
+def create_card_internal(user_id,community_id,res):
+
+
+    user_instance = User.objects.get(id=user_id)
+    userinfo_instance = user_instance.userinfo
+    community_instance = Community.objects.get(id=community_id)
+
+
+    card_instance = create_chatroom_instance(res,community_instance,user_instance)
+
+    #if the community is a ig community
+    create_intro=False
+    if 'create_intro' in res:
+        create_intro=True
+
+
+    collabcard = CollabcardSerializer(card_instance, user_id, community_instance)
+
+    collabcard['date'] = datetime.today().strftime('%d-%m-%Y')
+
+    # get user object's serialized json
+    user_info_serializer = UserinfoSerializer(userinfo_instance)
+    collabcard['member'] = user_info_serializer
+
+
+    if create_intro:
+        update_seen_status_for_new_user_in_chatroom(community_instance,user_instance)
+
+    #following the user created chatroom
+    func_dict = {
+        'member_id': user_id,
+        'collabcard_id': card_instance.id,
+        'status': True
+    }
+    collabcard_follow_internal(func_dict)
+
+    update_last_answer_id(card_instance.id, "")
+
+    #creating a chatroom for the collabcard posted
+    create_chatroom(card_instance=card_instance,user_instance=user_instance
+                        ,state=chatroom_states.CHATROOM_HEADER,current_user_id=user_id)
+
+    update_last_unseen_in_engage_on_card_creation.delay(community_id=community_id)
+
+
+
+    #deleting the draft chatroom
+    if 'draft_id' in res:
+        conversationEngage.objects.filter(draft_id=res['draft_id']).delete()
+        draftChatroom.objects.filter(id=res['draft_id']).delete()
+        draftPolls.objects.filter(draft=res['draft_id']).delete()
+
+    context = {
+        'collabcard':collabcard,
+        'card_instance':card_instance
+    }
+
+    return context
+
+
 
 def send_chatroom_creation_notifications_and_mails(card_instance,user_instance):
 

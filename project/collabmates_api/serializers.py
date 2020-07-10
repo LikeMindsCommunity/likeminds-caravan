@@ -441,20 +441,20 @@ def get_answer_files(answer_id):
     return files
 
 
-def get_chatroom_name(user_name,type):
+def get_chatroom_name(user_name,card):
 
     '''function to create chatroom name'''
 
     # if len(user_name) > 1:
     #     user_name = user_name.split(" ")
     #     user_name = user_name[0]
-
+    type = card.type
     if type == card_types.CARD_PUBLIC_EVENT  or type == card_types.CARD_EVENT:
         chatroom_name = """%s's Event"""%(user_name)
     elif type == card_types.CARD_POLL:
         chatroom_name = """%s's Poll""" % (user_name)
     elif type == card_types.CARD_PURPOSE:
-        chatroom_name = """Onboarding Room"""
+        chatroom_name = """Resources: %s"""%(card.community.name)
     elif type == card_types.CARD_INTRO:
         chatroom_name = """%s's Intro"""%(user_name)
     else:
