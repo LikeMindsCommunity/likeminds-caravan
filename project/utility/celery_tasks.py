@@ -190,7 +190,7 @@ def update_my_chatrooms_for_users(chatroom_id,user_id=None):
     else:
         user_list = [user_id]
     conversations = card_answers.objects.filter(card_id=chatroom_id).filter(state = 0).order_by('id')
-
+    last_conversation = conversations.last()
     length = len(conversations)
     next_unseen_conversation = {}
     unseen_count = {}
@@ -218,10 +218,12 @@ def update_my_chatrooms_for_users(chatroom_id,user_id=None):
         if has_seen.exists():
             seen_id = has_seen[0].conversation.id
             conversation_engage_filter.filter(user=user).update(
-                last_conversation=next_unseen_conversation[seen_id],
+                last_conversation=last_conversation,
                 updated_at = time.time(),unseen_count = unseen_count[seen_id])
         else:
             conversation_engage_filter.filter(user=user).update(
-                last_conversation = first_conversation,
+                last_conversation = last_conversation,
                 updated_at=time.time(),unseen_count=length)
+
+
 

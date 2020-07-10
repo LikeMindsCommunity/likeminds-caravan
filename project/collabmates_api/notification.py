@@ -80,7 +80,8 @@ def notification_meta(notification_list,message):
             token_list_android.append(data['fcm_token'])
         else:
             token_list_ios.append(data['fcm_token'])
-        print(data['user_id'])
+
+        print(data)
 
     if token_list_android:
         send_notification_for_android(token_list_android,message)
@@ -334,8 +335,7 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title, 
         message['payload'] = {
             'title': str(card_creater_name) + " @ " + str(community_name),
             'sub_title': sub_title,
-            'route': 'route://community_collabcard?community_id=' + str(community_id) + '&community_name=' + str(
-                community_name) + '&community_state=' + str(kwargs['community_state'])
+            'route': 'route://collabcard?collabcard_id='+str(kwargs['card_id'])
         }
 
         notification_meta(notification_list, message)
@@ -388,6 +388,7 @@ def send_follow_notification(card_id,user_id,answer):
 
     '''function to send notification to followed members who have responded or follow'''
 
+
     try:
         connection=get_connection()
         curr=connection.cursor()
@@ -415,6 +416,7 @@ def send_follow_notification(card_id,user_id,answer):
         }
 
         notification_list=[]
+
         for member in member_list:
             if str(member[0]) != user_id and str(member[0]) not in tagged_users_list:
                 temp={}
@@ -543,8 +545,7 @@ def poll_expiry_or_event_remainder_notification(community_name, community_id, ty
         message['payload'] = {
             'title': str(community_name),
             'sub_title': sub_title,
-            'route': 'route://community_collabcard?community_id=' + str(
-                      community_id) + '&community_name=' + str(community_name) + '&community_state=' + str(kwargs['community_state']),
+            'route': 'route://collabcard?collabcard_id='+str(kwargs['card_id'])
         }
 
         send_notification_to_multiple_devices(token_list, message)

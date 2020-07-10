@@ -1008,7 +1008,9 @@ def post_purpose_collabcard_for_community(request,community_instance,member_id):
         'type': card_types.CARD_PURPOSE,
     }
     request.method = "POST"
-    create_card(request, req_dict=req_dict)
+    context = create_card(request, req_dict=req_dict)
+
+    return context['card_instance']
 
 
 def update_hidden_fields_in_questions(question_instance,user_instance,community_instance):
@@ -1714,10 +1716,8 @@ def create_community_version_1(request):
         engage_filter = Member_Engage.objects.filter(community_id=community_instance.id,member_id=member_id)
         engage_filter.update(click_state = click_states.DEFAULT)
 
-        post_purpose_collabcard_for_community(request,community_instance,member_id)
-
         create_introduction_question_in_community(community_instance)
-
+        post_purpose_collabcard_for_community(request, community_instance, member_id)
 
 
         community_serializer = CommunitySerializer(community_instance, promoter_id=user_instance)
@@ -1732,6 +1732,11 @@ def create_community_version_1(request):
 
             #updating the community level click state
             communityLevels.objects.filter(community=community_instance,level="Level 3").update(level_click_state=level_click_states.DIRECTORY_CREATED)
+
+            card_filter = Collabcard.objects.filter(user=user_instance,community=community_instance,type=card_types.CARD_PURPOSE)
+
+            if card_filter.exists():
+                post_member_directly_link(card_filter[0], user_instance, community_instance)
 
         except Exception as e:
 
@@ -1797,6 +1802,15 @@ def create_introduction_question_in_community(community_instance):
     questions_instance.is_hidden = False
     questions_instance.save()
 
+def post_member_directly_link(card_instance,user_instance,community_instance):
+
+    member_directory_link = url + "/members_directory/"+str(community_instance.id)
+    conversation = card_answers()
+    conversation.answer = """Here is a link to our member directory: %s"""%(member_directory_link)
+    conversation.card = card_instance
+    conversation.user = user_instance
+    conversation.created_at = time.time()
+    conversation.save()
 
 
 def fetch_community_types(request):
@@ -1984,21 +1998,120 @@ def create_card(request,req_dict=None):
     if not req_dict:
         user_id = request.GET.get('member_id')
         community_id = request.GET.get('community_id')
+        res = json.loads(request.body)
     else:
-
         user_id=req_dict['member_id']
         community_id=req_dict['community_id']
+        res = req_dict
+
+    context = create_card_internal(user_id,community_id,res)
+
+    if req_dict:
+        return context
+
+    return JsonResponse({'success': True, 'collabcard': context['collabcard']})
+
+
+
+def create_chatroom_instance(res,community_instance,user_instance):
+
+    '''function to create chatroom instance'''
+
+    card = Collabcard()
+    card.title = res['title']
+    card.community = community_instance
+    card.user = user_instance
+    card.type = int(res['type']) if 'type' in res else card_types.CARD_NORMAL
+    card.image_count = res['image_count'] if ('image_count' in res) else 0
+    card.pdf_count = res['pdf_count'] if ('pdf_count' in res) else 0
+    card.date_time = res['date_time'] if ('date_time' in res) else 0
+    card.duration = res['duration'] if ('duration' in res) else 0
+
+    # for event card
+    card.location = res['location'] if ('location' in res) else None
+    card.location_lat = res['location_lat'] if ('location_lat' in res) else None
+    card.location_long = res['location_long'] if ('location_long' in res) else None
+    card.start_date = res['start_date'] if ('start_date' in res) else 0
+    card.end_date = res['end_date'] if ('end_date' in res) else 0
+    card.about = res['about'] if ('about' in res) else None
+    card.co_hosts = json.dumps(res['co_hosts']) if ('co_hosts' in res) else None
+    card.online_link = res['online_link'] if ('online_link' in res) else None
+
+    # for poll card
+    card.multiple_select = res['multiple_select'] if ('multiple_select' in res) else False
+    card.multiple_select_no = res['multiple_select_no'] if ('multiple_select_no' in res) else 1
+    card.multiple_select_state = res['multiple_select_state'] if ('multiple_select_state' in res) else 0
+
+    # for chatroom header
+    has_been_named = False
+    if 'header' in res:
+
+        card.header = res['header']
+        has_been_named = True
+        card.has_been_named = has_been_named
+    else:
+
+        header = res['title']
+        card.header = header[:30]
+        if card.type == card_types.CARD_PURPOSE:
+            card.header = get_chatroom_name(user_instance.userinfo.name, card)
+            card.has_been_named = True
+        elif card.type == card_types.CARD_INTRO:
+            card.header = get_chatroom_name(user_instance.userinfo.name, card)
+            card.has_been_named = True
+        else:
+            card.has_been_named = has_been_named
+
+
+
+
+    if 'share_link' in res:
+        card.share_link = res['share_link']
+        og_tags = decode_meta_from_url(res['share_link'])
+        card.og_tags = json.dumps(og_tags)
+
+    card.date_epoch = time.time()  # card creation time
+    card.save()
+
+
+    #send notification to new chatroom posted
+    if has_been_named:
+        send_chatroom_creation_notifications_and_mails(card,user_instance)
+
+    # sending notification to co-hosts
+    if card.co_hosts:
+        co_hosts = res['co_hosts']
+
+        # making the co_host auto follow the card
+        for host in co_hosts:
+            req_dict = {
+                'member_id': host,
+                'collabcard_id': card.id,
+                'status': True
+            }
+            collabcard_follow_internal(req_dict)
+
+        send_notification_to_event_co_hosts.delay(co_hosts, card.id, card.title, user_instance.userinfo.name)
+
+    # saving poll card details
+    polls = res['polls'] if 'polls' in res else []
+    for poll in polls:
+        collabcardpolls_instance = CollabcardPolls()
+        collabcardpolls_instance.card = card
+        collabcardpolls_instance.text = poll['text']
+        collabcardpolls_instance.sub_text = poll['sub_text'] if ('sub_text' in poll) else None
+        collabcardpolls_instance.save()
+
+
+    return card
+
+
+def create_card_internal(user_id,community_id,res):
 
 
     user_instance = User.objects.get(id=user_id)
     userinfo_instance = user_instance.userinfo
     community_instance = Community.objects.get(id=community_id)
-
-
-    if not req_dict:
-        res = json.loads(request.body)
-    else:
-        res=req_dict
 
 
     card_instance = create_chatroom_instance(res,community_instance,user_instance)
@@ -2045,95 +2158,14 @@ def create_card(request,req_dict=None):
         draftChatroom.objects.filter(id=res['draft_id']).delete()
         draftPolls.objects.filter(draft=res['draft_id']).delete()
 
+    context = {
+        'collabcard':collabcard,
+        'card_instance':card_instance
+    }
+
+    return context
 
 
-    return JsonResponse({'success': True, 'collabcard': collabcard})
-
-
-
-def create_chatroom_instance(res,community_instance,user_instance):
-
-    '''function to create chatroom instance'''
-
-    card = Collabcard()
-    card.title = res['title']
-    card.community = community_instance
-    card.user = user_instance
-    card.type = int(res['type']) if 'type' in res else card_types.CARD_NORMAL
-    card.image_count = res['image_count'] if ('image_count' in res) else 0
-    card.pdf_count = res['pdf_count'] if ('pdf_count' in res) else 0
-    card.date_time = res['date_time'] if ('date_time' in res) else 0
-    card.duration = res['duration'] if ('duration' in res) else 0
-
-    # for event card
-    card.location = res['location'] if ('location' in res) else None
-    card.location_lat = res['location_lat'] if ('location_lat' in res) else None
-    card.location_long = res['location_long'] if ('location_long' in res) else None
-    card.start_date = res['start_date'] if ('start_date' in res) else 0
-    card.end_date = res['end_date'] if ('end_date' in res) else 0
-    card.about = res['about'] if ('about' in res) else None
-    card.co_hosts = json.dumps(res['co_hosts']) if ('co_hosts' in res) else None
-    card.online_link = res['online_link'] if ('online_link' in res) else None
-
-    # for poll card
-    card.multiple_select = res['multiple_select'] if ('multiple_select' in res) else False
-    card.multiple_select_no = res['multiple_select_no'] if ('multiple_select_no' in res) else 1
-    card.multiple_select_state = res['multiple_select_state'] if ('multiple_select_state' in res) else 0
-
-    # for chatroom header
-    has_been_named = False
-    if 'header' in res:
-
-        card.header = res['header']
-        has_been_named = True
-        card.has_been_named = has_been_named
-    else:
-
-        header = res['title']
-        card.header = header[:30]
-        if card.type == card_types.CARD_PURPOSE:
-            card.header = get_chatroom_name(user_instance.userinfo.name, card.type)
-            card.has_been_named = True
-        elif card.type == card_types.CARD_INTRO:
-            card.header = get_chatroom_name(user_instance.userinfo.name, card.type)
-            card.has_been_named = True
-        else:
-            card.has_been_named = has_been_named
-
-    if 'share_link' in res:
-        card.share_link = res['share_link']
-        og_tags = decode_meta_from_url(res['share_link'])
-        card.og_tags = json.dumps(og_tags)
-
-    card.date_epoch = time.time()  # card creation time
-    card.save()
-
-    # sending notification to co-hosts
-    if card.co_hosts:
-        co_hosts = res['co_hosts']
-
-        # making the co_host auto follow the card
-        for host in co_hosts:
-            req_dict = {
-                'member_id': host,
-                'collabcard_id': card.id,
-                'status': True
-            }
-            collabcard_follow_internal(req_dict)
-
-        send_notification_to_event_co_hosts.delay(co_hosts, card.id, card.title, user_instance.userinfo.name)
-
-    # saving poll card details
-    polls = res['polls'] if 'polls' in res else []
-    for poll in polls:
-        collabcardpolls_instance = CollabcardPolls()
-        collabcardpolls_instance.card = card
-        collabcardpolls_instance.text = poll['text']
-        collabcardpolls_instance.sub_text = poll['sub_text'] if ('sub_text' in poll) else None
-        collabcardpolls_instance.save()
-
-
-    return card
 
 def send_chatroom_creation_notifications_and_mails(card_instance,user_instance):
 
@@ -4156,7 +4188,6 @@ def get_chatroom_internal(request,card_instance,user_id,page,conversation_id,scr
     card = CollabcardSerializer(card_instance, user_id, card_instance.community)
     card_id = card['id']
     user = Userinfo.objects.get(user_id=card_instance.user.id)
-
     usr = UserinfoSerializer(user)
     #usr['is_clickable'] = feedback
 
@@ -4205,6 +4236,10 @@ def get_chatroom_internal(request,card_instance,user_id,page,conversation_id,scr
 
             conversations = pagination(conversations_filter,page,paginate_by=20)
             conversations = get_answer_data(conversations, card_instance.community.id, current_user_id=user_id)
+
+            placeholder = create_introduction_card_placeholder(card_instance,user_id)
+            if placeholder:
+                context['placeholder'] = placeholder
         else:
             conversation_instance = instance_filter[0].conversation
 
@@ -4376,8 +4411,6 @@ def create_guest_header(guest_id,invitee_id,card_instance,current_user_id):
         instance.save()
 
 
-
-
 def get_user_in_route_form(card_instance,user_instance,current_user_id):
 
 
@@ -4431,6 +4464,28 @@ def show_follow_telescope(card_status,card_instance,user_id,latest_conversation,
 
 
     return show
+
+
+def create_introduction_card_placeholder(card_instance,user_id):
+
+    '''function to create introduction card placeholder'''
+
+    user_filter = User.objects.filter(id=user_id)
+    if user_filter.exists():
+        user_instance = user_filter[0]
+    else:
+        return
+
+    if card_instance.type == card_types.CARD_INTRO and card_instance.user.id != user_instance.id:
+        placeholder = """Welcome to the """+ card_instance.community.name +", "
+        user_name = user_instance.userinfo.name
+        user_route = "route://member_profile/" + str(user_instance.id)
+        user_name = "<<" + user_name + "|" + user_route
+        placeholder = placeholder + user_name + user_route+">>"
+        return placeholder
+
+
+
 
 def community_collabcard_invite(request,community_id):
 
@@ -5176,7 +5231,7 @@ def create_conversation(request):
         return JsonResponse(context)
 
     res = json.loads(request.body)
-    print(res)
+
     card_instance = Collabcard.objects.get(id=res['chatroom_id'])
     user_instance = User.objects.get(id=member_id)
 
@@ -5209,11 +5264,12 @@ def create_conversation(request):
     # sending the tagged member list
     auto_follow_chatrooms_in_case_of_tagging(request, res['text'], card_instance.id)
 
-    send_follow_notification.delay(card_id=card_instance.id, user_id=user_instance.id, answer=res['text'])
+    user_id  = str(user_instance.id)
+    send_follow_notification.delay(card_id=card_instance.id, user_id=user_id, answer=res['text'])
 
     # # updating the conversationEngage table
-    # conversation_seen(request, {'member_id': user_instance.id, 'conversation_id': ans.id})
-    #update_my_chatrooms_for_users.delay(chatroom_id=card_instance.id)
+    conversation_seen(request, {'member_id': user_instance.id, 'conversation_id': ans.id})
+    update_my_chatrooms_for_users.delay(chatroom_id=card_instance.id)
 
     return JsonResponse({'success': True, 'id': ans.id})
 
@@ -8415,6 +8471,5 @@ def email_verify(request):
 
 
     return render(request, 'email_verify_landing.html', {'verification':False})
-
 
 
