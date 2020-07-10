@@ -335,8 +335,7 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title, 
         message['payload'] = {
             'title': str(card_creater_name) + " @ " + str(community_name),
             'sub_title': sub_title,
-            'route': 'route://community_collabcard?community_id=' + str(community_id) + '&community_name=' + str(
-                community_name) + '&community_state=' + str(kwargs['community_state'])
+            'route': 'route://collabcard?collabcard_id='+str(kwargs['card_id'])
         }
 
         notification_meta(notification_list, message)
@@ -546,8 +545,7 @@ def poll_expiry_or_event_remainder_notification(community_name, community_id, ty
         message['payload'] = {
             'title': str(community_name),
             'sub_title': sub_title,
-            'route': 'route://community_collabcard?community_id=' + str(
-                      community_id) + '&community_name=' + str(community_name) + '&community_state=' + str(kwargs['community_state']),
+            'route': 'route://collabcard?collabcard_id='+str(kwargs['card_id'])
         }
 
         send_notification_to_multiple_devices(token_list, message)

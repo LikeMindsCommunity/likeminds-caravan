@@ -1809,7 +1809,7 @@ def post_member_directly_link(card_instance,user_instance,community_instance):
     conversation.answer = """Here is a link to our member directory: %s"""%(member_directory_link)
     conversation.card = card_instance
     conversation.user = user_instance
-    card.created_at = time.time()
+    conversation.created_at = time.time()
     conversation.save()
 
 
