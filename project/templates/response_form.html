@@ -10,6 +10,8 @@
 
         <head>
              {% include 'scripts/mixpanel.html' %}
+             {% include 'scripts/create_user_mixpanel.html' with mixpanel_event=mixpanel_event request=request  %}
+
         </head>
 
         <div class="container mxw960 mA ffR">
@@ -319,19 +321,6 @@ You are one step away from being a part of this amazing community. Are you sure 
 
 
 
-            function create_user_in_mixpanel(){
-
-                var USER_ID = "{{request.user.id}}";
-                mixpanel.identify(USER_ID);
-
-                  mixpanel.people.set({
-                  "name":"{{request.user.userinfo.name}}",
-                  "$email": "{{request.user.userinfo.email}}",
-                  "USER_ID": USER_ID
-                });
-
-
-        }
 
 
 
@@ -757,13 +746,15 @@ You are one step away from being a part of this amazing community. Are you sure 
 
                 $("#loading_button").removeClass("dN");
 
+        <!--     MIXPANEL TRACKER -->
+                 create_user_in_mixpanel()
 
-                create_user_in_mixpanel()
-                mixpanel.track("{{community.name}}: "+"response submit",{
-                "community name":'{{community.name}}'
+                 mixpanel.track("Community Join Detail page",{
+                 "Community Name":"{{community.name}}"
 
+                 })
 
-                })
+        <!--    TRACKER ENDS    -->
 
 
                 var questions = {"data": JSON.stringify(values_list),"aj":'{{footer.aj}}',"aj_expired":'{{footer.aj_expired}}'}

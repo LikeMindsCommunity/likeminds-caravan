@@ -2,24 +2,8 @@
 {% load static %}
 <html>
     <head>
-        <!-- Global site tag (gtag.js) - Google Analytics -->
-        <script async src="https://www.googletagmanager.com/gtag/js?id=UA-155700742-1"></script>
-        <script>
-          window.dataLayer = window.dataLayer || [];
-          function gtag(){dataLayer.push(arguments);}
-          gtag('js', new Date());
 
-          gtag('config', 'UA-155700742-1');
-        </script>
-        <!-- Google Analytics Code -->
-
-        <!-- Google Tag Manager -->
-        <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-        new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-        j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-        'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-        })(window,document,'script','dataLayer','GTM-KSF3G6T');</script>
-        <!-- End Google Tag Manager -->
+        {% include 'scripts/mixpanel.html' %}
 
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
         <link rel="shortcut icon" href="https://beta.likeminds.community/media/media/ic_launcher_round.png">
@@ -837,6 +821,16 @@ The admin has received your request and would take a decision on your membership
 
 
             $('#download_pending').click(function(e){
+
+
+                {% if current_user_request_date %}
+                        mixpanel.track("Approval Pending CTA clicked",{
+
+                            "Community join request date": "{{current_user_request_date}}",
+                            "Community Name":"{{community.name}}"
+
+                        })
+                {% endif %}
 
                 $('#approval_pending').modal('show')
             })

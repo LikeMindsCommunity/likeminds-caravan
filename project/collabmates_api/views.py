@@ -915,6 +915,7 @@ def join_promoter_created_community_version_1(res,request):
         member_instance.member_id = user_instance
         member_instance.community_id = community_instance
         member_instance.state = member_states.PENDING_MEMBER
+        member_instance.created_at = time.time()
         member_instance.save()
 
         # creating a member engage instance
@@ -6765,10 +6766,15 @@ def members_state(request,req_dict=None):
     ref_members=[]
     edit_required = False
     actions_required = False
+    created_at = 0
     for data in query_set:
         is_member = False
         tool_state = 0
         state = data.state
+
+        if data.created_at > 0:
+            created_at =  time.strftime('%A, %b %d ', time.localtime(data.created_at))
+
 
         if state == member_states.ADMIN or state == 2 or state == member_states.MEMBER or state == 7:
             is_member = True
@@ -6820,7 +6826,8 @@ def members_state(request,req_dict=None):
                          'unlock_sub_title':unlock_sub_title,
                          'unlock_action':unlock_action,
                          'unlock_action_title':unlock_action_title,
-                         'edit_required' : edit_required
+                         'edit_required' : edit_required,
+                         'created_at' : created_at
                          }
     else:
 
@@ -6843,7 +6850,8 @@ def members_state(request,req_dict=None):
                    'unlock_sub_title': unlock_sub_title,
                    'unlock_action': unlock_action,
                    'unlock_action_title':unlock_action_title,
-                   'edit_required': edit_required
+                   'edit_required': edit_required,
+                   'created_at': created_at
 
                    }
 

@@ -243,9 +243,12 @@ def community(request, community_id):
     user_instance = None
     is_member = False
 
+    user_context = {}
+    user_context['current_user_request_date'] = 0
     if request.user.is_authenticated:
         state_data = members_state(request,{'community_id':community_id,'member_id':request.user.id})
         state = state_data['state']
+        user_context['current_user_request_date']= state_data['created_at']
         user_instance = request.user
         # if profile:
         #     profile_list = get_member_profile(community_id,user_instance.id)
@@ -262,7 +265,7 @@ def community(request, community_id):
 
     community_instance = Community.objects.get(id=community_id)
 
-    context = get_community_context(request,community_instance,user_instance,state,profile_list,is_member)
+    context = get_community_context(request,community_instance,user_instance,state,profile_list,is_member,user_context)
 
     return render(request,'community.html',context)
 
@@ -302,12 +305,14 @@ def community_questions(request,params):
 
     user_instance = None
     state = 0
+
     if request.user.is_authenticated:
         user_instance = request.user
         state = members_state(request,req_dict={'community_id':community_id,'member_id':user_instance.id})
 
         if state['state'] != 0:
             return redirect('community',community_id=community_id)
+
 
     if request.method == "GET":
         header = {
@@ -357,6 +362,12 @@ def community_questions(request,params):
                       }
             context['footer'] = footer
 
+        mixpanel_event = get_event_super_properties_for_mixpanel(user_instance,community_instance)
+
+        print(mixpanel_event)
+        context['mixpanel_event'] = mixpanel_event
+
+
         return render(request, 'response_form.html', context)
     else:
         question_data = request.POST.dict().get("data")
@@ -397,7 +408,7 @@ def community_questions(request,params):
 
 
 
-def get_community_context(request,community_instance,user_instance,state,profile_list,is_member):
+def get_community_context(request,community_instance,user_instance,state,profile_list,is_member,user_context):
 
     admin_details = get_admins_details(community_instance)
 
@@ -434,6 +445,7 @@ def get_community_context(request,community_instance,user_instance,state,profile
         about_1 = about[0:180]
         about_2 = about[180:]
 
+
     context = {'usr': user_instance,
                'community': community_instance, 'admins': admin_details,
                'header': header, 'header_showcase': header_showcase,
@@ -457,7 +469,8 @@ def get_community_context(request,community_instance,user_instance,state,profile
                'user_email': request.user.userinfo.email if request.user.is_authenticated else '',
                'google_oauth_client_id': settings.GOOGLE_OAUTH_CLIENT_ID,
                'facebook_auth_id': settings.SOCIAL_AUTH_FACEBOOK_KEY,
-               'firebase_config': settings.FIREBASE_CONFIG
+               'firebase_config': settings.FIREBASE_CONFIG,
+               'current_user_request_date':  user_context['current_user_request_date']
                }
 
     if state == member_states.PENDING_MEMBER:
@@ -2516,3 +2529,54 @@ def linked_in_authentication(request):
     # redirect_url = redirect_url + "?json="+str(data_main)
     info_logger.info(request.user.is_authenticated)
     return redirect(redirect_url)
+
+
+
+def get_member_community_status(state):
+
+    member = ""
+    if state == 0:
+        member = "Not a Member"
+    elif state == 1:
+        member = "Promoter"
+    elif state == 3:
+        member = "Pending Member"
+    elif state == 4:
+        member = "Member"
+    elif state == 7:
+        member = "Nominated Promoter"
+
+    return member
+
+
+
+def get_event_super_properties_for_mixpanel(user_instance,community_instance):
+
+    '''function to get event super properties for mixpanel'''
+
+    if not user_instance or not community_instance:
+        return {}
+
+    context = {}
+    user_profile = user_instance.userinfo
+    context['name'] = user_profile.name
+    context['email'] = user_profile.email
+    context['user_unique_id'] = user_instance.id
+    context['first_login_date'] = 0 if user_profile.created_at < 0 else time.strftime('%A, %b %d, %H:%M', time.localtime(user_profile.created_at))
+
+    state_data = Members.objects.filter(community_id=community_instance.id,member_id=user_instance.id)
+    state = 0
+    if state_data.exists():
+        state = state_data[0].state
+
+    context['user_community_state'] = get_member_community_status(state)
+
+    followed_count = collabcardState.objects.filter(follow_status=True,user=user_instance).count()
+    context['No_of_Chatrooms_Followed'] = followed_count
+
+    communities_count = Members.objects.filter(member_id=user_instance.id).filter(
+        Q(state=member_states.MEMBER)|Q(state=member_states.ADMIN)|Q(
+            state=member_states.KNOWN_NOMINATED_PROMOTER)).count()
+    context['No_of_community_member'] = communities_count
+
+    return context
