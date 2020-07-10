@@ -1734,6 +1734,7 @@ def create_community_version_1(request):
             communityLevels.objects.filter(community=community_instance,level="Level 3").update(level_click_state=level_click_states.DIRECTORY_CREATED)
 
             card_filter = Collabcard.objects.filter(user=user_instance,community=community_instance,type=card_types.CARD_PURPOSE)
+
             if card_filter.exists():
                 post_member_directly_link(card_filter[0], user_instance, community_instance)
 
@@ -1808,6 +1809,7 @@ def post_member_directly_link(card_instance,user_instance,community_instance):
     conversation.answer = """Here is a link to our member directory: %s"""%(member_directory_link)
     conversation.card = card_instance
     conversation.user = user_instance
+    card.created_at = time.time()
     conversation.save()
 
 
@@ -8469,6 +8471,5 @@ def email_verify(request):
 
 
     return render(request, 'email_verify_landing.html', {'verification':False})
-
 
 
