@@ -1717,7 +1717,7 @@ def create_community_version_1(request):
         engage_filter.update(click_state = click_states.DEFAULT)
 
         create_introduction_question_in_community(community_instance)
-
+        post_purpose_collabcard_for_community(request, community_instance, member_id)
 
 
         community_serializer = CommunitySerializer(community_instance, promoter_id=user_instance)
@@ -1733,8 +1733,9 @@ def create_community_version_1(request):
             #updating the community level click state
             communityLevels.objects.filter(community=community_instance,level="Level 3").update(level_click_state=level_click_states.DIRECTORY_CREATED)
 
-            card_instance = post_purpose_collabcard_for_community(request, community_instance, member_id)
-            post_member_directly_link(card_instance, user_instance, community_instance)
+            card_filter = Collabcard.objects.filter(user=user_instance,community=community_instance,type=card_types.CARD_PURPOSE)
+            if card_filter.exists():
+                post_member_directly_link(card_filter[0], user_instance, community_instance)
 
         except Exception as e:
 
