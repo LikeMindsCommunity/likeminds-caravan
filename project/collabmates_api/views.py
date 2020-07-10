@@ -4164,7 +4164,6 @@ def get_chatroom_internal(request,card_instance,user_id,page,conversation_id,scr
     card = CollabcardSerializer(card_instance, user_id, card_instance.community)
     card_id = card['id']
     user = Userinfo.objects.get(user_id=card_instance.user.id)
-
     usr = UserinfoSerializer(user)
     #usr['is_clickable'] = feedback
 
@@ -4213,6 +4212,10 @@ def get_chatroom_internal(request,card_instance,user_id,page,conversation_id,scr
 
             conversations = pagination(conversations_filter,page,paginate_by=20)
             conversations = get_answer_data(conversations, card_instance.community.id, current_user_id=user_id)
+
+            placeholder = create_introduction_card_placeholder(card_instance,user_id)
+            if placeholder:
+                context['placeholder'] = placeholder
         else:
             conversation_instance = instance_filter[0].conversation
 
@@ -4384,8 +4387,6 @@ def create_guest_header(guest_id,invitee_id,card_instance,current_user_id):
         instance.save()
 
 
-
-
 def get_user_in_route_form(card_instance,user_instance,current_user_id):
 
 
@@ -4439,6 +4440,28 @@ def show_follow_telescope(card_status,card_instance,user_id,latest_conversation,
 
 
     return show
+
+
+def create_introduction_card_placeholder(card_instance,user_id):
+
+    '''function to create introduction card placeholder'''
+
+    user_filter = User.objects.filter(id=user_id)
+    if user_filter.exists():
+        user_instance = user_filter[0]
+    else:
+        return
+
+    if card_instance.type == card_types.CARD_INTRO and card_instance.user.id != user_instance.id:
+        placeholder = """Welcome to the """+ card_instance.community.name +", "
+        user_name = user_instance.userinfo.name
+        user_route = "route://member_profile/" + str(user_instance.id)
+        user_name = "<<" + user_name + "|" + user_route
+        placeholder = placeholder + user_name + user_route+">>"
+        return placeholder
+
+
+
 
 def community_collabcard_invite(request,community_id):
 
