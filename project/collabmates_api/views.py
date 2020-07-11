@@ -3413,6 +3413,9 @@ def approve_or_decline_private_community(req_dict,request):
             # posting a intro collabcard
             post_introduction_card_for_community(req_dict['community_id'], req_dict['member_id'], request)
 
+            #removing guest status from all chatrooms after access
+            collabcardState.objects.filter(community=req_dict['community_id'],user=req_dict['member_id']).update(is_guest=False)
+
             # saving create community action step 4
             update_community_actions(community_instance=community)
 
