@@ -746,15 +746,7 @@ You are one step away from being a part of this amazing community. Are you sure 
 
                 $("#loading_button").removeClass("dN");
 
-        <!--     MIXPANEL TRACKER -->
-                 create_user_in_mixpanel()
 
-                 mixpanel.track("Community Join Detail page",{
-                 "Community Name":"{{community.name}}"
-
-                 })
-
-        <!--    TRACKER ENDS    -->
 
 
                 var questions = {"data": JSON.stringify(values_list),"aj":'{{footer.aj}}',"aj_expired":'{{footer.aj_expired}}'}
@@ -764,7 +756,19 @@ You are one step away from being a part of this amazing community. Are you sure 
                     data:questions,
                     dataType:'json',
                     success:function(data){
-                        console.log(data);
+
+                             <!--     MIXPANEL TRACKER -->
+
+
+                                             mixpanel.track("Community Join Detail page",{
+                                             "Community Name":"{{community.name}}",
+                                             "user_community_state":"{{mixpanel_event.user_community_state}}"
+                                             })
+
+                             <!--    TRACKER ENDS    -->
+
+
+
                         if('source' in data){
                             if(data['source'] == "members_directory"){
 

@@ -252,7 +252,6 @@ def community(request, community_id):
         user_instance = request.user
         # if profile:
         #     profile_list = get_member_profile(community_id,user_instance.id)
-
         is_member = is_member_verified(community_id,request.user)
 
     if state == 0:
@@ -364,7 +363,6 @@ def community_questions(request,params):
 
         mixpanel_event = get_event_super_properties_for_mixpanel(user_instance,community_instance)
 
-        print(mixpanel_event)
         context['mixpanel_event'] = mixpanel_event
 
 
@@ -477,6 +475,11 @@ def get_community_context(request,community_instance,user_instance,state,profile
         context['footer'] = {
             'toast':"Request to join community is pending"
         }
+
+
+    mixpanel_event = get_event_super_properties_for_mixpanel(user_instance,community_instance)
+    if mixpanel_event:
+        context['mixpanel_event'] = mixpanel_event
 
     return context
 
@@ -2562,7 +2565,7 @@ def get_event_super_properties_for_mixpanel(user_instance,community_instance):
     context['name'] = user_profile.name
     context['email'] = user_profile.email
     context['user_unique_id'] = user_instance.id
-    context['first_login_date'] = 0 if user_profile.created_at < 0 else time.strftime('%A, %b %d, %H:%M', time.localtime(user_profile.created_at))
+    context['first_login_date'] = 0 if user_profile.created_at < 0 else time.strftime('%A, %b %d', time.localtime(user_profile.created_at))
 
     state_data = Members.objects.filter(community_id=community_instance.id,member_id=user_instance.id)
     state = 0

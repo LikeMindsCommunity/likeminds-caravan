@@ -6778,7 +6778,7 @@ def members_state(request,req_dict=None):
         state = data.state
 
         if data.created_at > 0:
-            created_at =  time.strftime('%A, %b %d ', time.localtime(data.created_at))
+            created_at =  time.strftime('%A, %b %d', time.localtime(data.created_at))
 
 
         if state == member_states.ADMIN or state == 2 or state == member_states.MEMBER or state == 7:

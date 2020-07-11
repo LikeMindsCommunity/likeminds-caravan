@@ -4,6 +4,8 @@
     <head>
 
         {% include 'scripts/mixpanel.html' %}
+        {% include 'scripts/create_user_mixpanel.html' with mixpanel_event=mixpanel_event request=request  %}
+
 
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
         <link rel="shortcut icon" href="https://beta.likeminds.community/media/media/ic_launcher_round.png">
@@ -824,10 +826,12 @@ The admin has received your request and would take a decision on your membership
 
 
                 {% if current_user_request_date %}
+                console.log("{{current_user_request_date}}")
                         mixpanel.track("Approval Pending CTA clicked",{
 
-                            "Community join request date": "{{current_user_request_date}}",
-                            "Community Name":"{{community.name}}"
+                            "Community Join Request date": "{{current_user_request_date}}",
+                            "Community Name":"{{community.name}}",
+                            "user_community_state":"{{mixpanel_event.user_community_state}}"
 
                         })
                 {% endif %}
