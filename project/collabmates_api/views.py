@@ -3414,6 +3414,9 @@ def approve_or_decline_private_community(req_dict,request):
             # posting a intro collabcard
             post_introduction_card_for_community(req_dict['community_id'], req_dict['member_id'], request)
 
+            #removing guest status from all chatrooms after access
+            collabcardState.objects.filter(community=req_dict['community_id'],user=req_dict['member_id']).update(is_guest=False)
+
             # saving create community action step 4
             update_community_actions(community_instance=community)
 
@@ -4210,6 +4213,8 @@ def get_chatroom_internal(request,card_instance,user_id,page,conversation_id,scr
     card['member'] = usr
     card['pdf'] = files[1]
 
+    card['community_name'] = card_instance.community.name
+
 
 
 
@@ -4479,10 +4484,10 @@ def create_introduction_card_placeholder(card_instance,user_id):
 
     if card_instance.type == card_types.CARD_INTRO and card_instance.user.id != user_instance.id:
         placeholder = """Welcome to the """+ card_instance.community.name +", "
-        user_name = user_instance.userinfo.name
-        user_route = "route://member_profile/" + str(user_instance.id)
-        user_name = "<<" + user_name + "|" + user_route
-        placeholder = placeholder + user_name + user_route+">>"
+        user_name = card_instance.user.userinfo.name
+        user_route = "route://member_profile/" + str(card_instance.user.id)
+        user_name = "<<" + user_name + "|" + user_route + ">>"
+        placeholder = placeholder + user_name
         return placeholder
 
 
