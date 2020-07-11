@@ -186,7 +186,7 @@ def generate_private_link_for_chatroom(card_instance,user_instance):
     chatroom_expire_filter = chatroomExpiryCodes.objects.filter(card=card_instance,source=user_instance).order_by('-id')
     unique_code_list = list(chatroom_expire_filter.values_list('unique_code',flat=True))
 
-
+    temp = {}
 
     if not unique_code_list:
 
@@ -202,7 +202,10 @@ def generate_private_link_for_chatroom(card_instance,user_instance):
         expireInstance.expire_duration = 86400
         expireInstance.save()
 
-        return expireInstance.private_link
+        temp['private_link'] = expireInstance.private_link
+        temp['private_link_created_at'] = get_date_time_from_timestamp(expireInstance.created_at)
+
+        return temp
 
     else:
 
@@ -221,9 +224,22 @@ def generate_private_link_for_chatroom(card_instance,user_instance):
             expireInstance.expire_duration = 86400
             expireInstance.save()
 
-            return expireInstance.private_link
+            temp['private_link'] = expireInstance.private_link
+            temp['private_link_created_at'] = get_date_time_from_timestamp(expireInstance.created_at)
 
-    return chatroom_expire_filter[0].private_link
+            return temp
+
+    temp['private_link'] = chatroom_expire_filter[0].private_link
+    temp['private_link_created_at'] = get_date_time_from_timestamp(chatroom_expire_filter[0].created_at)
+
+    return temp
+
+
+def get_date_time_from_timestamp(timestamp):
+
+    return time.strftime('%d/%m/%y %H:%M', time.localtime(timestamp))
+
+
 
 
 def decode_option(value):
@@ -278,6 +294,8 @@ def decode_meta_from_url(url):
         pass
     og_tags['url']=url
     return og_tags
+
+
 
 def get_time_text(created_time):
     """ function to get time stamp """

@@ -5,7 +5,7 @@ from django.conf import settings
 from django.db.models import Q
 from togther.models import *
 from utility.utils import is_IG_community,is_LG_or_LP_community,feedback_community_id,\
-    generate_private_link,generate_random,get_time_text,eligibility_count,get_members_count_in_community,is_member_promoter,generate_private_link_for_chatroom
+    generate_private_link,generate_random,get_time_text,eligibility_count,get_members_count_in_community,is_member_promoter,generate_private_link_for_chatroom,get_date_time_from_timestamp
 from utility.states import card_types
 url = settings.URL
 import ast
@@ -141,6 +141,7 @@ def CollabcardSerializer(card,user,community=None):
         'attending_count': card.attending_count,
         'polls_count': card.polls_count,
         'card_creation_time' : time.strftime('%B %d at %H:%M',time.localtime(card.date_epoch)),
+        "community_name" : card.community.name
     }
 
     if user and int(user) == card.user.id:
@@ -219,6 +220,7 @@ def CollabcardSerializer(card,user,community=None):
     share = get_share_url_text(card,user)
     collabcard['share_url'] =  share['share_url']
     collabcard['creator_share_url'] = share['creator_share_url']
+    collabcard['link_created_at'] = share['link_created_at']
 
     return collabcard
 
@@ -342,15 +344,19 @@ def get_share_url_text(card,user_id):
     '''function to share url text'''
 
     share = {}
-
+    share['link_created_at'] = get_date_time_from_timestamp(time.time())
     if not user_id:
         card_url = url + '/collabcard/' + str(card.id)
 
     else:
         user_instance = User.objects.get(id=user_id)
-        card_url = generate_private_link_for_chatroom(card,user_instance)
+        card_temp = generate_private_link_for_chatroom(card,user_instance)
+        card_url = card_temp['private_link']
+        share['link_created_at'] = card_temp['private_link_created_at']
+
     share['share_url'] = card_url
     share['creator_share_url'] = card_url
+
 
     if card.type == card_types.CARD_PUBLIC_EVENT:
 

@@ -335,7 +335,8 @@ def community_questions(request,params):
                     'header_showcase': header_showcase,
                     'google_oauth_client_id': settings.GOOGLE_OAUTH_CLIENT_ID,
                     'facebook_auth_id': settings.SOCIAL_AUTH_FACEBOOK_KEY,
-                    'firebase_config': settings.FIREBASE_CONFIG
+                    'firebase_config': settings.FIREBASE_CONFIG,
+                     'user_directory': user_directory
 
                    }
 
@@ -2535,51 +2536,7 @@ def linked_in_authentication(request):
 
 
 
-def get_member_community_status(state):
-
-    member = ""
-    if state == 0:
-        member = "Not a Member"
-    elif state == 1:
-        member = "Promoter"
-    elif state == 3:
-        member = "Pending Member"
-    elif state == 4:
-        member = "Member"
-    elif state == 7:
-        member = "Nominated Promoter"
-
-    return member
 
 
 
-def get_event_super_properties_for_mixpanel(user_instance,community_instance):
 
-    '''function to get event super properties for mixpanel'''
-
-    if not user_instance or not community_instance:
-        return {}
-
-    context = {}
-    user_profile = user_instance.userinfo
-    context['name'] = user_profile.name
-    context['email'] = user_profile.email
-    context['user_unique_id'] = user_instance.id
-    context['first_login_date'] = 0 if user_profile.created_at < 0 else time.strftime('%A, %b %d', time.localtime(user_profile.created_at))
-
-    state_data = Members.objects.filter(community_id=community_instance.id,member_id=user_instance.id)
-    state = 0
-    if state_data.exists():
-        state = state_data[0].state
-
-    context['user_community_state'] = get_member_community_status(state)
-
-    followed_count = collabcardState.objects.filter(follow_status=True,user=user_instance).count()
-    context['No_of_Chatrooms_Followed'] = followed_count
-
-    communities_count = Members.objects.filter(member_id=user_instance.id).filter(
-        Q(state=member_states.MEMBER)|Q(state=member_states.ADMIN)|Q(
-            state=member_states.KNOWN_NOMINATED_PROMOTER)).count()
-    context['No_of_community_member'] = communities_count
-
-    return context

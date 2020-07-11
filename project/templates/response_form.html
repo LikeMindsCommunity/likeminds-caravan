@@ -762,7 +762,8 @@ You are one step away from being a part of this amazing community. Are you sure 
 
                                              mixpanel.track("Community Join Detail page",{
                                              "Community Name":"{{community.name}}",
-                                             "user_community_state":"{{mixpanel_event.user_community_state}}"
+                                             "user_community_state":"{{mixpanel_event.user_community_state}}",
+                                             "click date" : new Date()
                                              })
 
                              <!--    TRACKER ENDS    -->
@@ -812,6 +813,31 @@ You are one step away from being a part of this amazing community. Are you sure 
 
             $('#back_popup').modal('hide')
             })
+
+
+
+         <!-- MIX PANEL EVENT --->
+
+         {% if user_directory %}
+
+                mixpanel.track("Community Join Directory",{
+
+                {% if not footer.aj_expired %}
+                    "Directory Link Status" : "Valid"
+                 {% else %}
+
+                     "Directory Link Status" : "Expired"
+
+                 {% endif %}
+
+                 "click date" : new Date() + ""
+
+                })
+
+         {% endif %}
+         <!--    Event end               --->
+
+
         </script>
         {% include 'scripts/google_auth.html' with client_id=google_oauth_client_id  %}
         {% include 'scripts/facebook_auth.html' with facebook_auth_id=facebook_auth_id%}
