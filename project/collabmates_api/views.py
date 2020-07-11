@@ -1605,7 +1605,7 @@ def remove_members(community_id, member_id,removed_state):
     if not is_member_left.exists():
 
         instance = removedMembers(community=community_instance, member=user_instance,
-                                  removed_state=deleted_members.REMOVED, created_at=time.time())
+                                  removed_state=removed_state, created_at=time.time())
         instance.save()
         #saving collabcard state in update status
         update_staus = collabcardState.objects.filter(community=community_id,user=member_id).update(removed_status=instance.id)
