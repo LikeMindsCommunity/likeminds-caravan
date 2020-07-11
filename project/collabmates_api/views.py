@@ -4212,6 +4212,8 @@ def get_chatroom_internal(request,card_instance,user_id,page,conversation_id,scr
     card['member'] = usr
     card['pdf'] = files[1]
 
+    card['community_name'] = card_instance.community.name
+
 
 
 
