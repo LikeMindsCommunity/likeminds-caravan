@@ -4193,46 +4193,43 @@ def get_chatroom_internal(request,card_instance,user_id,page,conversation_id,scr
     aj = request.GET.get('aj')
 
     is_guest = False
+    context={}
+
     if source_id and aj:
         is_guest = True
 
-    card = CollabcardSerializer(card_instance, user_id, card_instance.community)
-    card_id = card['id']
-    user = Userinfo.objects.get(user_id=card_instance.user.id)
-    usr = UserinfoSerializer(user)
-    #usr['is_clickable'] = feedback
-
-    # when the member is removed
-    context={}
-    removed_state = removedMembersSerializer(card_instance.community.id, usr['id'])
-    if removed_state != False:
-        usr['remove_state'] = removed_state
-
-    # user form response serialzer
-    form_response = FormResponseSerilaizer(card_instance.community.id, card_instance.user.id, bl=True,
-                                           current_user_id=user_id)
-    if form_response:
-        usr['question_answers'] = form_response[1]
-
-    # get the card image if any
-    files = get_collabcard_files(card_id)
-    card['images'] = files[0]
-    card['member'] = usr
-    card['pdf'] = files[1]
-
-    card['community_name'] = card_instance.community.name
-
+    # card = CollabcardSerializer(card_instance, user_id, card_instance.community)
+    # card_id = card['id']
+    # user = Userinfo.objects.get(user_id=card_instance.user.id)
+    # usr = UserinfoSerializer(user)
+    # #usr['is_clickable'] = feedback
+    #
+    # # when the member is removed
+    # removed_state = removedMembersSerializer(card_instance.community.id, usr['id'])
+    # if removed_state != False:
+    #     usr['remove_state'] = removed_state
+    #
+    # # user form response serialzer
+    # form_response = FormResponseSerilaizer(card_instance.community.id, card_instance.user.id, bl=True,
+    #                                        current_user_id=user_id)
+    # if form_response:
+    #     usr['question_answers'] = form_response[1]
+    #
+    # # get the card image if any
+    # files = get_collabcard_files(card_id)
+    # card['images'] = files[0]
+    # card['member'] = usr
+    # card['pdf'] = files[1]
+    #
+    # card['community_name'] = card_instance.community.name
 
 
-
-    # get tine stamp for card
-    time_text = get_time_text(card_instance.date_epoch)
-    card['created_at'] = time_text
 
 
     #if the chatroom is deleted
-    if card['type'] == card_types.CARD_HIDDEN:
-        context = {'chat_room': card}
+    if card_instance.type == card_types.CARD_HIDDEN:
+        card = get_chatroom_instance(card_instance,user_id)
+        context = {'chatroom': card}
         return context
 
     # conversations  functionality
@@ -4281,12 +4278,16 @@ def get_chatroom_internal(request,card_instance,user_id,page,conversation_id,scr
 
         conversations = get_answer_data(conversations, card_instance.community.id, current_user_id=user_id)
 
-    # get status of chatroom
-    card_status = get_status_of_collabcard(user_id, card_instance)
-    card['state'] = card_status['state']
-    card['mute_status'] = card_status['mute_status']
-    card['follow_status'] = card_status['follow_status']
-    card['is_guest'] = card_status['is_guest']
+
+
+    card = get_chatroom_instance(card_instance, user_id)
+
+    card_status = {
+        'state': card['state'],
+        'mute_status': card['mute_status'],
+        'follow_status': card['follow_status'],
+        'is_guest': card['is_guest']
+    }
 
     #sending the chatroom actions
     if user_id and int(user_id) == card_instance.user.id:
