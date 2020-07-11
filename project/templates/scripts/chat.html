@@ -460,7 +460,22 @@
 
 
    $(document.body).on('click','.join_click',function(e){
+
+
+         mixpanel.track("Community Join CR",{
+
+        "footer join click date" : new Date() + "",
+        "CR Name" : "{{collabcard.header}}",
+        "Community Name" : "{{collabcard.community_name}}",
+        "CR type": "{{collabcard.type}}",
+        "user_community_state":"{{mixpanel_event.user_community_state}}"
+
+
+       })
+
    location.href = "/community_questions/"+'{{community.id}}'
+
+
    })
 
 </script>

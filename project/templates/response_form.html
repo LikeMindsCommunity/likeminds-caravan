@@ -8,6 +8,12 @@
 
         {% include 'components/login_success_header_showcase.html' with data=header_showcase request=request %}
 
+        <head>
+             {% include 'scripts/mixpanel.html' %}
+             {% include 'scripts/create_user_mixpanel.html' with mixpanel_event=mixpanel_event request=request  %}
+
+        </head>
+
         <div class="container mxw960 mA ffR">
             <style>
                 /* create header selector partial */
@@ -233,6 +239,11 @@ You are one step away from being a part of this amazing community. Are you sure 
 
         <!-- Scripts -->
         <script>
+
+
+
+
+
             function showLoginPopup(){
                 $('#login_popup').modal('show');
                 $('#login_popup').modal({
@@ -308,6 +319,11 @@ You are one step away from being a part of this amazing community. Are you sure 
                 remove_error(id);
             }
 
+
+
+
+
+
             function autoGrow (oField) {
                 if (oField.scrollHeight > oField.clientHeight) {
                     oField.style.height = oField.scrollHeight + "px";
@@ -337,6 +353,8 @@ You are one step away from being a part of this amazing community. Are you sure 
                     return true
                 }
             }
+
+
 
 
             {% for question in data %}
@@ -728,6 +746,9 @@ You are one step away from being a part of this amazing community. Are you sure 
 
                 $("#loading_button").removeClass("dN");
 
+
+
+
                 var questions = {"data": JSON.stringify(values_list),"aj":'{{footer.aj}}',"aj_expired":'{{footer.aj_expired}}'}
                 $.ajax({
                     url:url,
@@ -735,7 +756,20 @@ You are one step away from being a part of this amazing community. Are you sure 
                     data:questions,
                     dataType:'json',
                     success:function(data){
-                        console.log(data);
+
+                             <!--     MIXPANEL TRACKER -->
+
+
+                                             mixpanel.track("Community Join Detail page",{
+                                             "Community Name":"{{community.name}}",
+                                             "user_community_state":"{{mixpanel_event.user_community_state}}",
+                                             "click date" : new Date()
+                                             })
+
+                             <!--    TRACKER ENDS    -->
+
+
+
                         if('source' in data){
                             if(data['source'] == "members_directory"){
 
@@ -779,6 +813,31 @@ You are one step away from being a part of this amazing community. Are you sure 
 
             $('#back_popup').modal('hide')
             })
+
+
+
+         <!-- MIX PANEL EVENT --->
+
+         {% if user_directory %}
+
+                mixpanel.track("Community Join Directory",{
+
+                {% if not footer.aj_expired %}
+                    "Directory Link Status" : "Valid"
+                 {% else %}
+
+                     "Directory Link Status" : "Expired"
+
+                 {% endif %}
+
+                 "click date" : new Date() + ""
+
+                })
+
+         {% endif %}
+         <!--    Event end               --->
+
+
         </script>
         {% include 'scripts/google_auth.html' with client_id=google_oauth_client_id  %}
         {% include 'scripts/facebook_auth.html' with facebook_auth_id=facebook_auth_id%}

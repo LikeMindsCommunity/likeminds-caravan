@@ -243,13 +243,15 @@ def community(request, community_id):
     user_instance = None
     is_member = False
 
+    user_context = {}
+    user_context['current_user_request_date'] = 0
     if request.user.is_authenticated:
         state_data = members_state(request,{'community_id':community_id,'member_id':request.user.id})
         state = state_data['state']
+        user_context['current_user_request_date']= state_data['created_at']
         user_instance = request.user
         # if profile:
         #     profile_list = get_member_profile(community_id,user_instance.id)
-
         is_member = is_member_verified(community_id,request.user)
 
     if state == 0:
@@ -262,7 +264,7 @@ def community(request, community_id):
 
     community_instance = Community.objects.get(id=community_id)
 
-    context = get_community_context(request,community_instance,user_instance,state,profile_list,is_member)
+    context = get_community_context(request,community_instance,user_instance,state,profile_list,is_member,user_context)
 
     return render(request,'community.html',context)
 
@@ -302,12 +304,14 @@ def community_questions(request,params):
 
     user_instance = None
     state = 0
+
     if request.user.is_authenticated:
         user_instance = request.user
         state = members_state(request,req_dict={'community_id':community_id,'member_id':user_instance.id})
 
         if state['state'] != 0:
             return redirect('community',community_id=community_id)
+
 
     if request.method == "GET":
         header = {
@@ -331,7 +335,8 @@ def community_questions(request,params):
                     'header_showcase': header_showcase,
                     'google_oauth_client_id': settings.GOOGLE_OAUTH_CLIENT_ID,
                     'facebook_auth_id': settings.SOCIAL_AUTH_FACEBOOK_KEY,
-                    'firebase_config': settings.FIREBASE_CONFIG
+                    'firebase_config': settings.FIREBASE_CONFIG,
+                     'user_directory': user_directory
 
                    }
 
@@ -356,6 +361,11 @@ def community_questions(request,params):
                 'toast':"Oops Your chatroom is deleted. Don't worry you can still view and participate in other chatrooms after joining the community"
                       }
             context['footer'] = footer
+
+        mixpanel_event = get_event_super_properties_for_mixpanel(user_instance,community_instance)
+
+        context['mixpanel_event'] = mixpanel_event
+
 
         return render(request, 'response_form.html', context)
     else:
@@ -397,7 +407,7 @@ def community_questions(request,params):
 
 
 
-def get_community_context(request,community_instance,user_instance,state,profile_list,is_member):
+def get_community_context(request,community_instance,user_instance,state,profile_list,is_member,user_context):
 
     admin_details = get_admins_details(community_instance)
 
@@ -434,6 +444,7 @@ def get_community_context(request,community_instance,user_instance,state,profile
         about_1 = about[0:180]
         about_2 = about[180:]
 
+
     context = {'usr': user_instance,
                'community': community_instance, 'admins': admin_details,
                'header': header, 'header_showcase': header_showcase,
@@ -457,13 +468,19 @@ def get_community_context(request,community_instance,user_instance,state,profile
                'user_email': request.user.userinfo.email if request.user.is_authenticated else '',
                'google_oauth_client_id': settings.GOOGLE_OAUTH_CLIENT_ID,
                'facebook_auth_id': settings.SOCIAL_AUTH_FACEBOOK_KEY,
-               'firebase_config': settings.FIREBASE_CONFIG
+               'firebase_config': settings.FIREBASE_CONFIG,
+               'current_user_request_date':  user_context['current_user_request_date']
                }
 
     if state == member_states.PENDING_MEMBER:
         context['footer'] = {
             'toast':"Request to join community is pending"
         }
+
+
+    mixpanel_event = get_event_super_properties_for_mixpanel(user_instance,community_instance)
+    if mixpanel_event:
+        context['mixpanel_event'] = mixpanel_event
 
     return context
 
@@ -2516,3 +2533,10 @@ def linked_in_authentication(request):
     # redirect_url = redirect_url + "?json="+str(data_main)
     info_logger.info(request.user.is_authenticated)
     return redirect(redirect_url)
+
+
+
+
+
+
+

@@ -915,6 +915,7 @@ def join_promoter_created_community_version_1(res,request):
         member_instance.member_id = user_instance
         member_instance.community_id = community_instance
         member_instance.state = member_states.PENDING_MEMBER
+        member_instance.created_at = time.time()
         member_instance.save()
 
         # creating a member engage instance
@@ -3508,9 +3509,8 @@ def collabcard(request, card_id):
 
     ''' function to get card details, answers and images '''
     # get the card object
-
     card_filter = Collabcard.objects.filter(id=card_id)
-
+    user_instance = None
     if card_filter.exists():
         card_instance = card_filter[0]
     else:
@@ -3538,6 +3538,7 @@ def collabcard(request, card_id):
 
     if is_request_web(request) and request.user.is_authenticated:
         current_user_id = request.user.id
+
         answers = get_chatroom_internal(request,card_instance,current_user_id,page,'','')
     else :
         # get all the answers of the card
@@ -3559,6 +3560,7 @@ def collabcard(request, card_id):
         #handling the web case
         if request.user.is_authenticated and is_request_web(request):
             user_id=request.user.id
+            user_instance = User.objects.get(id=user_id)
 
     card = CollabcardSerializer(card_instance, user_id, card_instance.community)
 
@@ -3599,12 +3601,19 @@ def collabcard(request, card_id):
     card['created_at'] = time_text
 
 
+
     #request is made from web
     if request.accepted_renderer.format == 'html':
 
         web_data = get_collabcard_details_for_web(request,card_instance,card,current_user_id,answers)
+
         context = web_data[0]
         card_category = web_data[1]
+
+        mixpanel_events = get_event_super_properties_for_mixpanel(user_instance,card_instance.community)
+
+        if mixpanel_events:
+            context['mixpanel_event'] = mixpanel_events
 
 
         if card_category == "EVENT_CARD":
@@ -3837,7 +3846,6 @@ def get_normal_chatroom_context(request,card_instance):
         current_user['follow_status'] = collabcard_status['follow_status']
 
 
-    print(current_user_id)
     chatroom_dict = get_chatroom_internal(request, card_instance, current_user_id, page, conversation_id=None,
                                      scroll_direction=None)
 
@@ -6770,10 +6778,15 @@ def members_state(request,req_dict=None):
     ref_members=[]
     edit_required = False
     actions_required = False
+    created_at = 0
     for data in query_set:
         is_member = False
         tool_state = 0
         state = data.state
+
+        if data.created_at > 0:
+            created_at =  time.strftime('%A, %b %d', time.localtime(data.created_at))
+
 
         if state == member_states.ADMIN or state == 2 or state == member_states.MEMBER or state == 7:
             is_member = True
@@ -6825,7 +6838,8 @@ def members_state(request,req_dict=None):
                          'unlock_sub_title':unlock_sub_title,
                          'unlock_action':unlock_action,
                          'unlock_action_title':unlock_action_title,
-                         'edit_required' : edit_required
+                         'edit_required' : edit_required,
+                         'created_at' : created_at
                          }
     else:
 
@@ -6848,7 +6862,8 @@ def members_state(request,req_dict=None):
                    'unlock_sub_title': unlock_sub_title,
                    'unlock_action': unlock_action,
                    'unlock_action_title':unlock_action_title,
-                   'edit_required': edit_required
+                   'edit_required': edit_required,
+                   'created_at': created_at
 
                    }
 
@@ -8478,3 +8493,56 @@ def email_verify(request):
     return render(request, 'email_verify_landing.html', {'verification':False})
 
 
+
+
+###############################mixpanel events########################################
+
+
+def get_member_community_status(state):
+
+    member = ""
+    if state == 0:
+        member = "Guest"
+    elif state == 1:
+        member = "Promoter"
+    elif state == 3:
+        member = "Pending Member"
+    elif state == 4:
+        member = "Member"
+    elif state == 7:
+        member = "Nominated Promoter"
+
+    return member
+
+
+
+def get_event_super_properties_for_mixpanel(user_instance,community_instance):
+
+    '''function to get event super properties for mixpanel'''
+
+    if not user_instance or not community_instance:
+        return {}
+
+    context = {}
+    user_profile = user_instance.userinfo
+    context['name'] = user_profile.name
+    context['email'] = user_profile.email
+    context['user_unique_id'] = user_instance.id
+    context['first_login_date'] = 0 if user_profile.created_at < 0 else time.strftime('%A, %b %d', time.localtime(user_profile.created_at))
+
+    state_data = Members.objects.filter(community_id=community_instance.id,member_id=user_instance.id)
+    state = 0
+    if state_data.exists():
+        state = state_data[0].state
+
+    context['user_community_state'] = get_member_community_status(state)
+
+    followed_count = collabcardState.objects.filter(follow_status=True,user=user_instance).count()
+    context['No_of_Chatrooms_Followed'] = followed_count
+
+    communities_count = Members.objects.filter(member_id=user_instance.id).filter(
+        Q(state=member_states.MEMBER)|Q(state=member_states.ADMIN)|Q(
+            state=member_states.KNOWN_NOMINATED_PROMOTER)).count()
+    context['No_of_community_member'] = communities_count
+
+    return context

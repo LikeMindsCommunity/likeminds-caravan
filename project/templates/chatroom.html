@@ -3,6 +3,12 @@
 {% block yeild %}
 
     {% include 'components/loader.html' %}
+
+       <head>
+             {% include 'scripts/mixpanel.html' %}
+             {% include 'scripts/create_user_mixpanel.html' with mixpanel_event=mixpanel_event request=request  %}
+
+        </head>
     <style>
         #comments{min-height: calc(100vh - 116px);}
     </style>
@@ -96,7 +102,7 @@ Are you sure, you want to leave this chat room? You can apply to join this commu
 
 
                      <div class="taR fs13 ">
-                         <span class="c9 fs13 fwM ls05 pr12  taL back_not_now">NOT NOW</span ><div class="bs cT dIb fs13 fwM ls05 p120 taC vM" onclick="window.location.href='/community_questions/{{community.id}}';">JOIN</div>
+                         <span class="c9 fs13 fwM ls05 pr12  taL back_not_now">NOT NOW</span ><div class="bs cT dIb fs13 fwM ls05 p120 taC vM footer_join" >JOIN</div>
                      </div>
         </div>
 
@@ -105,11 +111,37 @@ Are you sure, you want to leave this chat room? You can apply to join this commu
     <script>
 
 
+
+
+                           {% if request.user.is_authenticated %}
+                            <!--     MIXPANEL TRACKER -->
+
+                              var c = new Date()
+                              console.log(typeof c)
+                              x = c + ""
+
+                              console.log(typeof x)
+
+
+                              mixpanel.track("CR Link Clicked",{
+                                             "user_community_state":"{{mixpanel_event.user_community_state}}",
+                                             "click date": new Date() + "",
+                                             "creation date" : "{{collabcard.link_created_at}}",
+                                             "chatroom name": "{{header.title}}",
+                                             "chatroom type" : "{{collabcard.type}}"
+                                             })
+
+                             <!--    TRACKER ENDS    -->
+
+                             {% endif %}
+
+
         $(document.body).on('click','.member_link',function(e){
             var member_id = $(this).attr('member_id');
             {% if request.user.is_authenticated %}
                 {% if member_state.state == 0 and aj_expired == False %}
                             $('#join_popup').modal('show')
+
                 {% else %}
                     {% if member_state.state == 3 %}
                         $('#add_email_pop').modal('show');
@@ -317,6 +349,8 @@ Are you sure, you want to leave this chat room? You can apply to join this commu
         function showJoinPopUp(){
             {% if user.is_authenticated %}
 
+
+
             {% else %}
                 $('.test').modal('show');
             {% endif %}
@@ -337,10 +371,33 @@ Are you sure, you want to leave this chat room? You can apply to join this commu
         })
 
 
-             $(document.body).on('click','.back_not_now',function(e){
+       $(document.body).on('click','.back_not_now',function(e){
 
             $('#back_popup').modal('hide')
         })
+
+
+
+     $(document.body).on('click','.footer_join',function(e){
+
+
+       mixpanel.track("Community Join CR",{
+
+        "footer join click date" : new Date() + "",
+        "CR Name" : "{{collabcard.header}}",
+        "Community Name" : "{{collabcard.community_name}}",
+        "CR type": "{{collabcard.type}}",
+        "user_community_state":"{{mixpanel_event.user_community_state}}"
+
+       })
+
+       window.location.href="/community_questions/" + "{{community.id}}";
+
+
+     })
+
+
+
 
 
 
