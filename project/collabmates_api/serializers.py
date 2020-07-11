@@ -477,7 +477,7 @@ def get_chatroom_instance(card_instance,member_id):
     if collabcard_member:
         collabcard_serializer['member'] = collabcard_member[0]
     else:
-        collabcard_serializer['member'] = UserinfoSerializer(card_instance.user)
+        collabcard_serializer['member'] = UserinfoSerializer(card_instance.user.userinfo)
         collabcard_serializer['state'] = 0
 
 
