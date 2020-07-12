@@ -226,6 +226,15 @@ def create_subtype_fields(networking):
 
 
 
+def create_fieldTypes():
+
+    type_instance = communityFieldTypes()
+    type_instance.type = "Bussiness Networking"
+    type_instance.created_at = time.time()
+    type_instance.sub_type_header = "Bussiness Network"
+    type_instance.save()
+
+
 def create_introduction_fields(data,subtype,state,field):
 
 
@@ -422,6 +431,8 @@ def create_all_fields(networking):
 start_time = time.time()
 
 networking = get_bussiness_networking()
+
+create_fieldTypes()
 
 create_subtype_fields(networking)
 
