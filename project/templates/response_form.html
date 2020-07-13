@@ -762,7 +762,7 @@ You are one step away from being a part of this amazing community. Are you sure 
 
                                              mixpanel.track("Community Join Detail page",{
                                              "Community Name":"{{community.name}}",
-                                             "user_community_state":"{{mixpanel_event.user_community_state}}",
+                                             "User Community State":"{{mixpanel_event.user_community_state}}",
                                              "click date" : new Date() + ""
                                              })
 
@@ -805,6 +805,18 @@ You are one step away from being a part of this amazing community. Are you sure 
 
 
             $('.leave').click(function(){
+
+                mixpanel.track("Community Join Not Completed",{
+
+
+                "Click Date" : new Date() + "",
+                "Other Community Promotor": "{{analytics.other_community_promoter}}",
+                "Count Communities Joined":"{{analytics.community_member_count}}",
+                "Joined Communities Name":"{{analytics.community_list|safe}}"
+
+                })
+
+
                 window.history.back()
             })
 
