@@ -282,6 +282,17 @@
             var member_id= {{request.user.id}};
             var collabcard_id = {{collabcard.id}};
 
+
+                mixpanel.track("CR Responded",{
+
+                    "CR Name":"{{collabcard.name}}",
+                    "CR Type":"{{collabcard.type}}",
+                    "Count Communities Joined":"{{mixpanel_event.No_of_community_member}}",
+                    "User Community State":"{{mixpanel_event.user_community_state}}"
+                    })
+
+
+
             var msg = $('#comment_inp').val();
             if(msg == ''){return}
             var html= `
@@ -310,6 +321,8 @@
                     $('.commentStatus').delay(2000).fadeOut(300, function() { 
                         $(this).remove(); 
                     });
+
+
                 },
                 error: function(){
                     $('.cStatus').text('sent sucessfully');
@@ -318,6 +331,9 @@
                     });
                 }
             });
+
+
+
 
         }
 
