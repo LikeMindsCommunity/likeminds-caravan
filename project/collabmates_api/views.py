@@ -1556,7 +1556,6 @@ def remove_from_member(request):
            member_ids = unquote(member_ids)
            member_ids = json.loads(member_ids)
 
-           print(member_ids)
 
            for member in member_ids:
                 member_filter = Members.objects.filter(community_id=community_id,member_id=member)
@@ -1573,7 +1572,6 @@ def remove_from_member(request):
 
 
     #flow to leave the community
-
     if not is_promoter and member_ids == False:
 
         is_member=Members.objects.filter(community_id=community_id,member_id=member_id).filter(
@@ -1583,6 +1581,11 @@ def remove_from_member(request):
             return JsonResponse({'success':True})
         else:
             return JsonResponse({'success':False,'error_message':"You are not the member of this community"})
+
+    # else:
+    #
+    #     context = get_error_context(False,"You are the promoter of this community can't leave this community ")
+    #     return JsonResponse(context)
 
     return JsonResponse({'success':False})
 
@@ -1597,7 +1600,7 @@ def remove_members(community_id, member_id,removed_state):
         return
 
 
-    Member_Engage.objects.filter(community_id=community_id, member_id=member_id).delete()
+
     #communityAnswers.objects.filter(community=community_id, member=member_id).delete()
 
     is_member_left = removedMembers.objects.filter(community=community_id, member=member_id)
@@ -1612,7 +1615,17 @@ def remove_members(community_id, member_id,removed_state):
         print(update_staus)
 
 
-    Members.objects.filter(community_id=community_id, member_id=member_id).delete()
+    member_removerd = Members.objects.filter(community_id=community_id, member_id=member_id).delete()
+    #print(member_removerd)
+
+    engage_removed = Member_Engage.objects.filter(community_id=community_id, member_id=member_id).delete()
+    #print(engage_removed)
+
+    profile_removed = communityAnswers.objects.filter(community=community_id, member=member_id).delete()
+    #print(profile_removed)
+
+    intro_removed = Collabcard.objects.filter(community=community_id,user=member_id,type=card_types.CARD_INTRO).delete()
+    #print(intro_removed)
 
 
 
@@ -8547,4 +8560,12 @@ def get_event_super_properties_for_mixpanel(user_instance,community_instance):
             state=member_states.KNOWN_NOMINATED_PROMOTER)).count()
     context['No_of_community_member'] = communities_count
 
+
+    if settings.IS_BETA:
+        context['token'] = "eb1e03c8be370040278bff61a4857608"
+    else:
+        context['token'] = "7907eb37f46b1ac2908d3881e633a85e"
+
     return context
+
+
