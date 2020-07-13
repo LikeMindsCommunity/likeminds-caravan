@@ -3835,9 +3835,6 @@ def get_collabcard_details_for_web(request,card_instance,card,current_user_id,an
 
 
 
-
-
-
 def get_normal_chatroom_context(request,card_instance):
 
 
@@ -7032,6 +7029,8 @@ def edit_community(request):
     community_id = request.GET.get('community_id')
     member_id = get_member_id_from_headers(request)
     community = Community.objects.get(id=community_id)
+
+
     if not member_id:
         return JsonResponse({'success':False,'error_message':"Send member id in headers"})
     else:
@@ -7044,6 +7043,9 @@ def edit_community(request):
     if key == 'purpose':
         value = json_body['value']
         edit_community_purpose_collabcard(community_instance=community, member_instance=member_instance, purpose=value)
+        community.purpose = value
+        community.save()
+
 
     elif key == 'questions':
         questions = json_body['questions']
