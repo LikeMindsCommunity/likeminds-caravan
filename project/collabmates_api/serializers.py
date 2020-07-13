@@ -222,6 +222,8 @@ def CollabcardSerializer(card,user,community=None):
     collabcard['creator_share_url'] = share['creator_share_url']
     collabcard['link_created_at'] = share['link_created_at']
 
+    collabcard['chatroom_category'] = get_category_of_chatroom(card.type)
+
     return collabcard
 
 
@@ -386,6 +388,22 @@ def get_share_url_text(card,user_id):
 
     return share
 
+
+def get_category_of_chatroom(typ):
+
+
+    chatroom_type = "Normal Chatroom"
+
+    if typ == card_types.CARD_INTRO:
+        chatroom_type = "Introduction Chatroom"
+    elif typ == card_types.CARD_EVENT or typ == card_types.CARD_PUBLIC_EVENT:
+        chatroom_type = "Event Chatroom"
+    elif typ == card_types.CARD_POLL:
+        chatroom_type = "POLL Chatroom"
+    elif chatroom_type == card_types.CARD_PURPOSE:
+        chatroom_type = "Onboarding Chatroom"
+
+    return chatroom_type
 
 
 
