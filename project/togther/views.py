@@ -760,17 +760,18 @@ def members_directory(request, community_id):
     is_member = False
     user_email = ""
     member_state = 0
+    mixpanel_event = {}
     if request.user.is_authenticated:
-        #is_member=is_member_verified(community_id,request.user)
-        # member_instance_list = Members.objects.filter(community_id=community_id,member_id=request.user)
-        #
-        # if member_instance_list.exists():
-        #
-        #     member_state = member_instance_list[0].state
+
         temp = members_state(request,req_dict={'member_id':request.user.id,'community_id':community_id})
         member_state = temp['state']
         if member_state == member_states.ADMIN or member_state == member_states.MEMBER:
             is_member = True
+
+        community_instance = Community.objects.get(id=community_id)
+        user_instance = User.objects.get(id=request.user.id)
+
+        mixpanel_event = get_event_super_properties_for_mixpanel(user_instance,community_instance)
 
 
         user_email = request.user.userinfo.email
@@ -847,7 +848,9 @@ def members_directory(request, community_id):
         if member_string == "$":
             member_string = ""
         
-        context = {'members': member_string,'filter':questions,'option_data':dropdowns}
+        context = {'members': member_string,'filter':questions,'option_data':dropdowns,
+                   'mixpanel_event':mixpanel_event
+}
         return JsonResponse(context)
 
     community_instance = Community.objects.get(pk=community_id)
@@ -921,7 +924,9 @@ def members_directory(request, community_id):
         'selected':selected,
         'google_oauth_client_id': settings.GOOGLE_OAUTH_CLIENT_ID,
         'facebook_auth_id':settings.SOCIAL_AUTH_FACEBOOK_KEY,
-        'firebase_config': settings.FIREBASE_CONFIG
+        'firebase_config': settings.FIREBASE_CONFIG,
+        'mixpanel_event':mixpanel_event
+
     }
 
     return render(request, 'members.html', context)
@@ -993,26 +998,36 @@ def member_profile(request):
     image_link=""
 
     is_promoter=False
+    status = None
     if user_instance.exists():
         member_name = user_instance[0].userinfo.name
         image_link = user_instance[0].userinfo.image_link
-        is_promoter = Members.objects.filter(community_id=community_id, member_id=request.user.id).filter(
-                      state = member_states.ADMIN)
-        # members = Members.objects.filter(community_id=community_id,member_id=request.user.id)
-        # is_promoter = members.filter(state = member_states.ADMIN)
-        is_promoter=is_promoter.exists()
+
+        # is_promoter = Members.objects.filter(community_id=community_id, member_id=request.user.id).filter(
+        #               state = member_states.ADMIN)
         #
-        # is_member = members.filter(state=member_states.MEMBER)
-        # is_member = is_member.exists()
+        # is_promoter=is_promoter.exists()
         #
-        # if is_member and str(request.user.id) == str(member_id):
-        #     is_promoter = True
+
+        status = members_state(request,{'community_id':community_id,'member_id':request.user.id})
+
+        if status['state'] == 1:
+            is_promoter = True
+
     if not is_promoter and str(request.user.id) == str(member_id):
         is_promoter = True
 
     answer_list = get_member_profile(community_id,member_id,is_promoter=is_promoter)
 
-    json_response = {'answer_list':answer_list,'member_name':member_name,'image_link':image_link}
+    json_response = {
+
+        'answer_list':answer_list,
+        'member_name':member_name,
+        'image_link':image_link,
+        'member_state': get_member_community_status(status['state']) if status else 0,
+        'member_id': request.user.id
+
+        }
 
     return JsonResponse(json_response)
 
