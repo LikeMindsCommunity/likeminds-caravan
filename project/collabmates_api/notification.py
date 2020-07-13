@@ -16,7 +16,7 @@ from utility.celery_beat_tasks import CeleryBeatTask
 from utility.states import *
 import json
 from django.shortcuts import get_object_or_404
-
+import traceback
 # file to store configuration of the system
 
 
@@ -440,6 +440,7 @@ def send_follow_notification(card_id,user_id,answer):
 
 
     except (Exception, psycopg2.Error) as error:
+        traceback.print_exc()
         print ("Error while connecting to PostgreSQL", error)
 
 
@@ -470,6 +471,7 @@ def send_notification_to_tagged_users(card_id,answerer_name,answer,user_id,user_
 
 
     except (Exception, psycopg2.Error) as error:
+        traceback.print_exc()
         print ("Error while connecting to PostgreSQL", error)
 
 
