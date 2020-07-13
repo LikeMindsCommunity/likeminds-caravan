@@ -3,6 +3,13 @@
 {% block yeild %}
 
     {% include 'components/loader.html' %}
+
+
+       <head>
+             {% include 'scripts/mixpanel.html' with mixpanel_event=mixpanel_event %}
+             {% include 'scripts/create_user_mixpanel.html' with mixpanel_event=mixpanel_event request=request  %}
+
+        </head>
     
     <div class="container mxw960 mA mt56 ffR">
         
@@ -710,6 +717,9 @@
     {% include 'scripts/google_auth.html' with client_id=google_oauth_client_id  %}
     {% include 'scripts/facebook_auth.html' with facebook_auth_id=facebook_auth_id %}
     {% include 'scripts/linkedin_auth.html' with request=request %}
+
+    {% include 'scripts/mixpanel_chatroom_clicked.html'  with mixpanel_event=mixpanel_event request=request collabcard=collabcard %}
+
     
 {% endblock %}
 

@@ -110,32 +110,6 @@ Are you sure, you want to leave this chat room? You can apply to join this commu
 
     <script>
 
-
-
-
-                           {% if request.user.is_authenticated %}
-                            <!--     MIXPANEL TRACKER -->
-
-                              var c = new Date()
-                              console.log(typeof c)
-                              x = c + ""
-
-                              console.log(typeof x)
-
-
-                              mixpanel.track("CR Link Clicked",{
-                                             "User Community State":"{{mixpanel_event.user_community_state}}",
-                                             "click date": new Date() + "",
-                                             "Creation Date" : "{{collabcard.link_created_at}}",
-                                             "Chatroom Name": "{{header.title}}",
-                                             "Chatroom Type" : "{{collabcard.chatroom_category}}"
-                                             })
-
-                             <!--    TRACKER ENDS    -->
-
-                             {% endif %}
-
-
         $(document.body).on('click','.member_link',function(e){
             var member_id = $(this).attr('member_id');
             {% if request.user.is_authenticated %}
@@ -408,9 +382,13 @@ Are you sure, you want to leave this chat room? You can apply to join this commu
 
 
 
+
+    {% include 'scripts/mixpanel_chatroom_clicked.html' with  mixpanel_event=mixpanel_event request=request collabcard=collabcard %}
     {% include 'scripts/google_auth.html' with client_id=google_oauth_client_id  %}
     {% include 'scripts/facebook_auth.html' with facebook_auth_id=facebook_auth_id %}
     {% include 'scripts/linkedin_auth.html' with request=request %}
+
+
 
 {% endblock %}
 
