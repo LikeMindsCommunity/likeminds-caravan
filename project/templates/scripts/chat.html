@@ -148,6 +148,7 @@
         $('.answerText').removeClass('answerText');
         window.fetching_chatroom = null;
         $('#comments').scrollTop($('#comments')[0].scrollHeight);
+
         $(document.body).on('click','#follow_poll',function(e){
             {% if request.user.is_authenticated %}
                 {% if member_state.state == 0 %}
@@ -157,6 +158,22 @@
                 {% elif member_state.state == 3 %}
                     $('#add_email_pop').modal('show');
                 {% else %}
+
+
+       mixpanel.track("CR Followed",{
+
+        "footer join click date" : new Date() + "",
+        "CR Name" : "{{collabcard.header}}",
+        "Community Name" : "{{collabcard.community_name}}",
+        "CR type": "{{collabcard.type}}",
+        "User Community State" : "{{mixpanel_event.user_community_state}}",
+        "Life Time CR Followed" : "{{mixpanel_event.No_of_Chatrooms_Followed}}",
+        "Count Communities Joined":"{{mixpanel_event.No_of_community_member}}",
+        "Life Time Unique CR Responded":"{{mixpanel_event.No_of_unique_cr_responded}}"
+
+
+       })
+
                     var status = true;//$(this).attr('data-status');
                     // console.log(status)
                     $(".ldrT", $('#loader')[0]).text(`Requesting to follow chatroom...`);

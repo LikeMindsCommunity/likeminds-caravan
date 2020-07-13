@@ -8561,6 +8561,10 @@ def get_event_super_properties_for_mixpanel(user_instance,community_instance):
     context['No_of_community_member'] = communities_count
 
 
+    distinct_cr_count = card_answers.objects.filter(user=user_instance).distinct('card_id').count()
+    context['No_of_unique_cr_responded'] = distinct_cr_count
+
+
     if settings.IS_BETA:
         context['token'] = "eb1e03c8be370040278bff61a4857608"
     else:

@@ -304,13 +304,17 @@ def community_questions(request,params):
 
     user_instance = None
     state = 0
-
+    analytics = {}
     if request.user.is_authenticated:
         user_instance = request.user
         state = members_state(request,req_dict={'community_id':community_id,'member_id':user_instance.id})
 
         if state['state'] != 0:
             return redirect('community',community_id=community_id)
+
+        analytics = get_community_join_analytics(user_instance)
+
+
 
 
     if request.method == "GET":
@@ -336,7 +340,8 @@ def community_questions(request,params):
                     'google_oauth_client_id': settings.GOOGLE_OAUTH_CLIENT_ID,
                     'facebook_auth_id': settings.SOCIAL_AUTH_FACEBOOK_KEY,
                     'firebase_config': settings.FIREBASE_CONFIG,
-                     'user_directory': user_directory
+                     'user_directory': user_directory,
+                     'analytics':analytics
 
                    }
 
@@ -511,6 +516,27 @@ def get_join_community_context(request, ref_id, aj, validation_error, user, data
         context['auto_join'] = auto_join
 
     return context
+
+
+def get_community_join_analytics(user_instance):
+
+    analytics = {}
+    community_list = []
+    promoter_count = Members.objects.filter(member_id=user_instance.id, state=member_states.ADMIN).count()
+
+    member_filter = Members.objects.filter(member_id=user_instance.id).filter(
+        Q(state=member_states.MEMBER) | Q(state=member_states.KNOWN_NOMINATED_PROMOTER))
+    community_member_count = member_filter.count()
+    for member in member_filter:
+
+        community_list.append(member.community_id.name)
+
+    analytics['community_list'] = community_list
+    analytics['community_member_count'] = community_member_count
+    analytics['other_community_promoter'] = True if promoter_count > 1 else False
+
+    return analytics
+
 
 
 
