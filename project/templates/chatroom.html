@@ -124,7 +124,7 @@ Are you sure, you want to leave this chat room? You can apply to join this commu
 
 
                               mixpanel.track("CR Link Clicked",{
-                                             "user_community_state":"{{mixpanel_event.user_community_state}}",
+                                             "User Community State":"{{mixpanel_event.user_community_state}}",
                                              "click date": new Date() + "",
                                              "creation date" : "{{collabcard.link_created_at}}",
                                              "chatroom name": "{{header.title}}",
@@ -387,7 +387,7 @@ Are you sure, you want to leave this chat room? You can apply to join this commu
         "CR Name" : "{{collabcard.header}}",
         "Community Name" : "{{collabcard.community_name}}",
         "CR type": "{{collabcard.type}}",
-        "user_community_state":"{{mixpanel_event.user_community_state}}"
+        "User Community State":"{{mixpanel_event.user_community_state}}"
 
        })
 
