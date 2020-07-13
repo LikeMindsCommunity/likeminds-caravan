@@ -5,7 +5,7 @@
     {% include 'components/loader.html' %}
 
        <head>
-             {% include 'scripts/mixpanel.html' %}
+             {% include 'scripts/mixpanel.html' with mixpanel_event=mixpanel_event %}
              {% include 'scripts/create_user_mixpanel.html' with mixpanel_event=mixpanel_event request=request  %}
 
         </head>
