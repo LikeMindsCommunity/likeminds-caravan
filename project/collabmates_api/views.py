@@ -1865,7 +1865,7 @@ def get_basic_directory_options(request):
         context = get_error_context(False,"send type  sub_type  in get params")
         return JsonResponse(context)
 
-    field_filter = communityField.objects.filter(type=type_id,sub_type=sub_type_id).order_by('-rank')
+    field_filter = communityField.objects.filter(type=type_id,sub_type=sub_type_id).filter(~Q(state=question_states.GOOGLE_CITY_FETCH)).order_by('-rank')
 
     questions = []
     for field in field_filter:
