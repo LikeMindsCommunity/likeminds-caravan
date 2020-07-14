@@ -6962,17 +6962,25 @@ def push(request):
 
     member_id = request.GET.get('member_id', '')
     token = request.GET.get('token', '')
-    print('member_id ===>>> ', member_id)
     if member_id:
         is_member = Userinfo.objects.filter(user_id=member_id)
     else:
         is_member = None
+
+    info_logger.info("Push Notification hit without member id")
     success = False
     if is_member:
+
         success = True
-        if not is_member[0].fcm_token:
-            send_welcome_mail.delay(member_id)
+        # if not is_member[0].fcm_token:
+        #     send_welcome_mail.delay(member_id)
         fcm_token = Userinfo.objects.filter(user_id=member_id).update(fcm_token=token)
+
+        info_logger.info("Push Notification hit without member id")
+        info_logger.info(member_id)
+        info_logger.info(token)
+        info_logger.info(fcm_token)
+
 
     return JsonResponse({'success': success})
 
