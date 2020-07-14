@@ -926,6 +926,8 @@ class communityFieldTypes(models.Model):
 
     type = models.TextField(null=True)
     sub_type_header = models.TextField(null=True)
+    sub_type_placeholder = models.TextField(null=True)
+
     created_at = models.BigIntegerField(default=0)
 
     def save(self, *args, **kwargs):
