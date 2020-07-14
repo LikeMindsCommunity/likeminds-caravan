@@ -749,20 +749,28 @@ def CommunityQuestionsSerializer(community_question_instance):
 
 def communityTypeSerializer(communityTypeInstance):
 
-    return {
+    context ={
 
         'id':communityTypeInstance.id,
         'type':communityTypeInstance.typ,
         'next_input_title':communityTypeInstance.next_input_title
     }
 
+    if communityTypeInstance.sub_type_placeholder:
+        context['sub_type_placeholder'] = communityTypeInstance.sub_type_placeholder
+
+    return context
+
 
 def communitySubtypeSerializer(communitySubtypeInstance):
 
-    return {
+    context = {
         'id':communitySubtypeInstance.id,
         'sub_type':communitySubtypeInstance.sub_typ
     }
+
+    return  context
+
 
 
 def masterQuestionSerializer(masterQuestionInstance):
