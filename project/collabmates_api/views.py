@@ -6976,7 +6976,7 @@ def push(request):
         #     send_welcome_mail.delay(member_id)
         fcm_token = Userinfo.objects.filter(user_id=member_id).update(fcm_token=token)
 
-        info_logger.info("Push Notification hit without member id")
+        info_logger.info("Push Notification hit with member id")
         info_logger.info(member_id)
         info_logger.info(token)
         info_logger.info(fcm_token)
