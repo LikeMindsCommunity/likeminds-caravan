@@ -4504,7 +4504,7 @@ def create_introduction_card_placeholder(card_instance,user_id):
         return
 
     if card_instance.type == card_types.CARD_INTRO and card_instance.user.id != user_instance.id:
-        placeholder = """Welcome to the """+ card_instance.community.name +", "
+        placeholder = """Welcome to """+ card_instance.community.name +", "
         user_name = card_instance.user.userinfo.name
         user_route = "route://member_profile/" + str(card_instance.user.id)
         user_name = "<<" + user_name + "|" + user_route + ">>"
