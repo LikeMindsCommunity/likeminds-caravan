@@ -1433,31 +1433,14 @@ def get_community_questions(community_id):
 
             if temp['question_state'] == 1 or temp['question_state'] == 2:
 
-                if each_question.value[0] == '[':
-                    each_question.value = each_question.value[1:]
-                if each_question.value[-1] == ']':
-                    each_question.value = each_question.value[:-1]
 
-                if '$#' in each_question.value:
-                    dropdown_list = each_question.value.split("$#")
-                else:
-                    dropdown_list = each_question.value.split(",")
+                dropdown_options = json.loads(each_question.value) if each_question.value else []
 
-                for index, item in enumerate(dropdown_list):
-                    item = item.strip()
-                    if item[0] == '"':
-                        item = item[1:]
-                    if item[-1] == '"':
-                        item = item[:-1]
-                    community_state = each_question.community.hide_community
+                dropdown_list = []
 
-                    find_index = item.find(":")
-                    if find_index != -1:
-                        item = item[find_index+1:-1].strip()
-                        if item[0] == '"' or item[0] == "'":
-                            item = item[1:-1]
+                for option in dropdown_options:
+                    dropdown_list.append((option['value']))
 
-                    dropdown_list[index] = item
 
                 if 'Other' not in dropdown_list:
                     temp['dropdown_list'] = dropdown_list
