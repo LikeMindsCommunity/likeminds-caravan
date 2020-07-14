@@ -141,7 +141,9 @@ def CollabcardSerializer(card,user,community=None):
         'attending_count': card.attending_count,
         'polls_count': card.polls_count,
         'card_creation_time' : time.strftime('%B %d at %H:%M',time.localtime(card.date_epoch)),
-        "community_name" : card.community.name
+        "community_name" : card.community.name,
+        "date" : time.strftime('%d %b %Y', time.localtime(card.date_epoch)),
+        "created_at":time.strftime('%H:%M', time.localtime(card.date_epoch))
     }
 
     if user and int(user) == card.user.id:
@@ -520,9 +522,9 @@ def get_chatroom_instance(card_instance,member_id):
 
 
 
-    # get time stamp for card
-    time_text = get_time_text(card_instance.date_epoch)
-    collabcard_serializer['created_at'] = time_text
+    # # get time stamp for card
+    # time_text = get_time_text(card_instance.date_epoch)
+    # collabcard_serializer['created_at'] = time_text
 
 
     return collabcard_serializer
