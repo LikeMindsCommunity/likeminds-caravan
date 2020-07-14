@@ -195,22 +195,22 @@ ONBOARDING_EXAMPLES = [
     "title" : "IIT Delhi Entrepreneurs in NCR",
     "sub_title":"This community is created for all the Alumni of IIT Delhi residing in and around Delhi-NCR. We can empower each other and the grow in our path. No spams are accepted. Violators will be removed from the community."
 
-    },
-
-    {
-    "header":"Sample community purposes-1",
-    "sub_header" : "Here are few examples of other communities’ purpose.",
-    "title" : "IIT Delhi Entrepreneurs in NCR",
-    "sub_title":"This community is created for all the Alumni of IIT Delhi residing in and around Delhi-NCR. We can empower each other and the grow in our path. No spams are accepted. Violators will be removed from the community.This community is created for all the Alumni of IIT Delhi residing in and around Delhi-NCR. We can empower each other and the grow in our path. No spams are accepted. Violators will be removed from the community.This community is created for all the Alumni of IIT Delhi residing in and around Delhi-NCR. We can empower each other and the grow in our path. No spams are accepted. Violators will be removed from the community."
-
-    },
-
-    {
-    "header":"Sample community purposes-2",
-    "sub_header" : "Here are few examples of other communities’ purpose.",
-    "title" : "IIT Delhi Entrepreneurs in NCR",
-    "sub_title":"This community is created for all the Alumni of IIT Delhi residing in and around Delhi-NCR. We can empower each other and the grow in our path. No spams are accepted. Violators will be removed from the community.This community is created for all the Alumni of IIT Delhi residing in and around Delhi-NCR. We can empower each other and the grow in our path. No spams are accepted. Violators will be removed from the community.This community is created for all the Alumni of IIT Delhi residing in and around Delhi-NCR. We can empower each other and the grow in our path. No spams are accepted. Violators will be removed from the communityThis community is created for all the Alumni of IIT Delhi residing in and around Delhi-NCR. We can empower each other and the grow in our path. No spams are accepted. Violators will be removed from the community.This community is created for all the Alumni of IIT Delhi residing in and around Delhi-NCR. We can empower each other and the grow in our path. No spams are accepted. Violators will be removed from the community.This community is created for all the Alumni of IIT Delhi residing in and around Delhi-NCR. We can empower each other and the grow in our path. No spams are accepted. Violators will be removed from the community.This community is created for all the Alumni of IIT Delhi residing in and around Delhi-NCR. We can empower each other and the grow in our path. No spams are accepted. Violators will be removed from the community.This community is created for all the Alumni of IIT Delhi residing in and around Delhi-NCR. We can empower each other and the grow in our path. No spams are accepted. Violators will be removed from the community.This community is created for all the Alumni of IIT Delhi residing in and around Delhi-NCR. We can empower each other and the grow in our path. No spams are accepted. Violators will be removed from the community.This community is created for all the Alumni of IIT Delhi residing in and around Delhi-NCR. We can empower each other and the grow in our path. No spams are accepted. Violators will be removed from the community.This community is created for all the Alumni of IIT Delhi residing in and around Delhi-NCR. We can empower each other and the grow in our path. No spams are accepted. Violators will be removed from the community.This community is created for all the Alumni of IIT Delhi residing in and around Delhi-NCR. We can empower each other and the grow in our path. No spams are accepted. Violators will be removed from the community.."
-
     }
+
+    # {
+    # "header":"Sample community purposes-1",
+    # "sub_header" : "Here are few examples of other communities’ purpose.",
+    # "title" : "IIT Delhi Entrepreneurs in NCR",
+    # "sub_title":"This community is created for all the Alumni of IIT Delhi residing in and around Delhi-NCR. We can empower each other and the grow in our path. No spams are accepted. Violators will be removed from the community.This community is created for all the Alumni of IIT Delhi residing in and around Delhi-NCR. We can empower each other and the grow in our path. No spams are accepted. Violators will be removed from the community.This community is created for all the Alumni of IIT Delhi residing in and around Delhi-NCR. We can empower each other and the grow in our path. No spams are accepted. Violators will be removed from the community."
+    #
+    # },
+    #
+    # {
+    # "header":"Sample community purposes-2",
+    # "sub_header" : "Here are few examples of other communities’ purpose.",
+    # "title" : "IIT Delhi Entrepreneurs in NCR",
+    # "sub_title":"This community is created for all the Alumni of IIT Delhi residing in and around Delhi-NCR. We can empower each other and the grow in our path. No spams are accepted. Violators will be removed from the community.This community is created for all the Alumni of IIT Delhi residing in and around Delhi-NCR. We can empower each other and the grow in our path. No spams are accepted. Violators will be removed from the community.This community is created for all the Alumni of IIT Delhi residing in and around Delhi-NCR. We can empower each other and the grow in our path. No spams are accepted. Violators will be removed from the communityThis community is created for all the Alumni of IIT Delhi residing in and around Delhi-NCR. We can empower each other and the grow in our path. No spams are accepted. Violators will be removed from the community.This community is created for all the Alumni of IIT Delhi residing in and around Delhi-NCR. We can empower each other and the grow in our path. No spams are accepted. Violators will be removed from the community.This community is created for all the Alumni of IIT Delhi residing in and around Delhi-NCR. We can empower each other and the grow in our path. No spams are accepted. Violators will be removed from the community.This community is created for all the Alumni of IIT Delhi residing in and around Delhi-NCR. We can empower each other and the grow in our path. No spams are accepted. Violators will be removed from the community.This community is created for all the Alumni of IIT Delhi residing in and around Delhi-NCR. We can empower each other and the grow in our path. No spams are accepted. Violators will be removed from the community.This community is created for all the Alumni of IIT Delhi residing in and around Delhi-NCR. We can empower each other and the grow in our path. No spams are accepted. Violators will be removed from the community.This community is created for all the Alumni of IIT Delhi residing in and around Delhi-NCR. We can empower each other and the grow in our path. No spams are accepted. Violators will be removed from the community.This community is created for all the Alumni of IIT Delhi residing in and around Delhi-NCR. We can empower each other and the grow in our path. No spams are accepted. Violators will be removed from the community.This community is created for all the Alumni of IIT Delhi residing in and around Delhi-NCR. We can empower each other and the grow in our path. No spams are accepted. Violators will be removed from the community.."
+    #
+    # }
 
 ]
