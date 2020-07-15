@@ -2777,6 +2777,8 @@ def add_admin(request, community_id):
 
         info_logger.info(update_status_member)
 
+        send_notification_to_new_promoter.delay({'nominated_admin':nominated_admin,'community_id':community_id})
+
         info_logger.info("----------------add admin api end --------------\n")
 
 
@@ -6876,6 +6878,7 @@ def members_state(request,req_dict=None):
 
 
     json_response['member'] = get_user_profile(member_id,community_id)
+    json_response['member']['state'] = state
 
     if req_dict:
         return json_response
