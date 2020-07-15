@@ -39,10 +39,6 @@ def send_notification_for_android(token_list,message):
 
     '''function to send notification to android'''
 
-    token_list = [
-'f-f5zskVx4k:APA91bGcrkURyemHlC1pX4kZMZ-jeMEUbewedji_W1z8gbHa8J7flMhMu1qEa5-u8ZVlzoG6VwAUinmga-SiGkZK4EV7haYC3KyoW79Xj8_p5vzuryP6j0ecv9C_usI9HHhktio7HibX'                  ]
-
-
     result=""
     push_service = FCMNotification(api_key=server_key)
     result = push_service.notify_multiple_devices(registration_ids=token_list,
@@ -50,9 +46,6 @@ def send_notification_for_android(token_list,message):
                                                   message_body="Testing in progress")
     print(result)
 
-#
-# token_list = []
-# send_notification_for_android(token_list,"")
 
 def send_notification_for_ios(token_list, message):
 
