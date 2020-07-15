@@ -1,0 +1,29 @@
+<script>
+
+            function create_user_in_mixpanel(){
+
+            {% if request.user.is_authenticated %}
+
+                var USER_ID = "{{mixpanel_event.user_unique_id}}";
+                mixpanel.identify(USER_ID);
+
+                  mixpanel.people.set({
+
+                  "name":"{{mixpanel_event.name}}",
+                  "$email": "{{mixpanel_event.email}}",
+                  "user_unique_id": "{{mixpanel_event.user_unique_id}}",
+                  "first_login_date": "{{mixpanel_event.first_login_date}}",
+                  "No_of_Chatrooms_Followed": "{{mixpanel_event.No_of_Chatrooms_Followed}}",
+                  "No_of_community_member": "{{mixpanel_event.No_of_community_member}}"
+
+
+                });
+
+            {% endif %}
+
+
+        }
+
+
+create_user_in_mixpanel()
+</script>

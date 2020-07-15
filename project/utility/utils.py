@@ -19,7 +19,7 @@ from random import randint
 from django.conf import settings
 from user_agents import parse
 import time
-from datetime import datetime
+from datetime import datetime,date
 import dateutil.relativedelta
 from .states import *
 # cache details
@@ -83,13 +83,19 @@ def is_member_verified(community,user_instance):
         Q(state=member_states.ADMIN)|Q(state=member_states.TEMP_ADMIN)|
         Q(state=member_states.MEMBER)|Q(state=member_states.KNOWN_NOMINATED_PROMOTER))
 
-    return is_verified.exists()
+    if is_verified.exists():
+        return is_verified[0]
+    return False
 
 def is_member_promoter(community_id,member_id):
 
     is_promoter = Members.objects.filter(community_id=community_id,member_id=member_id,state=member_states.ADMIN)
 
-    return is_promoter.exists()
+    if is_promoter.exists():
+
+        return is_promoter[0].member_id
+
+    return False
 
 def is_member_pending(community_id, member_id):
 
@@ -103,6 +109,17 @@ def is_member_present(community_id,member_id):
                                        member_id=member_id).filter(Q(state=member_states.MEMBER)
                                                                    |Q(state=member_states.KNOWN_NOMINATED_PROMOTER))
     return is_member.exists()
+
+
+def get_members_count_in_community(community_id):
+
+    '''function to get members count in a community'''
+
+    instance = Members.objects.filter(community_id=community_id).filter(
+        Q(state=member_states.ADMIN) | Q(state=member_states.TEMP_ADMIN) |
+        Q(state=member_states.MEMBER) | Q(state=member_states.KNOWN_NOMINATED_PROMOTER))
+
+    return instance.count()
 
 
 #community related functions
@@ -157,6 +174,74 @@ def generate_random(unique_code_list):
 
   return generate_random(unique_code_list) if randInt in unique_code_list else randInt
 
+
+
+
+#private link generation for chatrooms
+def generate_private_link_for_chatroom(card_instance,user_instance):
+
+    '''function to generate private links for chatrooms'''
+
+
+    chatroom_expire_filter = chatroomExpiryCodes.objects.filter(card=card_instance,source=user_instance).order_by('-id')
+    unique_code_list = list(chatroom_expire_filter.values_list('unique_code',flat=True))
+
+    temp = {}
+
+    if not unique_code_list:
+
+        unique_code = generate_random(unique_code_list)
+        expireInstance = chatroomExpiryCodes()
+        expireInstance.card = card_instance
+        expireInstance.source = user_instance
+        expireInstance.created_at = time.time()
+        expireInstance.unique_code = unique_code
+        expireInstance.private_link = url + '/collabcard/' + str(card_instance.id) + "?aj=" + str(
+            unique_code) + "&source_id=" + str(user_instance.id)
+
+        expireInstance.expire_duration = 86400
+        expireInstance.save()
+
+        temp['private_link'] = expireInstance.private_link
+        temp['private_link_created_at'] = get_date_time_from_timestamp(expireInstance.created_at)
+
+        return temp
+
+    else:
+
+        current_time = int(time.time())
+        last_created_time = chatroom_expire_filter[0].created_at
+
+        if current_time - last_created_time > 3600:
+            unique_code = generate_random(unique_code_list)
+            expireInstance = chatroomExpiryCodes()
+            expireInstance.card = card_instance
+            expireInstance.source = user_instance
+            expireInstance.created_at = time.time()
+            expireInstance.unique_code = unique_code
+            expireInstance.private_link = url + '/collabcard/' + str(card_instance.id) + "?aj=" + str(unique_code)+"&source_id="+str(user_instance.id)
+
+            expireInstance.expire_duration = 86400
+            expireInstance.save()
+
+            temp['private_link'] = expireInstance.private_link
+            temp['private_link_created_at'] = get_date_time_from_timestamp(expireInstance.created_at)
+
+            return temp
+
+    temp['private_link'] = chatroom_expire_filter[0].private_link
+    temp['private_link_created_at'] = get_date_time_from_timestamp(chatroom_expire_filter[0].created_at)
+
+    return temp
+
+
+def get_date_time_from_timestamp(timestamp):
+
+    return time.strftime('%d/%m/%y %H:%M', time.localtime(timestamp))
+
+
+
+
 def decode_option(value):
 
     if not value:
@@ -210,6 +295,8 @@ def decode_meta_from_url(url):
     og_tags['url']=url
     return og_tags
 
+
+
 def get_time_text(created_time):
     """ function to get time stamp """
 
@@ -254,6 +341,23 @@ def get_time_text(created_time):
     else:
         # if difference is in seconds
         return "Just Now"
+
+
+def get_time_text_for_my_chatrooms(updated_at):
+
+    current_time = time.time()
+    current_date = datetime.fromtimestamp(current_time).date()
+    previous_date =  datetime.fromtimestamp(updated_at).date()
+    difference = current_date  - previous_date
+
+    if difference.days == 1:
+        return "Yesterday"
+    elif difference.days > 1:
+        return time.strftime('%d/%m/%y', time.localtime(updated_at))
+    else:
+        return time.strftime('%H:%M', time.localtime(updated_at))
+
+
 
 
 def get_nominated_admin_details(community_id,email):

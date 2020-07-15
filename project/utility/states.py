@@ -7,17 +7,21 @@ class CollabcardTypes:
     CARD_EVENT = 2
     CARD_POLL = 3
     CARD_FEEDBACK = 4
+    CARD_HIDDEN = 4
     CARD_PUBLIC_EVENT = 6
     CARD_PURPOSE = 7
 
 card_types = CollabcardTypes()
 
 class CollabcardStates:
+
+    COLLABCARD_STATE_UNSEEN = 0
     COLLABCARD_STATE_SEEN = 1
     COLLABCARD_STATE_FOLLOW = 2
 
     COLLABCARD_STATE_UNATTEND_FOLLOWING = COLLABCARD_STATE_FOLLOW
     COLLABCARD_STATE_ATTEND_FOLLOWING = 3
+    COLLABCARD_STATE_ATTENDING = 3
     COLLABCARD_STATE_ATTEND_UNFOLLOWING = 4
 
 
@@ -31,6 +35,9 @@ class ChatroomStates:
     CHATROOM_FOLLOW = 2
     CHATROOM_UNFOLLOW = 3
     CHATROOM_CREATER = 4
+    CHATROOM_PURPOSE_EDIT = 5
+
+    CHATROOM_GUEST = 6
 
 chatroom_states = ChatroomStates()
 
@@ -43,6 +50,9 @@ multiple_select_poll = MultipleSelectPoll()
 
 # member state
 class MemberStates:
+
+    GUEST = 0
+
     ADMIN = 1
     TEMP_ADMIN = 2
     PENDING_MEMBER = 3
@@ -51,7 +61,7 @@ class MemberStates:
     UNKNOWN_NOMINATED_PROMOTER = 6
     KNOWN_NOMINATED_PROMOTER = 7
     INTERESTED_MEMBER = 8
-    ELIGIBLE_MEMBER = 9
+    PROFILE_UNAVAILABLE = 9
 
 member_states = MemberStates()
 
@@ -117,6 +127,8 @@ class QuestionStates:
     MOBILE_NO = 9
     EMAIL_ID = 10
 
+    GOOGLE_CITY_FETCH = 11
+
 question_states=QuestionStates()
 
 
@@ -139,3 +151,37 @@ class EmailStates:
     PRIMARY = 1
 
 email_states = EmailStates()
+
+
+
+
+
+class CommunityLevelsState:
+
+    PENDING = 0
+    COMPLETE = 1
+    LOCKED = 2
+
+community_level_states = CommunityLevelsState()
+
+
+class ClickState:
+
+    DEFAULT = 0
+    SET_COMMUNITY = 1
+    PENDING_APPROVAL = 2
+
+    SET_PURPOSE = 3
+    SKIP_COMMUNITY = 4
+
+click_states = ClickState()
+
+
+
+class LevelClickStates:
+
+    DEFAULT = 0
+    DIRECTORY_CREATED = 1
+    COMMUNITY_JOINED = 2
+
+level_click_states = LevelClickStates()

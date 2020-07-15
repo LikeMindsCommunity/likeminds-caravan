@@ -22,9 +22,9 @@ from utility.utils import (get_city_address, update_tag_image,
                            update_user_geography_tags, create_or_categorize_tag,
                            referal, insert_user_home_town_tags, user_onbaord,
                            is_request_android, is_request_ios,
-                           is_request_pc, android_app_download_link, is_IG_community, ios_app_download_link,is_member_verified,feedback_community_id,decode_option)
+                           is_request_pc, android_app_download_link, is_IG_community, ios_app_download_link,is_member_verified,feedback_community_id,decode_option,get_members_count_in_community)
 from utility.firebase import upload_image_to_firebase
-from urllib.parse import urlencode, quote
+from urllib.parse import urlencode, quote,unquote
 from collabmates_api.tasks import send_email
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from user_agents import parse
@@ -219,222 +219,207 @@ def get_user_communities(request):
 
 def community(request, community_id):
 
+
+    aj = request.GET.get('aj', False)                           #auto join check functionality
+    source = request.GET.get('source')
+    if aj and is_request_android(request) and not source:
+
+        private_link = "https://" + request.META['HTTP_HOST'] +"/community/"+str(community_id)+"?aj="+str(aj)
+        # redirect_link =  android_app_download_link
+        # #check = android_app_download_link+"&referrer=utm_source"+ quote("""utm_source=google &utm_medium=cpc &utm_term=checking &utm_content=testing &utm_campaign=spring_sale&private_link=https://beta.likeminds.community/community/53?aj=123456""")
+        #
+        playstore_ref_link = android_app_download_link+"""&referrer=%s"""%(quote(private_link))
+        return redirect(playstore_ref_link)
+
+
+    # print(aj)
+    # print(source)
+    #profile = request.GET.get('profile')
+
+    profile_list = []
+
+    #flow for saving the community questions
+    state = 0
+    user_instance = None
     is_member = False
+
+    user_context = {}
+    user_context['current_user_request_date'] = 0
     if request.user.is_authenticated:
-        try:
-            user = Userinfo.objects.get(user_id=request.user.id)
-            print("user", request.user.id)
-        except:
-            user = update_user_info(request)
+        state_data = members_state(request,{'community_id':community_id,'member_id':request.user.id})
+        state = state_data['state']
+        user_context['current_user_request_date']= state_data['created_at']
+        user_instance = request.user
+        # if profile:
+        #     profile_list = get_member_profile(community_id,user_instance.id)
         is_member = is_member_verified(community_id,request.user)
 
-    community = get_object_or_404(Community, pk=community_id)
+    if state == 0:
 
-    # ----- accept admin APi part ---------------
-    res = request.GET.dict()
-    source = request.GET.get('source', '')
-
-    # --------- referal part ----------------------
-
-    ref_id = request.GET.get('ref_id', '')
-
-    profile = request.GET.get('profile', None)                  #for showing the pop-up on display screen
-
-    aj = request.GET.get('aj', False)
-
-    cta = ''
-
-    if aj:
-        member_state = 0
-        if request.user.is_authenticated:
-            member = Members.objects.filter(member_id=request.user, community_id=community)
-            member_state = member[0].state if member.exists() else 0
-
-        questions, validation_error, user, data, community, filled_answers = join_community(request, community_id, ref_id, aj=aj, member_state=member_state)
-        if questions:
-            if member_state == 0 or member_state == 5:
-                context = get_join_community_context(request, ref_id, aj, validation_error, user, data, community, filled_answers)
-                context['google_oauth_client_id'] = settings.GOOGLE_OAUTH_CLIENT_ID
-                context['facebook_auth_id'] = settings.SOCIAL_AUTH_FACEBOOK_KEY
-                return render(request, 'response_form.html', context)
-
+        if aj and source:
+            params = str(community_id)+"+"+str(aj)+"+"+str(source)
         else:
-            pass
+            params = community_id
+        return redirect('community_questions',params=params)
 
-    if 'cta' in res:
+    community_instance = Community.objects.get(id=community_id)
 
-        cta = res['cta']
+    context = get_community_context(request,community_instance,user_instance,state,profile_list,is_member,user_context)
 
-        cta_split = cta.split("-")
-        print(cta_split)
-        cta = cta_split[0]
-
-        if len(cta_split) == 3:
-
-            if cta_split[1] == "ref_id":
-                ref_id = cta_split[2]
-            elif cta_split[1] == "aj":
-                aj = cta_split[2]
-
-        # -------------------- auto join functionality ---------------------------------
-        if cta == 'join' and request.user.is_authenticated:
-
-            member = Members.objects.filter(member_id=request.user, community_id=community)
-            member_state = member[0].state if member.exists() else 0
-
-            questions, validation_error, user, data, community, filled_answers = join_community(request, community_id,
-                                                                                                ref_id,aj=aj,member_state=member_state)
-            if questions:
-
-                # data = itertools.zip_longest(data,filled_answers,fillvalue='')
-                if member_state == 0 or member_state == 5:
-                    header = {
-                        'back': True,
-                        'title': 'Welcome to LikeMinds!',
-                        'subTitle': False,
-                        'background': '_',
-                        'color': 'F'
-                    }
-                    header_showcase = {
-                        'image': 'https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Fresponse_header?alt=media',
-                        'header': 'You are interested in joining this community:',
-                        'subHeader': community.name,
-                        'userImage': request.user.userinfo.image_link
-                    }
-
-                    context = {"data": data, 'usr': user, 'header': header,
-                                'community': community, 'ref_id': ref_id,
-                                'validation_error': validation_error,
-                                'filled_answers': filled_answers,
-                                'aj':aj,'header_showcase':header_showcase,
-                                'google_oauth_client_id': settings.GOOGLE_OAUTH_CLIENT_ID,
-                                'facebook_auth_id': settings.SOCIAL_AUTH_FACEBOOK_KEY
-
-                               }
-                    #print(context)
-                    return render(request, 'response_form.html', context)
-                else:
-                    isFromEvent = request.GET.get('event', '')
-                    isFromPoll = request.GET.get('poll', '')
-                    # if from event/poll page and already a member redirect to event/poll page
-                    if isFromEvent:
-                        return redirect("/collabcard/"+isFromEvent+"?email=true")
-                    elif isFromPoll:
-                        return redirect("/collabcard/"+isFromPoll+"?email=true")
-                    else:
-                        pass
-            else:
-                if request.is_ajax:
-                    return JsonResponse({'success': True})
-                else:
-                    if community.hide_community == '5':
-                        return redirect("/community/"+str(community_id)+"?profile="+str(request.user.id))
-                    else:
-                        return redirect("refer_members", community_id)
-        elif cta == 'share':
-            cta = 'join'
+    return render(request,'community.html',context)
 
 
+
+
+
+
+def community_questions(request,params):
+
+
+    '''function to get community questions'''
+
+    url_details = {}
+    user_directory = False
+    chatroom_deleted = None
+    if params.find("+") == -1:
+        community_id = params
     else:
-        cta = ''
+        params = params.split("+")
 
-    # if user does not have a email linked to his account, ask for a email
-    request_user_email = False
+        if len(params) == 3:
+            community_id = params[0]
+            user_directory = True
+            url_details['community_id'] = params[0]
+            url_details['aj'] = params[1]
+            url_details['source'] = params[2]
+        elif len(params) == 2:                  #deleted card
+            community_id = params[0]
+            chatroom_deleted = params[1]
+        else:
+            return HttpResponse("invalid url")
 
+    question_format = get_community_questions(community_id)
+    community_instance = Community.objects.get(id=community_id)
+    admin = get_community_creator(community_instance)
+
+    user_instance = None
+    state = 0
+    analytics = {}
     if request.user.is_authenticated:
-        if not request.user.email and request.user.id != 37 and request.user.id != 176:  # admin case handling
-            request_user_email = True
-        try:
-            user = Userinfo.objects.get(user_id=request.user.id)
+        user_instance = request.user
+        state = members_state(request,req_dict={'community_id':community_id,'member_id':user_instance.id})
 
-        except:
-            user = update_user_info(request)
+        if state['state'] != 0:
+            return redirect('community',community_id=community_id)
 
-        member = Members.objects.filter(member_id=request.user, community_id=community)
-        try:
-            if member:
-                member_state = member[0].state
-            else:
-                try:
-                    check = get_nominated_admin_details(email=request.user.email, community_id=community.id)
-                    if check:
-                        member = Members()
-                        member.member_id = request.user
-                        member.community_id = community
-                        member.state = 6
-                        member.save()
-                        member_state = 6
-                    else:
-                        member_state = 0
-                except:
-                    member_state = 0
-        except:
-            member_state = 0
+        analytics = get_community_join_analytics(user_instance)
 
-    elif not request.user.is_authenticated and source == 'email':
-        member_state = 0
 
-    elif not request.user.is_authenticated:
-        member_state = 0
 
-    elif source == 'email':
-        member_state = 0
 
+    if request.method == "GET":
+        header = {
+            'back': True,
+            'title': 'Welcome to LikeMinds!',
+            'subTitle': False,
+            'background': '_',
+            'color': 'F'
+        }
+        header_showcase = {
+            'image': 'https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Fresponse_header?alt=media',
+            'header': 'You are interested in joining this community:',
+            'subHeader': community_instance.name,
+            'userImage': request.user.userinfo.image_link if user_instance else ""
+        }
+
+
+        context = {
+                    "data": question_format, 'usr': user_instance, 'header': header,
+                    'community': community_instance,
+                    'header_showcase': header_showcase,
+                    'google_oauth_client_id': settings.GOOGLE_OAUTH_CLIENT_ID,
+                    'facebook_auth_id': settings.SOCIAL_AUTH_FACEBOOK_KEY,
+                    'firebase_config': settings.FIREBASE_CONFIG,
+                     'user_directory': user_directory,
+                     'analytics':analytics
+
+                   }
+
+        members_count = get_members_count_in_community(community_instance)
+        context['header_showcase']['subHeader'] = ""
+        context['header_showcase']['header'] = admin + " invited you to join this community"
+        context['header_showcase']['communityBlock'] = {
+            'title': community_instance.name,
+            'creator': "Created by " + admin,
+            'members':  str(members_count) + " members",
+            'imgURL': community_instance.thumbnail
+        }
+        if user_directory:
+            footer = private_link_app_invite(community_instance, url_details['aj'], admin)
+            footer['aj']=url_details['aj']
+            context['footer'] = footer
+
+
+        if chatroom_deleted:
+
+            footer = {
+                'toast':"Oops Your chatroom is deleted. Don't worry you can still view and participate in other chatrooms after joining the community"
+                      }
+            context['footer'] = footer
+
+        mixpanel_event = get_event_super_properties_for_mixpanel(user_instance,community_instance)
+
+        context['mixpanel_event'] = mixpanel_event
+
+
+        return render(request, 'response_form.html', context)
     else:
-        member_state = 0
-    # ------------------------------------------------------------------
-    # members, admin_details = get_members_of_community(request=request,community=community)
-    # if user is not authenticated, give some communities as similar communities
-    communities = Community.objects.filter(Q(hide_community='0') | Q(hide_community='4'))[:10]
-    profile_list=[]
+        question_data = request.POST.dict().get("data")
+        aj = request.POST.get('aj')
+        aj_expired = request.POST.get('aj_expired')
+        question_data = ast.literal_eval(question_data)
+        response_list = []
 
-    if request.user.is_authenticated:
-        # calling similar communities api
-        similar_comm_url = api_url + 'similar_communities/' + str(community.id)
-        params = {'member_id': request.user.id}
-        response = rqst.get(similar_comm_url, params=params)
+        for quest_dict in question_data:
 
-        if response.status_code == 200:
-            communities = json.loads(response.content.decode('utf-8'))['communities'][:10]
+            question_dict = {}
+            if quest_dict['id'] == 'csrfmiddlewaretoken':
+                continue
+            elif quest_dict['id'] == 'ref_id':
+                continue
 
-        user = Userinfo.objects.all().filter(user_id=request.user.id)
-        if profile:
-            profile_list = get_member_profile(community_id,request.user.id)
+            question_dict['id'] = quest_dict['id']
+            question_dict['value'] = quest_dict['value']
+
+            response_list.append(question_dict)
+
+        json_dict = {"community_id": community_id, "timestamp": time.time()}
+        json_dict['questions'] = response_list
+        json_dict['user_id'] = request.user.id
+
+        if state['state'] == 0:
+            join_url = api_url + 'v1/join_community'
+
+            params = {'member_id': user_instance.id, 'community_id': community_id}
+            if  aj_expired == 'False':
+                json_dict['aj'] = int(aj)
+            rqst.post(join_url, params=params, json=json_dict)
+
+        if aj_expired == "" or aj_expired == "True":
+            return JsonResponse({'success':True})
+        else:
+            return JsonResponse({'success':True,'source':"members_directory"})
+
+
+
+def get_community_context(request,community_instance,user_instance,state,profile_list,is_member,user_context):
+
+    admin_details = get_admins_details(community_instance)
+
+    if community_instance.id == feedback_community_id:
+        members = []
     else:
-        user = []
-
-
-
-    #sending links and context
-    android_app_link = ""
-    ios_app_download_link = ""
-    if is_request_android(request):
-        android_app_link = android_app_download_link
-    if is_request_ios(request):
-        ios_app_download_link = ios_app_download_link
-    if not is_IG_community(community):
-        share_text = """I recently joined %s community on LikeMinds. It will be good if you also join this community""" % (
-            community.name)
-    else:
-        share_text = """I recently joined %s community on LikeMinds. It will be fun if you also join this community""" % (
-            community.name)
-    if request.user.is_authenticated:
-        share_url = str(settings.URL) + '/community/' + str(community_id) + "?ref_id=" + str(request.user.id)
-    else:
-        share_url = str(settings.URL) + '/community/' + str(community_id)
-    about_1 = ""
-    about_2 = ""
-    if community.about:
-        about = community.about
-        about_1 = about[0:180]
-        about_2 = about[180:]
-
-    admin_details = get_admins_details(community)
-   # members = get_member_details(community)
-    if community.id == feedback_community_id:
-        members=[]
-    else:
-        members = get_member_details(community)
+        members = get_member_details(community_instance)
 
     header = {
         'back': True,
@@ -444,42 +429,70 @@ def community(request, community_id):
         'color': '0'
     }
     header_showcase = {
-        'image': community.image_link if community.image_link else community.image_url,
-        'header': community.name,
+        'image': community_instance.image_link if community_instance.image_link else community_instance.image_url,
+        'header': community_instance.name,
         'subHeader': str(len(members)) + ' Members' if len(members) else ''
     }
 
-    aj = request.GET.get('aj', False)
-    context = {'usr': user, 'similar_communities': communities,
-               'community': community, 'admins': admin_details,
+    # sending links and context
+    android_app_link = ""
+    ios_app_download_link = ""
+    if is_request_android(request):
+        android_app_link = android_app_download_link
+    if is_request_ios(request):
+        ios_app_download_link = ios_app_download_link
+
+    about_1 = ""
+    about_2 = ""
+    if community_instance.about:
+        about = community_instance.about
+        about_1 = about[0:180]
+        about_2 = about[180:]
+
+
+    context = {'usr': user_instance,
+               'community': community_instance, 'admins': admin_details,
                'header': header, 'header_showcase': header_showcase,
-               'members': members, 'source': source,
-               'cta': cta, 'Nom_mem_state': member_state,
+               'members': members,
+               'Nom_mem_state': state,
                'admin_length': len(admin_details),
                'members_length': len(members),
-               'similar_community_length': len(communities),
-               'ref_id': ref_id,
-               'request_user_email': request_user_email,
                'android_app_link': android_app_link,
-               'share_text': share_text,
-               'share_url': share_url,
+               'share_text': """I recently joined %s community on LikeMinds. It will be fun if you also join this community""" % (
+                   community_instance.name),
+
+               'share_url': str(settings.URL) + '/community/' + str(community_instance.id),
                'ios_app_download_link': ios_app_download_link,
                'about_1': about_1,
                'about_2': about_2,
-               'aj':aj,
-               'community_state':int(community.hide_community),
+
+               'community_state': int(community_instance.hide_community),
                'profile_list': profile_list,
-               'is_member':is_member,
-               'community_id':community.id,
-               'user_email' : request.user.userinfo.email if request.user.is_authenticated else '',
+               'is_member': is_member,
+               'community_id': community_instance.id,
+               'user_email': request.user.userinfo.email if request.user.is_authenticated else '',
                'google_oauth_client_id': settings.GOOGLE_OAUTH_CLIENT_ID,
-               'facebook_auth_id':settings.SOCIAL_AUTH_FACEBOOK_KEY
+               'facebook_auth_id': settings.SOCIAL_AUTH_FACEBOOK_KEY,
+               'firebase_config': settings.FIREBASE_CONFIG,
+               'current_user_request_date':  user_context['current_user_request_date']
                }
-    # user_email = True
-    return render(request, 'community.html', context)
+
+    if state == member_states.PENDING_MEMBER:
+        context['footer'] = {
+            'toast':"Request to join community is pending"
+        }
 
 
-def get_join_community_context(request, ref_id, aj, validation_error, user, data, community, filled_answers):
+    mixpanel_event = get_event_super_properties_for_mixpanel(user_instance,community_instance)
+    if mixpanel_event:
+        context['mixpanel_event'] = mixpanel_event
+
+    return context
+
+
+
+def get_join_community_context(request, ref_id, aj, validation_error, user, data, community, filled_answers, auto_join):
+    aj = request.GET.get('aj')
     header = {
         'back': True,
         'title': 'Welcome to LikeMinds!',
@@ -499,8 +512,31 @@ def get_join_community_context(request, ref_id, aj, validation_error, user, data
                'validation_error': validation_error,
                'filled_answers': filled_answers,
                'aj': aj, 'header_showcase': header_showcase}
+    if aj:
+        context['auto_join'] = auto_join
 
     return context
+
+
+def get_community_join_analytics(user_instance):
+
+    analytics = {}
+    community_list = []
+    promoter_count = Members.objects.filter(member_id=user_instance.id, state=member_states.ADMIN).count()
+
+    member_filter = Members.objects.filter(member_id=user_instance.id).filter(
+        Q(state=member_states.MEMBER) | Q(state=member_states.KNOWN_NOMINATED_PROMOTER))
+    community_member_count = member_filter.count()
+    for member in member_filter:
+
+        community_list.append(member.community_id.name)
+
+    analytics['community_list'] = community_list
+    analytics['community_member_count'] = community_member_count
+    analytics['other_community_promoter'] = True if promoter_count > 1 else False
+
+    return analytics
+
 
 
 
@@ -750,17 +786,18 @@ def members_directory(request, community_id):
     is_member = False
     user_email = ""
     member_state = 0
+    mixpanel_event = {}
     if request.user.is_authenticated:
-        #is_member=is_member_verified(community_id,request.user)
-        # member_instance_list = Members.objects.filter(community_id=community_id,member_id=request.user)
-        #
-        # if member_instance_list.exists():
-        #
-        #     member_state = member_instance_list[0].state
+
         temp = members_state(request,req_dict={'member_id':request.user.id,'community_id':community_id})
         member_state = temp['state']
         if member_state == member_states.ADMIN or member_state == member_states.MEMBER:
             is_member = True
+
+        community_instance = Community.objects.get(id=community_id)
+        user_instance = User.objects.get(id=request.user.id)
+
+        mixpanel_event = get_event_super_properties_for_mixpanel(user_instance,community_instance)
 
 
         user_email = request.user.userinfo.email
@@ -837,7 +874,9 @@ def members_directory(request, community_id):
         if member_string == "$":
             member_string = ""
         
-        context = {'members': member_string,'filter':questions,'option_data':dropdowns}
+        context = {'members': member_string,'filter':questions,'option_data':dropdowns,
+                   'mixpanel_event':mixpanel_event
+}
         return JsonResponse(context)
 
     community_instance = Community.objects.get(pk=community_id)
@@ -910,7 +949,10 @@ def members_directory(request, community_id):
         'member_state':member_state,
         'selected':selected,
         'google_oauth_client_id': settings.GOOGLE_OAUTH_CLIENT_ID,
-        'facebook_auth_id':settings.SOCIAL_AUTH_FACEBOOK_KEY
+        'facebook_auth_id':settings.SOCIAL_AUTH_FACEBOOK_KEY,
+        'firebase_config': settings.FIREBASE_CONFIG,
+        'mixpanel_event':mixpanel_event
+
     }
 
     return render(request, 'members.html', context)
@@ -982,26 +1024,36 @@ def member_profile(request):
     image_link=""
 
     is_promoter=False
+    status = None
     if user_instance.exists():
         member_name = user_instance[0].userinfo.name
         image_link = user_instance[0].userinfo.image_link
-        is_promoter = Members.objects.filter(community_id=community_id, member_id=request.user.id).filter(
-                      state = member_states.ADMIN)
-        # members = Members.objects.filter(community_id=community_id,member_id=request.user.id)
-        # is_promoter = members.filter(state = member_states.ADMIN)
-        is_promoter=is_promoter.exists()
+
+        # is_promoter = Members.objects.filter(community_id=community_id, member_id=request.user.id).filter(
+        #               state = member_states.ADMIN)
         #
-        # is_member = members.filter(state=member_states.MEMBER)
-        # is_member = is_member.exists()
+        # is_promoter=is_promoter.exists()
         #
-        # if is_member and str(request.user.id) == str(member_id):
-        #     is_promoter = True
+
+        status = members_state(request,{'community_id':community_id,'member_id':request.user.id})
+
+        if status['state'] == 1:
+            is_promoter = True
+
     if not is_promoter and str(request.user.id) == str(member_id):
         is_promoter = True
 
     answer_list = get_member_profile(community_id,member_id,is_promoter=is_promoter)
 
-    json_response = {'answer_list':answer_list,'member_name':member_name,'image_link':image_link}
+    json_response = {
+
+        'answer_list':answer_list,
+        'member_name':member_name,
+        'image_link':image_link,
+        'member_state': get_member_community_status(status['state']) if status else 0,
+        'member_id': request.user.id
+
+        }
 
     return JsonResponse(json_response)
 
@@ -1237,10 +1289,10 @@ def accept_admin(request, community_id):
     return HttpResponseRedirect("https://play.google.com/apps/testing/com.collabmates")
 
 
-@login_required
+#@login_required
 def logout_view(request):
     logout(request)
-    return redirect('communities')
+    return redirect(settings.URL)
 
 
 def join_community(request, community_id, ref_id, aj=False, member_state=None):
@@ -1310,21 +1362,25 @@ def join_community(request, community_id, ref_id, aj=False, member_state=None):
             params = {'member_id': member_id, 'community_id': community_id, 'ref_id': ref_id}
             rqst.post(join_url, params=params, json=json_dict)
         # return false to show thank you page the user has now answered the questions
-        return False, validation_error, user, similar_communities, community, []
+        return False, validation_error, user, similar_communities, community, [],{}
 
     else:
         question_format = get_community_questions(community_id)
-
+        community_creator = get_community_creator(community)
+        auto_join = {}
+        if community_creator:
+            created_by = community_creator
+            auto_join = private_link_app_invite(community, aj, created_by)
         if not question_format:
             json_dict = {'user_id': request.user.id}
             params = {'member_id': member_id, 'community_id': community_id}
             rqst.post(join_url, params=params, json=json_dict)
             # return false to show thank you page as there are no questions for this community
 
-            return False, validation_error, user, similar_communities, community, []
+            return False, validation_error, user, similar_communities, community, [],auto_join
         else:
             # return true to take the user to questions page
-            return True, validation_error, user, question_format, community, []
+            return True, validation_error, user, question_format, community, [], auto_join
 
 
 def get_community_questions(community_id):
@@ -1377,31 +1433,14 @@ def get_community_questions(community_id):
 
             if temp['question_state'] == 1 or temp['question_state'] == 2:
 
-                if each_question.value[0] == '[':
-                    each_question.value = each_question.value[1:]
-                if each_question.value[-1] == ']':
-                    each_question.value = each_question.value[:-1]
 
-                if '$#' in each_question.value:
-                    dropdown_list = each_question.value.split("$#")
-                else:
-                    dropdown_list = each_question.value.split(",")
+                dropdown_options = json.loads(each_question.value) if each_question.value else []
 
-                for index, item in enumerate(dropdown_list):
-                    item = item.strip()
-                    if item[0] == '"':
-                        item = item[1:]
-                    if item[-1] == '"':
-                        item = item[:-1]
-                    community_state = each_question.community.hide_community
+                dropdown_list = []
 
-                    find_index = item.find(":")
-                    if find_index != -1:
-                        item = item[find_index+1:-1].strip()
-                        if item[0] == '"' or item[0] == "'":
-                            item = item[1:-1]
+                for option in dropdown_options:
+                    dropdown_list.append((option['value']))
 
-                    dropdown_list[index] = item
 
                 if 'Other' not in dropdown_list:
                     temp['dropdown_list'] = dropdown_list
@@ -1717,12 +1756,13 @@ def pending_list(request, community_id):
         'is_member' : is_promoter,
         'google_oauth_client_id': settings.GOOGLE_OAUTH_CLIENT_ID,
         'facebook_auth_id': settings.SOCIAL_AUTH_FACEBOOK_KEY,
+        'firebase_config': settings.FIREBASE_CONFIG,
         'length' : len(members)
 
     }
     #print(context)
-    return render(request,'pending_page.html', context)
 
+    return render(request,'pending_page.html', context)
 
 def questions_responses(request):
     '''function to get responses of the particular user to show'''
@@ -2517,3 +2557,10 @@ def linked_in_authentication(request):
     # redirect_url = redirect_url + "?json="+str(data_main)
     info_logger.info(request.user.is_authenticated)
     return redirect(redirect_url)
+
+
+
+
+
+
+

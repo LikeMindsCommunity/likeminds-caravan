@@ -1,0 +1,395 @@
+{% extends request.is_ajax|yesno:"layouts/ajax.html,layouts/layout.html" %}
+
+{% block yeild %}
+
+    {% include 'components/loader.html' %}
+
+       <head>
+             {% include 'scripts/mixpanel.html' with mixpanel_event=mixpanel_event %}
+             {% include 'scripts/create_user_mixpanel.html' with mixpanel_event=mixpanel_event request=request  %}
+
+        </head>
+    <style>
+        #comments{min-height: calc(100vh - 116px);}
+    </style>
+    <div class="container mxw960 mA mt56">
+            
+        {% include 'components/header.html' with data=header %}
+
+        <div class="pR pb60">
+
+            {% include 'components/chat.html' with answers=answers current_user=current_user collabcard=collabcard request=request user=user community=community %}
+        </div>
+
+        {% if request.user.is_authenticated and aj_expired == False and member_state.state == 0 %}
+            {% include 'components/footer.html' with message="Become a member of this community"  click="JOIN" %}
+        {% endif %}
+
+
+         <div class="pF l0 r0 t0 b0 dN z12" id="attend_overlay">
+<!--                    <div onclick="$('#attend_overlay').hide()" class="pA t0 b0 l0 r0 bg0o05 fadeIn ad04 o0"></div>-->
+                    <div class="pF b0 mxw640 mA l0 r0 fadeInUp bgF ad04 btlr8 btrr8 oH bxs">
+                        <div class="bgE br8 h8 mA mt8 w100"></div>
+<div class="bs p10">
+                                </div>
+                        <div class="bs c0 ffR fs16">
+                            <div class="bs fwM lh18 p024 taC ">
+                                <img src="https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Fmain_website%2Fwarning.png?alt=media&token=0d040e5a-a7a1-4ddf-9eef-c707944f6f45" class="w54 h48"/>
+                            </div>
+                            <div class="bs lh24 oA p024 ">
+                                <div class="bs p10">
+                                </div>
+                                <div class="c9b fs14 lh17 mb16 taC">
+                                Oops! The private link to participate in this chat room has expired. Join the following community to access this chat room.                                </div>
+
+                            </div>
+
+                        <div class="bgd0d8e2 br8 bs c0 dT mA mxw360 oH p8 taL wp80">
+                                <div class="dTc vM w48">
+                                    <img src="{{community_block.imgURL}}" class="bd2E bgE brp50 bxs dIb h48 ofC vM w48">
+                                </div>
+                                <div class="bs dTc fs13 fwL lh16 pl12 vM">
+                                    <div>{{community_block.title}}</div>
+                                    <div class="o5">{{community_block.creator}}</div>
+                                    <div class="o5">{{community_block.members}}</div>
+                                </div>
+                         </div>
+
+                            <div class="bs lh24 oA p024 bdbE">
+                                <div class="bs p160 taC">
+
+                                    <button class="m80 h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" onclick="location.href = '/community_questions/{{community.id}}';">Join Community</button>
+
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+
+        {% include 'components/login_popup.html' with popup_text="you must be logged in to participate in this chatroom"  redirect_link=redirect_link %}
+
+
+    </div>
+
+
+
+    {% if not request.user.is_authenticated %}
+        <div class="pF b0 l0 r0 z2 h60 chatInput" onclick="showJoinPopUp()"></div>
+    {% endif %}
+
+
+        <!-- join community front pop-ups -->
+        <div class="ui modal ffR p24 bs w280" id="join_popup">
+                    <p class="c0 fs16 fwM lh24 mb16">Join Community</p>
+                    <p class="c9 fs15 fwR lh22 mb16">
+                            Join this community to access detailed member profiles and other relevant chatrooms
+                    </p>
+
+
+                     <div class="taR fs13 ">
+                         <span class="c9 fs13 fwM ls05 pr12  taL join_not_now">NOT NOW</span ><div class="bs cT dIb fs13 fwM ls05 p120 taC vM" onclick="window.location.href='/community_questions/{{community.id}}';">JOIN</div>
+                     </div>
+        </div>
+
+
+        <!-- join community back click pop-ups-->
+
+         <div class="ui modal ffR p24 bs w280" id="back_popup">
+                    <p class="c0 fs16 fwM lh24 mb16">Join Community</p>
+                    <p class="c9 fs15 fwR lh22 mb16">
+Are you sure, you want to leave this chat room? You can apply to join this community to see detailed member profiles and other relevant chatrooms.                    </p>
+
+
+                     <div class="taR fs13 ">
+                         <span class="c9 fs13 fwM ls05 pr12  taL back_not_now">NOT NOW</span ><div class="bs cT dIb fs13 fwM ls05 p120 taC vM footer_join" >JOIN</div>
+                     </div>
+        </div>
+
+
+
+    <script>
+
+        $(document.body).on('click','.member_link',function(e){
+            var member_id = $(this).attr('member_id');
+            {% if request.user.is_authenticated %}
+                {% if member_state.state == 0 and aj_expired == False %}
+                            $('#join_popup').modal('show')
+
+                {% else %}
+                    {% if member_state.state == 3 %}
+                        $('#add_email_pop').modal('show');
+                    {% else %}
+                        showMemberProfile(member_id);
+                    {% endif %}
+                {% endif %}
+            {% else %}
+                $('.test').modal('show');
+            {% endif %}
+        });
+
+        {% if request.user.is_authenticated %}
+            {% if member_state.state == 3 %}
+                {% if request.GET.email %}
+                    $('#add_email_pop').modal('show');
+                {% endif %}
+                $('#dismiss_add_email').click(function(e){
+                    $('#add_email_pop').modal('hide');
+                });
+                $('#add_email').click(function(e){
+                    $('#add_email_pop').modal('hide');
+                    $('#secondary_email').modal('show');
+                });
+                $('#update_secondary_email').click(function(e){
+                    var email = $('#secondary_email_text').val();
+                    console.log(email);
+                    var json_data = {
+                        'data':'{{request.user.id}}',
+                        'email':email,
+                        'csrfmiddlewaretoken':'{{csrf_token}}',
+                    }
+                    $(".ldrT", $('#loader')[0]).text("Making request...");
+                    $('#loader').show();
+                    $.ajax({
+                        url: "/update_email",
+                        data: json_data,
+                        type: "POST",
+                        dataType: 'json',
+                        success: function(data) {
+                            $('#secondary_email').modal('hide');
+                            $('#loader').hide();
+                        },
+                        error: function(){
+                            $('#loader').hide();
+                        }
+                    })
+                })
+            {% else %}
+                function showMemberProfile(member_id){
+                    $(".ldrT", $('#loader')[0]).text("Loading member profile...");
+                    $('#loader').show();
+                    var community_id = {{community.id}};
+                    json_data = {
+                        'data':member_id,
+                        'community_id':community_id,
+                        'csrfmiddlewaretoken':'{{csrf_token}}',
+                    }
+                    console.log(json_data);
+                    $.ajax({
+                        url:"/member_profile",
+                        data:json_data,
+                        type:"POST",
+                        dataType:'json',
+                        success:function(data){
+                            console.log(data['answer_list'])
+                            var html = `
+                                <div class="h96 mtn38 taC pR z1">
+                                    <div class="w96 h96 brp50 bd2F bs bxs oH dIb vM bgF">
+                                        <img class="w96 h96 ofC" src=${data['image_link']} >
+                                    </div>
+                                </div>
+                                <div class="pR mtn58 br8 oH bgF">
+                                    <div class="h96">
+                                        <img class="wp100 ofC h96" src="https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Fprofile_header?alt=media&token=fa838851-244c-4cbc-81da-3d2125536e18">
+                                    </div>
+                                    <div class="h2"></div>
+                                    <p class="p012 bs m0 taC fwM fs16 c0 lh20 wbBa wp100">${data['member_name']}</p>
+                                </div>
+                                <div class="p18 bs">
+                            `;
+                            var refined_answer_obj = data['answer_list'].reduce(function(returnValue, answer) {
+                                if(answer.answer_privacy !== false){
+                                    (returnValue[answer.rank] = returnValue[answer.rank] || []).push(answer);
+                                }
+                                return returnValue;
+                            }, {});
+            
+                            console.log('refined_answer_obj', refined_answer_obj);
+            
+                            // var refined_answer_array = Object.keys(refined_answer_obj).map(function (answer) {
+                            //     return f[answer]; 
+                            // });
+                            
+                            $.each( refined_answer_obj, function( index, value ) {
+                                segment = ""
+                                if (index == 1) {
+                                    segment = `
+                                            <div class="dT mb10 tlF wp100">
+                                                <div class="dTc h24 vM w24 taC"><img class="dIb mxh24 mxw24 vM" src="/media/main_website/ic_email_48_px.png" /></div>
+                                                <div class="c9b dTc fs13 vM lh1h16 p08 bs wbBa">
+                                    `;
+                                                    $.each( value, function( index2, value2 ){
+                                                        segment = segment + value2.answer;
+                                                        if ( index2 != value.length - 1 ) {
+                                                            segment = segment + ', ';
+                                                        }
+                                                    });
+                                    segment = segment + `
+                                                </div>
+                                            </div>
+                                    `;
+                                    html = html + segment;
+                                }else if(index == 2 ){
+                                    segment = `
+                                            <div class="dT mb10 tlF wp100">
+                                                <div class="dTc h24 vM w24 taC"><img class="dIb mxh24 mxw24 vM" src="/media/main_website/mobile_alt.png"/></div>
+                                                <div class="c9b dTc fs13 vM lh1h16 p08 bs wbBa">
+                                    `;
+                                                    $.each( value, function( index2, value2 ){
+                                                        segment = segment + value2.answer;
+                                                        if ( index2 != value.length - 1 ) {
+                                                            segment = segment + ', ';
+                                                        }
+                                                    });
+                                    segment = segment + `
+                                                </div>
+                                            </div>
+                                    `;
+                                    html = html + segment
+                                }else if(index == 3 ){
+                                    segment = `
+                                            <div class="dT mb10 tlF wp100">
+                                                <div class="dTc h24 vM w24 taC"><img class="dIb mxh24 mxw24 vM" src="/media/main_website/link.png"/></div>
+                                                <div class="c9b dTc fs13 vM lh1h16 p08 bs wbBa">
+                                    `;
+                                                    $.each( value, function( index2, value2 ){
+                                                        segment = segment + `<a class="cT tdN" href="//${value2['profile_link']}">${value2['answer']}</a>`;
+                                                        if ( index2 != value.length - 1 ) {
+                                                            segment = segment + ', ';
+                                                        }
+                                                    });
+                                    segment = segment + `
+                                                </div>
+                                            </div>
+                                    `;
+                                    html = html + segment
+                                }else if(index == 4){
+                                    segment = ''
+                                    $.each( value, function( index2, value2 ){
+                                        segment = segment + `<p class="c4a fs15 lh24 m160 wbBa wp100">${value2['answer']}</p>`;
+                                        if ( index2 != value.length - 1 ) {
+                                            segment = segment + ', ';
+                                        }
+                                    });
+                                    html = html + segment
+                                }else if(index == 5){
+                                    segment = ''
+                                    $.each( value, function( index2, value2 ){
+                                        segment = segment + `
+                                            <a class="cT dB m160 tdN wbBa" href="//${value2['file_link']}">
+                                                ${value2['answer']}
+                                            </a>
+                                        `;
+                                        if ( index2 != value.length - 1 ) {
+                                            segment = segment + ', ';
+                                        }
+                                    });
+                                    html = html + segment
+                                }else{
+                                    segment = ''
+                                    $.each( value, function( index2, value2 ){
+                                        segment = segment + `<p class="c9b fs15 lh24 m160 m80 wbBa wp100">${value2['answer']}</p>`;
+                                        
+                                    });
+                                    html = html + segment
+                                }
+                            })
+                            $('#display').html(html + '</div><div class="fs13 p12 taC fwM mb16" id="dismiss1">DISMISS</div>')
+                            $('#display').modal('show');
+                            $(".dimmer").css("background-color","rgba(40,40,40,0.5)");
+                            $('#dismiss1').click(function(){
+                                $('#display').modal('hide');
+                            });
+                            $('#loader').hide();
+                        },
+                        error: function(){
+                            $('#loader').hide();
+                        }
+                    })
+                }
+            {% endif %}     
+        {% endif %}
+
+        $('#back_click').click(function(){
+            {% if user.is_authenticated and member_state.state == 0 %}
+                //$('#loader').show();
+                $('#back_popup').modal('show')
+
+            {% else %}
+                $('.test').modal('show');
+            {% endif %}
+        });
+
+        function showJoinPopUp(){
+            {% if user.is_authenticated %}
+
+
+
+            {% else %}
+                $('.test').modal('show');
+            {% endif %}
+        }
+
+
+    {% if user.is_authenticated  and aj_expired == True and member_state.state == 0 %}
+        $('#attend_overlay').show();
+    {% endif %}
+
+
+
+
+
+        $(document.body).on('click','.join_not_now',function(e){
+
+            $('#join_popup').modal('hide')
+        })
+
+
+       $(document.body).on('click','.back_not_now',function(e){
+
+            $('#back_popup').modal('hide')
+        })
+
+
+
+     $(document.body).on('click','.footer_join',function(e){
+
+
+       mixpanel.track("Community Join CR",{
+
+        "footer join click date" : new Date() + "",
+        "CR Name" : "{{collabcard.header}}",
+        "Community Name" : "{{collabcard.community_name}}",
+        "CR type": "{{collabcard.type}}",
+        "User Community State":"{{mixpanel_event.user_community_state}}"
+
+       })
+
+       window.location.href="/community_questions/" + "{{community.id}}";
+
+
+     })
+
+
+
+
+
+
+
+
+
+    </script>
+
+
+
+
+    {% include 'scripts/mixpanel_chatroom_clicked.html' with  mixpanel_event=mixpanel_event request=request collabcard=collabcard %}
+    {% include 'scripts/google_auth.html' with client_id=google_oauth_client_id  %}
+    {% include 'scripts/facebook_auth.html' with facebook_auth_id=facebook_auth_id %}
+    {% include 'scripts/linkedin_auth.html' with request=request %}
+
+
+
+{% endblock %}
+
+

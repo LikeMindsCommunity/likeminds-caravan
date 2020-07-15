@@ -13,49 +13,69 @@ urlpatterns = [
     path('v2/community/<int:community_id>', api_views.community_version_2, name="community_version_2"),
 
     path('similar_communities/<int:community_id>', api_views.similar_community, name="similar_community"),
-    path('community/<int:community_id>/questions', api_views.join_community, name="join"),
 
-    path('join_community', views.join_community_responses, name="join_community_responses"),
     path('v1/join_community', views.join_community_responses_version_1, name="join_community_responses_version_1"),
 
-    path('categories', api_views.categories, name="categories"),
 
-    path('create_community', api_views.create_community, name="create_community"),
+
     path('v1/create_community',api_views.create_community_version_1,name='create_community_version_1'),
+    path('fetch_community_types', api_views.fetch_community_types, name='fetch_community_types'),
+    path('get_basic_directory_options', api_views.get_basic_directory_options, name='get_basic_directory_options'),
+
+    #path('v1/create_community_questions',api_views.create_community_questions,name='create_community_questions'),
     path('v1/edit_questions', api_views.edit_questions_version_1,
          name="edit_questions_version_1"),
+    #path('get_onboarding_examples', api_views.get_onboarding_examples,name="get_onboarding_examples"),
+
+
+
     path('dismiss', api_views.dismiss,name="dismiss"),
 
-    path('community/<str:category>', api_views.category_filter, name="category_filter"),
+
     path('user/<int:user_id>', api_views.user, name="user"),
     path('admins/<int:community_id>', api_views.admins, name="admins"),
     path('members/<int:community_id>', api_views.members, name="members"),
     path('ask_approval', api_views.ask_approval, name="ask_approval"),
+
     path('create_collabcard', api_views.create_card, name="create_card"),
+    path('create_draft_collabcard', api_views.create_draft_collabcard, name="create_draft_collabcard"),
 
     path('collabcard/<int:card_id>', api_views.collabcard, name="collabcard"),
-    path('get_chatroom/<int:card_id>', api_views.get_chatroom, name="get_chatroom"),
+    path('fetch_chatroom', api_views.fetch_chatroom, name="fetch_chatroom"),
+    path('fetch_chatroom_feed', api_views.fetch_chatroom_feed, name="fetch_chatroom_feed"),
 
-    path('community_collabcard/<int:community_id>', api_views.community_cards, name="community_cards"),
+
+    #path('community_collabcard/<int:community_id>', api_views.community_cards, name="community_cards"),
     path('community_collabcard_invite/<int:community_id>', api_views.community_collabcard_invite, name="community_collabcard_invite"),
     path('v1/community_collabcard/<int:community_id>', api_views.community_cards_version_1,
          name="community_cards_version_1"),
 
 
     path('create_answer', api_views.create_answer, name="create_answer"),
+    path('create_conversation', api_views.create_conversation, name="create_conversation"),
 
     path('login',api_views.login_authenticate,name = 'login'),
     path('v1/login',api_views.login_authenticate_version_1,name = 'v1/login'),
 
-    path('image_upload',api_views.image_upload,name = 'image'),
-    path('add_admin/<int:community_id>',api_views.create_admin,name = 'create_admin'),
+    #path('image_upload',api_views.image_upload,name = 'image'),
+    path('add_admin/<int:community_id>',api_views.add_admin,name = 'add_admin'),
     path('pending_members/<int:community_id>',api_views.pending_members,name = 'pending_members'),
     path('join',api_views.request_response,name = 'join'),
     path('pending_members_count/<int:community_id>',api_views.pending_request_count,name = 'pending_request_count'),
 
     path('collabcard_seen', api_views.collabcards_seen, name='collabcard_seen'),
     path('collabcard_attend', api_views.collabcard_attend, name='collabcard_attend'),
+    path('chatroom_mute', api_views.chatroom_mute, name='chatroom_mute'),
+    path('chatroom_rename', api_views.chatroom_rename, name='chatroom_rename'),
+    path('chatroom_delete', api_views.chatroom_delete, name='chatroom_delete'),
+    path('conversation_meta', api_views.conversation_meta, name='conversation_meta'),
+    path('conversation_seen', api_views.conversation_seen, name='conversation_seen'),
+    path('my_chatrooms', api_views.my_chatrooms, name='my_chatrooms'),
+
+
     path('fetch_info', api_views.fetch_info, name='fetch_info'),
+    path('limit_access', api_views.limit_access, name='limit_access'),
+    path('skip_community', api_views.skip_community, name='skip_community'),
 
     path('members_state',api_views.members_state,name='members_state'),
     path('edit_member_profile',api_views.edit_member_profile,name='edit_member_profile'),
@@ -65,7 +85,7 @@ urlpatterns = [
     path('collabcard_follow',api_views.collabcard_follow,name='collabcard_follow'),
     path('accept_invitation',views.accept_invitation,name='accept_invitation'),
     path('edit_community', views.edit_community, name='edit_community'),
-    path('upload_attachment',api_views.upload_attachment,name='upload_attachment'),
+    #path('upload_attachment',api_views.upload_attachment,name='upload_attachment'),
     path('upload_files', api_views.upload_files, name='upload_files'),
 
     path('update_location',api_views.update_location,name='upload_location'),
@@ -74,7 +94,7 @@ urlpatterns = [
     path('decode_url', api_views.decode_url, name='decode_url'),
     path('all_members', api_views.all_members, name='all_members'),
     path('member_activity', api_views.member_activity, name='member_activity'),
-    path('accept_promotership', api_views.accept_promotership, name='accept_promotership'),
+
     path('invite_members', api_views.invite_members, name='invite_members'),
     path('get_profile', api_views.get_profile, name='get_profile'),
     path('config', api_views.config, name='config'),

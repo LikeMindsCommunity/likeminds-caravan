@@ -1,7 +1,13 @@
 {% extends request.is_ajax|yesno:"layouts/ajax.html,layouts/layout.html" %}
 {% block yeild %}
 
-    {% include 'components/loader.html' %}
+    {% include 'components/loader.html'
+
+        <head>
+             {% include 'scripts/mixpanel.html' with mixpanel_event=mixpanel_event %}
+             {% include 'scripts/create_user_mixpanel.html' with mixpanel_event=mixpanel_event request=request  %}
+
+        </head>
     
     <div class="container mxw960 mA mt56">
             
@@ -443,6 +449,19 @@
                     $('#dismiss1').click(function(){
                         $('#display').modal('hide');
                     })
+
+
+
+                            mixpanel.track("Member Profile View",{
+
+                                    "View Member Name":data['member_name'],
+                                    "Viewed Member ID": data['member_id'],
+                                    "Viewed Member State": data['member_state'],
+                                    "Member Page View Source":"Member Directory Page",
+                                    "Click Date" : new Date() + ""
+
+                                    })
+
                 }
             })
         }

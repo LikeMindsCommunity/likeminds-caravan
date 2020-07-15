@@ -1,5 +1,5 @@
 from __future__ import absolute_import, unicode_literals
-
+from celery import shared_task
 import re
 import time
 from django.http.response import JsonResponse
@@ -16,7 +16,7 @@ from utility.celery_beat_tasks import CeleryBeatTask
 from utility.states import *
 import json
 from django.shortcuts import get_object_or_404
-
+import traceback
 # file to store configuration of the system
 
 
@@ -39,13 +39,11 @@ def send_notification_for_android(token_list,message):
 
     '''function to send notification to android'''
 
-
-
     result=""
     push_service = FCMNotification(api_key=server_key)
     result = push_service.notify_multiple_devices(registration_ids=token_list,
                                                   data_message=message['payload'])
-
+    print(result)
 
 
 def send_notification_for_ios(token_list, message):
@@ -78,6 +76,8 @@ def notification_meta(notification_list,message):
             token_list_android.append(data['fcm_token'])
         else:
             token_list_ios.append(data['fcm_token'])
+
+        print(data)
 
     if token_list_android:
         send_notification_for_android(token_list_android,message)
@@ -288,6 +288,39 @@ def send_notification_for_join_requests(community_id,flag,member_id):
 
     notification_meta(notification_list,message)
 
+@shared_task
+def send_notification_to_new_promoter(context):
+
+    promoter_id = context['nominated_admin']
+    community_id = context['community_id']
+    notification_list = []
+    try:
+        temp = {}
+        notification_details = get_token_for_fcm(promoter_id, True)
+        if notification_details:
+            temp['id'] = promoter_id
+            temp['fcm_token'] = notification_details[0]
+            temp['mobile_os'] = notification_details[1]
+
+            notification_list.append(temp)
+            community_name = get_community_name(community_id)
+
+            message = {}
+            message['payload'] = {
+                'title': community_name,
+                'sub_title': "You have become promoter of this community",
+                'route':'route://community?community_id=' + str(community_id)
+            }
+
+            notification_meta(notification_list, message)
+
+
+    except (Exception, psycopg2.Error) as error:
+        traceback.print_exc()
+        print("Error while connecting to PostgreSQL", error)
+
+
+
 
 
 
@@ -331,8 +364,7 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title, 
         message['payload'] = {
             'title': str(card_creater_name) + " @ " + str(community_name),
             'sub_title': sub_title,
-            'route': 'route://community_collabcard?community_id=' + str(community_id) + '&community_name=' + str(
-                community_name) + '&community_state=' + str(kwargs['community_state'])
+            'route': 'route://collabcard?collabcard_id='+str(kwargs['card_id'])
         }
 
         notification_meta(notification_list, message)
@@ -383,12 +415,13 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title, 
 @shared_task
 def send_follow_notification(card_id,user_id,answer):
 
-    '''function to send notification to followed members'''
+    '''function to send notification to followed members who have responded or follow'''
+
 
     try:
         connection=get_connection()
         curr=connection.cursor()
-        sql="select user_id from togther_collabcardstate where card_id=%s and state=%s and removed_status is null"
+        sql="select user_id from togther_collabcardstate where card_id=%s and state=%s and removed_status is null and mute_status = False"
         parameter_list=[card_id, collabcard_states.COLLABCARD_STATE_FOLLOW]
         curr.execute(sql,parameter_list)
         member_list=curr.fetchall()
@@ -412,6 +445,7 @@ def send_follow_notification(card_id,user_id,answer):
         }
 
         notification_list=[]
+
         for member in member_list:
             if str(member[0]) != user_id and str(member[0]) not in tagged_users_list:
                 temp={}
@@ -435,10 +469,8 @@ def send_follow_notification(card_id,user_id,answer):
 
 
     except (Exception, psycopg2.Error) as error:
+        traceback.print_exc()
         print ("Error while connecting to PostgreSQL", error)
-
-
-
 
 
 @shared_task
@@ -468,12 +500,8 @@ def send_notification_to_tagged_users(card_id,answerer_name,answer,user_id,user_
 
 
     except (Exception, psycopg2.Error) as error:
+        traceback.print_exc()
         print ("Error while connecting to PostgreSQL", error)
-
-
-
-
-
 
 
 
@@ -548,8 +576,7 @@ def poll_expiry_or_event_remainder_notification(community_name, community_id, ty
         message['payload'] = {
             'title': str(community_name),
             'sub_title': sub_title,
-            'route': 'route://community_collabcard?community_id=' + str(
-                      community_id) + '&community_name=' + str(community_name) + '&community_state=' + str(kwargs['community_state']),
+            'route': 'route://collabcard?collabcard_id='+str(kwargs['card_id'])
         }
 
         send_notification_to_multiple_devices(token_list, message)
@@ -560,6 +587,31 @@ def poll_expiry_or_event_remainder_notification(community_name, community_id, ty
     except:
         print("Error while connecting to PostgreSQL")
 
+
+@shared_task
+def send_notification_to_event_co_hosts(co_hosts,card_id,event_title,event_creater):
+
+    '''function to send notification to co-hosts'''
+
+    notification_list=[]
+
+    for host in co_hosts:
+        temp={}
+        notification_details = get_token_for_fcm(host,flag=True)
+        temp['id'] = host
+        temp['fcm_token'] = notification_details[0]
+        temp['mobile_os'] = notification_details[1]
+        notification_list.append(temp)
+
+    message={}
+    message['payload']={
+        "title" : event_creater +" made you co-host of this event",
+        "sub_title" : event_title,
+        "route":"route://collabcard?collabcard_id="+str(card_id)
+    }
+    # print(notification_list)
+    # print(message)
+    notification_meta(notification_list,message)
 
 
 
