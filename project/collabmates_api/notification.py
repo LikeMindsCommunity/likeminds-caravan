@@ -42,8 +42,7 @@ def send_notification_for_android(token_list,message):
     result=""
     push_service = FCMNotification(api_key=server_key)
     result = push_service.notify_multiple_devices(registration_ids=token_list,
-                                                  message_title="Testing notification",
-                                                  message_body="Testing in progress")
+                                                  data_message=message['payload'])
     print(result)
 
 
