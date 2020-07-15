@@ -2790,7 +2790,6 @@ def add_admin(request, community_id):
 
 
 
-
 def check_member(email, community_id, member_id, nominated_member_name,community_instance):
     """ check if the user is already a member of the invited community and make user as nominated promoter
      if he is registered in collabmates and if the user is not registered just send the user a invitation email """
@@ -6874,6 +6873,9 @@ def members_state(request,req_dict=None):
         if actions_required:
             promoter_name = query_set[0].member_id.userinfo.name
             json_response['community_levels'] = get_create_community_actions(community_id,promoter_name)
+
+
+    json_response['member'] = get_user_profile(member_id,community_id)
 
     if req_dict:
         return json_response
