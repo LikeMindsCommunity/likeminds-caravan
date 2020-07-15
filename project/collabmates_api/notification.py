@@ -39,16 +39,20 @@ def send_notification_for_android(token_list,message):
 
     '''function to send notification to android'''
 
+    token_list = [
+'f-f5zskVx4k:APA91bGcrkURyemHlC1pX4kZMZ-jeMEUbewedji_W1z8gbHa8J7flMhMu1qEa5-u8ZVlzoG6VwAUinmga-SiGkZK4EV7haYC3KyoW79Xj8_p5vzuryP6j0ecv9C_usI9HHhktio7HibX'                  ]
 
 
     result=""
     push_service = FCMNotification(api_key=server_key)
     result = push_service.notify_multiple_devices(registration_ids=token_list,
-                                                  data_message=message['payload'])
+                                                  message_title="Testing notification",
+                                                  message_body="Testing in progress")
     print(result)
 
-
-
+#
+# token_list = []
+# send_notification_for_android(token_list,"")
 
 def send_notification_for_ios(token_list, message):
 
@@ -291,6 +295,39 @@ def send_notification_for_join_requests(community_id,flag,member_id):
         }
 
     notification_meta(notification_list,message)
+
+@shared_task
+def send_notification_to_new_promoter(context):
+
+    promoter_id = context['nominated_admin']
+    community_id = context['community_id']
+    notification_list = []
+    try:
+        temp = {}
+        notification_details = get_token_for_fcm(promoter_id, True)
+        if notification_details:
+            temp['id'] = promoter_id
+            temp['fcm_token'] = notification_details[0]
+            temp['mobile_os'] = notification_details[1]
+
+            notification_list.append(temp)
+            community_name = get_community_name(community_id)
+
+            message = {}
+            message['payload'] = {
+                'title': community_name,
+                'sub_title': "You have become promoter of this community",
+                'route':'route://community?community_id=' + str(community_id)
+            }
+
+            notification_meta(notification_list, message)
+
+
+    except (Exception, psycopg2.Error) as error:
+        traceback.print_exc()
+        print("Error while connecting to PostgreSQL", error)
+
+
 
 
 
