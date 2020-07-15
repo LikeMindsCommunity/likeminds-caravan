@@ -58,7 +58,7 @@ urlpatterns = [
     path('v1/login',api_views.login_authenticate_version_1,name = 'v1/login'),
 
     #path('image_upload',api_views.image_upload,name = 'image'),
-    path('add_admin/<int:community_id>',api_views.create_admin,name = 'create_admin'),
+    path('add_admin/<int:community_id>',api_views.add_admin,name = 'add_admin'),
     path('pending_members/<int:community_id>',api_views.pending_members,name = 'pending_members'),
     path('join',api_views.request_response,name = 'join'),
     path('pending_members_count/<int:community_id>',api_views.pending_request_count,name = 'pending_request_count'),

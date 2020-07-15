@@ -661,7 +661,28 @@ def get_members_profile(member_ids,community_id,current_user_id=None):
 
             member_profile_list.append(userinfo_serialized_object)
 
+
     return member_profile_list
+
+
+
+def get_user_profile(user_id,community_id,current_user_id=None):
+
+
+    user_instance = User.objects.get(id=user_id)
+
+    userinfo_serialized_object = UserinfoSerializer(user_instance.userinfo)
+    #userinfo_serialized_object['state'] = 0
+
+    form_response = FormResponseSerilaizer(community_id, user_instance.id, bl=True,
+                                           current_user_id=current_user_id)
+
+    if form_response:
+        # userinfo_serialized_object['response'] = form_response[0]
+        userinfo_serialized_object['question_answers'] = form_response[1]
+
+
+    return userinfo_serialized_object
 
 
 
