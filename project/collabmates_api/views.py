@@ -2747,65 +2747,48 @@ def fetch_info(request):
 
 # /api/add_admin/community_id
 @csrf_exempt
-def create_admin(request, community_id):
-    ''' saving admin details given by user of a community
-     when the user is creating a community as a member '''
-    if request.method == 'POST':
-        response = json.loads(request.body)
-        member_id=get_member_id_from_headers(request)
+def add_admin(request, community_id):
 
-        if 'community_id' in response:
-            community_id = response['community_id']
-            community_instance = Community.objects.get(id=community_id)
-        else:
-            return JsonResponse({'success':False,'error_message':"Send community_id in request body"})
+    '''api to add admin directly in a community'''
 
+    try:
 
-        if not member_id:
-            return JsonResponse({'success':False,'error_message':"Send member id in headers"})
+        info_logger.info("\n")
+        info_logger.info("----------------add admin api------------------")
 
-        if not is_member_promoter(member_id=member_id,community_id=community_id):
-            return JsonResponse({'success':False,'error_message':"You are not a promoter"})
+        res = json.loads(request.body)
 
-        if 'nominate_member_ids' in response:
-            nominate_member_ids = response['nominate_member_ids']
-        else:
-            return JsonResponse({'success': False, 'error_message': "Send nominated member id list"})
+        member_id = res['member_id']
 
+        nominated_admin = res['nominate_member_ids']
 
-        try:
-            user_instance = User.objects.get(id=member_id)      #current logged in user object
-        except:
-            return JsonResponse({'success': False, 'error_message': "User is not registered"})
+        if len(nominated_admin) > 0:
+            nominated_admin = nominated_admin[0]
 
-        for member in nominate_member_ids:
+        member_filter = Members.objects.filter(member_id=nominated_admin,community_id=community_id)
 
-            if is_member_present(community_id=community_id,member_id=member):
+        engage_filter = Member_Engage.objects.filter(member_id=nominated_admin,community_id=community_id)
 
-                try:
-                    nominated_member = User.objects.get(id=member)
-                    print(nominated_member)
-                except:
-                    continue
+        info_logger.info(res)
 
-                is_present = temp_admin.objects.filter(email=nominated_member.userinfo.email,
-                                                       member_id=user_instance.id,community_id=community_id)
+        update_status_member = member_filter.update(state=member_states.ADMIN)
 
-                if not is_present.exists():
-                    instance=temp_admin()
-                    instance.name = nominated_member.userinfo.name
-                    instance.member_id = user_instance.id
-                    instance.email = nominated_member.userinfo.email
-                    instance.community=community_instance
-                    instance.save()
-                nominated_member_email = nominated_member.userinfo.email
-                nominated_member_name = nominated_member.userinfo.name
-                check_member(nominated_member_email,community_id,user_instance.id,
-                             nominated_member_name,community_instance)
+        update_status_engage = engage_filter.update(member_state=member_states.ADMIN)
+
+        info_logger.info(update_status_member)
+
+        info_logger.info("----------------add admin api end --------------\n")
 
 
-        return JsonResponse({'success': True})
-    return HttpResponse('Add Admin Api')
+    except Exception as e:
+
+        return JsonResponse({'error':e})
+
+
+    return JsonResponse({'success':True})
+
+
+
 
 
 def check_member(email, community_id, member_id, nominated_member_name,community_instance):
