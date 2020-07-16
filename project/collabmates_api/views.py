@@ -2067,8 +2067,11 @@ def create_chatroom_instance(res,community_instance,user_instance):
         card.has_been_named = has_been_named
     else:
 
-        header = res['title']
-        card.header = header[:30]
+        if len(res['title']) <= 30:
+            card.header = card.title[:30]
+        else:
+            card.header = card.title[:27] + "..."
+
         if card.type == card_types.CARD_PURPOSE:
             card.header = get_chatroom_name(user_instance.userinfo.name, card)
             card.has_been_named = True
@@ -6665,6 +6668,10 @@ def limit_access(request):
     '''function to limit the access of app and sending details on web screen'''
 
     member_id = get_member_id_from_headers(request)
+    try:
+        user_instance = User.objects.get(id=member_id)
+    except:
+        return {}
     context ={}
 
     context['header_image'] = LIMIT_ACCESS_HEADER_IMAGE
@@ -6693,9 +6700,9 @@ def limit_access(request):
 
     if not community_list:
         context['title'] = "Important Message"
-        context['sub_title'] = """Access to this app is restricted to invited members only. The login credentials you used (<font color='#00897b'>kj@likeminds.community</font>) seems to be missing from our list of invited members.
+        context['sub_title'] = """Access to this app is restricted to invited members only. The login credentials you used (<font color='#00897b'>%s</font>) seems to be missing from our list of invited members.
 
-If you are a community builder and you wish to receive an invite, do fill out the following form:"""
+If you are a community builder and you wish to receive an invite, do fill out the following form:"""%(user_instance.userinfo.email)
 
 
     return JsonResponse(context)
