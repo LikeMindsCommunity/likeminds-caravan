@@ -199,7 +199,7 @@ def generate_private_link_for_chatroom(card_instance,user_instance):
         expireInstance.private_link = url + '/collabcard/' + str(card_instance.id) + "?aj=" + str(
             unique_code) + "&source_id=" + str(user_instance.id)
 
-        expireInstance.expire_duration = 300
+        expireInstance.expire_duration = 86400
         expireInstance.save()
 
         temp['private_link'] = expireInstance.private_link
@@ -221,7 +221,7 @@ def generate_private_link_for_chatroom(card_instance,user_instance):
             expireInstance.unique_code = unique_code
             expireInstance.private_link = url + '/collabcard/' + str(card_instance.id) + "?aj=" + str(unique_code)+"&source_id="+str(user_instance.id)
 
-            expireInstance.expire_duration = 300
+            expireInstance.expire_duration = 86400
             expireInstance.save()
 
             temp['private_link'] = expireInstance.private_link
