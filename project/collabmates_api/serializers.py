@@ -887,7 +887,8 @@ def communityFieldTypeSerializer(instance):
     return {
         'id' : instance.id,
         'type':instance.type,
-        'sub_type_header' : instance.sub_type_header
+        'sub_type_header' : instance.sub_type_header,
+        'sub_type_placeholder' : instance.sub_type_placeholder
     }
 
 
