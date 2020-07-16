@@ -57,6 +57,8 @@ def set_name_of_chatrooms():
 
             print("card id ", str(instance.id))
 
+    print("name set in chatrooms")
+
 
 
 update_followed_members()
