@@ -3971,7 +3971,7 @@ def fetch_chatroom(request):
     '''api to get the chatroom'''
 
     card_id = request.GET.get('chatroom_id','')
-
+    community_id = None
     if not card_id:
         context = get_error_context(False,"send chat_room_id as a get params")
         return JsonResponse(context)
@@ -3987,6 +3987,12 @@ def fetch_chatroom(request):
         card_instance = card_filter[0]
     else:
         context={}
+        backup_filter = deletedChatrooms.objects.filter(card_id=card_id)
+
+        if backup_filter.exists():
+            community_id = backup_filter[0].community.id
+        if community_id:
+            context['community_id'] = community_id
         return JsonResponse(context)
 
     page = request.GET.get('page',1)
