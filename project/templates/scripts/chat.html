@@ -160,19 +160,7 @@
                 {% else %}
 
 
-       mixpanel.track("CR Followed",{
 
-        "footer join click date" : new Date() + "",
-        "CR Name" : "{{collabcard.header}}",
-        "Community Name" : "{{collabcard.community_name}}",
-        "CR type": "{{collabcard.type}}",
-        "User Community State" : "{{mixpanel_event.user_community_state}}",
-        "Life Time CR Followed" : "{{mixpanel_event.No_of_Chatrooms_Followed}}",
-        "Count Communities Joined":"{{mixpanel_event.No_of_community_member}}",
-        "Life Time Unique CR Responded":"{{mixpanel_event.No_of_unique_cr_responded}}"
-
-
-       })
 
                     var status = true;//$(this).attr('data-status');
                     // console.log(status)
@@ -186,6 +174,24 @@
                         success: function(data) {
                             $('#followChat').hide();
                             $('#loader').hide();
+
+
+                                   mixpanel.track("CR Followed",{
+
+                                        "footer join click date" : new Date() + "",
+                                        "CR Name" : "{{collabcard.header}}",
+                                        "Community Name" : "{{collabcard.community_name}}",
+                                        "CR type": "{{collabcard.chatroom_category}}",
+                                        "User Community State" : "{{mixpanel_event.user_community_state}}",
+                                        "Life Time CR Followed" : "{{mixpanel_event.No_of_Chatrooms_Followed}}",
+                                        "Count Communities Joined":"{{mixpanel_event.No_of_community_member}}",
+                                        "Life Time Unique CR Responded":"{{mixpanel_event.No_of_unique_cr_responded}}"
+
+
+                                   })
+
+
+
                         },
                         error: function(){
                             $('#loader').hide();
@@ -283,15 +289,6 @@
             var collabcard_id = {{collabcard.id}};
 
 
-                mixpanel.track("CR Responded",{
-
-                    "CR Name":"{{collabcard.name}}",
-                    "CR Type":"{{collabcard.type}}",
-                    "Count Communities Joined":"{{mixpanel_event.No_of_community_member}}",
-                    "User Community State":"{{mixpanel_event.user_community_state}}"
-                    })
-
-
 
             var msg = $('#comment_inp').val();
             if(msg == ''){return}
@@ -317,6 +314,20 @@
                 type: 'POST',
                 dataType: 'json',
                 success: function(data){
+
+
+
+                mixpanel.track("CR Responded",{
+
+                    "CR Name":"{{collabcard.header}}",
+                    "CR Type":"{{collabcard.chatroom_category}}",
+                    "Count Communities Joined":"{{mixpanel_event.No_of_community_member}}",
+                    "User Community State":"{{mixpanel_event.user_community_state}}"
+                    })
+
+
+                    console.log("api hit sucessfully")
+
                     $('.cStatus').text('sent sucessfully');
                     $('.commentStatus').delay(2000).fadeOut(300, function() { 
                         $(this).remove(); 
