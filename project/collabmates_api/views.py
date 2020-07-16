@@ -1831,13 +1831,13 @@ def fetch_community_types(request):
 
     '''api to get type and sub-type of community'''
 
-    type_filter = communityFieldTypes.objects.all()
+    type_filter = communityFieldTypes.objects.all().order_by('rank')
 
     types = []
     for instance in type_filter:
         temp = communityFieldTypeSerializer(instance)
         sub_type_list = []
-        subtype_queryset = communityFieldSubTypes.objects.filter(type=instance.id)
+        subtype_queryset = communityFieldSubTypes.objects.filter(type=instance.id).order_by('rank')
 
         if subtype_queryset.exists():
             for subtype_instance in subtype_queryset:

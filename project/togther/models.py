@@ -928,6 +928,8 @@ class communityFieldTypes(models.Model):
     sub_type_header = models.TextField(null=True)
     sub_type_placeholder = models.TextField(null=True)
 
+    rank = models.IntegerField(default=0)
+
     created_at = models.BigIntegerField(default=0)
 
     def save(self, *args, **kwargs):
@@ -943,6 +945,8 @@ class communityFieldSubTypes(models.Model):
     type = models.ForeignKey(communityFieldTypes,on_delete=models.CASCADE)
     sub_type = models.TextField(null=True)
     created_at = models.BigIntegerField(default=0)
+
+    rank = models.IntegerField(default=0)
 
     def save(self, *args, **kwargs):
         if self.created_at == 0:

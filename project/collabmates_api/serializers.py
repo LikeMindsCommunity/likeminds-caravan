@@ -763,7 +763,7 @@ def get_question_data(question_id, member_state, send_back):
 
 def CommunityQuestionsSerializer(community_question_instance):
 
-    return {
+    context =  {
         'id':community_question_instance.id,
         'question_title':community_question_instance.question_title,
         'value':community_question_instance.value,
@@ -773,6 +773,8 @@ def CommunityQuestionsSerializer(community_question_instance):
         'help_text':community_question_instance.help_text if community_question_instance.help_text else '',
         'is_hidden': community_question_instance.is_hidden
     }
+
+    return context
 
 
 def communityTypeSerializer(communityTypeInstance):
