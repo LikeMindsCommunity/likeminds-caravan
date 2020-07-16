@@ -16,6 +16,8 @@ def get_followed_members():
 
             engage_instance.card = instance.card
             engage_instance.user = instance.user
+            engage_instance.created_at = instance.created_at
+            engage_instance.updated_at = instance.updated_at
 
             engage_instance.save()
 
