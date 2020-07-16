@@ -1834,16 +1834,22 @@ def fetch_community_types(request):
     type_filter = communityFieldTypes.objects.all().order_by('rank')
 
     types = []
+    other_subtype = {}
     for instance in type_filter:
         temp = communityFieldTypeSerializer(instance)
         sub_type_list = []
-        subtype_queryset = communityFieldSubTypes.objects.filter(type=instance.id).order_by('rank')
-
+        subtype_queryset = communityFieldSubTypes.objects.filter(type=instance.id).order_by('sub_type')
         if subtype_queryset.exists():
+            other_subtype = {}
             for subtype_instance in subtype_queryset:
                 subtype_temp = communityFieldSubTypesSerializer(subtype_instance)
+                if subtype_temp['sub_type'] == 'Other':
+                    other_subtype = subtype_temp
+                    continue
                 sub_type_list.append(subtype_temp)
 
+        if other_subtype:
+            sub_type_list.append(other_subtype)
         if sub_type_list:
             temp['sub_types'] = sub_type_list
 
