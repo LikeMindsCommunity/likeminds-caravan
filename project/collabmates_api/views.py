@@ -3986,7 +3986,7 @@ def fetch_chatroom(request):
     if card_filter.exists():
         card_instance = card_filter[0]
     else:
-        context={'chatroom':{}}
+        context={}
         return JsonResponse(context)
 
     page = request.GET.get('page',1)
