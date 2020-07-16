@@ -6660,8 +6660,7 @@ def is_user_community_part(user_id):
         Q(state=member_states.ADMIN)|Q(state=member_states.TEMP_ADMIN)|
         Q(state=member_states.MEMBER)|Q(state=member_states.KNOWN_NOMINATED_PROMOTER)|Q(state=member_states.PROFILE_UNAVAILABLE))
 
-    #return members_filter.exists()
-    return True
+    return members_filter.exists()
 
 def limit_access(request):
 
@@ -8589,5 +8588,6 @@ def get_event_super_properties_for_mixpanel(user_instance,community_instance):
         context['token'] = "7907eb37f46b1ac2908d3881e633a85e"
 
     return context
+
 
 
