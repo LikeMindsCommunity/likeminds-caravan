@@ -6691,6 +6691,13 @@ def limit_access(request):
     context['access'] = access
 
 
+    if not community_list:
+        context['title'] = "Important Message"
+        context['sub_title'] = """Access to this app is restricted to invited members only. The login credentials you used (<font color='#00897b'>kj@likeminds.community</font>) seems to be missing from our list of invited members.
+
+If you are a community builder and you wish to receive an invite, do fill out the following form:"""
+
+
     return JsonResponse(context)
 
 def get_community_creator(community_instance):
