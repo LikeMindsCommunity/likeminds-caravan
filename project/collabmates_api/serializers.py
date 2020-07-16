@@ -668,8 +668,10 @@ def get_members_profile(member_ids,community_id,current_user_id=None):
 
 def get_user_profile(user_id,community_id,current_user_id=None):
 
-
-    user_instance = User.objects.get(id=user_id)
+    try:
+        user_instance = User.objects.get(id=user_id)
+    except:
+        return {}
 
     userinfo_serialized_object = UserinfoSerializer(user_instance.userinfo)
     #userinfo_serialized_object['state'] = 0
