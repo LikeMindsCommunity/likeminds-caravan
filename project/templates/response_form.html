@@ -760,7 +760,7 @@ You are one step away from being a part of this amazing community. Are you sure 
                              <!--     MIXPANEL TRACKER -->
 
 
-                                             mixpanel.track("Community Join Detail page",{
+                                             mixpanel.track("Community Join Request Submitted",{
                                              "Community Name":"{{community.name}}",
                                              "User Community State":"{{mixpanel_event.user_community_state}}",
                                              "click date" : new Date() + ""
@@ -812,7 +812,8 @@ You are one step away from being a part of this amazing community. Are you sure 
                 "Click Date" : new Date() + "",
                 "Other Community Promotor": "{{analytics.other_community_promoter}}",
                 "Count Communities Joined":"{{analytics.community_member_count}}",
-                "Joined Communities Name":"{{analytics.community_list|safe}}"
+                "Joined Communities Name":"{{analytics.community_list|safe}}",
+                "Community Name" : "{{community.name}}"
 
                 })
 

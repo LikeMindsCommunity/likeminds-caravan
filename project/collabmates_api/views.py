@@ -1808,7 +1808,7 @@ def create_introduction_question_in_community(community_instance):
     value_list = [{"min_chars": "50", "max_chars": "No limit"}]
     questions_instance = communityQuestions()
     questions_instance.community = community_instance
-    questions_instance.question_title = "Introduce Yourself to the community"
+    questions_instance.question_title = "Introduce yourself to the community"
     questions_instance.question_state = question_states.INTRODUCTION
     questions_instance.value = json.dumps(value_list)
     questions_instance.optional =False
@@ -1831,19 +1831,25 @@ def fetch_community_types(request):
 
     '''api to get type and sub-type of community'''
 
-    type_filter = communityFieldTypes.objects.all()
+    type_filter = communityFieldTypes.objects.all().order_by('rank')
 
     types = []
+    other_subtype = {}
     for instance in type_filter:
         temp = communityFieldTypeSerializer(instance)
         sub_type_list = []
-        subtype_queryset = communityFieldSubTypes.objects.filter(type=instance.id)
-
+        subtype_queryset = communityFieldSubTypes.objects.filter(type=instance.id).order_by('sub_type')
         if subtype_queryset.exists():
+            other_subtype = {}
             for subtype_instance in subtype_queryset:
                 subtype_temp = communityFieldSubTypesSerializer(subtype_instance)
+                if subtype_temp['sub_type'] == 'Other':
+                    other_subtype = subtype_temp
+                    continue
                 sub_type_list.append(subtype_temp)
 
+        if other_subtype:
+            sub_type_list.append(other_subtype)
         if sub_type_list:
             temp['sub_types'] = sub_type_list
 
@@ -2067,8 +2073,11 @@ def create_chatroom_instance(res,community_instance,user_instance):
         card.has_been_named = has_been_named
     else:
 
-        header = res['title']
-        card.header = header[:30]
+        if len(res['title']) <= 30:
+            card.header = card.title[:30]
+        else:
+            card.header = card.title[:27] + "..."
+
         if card.type == card_types.CARD_PURPOSE:
             card.header = get_chatroom_name(user_instance.userinfo.name, card)
             card.has_been_named = True
@@ -3962,7 +3971,7 @@ def fetch_chatroom(request):
     '''api to get the chatroom'''
 
     card_id = request.GET.get('chatroom_id','')
-
+    community_id = None
     if not card_id:
         context = get_error_context(False,"send chat_room_id as a get params")
         return JsonResponse(context)
@@ -3977,7 +3986,13 @@ def fetch_chatroom(request):
     if card_filter.exists():
         card_instance = card_filter[0]
     else:
-        context={'chatroom':{}}
+        context={}
+        backup_filter = deletedChatrooms.objects.filter(card_id=card_id)
+
+        if backup_filter.exists():
+            community_id = backup_filter[0].community.id
+        if community_id:
+            context['community_id'] = community_id
         return JsonResponse(context)
 
     page = request.GET.get('page',1)
@@ -4387,9 +4402,13 @@ def adding_guest_in_chatroom(request,context,card_instance,aj,source_id,communit
         aj_expired_disclaimer['title'] = "Oops! The private link to participate in this chat room has expired. Join the following community to access this chat room."
         if status:
             #for promoter
-            aj_expired_disclaimer['community'] = CommunitySerializer(card_instance.community,status.member_id)
+            community_serializer =  CommunitySerializer(card_instance.community,status.member_id)
+            community_serializer['created_by'] = get_community_creator(card_instance.community)
+            aj_expired_disclaimer['community'] = community_serializer
         else:
-            aj_expired_disclaimer['community'] = CommunitySerializer(card_instance.community)
+            community_serializer =  CommunitySerializer(card_instance.community)
+            community_serializer['created_by'] = get_community_creator(card_instance.community)
+            aj_expired_disclaimer['community'] = community_serializer
 
         context['aj_expired_disclaimer'] = aj_expired_disclaimer
 
@@ -6664,6 +6683,10 @@ def limit_access(request):
     '''function to limit the access of app and sending details on web screen'''
 
     member_id = get_member_id_from_headers(request)
+    try:
+        user_instance = User.objects.get(id=member_id)
+    except:
+        return {}
     context ={}
 
     context['header_image'] = LIMIT_ACCESS_HEADER_IMAGE
@@ -6688,6 +6711,13 @@ def limit_access(request):
 
     access = is_user_community_part(member_id)
     context['access'] = access
+
+
+    if not community_list:
+        context['title'] = "Important Message"
+        context['sub_title'] = """Access to this app is restricted to invited members only. The login credentials you used (<font color='#00897b'>%s</font>) seems to be missing from our list of invited members.
+
+If you are a community builder and you wish to receive an invite, do fill out the following form:"""%(user_instance.userinfo.email)
 
 
     return JsonResponse(context)
@@ -8574,5 +8604,4 @@ def get_event_super_properties_for_mixpanel(user_instance,community_instance):
         context['token'] = "7907eb37f46b1ac2908d3881e633a85e"
 
     return context
-
 
