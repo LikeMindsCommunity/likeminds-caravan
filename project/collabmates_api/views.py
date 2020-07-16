@@ -1808,7 +1808,7 @@ def create_introduction_question_in_community(community_instance):
     value_list = [{"min_chars": "50", "max_chars": "No limit"}]
     questions_instance = communityQuestions()
     questions_instance.community = community_instance
-    questions_instance.question_title = "Introduce Yourself to the community"
+    questions_instance.question_title = "Introduce yourself to the community"
     questions_instance.question_state = question_states.INTRODUCTION
     questions_instance.value = json.dumps(value_list)
     questions_instance.optional =False
@@ -6689,6 +6689,13 @@ def limit_access(request):
 
     access = is_user_community_part(member_id)
     context['access'] = access
+
+
+    if not community_list:
+        context['title'] = "Important Message"
+        context['sub_title'] = """Access to this app is restricted to invited members only. The login credentials you used (<font color='#00897b'>kj@likeminds.community</font>) seems to be missing from our list of invited members.
+
+If you are a community builder and you wish to receive an invite, do fill out the following form:"""
 
 
     return JsonResponse(context)
