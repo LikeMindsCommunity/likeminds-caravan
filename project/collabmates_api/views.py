@@ -8599,7 +8599,3 @@ def get_event_super_properties_for_mixpanel(user_instance,community_instance):
 
     return context
 
-
-# f =  User.objects.filter(id=526)
-# k = f.delete()
-# print(k)
