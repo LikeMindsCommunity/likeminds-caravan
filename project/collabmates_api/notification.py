@@ -276,7 +276,7 @@ def send_notification_for_join_requests(community_id,flag,member_id):
     if flag:
         message['payload']={
             'title':community_name,
-            'sub_title':"Congrats! you are now part of this community",
+            'sub_title':"Congrats! You are now part of this community.",
             'route':'route://member_approved?community_id='+ str(community_id)
         }
     else:

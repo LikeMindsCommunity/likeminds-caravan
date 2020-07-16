@@ -1808,7 +1808,7 @@ def create_introduction_question_in_community(community_instance):
     value_list = [{"min_chars": "50", "max_chars": "No limit"}]
     questions_instance = communityQuestions()
     questions_instance.community = community_instance
-    questions_instance.question_title = "Introduce Yourself to the community"
+    questions_instance.question_title = "Introduce yourself to the community"
     questions_instance.question_state = question_states.INTRODUCTION
     questions_instance.value = json.dumps(value_list)
     questions_instance.optional =False
