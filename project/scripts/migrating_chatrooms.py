@@ -1,7 +1,9 @@
-from togther.models import collabcardState,conversationEngage
+from togther.models import collabcardState,conversationEngage,Collabcard
 
 
-def get_followed_members():
+
+
+def update_followed_members():
 
     followed_filter = collabcardState.objects.filter(follow_status=True).order_by('id')
 
@@ -25,7 +27,37 @@ def get_followed_members():
             print("card id",str(instance.card.id))
 
 
+    print("existing chatroom followed for users")
 
 
 
-get_followed_members()
+
+
+def set_name_of_chatrooms():
+
+    collabcard_filter = Collabcard.objects.all().order_by('id')
+
+    for instance in collabcard_filter:
+        header = None
+        if not instance.header:
+            if instance.type == 7:
+                header= """Resources: %s"""%(instance.community.name)
+            elif instance.type == 1:
+                header=  """%s's Intro"""%(str(instance.user.userinfo.name))
+            else:
+                if len(instance.title) <= 30:
+                    header= instance.title[:30]
+                else:
+                    header= instance.title[:27] + "..."
+
+            instance.header = header
+            instance.has_been_named = True
+
+            instance.save()
+
+            print("card id ", str(instance.id))
+
+
+
+update_followed_members()
+set_name_of_chatrooms()

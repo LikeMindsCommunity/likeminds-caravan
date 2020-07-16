@@ -182,6 +182,7 @@ def CollabcardSerializer(card,user,community=None):
         if card.end_date:
             collabcard['end_date'] = card.end_date
 
+
         if card.about:
             collabcard['about'] = card.about
 
@@ -204,7 +205,11 @@ def CollabcardSerializer(card,user,community=None):
     if card.header:
         collabcard['header'] = card.header
     else:
-        collabcard['header'] = card.title[:30]
+
+        if len(collabcard['title']) <= 30:
+            collabcard['header'] = card.title[:30]
+        else:
+            collabcard['header'] = card.title[:27] + "..."
 
     if card.og_tags:
         og_tags = json.loads(card.og_tags)
