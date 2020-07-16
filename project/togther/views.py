@@ -1441,6 +1441,8 @@ def get_community_questions(community_id):
                 for option in dropdown_options:
                     dropdown_list.append((option['value']))
 
+                dropdown_list.sort()
+
 
                 if 'Other' not in dropdown_list:
                     temp['dropdown_list'] = dropdown_list
