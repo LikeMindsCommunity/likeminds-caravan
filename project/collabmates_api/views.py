@@ -4390,9 +4390,13 @@ def adding_guest_in_chatroom(request,context,card_instance,aj,source_id,communit
         aj_expired_disclaimer['title'] = "Oops! The private link to participate in this chat room has expired. Join the following community to access this chat room."
         if status:
             #for promoter
-            aj_expired_disclaimer['community'] = CommunitySerializer(card_instance.community,status.member_id)
+            community_serializer =  CommunitySerializer(card_instance.community,status.member_id)
+            community_serializer['created_by'] = get_community_creator(card_instance.community)
+            aj_expired_disclaimer['community'] = community_serializer
         else:
-            aj_expired_disclaimer['community'] = CommunitySerializer(card_instance.community)
+            community_serializer =  CommunitySerializer(card_instance.community)
+            community_serializer['created_by'] = get_community_creator(card_instance.community)
+            aj_expired_disclaimer['community'] = community_serializer
 
         context['aj_expired_disclaimer'] = aj_expired_disclaimer
 
@@ -8590,4 +8594,6 @@ def get_event_super_properties_for_mixpanel(user_instance,community_instance):
     return context
 
 
-
+# f =  User.objects.filter(id=526)
+# k = f.delete()
+# print(k)
