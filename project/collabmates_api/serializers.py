@@ -6,7 +6,7 @@ from django.db.models import Q
 from togther.models import *
 from utility.utils import is_IG_community,is_LG_or_LP_community,feedback_community_id,\
     generate_private_link,generate_random,get_time_text,eligibility_count,get_members_count_in_community,is_member_promoter,generate_private_link_for_chatroom,get_date_time_from_timestamp
-from utility.states import card_types
+from utility.states import card_types,question_states
 url = settings.URL
 import ast
 
@@ -773,6 +773,18 @@ def CommunityQuestionsSerializer(community_question_instance):
         'help_text':community_question_instance.help_text if community_question_instance.help_text else '',
         'is_hidden': community_question_instance.is_hidden
     }
+
+    if context['value'] and (context['state'] == question_states.CHOICE_SINGLE or context['state'] == question_states.CHOICE_MULTIPLE):
+
+         dropdown_list = json.loads(context['value'])
+
+         dropdown_list = sorted(dropdown_list,key= lambda i:i['value'])
+
+         context['value'] = json.dumps(dropdown_list)
+
+
+
+
 
     return context
 
