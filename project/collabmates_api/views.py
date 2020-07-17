@@ -1155,6 +1155,49 @@ def update_community_actions(community_instance):
                 instance.save()
 
 
+def set_levels_on_ctc(community_instance,level):
+
+    '''updating levels based on differet call to actions'''
+
+    community_level_filter = communityLevels.objects.filter(community=community_instance).order_by('id')
+    for instance in community_level_filter:
+
+        if instance.level == level and instance.state == community_level_states.PENDING:
+
+
+            if instance.joined_members < instance.max_members:
+                instance.joined_members = instance.joined_members + 1
+                instance.save()
+                # instance.update(joined_members=F(instance.joined_members)+1)
+
+            if instance.joined_members >= instance.max_members:
+                instance.state = community_level_states.COMPLETE
+                instance.save()
+
+                community_level_filter.filter(level="Level 3").update(title="Set up community directory",
+                                                                      sub_title="Help members know each other. Give 10 members a community-specific identity.",
+                                                                      state=community_level_states.PENDING)
+
+
+        elif instance.level == level and instance.state == community_level_states.PENDING:
+
+
+            if instance.joined_members < instance.max_members:
+                instance.joined_members = instance.joined_members + 1
+                instance.save()
+
+            if instance.joined_members >= instance.max_members:
+                instance.state = community_level_states.COMPLETE
+                instance.save()
+
+                community_level_filter.filter(level="Level 4").update(title="Invite new member applications",
+                                                                      sub_title="Grow your community. Start social sharing and approve 10 new members.",
+                                                                      state=community_level_states.PENDING)
+                
+
+
+
+
 
 
 
@@ -1335,6 +1378,9 @@ def edit_member_profile(request):
     if collabcard_id == 0:
         post_introduction_card_for_community(community_instance.id,user_instance.id,request)
 
+
+    #update level of community
+    set_levels_on_ctc(community_instance,"Level 3")
 
 
     question_answer=""
@@ -3724,6 +3770,12 @@ def get_collabcard_details_for_web(request,card_instance,card,current_user_id,an
                 collabcards_seen_internal(card_instance.community.id, card_instance.id, card['type'], current_user_id)
             context["current_user"] = current_user
 
+
+
+        context['redirect_link'] = "/community_questions/"+ str(community.id) + "?event="+ str(card_instance.id) + "&type="+ str(card['type'])
+
+
+
         # print(context)
 
         return context,"EVENT_CARD"
@@ -3787,6 +3839,12 @@ def get_collabcard_details_for_web(request,card_instance,card,current_user_id,an
             if current_user['collabcard_state'] == 0:
                 collabcards_seen_internal(card_instance.community.id, card_instance.id, card['type'], current_user_id)
             context["current_user"] = current_user
+
+
+        context['redirect_link'] = "/community_questions/"+ str(community.id) + "?poll="+ str(card_instance.id)
+
+
+
 
         #print(context['collabcard']['polls'])
         return context,"POLL_CARD"
@@ -6764,13 +6822,19 @@ def skip_community(request):
 
     set_state_for_onboarding_chatroom(community_instance,user_instance.id,request)
 
+    #updating the member joined level
+    set_levels_on_ctc(community_instance,"Level 2")
+
     return JsonResponse({'success':True})
+
 
 def get_state_of_community(community):
 
     if community.hide_community:
         return int(community.hide_community)
     return 0
+
+
 
 def members_state(request,req_dict=None):
 
@@ -8604,4 +8668,6 @@ def get_event_super_properties_for_mixpanel(user_instance,community_instance):
         context['token'] = "7907eb37f46b1ac2908d3881e633a85e"
 
     return context
+
+
 

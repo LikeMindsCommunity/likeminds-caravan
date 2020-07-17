@@ -3,11 +3,11 @@ from togther.models import communityFieldTypes,communityFieldSubTypes,communityF
 import re
 import time
 import json
-
+from .static import *
 
 def get_type_of_community(index):
 
-    loc = ("scripts/final.xlsx")
+    loc = ("scripts/50k.xlsx")
 
     wb = xlrd.open_workbook(loc)
     sheet = wb.sheet_by_index(index)
@@ -593,9 +593,45 @@ def master_field_insert():
 
 
 
+
+
+def update_fields(update_field,field_value):
+
+    field_filter = communityField.objects.filter(question_title=update_field)
+
+    dump = json.dumps(field_value)
+    print(type(dump))
+    x = field_filter.update(value=dump)
+
+    print(update_field)
+    print(x)
+
+
+def update_50k_fields():
+
+    update_fields("Colleges", COLLEGES)
+
+    update_fields("Favorite guitarist", COLLEGES)
+
+    update_fields("Birds", BIRDS)
+
+    update_fields("Football clubs", FOOTBALL_CLUBS)
+
+    update_fields("Animated movies", ANIMATED_MOVIES)
+
+
+
 start_time = time.time()
 
+
 master_field_insert()
+
+
+update_50k_fields()
+
+
+
+
 
 end_time = time.time()
 
