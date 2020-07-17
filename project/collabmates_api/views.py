@@ -1155,6 +1155,49 @@ def update_community_actions(community_instance):
                 instance.save()
 
 
+def set_levels_on_ctc(community_instance,level):
+
+    '''updating levels based on differet call to actions'''
+
+    community_level_filter = communityLevels.objects.filter(community=community_instance).order_by('id')
+    for instance in community_level_filter:
+
+        if instance.level == level and instance.state == community_level_states.PENDING:
+
+
+            if instance.joined_members < instance.max_members:
+                instance.joined_members = instance.joined_members + 1
+                instance.save()
+                # instance.update(joined_members=F(instance.joined_members)+1)
+
+            if instance.joined_members >= instance.max_members:
+                instance.state = community_level_states.COMPLETE
+                instance.save()
+
+                community_level_filter.filter(level="Level 3").update(title="Set up community directory",
+                                                                      sub_title="Help members know each other. Give 10 members a community-specific identity.",
+                                                                      state=community_level_states.PENDING)
+                break
+
+        elif instance.level == level and instance.state == community_level_states.PENDING:
+
+
+            if instance.joined_members < instance.max_members:
+                instance.joined_members = instance.joined_members + 1
+                instance.save()
+
+            if instance.joined_members >= instance.max_members:
+                instance.state = community_level_states.COMPLETE
+                instance.save()
+
+                community_level_filter.filter(level="Level 4").update(title="Invite new member applications",
+                                                                      sub_title="Grow your community. Start social sharing and approve 10 new members.",
+                                                                      state=community_level_states.PENDING)
+                break
+
+
+
+
 
 
 
@@ -1335,6 +1378,9 @@ def edit_member_profile(request):
     if collabcard_id == 0:
         post_introduction_card_for_community(community_instance.id,user_instance.id,request)
 
+
+    #update level of community
+    set_levels_on_ctc(community_instance,"Level 3")
 
 
     question_answer=""
@@ -6776,13 +6822,19 @@ def skip_community(request):
 
     set_state_for_onboarding_chatroom(community_instance,user_instance.id,request)
 
+    #updating the member joined level
+    set_levels_on_ctc(community_instance,"Level 2")
+
     return JsonResponse({'success':True})
+
 
 def get_state_of_community(community):
 
     if community.hide_community:
         return int(community.hide_community)
     return 0
+
+
 
 def members_state(request,req_dict=None):
 
