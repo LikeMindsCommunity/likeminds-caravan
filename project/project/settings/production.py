@@ -38,6 +38,7 @@ FIREBASE_CONFIG = {
 
 IS_BETA = False
 
+TIME_ZONE = 'Asia/Kolkata'
 
 ALLOWED_HOSTS = [os.getenv("PROD_ALLOWED_HOST_1"),os.getenv("PROD_ALLOWED_HOST_2"),
                  os.getenv("PROD_ALLOWED_HOST_3"), os.getenv("PROD_ALLOWED_HOST_4"),
