@@ -3724,6 +3724,12 @@ def get_collabcard_details_for_web(request,card_instance,card,current_user_id,an
                 collabcards_seen_internal(card_instance.community.id, card_instance.id, card['type'], current_user_id)
             context["current_user"] = current_user
 
+
+
+        context['redirect_link'] = "/community_questions/"+ str(community.id) + "?event="+ str(card_instance.id) + "&type="+ str(card['type'])
+
+
+
         # print(context)
 
         return context,"EVENT_CARD"
@@ -3787,6 +3793,12 @@ def get_collabcard_details_for_web(request,card_instance,card,current_user_id,an
             if current_user['collabcard_state'] == 0:
                 collabcards_seen_internal(card_instance.community.id, card_instance.id, card['type'], current_user_id)
             context["current_user"] = current_user
+
+
+        context['redirect_link'] = "/community_questions/"+ str(community.id) + "?poll="+ str(card_instance.id)
+
+
+
 
         #print(context['collabcard']['polls'])
         return context,"POLL_CARD"
