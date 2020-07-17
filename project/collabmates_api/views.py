@@ -1177,7 +1177,7 @@ def set_levels_on_ctc(community_instance,level):
                 community_level_filter.filter(level="Level 3").update(title="Set up community directory",
                                                                       sub_title="Help members know each other. Give 10 members a community-specific identity.",
                                                                       state=community_level_states.PENDING)
-                break
+
 
         elif instance.level == level and instance.state == community_level_states.PENDING:
 
@@ -1193,7 +1193,7 @@ def set_levels_on_ctc(community_instance,level):
                 community_level_filter.filter(level="Level 4").update(title="Invite new member applications",
                                                                       sub_title="Grow your community. Start social sharing and approve 10 new members.",
                                                                       state=community_level_states.PENDING)
-                break
+                
 
 
 
