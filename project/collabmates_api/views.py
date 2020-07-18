@@ -7493,7 +7493,7 @@ def get_all_members(request, req_dict=None):
         is_filter = True
         member_list = Members.objects.filter(community_id=community_id).filter(
             Q(state=member_states.ADMIN) | Q(state=member_states.MEMBER) | Q(
-                state=member_states.KNOWN_NOMINATED_PROMOTER) | Q(state=member_states.PENDING_MEMBER)).order_by('id')
+                state=member_states.PROFILE_UNAVAILABLE) | Q(state=member_states.PENDING_MEMBER)).order_by('id')
         member_list = pagination(member_list, page, paginate_by=10)
         filter_list = request.GET.get('filter', None)
 
@@ -7511,7 +7511,7 @@ def get_all_members(request, req_dict=None):
             # is_filter = False
                 member_list = Members.objects.filter(community_id=community_id).filter(
                     Q(state=member_states.ADMIN) | Q(state=member_states.MEMBER) | Q(
-                        state=member_states.KNOWN_NOMINATED_PROMOTER) | Q(state=member_states.PENDING_MEMBER)).order_by(
+                        state=member_states.PROFILE_UNAVAILABLE) | Q(state=member_states.PENDING_MEMBER)).order_by(
                     'id')
                 member_list = pagination(member_list, page, paginate_by=10)
                 members = get_member_instances(member_list, current_user_id, community_id)
@@ -7524,7 +7524,7 @@ def get_all_members(request, req_dict=None):
         # is_filter = False
         member_list = Members.objects.filter(community_id=community_id).filter(
             Q(state=member_states.ADMIN) | Q(state=member_states.MEMBER) | Q(
-                state=member_states.KNOWN_NOMINATED_PROMOTER)).order_by('id')
+                state=member_states.PROFILE_UNAVAILABLE)).order_by('id')
         member_list = pagination(member_list, page, paginate_by=10)
         members = get_member_instances(member_list, current_user_id, community_id)
 

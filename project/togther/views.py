@@ -672,10 +672,10 @@ def get_member_details(community, *args):
     '''function to get member details of community'''
 
     members = []
-    # member_list = Members.objects.filter(community_id=community).filter(state=1) | Q(state=2) | Q(state=4))
+    # member_list = Members.objects.filter(community_id=community).filer(state=1) | Q(state=2) | Q(state=4))
     
     # tweaking func args to get other states as well
-    getMemberStates = [1, 2, 4] # default states
+    getMemberStates = [1, 2, 4,9] # default states
     for state in args:
         getMemberStates.append(state)
 
