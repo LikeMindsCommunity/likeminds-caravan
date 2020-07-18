@@ -117,7 +117,7 @@ def get_members_count_in_community(community_id):
 
     instance = Members.objects.filter(community_id=community_id).filter(
         Q(state=member_states.ADMIN) | Q(state=member_states.TEMP_ADMIN) |
-        Q(state=member_states.MEMBER) | Q(state=member_states.KNOWN_NOMINATED_PROMOTER))
+        Q(state=member_states.MEMBER) | Q(state=member_states.PROFILE_UNAVAILABLE))
 
     return instance.count()
 
