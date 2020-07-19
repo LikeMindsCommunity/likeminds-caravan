@@ -221,9 +221,9 @@ def send_notification(fcm_token,message,is_android):
 
 
 def get_tagged_members_list(answer):
-
+    print(answer)
     tagged_users_list = re.findall("route://member/"'([0-9]+)', answer)
-    answer_text = re.split('>>', answer)[-1]
+    answer_text = re.sub(r'\|route://member/[0-9]+>>|<<', '', answer)
 
     tagged_user_names = "@" + ' @'.join(re.findall('(?<=\<\<).+?(?=\|)', answer))
     
