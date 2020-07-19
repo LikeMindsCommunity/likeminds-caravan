@@ -38,13 +38,13 @@ server_key=settings.FCM_SERVER_KEY
 def send_notification_for_android(token_list,message):
 
     '''function to send notification to android'''
-    
+
     result=""
     push_service = FCMNotification(api_key=server_key)
     result = push_service.notify_multiple_devices(registration_ids=token_list,
                                                   data_message=message['payload'])
     print(result)
-    
+   
 
 
 
@@ -413,7 +413,7 @@ def send_follow_notification(card_id,user_id,answer):
 
         message['payload']={
             "title":str(card.title),
-            "sub_title":"**"+str(answerer_name)+"**: "+answer_text,
+            "sub_title":str(answerer_name[0])+": "+answer_text,
             "route":"route://collabcard?collabcard_id="+str(card_id)
         }
         # message['payload']={
@@ -459,11 +459,11 @@ def send_notification_to_tagged_users(card_id,answerer_name,answer,user_id,user_
 
         message={}
 
-        card = Card.objects.get(id=card_id)
+        card = Collabcard.objects.get(id=card_id)
 
         message['payload']={
             "title":str(answerer_name) + " tagged you!",
-            "sub_title":"** "+str(card.title)+"**: "+answer,
+            "sub_title":str(card.title)+": "+answer,
             "route":"route://collabcard?collabcard_id="+str(card_id)
         }
         notification_list = []
