@@ -68,7 +68,6 @@ def notification_meta(notification_list,message):
     '''function to process notification to send'''
 
 
-    send_notification_for_android([],message)
     token_list_android=[]
     token_list_ios=[]
 
