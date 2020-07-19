@@ -59,6 +59,12 @@ def send_notification_for_ios(token_list, message):
                                                   message_body=message['payload']['sub_title'],
                                                   data_message=message['payload'])
 
+def get_title_from_collabcard(card):
+    ''' To extract the title from a card. '''
+    if card.header:
+        return card.header
+    else:
+        return card.title[:30]
 
 
 def notification_meta(notification_list,message):
@@ -219,7 +225,6 @@ def send_notification(fcm_token,message,is_android):
 
 
 def get_tagged_members_list(answer):
-    print(answer)
     tagged_users_list = re.findall("route://member/"'([0-9]+)', answer)
     answer_text = re.sub(r'\|route://member/[0-9]+>>|<<', '', answer)
 
@@ -347,7 +352,12 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title, 
             temp['mobile_os'] = notification_details[1]
             notification_list.append(temp)
 
+        card_id = kwargs['card_id']
+        card = Collabcard.objects.get(id=card_id)
+
         tagged_users_list, collabcard_title, user_names = get_tagged_members_list(collabcard_title)
+
+        collabcard_title = get_title_from_collabcard(card)
 
         community_name = kwargs['community_name']
         message = {}
@@ -439,7 +449,7 @@ def send_follow_notification(card_id,user_id,answer):
         tagged_users_list, answer_text, user_names = get_tagged_members_list(answer)
 
         message['payload']={
-            "title":str(card.title),
+            "title":str(get_title_from_collabcard(card)),
             "sub_title":str(answerer_name[0])+": "+answer_text,
             "route":"route://collabcard?collabcard_id="+str(card_id)
         }
@@ -491,7 +501,7 @@ def send_notification_to_tagged_users(card_id,answerer_name,answer,user_id,user_
 
         message['payload']={
             "title":str(answerer_name) + " tagged you!",
-            "sub_title":str(card.title)+": "+answer,
+            "sub_title":str(get_title_from_collabcard(card))+": "+answer,
             "route":"route://collabcard?collabcard_id="+str(card_id)
         }
         notification_list = []
