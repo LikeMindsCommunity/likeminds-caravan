@@ -790,7 +790,7 @@ def join_community_responses_version_1(request):
     info_logger.info(res)
     info_logger.info("\n")
     community_id = res['community_id']
-    print(community_id)
+
     community_instance = Community.objects.get(id=community_id)
     community=community_instance
 
@@ -825,6 +825,7 @@ def join_promoter_created_community_version_1(res,request):
 
     user_instance = User.objects.get(id=member_id)
 
+
     if 'questions' in res:
 
         for question in res['questions']:
@@ -852,7 +853,7 @@ def join_promoter_created_community_version_1(res,request):
                 save_user_selected_options(question_instance, user_instance, community_instance, selected_choices)
 
 
-            update_hidden_fields_in_questions(question_instance,user_instance,community_instance)
+    update_hidden_fields_in_questions(user_instance,community_instance)
 
     #saving data directly
     if 'aj' in res:
@@ -1014,11 +1015,14 @@ def post_purpose_collabcard_for_community(request,community_instance,member_id):
     return context['card_instance']
 
 
-def update_hidden_fields_in_questions(question_instance,user_instance,community_instance):
+def update_hidden_fields_in_questions(user_instance,community_instance):
 
     '''api to update hidden fields in questions'''
+    question_filter = communityQuestions.objects.filter(community=community_instance,is_hidden=True)
 
-    if question_instance.is_hidden:
+    for question_instance in question_filter:
+
+
 
         if question_instance.question_state == question_states.EMAIL_ID:
 
@@ -1029,7 +1033,6 @@ def update_hidden_fields_in_questions(question_instance,user_instance,community_
             answer_instance.question_answer = user_instance.userinfo.email
             answer_instance.question_title = question_instance.question_title
             answer_instance.save()
-
 
 
 
@@ -1369,6 +1372,8 @@ def edit_member_profile(request):
             if collabcard_id and question_instance.question_state == question_states.INTRODUCTION:
                 Collabcard.objects.filter(id=collabcard_id).update(title=question['value'])
 
+
+    update_hidden_fields_in_questions(user_instance,community_instance)
     form_response = FormResponseSerilaizer(community_id,member_id, bl=True, current_user_id=member_id)
 
     #setting edit status in members table
@@ -7493,7 +7498,7 @@ def get_all_members(request, req_dict=None):
         is_filter = True
         member_list = Members.objects.filter(community_id=community_id).filter(
             Q(state=member_states.ADMIN) | Q(state=member_states.MEMBER) | Q(
-                state=member_states.KNOWN_NOMINATED_PROMOTER) | Q(state=member_states.PENDING_MEMBER)).order_by('id')
+                state=member_states.PROFILE_UNAVAILABLE) | Q(state=member_states.PENDING_MEMBER)).order_by('id')
         member_list = pagination(member_list, page, paginate_by=10)
         filter_list = request.GET.get('filter', None)
 
@@ -7511,7 +7516,7 @@ def get_all_members(request, req_dict=None):
             # is_filter = False
                 member_list = Members.objects.filter(community_id=community_id).filter(
                     Q(state=member_states.ADMIN) | Q(state=member_states.MEMBER) | Q(
-                        state=member_states.KNOWN_NOMINATED_PROMOTER) | Q(state=member_states.PENDING_MEMBER)).order_by(
+                        state=member_states.PROFILE_UNAVAILABLE) | Q(state=member_states.PENDING_MEMBER)).order_by(
                     'id')
                 member_list = pagination(member_list, page, paginate_by=10)
                 members = get_member_instances(member_list, current_user_id, community_id)
@@ -7524,7 +7529,7 @@ def get_all_members(request, req_dict=None):
         # is_filter = False
         member_list = Members.objects.filter(community_id=community_id).filter(
             Q(state=member_states.ADMIN) | Q(state=member_states.MEMBER) | Q(
-                state=member_states.KNOWN_NOMINATED_PROMOTER)).order_by('id')
+                state=member_states.PROFILE_UNAVAILABLE)).order_by('id')
         member_list = pagination(member_list, page, paginate_by=10)
         members = get_member_instances(member_list, current_user_id, community_id)
 
