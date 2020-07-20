@@ -841,7 +841,7 @@ def join_promoter_created_community_version_1(res,request):
             answer_instance.community = community_instance
             answer_instance.question_answer = question['value']
             answer_instance.question_title = question_instance.question_title
-            #answer_instance.save()
+            answer_instance.save()
 
             if question_instance.question_state == question_states.CHOICE_SINGLE or question_instance.question_state == question_states.CHOICE_MULTIPLE:
 
@@ -850,7 +850,7 @@ def join_promoter_created_community_version_1(res,request):
                 else:
                     selected_choices = question['value'].split(",")
 
-                #save_user_selected_options(question_instance, user_instance, community_instance, selected_choices)
+                save_user_selected_options(question_instance, user_instance, community_instance, selected_choices)
 
 
     update_hidden_fields_in_questions(user_instance,community_instance)
@@ -1022,7 +1022,7 @@ def update_hidden_fields_in_questions(user_instance,community_instance):
 
     for question_instance in question_filter:
 
-        
+
 
         if question_instance.question_state == question_states.EMAIL_ID:
 
@@ -1372,6 +1372,8 @@ def edit_member_profile(request):
             if collabcard_id and question_instance.question_state == question_states.INTRODUCTION:
                 Collabcard.objects.filter(id=collabcard_id).update(title=question['value'])
 
+
+    update_hidden_fields_in_questions(user_instance,community_instance)
     form_response = FormResponseSerilaizer(community_id,member_id, bl=True, current_user_id=member_id)
 
     #setting edit status in members table
