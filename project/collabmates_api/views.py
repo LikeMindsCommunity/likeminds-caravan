@@ -6878,7 +6878,9 @@ def members_state(request,req_dict=None):
     edit_required = False
     actions_required = False
     created_at = 0
-    for data in query_set:
+
+    if query_set.exists():
+        data = query_set[0]
         is_member = False
         tool_state = 0
         state = data.state
@@ -6902,68 +6904,14 @@ def members_state(request,req_dict=None):
         if data.actions_required:
             actions_required = True
 
-        ref_members = get_referred_members_of_a_member(community_id, member_id)
-
-
-    referred_members_count=len(ref_members)
-    tool_unlock_sub_title=""
-    if referred_members_count == 0:
-        tool_unlock_sub_title="Some features might be available only for active members of the community. Invite a new member and unlock a tool"
-    elif referred_members_count == 1:
-        tool_unlock_sub_title="Some features might be available only for active members of the community. Invite 2 more members and unlock this tool"
-    elif referred_members_count == 2:
-        tool_unlock_sub_title="Some features might be available only for active members of the community. Invite 1 more member and unlock this tool"
 
 
 
-    diff=eligibility_count-referred_members_count
-
-    #sending pop-up for lg community
-    community_instance=Community.objects.get(id=community_id)
-    unlock_title="Can’t Engage Yet"
-    unlock_sub_title="Your verification for joining this closed group is still pending. Engaging is not open for non verified members. Verify your credentials."
-    unlock_action_title="REQUEST COMMUNITY MEMBERS"
-    unlock_action="""route://member_ask?community_id=%s&community_name=%s"""%(community_instance.id,community_instance.name)
-
-    if diff <= 0:
-        json_response = {'state': state,
-                         'tool_state': tool_state,
-                         'referred_members_count': referred_members_count,
-                         'tool_unlock_title': "Unlock Feature",
-                         'tool_unlock_sub_title': tool_unlock_sub_title,
-                         'tool_unlock_action_title': "OK, INVITE NOW",
-                         'tool_unlock_action': """route://community?community_id=%s&share=true&source=tool_unlock""" % (community_id),
-                         'unlock_title':unlock_title,
-                         'unlock_sub_title':unlock_sub_title,
-                         'unlock_action':unlock_action,
-                         'unlock_action_title':unlock_action_title,
-                         'edit_required' : edit_required,
-                         'created_at' : created_at
-                         }
-    else:
-
-        if diff == 1:
-            tool_title = """Invite friends to unlock features.If you invite %s friend, You will be highlighted as a promoter of this community.""" % (
-            diff)
-        else:
-            tool_title = """Invite friends to unlock features.If you invite %s friends, You will be highlighted as a promoter of this community.""" % (
-                diff)
-
-        json_response={'state': state,
-                   'tool_state': tool_state,
-                   'referred_members_count':referred_members_count,
-                   'tool_title':tool_title,
-                   'tool_unlock_title':"Unlock Feature",
-                   'tool_unlock_sub_title':tool_unlock_sub_title,
-                   'tool_unlock_action_title':"OK, INVITE NOW",
-                   'tool_unlock_action':"""route://community?community_id=%s&share=true&source=tool_unlock""" % (community_id),
-                   'unlock_title': unlock_title,
-                   'unlock_sub_title': unlock_sub_title,
-                   'unlock_action': unlock_action,
-                   'unlock_action_title':unlock_action_title,
+    json_response = {
+                   'state': state,
+                   'tool_state': True,
                    'edit_required': edit_required,
                    'created_at': created_at
-
                    }
 
 
