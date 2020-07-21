@@ -92,7 +92,10 @@ urlpatterns = [
     path('fetch_location/<int:user_id>',api_views.get_user_location,name='fetch_location'),
 
     path('decode_url', api_views.decode_url, name='decode_url'),
+
     path('all_members', api_views.all_members, name='all_members'),
+    path('get_tagging_list', api_views.get_tagging_list, name='get_tagging_list'),
+
     path('member_activity', api_views.member_activity, name='member_activity'),
 
     path('invite_members', api_views.invite_members, name='invite_members'),
