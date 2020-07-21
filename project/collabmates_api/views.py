@@ -6909,7 +6909,7 @@ def members_state(request,req_dict=None):
 
     json_response = {
                    'state': state,
-                   'tool_state': True,
+                   'tool_state': 1,
                    'edit_required': edit_required,
                    'created_at': created_at
                    }
