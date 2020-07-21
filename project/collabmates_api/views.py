@@ -1911,6 +1911,7 @@ def fetch_community_types(request):
     return JsonResponse(context)
 
 
+
 def get_basic_directory_options(request):
 
     '''api to get basic diretory options'''
@@ -7663,9 +7664,9 @@ def get_tagging_list(request):
         temp['image_url'] = user_instance.userinfo.image_link
         temp['state'] = member.state
 
-        member_dict = {'member': temp}
+        #member_dict = {'member': temp}
 
-        tagging_list.append(member_dict)
+        tagging_list.append(temp)
 
 
     if chatroom_id:
@@ -7680,13 +7681,13 @@ def get_tagging_list(request):
             temp['state'] = 0
             temp['is_guest'] = True
 
-            member_dict = {'member': temp}
-            tagging_list.append(member_dict)
+            #member_dict = {'member': temp}
+            tagging_list.append(temp)
 
 
 
 
-    return JsonResponse({'tagging_list':tagging_list})
+    return JsonResponse({'members':tagging_list})
 
 
 
