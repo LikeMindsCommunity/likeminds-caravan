@@ -7647,7 +7647,10 @@ def get_tagging_list(request):
         temp['name'] = user_instance.userinfo.name
         temp['image_url'] = user_instance.userinfo.image_link
         temp['state'] = member.state
-        tagging_list.append(temp)
+
+        member_dict = {'member': temp}
+
+        tagging_list.append(member_dict)
 
 
     if chatroom_id:
@@ -7661,7 +7664,9 @@ def get_tagging_list(request):
             temp['image_url'] = user_instance.userinfo.image_link
             temp['state'] = 0
             temp['is_guest'] = True
-            tagging_list.append(temp)
+
+            member_dict = {'member': temp}
+            tagging_list.append(member_dict)
 
 
 
