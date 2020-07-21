@@ -7660,10 +7660,11 @@ def get_tagging_list(request):
             temp['name'] = user_instance.userinfo.name
             temp['image_url'] = user_instance.userinfo.image_link
             temp['state'] = 0
+            temp['is_guest'] = True
             tagging_list.append(temp)
 
 
-        
+
 
     return JsonResponse({'tagging_list':tagging_list})
 
