@@ -7471,10 +7471,10 @@ def get_all_members(request, req_dict=None):
                     'id')
                 member_list = pagination(member_list, page, paginate_by=10)
                 members = get_member_instances(member_list, current_user_id, community_id)
+
                 if collabcard_id:
                     card_members = get_members_data_for_collabcard(collabcard_id, community_id, current_user_id, page_no = page)
-
-                    members = get_collabcard_participants(members, card_members['participants'])
+                    members = get_collabcard_participants(members, card_members['participants'],guest=True)
 
     else:
         # is_filter = False
@@ -7506,7 +7506,7 @@ def get_member_instances(member_list,current_user_id,community_id,is_filter=Fals
                                                current_user_id=current_user_id)
 
         if form_response:
-            userinfo_serialized_object['response'] = form_response[0]
+            #userinfo_serialized_object['response'] = form_response[0]
             userinfo_serialized_object['question_answers'] = form_response[1]
 
         if not is_filter:
@@ -7592,29 +7592,34 @@ def get_members_data_for_collabcard(card_id,community_id,current_user_id,page_no
 
         user_instance = instance.user
 
-
         userinfo_serialized_object = UserinfoSerializer(user_instance.userinfo)
         userinfo_serialized_object['collabcard_state'] = instance.state
+        userinfo_serialized_object['is_guest'] = instance.is_guest
+
+
         form_response = FormResponseSerilaizer(community_id, user_instance.id, bl=True,
                                                current_user_id=current_user_id)
 
         if form_response:
-            userinfo_serialized_object['response'] = form_response[0]
+            #userinfo_serialized_object['response'] = form_response[0]
             userinfo_serialized_object['question_answers'] = form_response[1]
 
         members.append(userinfo_serialized_object)
 
-        #sending state also
+        #sending state also for conserving filter
         temp={}
         temp['user_id'] = user_instance.id
         temp['collabcard_state'] = instance.state
-        collabcard_participants.append(temp)
+        temp['is_guest'] = instance.is_guest
+        temp['member'] = userinfo_serialized_object
 
+
+        collabcard_participants.append(temp)
 
     return {'members':members,'participants':collabcard_participants}
 
 
-def get_collabcard_participants(all_members,collabcard_members):
+def get_collabcard_participants(all_members,collabcard_members,guest=False):
 
     collabcard_participants = []
     for member in all_members:
@@ -7623,6 +7628,14 @@ def get_collabcard_participants(all_members,collabcard_members):
                 member['collabcard_state'] = participant['collabcard_state']
                 collabcard_participants.append(member)
 
+
+    #sending guest data also
+    #print(collabcard_members)
+    if guest:
+        for data in collabcard_members:
+
+            if data['is_guest']:
+                collabcard_participants.append(data['member'])
 
     return collabcard_participants
 
@@ -7672,14 +7685,6 @@ def get_tagging_list(request):
 
 
     return JsonResponse({'tagging_list':tagging_list})
-
-
-
-
-
-
-
-
 
 
 
