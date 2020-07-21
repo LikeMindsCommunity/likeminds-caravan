@@ -7597,6 +7597,7 @@ def get_members_data_for_collabcard(card_id,community_id,current_user_id,page_no
         userinfo_serialized_object['is_guest'] = instance.is_guest
 
 
+
         form_response = FormResponseSerilaizer(community_id, user_instance.id, bl=True,
                                                current_user_id=current_user_id)
 
@@ -7635,6 +7636,7 @@ def get_collabcard_participants(all_members,collabcard_members,guest=False):
         for data in collabcard_members:
 
             if data['is_guest']:
+                data['member']['state'] = 0
                 collabcard_participants.append(data['member'])
 
     return collabcard_participants
