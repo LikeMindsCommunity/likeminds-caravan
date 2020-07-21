@@ -7395,6 +7395,9 @@ def get_user_location(request, user_id, type=None):
 
     return JsonResponse(response, safe=False)
 
+
+
+#############################  ALL MEMBERS API ###########################
 @api_view(['GET', 'POST'])
 @renderer_classes([JSONRenderer, TemplateHTMLRenderer])
 def all_members(request):
@@ -7624,6 +7627,56 @@ def get_collabcard_participants(all_members,collabcard_members):
     return collabcard_participants
 
 
+def get_tagging_list(request):
+
+    '''api to get tag list of members'''
+
+    community_id = request.GET.get('community_id')
+    chatroom_id = request.GET.get('chatroom_id')
+
+    member_filter = Members.objects.filter(community_id=community_id).filter(
+        Q(state=member_states.ADMIN) | Q(state=member_states.MEMBER) | Q(
+            state=member_states.PROFILE_UNAVAILABLE)).order_by('id')
+
+    tagging_list = []
+    for member in member_filter:
+
+        temp = {}
+        user_instance = member.member_id
+        temp['id'] = user_instance.id
+        temp['name'] = user_instance.userinfo.name
+        temp['image_url'] = user_instance.userinfo.image_link
+        temp['state'] = member.state
+        tagging_list.append(temp)
+
+
+    if chatroom_id:
+        state_filter = collabcardState.objects.filter(card_id=chatroom_id,is_guest=True)
+
+        for data in state_filter:
+            temp = {}
+            user_instance = data.user
+            temp['id'] = user_instance.id
+            temp['name'] = user_instance.userinfo.name
+            temp['image_url'] = user_instance.userinfo.image_link
+            temp['state'] = 0
+            tagging_list.append(temp)
+
+
+        
+
+    return JsonResponse({'tagging_list':tagging_list})
+
+
+
+
+
+
+
+
+
+
+
 #functionality for filters
 
 def fetch_filters(request):
@@ -7678,8 +7731,6 @@ def fetch_filters(request):
                 option_list.append(serialized_instance)
 
     return JsonResponse({'questions':option_list})
-
-
 
 
 def get_user_selected_option_list(question_id):
