@@ -641,7 +641,7 @@ def update_help_text():
     for data in update_list:
 
 
-        field_filter = communityField.objects.filter(data['id'])
+        field_filter = communityField.objects.filter(id=data['id'])
 
         if field_filter.exists():
 
