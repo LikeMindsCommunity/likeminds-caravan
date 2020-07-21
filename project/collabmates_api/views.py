@@ -958,6 +958,7 @@ def auto_join_community(community_instance,user_instance):
         member_instance.state = member_states.MEMBER
         member_instance.created_at=time.time()
         member_instance.save()
+        send_notification_for_join_requests.delay(community_instance.id, True, user_instance.id)
 
     # updating the member engage instance
     if not is_member_engage(community_instance,user_instance):
@@ -968,7 +969,6 @@ def auto_join_community(community_instance,user_instance):
         engage.member_state = member_states.MEMBER
         engage.save()
 
-    send_notification_for_join_requests.delay(community_instance.id,True, user_instance.id)
 
 
 def post_introduction_card_for_community(community_id,member_id,request):

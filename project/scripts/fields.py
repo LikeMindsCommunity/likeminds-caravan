@@ -621,13 +621,50 @@ def update_50k_fields():
 
 
 
+def update_help_text():
+
+    loc = ("scripts/50k.xlsx")
+
+    wb = xlrd.open_workbook(loc)
+    sheet = wb.sheet_by_index(13)
+
+    print("--------========----------==========---------==========--------===========")
+    update_list = []
+    for row in range(1, sheet.nrows):
+
+        temp = {}
+        temp['id'] = int(sheet.cell_value(row,0))
+        temp['help_text'] = sheet.cell_value(row,1)
+        update_list.append(temp)
+
+
+    for data in update_list:
+
+
+        field_filter = communityField.objects.filter(data['id'])
+
+        if field_filter.exists():
+
+            instance = field_filter[0]
+            instance.help_text = data['help_text']
+            instance.save()
+            print("data saved")
+
+
+
+
+
+
+
 start_time = time.time()
 
 
-master_field_insert()
+update_help_text()
 
-
-update_50k_fields()
+# master_field_insert()
+#
+#
+# update_50k_fields()
 
 
 

@@ -80,7 +80,7 @@ def is_member_verified(community,user_instance):
     '''function to check whether the member is verified or not'''
 
     is_verified=Members.objects.filter(community_id=community,member_id=user_instance).filter(
-        Q(state=member_states.ADMIN)|Q(state=member_states.TEMP_ADMIN)|
+        Q(state=member_states.ADMIN)|Q(state=member_states.PROFILE_UNAVAILABLE)|
         Q(state=member_states.MEMBER)|Q(state=member_states.KNOWN_NOMINATED_PROMOTER))
 
     if is_verified.exists():
