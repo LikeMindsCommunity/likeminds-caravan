@@ -6048,7 +6048,7 @@ def get_member_images_of_chatroom(conversation_filter):
         if conversation.user.id not in unique_members:
             member_images.append(conversation.user.userinfo.image_link)
             unique_members.add(conversation.user.id)
-           
+
     return member_images[:6]
 
 def get_chatrooms(chatroom_list,member_id):
@@ -6062,7 +6062,7 @@ def get_chatrooms(chatroom_list,member_id):
         conversation_filter = card_answers.objects.filter(card=card_instance.id,
                                                           state=chatroom_states.ANSWER).order_by('id')
         chatroom_instance['total_response_count'] = conversation_filter.count()
-        chatroom_instance['member_images'] = get_member_images_of_chatroom(conversation_filter)
+        chatroom_instance['members_images'] = get_member_images_of_chatroom(conversation_filter)
         chatrooms.append(chatroom_instance)
 
     return chatrooms
