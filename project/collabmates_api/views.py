@@ -57,10 +57,12 @@ from .notification import *
 from .raw_queries import compute_rank,update_conversation_engage_for_chatrooms
 from .serializers import *
 from .static_files import *
+from .static_text import *
+from .members import *
 from .tasks import send_email_to_nominated_admin, send_email_for_new_collabcard_posted, send_welcome_mail, \
     send_verification_mail_for_email_sync
 
-from .static_text import *
+
 # CACHE_TTL = getattr(settings, 'CACHE_TTL', cache_timeout)
 
 url = settings.URL
@@ -6049,11 +6051,11 @@ def get_chatrooms(chatroom_list,member_id):
                                                           state=chatroom_states.ANSWER).order_by('id')
         chatroom_instance['total_response_count'] = conversation_filter.count()
 
-        conversation = get_last_conversation(conversation_filter, member_id, chatroom_instance['id'])
-
-        if conversation[0]:
-            chatroom_instance['last_conversation'] = conversation[0]
-        chatroom_instance['unseen_conversation_count'] = conversation[1]
+        # conversation = get_last_conversation(conversation_filter, member_id, chatroom_instance['id'])
+        #
+        # if conversation[0]:
+        #     chatroom_instance['last_conversation'] = conversation[0]
+        # chatroom_instance['unseen_conversation_count'] = conversation[1]
         chatrooms.append(chatroom_instance)
 
     return chatrooms
@@ -6075,6 +6077,8 @@ def fetch_chatroom_feed(request):
     chatroom_filter = Collabcard.objects.filter(community=community_id).order_by('id')
 
     chatrooms = []
+    context = {}
+
     if not chatroom_id and not scroll_direction:
 
         last_seen = collabcardState.objects.filter(community=community_id,user = member_id).filter(~Q(state=0)).order_by('-card_id')
@@ -6091,6 +6095,8 @@ def fetch_chatroom_feed(request):
             chatroom_list = chatroom_filter.order_by('id')
             chatrooms = get_chatrooms(chatroom_list,member_id)
 
+        context['header'] = chatroom_feed_header(community_id,member_id)
+
     else:
         scroll_direction = int(scroll_direction)
         if scroll_direction == 0:                                   #upward scroll
@@ -6105,7 +6111,47 @@ def fetch_chatroom_feed(request):
             downward = chatroom_filter.filter(id__gt=chatroom_id).order_by('id')[:5]
             chatrooms = get_chatrooms(downward,member_id)
 
-    return JsonResponse({'chatrooms':chatrooms})
+    
+    context['chatrooms'] = chatrooms
+    return JsonResponse(context)
+
+
+
+
+def chatroom_feed_header(community_id,member_id):
+
+    '''function to get chatroom feed header'''
+
+    community_instance = Community.objects.get(id=community_id)
+
+
+    member_list = get_tagging_list_internal(community_instance.id)
+
+    member_names = []
+
+    for member in member_list:
+
+        if member['id'] != member_id:
+
+            names = member['name'].split(" ")
+            if names:
+                member_names.append(names[0])
+            else:
+                member_names.append(member['name'])
+
+    #sorting member names in ascending order
+    member_names.sort()
+
+    header = {
+        'community_name':community_instance.name,
+        'member_names':member_names[:10]
+    }
+    return header
+    # sending member_names
+
+
+
+
 
 
 
@@ -7650,44 +7696,14 @@ def get_tagging_list(request):
     community_id = request.GET.get('community_id')
     chatroom_id = request.GET.get('chatroom_id')
 
-    member_filter = Members.objects.filter(community_id=community_id).filter(
-        Q(state=member_states.ADMIN) | Q(state=member_states.MEMBER) | Q(
-            state=member_states.PROFILE_UNAVAILABLE)).order_by('id')
 
-    tagging_list = []
-    for member in member_filter:
-
-        temp = {}
-        user_instance = member.member_id
-        temp['id'] = user_instance.id
-        temp['name'] = user_instance.userinfo.name
-        temp['image_url'] = user_instance.userinfo.image_link
-        temp['state'] = member.state
-
-        #member_dict = {'member': temp}
-
-        tagging_list.append(temp)
-
-
-    if chatroom_id:
-        state_filter = collabcardState.objects.filter(card_id=chatroom_id,is_guest=True)
-
-        for data in state_filter:
-            temp = {}
-            user_instance = data.user
-            temp['id'] = user_instance.id
-            temp['name'] = user_instance.userinfo.name
-            temp['image_url'] = user_instance.userinfo.image_link
-            temp['state'] = 0
-            temp['is_guest'] = True
-
-            #member_dict = {'member': temp}
-            tagging_list.append(temp)
-
+    tagging_list = get_tagging_list_internal(community_id,chatroom_id)
 
 
 
     return JsonResponse({'members':tagging_list})
+
+
 
 
 
