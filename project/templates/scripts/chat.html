@@ -151,30 +151,21 @@
 
         $(document.body).on('click','#follow_poll',function(e){
             {% if request.user.is_authenticated %}
-                {% if member_state.state == 0 %}
-                    $(".ldrT", $('#loader')[0]).text("Making request...");
-                    $('#loader').show();
-                    window.location.href = "/community/{{community.id}}?cta=join&poll={{collabcard.id}}";
-                {% elif member_state.state == 3 %}
-                    $('#add_email_pop').modal('show');
-                {% else %}
-
-
-
-
                     var status = true;//$(this).attr('data-status');
+                    var temp = {collabcard_id: {{collabcard.id}}, member_id: {{current_user.id}}, value: status,aj:'{{aj}}',source_id:'{{source_id}}'}
+                    console.log(temp)
+
                     // console.log(status)
                     $(".ldrT", $('#loader')[0]).text(`Requesting to follow chatroom...`);
                     $('#loader').show();
                     $.ajax({
                         url: "/api/collabcard_follow",
-                        data: {collabcard_id: {{collabcard.id}}, member_id: {{current_user.id}}, value: status},
+                        data: temp,
                         type: "GET",
                         dataType: 'json',
                         success: function(data) {
                             $('#followChat').hide();
                             $('#loader').hide();
-
 
                                    mixpanel.track("CR Followed",{
 
@@ -197,7 +188,7 @@
                             $('#loader').hide();
                         }
                     })
-                {% endif %}
+
             {% else %}
                 $('.test').modal('show');
             {% endif %}
