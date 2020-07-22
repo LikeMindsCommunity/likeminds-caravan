@@ -6138,7 +6138,7 @@ def chatroom_feed_header(community_id,member_id):
 
     for member in member_list:
 
-        if member['id'] != member_id:
+        if int(member['id']) != int(member_id):
 
             names = member['name'].split(" ")
             if names:
