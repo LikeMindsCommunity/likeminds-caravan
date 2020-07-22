@@ -152,7 +152,7 @@
         $(document.body).on('click','#follow_poll',function(e){
             {% if request.user.is_authenticated %}
                     var status = true;//$(this).attr('data-status');
-                    var temp = {collabcard_id: {{collabcard.id}}, member_id: {{current_user.id}}, value: status,aj:'{{aj}}',source_id:'{{source_id}}'}
+                    var temp = {collabcard_id: {{collabcard.id}}, member_id: {{current_user.id}}, value: status,aj:'{{aj}}',source_id:'{{source_id}}',member_state:'{{member_state.state}}'}
                     console.log(temp)
 
                     // console.log(status)

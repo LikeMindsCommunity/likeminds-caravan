@@ -4461,7 +4461,10 @@ def adding_guest_in_chatroom(request,context,card_instance,aj,source_id,communit
 
     context['aj_expired'] = is_chatroom_join_expired(aj, source_id)
     status = is_member_verified(community_id, current_user_id)
-    if not context['aj_expired'] and not status:
+
+    state_filter = collabcardState.objects.filter(card=card_instance,user=current_user_id,is_guest=True)
+
+    if not context['aj_expired'] and not status and not state_filter.exists():
             if guest_header:
                 create_guest_header(current_user_id,source_id,card_instance,current_user_id)
                 func_dict = {'collabcard_id': card_instance.id, 'member_id': current_user_id, 'status': True, 'is_guest': True}
@@ -5330,6 +5333,15 @@ def create_conversation(request):
 
     member_id = get_member_id_from_headers(request)
 
+    is_guest = False
+
+    aj = request.GET.get('aj')
+    source_id = request.GET.get('source_id')
+
+
+    if aj and source_id:
+        is_guest = True
+
     if not member_id:
         context = get_error_context(False,"send member id in headers")
         return JsonResponse(context)
@@ -5338,6 +5350,13 @@ def create_conversation(request):
 
     card_instance = Collabcard.objects.get(id=res['chatroom_id'])
     user_instance = User.objects.get(id=member_id)
+
+    current_state = members_state(request,{'community_id':card_instance.community.id,'member_id':user_instance.id})
+
+    if is_guest and (current_state['state'] == 0 or current_state['state'] == member_states.PENDING_MEMBER):
+        context = {}
+        context = adding_guest_in_chatroom(request, context, card_instance.id, aj, source_id, card_instance.community.id, member_id,guest_header=True)
+
 
     ans = card_answers()
     ans.answer = res['text']
@@ -5358,12 +5377,13 @@ def create_conversation(request):
     update_last_answer_id(card_instance.id, ans.id)
 
     # auto following the collabcard if answer is created
-    function_dict = {
-        'member_id': member_id,
-        'collabcard_id': card_instance.id,
-        'status': True
-    }
-    collabcard_follow_internal(function_dict)
+    if not is_guest:
+        function_dict = {
+            'member_id': member_id,
+            'collabcard_id': card_instance.id,
+            'status': True
+        }
+        collabcard_follow_internal(function_dict)
 
     # sending the tagged member list
     auto_follow_chatrooms_in_case_of_tagging(request, res['text'], card_instance.id)
