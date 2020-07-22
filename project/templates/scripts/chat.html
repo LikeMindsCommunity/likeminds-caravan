@@ -300,8 +300,10 @@
                 $('#comments').append(html);
                 $('#comment_inp').val('');
             $.ajax({
-                url: '/api/create_answer?member_id='+member_id+"&collabcard_id="+collabcard_id,
-                data: JSON.stringify({"title":msg}),
+                url: '/api/create_conversation',
+                headers: { 'x-member-id': member_id },
+
+                data: JSON.stringify({"text":msg,"member_id":member_id,"chatroom_id":collabcard_id}),
                 type: 'POST',
                 dataType: 'json',
                 success: function(data){

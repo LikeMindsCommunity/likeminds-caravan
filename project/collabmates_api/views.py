@@ -5347,7 +5347,7 @@ def create_conversation(request):
         return JsonResponse(context)
 
     res = json.loads(request.body)
-
+    print("res----",res)
     card_instance = Collabcard.objects.get(id=res['chatroom_id'])
     user_instance = User.objects.get(id=member_id)
 
