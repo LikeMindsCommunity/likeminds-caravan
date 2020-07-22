@@ -6038,6 +6038,18 @@ def get_last_conversation(conversation_filter,member_id,chatroom_id):
     else:
         return (None,0)
 
+def get_member_images_of_chatroom(conversation_filter):
+
+    '''function to give member images of chatrooms'''
+    unique_members = set()
+    member_images = []
+    for conversation in conversation_filter:
+
+        if conversation.user.id not in unique_members:
+            member_images.append(conversation.user.userinfo.image_link)
+            unique_members.add(conversation.user.id)
+
+    return member_images[:6]
 
 def get_chatrooms(chatroom_list,member_id):
 
@@ -6050,12 +6062,7 @@ def get_chatrooms(chatroom_list,member_id):
         conversation_filter = card_answers.objects.filter(card=card_instance.id,
                                                           state=chatroom_states.ANSWER).order_by('id')
         chatroom_instance['total_response_count'] = conversation_filter.count()
-
-        # conversation = get_last_conversation(conversation_filter, member_id, chatroom_instance['id'])
-        #
-        # if conversation[0]:
-        #     chatroom_instance['last_conversation'] = conversation[0]
-        # chatroom_instance['unseen_conversation_count'] = conversation[1]
+        chatroom_instance['members_images'] = get_member_images_of_chatroom(conversation_filter)
         chatrooms.append(chatroom_instance)
 
     return chatrooms
@@ -6111,7 +6118,7 @@ def fetch_chatroom_feed(request):
             downward = chatroom_filter.filter(id__gt=chatroom_id).order_by('id')[:5]
             chatrooms = get_chatrooms(downward,member_id)
 
-    
+
     context['chatrooms'] = chatrooms
     return JsonResponse(context)
 
