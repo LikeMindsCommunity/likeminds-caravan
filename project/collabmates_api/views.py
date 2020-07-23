@@ -4520,11 +4520,6 @@ def create_guest_header(guest_id,invitee_id,card_instance,current_user_id):
 
 def get_user_in_route_form(card_instance,user_instance,current_user_id):
 
-
-    print(card_instance)
-    print(user_instance)
-    print(current_user_id)
-
     user_name = user_instance.userinfo.name
     member_ids = [user_instance.id]
     community_profile = get_members_profile(member_ids, card_instance.community.id, current_user_id)
