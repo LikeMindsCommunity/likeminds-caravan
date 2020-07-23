@@ -5332,10 +5332,6 @@ def create_conversation(request):
 
     member_id = get_member_id_from_headers(request)
 
-
-
-
-
     if not member_id:
         context = get_error_context(False,"send member id in headers")
         return JsonResponse(context)
@@ -5344,8 +5340,10 @@ def create_conversation(request):
 
 
     is_guest = False
-    if res['aj'] and res['source_id']:
-        is_guest = True
+
+    if 'aj' in res and 'source_id' in res:
+        if res['aj'] and res['source_id']:
+            is_guest = True
 
 
     card_instance = Collabcard.objects.get(id=res['chatroom_id'])
