@@ -21,7 +21,7 @@
             {% include 'components/chat.html' with answers=answers current_user=current_user collabcard=collabcard request=request user=user community=community %}
         </div>
 
-        {% if request.user.is_authenticated and aj_expired == False and member_state.state == 0 %}
+        {% if request.user.is_authenticated and aj_expired == False and member_state.state == 0 and has_conversation %}
             {% include 'components/footer.html' with message="Become a member of this community"  click="JOIN" %}
         {% endif %}
 

@@ -289,7 +289,7 @@
                                 <div class="dIb message sent vM wbBa mxwp100">
                                     ${msg}
                                     <span class="metadata">
-                                        <span class="time">Just Now</span>
+<!--                                        <span class="time">Just Now</span>-->
                                     </span>
                                 </div>
                             </div>
@@ -302,13 +302,10 @@
             $.ajax({
                 url: '/api/create_conversation',
                 headers: { 'x-member-id': member_id },
-
-                data: JSON.stringify({"text":msg,"member_id":member_id,"chatroom_id":collabcard_id}),
+                data: JSON.stringify({"text":msg,"member_id":member_id,"chatroom_id":collabcard_id,"aj":"{{aj}}","source_id":"{{source_id}}"}),
                 type: 'POST',
                 dataType: 'json',
                 success: function(data){
-
-
 
                 mixpanel.track("CR Responded",{
 
@@ -321,10 +318,14 @@
 
                     console.log("api hit sucessfully")
 
+
+
                     $('.cStatus').text('sent sucessfully');
                     $('.commentStatus').delay(2000).fadeOut(300, function() { 
                         $(this).remove(); 
                     });
+
+
 
 
                 },
@@ -367,7 +368,7 @@
                                     <div class="dIb message sent vM wbBa mxwp100">
                                         ${msg}
                                         <span class="metadata">
-                                            <span class="time">Just Now</span>
+<!--                                            <span class="time">Just Now</span>-->
                                         </span>
                                     </div>
                                 `;
