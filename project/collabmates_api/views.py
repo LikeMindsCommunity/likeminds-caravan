@@ -4279,7 +4279,7 @@ def get_chatroom_internal(request,card_instance,user_id,page,conversation_id,scr
     is_guest = False
     context={}
 
-    if source_id and aj:
+    if aj:
         is_guest = True
 
     # card = CollabcardSerializer(card_instance, user_id, card_instance.community)
