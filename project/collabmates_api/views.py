@@ -4520,7 +4520,6 @@ def create_guest_header(guest_id,invitee_id,card_instance,current_user_id):
 
 def get_user_in_route_form(card_instance,user_instance,current_user_id):
 
-
     user_name = user_instance.userinfo.name
     member_ids = [user_instance.id]
     community_profile = get_members_profile(member_ids, card_instance.community.id, current_user_id)
@@ -5333,21 +5332,20 @@ def create_conversation(request):
 
     member_id = get_member_id_from_headers(request)
 
-    is_guest = False
-
-    aj = request.GET.get('aj')
-    source_id = request.GET.get('source_id')
-
-
-    if aj and source_id:
-        is_guest = True
-
     if not member_id:
         context = get_error_context(False,"send member id in headers")
         return JsonResponse(context)
 
     res = json.loads(request.body)
-    print("res----",res)
+
+
+    is_guest = False
+
+    if 'aj' in res and 'source_id' in res:
+        if res['aj'] and res['source_id']:
+            is_guest = True
+
+
     card_instance = Collabcard.objects.get(id=res['chatroom_id'])
     user_instance = User.objects.get(id=member_id)
 
@@ -5355,7 +5353,8 @@ def create_conversation(request):
 
     if is_guest and (current_state['state'] == 0 or current_state['state'] == member_states.PENDING_MEMBER):
         context = {}
-        context = adding_guest_in_chatroom(request, context, card_instance.id, aj, source_id, card_instance.community.id, member_id,guest_header=True)
+        context = adding_guest_in_chatroom(request, context, card_instance, res['aj'], res['source_id'], card_instance.community.id, member_id,guest_header=True)
+
 
 
     ans = card_answers()
@@ -5516,6 +5515,7 @@ def collabcard_follow(request, function_dict=None):
 
         context = {}
         context = adding_guest_in_chatroom(request, context, collabcard, aj, source_id, community_instance.id, current_member_id,guest_header=True)
+
         return JsonResponse(context)
 
 
