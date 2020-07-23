@@ -140,7 +140,7 @@ def CollabcardSerializer(card,user,community=None):
         'answers_count':card.answers_count,
         'attending_count': card.attending_count,
         'polls_count': card.polls_count,
-        'card_creation_time' : time.strftime('%B %d at %H:%M',time.localtime(card.date_epoch)),
+        'card_creation_time' : time.strftime('%I:%M %p', time.localtime(card.date_epoch)),
         "community_name" : card.community.name,
         "date" : time.strftime('%d %b %Y', time.localtime(card.date_epoch)),
         "created_at":time.strftime('%H:%M', time.localtime(card.date_epoch))
