@@ -6845,9 +6845,21 @@ def limit_access(request):
 
     if not community_list:
         context['title'] = "Important Message"
-        context['sub_title'] = """Access to this app is restricted to invited members only. The login credentials you used (<font color='#00897b'>%s</font>) seems to be missing from our list of invited members.
 
-If you are a community builder and you wish to receive an invite, do fill out the following form:"""%(user_instance.userinfo.email)
+        platform_code = get_platform_code_from_headers(request)
+
+        if platform_code == "an":
+
+            context['sub_title'] = """Access to this app is restricted to invited members only. The login credentials you used (<font color='#00897b'>%s</font>) seems to be missing from our list of invited members.
+    
+    If you are a community builder and you wish to receive an invite, do fill out the following form:"""%(user_instance.userinfo.email)
+
+        else:
+
+            context['sub_title'] = """Access to this app is restricted to invited members only. The login credentials you used (%s) seems to be missing from our list of invited members.
+
+            If you are a community builder and you wish to receive an invite, do fill out the following form:""" % (
+                user_instance.userinfo.email)
 
 
     return JsonResponse(context)
