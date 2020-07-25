@@ -6556,7 +6556,9 @@ def login_with_google(google_id_token,request,login_type="google"):
                                        profile_picture=image_link, login_type=login_type,
                                        json_to_save=json_to_save
                                        )
-            save_user_primary_email(user,res['email'])
+
+            mobile_no = res['mobile_no'] if 'mobile_no' in res else None
+            save_user_primary_email(user,res['email'],mobile_no=mobile_no,verified=True)
             #mail_triger(str(user.id), request)  # both mail and notification will be sent here
 
 
@@ -6620,7 +6622,8 @@ def login_with_facebook(request,res,json_to_save,login_type="facebook"):
                                    json_to_save=json_to_save, city=city,
                                    # fb_link=fb_link
                                    )
-        save_user_primary_email(user,res['email'])
+        mobile_no = res['mobile_no'] if 'mobile_no' in res else None
+        save_user_primary_email(user, res['email'], mobile_no=mobile_no, verified=True)
         mail_triger(str(user.id), request)  # both mail and notification will be sent here
     else:
         userinfo = user.userinfo
@@ -6673,8 +6676,9 @@ def login_with_linkedin(request,res,json_to_save,login_type="linkedIn"):
         userinfo = create_userinfo(user=user, email=email, user_name=user_name,
                                    profile_picture=profile_picture, login_type=login_type,
                                    json_to_save=json_to_save)
-        save_user_primary_email(user,res['email'])
-        mail_triger(str(user.id), request)  # both mail and notification will be sent here
+        mobile_no = res['mobile_no'] if 'mobile_no' in res else None
+        save_user_primary_email(user, res['email'], mobile_no=mobile_no, verified=True)
+        #mail_triger(str(user.id), request)  # both mail and notification will be sent here
 
     else:
         userinfo = user.userinfo
@@ -6724,8 +6728,9 @@ def login_with_apple(request,res,json_to_save,login_type="apple"):
                                    profile_picture=image_link, login_type=login_type,
                                    json_to_save=json_to_save, city=city, apple_id=res['id']
                                    )
-        save_user_primary_email(user,res['email'])
-        mail_triger(str(user.id), request)  # both mail and notification will be sent here
+        mobile_no = res['mobile_no'] if 'mobile_no' in res else None
+        save_user_primary_email(user, res['email'], mobile_no=mobile_no, verified=True)
+       # mail_triger(str(user.id), request)  # both mail and notification will be sent here
 
     else:
         userinfo = userinfo[0]
@@ -6790,7 +6795,6 @@ def custom_login(request,res,login_type="custom"):
 
 def create_custom_user(name,mobile_no,email,image_url,login_type):
 
-    print("email--",email)
     has_mobile_no = userEmails.objects.filter(mobile_no=mobile_no)
     user_name = name + "_"+str(mobile_no)
 
@@ -6827,29 +6831,55 @@ def generate_otp(request):
     user_id = settings.GHUPSHAP_USER_ID
     password = settings.GHUPSHAP_PASSWORD
 
-    otp = randint(1000,9999)
+    mobile_no = request.GET.get('mobile_no')
+    country_code = request.GET.get('country_code')
 
-    print(otp)
-    return JsonResponse({"otp":otp})
+    mobile_no = str(country_code) + str(mobile_no)
+
+    msg = """Your%20OTP%20code%20is%20%25code%25"""
+    generate_url = """http://enterprise.smsgupshup.com/GatewayAPI/rest?userid=%s&password=%s&method=TWO_FACTOR_AUTH&v=1.1&phone_no=%s&msg=%s&format=text&otpCodeLength=4&otpCodeType=NUMERIC"""%(str(user_id),str(password),mobile_no,msg)
+    response = rqst.get(generate_url)
+    return JsonResponse({'success':True})
 
 
 def verify_otp(request):
 
 
-    mobile_number = request.GET.get('mobile_number')
+    mobile_no = request.GET.get('mobile_no')
+    country_code = request.GET.get('country_code')
+
+    mobile_no = str(country_code) + str(mobile_no)
+
     otp = request.GET.get('otp')
+    email_id = request.GET.get('email_id')
+
+    user_id = settings.GHUPSHAP_USER_ID
+    password = settings.GHUPSHAP_PASSWORD
+
+    verify_url = """http://enterprise.smsgupshup.com/GatewayAPI/rest?userid=%s&password=%s&method=TWO_FACTOR_AUTH&v=1.1&phone_no=%s&otp_code=%s"""%(str(user_id),str(password),str(mobile_no),str(otp))
+    response = rqst.get(verify_url)
+
+    success = False
+
+    if response.status_code == 200:
+        success = True
+        response = response.text
+        response_list = response.split("|")
+        if response_list[0].strip() == "error":
+            success = False
+
 
     context = {}
-
-    context['success'] = True
-
-    context['profile_exists'] = userEmails.objects.filter(mobile_number=mobile_number).exists()
+    context['success'] = success
+    if not success:
+        context['error_message'] = response
+    context['profile_exists'] = userEmails.objects.filter(mobile_no=mobile_no).exists()
 
     return JsonResponse(context)
 
 
 
-def save_user_primary_email(user_instance,email,mobile_no=None):
+def save_user_primary_email(user_instance,email,mobile_no=None,verified=False):
 
     '''function to save primary email of user for communications'''
 
@@ -6858,6 +6888,7 @@ def save_user_primary_email(user_instance,email,mobile_no=None):
     user_email_instance.email_state = email_states.PRIMARY
     user_email_instance.email = email
     user_email_instance.mobile_no = mobile_no
+    user_email_instance.verified = verified
     user_email_instance.save()
 
 def get_user_from_email(email):

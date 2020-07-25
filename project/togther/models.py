@@ -878,6 +878,7 @@ class userEmails(models.Model):
     created_at = models.BigIntegerField(default=0)
 
     mobile_no = models.BigIntegerField(null=True)
+    verified = models.BooleanField(default=False)
 
     def save(self, *args, **kwargs):
         if self.created_at == 0:
