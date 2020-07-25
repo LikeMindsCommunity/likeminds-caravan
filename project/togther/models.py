@@ -870,12 +870,14 @@ class emailTokens(models.Model):
 
 class userEmails(models.Model):
 
-    '''function to save user emails for communication and email sync'''
+    '''function to save user emails and mobile number for communication and email sync'''
 
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     email = models.TextField(null=True)
     email_state = models.IntegerField(default=0)
     created_at = models.BigIntegerField(default=0)
+
+    mobile_number = models.BigIntegerField(null=True)
 
     def save(self, *args, **kwargs):
         if self.created_at == 0:

@@ -21,7 +21,7 @@ from rest_framework.decorators import api_view, renderer_classes
 from rest_framework.renderers import JSONRenderer, TemplateHTMLRenderer
 from togther.forms import *
 from togther.models import *
-from togther.tasks import send_email_to_proposed_admin, send_mail_after_rank_computation
+from random import randint
 # utility functions
 from utility.celery_tasks import (save_community_purpose_card,
                                   update_last_unseen_in_engage_on_card_creation,
@@ -6429,21 +6429,37 @@ def login_authenticate_version_1(request):
             return JsonResponse({'success':False,'error_message':"send google id token in body"})
 
 
-
-        dic_form = res['login_json']
-        json_to_save = json.dumps(dic_form)
+        #
+        # dic_form = res['login_json']
+        # json_to_save = json.dumps(dic_form)
 
         if login_type == 'facebook':
+
+            dic_form = res['login_json']
+            json_to_save = json.dumps(dic_form)
+
             context = login_with_facebook(request,res,json_to_save)
             #context = {}
             return JsonResponse(context)
 
         elif login_type == 'linkedIn':
+
+            dic_form = res['login_json']
+            json_to_save = json.dumps(dic_form)
+
             context = login_with_linkedin(request, res, json_to_save)
             return JsonResponse(context)
 
-        else:
+        elif login_type == "apple":
+
+            dic_form = res['login_json']
+            json_to_save = json.dumps(dic_form)
+
             context = login_with_apple(request,res,json_to_save)
+            return JsonResponse(context)
+
+        elif login_type == "mobile_number":
+            context = {}
             return JsonResponse(context)
     else:
         context = get_error_context(False,"Send a post request")
@@ -6495,39 +6511,6 @@ def create_userinfo(user, email, user_name, profile_picture, login_type, json_to
         userinfo = userinfo[0]
 
     return userinfo
-
-
-def create_member_for_feedback_community(user_instance):
-
-    '''function to make user directly a member of feedback community'''
-
-    is_member=Members.objects.filter(community_id=feedback_community_id,member_id=user_instance)
-
-    try:
-        community_instance = Community.objects.get(id=feedback_community_id)
-    except:
-        return
-
-
-    if not is_member.exists():                                                #not is_member.exists()
-        member_instance=Members()
-        member_instance.member_id=user_instance
-        member_instance.community_id=community_instance
-        member_instance.state=member_states.MEMBER
-        member_instance.created_at=time.time()
-        #member_instance.save()
-
-
-    if not is_member_engage(community_instance,user_instance):          #not is_member_engage(community_instance,user_instance)
-
-        card_instance=Collabcard.objects.get(id=feedback_collabcard_id)
-        engage = Member_Engage()
-        engage.member_id = user_instance
-        engage.community_id = community_instance
-        engage.last_unseen_conversation = card_instance
-        engage.updated_at = time.time()
-        engage.member_state = member_states.MEMBER
-        #engage.save()
 
 
 def fetch_google_auth_data(google_id_token):
@@ -6770,6 +6753,32 @@ def login_with_apple(request,res,json_to_save,login_type="apple"):
     access = is_user_community_part(usr['id'])
     context = {'user': usr, 'has_tags': has_tags, 'access': access}
     return context
+
+def generate_otp(request):
+
+    user_id = settings.GHUPSHAP_USER_ID
+    password = settings.GHUPSHAP_PASSWORD
+
+    otp = randint(1000,9999)
+
+    print(otp)
+    return JsonResponse({"otp":otp})
+
+
+def verify_otp(request):
+
+
+    mobile_number = request.GET.get('mobile_number')
+    otp = request.GET.get('otp')
+
+    context = {}
+
+    context['success'] = True
+
+    context['profile_exists'] = userEmails.objects.filter(mobile_number=mobile_number).exists()
+
+    return JsonResponse(context)
+
 
 
 def save_user_primary_email(user_instance,email):
