@@ -6428,12 +6428,7 @@ def login_authenticate_version_1(request):
                 return JsonResponse(context)
             return JsonResponse({'success':False,'error_message':"send google id token in body"})
 
-
-        #
-        # dic_form = res['login_json']
-        # json_to_save = json.dumps(dic_form)
-
-        if login_type == 'facebook':
+        elif login_type == 'facebook':
 
             dic_form = res['login_json']
             json_to_save = json.dumps(dic_form)
@@ -6458,9 +6453,10 @@ def login_authenticate_version_1(request):
             context = login_with_apple(request,res,json_to_save)
             return JsonResponse(context)
 
-        elif login_type == "mobile_number":
-            context = {}
-            return JsonResponse(context)
+        elif login_type == "custom":
+
+           context = custom_login(request,res,login_type="custom")
+           return JsonResponse(context)
     else:
         context = get_error_context(False,"Send a post request")
         return JsonResponse(context)
@@ -6561,7 +6557,7 @@ def login_with_google(google_id_token,request,login_type="google"):
                                        json_to_save=json_to_save
                                        )
             save_user_primary_email(user,res['email'])
-            mail_triger(str(user.id), request)  # both mail and notification will be sent here
+            #mail_triger(str(user.id), request)  # both mail and notification will be sent here
 
 
         else:
@@ -6754,6 +6750,78 @@ def login_with_apple(request,res,json_to_save,login_type="apple"):
     context = {'user': usr, 'has_tags': has_tags, 'access': access}
     return context
 
+def custom_login(request,res,login_type="custom"):
+
+    context = {}
+    mobile_no=res['mobile_no']
+    country_code = res['country_code']
+    mobile_no = int(str(country_code) + str(mobile_no))
+
+    user_instance = None
+
+    profile = res['user']
+
+    name = profile['name']
+    email = profile['email'] if 'email' in profile else ''
+    email_exists = get_user_from_email(email)
+
+    image_url = profile['image_url'] if 'image_url' in profile else PROFILE_DEFAULT
+
+    user_instance = create_custom_user(name,mobile_no,email,image_url,login_type)
+
+    usr = UserinfoSerializer(user_instance.userinfo)
+    # see if user has tags or not
+    has_tags = user_instance.userinfo.has_tags
+
+    # saving the OS type of user (Android,iOS,WEB)
+    request_type = get_request_type(request)
+    if request_type:
+        Userinfo.objects.filter(user_id=user_instance.id).update(mobile_os=request_type)
+
+
+    context['user'] = usr
+    context['has_tags'] = has_tags
+    context['access'] =  is_user_community_part(usr['id'])
+    context['email_exists'] = True if email_exists else False
+
+
+    return context
+
+
+def create_custom_user(name,mobile_no,email,image_url,login_type):
+
+    print("email--",email)
+    has_mobile_no = userEmails.objects.filter(mobile_no=mobile_no)
+    user_name = name + "_"+str(mobile_no)
+
+    if not has_mobile_no.exists():
+
+        # creating user instance
+        user_instance = User()
+        user_instance.username = user_name
+        user_instance.save()
+
+        #creating userinfo instance
+
+        userinfo_instance = Userinfo()
+        userinfo_instance.name = name
+        userinfo_instance.email = email
+        userinfo_instance.image_link = image_url
+        userinfo_instance.login_type = login_type
+        userinfo_instance.login_json = None
+        userinfo_instance.created_at = time.time()
+        userinfo_instance.user_id = user_instance
+        userinfo_instance.save()
+
+        #creating user email
+        save_user_primary_email(user_instance,email,mobile_no)
+
+
+        return user_instance
+
+    return has_mobile_no[0].user
+
+
 def generate_otp(request):
 
     user_id = settings.GHUPSHAP_USER_ID
@@ -6781,7 +6849,7 @@ def verify_otp(request):
 
 
 
-def save_user_primary_email(user_instance,email):
+def save_user_primary_email(user_instance,email,mobile_no=None):
 
     '''function to save primary email of user for communications'''
 
@@ -6789,12 +6857,16 @@ def save_user_primary_email(user_instance,email):
     user_email_instance.user = user_instance
     user_email_instance.email_state = email_states.PRIMARY
     user_email_instance.email = email
+    user_email_instance.mobile_no = mobile_no
     user_email_instance.save()
 
 def get_user_from_email(email):
 
     '''function to get user instance from email'''
+    if not email:
+        return None
 
+    user = None
     user_emails = userEmails.objects.filter(email=email)
     if user_emails.exists():
         instance = user_emails[0]
@@ -8754,6 +8826,12 @@ def get_event_super_properties_for_mixpanel(user_instance,community_instance):
         context['token'] = "7907eb37f46b1ac2908d3881e633a85e"
 
     return context
+
+
+
+
+
+sid_url = """http://enterprise.smsgupshup.com/GatewayAPI/rest?userid=2000193166&password=yeDiJFr3B&method=TWO_FACTOR_AUTH&v=1.1&phone_no=918218225082&msg=Your%20OTP%20code%20is%20%25code%25&format=text&otpCodeLength=4&otpCodeType=NUMERIC"""
 
 
 

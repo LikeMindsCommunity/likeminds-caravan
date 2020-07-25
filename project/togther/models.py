@@ -877,7 +877,7 @@ class userEmails(models.Model):
     email_state = models.IntegerField(default=0)
     created_at = models.BigIntegerField(default=0)
 
-    mobile_number = models.BigIntegerField(null=True)
+    mobile_no = models.BigIntegerField(null=True)
 
     def save(self, *args, **kwargs):
         if self.created_at == 0:
