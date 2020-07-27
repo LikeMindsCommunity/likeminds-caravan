@@ -4383,7 +4383,8 @@ def save_the_latest_conversation(card_instance,user_id):
 
     latest_card = card_answers.objects.filter(card=card_instance,state=chatroom_states.ANSWER).last()
     print(latest_card)
-    if is_member_verified(card_instance.community,user_id):
+    #status = is_member_verified(card_instance.community,user_id)
+    if True:
         if latest_card:
             user_instance = User.objects.get(id=user_id)
             conversation_member_filter = conversationMemberState.objects.filter(user=user_instance, card=card_instance)
