@@ -1931,8 +1931,8 @@ def get_basic_directory_options(request):
     questions = []
     for field in field_filter:
 
-        # if field.state == question_states.GOOGLE_CITY_FETCH:
-        #     continue
+        if field.state == question_states.GOOGLE_CITY_FETCH:
+            continue
         temp  = communityFieldSerializer(field)
         questions.append(temp)
 
