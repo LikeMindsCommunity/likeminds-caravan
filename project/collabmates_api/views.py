@@ -4383,7 +4383,8 @@ def save_the_latest_conversation(card_instance,user_id):
 
     latest_card = card_answers.objects.filter(card=card_instance,state=chatroom_states.ANSWER).last()
     print(latest_card)
-    if is_member_verified(card_instance.community,user_id):
+    #status = is_member_verified(card_instance.community,user_id)
+    if True:
         if latest_card:
             user_instance = User.objects.get(id=user_id)
             conversation_member_filter = conversationMemberState.objects.filter(user=user_instance, card=card_instance)
@@ -6527,7 +6528,6 @@ def login_with_google(google_id_token,request,login_type="google"):
     '''function to login with google'''
 
     google_json = fetch_google_auth_data(google_id_token)
-
     json_to_save = google_json[0]
     res = google_json[1]
     info_logger.info(res)
@@ -6545,7 +6545,7 @@ def login_with_google(google_id_token,request,login_type="google"):
             # creating a user if no user is associated with that email
             res['id'] = res['azp']
 
-            user = create_user(user_name=res['name'], email=res['email'], id=res['id'])
+            user = create_user(user_name=res['name'], email=res['email'], id=res['email'])
 
             if 'picture' in res:
                 image_link = upload_image_to_firebase(res['picture'], user.id)
