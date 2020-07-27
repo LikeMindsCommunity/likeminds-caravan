@@ -847,11 +847,7 @@ def join_promoter_created_community_version_1(res,request):
 
             if question_instance.question_state == question_states.CHOICE_SINGLE or question_instance.question_state == question_states.CHOICE_MULTIPLE:
 
-                if "$#" in question['value']:
-                    selected_choices = question['value'].split("$#")
-                else:
-                    selected_choices = question['value'].split(",")
-
+                selected_choices = question['value'].split("$#")
                 save_user_selected_options(question_instance, user_instance, community_instance, selected_choices)
 
 
