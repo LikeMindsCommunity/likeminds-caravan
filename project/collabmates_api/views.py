@@ -5356,7 +5356,7 @@ def create_conversation(request):
     update_last_answer_id(card_instance.id, ans.id)
 
     # auto following the collabcard if answer is created
-    if not is_guest:
+    if current_state['state'] == member_states.ADMIN or current_state['state'] == member_states.MEMBER or current_state['state'] == member_states.PROFILE_UNAVAILABLE:
         function_dict = {
             'member_id': member_id,
             'collabcard_id': card_instance.id,
