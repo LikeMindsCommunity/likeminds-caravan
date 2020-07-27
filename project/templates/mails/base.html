@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{subject}}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet"> 
+</head>
+<style>
+*{
+    font-family: 'Roboto';
+}
+.main-wrapper{
+    background:#f9f9f9;
+    padding: 48px;
+}
+.main{
+    max-width: 600px;
+    margin: auto;
+}
+.content{
+    margin-top:50px;
+    border-radius: 8px;
+    background: #fff;
+    border:1px solid #eeeeee;
+}
+.logo{
+    height: 100px;
+    width: 100px;
+    margin: -50px auto 0;
+}
+.logo img{
+    width: 100%;
+}
+.mail{
+    padding:48px;
+}
+.username{
+    font-size: 20px;
+    font-weight: bold;
+    color:#444444;
+    margin-bottom: 24px;
+}
+.mail p{
+    color:#718297;
+    font-size: 16px;
+    margin-bottom: 24px;
+    line-height: 1.5;
+}
+.mail p strong{
+    color:#444444;
+}
+.mail p a{
+    text-decoration: none;
+    color:#00897b;
+}
+.mail .cta-wrapper{
+    padding: 10px 0;
+}
+.mail .cta{
+    text-decoration: none;
+    background: #00897b;
+    color:#fff;
+    text-transform: uppercase;
+    /* letter-spacing: 1px; */
+    padding:14px 19px;
+    border-radius:40px;
+    font-size:13px;
+    font-weight: 500;
+    margin: 10px 0 24px;
+}
+.footer{
+    text-align: center;
+    padding-top: 20px;
+}
+.footer p{
+    font-size: 14px;
+    color:#718297;
+    margin-bottom: 14px;
+    margin-top: 0px;
+    line-height: 1.5;
+}
+.footer .small p{
+    font-size: 12px;
+    margin-bottom: 12px;
+    margin-top: 0px;
+}
+.footer a{
+    text-decoration: none;
+    color:#00897b;
+}
+.download-buttons{
+    width: 50%;
+    margin:auto;
+    display: flex;
+    margin-bottom: 12px;
+}
+.download-buttons a{
+    display: inline-block;
+    padding: 0 10px;
+}
+.download-buttons a img{
+    width: 100%;
+}
+.divider{
+    display: inline-block;
+    width: 25%;
+    height: 1px;
+    background: #d8d8d8;
+    margin:0 auto 12px;
+}
+@media only screen and (max-width: 600px) {
+    .main-wrapper {
+        padding:10px;
+    }
+    .mail{
+        padding: 40px 20px;
+    }
+    .username{
+        font-size:16px;
+    }
+    .mail p{
+        font-size:14px;
+    }
+    .download-buttons{
+        width: 80%;
+    }
+    .footer p{
+        font-size: 12px;
+    }
+    .footer .small p{
+        font-size: 10px;
+    }
+}
+
+{% block extracss %}
+{% endblock %}
+</style>
+<body>
+    <div class="main-wrapper">
+        <div class="main">
+            <div class="content">
+                <div class="header">
+                    <div class="logo">
+                        <img src="http://localhost/likeminds/Togther/project/static/like_minds_logo.svg" alt="">
+                    </div>
+                </div>
+                <div class="mail">
+                    {% block mail %}
+                    {% endblock %}
+                </div>
+            </div>
+            <div class="footer">
+                <p>Never miss any conversation. Get the LikeMinds App.</p>
+                <div class="download-buttons">
+                    <a href="#">
+                        <img src="http://localhost/likeminds/Togther/project/static/google_play.jpg" alt="">
+                    </a>
+                    <a href="#">
+                        <img src="http://localhost/likeminds/Togther/project/static/app_store.jpg" alt="">
+                    </a>
+                </div>
+                <div class="divider"></div>
+                <p>LikeMinds is owned by Collabmates Pvt. Ltd., Gurugram, India</p>
+                <div class="divider"></div>
+                <div class="small">
+                    <p>You have received this email because you are subscribed to email alerts on LikeMinds App. We allow single-click unsubscribe. Click on any of the following and unsubscribe to: <a href="#">all emails from LikeMinds Extended Team</a>, <a href="#">all emails from LikeMinds</a>, or <a href="#">Only these type of emails</a>.</p>
+                    <p>Please don’t reply to this email. </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

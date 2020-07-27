@@ -2017,7 +2017,6 @@ def create_card(request,req_dict=None):
 def create_chatroom_instance(res,community_instance,user_instance):
 
     '''function to create chatroom instance'''
-
     card = Collabcard()
     card.title = res['title']
     card.community = community_instance
@@ -2171,8 +2170,7 @@ def create_card_internal(user_id,community_id,res):
 def send_chatroom_creation_notifications_and_mails(card_instance,user_instance):
 
     '''function to send mail and notifications for chatroom creations'''
-
-    send_notification_for_new_collabcard_posted.delay(card_instance.community.id, card_instance.title,
+    send_notification_for_new_collabcard_posted(card_instance.community.id, card_instance.title,
                                                       user_instance.id, user_instance.userinfo.name,
                                                       type=card_instance.type,
                                                       date_time=card_instance.end_date if card_instance.type == card_types.CARD_POLL else card_instance.date_time,
@@ -3338,7 +3336,9 @@ def approve_or_decline_whatsapp_community(req_dict,request):
     if req_dict['accepted'] or req_dict['accepted'] == 'true':
 
         is_member = is_member_verified(community=req_dict['community_id'], user_instance=req_dict['member_id'])
-
+        
+        promoter_name = request.member.userinfo.name
+        
         if not is_member:
             Members.objects.filter(member_id=req_dict['member_id'],
                                    community_id=req_dict['community_id']).update(state=member_states.MEMBER,
@@ -3366,7 +3366,7 @@ def approve_or_decline_whatsapp_community(req_dict,request):
             #sending mails and notifications
 
             #send notification
-            send_notification_for_join_requests.delay(req_dict['community_id'], True, req_dict['member_id'])
+            send_notification_for_join_requests.delay(req_dict['community_id'], True, req_dict['member_id'],promoter_name)
 
             # sending email to the user that his request is accepted for this community
             member_request_approval_or_denied.delay(user_id = req_dict['member_id'],community_id = req_dict['community_id'], approved = True)
@@ -3381,7 +3381,7 @@ def approve_or_decline_whatsapp_community(req_dict,request):
         # delete the responses of user to community questions, if any
         communityAnswers.objects.filter(member_id=req_dict['member_id'],community_id = req_dict['community_id']).delete()
 
-        send_notification_for_join_requests.delay(req_dict['community_id'], False, req_dict['member_id'])
+        send_notification_for_join_requests.delay(req_dict['community_id'], False, req_dict['member_id'],promoter_name)
 
 
 def approve_or_decline_private_community(req_dict,request):
@@ -5218,7 +5218,7 @@ def create_answer(request):
     #sending the tagged member list
     auto_follow_chatrooms_in_case_of_tagging(request, res['title'], card_id)
 
-    send_follow_notification.delay(card_id=card_id, user_id=user_id, answer=res['title'])
+    send_follow_notification(card_id=card_id, user_id=user_id, answer=res['title'])
 
     #     # calling update_answer_text
     # if card.type == card_types.CARD_NORMAL or card.type == card_types.CARD_INTRO:
@@ -5279,7 +5279,7 @@ def create_conversation(request):
     auto_follow_chatrooms_in_case_of_tagging(request, res['text'], card_instance.id)
 
     user_id  = str(user_instance.id)
-    send_follow_notification.delay(card_id=card_instance.id, user_id=user_id, answer=res['text'])
+    send_follow_notification(card_id=card_instance.id, user_id=user_id, answer=res['text'])
 
     # # updating the conversationEngage table
     conversation_seen(request, {'member_id': user_instance.id, 'conversation_id': ans.id})
@@ -5316,7 +5316,7 @@ def auto_follow_chatrooms_in_case_of_tagging(request,conversation,card_id):
 def _send_notification_to_tagged_users(card_id, answerer_name, answer, user_id):
     tagged_users = re.findall("route://member/"'([0-9]+)', answer)
     answer_text = re.split('>>', answer)[-1]
-    send_follow_notification.delay(card_id=card_id, user_id=user_id, answer=answer, tagged_users_list=tagged_users)
+    send_follow_notification(card_id=card_id, user_id=user_id, answer=answer, tagged_users_list=tagged_users)
     for user_id in tagged_users:
         # user=User.objects.get(id=user_id)
         # if not is_collabcard_already_followed(card,user):
@@ -6732,9 +6732,17 @@ def skip_community(request):
         engage.member_state = member_states.PROFILE_UNAVAILABLE
         engage.click_state = click_states.SKIP_COMMUNITY
         engage.save()
-
+        
     set_state_for_onboarding_chatroom(community_instance,user_instance.id,request)
 
+    #sleeping for 2 hours to remind user to complete profile via notification
+    time.sleep(7200)
+    try:
+        community_instance = Community.obejcts.get(id=community_id)
+        community_state = get_state_of_community(community_instance)
+        send_notification_to_incomplete_profile(user_id,community_id,community_state,community_name)
+    except:
+        print("some error occured")
     return JsonResponse({'success':True})
 
 def get_state_of_community(community):

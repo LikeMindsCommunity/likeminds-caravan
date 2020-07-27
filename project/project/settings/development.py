@@ -1,7 +1,7 @@
 from .base import *
 
 
-DEBUG = False
+DEBUG = True
 
 URL = os.getenv('BETA_URL')
 

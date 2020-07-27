@@ -255,7 +255,7 @@ def send_notification_to_admins(community_id,name):
         message={}
         message['payload']={
             'title':community_name,
-            'sub_title':str(name)+' has requested to join your community.Please verify',
+            'sub_title':str(name)+' has requested to join your community',
             'route':'route://member_approve?'+'community_id=' + str(community_id) + "&" + "community_name=" + str(community_name)
         }
         send_notification_to_multiple_devices(token_list,message)
@@ -266,7 +266,7 @@ def send_notification_to_admins(community_id,name):
         print ("Error while connecting to PostgreSQL", error)
 
 @shared_task
-def send_notification_for_join_requests(community_id,flag,member_id):
+def send_notification_for_join_requests(community_id,flag,member_id,promoter_name=None):
     '''function to send notification for approval or denial'''
     community_name=get_community_name(community_id)
     temp = {}
@@ -281,8 +281,8 @@ def send_notification_for_join_requests(community_id,flag,member_id):
     message={}
     if flag:
         message['payload']={
-            'title':community_name,
-            'sub_title':"Congrats! you are now part of this community",
+            'title':"Membership approved!",
+            'sub_title':"Congratulations, " + promoter_name + " has accepted your request to join " + community_name,
             'route':'route://member_approved?community_id='+ str(community_id)
         }
     else:
@@ -293,8 +293,6 @@ def send_notification_for_join_requests(community_id,flag,member_id):
         }
 
     notification_meta(notification_list,message)
-
-
 
 
 # notifications for new collabcards
@@ -949,7 +947,7 @@ def send_notification_for_tool_unlocked_for_pilot(community_id):
 
 
 @shared_task
-def send_notification_to_promoter_of_ig_community(community_id,community_name,member_id):
+def send_notification_to_promoter_of_ig_community(community_id,community_name,member_id,admin_id):
 
    '''function to send notification for the promoter of IG communities'''
 
@@ -966,7 +964,7 @@ def send_notification_to_promoter_of_ig_community(community_id,community_name,me
    message = {}
    message['payload'] = {
        'title': str(community_name),
-       'sub_title': "You are now promoter of this community.",
+       'sub_title': admin_name + "has added you as promoter of the community.",
        'route': 'route://community?community_id=' + str(community_id)
    }
 
@@ -1090,6 +1088,30 @@ def get_referred_members_of_a_member(community_id,member_id):
     return member_list
 
 
+@shared_task
+def send_notification_to_incomplete_profile(user_id,community_id,community_state,community_name):
 
+    '''function to send notification to users who pressed skip when joining link was sent'''
 
+    notification_list=[]
 
+    notification_details = get_token_for_fcm(user_id,flag=True)
+
+    temp = {
+        'id':user_id,
+        'fcm_token':notification_details[0],
+        'mobile_os':notification_details[1],
+    }
+
+    notification_list.append(temp)
+
+    
+    message={}
+    
+    message['payload']={
+        "title" : "Complete your profile!",
+        "sub_title" : "Get full access to "+ community_name,
+        'route':'route://community_collabcard?community_id=' + str(community_id) + '&community_name=' + str(
+            community_name) + '&community_state=' + str(community_state)
+    }
+    notification_meta(notification_list,message)
