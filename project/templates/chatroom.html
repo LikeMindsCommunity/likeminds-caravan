@@ -5,7 +5,7 @@
     {% include 'components/loader.html' %}
 
        <head>
-             {% include 'scripts/mixpanel.html' %}
+             {% include 'scripts/mixpanel.html' with mixpanel_event=mixpanel_event %}
              {% include 'scripts/create_user_mixpanel.html' with mixpanel_event=mixpanel_event request=request  %}
 
         </head>
@@ -21,7 +21,7 @@
             {% include 'components/chat.html' with answers=answers current_user=current_user collabcard=collabcard request=request user=user community=community %}
         </div>
 
-        {% if request.user.is_authenticated and aj_expired == False and member_state.state == 0 %}
+        {% if request.user.is_authenticated and aj_expired == False and member_state.state == 0 and has_conversation %}
             {% include 'components/footer.html' with message="Become a member of this community"  click="JOIN" %}
         {% endif %}
 
@@ -109,32 +109,6 @@ Are you sure, you want to leave this chat room? You can apply to join this commu
 
 
     <script>
-
-
-
-
-                           {% if request.user.is_authenticated %}
-                            <!--     MIXPANEL TRACKER -->
-
-                              var c = new Date()
-                              console.log(typeof c)
-                              x = c + ""
-
-                              console.log(typeof x)
-
-
-                              mixpanel.track("CR Link Clicked",{
-                                             "user_community_state":"{{mixpanel_event.user_community_state}}",
-                                             "click date": new Date() + "",
-                                             "creation date" : "{{collabcard.link_created_at}}",
-                                             "chatroom name": "{{header.title}}",
-                                             "chatroom type" : "{{collabcard.type}}"
-                                             })
-
-                             <!--    TRACKER ENDS    -->
-
-                             {% endif %}
-
 
         $(document.body).on('click','.member_link',function(e){
             var member_id = $(this).attr('member_id');
@@ -387,7 +361,7 @@ Are you sure, you want to leave this chat room? You can apply to join this commu
         "CR Name" : "{{collabcard.header}}",
         "Community Name" : "{{collabcard.community_name}}",
         "CR type": "{{collabcard.type}}",
-        "user_community_state":"{{mixpanel_event.user_community_state}}"
+        "User Community State":"{{mixpanel_event.user_community_state}}"
 
        })
 
@@ -408,9 +382,13 @@ Are you sure, you want to leave this chat room? You can apply to join this commu
 
 
 
+
+    {% include 'scripts/mixpanel_chatroom_clicked.html' with  mixpanel_event=mixpanel_event request=request collabcard=collabcard %}
     {% include 'scripts/google_auth.html' with client_id=google_oauth_client_id  %}
     {% include 'scripts/facebook_auth.html' with facebook_auth_id=facebook_auth_id %}
     {% include 'scripts/linkedin_auth.html' with request=request %}
+
+
 
 {% endblock %}
 

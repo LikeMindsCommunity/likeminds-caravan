@@ -32,3 +32,8 @@ admin.site.register(User_Geography)
 admin.site.register(Location_Info)
 admin.site.register(Member_Engage)
 
+
+admin.site.register(communityFieldTypes)
+admin.site.register(communityFieldSubTypes)
+admin.site.register(communityField)
+

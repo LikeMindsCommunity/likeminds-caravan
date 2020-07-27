@@ -614,10 +614,10 @@ class Report(models.Model):
     reason = models.CharField(max_length=2048, null=True)
     date_epoch = models.BigIntegerField(default=-9223372036854775808, null=True)
 
-    # def save(self, *args, **kwargs):
-    #     if self.date_epoch <= 0:
-    #         self.date_epoch = time.time()
-    #     super(Report, self).save(*args, **kwargs)
+    link = models.TextField(null=True)
+    conversation = models.ForeignKey(card_answers,on_delete=models.CASCADE,null=True)
+
+
 
 
 class collabcardState(models.Model):
@@ -926,6 +926,10 @@ class communityFieldTypes(models.Model):
 
     type = models.TextField(null=True)
     sub_type_header = models.TextField(null=True)
+    sub_type_placeholder = models.TextField(null=True)
+
+    rank = models.IntegerField(default=0)
+
     created_at = models.BigIntegerField(default=0)
 
     def save(self, *args, **kwargs):
@@ -941,6 +945,8 @@ class communityFieldSubTypes(models.Model):
     type = models.ForeignKey(communityFieldTypes,on_delete=models.CASCADE)
     sub_type = models.TextField(null=True)
     created_at = models.BigIntegerField(default=0)
+
+    rank = models.IntegerField(default=0)
 
     def save(self, *args, **kwargs):
         if self.created_at == 0:

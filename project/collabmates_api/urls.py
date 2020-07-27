@@ -4,7 +4,13 @@ from collabmates_api import views as api_views
 from collabmates_api.notification import send_poll_notification_manually
 from django.views.decorators.csrf import csrf_exempt
 
+#for testing email templates only remove.  in prod/beta
+from django.views.generic import TemplateView
+
 urlpatterns = [
+    #for testing email templates only. remove in prod/beta
+    path('mail/', TemplateView.as_view(template_name='mails/tagged_email.html')),
+
     path('communities', api_views.communities, name="communities"),
     path('your_communities/<int:user_id>', api_views.your_communities, name="your_communities"),
 
@@ -58,7 +64,7 @@ urlpatterns = [
     path('v1/login',api_views.login_authenticate_version_1,name = 'v1/login'),
 
     #path('image_upload',api_views.image_upload,name = 'image'),
-    path('add_admin/<int:community_id>',api_views.create_admin,name = 'create_admin'),
+    path('add_admin/<int:community_id>',api_views.add_admin,name = 'add_admin'),
     path('pending_members/<int:community_id>',api_views.pending_members,name = 'pending_members'),
     path('join',api_views.request_response,name = 'join'),
     path('pending_members_count/<int:community_id>',api_views.pending_request_count,name = 'pending_request_count'),
@@ -92,7 +98,10 @@ urlpatterns = [
     path('fetch_location/<int:user_id>',api_views.get_user_location,name='fetch_location'),
 
     path('decode_url', api_views.decode_url, name='decode_url'),
+
     path('all_members', api_views.all_members, name='all_members'),
+    path('get_tagging_list', api_views.get_tagging_list, name='get_tagging_list'),
+
     path('member_activity', api_views.member_activity, name='member_activity'),
 
     path('invite_members', api_views.invite_members, name='invite_members'),

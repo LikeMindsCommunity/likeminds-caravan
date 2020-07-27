@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{subject}}</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet"> 
-</head>
+
 <style>
 *{
     font-family: 'Roboto';
@@ -24,13 +24,16 @@
     background: #fff;
     border:1px solid #eeeeee;
 }
-.logo{
-    height: 100px;
-    width: 100px;
-    margin: -50px auto 0;
+.header{
+    text-align: center;
 }
 .logo img{
-    width: 100%;
+    height: 100px;
+    width: 100px;
+}
+.img-wrapper{
+    height: 100px;
+    position:relative;
 }
 .mail{
     padding:48px;
@@ -109,6 +112,15 @@
     background: #d8d8d8;
     margin:0 auto 12px;
 }
+.profile_pic img{
+    border-radius:1000px
+}
+table.logo{
+    width: 100%;
+}
+.logo td{
+    text-align: center;
+}
 @media only screen and (max-width: 600px) {
     .main-wrapper {
         padding:10px;
@@ -132,32 +144,52 @@
         font-size: 10px;
     }
 }
-
+</style>
 {% block extracss %}
 {% endblock %}
-</style>
+</head>
 <body>
     <div class="main-wrapper">
         <div class="main">
+            <div class="header">
+                <table class="logo">
+                    <tr>
+                        <td style="height:40px;"></td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <div class="img-wrapper">
+                                <img src="{{app_image}}" alt="">
+                            </div>
+                        </td>
+                        <!-- <td>
+                            <div class="img-wrapper">
+                                <img src="https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Fmain_website%2Flogo.png?alt=media&token=2e66c0e5-35ef-4f94-ad2b-356c78eeaaba" alt="">
+                            </div> 
+                        </td> -->
+                    </tr>
+                </table>
+            </div>
             <div class="content">
-                <div class="header">
-                    <div class="logo">
-                        <img src="http://localhost/likeminds/Togther/project/static/like_minds_logo.svg" alt="">
-                    </div>
-                </div>
                 <div class="mail">
-                    {% block mail %}
-                    {% endblock %}
+                    <table>
+                        <tr>
+                            <td>
+                                {% block mail %}
+                                {% endblock %}
+                            </td>
+                        </tr>
+                    </table>
                 </div>
             </div>
             <div class="footer">
                 <p>Never miss any conversation. Get the LikeMinds App.</p>
                 <div class="download-buttons">
-                    <a href="#">
-                        <img src="http://localhost/likeminds/Togther/project/static/google_play.jpg" alt="">
+                    <a href="{{android_app_download_link}}">
+                        <img src="{{playstore_image}}" alt="">
                     </a>
-                    <a href="#">
-                        <img src="http://localhost/likeminds/Togther/project/static/app_store.jpg" alt="">
+                    <a href="{{ios_app_download_link}}">
+                        <img src="{{applestore_image}}" alt="">
                     </a>
                 </div>
                 <div class="divider"></div>

@@ -3,6 +3,13 @@
 {% block yeild %}
 
     {% include 'components/loader.html' %}
+
+
+       <head>
+             {% include 'scripts/mixpanel.html' with mixpanel_event=mixpanel_event %}
+             {% include 'scripts/create_user_mixpanel.html' with mixpanel_event=mixpanel_event request=request  %}
+
+        </head>
     
     <div class="container mxw960 mA mt56 ffR">
         
@@ -369,45 +376,17 @@
                 </div>
             {% endif %}
         {% else %}
-            <div class="ui modal test w300">
-                <div class="h72 w72 brp50 bd2F bs bxs oH bgT mtn22 mA">
-                    <img class="h72 ofC w72 mtn2 mln2" src="https://beta.likeminds.community/media/media/ic_launcher_round.png">
-                </div>
-                <div class="h18 mt12 taC">
-                    <img class="h18 dIb vM" src="https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Flikeminds_logo_hdpi.png?alt=media&token=5f532ef2-20c6-4448-8efa-16e084494417"/>
-                </div>
-                <div class="p24 bs taC ffR">
-                    <p class="p0 fs15 lh22 c9 mb16" id="login_text">
-                        {% if collabcard.type == 2 %}
-                            This is a closed community event. Continue with any of the following options to register yourself for this event and apply to join the community.
-                        {% else %}
-                            This is an open community event. Continue with any of the following options to register yourself for this event. You can also apply to join the community.
-                        {% endif %}
-                    </p>
-                    <div class="w120 bdtE bs mA"></div>
-                    <p class="c0 fs13 fwR lh22 ls05 mb10 mt12 o25 p0">Login to continue</p>
-                    <div class="p160 ls05">
-                        <div class="fs12 mb16">
-                            <div class="googleSignin p12 bs br20 bgF c79 ffR fwM bdE c79h dN" data-next="/community_questions/{{community.id}}?event={{collabcard.id}}&type={{collabcard.type}}">
-                                <i class="dIb fa fa-google fs15 lh16 vM"></i>
-                                <span  class="dIb lh16 pl12 vM">LOGIN WITH GOOGLE</span>
-                            </div>
-                        </div>
-                        <div class="fs12 mb16">
-                            <a class="linkedinSignin p12 bs dB br20 tdN bgLi cF ffR fwM cFh" data-next="/community_questions/{{community.id}}?event={{collabcard.id}}&type={{collabcard.type}}">
-                                <i class="dIb fa fa-linkedin fs15 lh16 vM"></i>
-                                <span  class="dIb lh16 pl12 vM">LOGIN WITH LINKEDIN</span>
-                            </a>
-                        </div>
-                        <div class="fs12">
-                            <a class="facebookSignin p12 bs dB br20 tdN bgFb cF ffR fwM cFh"  data-next="/community_questions/{{community.id}}?event={{collabcard.id}}&type={{collabcard.type}}">
-                                <i class="fa fa-facebook dIb fs15 lh16 vM" ></i>
-                                <span class="dIb lh16 pl12 vM">LOGIN WITH FACEBOOK</span>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            {% if collabcard.type == 2 %}
+
+              {% include 'components/login_popup.html' with popup_text="This is a closed community event. Continue with any of the following options to register yourself for this event and apply to join the community."  redirect_link=redirect_link %}
+
+             {% else %}
+
+              {% include 'components/login_popup.html' with popup_text="This is an open community event. Continue with any of the following options to register yourself for this event. You can also apply to join the community."  redirect_link=redirect_link %}
+
+             {% endif %}
+
+
         {% endif %}
         
         {% if True %}
@@ -710,6 +689,9 @@
     {% include 'scripts/google_auth.html' with client_id=google_oauth_client_id  %}
     {% include 'scripts/facebook_auth.html' with facebook_auth_id=facebook_auth_id %}
     {% include 'scripts/linkedin_auth.html' with request=request %}
+
+    {% include 'scripts/mixpanel_chatroom_clicked.html'  with mixpanel_event=mixpanel_event request=request collabcard=collabcard %}
+
     
 {% endblock %}
 

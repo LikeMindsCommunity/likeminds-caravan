@@ -80,7 +80,7 @@ def is_member_verified(community,user_instance):
     '''function to check whether the member is verified or not'''
 
     is_verified=Members.objects.filter(community_id=community,member_id=user_instance).filter(
-        Q(state=member_states.ADMIN)|Q(state=member_states.TEMP_ADMIN)|
+        Q(state=member_states.ADMIN)|Q(state=member_states.PROFILE_UNAVAILABLE)|
         Q(state=member_states.MEMBER)|Q(state=member_states.KNOWN_NOMINATED_PROMOTER))
 
     if is_verified.exists():
@@ -117,7 +117,7 @@ def get_members_count_in_community(community_id):
 
     instance = Members.objects.filter(community_id=community_id).filter(
         Q(state=member_states.ADMIN) | Q(state=member_states.TEMP_ADMIN) |
-        Q(state=member_states.MEMBER) | Q(state=member_states.KNOWN_NOMINATED_PROMOTER))
+        Q(state=member_states.MEMBER) | Q(state=member_states.PROFILE_UNAVAILABLE))
 
     return instance.count()
 
@@ -1085,3 +1085,12 @@ def get_user_communities_by_rank_web(request):
             communities_list.append(comm)
     return communities_list
 
+def get_user_email(member_id):
+    member = User.objects.get(pk=member_id)
+    if member.userinfo.email:
+        return member.userinfo.email
+    elif member.useremails.email:
+        return member.useremails.email
+    else:
+        return None
+    

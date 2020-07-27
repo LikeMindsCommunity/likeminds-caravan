@@ -31,13 +31,13 @@ def mail_triger(member_id, request):
 
 @shared_task
 def send_email(subject, template, to_mails_list):
-    # fail_silently = True
-    # msg = EmailMultiAlternatives(subject,
-    #                              template,
-    #                              "LikeMinds<hello@likeminds.community>",
-    #                              to_mails_list, )
-    # msg.attach_alternative(template, "text/html")
-    # msg.send(fail_silently)
+    fail_silently = False
+    msg = EmailMultiAlternatives(subject,
+                                 template,
+                                 "LikeMinds<hello@likeminds.community>",
+                                 to_mails_list, )
+    msg.attach_alternative(template, "text/html")
+    msg.send(fail_silently)
     return
 
 
@@ -177,9 +177,9 @@ def member_request_approval_or_denied(user_id, community_id, approved):
 
     to = user.email
     if approved:
-        subject = "Congrats! you are now part of " + community.name + " community"
+        subject = "Congrats! You are now part of " + community.name + " community."
     else:
-        subject = "Sorry! your request to join " + community.name + " has been rejected"
+        subject = "Sorry! Your request to join " + community.name + " has been rejected."
 
     link_text = ''
     url = settings.URL

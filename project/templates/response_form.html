@@ -9,7 +9,7 @@
         {% include 'components/login_success_header_showcase.html' with data=header_showcase request=request %}
 
         <head>
-             {% include 'scripts/mixpanel.html' %}
+             {% include 'scripts/mixpanel.html' with mixpanel_event=mixpanel_event %}
              {% include 'scripts/create_user_mixpanel.html' with mixpanel_event=mixpanel_event request=request  %}
 
         </head>
@@ -186,39 +186,43 @@
                 {% endif %}
 
             <!-- login model for exclusive communities -->
-            <div class="ui modal image_container_login w300" id="login_popup">
-                <div class="h72 w72 brp50 bd2F bs bxs oH bgT mtn22 mA">
-                    <img class="h72 ofC w72 mtn2 mln2" src="https://beta.likeminds.community/media/media/ic_launcher_round.png">
-                </div>
-                <div class="h18 mt12 taC">
-                    <img class="h18 dIb vM" src="https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Flikeminds_logo_hdpi.png?alt=media&token=5f532ef2-20c6-4448-8efa-16e084494417"/>
-                </div>
-                <div class="p24 bs taC ffR">
-                    <p class="c0 fs13 fwR lh22 ls05 mb10 mt12 o25 p0">Login to continue</p>
-                    <!-- <p class="m0 p0 fs15 lh22 c9 mb16">This is an exclusive community. To view member details please login/signup and join the community.</p> -->
-                    <div class="p160 ls05">
-                        <div class="fs12 mb16">
-                            <div class="googleSignin p12 bs br20 bgF c79 ffR fwM bdE c79h dN" data-next="{{request.path}}">
-                                <i class="dIb fa fa-google fs15 lh16 vM"></i>
-                                <span  class="dIb lh16 pl12 vM">LOGIN WITH GOOGLE</span>
-                            </div>
-                        </div>
-                        <div class="fs12 mb16">
-                            <a class="linkedinSignin p12 bs dB br20 tdN bgLi cF ffR fwM cFh"  data-next="{{request.path}}">
-                                <i class="dIb fa fa-linkedin fs15 lh16 vM"></i>
-                                <span  class="dIb lh16 pl12 vM">LOGIN WITH LINKEDIN</span>
-                            </a>
-                        </div>
-                        <div class="fs12">
-                            <a class="facebookSignin p12 bs dB br20 tdN bgFb cF ffR fwM cFh" data-next="{{request.path}}">
-                                <i class="fa fa-facebook dIb fs15 lh16 vM" ></i>
-                                <span class="dIb lh16 pl12 vM">LOGIN WITH FACEBOOK</span>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <!-- -->
+
+            {% include 'components/login_popup.html' with popup_text=""  redirect_link=request.path %}
+
+
+<!--            <div class="ui modal image_container_login w300 test" >-->
+<!--                <div class="h72 w72 brp50 bd2F bs bxs oH bgT mtn22 mA">-->
+<!--                    <img class="h72 ofC w72 mtn2 mln2" src="https://beta.likeminds.community/media/media/ic_launcher_round.png">-->
+<!--                </div>-->
+<!--                <div class="h18 mt12 taC">-->
+<!--                    <img class="h18 dIb vM" src="https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Flikeminds_logo_hdpi.png?alt=media&token=5f532ef2-20c6-4448-8efa-16e084494417"/>-->
+<!--                </div>-->
+<!--                <div class="p24 bs taC ffR">-->
+<!--                    <p class="c0 fs13 fwR lh22 ls05 mb10 mt12 o25 p0">Login to continue</p>-->
+<!--                    &lt;!&ndash; <p class="m0 p0 fs15 lh22 c9 mb16">This is an exclusive community. To view member details please login/signup and join the community.</p> &ndash;&gt;-->
+<!--                    <div class="p160 ls05">-->
+<!--                        <div class="fs12 mb16">-->
+<!--                            <div class="googleSignin p12 bs br20 bgF c79 ffR fwM bdE c79h dN" data-next="{{request.path}}">-->
+<!--                                <i class="dIb fa fa-google fs15 lh16 vM"></i>-->
+<!--                                <span  class="dIb lh16 pl12 vM">LOGIN WITH GOOGLE</span>-->
+<!--                            </div>-->
+<!--                        </div>-->
+<!--                        <div class="fs12 mb16">-->
+<!--                            <a class="linkedinSignin p12 bs dB br20 tdN bgLi cF ffR fwM cFh"  data-next="{{request.path}}">-->
+<!--                                <i class="dIb fa fa-linkedin fs15 lh16 vM"></i>-->
+<!--                                <span  class="dIb lh16 pl12 vM">LOGIN WITH LINKEDIN</span>-->
+<!--                            </a>-->
+<!--                        </div>-->
+<!--                        <div class="fs12">-->
+<!--                            <a class="facebookSignin p12 bs dB br20 tdN bgFb cF ffR fwM cFh" data-next="{{request.path}}">-->
+<!--                                <i class="fa fa-facebook dIb fs15 lh16 vM" ></i>-->
+<!--                                <span class="dIb lh16 pl12 vM">LOGIN WITH FACEBOOK</span>-->
+<!--                            </a>-->
+<!--                        </div>-->
+<!--                    </div>-->
+<!--                </div>-->
+<!--            </div>-->
+
         </div>
 
 {% include 'components/community_question_footer.html' with title='' auto_join=footer %}
@@ -245,8 +249,10 @@ You are one step away from being a part of this amazing community. Are you sure 
 
 
             function showLoginPopup(){
-                $('#login_popup').modal('show');
-                $('#login_popup').modal({
+
+
+                $('.test').modal('show');
+                $('.test').modal({
                     backdrop: 'static',
                     keyboard: false  // to prevent closing with Esc button (if you want this too)
                 });
@@ -254,7 +260,9 @@ You are one step away from being a part of this amazing community. Are you sure 
 
             {% if not request.user.is_authenticated %}
                 $( document ).ready(function() {
+
                     showLoginPopup()
+
                 });
             {% endif %}
 
@@ -760,9 +768,9 @@ You are one step away from being a part of this amazing community. Are you sure 
                              <!--     MIXPANEL TRACKER -->
 
 
-                                             mixpanel.track("Community Join Detail page",{
+                                             mixpanel.track("Community Join Request Submitted",{
                                              "Community Name":"{{community.name}}",
-                                             "user_community_state":"{{mixpanel_event.user_community_state}}",
+                                             "User Community State":"{{mixpanel_event.user_community_state}}",
                                              "click date" : new Date() + ""
                                              })
 
@@ -805,6 +813,19 @@ You are one step away from being a part of this amazing community. Are you sure 
 
 
             $('.leave').click(function(){
+
+                mixpanel.track("Community Join Not Completed",{
+
+
+                "Click Date" : new Date() + "",
+                "Other Community Promotor": "{{analytics.other_community_promoter}}",
+                "Count Communities Joined":"{{analytics.community_member_count}}",
+                "Joined Communities Name":"{{analytics.community_list|safe}}",
+                "Community Name" : "{{community.name}}"
+
+                })
+
+
                 window.history.back()
             })
 
@@ -823,10 +844,10 @@ You are one step away from being a part of this amazing community. Are you sure 
                 mixpanel.track("Community Join Directory",{
 
                 {% if not footer.aj_expired %}
-                    "Directory Link Status" : "Valid"
+                    "Directory Link Status" : "Valid",
                  {% else %}
 
-                     "Directory Link Status" : "Expired"
+                     "Directory Link Status" : "Expired",
 
                  {% endif %}
 

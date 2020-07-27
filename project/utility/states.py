@@ -127,6 +127,8 @@ class QuestionStates:
     MOBILE_NO = 9
     EMAIL_ID = 10
 
+    GOOGLE_CITY_FETCH = 11
+
 question_states=QuestionStates()
 
 

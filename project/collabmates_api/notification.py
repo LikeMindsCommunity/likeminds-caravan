@@ -10,13 +10,13 @@ from django.contrib.auth.models import User
 from django.db.models import Q
 from pyfcm import FCMNotification
 from togther.models import (Community_Rank, collabcardState,
-                            MemberPollVotes, Collabcard,Members,Members,Referal,Community
+                            MemberPollVotes, Collabcard,Members,Members,Referal,Community,communityAnswers
                             )
 from utility.celery_beat_tasks import CeleryBeatTask
 from utility.states import *
 import json
 from django.shortcuts import get_object_or_404
-
+import traceback
 # file to store configuration of the system
 
 
@@ -45,8 +45,6 @@ def send_notification_for_android(token_list,message):
                                                   data_message=message['payload'])
     print(result)
    
-
-
 
 def send_notification_for_ios(token_list, message):
 
@@ -283,6 +281,7 @@ def send_notification_for_join_requests(community_id,flag,member_id,promoter_nam
         message['payload']={
             'title':"Membership approved!",
             'sub_title':"Congratulations, " + promoter_name + " has accepted your request to join " + community_name,
+
             'route':'route://member_approved?community_id='+ str(community_id)
         }
     else:
@@ -293,6 +292,39 @@ def send_notification_for_join_requests(community_id,flag,member_id,promoter_nam
         }
 
     notification_meta(notification_list,message)
+
+@shared_task
+def send_notification_to_new_promoter(context):
+
+    promoter_id = context['nominated_admin']
+    community_id = context['community_id']
+    notification_list = []
+    try:
+        temp = {}
+        notification_details = get_token_for_fcm(promoter_id, True)
+        if notification_details:
+            temp['id'] = promoter_id
+            temp['fcm_token'] = notification_details[0]
+            temp['mobile_os'] = notification_details[1]
+
+            notification_list.append(temp)
+            community_name = get_community_name(community_id)
+
+            message = {}
+            message['payload'] = {
+                'title': community_name,
+                'sub_title': "You have become promoter of this community",
+                'route':'route://community?community_id=' + str(community_id)
+            }
+
+            notification_meta(notification_list, message)
+
+
+    except (Exception, psycopg2.Error) as error:
+        traceback.print_exc()
+        print("Error while connecting to PostgreSQL", error)
+
+
 
 
 # notifications for new collabcards
@@ -370,12 +402,9 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title, 
                 date_time = int(str(kwargs['date_time'])[:10])
                 print("date time === ", date_time)
                 if typ == 2:
-                    if settings.IS_BETA:
-                        date_time = date_time - 1800  # subtracting 30 minutes if BETA
-                    else:
-                        date_time = date_time - 1800 + 19800  # subtracting 30 minutes and adding 5:30 to make time into IST
+                    date_time = date_time - 1800
                 else:
-                    date_time = date_time + 19800 if not settings.IS_BETA else date_time
+                    date_time = date_time
                 print("date time === ", date_time)
                 celerybeatask.get_or_create_new_beat_task(card_creater_id=card_creater_id,
                                                           card_creater_name=card_creater_name,
@@ -418,6 +447,10 @@ def send_follow_notification(card_id,user_id,answer):
 
         tagged_users_list, answer_text, user_names = get_tagged_members_list(answer)
 
+        #in case of images/document, show following in the notification
+        if answer_text == "":
+            answer_text == '📄 Document'
+
         message['payload']={
             "title":str(get_title_from_collabcard(card)),
             "sub_title":str(answerer_name[0])+": "+answer_text,
@@ -454,6 +487,7 @@ def send_follow_notification(card_id,user_id,answer):
 
 
     except (Exception, psycopg2.Error) as error:
+        traceback.print_exc()
         print ("Error while connecting to PostgreSQL", error)
 
 
@@ -486,6 +520,7 @@ def send_notification_to_tagged_users(card_id,answerer_name,answer,user_id,user_
 
 
     except (Exception, psycopg2.Error) as error:
+        traceback.print_exc()
         print ("Error while connecting to PostgreSQL", error)
 
 
@@ -1089,29 +1124,37 @@ def get_referred_members_of_a_member(community_id,member_id):
 
 
 @shared_task
-def send_notification_to_incomplete_profile(user_id,community_id,community_state,community_name):
+def send_notification_to_incomplete_profile(user_id,community_id,community_state,community_name,time_in_s):
 
     '''function to send notification to users who pressed skip when joining link was sent'''
+    time.sleep(time_in_s)
 
-    notification_list=[]
+    #check if they created the profile. 
+    community_answers = communityAnswers.objects.filter(community__id=community_id).filter(member__id=member_id)
 
-    notification_details = get_token_for_fcm(user_id,flag=True)
+    if community_answers.exists():
+        pass
 
-    temp = {
-        'id':user_id,
-        'fcm_token':notification_details[0],
-        'mobile_os':notification_details[1],
-    }
+    else:
+        notification_list=[]
 
-    notification_list.append(temp)
+        notification_details = get_token_for_fcm(user_id,flag=True)
 
-    
-    message={}
-    
-    message['payload']={
-        "title" : "Complete your profile!",
-        "sub_title" : "Get full access to "+ community_name,
-        'route':'route://community_collabcard?community_id=' + str(community_id) + '&community_name=' + str(
-            community_name) + '&community_state=' + str(community_state)
-    }
-    notification_meta(notification_list,message)
+        temp = {
+            'id':user_id,
+            'fcm_token':notification_details[0],
+            'mobile_os':notification_details[1],
+        }
+
+        notification_list.append(temp)
+
+        
+        message={}
+        
+        message['payload']={
+            "title" : "Complete your profile!",
+            "sub_title" : "Get full access to "+ community_name,
+            'route':'route://community_collabcard?community_id=' + str(community_id) + '&community_name=' + str(
+                community_name) + '&community_state=' + str(community_state)
+        }
+        notification_meta(notification_list,message)

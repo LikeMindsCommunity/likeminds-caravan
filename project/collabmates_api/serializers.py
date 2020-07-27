@@ -6,7 +6,7 @@ from django.db.models import Q
 from togther.models import *
 from utility.utils import is_IG_community,is_LG_or_LP_community,feedback_community_id,\
     generate_private_link,generate_random,get_time_text,eligibility_count,get_members_count_in_community,is_member_promoter,generate_private_link_for_chatroom,get_date_time_from_timestamp
-from utility.states import card_types
+from utility.states import card_types,question_states
 url = settings.URL
 import ast
 
@@ -140,8 +140,10 @@ def CollabcardSerializer(card,user,community=None):
         'answers_count':card.answers_count,
         'attending_count': card.attending_count,
         'polls_count': card.polls_count,
-        'card_creation_time' : time.strftime('%B %d at %H:%M',time.localtime(card.date_epoch)),
-        "community_name" : card.community.name
+        'card_creation_time' : time.strftime('%I:%M %p', time.localtime(card.date_epoch)),
+        "community_name" : card.community.name,
+        "date" : time.strftime('%d %b %Y', time.localtime(card.date_epoch)),
+        "created_at":time.strftime('%H:%M', time.localtime(card.date_epoch))
     }
 
     if user and int(user) == card.user.id:
@@ -180,6 +182,7 @@ def CollabcardSerializer(card,user,community=None):
         if card.end_date:
             collabcard['end_date'] = card.end_date
 
+
         if card.about:
             collabcard['about'] = card.about
 
@@ -202,7 +205,11 @@ def CollabcardSerializer(card,user,community=None):
     if card.header:
         collabcard['header'] = card.header
     else:
-        collabcard['header'] = card.title[:30]
+
+        if len(collabcard['title']) <= 30:
+            collabcard['header'] = card.title[:30]
+        else:
+            collabcard['header'] = card.title[:27] + "..."
 
     if card.og_tags:
         og_tags = json.loads(card.og_tags)
@@ -221,6 +228,8 @@ def CollabcardSerializer(card,user,community=None):
     collabcard['share_url'] =  share['share_url']
     collabcard['creator_share_url'] = share['creator_share_url']
     collabcard['link_created_at'] = share['link_created_at']
+
+    collabcard['chatroom_category'] = get_category_of_chatroom(card.type)
 
     return collabcard
 
@@ -387,6 +396,22 @@ def get_share_url_text(card,user_id):
     return share
 
 
+def get_category_of_chatroom(typ):
+
+
+    chatroom_type = "Normal Chatroom"
+
+    if typ == card_types.CARD_INTRO:
+        chatroom_type = "Introduction Chatroom"
+    elif typ == card_types.CARD_EVENT or typ == card_types.CARD_PUBLIC_EVENT:
+        chatroom_type = "Event Chatroom"
+    elif typ == card_types.CARD_POLL:
+        chatroom_type = "POLL Chatroom"
+    elif chatroom_type == card_types.CARD_PURPOSE:
+        chatroom_type = "Onboarding Chatroom"
+
+    return chatroom_type
+
 
 
 def conversationSerializer(conversation):
@@ -502,9 +527,9 @@ def get_chatroom_instance(card_instance,member_id):
 
 
 
-    # get time stamp for card
-    time_text = get_time_text(card_instance.date_epoch)
-    collabcard_serializer['created_at'] = time_text
+    # # get time stamp for card
+    # time_text = get_time_text(card_instance.date_epoch)
+    # collabcard_serializer['created_at'] = time_text
 
 
     return collabcard_serializer
@@ -641,7 +666,30 @@ def get_members_profile(member_ids,community_id,current_user_id=None):
 
             member_profile_list.append(userinfo_serialized_object)
 
+
     return member_profile_list
+
+
+
+def get_user_profile(user_id,community_id,current_user_id=None):
+
+    try:
+        user_instance = User.objects.get(id=user_id)
+    except:
+        return {}
+
+    userinfo_serialized_object = UserinfoSerializer(user_instance.userinfo)
+    #userinfo_serialized_object['state'] = 0
+
+    form_response = FormResponseSerilaizer(community_id, user_instance.id, bl=True,
+                                           current_user_id=current_user_id)
+
+    if form_response:
+        # userinfo_serialized_object['response'] = form_response[0]
+        userinfo_serialized_object['question_answers'] = form_response[1]
+
+
+    return userinfo_serialized_object
 
 
 
@@ -715,7 +763,7 @@ def get_question_data(question_id, member_state, send_back):
 
 def CommunityQuestionsSerializer(community_question_instance):
 
-    return {
+    context =  {
         'id':community_question_instance.id,
         'question_title':community_question_instance.question_title,
         'value':community_question_instance.value,
@@ -726,23 +774,45 @@ def CommunityQuestionsSerializer(community_question_instance):
         'is_hidden': community_question_instance.is_hidden
     }
 
+    if context['value'] and (context['state'] == question_states.CHOICE_SINGLE or context['state'] == question_states.CHOICE_MULTIPLE):
+
+         dropdown_list = json.loads(context['value'])
+
+         dropdown_list = sorted(dropdown_list,key= lambda i:i['value'])
+
+         context['value'] = json.dumps(dropdown_list)
+
+
+
+
+
+    return context
+
 
 def communityTypeSerializer(communityTypeInstance):
 
-    return {
+    context ={
 
         'id':communityTypeInstance.id,
         'type':communityTypeInstance.typ,
         'next_input_title':communityTypeInstance.next_input_title
     }
 
+    if communityTypeInstance.sub_type_placeholder:
+        context['sub_type_placeholder'] = communityTypeInstance.sub_type_placeholder
+
+    return context
+
 
 def communitySubtypeSerializer(communitySubtypeInstance):
 
-    return {
+    context = {
         'id':communitySubtypeInstance.id,
         'sub_type':communitySubtypeInstance.sub_typ
     }
+
+    return  context
+
 
 
 def masterQuestionSerializer(masterQuestionInstance):
@@ -831,7 +901,8 @@ def communityFieldTypeSerializer(instance):
     return {
         'id' : instance.id,
         'type':instance.type,
-        'sub_type_header' : instance.sub_type_header
+        'sub_type_header' : instance.sub_type_header,
+        'sub_type_placeholder' : instance.sub_type_placeholder
     }
 
 

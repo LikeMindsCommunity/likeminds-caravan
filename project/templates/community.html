@@ -3,7 +3,7 @@
 <html>
     <head>
 
-        {% include 'scripts/mixpanel.html' %}
+        {% include 'scripts/mixpanel.html' with mixpanel_event=mixpanel_event %}
         {% include 'scripts/create_user_mixpanel.html' with mixpanel_event=mixpanel_event request=request  %}
 
 
@@ -643,6 +643,9 @@ The admin has received your request and would take a decision on your membership
                         model_show();
                     {% endif %}
                 {% else %}
+
+
+
                     showMemberProfile(member_id);
                 {% endif %}
             })
@@ -671,6 +674,9 @@ The admin has received your request and would take a decision on your membership
             }
 
             function showMemberProfile(member_id){
+
+
+
                 var community_id = {{community_id}};
                 json_data = {
                     'data':member_id,
@@ -803,6 +809,21 @@ The admin has received your request and would take a decision on your membership
                         $('#dismiss1').click(function(){
                             $('#display').modal('hide');
                         })
+
+
+                            mixpanel.track("Viewed Member Name",{
+
+                                    "View Member Name":data['member_name'],
+                                    "Viewed Member ID": data['member_id'],
+                                    "Viewed Member State": data['member_state'],
+                                    "Member Page View Source":"Community Detail Page",
+                                    "Click Date" : new Date() + ""
+
+                                    })
+
+
+
+
                     }
                 })
             }
@@ -831,7 +852,7 @@ The admin has received your request and would take a decision on your membership
 
                             "Community Join Request date": "{{current_user_request_date}}",
                             "Community Name":"{{community.name}}",
-                            "user_community_state":"{{mixpanel_event.user_community_state}}"
+                            "User Community State":"{{mixpanel_event.user_community_state}}"
 
                         })
                 {% endif %}

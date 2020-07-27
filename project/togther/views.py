@@ -304,13 +304,17 @@ def community_questions(request,params):
 
     user_instance = None
     state = 0
-
+    analytics = {}
     if request.user.is_authenticated:
         user_instance = request.user
         state = members_state(request,req_dict={'community_id':community_id,'member_id':user_instance.id})
 
         if state['state'] != 0:
             return redirect('community',community_id=community_id)
+
+        analytics = get_community_join_analytics(user_instance)
+
+
 
 
     if request.method == "GET":
@@ -336,7 +340,8 @@ def community_questions(request,params):
                     'google_oauth_client_id': settings.GOOGLE_OAUTH_CLIENT_ID,
                     'facebook_auth_id': settings.SOCIAL_AUTH_FACEBOOK_KEY,
                     'firebase_config': settings.FIREBASE_CONFIG,
-                     'user_directory': user_directory
+                     'user_directory': user_directory,
+                     'analytics':analytics
 
                    }
 
@@ -513,6 +518,27 @@ def get_join_community_context(request, ref_id, aj, validation_error, user, data
     return context
 
 
+def get_community_join_analytics(user_instance):
+
+    analytics = {}
+    community_list = []
+    promoter_count = Members.objects.filter(member_id=user_instance.id, state=member_states.ADMIN).count()
+
+    member_filter = Members.objects.filter(member_id=user_instance.id).filter(
+        Q(state=member_states.MEMBER) | Q(state=member_states.KNOWN_NOMINATED_PROMOTER))
+    community_member_count = member_filter.count()
+    for member in member_filter:
+
+        community_list.append(member.community_id.name)
+
+    analytics['community_list'] = community_list
+    analytics['community_member_count'] = community_member_count
+    analytics['other_community_promoter'] = True if promoter_count > 1 else False
+
+    return analytics
+
+
+
 
 
 def refer_members(request, community_id):
@@ -646,10 +672,10 @@ def get_member_details(community, *args):
     '''function to get member details of community'''
 
     members = []
-    # member_list = Members.objects.filter(community_id=community).filter(state=1) | Q(state=2) | Q(state=4))
+    # member_list = Members.objects.filter(community_id=community).filer(state=1) | Q(state=2) | Q(state=4))
     
     # tweaking func args to get other states as well
-    getMemberStates = [1, 2, 4] # default states
+    getMemberStates = [1, 2, 4,9] # default states
     for state in args:
         getMemberStates.append(state)
 
@@ -760,17 +786,18 @@ def members_directory(request, community_id):
     is_member = False
     user_email = ""
     member_state = 0
+    mixpanel_event = {}
     if request.user.is_authenticated:
-        #is_member=is_member_verified(community_id,request.user)
-        # member_instance_list = Members.objects.filter(community_id=community_id,member_id=request.user)
-        #
-        # if member_instance_list.exists():
-        #
-        #     member_state = member_instance_list[0].state
+
         temp = members_state(request,req_dict={'member_id':request.user.id,'community_id':community_id})
         member_state = temp['state']
         if member_state == member_states.ADMIN or member_state == member_states.MEMBER:
             is_member = True
+
+        community_instance = Community.objects.get(id=community_id)
+        user_instance = User.objects.get(id=request.user.id)
+
+        mixpanel_event = get_event_super_properties_for_mixpanel(user_instance,community_instance)
 
 
         user_email = request.user.userinfo.email
@@ -847,7 +874,9 @@ def members_directory(request, community_id):
         if member_string == "$":
             member_string = ""
         
-        context = {'members': member_string,'filter':questions,'option_data':dropdowns}
+        context = {'members': member_string,'filter':questions,'option_data':dropdowns,
+                   'mixpanel_event':mixpanel_event
+}
         return JsonResponse(context)
 
     community_instance = Community.objects.get(pk=community_id)
@@ -921,7 +950,9 @@ def members_directory(request, community_id):
         'selected':selected,
         'google_oauth_client_id': settings.GOOGLE_OAUTH_CLIENT_ID,
         'facebook_auth_id':settings.SOCIAL_AUTH_FACEBOOK_KEY,
-        'firebase_config': settings.FIREBASE_CONFIG
+        'firebase_config': settings.FIREBASE_CONFIG,
+        'mixpanel_event':mixpanel_event
+
     }
 
     return render(request, 'members.html', context)
@@ -993,26 +1024,36 @@ def member_profile(request):
     image_link=""
 
     is_promoter=False
+    status = None
     if user_instance.exists():
         member_name = user_instance[0].userinfo.name
         image_link = user_instance[0].userinfo.image_link
-        is_promoter = Members.objects.filter(community_id=community_id, member_id=request.user.id).filter(
-                      state = member_states.ADMIN)
-        # members = Members.objects.filter(community_id=community_id,member_id=request.user.id)
-        # is_promoter = members.filter(state = member_states.ADMIN)
-        is_promoter=is_promoter.exists()
+
+        # is_promoter = Members.objects.filter(community_id=community_id, member_id=request.user.id).filter(
+        #               state = member_states.ADMIN)
         #
-        # is_member = members.filter(state=member_states.MEMBER)
-        # is_member = is_member.exists()
+        # is_promoter=is_promoter.exists()
         #
-        # if is_member and str(request.user.id) == str(member_id):
-        #     is_promoter = True
+
+        status = members_state(request,{'community_id':community_id,'member_id':request.user.id})
+
+        if status['state'] == 1:
+            is_promoter = True
+
     if not is_promoter and str(request.user.id) == str(member_id):
         is_promoter = True
 
     answer_list = get_member_profile(community_id,member_id,is_promoter=is_promoter)
 
-    json_response = {'answer_list':answer_list,'member_name':member_name,'image_link':image_link}
+    json_response = {
+
+        'answer_list':answer_list,
+        'member_name':member_name,
+        'image_link':image_link,
+        'member_state': get_member_community_status(status['state']) if status else 0,
+        'member_id': request.user.id
+
+        }
 
     return JsonResponse(json_response)
 
@@ -1392,31 +1433,16 @@ def get_community_questions(community_id):
 
             if temp['question_state'] == 1 or temp['question_state'] == 2:
 
-                if each_question.value[0] == '[':
-                    each_question.value = each_question.value[1:]
-                if each_question.value[-1] == ']':
-                    each_question.value = each_question.value[:-1]
 
-                if '$#' in each_question.value:
-                    dropdown_list = each_question.value.split("$#")
-                else:
-                    dropdown_list = each_question.value.split(",")
+                dropdown_options = json.loads(each_question.value) if each_question.value else []
 
-                for index, item in enumerate(dropdown_list):
-                    item = item.strip()
-                    if item[0] == '"':
-                        item = item[1:]
-                    if item[-1] == '"':
-                        item = item[:-1]
-                    community_state = each_question.community.hide_community
+                dropdown_list = []
 
-                    find_index = item.find(":")
-                    if find_index != -1:
-                        item = item[find_index+1:-1].strip()
-                        if item[0] == '"' or item[0] == "'":
-                            item = item[1:-1]
+                for option in dropdown_options:
+                    dropdown_list.append((option['value']))
 
-                    dropdown_list[index] = item
+                dropdown_list.sort()
+
 
                 if 'Other' not in dropdown_list:
                     temp['dropdown_list'] = dropdown_list
