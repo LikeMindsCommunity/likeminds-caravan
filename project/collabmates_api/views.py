@@ -1858,13 +1858,14 @@ def create_introduction_question_in_community(community_instance):
 
     '''function to create introduction question in community'''
 
+
     value_list = [{"min_chars": "50", "max_chars": "No limit"}]
     questions_instance = communityQuestions()
     questions_instance.community = community_instance
-    questions_instance.question_title = "Introduce yourself to the community"
+    questions_instance.question_title = "Introduce yourself"
     questions_instance.question_state = question_states.INTRODUCTION
     questions_instance.value = json.dumps(value_list)
-    questions_instance.optional =False
+    questions_instance.optional = False
     questions_instance.help_text = None
     questions_instance.is_hidden = False
     questions_instance.save()
@@ -1930,8 +1931,8 @@ def get_basic_directory_options(request):
     questions = []
     for field in field_filter:
 
-        if field.state == question_states.GOOGLE_CITY_FETCH:
-            continue
+        # if field.state == question_states.GOOGLE_CITY_FETCH:
+        #     continue
         temp  = communityFieldSerializer(field)
         questions.append(temp)
 
