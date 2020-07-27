@@ -614,10 +614,10 @@ class Report(models.Model):
     reason = models.CharField(max_length=2048, null=True)
     date_epoch = models.BigIntegerField(default=-9223372036854775808, null=True)
 
-    # def save(self, *args, **kwargs):
-    #     if self.date_epoch <= 0:
-    #         self.date_epoch = time.time()
-    #     super(Report, self).save(*args, **kwargs)
+    link = models.TextField(null=True)
+    conversation = models.ForeignKey(card_answers,on_delete=models.CASCADE,null=True)
+
+
 
 
 class collabcardState(models.Model):

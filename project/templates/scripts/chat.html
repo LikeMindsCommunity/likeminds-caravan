@@ -151,30 +151,21 @@
 
         $(document.body).on('click','#follow_poll',function(e){
             {% if request.user.is_authenticated %}
-                {% if member_state.state == 0 %}
-                    $(".ldrT", $('#loader')[0]).text("Making request...");
-                    $('#loader').show();
-                    window.location.href = "/community/{{community.id}}?cta=join&poll={{collabcard.id}}";
-                {% elif member_state.state == 3 %}
-                    $('#add_email_pop').modal('show');
-                {% else %}
-
-
-
-
                     var status = true;//$(this).attr('data-status');
+                    var temp = {collabcard_id: {{collabcard.id}}, member_id: {{current_user.id}}, value: status,aj:'{{aj}}',source_id:'{{source_id}}',member_state:'{{member_state.state}}'}
+                    console.log(temp)
+
                     // console.log(status)
                     $(".ldrT", $('#loader')[0]).text(`Requesting to follow chatroom...`);
                     $('#loader').show();
                     $.ajax({
                         url: "/api/collabcard_follow",
-                        data: {collabcard_id: {{collabcard.id}}, member_id: {{current_user.id}}, value: status},
+                        data: temp,
                         type: "GET",
                         dataType: 'json',
                         success: function(data) {
                             $('#followChat').hide();
                             $('#loader').hide();
-
 
                                    mixpanel.track("CR Followed",{
 
@@ -197,7 +188,7 @@
                             $('#loader').hide();
                         }
                     })
-                {% endif %}
+
             {% else %}
                 $('.test').modal('show');
             {% endif %}
@@ -295,12 +286,12 @@
             var html= `
                         <div class="dT wp100 pb12 bs">
                             <div class="dTc vB taR">
-                                <div class="dIb message sent vM wbBa mxwp100">
-                                    ${msg}
-                                    <span class="metadata">
-                                        <span class="time">Just Now</span>
-                                    </span>
-                                </div>
+<!--                                <div class="dIb message sent vM wbBa mxwp100">-->
+<!--                                    ${msg}-->
+<!--                                    <span class="metadata">-->
+<!--                                        <span class="time">Just Now</span>-->
+<!--                                    </span>-->
+<!--                                </div>-->
                             </div>
                             <div class="dTc vB h48 member_link pl12 bs w12"></div>
                             <div class="commentStatus dTr"><div class="taR cStatus c9b fs13 pt4">sending...</div></div>
@@ -309,13 +300,12 @@
                 $('#comments').append(html);
                 $('#comment_inp').val('');
             $.ajax({
-                url: '/api/create_answer?member_id='+member_id+"&collabcard_id="+collabcard_id,
-                data: JSON.stringify({"title":msg}),
+                url: '/api/create_conversation',
+                headers: { 'x-member-id': member_id },
+                data: JSON.stringify({"text":msg,"member_id":member_id,"chatroom_id":collabcard_id,"aj":"{{aj}}","source_id":"{{source_id}}"}),
                 type: 'POST',
                 dataType: 'json',
                 success: function(data){
-
-
 
                 mixpanel.track("CR Responded",{
 
@@ -328,17 +318,21 @@
 
                     console.log("api hit sucessfully")
 
+
+
                     $('.cStatus').text('sent sucessfully');
-                    $('.commentStatus').delay(2000).fadeOut(300, function() { 
-                        $(this).remove(); 
+                    $('.commentStatus').delay(1000).fadeOut(300, function() {
+                          $('.commentStatus').remove();
                     });
+
+
 
 
                 },
                 error: function(){
                     $('.cStatus').text('sent sucessfully');
                     $('.commentStatus').delay(2000).fadeOut(300, function() { 
-                        $(this).remove(); 
+                        $('.commentStatus').remove();
                     });
                 }
             });
@@ -374,7 +368,7 @@
                                     <div class="dIb message sent vM wbBa mxwp100">
                                         ${msg}
                                         <span class="metadata">
-                                            <span class="time">Just Now</span>
+<!--                                            <span class="time">Just Now</span>-->
                                         </span>
                                     </div>
                                 `;

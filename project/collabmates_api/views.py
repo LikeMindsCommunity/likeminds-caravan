@@ -57,10 +57,12 @@ from .notification import *
 from .raw_queries import compute_rank,update_conversation_engage_for_chatrooms
 from .serializers import *
 from .static_files import *
+from .static_text import *
+from .members import *
 from .tasks import send_email_to_nominated_admin, send_email_for_new_collabcard_posted, send_welcome_mail, \
     send_verification_mail_for_email_sync
 
-from .static_text import *
+
 # CACHE_TTL = getattr(settings, 'CACHE_TTL', cache_timeout)
 
 url = settings.URL
@@ -845,11 +847,7 @@ def join_promoter_created_community_version_1(res,request):
 
             if question_instance.question_state == question_states.CHOICE_SINGLE or question_instance.question_state == question_states.CHOICE_MULTIPLE:
 
-                if "$#" in question['value']:
-                    selected_choices = question['value'].split("$#")
-                else:
-                    selected_choices = question['value'].split(",")
-
+                selected_choices = question['value'].split("$#")
                 save_user_selected_options(question_instance, user_instance, community_instance, selected_choices)
 
 
@@ -1856,14 +1854,21 @@ def create_introduction_question_in_community(community_instance):
 
     '''function to create introduction question in community'''
 
+    help_text = None
+    field_filter = communityField.objects.filter(state=question_states.INTRODUCTION,
+                                                 type=community_instance.type,sub_type=community_instance.sub_type)
+
+    if field_filter.exists():
+        help_text = field_filter[0].help_text
+
     value_list = [{"min_chars": "50", "max_chars": "No limit"}]
     questions_instance = communityQuestions()
     questions_instance.community = community_instance
-    questions_instance.question_title = "Introduce yourself to the community"
+    questions_instance.question_title = "Introduce yourself"
     questions_instance.question_state = question_states.INTRODUCTION
     questions_instance.value = json.dumps(value_list)
-    questions_instance.optional =False
-    questions_instance.help_text = None
+    questions_instance.optional = False
+    questions_instance.help_text = help_text
     questions_instance.is_hidden = False
     questions_instance.save()
 
@@ -1909,6 +1914,7 @@ def fetch_community_types(request):
     context = {'types':types}
     context['onboarding_examples'] = ONBOARDING_EXAMPLES
     return JsonResponse(context)
+
 
 
 def get_basic_directory_options(request):
@@ -3570,6 +3576,9 @@ def collabcard(request, card_id):
     # get the card object
     card_filter = Collabcard.objects.filter(id=card_id)
     user_instance = None
+    card = {}
+    answers = []
+    current_user_id = None
     if card_filter.exists():
         card_instance = card_filter[0]
     else:
@@ -3582,83 +3591,84 @@ def collabcard(request, card_id):
         else:
             return render(request,"__404__.html",{})
 
-    page = request.GET.get('page', 1)
+    card['type'] = card_instance.type
+    if card_instance.type == card_types.CARD_EVENT or card_instance.type == card_types.CARD_PUBLIC_EVENT or card_instance.type == card_types.CARD_POLL:
+        page = request.GET.get('page', 1)
 
-    current_user_id = get_member_id_from_headers(request)
+        current_user_id = get_member_id_from_headers(request)
 
-    feedback=True
-    if card_instance.community.id == feedback_community_id:
-        feedback = False
+        feedback=True
+        if card_instance.community.id == feedback_community_id:
+            feedback = False
 
-    # coverting current time into epoch time for getting time stamp of answers and card
+        # coverting current time into epoch time for getting time stamp of answers and card
 
-    answer_id = request.GET.get('answer_id', '')
-    user_id = request.GET.get('member_id', '')
+        answer_id = request.GET.get('answer_id', '')
+        user_id = request.GET.get('member_id', '')
 
-    if is_request_web(request) and request.user.is_authenticated:
-        current_user_id = request.user.id
+        if is_request_web(request) and request.user.is_authenticated:
+            current_user_id = request.user.id
 
-        answers = get_chatroom_internal(request,card_instance,current_user_id,page,'','')
-    else :
-        # get all the answers of the card
-        answer = card_answers.objects.filter(card=card_instance).order_by('id')
-        answer=pagination(answer,page,paginate_by=3)
-        if answer_id:
-            answer_id = int(answer_id)
-            answer = card_answers.objects.filter(card=card_instance, id__gte=answer_id).filter(~Q(user__id=user_id))
-            # answer = pagination(answer, page, paginate_by=10)
-            answers = get_answer_data(answer,card_instance.community.id,current_user_id=current_user_id)         #if the feedback is true don't send id in userinfo
-            return JsonResponse({'answers': answers})
-        else:
-            answers = get_answer_data(answer,card_instance.community.id,current_user_id=current_user_id)
-
-
-    # serializing Collabcard
-
-    if not user_id:
-        #handling the web case
-        if request.user.is_authenticated and is_request_web(request):
-            user_id=request.user.id
-            user_instance = User.objects.get(id=user_id)
-
-    card = CollabcardSerializer(card_instance, user_id, card_instance.community)
-
-    user = Userinfo.objects.get(user_id=card_instance.user.id)
-
-    # if request.user.is_authenticated and not get_request_type(request):
-    #     # set current user if user in logged in
-    #     current_user = User.objects.get(user_id=current_user_id)
-
-    # serializing user object
-    usr = UserinfoSerializer(user)
-    usr['is_clickable']=feedback
-
-    #when the member is removed
-    removed_state = removedMembersSerializer(card_instance.community.id,usr['id'])
-    if removed_state != False:
-        usr['remove_state'] = removed_state
-
-    # user form response serialzer
-    form_response = FormResponseSerilaizer(card_instance.community.id, card_instance.user.id,bl=True,current_user_id=current_user_id)
-    if form_response:
-        #usr['response'] = form_response[0]
-        usr['question_answers'] =form_response[1]
-    # get the card image if any
-    files = get_collabcard_files(card_id)
-    card['images'] = files[0]
-    card['member'] = usr
-    card['pdf'] = files[1]
-    if user_id:
-        collabcard_status = get_status_of_collabcard(member_id=user_id, card=card_instance)
-        card['state'] = collabcard_status['state']
-        card['mute_status'] = collabcard_status['mute_status']
-        card['follow_status'] = collabcard_status['follow_status']
+            answers = get_chatroom_internal(request,card_instance,current_user_id,page,'','')
+        else :
+            # get all the answers of the card
+            answer = card_answers.objects.filter(card=card_instance).order_by('id')
+            answer=pagination(answer,page,paginate_by=3)
+            if answer_id:
+                answer_id = int(answer_id)
+                answer = card_answers.objects.filter(card=card_instance, id__gte=answer_id).filter(~Q(user__id=user_id))
+                # answer = pagination(answer, page, paginate_by=10)
+                answers = get_answer_data(answer,card_instance.community.id,current_user_id=current_user_id)         #if the feedback is true don't send id in userinfo
+                return JsonResponse({'answers': answers})
+            else:
+                answers = get_answer_data(answer,card_instance.community.id,current_user_id=current_user_id)
 
 
-    # get tine stamp for card
-    time_text = get_time_text(card_instance.date_epoch)
-    card['created_at'] = time_text
+        # serializing Collabcard
 
+        if not user_id:
+            #handling the web case
+            if request.user.is_authenticated and is_request_web(request):
+                user_id=request.user.id
+                user_instance = User.objects.get(id=user_id)
+
+        card = CollabcardSerializer(card_instance, user_id, card_instance.community)
+
+        user = Userinfo.objects.get(user_id=card_instance.user.id)
+
+        # if request.user.is_authenticated and not get_request_type(request):
+        #     # set current user if user in logged in
+        #     current_user = User.objects.get(user_id=current_user_id)
+
+        # serializing user object
+        usr = UserinfoSerializer(user)
+        usr['is_clickable']=feedback
+
+        #when the member is removed
+        removed_state = removedMembersSerializer(card_instance.community.id,usr['id'])
+        if removed_state != False:
+            usr['remove_state'] = removed_state
+
+        # user form response serialzer
+        form_response = FormResponseSerilaizer(card_instance.community.id, card_instance.user.id,bl=True,current_user_id=current_user_id)
+        if form_response:
+            #usr['response'] = form_response[0]
+            usr['question_answers'] =form_response[1]
+        # get the card image if any
+        files = get_collabcard_files(card_id)
+        card['images'] = files[0]
+        card['member'] = usr
+        card['pdf'] = files[1]
+        if user_id:
+            collabcard_status = get_status_of_collabcard(member_id=user_id, card=card_instance)
+            card['state'] = collabcard_status['state']
+            card['mute_status'] = collabcard_status['mute_status']
+            card['follow_status'] = collabcard_status['follow_status']
+
+
+        # get tine stamp for card
+        time_text = get_time_text(card_instance.date_epoch)
+        card['created_at'] = time_text
 
 
     #request is made from web
@@ -3855,37 +3865,6 @@ def get_collabcard_details_for_web(request,card_instance,card,current_user_id,an
         return context,"POLL_CARD"
     else:
         print('collab card')
-        #
-        # community = card_instance.community
-        #
-        # if request.user.is_authenticated:
-        #     header_back_link = "/community/"+str(community.id)
-        # else:
-        #     header_back_link = ""
-        #
-        # header = {
-        #     'back': True,
-        #     'title': card['header'],
-        #     'backLink': header_back_link,
-        #     'subTitle': 'in ' + community.name,
-        #     'background': 'Wa',
-        #     'color': 'F'
-        # }
-        #
-        # context = {
-        #     'collabcard': card,
-        #     'community': community,
-        #     'answers': answers,
-        #     'header': header,
-        #     'google_oauth_client_id': settings.GOOGLE_OAUTH_CLIENT_ID,
-        #     'facebook_auth_id': settings.SOCIAL_AUTH_FACEBOOK_KEY,
-        #     'firebase_config': settings.FIREBASE_CONFIG
-        # }
-        # # print(context)
-        # if is_logged:
-        #     if current_user['collabcard_state'] == 0:
-        #         collabcards_seen_internal(card_instance.community.id, card_instance.id, card['type'], current_user_id)
-        #     context["current_user"] = current_user
 
         context = get_normal_chatroom_context(request,card_instance)
         return context, "SIMPLE_CARD"
@@ -3921,6 +3900,8 @@ def get_normal_chatroom_context(request,card_instance):
                                      scroll_direction=None)
 
 
+    has_conversation = card_answers.objects.filter(card=card_instance,user=current_user_id,state=chatroom_states.ANSWER).exists()
+
 
     member_state = members_state(request,
                                  req_dict={'community_id': card_instance.community.id, 'member_id': current_user_id})
@@ -3942,6 +3923,8 @@ def get_normal_chatroom_context(request,card_instance):
     # community block
     admin = get_community_creator(community_instance)
     members_count = get_members_count_in_community(community_instance)
+
+
     communityBlock = {
         'title': community_instance.name,
         'creator': "Created by " + admin,
@@ -3958,7 +3941,10 @@ def get_normal_chatroom_context(request,card_instance):
         'facebook_auth_id': settings.SOCIAL_AUTH_FACEBOOK_KEY,
         'firebase_config': settings.FIREBASE_CONFIG,
         'member_state' : member_state,
-        'community_block':communityBlock
+        'community_block':communityBlock,
+        'aj': aj,
+        'source_id': source_id,
+        'has_conversation':has_conversation
     }
 
     if aj and source_id:
@@ -4272,7 +4258,7 @@ def get_chatroom_internal(request,card_instance,user_id,page,conversation_id,scr
     is_guest = False
     context={}
 
-    if source_id and aj:
+    if aj:
         is_guest = True
 
     # card = CollabcardSerializer(card_instance, user_id, card_instance.community)
@@ -4317,6 +4303,7 @@ def get_chatroom_internal(request,card_instance,user_id,page,conversation_id,scr
 
         if is_guest:
            context = adding_guest_in_chatroom(request,context,card_instance,aj,source_id,card_instance.community.id,current_user_id=user_id)
+
 
         instance_filter = conversationMemberState.objects.filter(user_id=user_id,card = card_instance)
         if not instance_filter.exists():
@@ -4399,7 +4386,8 @@ def save_the_latest_conversation(card_instance,user_id):
 
     latest_card = card_answers.objects.filter(card=card_instance,state=chatroom_states.ANSWER).last()
     print(latest_card)
-    if is_member_verified(card_instance.community,user_id):
+    #status = is_member_verified(card_instance.community,user_id)
+    if True:
         if latest_card:
             user_instance = User.objects.get(id=user_id)
             conversation_member_filter = conversationMemberState.objects.filter(user=user_instance, card=card_instance)
@@ -4447,16 +4435,20 @@ def is_chatroom_join_expired(aj,source_id):
     return True
 
 
-def adding_guest_in_chatroom(request,context,card_instance,aj,source_id,community_id,current_user_id):
+def adding_guest_in_chatroom(request,context,card_instance,aj,source_id,community_id,current_user_id,guest_header=False):
 
 
 
     context['aj_expired'] = is_chatroom_join_expired(aj, source_id)
     status = is_member_verified(community_id, current_user_id)
-    if not context['aj_expired'] and not status:
-            create_guest_header(current_user_id,source_id,card_instance,current_user_id)
-            func_dict = {'collabcard_id': card_instance.id, 'member_id': current_user_id, 'status': True, 'is_guest': True}
-            collabcard_follow_internal(func_dict)
+
+    state_filter = collabcardState.objects.filter(card=card_instance,user=current_user_id,is_guest=True)
+
+    if not context['aj_expired'] and not status and not state_filter.exists():
+            if guest_header:
+                create_guest_header(current_user_id,source_id,card_instance,current_user_id)
+                func_dict = {'collabcard_id': card_instance.id, 'member_id': current_user_id, 'status': True, 'is_guest': True}
+                collabcard_follow_internal(func_dict)
 
     else:
 
@@ -4507,7 +4499,6 @@ def create_guest_header(guest_id,invitee_id,card_instance,current_user_id):
 
 
 def get_user_in_route_form(card_instance,user_instance,current_user_id):
-
 
     user_name = user_instance.userinfo.name
     member_ids = [user_instance.id]
@@ -5327,8 +5318,24 @@ def create_conversation(request):
 
     res = json.loads(request.body)
 
+
+    is_guest = False
+
+    if 'aj' in res and 'source_id' in res:
+        if res['aj'] and res['source_id']:
+            is_guest = True
+
+
     card_instance = Collabcard.objects.get(id=res['chatroom_id'])
     user_instance = User.objects.get(id=member_id)
+
+    current_state = members_state(request,{'community_id':card_instance.community.id,'member_id':user_instance.id})
+
+    if is_guest and (current_state['state'] == 0 or current_state['state'] == member_states.PENDING_MEMBER):
+        context = {}
+        context = adding_guest_in_chatroom(request, context, card_instance, res['aj'], res['source_id'], card_instance.community.id, member_id,guest_header=True)
+
+
 
     ans = card_answers()
     ans.answer = res['text']
@@ -5349,12 +5356,13 @@ def create_conversation(request):
     update_last_answer_id(card_instance.id, ans.id)
 
     # auto following the collabcard if answer is created
-    function_dict = {
-        'member_id': member_id,
-        'collabcard_id': card_instance.id,
-        'status': True
-    }
-    collabcard_follow_internal(function_dict)
+    if current_state['state'] == member_states.ADMIN or current_state['state'] == member_states.MEMBER or current_state['state'] == member_states.PROFILE_UNAVAILABLE:
+        function_dict = {
+            'member_id': member_id,
+            'collabcard_id': card_instance.id,
+            'status': True
+        }
+        collabcard_follow_internal(function_dict)
 
     # sending the tagged member list
     auto_follow_chatrooms_in_case_of_tagging(request, res['text'], card_instance.id)
@@ -5453,20 +5461,17 @@ def collabcard_follow(request, function_dict=None):
     if is_request_web(request) and request.user.is_authenticated:
         current_member_id = request.user.id
 
-    if not function_dict:
-        collabcard_id = request.GET.get('collabcard_id', '')
-        member_id = request.GET.get('member_id', '')
-        status = request.GET.get('value', 'true')
 
-        if status != 'true':
-            status = False              #unfollowed
-        else:
-            status = True               #followed
-        explicit_call = True
+    collabcard_id = request.GET.get('collabcard_id', '')
+    member_id = request.GET.get('member_id', '')
+    status = request.GET.get('value', 'true')
+
+    if status != 'true':
+        status = False              #unfollowed
     else:
-        collabcard_id = function_dict['collabcard_id']
-        member_id = function_dict['member_id']
-        status = function_dict['status']
+        status = True               #followed
+        explicit_call = True
+
 
 
     collabcard = Collabcard.objects.get(id=collabcard_id)
@@ -5478,10 +5483,22 @@ def collabcard_follow(request, function_dict=None):
     if not status and collabcard.user.id == user_instance.id:
         return JsonResponse({'success':True})
 
-    #if the collabcard is an event card
-    # event_status = set_state_for_event_cards(collabcard,community_instance,user_instance,status,explicit_call,current_member_id)
-    # if event_status['success']:
-    #     return JsonResponse(event_status)
+
+    is_guest = False
+
+    aj = request.GET.get('aj')
+    source_id = request.GET.get('source_id')
+    member_state = members_state(request, {'community_id':community_instance.id,'member_id':user_instance.id})
+
+    #user is a guest in chatroom
+    if aj and source_id and (member_state['state'] == 0 or member_state['state'] == member_states.PENDING_MEMBER):
+
+        context = {}
+        context = adding_guest_in_chatroom(request, context, collabcard, aj, source_id, community_instance.id, current_member_id,guest_header=True)
+
+        return JsonResponse(context)
+
+
 
     collabcard_state_filter = collabcardState.objects.filter(card=collabcard, user=user_instance)
     if not collabcard_state_filter.exists():
@@ -5493,6 +5510,7 @@ def collabcard_follow(request, function_dict=None):
         collabcard_state_instance.created_at = time.time()
         collabcard_state_instance.updated_at = time.time()
         collabcard_state_instance.follow_status = status
+        collabcard_state_instance.is_guest = is_guest
         collabcard_state_instance.save()
 
         if status:
@@ -5581,6 +5599,8 @@ def collabcard_follow_internal(func_dict,state=collabcard_states.COLLABCARD_STAT
         create_chatroom_engagement(card_instance=card_instance, user_instance=user_instance)
 
     update_my_chatrooms_for_users(chatroom_id=card_instance.id, user_id=member_id)
+
+
 
 
 
@@ -6035,6 +6055,18 @@ def get_last_conversation(conversation_filter,member_id,chatroom_id):
     else:
         return (None,0)
 
+def get_member_images_of_chatroom(conversation_filter):
+
+    '''function to give member images of chatrooms'''
+    unique_members = set()
+    member_images = []
+    for conversation in conversation_filter:
+
+        if conversation.user.id not in unique_members:
+            member_images.append(conversation.user.userinfo.image_link)
+            unique_members.add(conversation.user.id)
+
+    return member_images[:6]
 
 def get_chatrooms(chatroom_list,member_id):
 
@@ -6047,12 +6079,7 @@ def get_chatrooms(chatroom_list,member_id):
         conversation_filter = card_answers.objects.filter(card=card_instance.id,
                                                           state=chatroom_states.ANSWER).order_by('id')
         chatroom_instance['total_response_count'] = conversation_filter.count()
-
-        conversation = get_last_conversation(conversation_filter, member_id, chatroom_instance['id'])
-
-        if conversation[0]:
-            chatroom_instance['last_conversation'] = conversation[0]
-        chatroom_instance['unseen_conversation_count'] = conversation[1]
+        chatroom_instance['members_images'] = get_member_images_of_chatroom(conversation_filter)
         chatrooms.append(chatroom_instance)
 
     return chatrooms
@@ -6074,6 +6101,8 @@ def fetch_chatroom_feed(request):
     chatroom_filter = Collabcard.objects.filter(community=community_id).order_by('id')
 
     chatrooms = []
+    context = {}
+
     if not chatroom_id and not scroll_direction:
 
         last_seen = collabcardState.objects.filter(community=community_id,user = member_id).filter(~Q(state=0)).order_by('-card_id')
@@ -6090,6 +6119,8 @@ def fetch_chatroom_feed(request):
             chatroom_list = chatroom_filter.order_by('id')
             chatrooms = get_chatrooms(chatroom_list,member_id)
 
+        context['header'] = chatroom_feed_header(community_id,member_id)
+
     else:
         scroll_direction = int(scroll_direction)
         if scroll_direction == 0:                                   #upward scroll
@@ -6104,7 +6135,47 @@ def fetch_chatroom_feed(request):
             downward = chatroom_filter.filter(id__gt=chatroom_id).order_by('id')[:5]
             chatrooms = get_chatrooms(downward,member_id)
 
-    return JsonResponse({'chatrooms':chatrooms})
+
+    context['chatrooms'] = chatrooms
+    return JsonResponse(context)
+
+
+
+
+def chatroom_feed_header(community_id,member_id):
+
+    '''function to get chatroom feed header'''
+
+    community_instance = Community.objects.get(id=community_id)
+
+
+    member_list = get_tagging_list_internal(community_instance.id)
+
+    member_names = []
+
+    for member in member_list:
+
+        if int(member['id']) != int(member_id):
+
+            names = member['name'].split(" ")
+            if names:
+                member_names.append(names[0])
+            else:
+                member_names.append(member['name'])
+
+    #sorting member names in ascending order
+    member_names.sort()
+
+    header = {
+        'community_name':community_instance.name,
+        'member_names':member_names[:10]
+    }
+    return header
+    # sending member_names
+
+
+
+
 
 
 
@@ -6481,7 +6552,6 @@ def login_with_google(google_id_token,request,login_type="google"):
     '''function to login with google'''
 
     google_json = fetch_google_auth_data(google_id_token)
-
     json_to_save = google_json[0]
     res = google_json[1]
     info_logger.info(res)
@@ -6499,7 +6569,7 @@ def login_with_google(google_id_token,request,login_type="google"):
             # creating a user if no user is associated with that email
             res['id'] = res['azp']
 
-            user = create_user(user_name=res['name'], email=res['email'], id=res['id'])
+            user = create_user(user_name=res['name'], email=res['email'], id=res['email'])
 
             if 'picture' in res:
                 image_link = upload_image_to_firebase(res['picture'], user.id)
@@ -6778,9 +6848,21 @@ def limit_access(request):
 
     if not community_list:
         context['title'] = "Important Message"
-        context['sub_title'] = """Access to this app is restricted to invited members only. The login credentials you used (<font color='#00897b'>%s</font>) seems to be missing from our list of invited members.
 
-If you are a community builder and you wish to receive an invite, do fill out the following form:"""%(user_instance.userinfo.email)
+        platform_code = get_platform_code_from_headers(request)
+
+        if platform_code == "an":
+
+            context['sub_title'] = """Access to this app is restricted to invited members only. The login credentials you used (<font color='#00897b'>%s</font>) seems to be missing from our list of invited members.
+    
+    If you are a community builder and you wish to receive an invite, do fill out the following form:"""%(user_instance.userinfo.email)
+
+        else:
+
+            context['sub_title'] = """Access to this app is restricted to invited members only. The login credentials you used (%s) seems to be missing from our list of invited members.
+
+            If you are a community builder and you wish to receive an invite, do fill out the following form:""" % (
+                user_instance.userinfo.email)
 
 
     return JsonResponse(context)
@@ -6878,7 +6960,9 @@ def members_state(request,req_dict=None):
     edit_required = False
     actions_required = False
     created_at = 0
-    for data in query_set:
+
+    if query_set.exists():
+        data = query_set[0]
         is_member = False
         tool_state = 0
         state = data.state
@@ -6902,68 +6986,14 @@ def members_state(request,req_dict=None):
         if data.actions_required:
             actions_required = True
 
-        ref_members = get_referred_members_of_a_member(community_id, member_id)
-
-
-    referred_members_count=len(ref_members)
-    tool_unlock_sub_title=""
-    if referred_members_count == 0:
-        tool_unlock_sub_title="Some features might be available only for active members of the community. Invite a new member and unlock a tool"
-    elif referred_members_count == 1:
-        tool_unlock_sub_title="Some features might be available only for active members of the community. Invite 2 more members and unlock this tool"
-    elif referred_members_count == 2:
-        tool_unlock_sub_title="Some features might be available only for active members of the community. Invite 1 more member and unlock this tool"
 
 
 
-    diff=eligibility_count-referred_members_count
-
-    #sending pop-up for lg community
-    community_instance=Community.objects.get(id=community_id)
-    unlock_title="Can’t Engage Yet"
-    unlock_sub_title="Your verification for joining this closed group is still pending. Engaging is not open for non verified members. Verify your credentials."
-    unlock_action_title="REQUEST COMMUNITY MEMBERS"
-    unlock_action="""route://member_ask?community_id=%s&community_name=%s"""%(community_instance.id,community_instance.name)
-
-    if diff <= 0:
-        json_response = {'state': state,
-                         'tool_state': tool_state,
-                         'referred_members_count': referred_members_count,
-                         'tool_unlock_title': "Unlock Feature",
-                         'tool_unlock_sub_title': tool_unlock_sub_title,
-                         'tool_unlock_action_title': "OK, INVITE NOW",
-                         'tool_unlock_action': """route://community?community_id=%s&share=true&source=tool_unlock""" % (community_id),
-                         'unlock_title':unlock_title,
-                         'unlock_sub_title':unlock_sub_title,
-                         'unlock_action':unlock_action,
-                         'unlock_action_title':unlock_action_title,
-                         'edit_required' : edit_required,
-                         'created_at' : created_at
-                         }
-    else:
-
-        if diff == 1:
-            tool_title = """Invite friends to unlock features.If you invite %s friend, You will be highlighted as a promoter of this community.""" % (
-            diff)
-        else:
-            tool_title = """Invite friends to unlock features.If you invite %s friends, You will be highlighted as a promoter of this community.""" % (
-                diff)
-
-        json_response={'state': state,
-                   'tool_state': tool_state,
-                   'referred_members_count':referred_members_count,
-                   'tool_title':tool_title,
-                   'tool_unlock_title':"Unlock Feature",
-                   'tool_unlock_sub_title':tool_unlock_sub_title,
-                   'tool_unlock_action_title':"OK, INVITE NOW",
-                   'tool_unlock_action':"""route://community?community_id=%s&share=true&source=tool_unlock""" % (community_id),
-                   'unlock_title': unlock_title,
-                   'unlock_sub_title': unlock_sub_title,
-                   'unlock_action': unlock_action,
-                   'unlock_action_title':unlock_action_title,
+    json_response = {
+                   'state': state,
+                   'tool_state': 1,
                    'edit_required': edit_required,
                    'created_at': created_at
-
                    }
 
 
@@ -7447,6 +7477,9 @@ def get_user_location(request, user_id, type=None):
 
     return JsonResponse(response, safe=False)
 
+
+
+#############################  ALL MEMBERS API ###########################
 @api_view(['GET', 'POST'])
 @renderer_classes([JSONRenderer, TemplateHTMLRenderer])
 def all_members(request):
@@ -7520,10 +7553,10 @@ def get_all_members(request, req_dict=None):
                     'id')
                 member_list = pagination(member_list, page, paginate_by=10)
                 members = get_member_instances(member_list, current_user_id, community_id)
+
                 if collabcard_id:
                     card_members = get_members_data_for_collabcard(collabcard_id, community_id, current_user_id, page_no = page)
-
-                    members = get_collabcard_participants(members, card_members['participants'])
+                    members = get_collabcard_participants(members, card_members['participants'],guest=True)
 
     else:
         # is_filter = False
@@ -7555,7 +7588,7 @@ def get_member_instances(member_list,current_user_id,community_id,is_filter=Fals
                                                current_user_id=current_user_id)
 
         if form_response:
-            userinfo_serialized_object['response'] = form_response[0]
+            #userinfo_serialized_object['response'] = form_response[0]
             userinfo_serialized_object['question_answers'] = form_response[1]
 
         if not is_filter:
@@ -7641,29 +7674,35 @@ def get_members_data_for_collabcard(card_id,community_id,current_user_id,page_no
 
         user_instance = instance.user
 
-
         userinfo_serialized_object = UserinfoSerializer(user_instance.userinfo)
         userinfo_serialized_object['collabcard_state'] = instance.state
+        userinfo_serialized_object['is_guest'] = instance.is_guest
+
+
+
         form_response = FormResponseSerilaizer(community_id, user_instance.id, bl=True,
                                                current_user_id=current_user_id)
 
         if form_response:
-            userinfo_serialized_object['response'] = form_response[0]
+            #userinfo_serialized_object['response'] = form_response[0]
             userinfo_serialized_object['question_answers'] = form_response[1]
 
         members.append(userinfo_serialized_object)
 
-        #sending state also
+        #sending state also for conserving filter
         temp={}
         temp['user_id'] = user_instance.id
         temp['collabcard_state'] = instance.state
-        collabcard_participants.append(temp)
+        temp['is_guest'] = instance.is_guest
+        temp['member'] = userinfo_serialized_object
 
+
+        collabcard_participants.append(temp)
 
     return {'members':members,'participants':collabcard_participants}
 
 
-def get_collabcard_participants(all_members,collabcard_members):
+def get_collabcard_participants(all_members,collabcard_members,guest=False):
 
     collabcard_participants = []
     for member in all_members:
@@ -7673,7 +7712,34 @@ def get_collabcard_participants(all_members,collabcard_members):
                 collabcard_participants.append(member)
 
 
+    #sending guest data also
+    #print(collabcard_members)
+    if guest:
+        for data in collabcard_members:
+
+            if data['is_guest']:
+                data['member']['state'] = 0
+                collabcard_participants.append(data['member'])
+
     return collabcard_participants
+
+
+def get_tagging_list(request):
+
+    '''api to get tag list of members'''
+
+    community_id = request.GET.get('community_id')
+    chatroom_id = request.GET.get('chatroom_id')
+
+
+    tagging_list = get_tagging_list_internal(community_id,chatroom_id)
+
+
+
+    return JsonResponse({'members':tagging_list})
+
+
+
 
 
 #functionality for filters
@@ -7730,8 +7796,6 @@ def fetch_filters(request):
                 option_list.append(serialized_instance)
 
     return JsonResponse({'questions':option_list})
-
-
 
 
 def get_user_selected_option_list(question_id):
@@ -8318,10 +8382,17 @@ def push_report(request):
         collabcard_instance = Collabcard.objects.get(id=collabcard_id) if collabcard_id else None
 
         tag_id = request_body['tag_id'] if 'tag_id' in request_body else None
-        report_tags_instance = Report_Tags.objects.get(id=tag_id) if tag_id else None
 
+        report_tags_instance = Report_Tags.objects.get(tag_id=tag_id) if tag_id else None
         reason = request_body['reason'] if 'reason' in request_body else None
         reported_member_id = int(request_body['reported_member_id']) if 'reported_member_id' in request_body else None
+
+
+        link = request_body['link'] if 'link' in request_body else None
+        conversation_id = request_body['conversation_id'] if 'conversation_id' in request_body else None
+        conversation_instance = None
+        if conversation_id:
+            conversation_instance = card_answers.objects.get(id=conversation_id)
 
         report_instance = Report()
         if report_tags_instance:
@@ -8335,6 +8406,10 @@ def push_report(request):
         if reported_member_id:
             report_instance.reported_member_id = reported_member_id
             report_instance.date_epoch = time.time()
+
+        report_instance.link = link
+        report_instance.conversation = conversation_instance
+
         report_instance.save()
 
         community_url = url + "/community/" + str(collabcard_instance.community.id)
@@ -8673,6 +8748,8 @@ def get_event_super_properties_for_mixpanel(user_instance,community_instance):
         context['token'] = "7907eb37f46b1ac2908d3881e633a85e"
 
     return context
+
+
 
 
 

@@ -20,3 +20,11 @@ IMAGE_LEVEL_4 = "https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.a
 
 
 WARNING_IMAGE = "https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Fmain_website%2Fwarning.png?alt=media&token=0d040e5a-a7a1-4ddf-9eef-c707944f6f45"
+
+
+
+GOOGLE_PLAYSTORE = "https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Fmain_website%2Fgoogle_playstore.png?alt=media&token=8cbff2b1-ef49-4dcf-9fd4-6666855d9b71"
+
+APPLE_APPSTORE = "https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Fmain_website%2Fapple_store.png?alt=media&token=b1b62dfb-cde0-42c1-b801-5ed7fd0ca90b"
+
+APP_LOGO = "https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Fmain_website%2Flogo.png?alt=media&token=2e66c0e5-35ef-4f94-ad2b-356c78eeaaba"
