@@ -1089,8 +1089,10 @@ def get_user_email(member_id):
     member = User.objects.get(pk=member_id)
     if member.userinfo.email:
         return member.userinfo.email
-    elif member.useremails.email:
-        return member.useremails.email
     else:
-        return None
+        emails = userEmails.objects.filter(user_id=member_id)
+        if emails.exists():
+            return emails.first().email
+        else:
+            return None
     

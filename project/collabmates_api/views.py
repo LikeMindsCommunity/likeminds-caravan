@@ -2245,7 +2245,7 @@ def create_card_internal(user_id,community_id,res):
 def send_chatroom_creation_notifications_and_mails(card_instance,user_instance):
 
     '''function to send mail and notifications for chatroom creations'''
-    send_notification_for_new_collabcard_posted(card_instance.community.id, card_instance.title,
+    send_notification_for_new_collabcard_posted.delay(card_instance.community.id, card_instance.title,
                                                       user_instance.id, user_instance.userinfo.name,
                                                       type=card_instance.type,
                                                       date_time=card_instance.end_date if card_instance.type == card_types.CARD_POLL else card_instance.date_time,
@@ -5362,7 +5362,7 @@ def create_conversation(request):
     auto_follow_chatrooms_in_case_of_tagging(request, res['text'], card_instance.id)
 
     user_id  = str(user_instance.id)
-    send_follow_notification(card_id=card_instance.id, user_id=user_id, answer=res['text'])
+    send_follow_notification.delay(card_id=card_instance.id, user_id=user_id, answer=res['text'])
 
     #send tagged users mail if they didnt check chat in last 24 hours
     tagged_members = get_tagged_members_list(res['text'])
