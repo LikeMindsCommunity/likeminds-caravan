@@ -371,7 +371,7 @@ def send_tagged_user_mail(user_id,card_id,tagged_member_list,time_in_hrs):
     print('mailsstart')
     has_seen = {}
     for member_id in tagged_member_list:
-        state = conversationMemberState.objects.filter(card_id=card_id, user_id=member_id).order_by('created_at')
+        state = conversationMemberState.objects.filter(card_id=card_id, user_id=member_id)
         if state.exists():
             has_seen[member_id] = state.first().conversation_id
         else:
@@ -385,9 +385,9 @@ def send_tagged_user_mail(user_id,card_id,tagged_member_list,time_in_hrs):
         email = get_user_email(member_id)
         member = User.objects.get(pk=member_id)
         member_name = member.userinfo.name
-        
+
         #check if user has opened the chat
-        state = conversationMemberState.objects.filter(card_id=card_id, user_id=member_id).order_by('created_at')
+        state = conversationMemberState.objects.filter(card_id=card_id, user_id=member_id)
         if state.exists():
             has_seen_new[member_id] = state.first().conversation_id
         else:

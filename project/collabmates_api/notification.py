@@ -982,7 +982,7 @@ def send_notification_for_tool_unlocked_for_pilot(community_id):
 
 
 @shared_task
-def send_notification_to_promoter_of_ig_community(community_id,community_name,member_id,admin_id):
+def send_notification_to_promoter_of_ig_community(community_id,community_name,member_id):
 
    '''function to send notification for the promoter of IG communities'''
 
@@ -1130,7 +1130,7 @@ def send_notification_to_incomplete_profile(user_id,community_id,community_state
     time.sleep(time_in_s)
 
     #check if they created the profile. 
-    community_answers = communityAnswers.objects.filter(community__id=community_id).filter(member__id=member_id)
+    community_answers = communityAnswers.objects.filter(community_id=community_id,member_id=member_id)
 
     if community_answers.exists():
         pass
