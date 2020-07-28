@@ -62,6 +62,10 @@ urlpatterns = [
 
     path('login',api_views.login_authenticate,name = 'login'),
     path('v1/login',api_views.login_authenticate_version_1,name = 'v1/login'),
+    path('generate_otp',api_views.generate_otp,name = 'generate_otp'),
+    path('verify_otp',api_views.verify_otp,name = 'verify_otp'),
+
+
 
     #path('image_upload',api_views.image_upload,name = 'image'),
     path('add_admin/<int:community_id>',api_views.add_admin,name = 'add_admin'),
