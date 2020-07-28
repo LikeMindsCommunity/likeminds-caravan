@@ -1092,7 +1092,8 @@ def get_user_email(member_id):
     else:
         emails = userEmails.objects.filter(user_id=member_id)
         if emails.exists():
-            return emails.first().email
+            if email.first().email != ""
+                return emails.first().email
         else:
             return None
     

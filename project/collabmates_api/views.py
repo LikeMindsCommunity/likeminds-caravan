@@ -60,7 +60,7 @@ from .static_files import *
 from .static_text import *
 from .members import *
 from .tasks import send_email_to_nominated_admin, send_email_for_new_collabcard_posted, send_welcome_mail, \
-    send_verification_mail_for_email_sync,send_tagged_user_mail
+    send_verification_mail_for_email_sync,send_tagged_user_mail,send_chatroom_owner_mail
 
 
 # CACHE_TTL = getattr(settings, 'CACHE_TTL', cache_timeout)
@@ -1573,8 +1573,8 @@ def ask_approval(request):
         card_temp_instance.created_at = card_temp_list[0].created_at
         card_temp_instance.save()
 
-    ask_approval_notification(community_id=community_id, community_name=community_instance.name, approver_id=ask_member_id,
-                              member_name=member_instance.member_id.userinfo.name, community_state=community_instance.hide_community)
+    # ask_approval_notification(community_id=community_id, community_name=community_instance.name, approver_id=ask_member_id,
+    #                           member_name=member_instance.member_id.userinfo.name, community_state=community_instance.hide_community)
 
 
 
@@ -2638,8 +2638,8 @@ def collabcard_poll(request):
         # update the card answer text according to no of polls
         update_poll_card_text(collabcard_id)
 
-        if not str(member_id) == str(card_instance.user.id):
-            send_poll_or_event_notification.delay(card_id=collabcard_id, user_id=member_id)
+        # if not str(member_id) == str(card_instance.user.id):
+            # send_poll_or_event_notification.delay(card_id=collabcard_id, user_id=member_id)
 
         return JsonResponse({"success": True})
 
@@ -2685,8 +2685,8 @@ def collabcard_poll_version_1(request):
         for poll_id in poll_ids:
             vote_poll(poll_id,card_instance,user_instance,collabcard_id)
 
-        if not str(member_id) == str(card_instance.user.id):
-            send_poll_or_event_notification.delay(card_id=collabcard_id, user_id=member_id)
+        # if not str(member_id) == str(card_instance.user.id):
+        #     send_poll_or_event_notification.delay(card_id=collabcard_id, user_id=member_id)
 
 
         #autofollowing the collabcard
@@ -3150,8 +3150,8 @@ def accept_invitation(request):
                 #                                    CommunityName=community.name, community_id=community.id)
                 proposer_id = prop_admin.user_id.id
                 nom_admin_name = nom_admin[0].name
-                send_notification_to_proposer.delay(proposer_id, community_name=community.name,
-                                                    community_id=community.id, proposed_name=nom_admin_name)
+                # send_notification_to_proposer.delay(proposer_id, community_name=community.name,
+                #                                     community_id=community.id, proposed_name=nom_admin_name)
                 return JsonResponse({'success': True})
             # if the promoter is a temporary promoter
             elif promoter[0].state == 2:
@@ -3170,8 +3170,8 @@ def accept_invitation(request):
                 #                                    CommunityName=community.name, community_id=community.id)
                 proposer_id = prop_admin.user_id.id
                 nom_admin_name = nom_admin[0].name
-                send_notification_to_proposer.delay(proposer_id, community_name=community.name,
-                                                    community_id=community.id, proposed_name=nom_admin_name)
+                # send_notification_to_proposer.delay(proposer_id, community_name=community.name,
+                #                                     community_id=community.id, proposed_name=nom_admin_name)
                 return JsonResponse({'success': True})
         else:
             # if there are more than two admins , sent mail to the promoter who invited this member
@@ -3192,8 +3192,8 @@ def accept_invitation(request):
             #                                    CommunityName=community.name, community_id=community.id)
             proposer_id = prop_admin.user_id.id
             nom_admin_name = nom_admin[0].name
-            send_notification_to_proposer.delay(proposer_id, community_name=community.name, community_id=community.id,
-                                                proposed_name=nom_admin_name)
+            # send_notification_to_proposer.delay(proposer_id, community_name=community.name, community_id=community.id,
+            #                                     proposed_name=nom_admin_name)
             return JsonResponse({'success': True})
     else:
         # if nominated promoter didn't accept the invitation
@@ -3310,7 +3310,7 @@ def approve_or_decline_lg_community(request,req_dict,member_verification):
 
             if community.members_count == ig_members_count:
                 community.hide_community = '4'
-                send_notification_for_tool_unlocked_for_pilot.delay(community_id=community_id)
+                # send_notification_for_tool_unlocked_for_pilot.delay(community_id=community_id)
                 community.save()
 
             send_notification_for_join_requests.delay(community_id, True, member_id)
@@ -3369,12 +3369,12 @@ def approve_or_decline_lg_community(request,req_dict,member_verification):
                                 state=member_states.ADMIN)
                             Member_Engage.objects.filter(member_id=member_id, community_id=community).update(
                                     member_state=member_states.ADMIN)
-                    if is_live:
-                        send_notification_for_tool_unlocked_for_live_community.delay(referer_id=header_member_id,
-                                                                                     referal_count=total_referal_count,
-                                                                                     community_id=community.id,
-                                                                                     community_name=community.name,
-                                                                                     community_state=community.hide_community)
+                    # if is_live:
+                    #     send_notification_for_tool_unlocked_for_live_community.delay(referer_id=header_member_id,
+                    #                                                                  referal_count=total_referal_count,
+                    #                                                                  community_id=community.id,
+                    #                                                                  community_name=community.name,
+                    #                                                                  community_state=community.hide_community)
 
 
         else:
@@ -5374,8 +5374,10 @@ def create_conversation(request):
     tagged_members = get_tagged_members_list(res['text'])
 
     tagged_member_list = tagged_members[0]
-    send_tagged_user_mail.delay(user_instance.id,card_instance.id,tagged_member_list,time_in_hrs=24)
+    if len(tagged_member_list)>0:
+        send_tagged_user_mail.delay(user_instance.id,card_instance.id,time_in_hrs=24)
 
+    send_chatroom_owner_mail
 
 
     # # updating the conversationEngage table
@@ -5808,8 +5810,8 @@ def collabcard_attend(request):
 
 
 
-    if not str(member_id) == str(card_instance.user.id) and status:
-        send_poll_or_event_notification.delay(card_id=collabcard_id, user_id=member_id)
+    # if not str(member_id) == str(card_instance.user.id) and status:
+        # send_poll_or_event_notification.delay(card_id=collabcard_id, user_id=member_id)
 
     return JsonResponse({'success': True})
 

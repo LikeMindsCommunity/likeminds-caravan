@@ -406,7 +406,7 @@ def send_tagged_user_mail(user_id,card_id,tagged_member_list,time_in_hrs):
                 'playstore_image' : GOOGLE_PLAYSTORE,
                 'applestore_image' : APPLE_APPSTORE,
                 'app_image' : APP_LOGO,
-                'cta_url': '#',
+                'cta_url': url + '/collabcard/' + str(card_id),
             }
             subject = str(email_context['user_name']) + " is waiting for your response! "
             template = get_template("mails/tagged_email.html").render(email_context)
