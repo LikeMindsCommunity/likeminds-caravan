@@ -1854,6 +1854,12 @@ def create_introduction_question_in_community(community_instance):
 
     '''function to create introduction question in community'''
 
+    help_text = None
+    field_filter = communityField.objects.filter(state=question_states.INTRODUCTION,
+                                                 type=community_instance.type,sub_type=community_instance.sub_type)
+
+    if field_filter.exists():
+        help_text = field_filter[0].help_text
 
     value_list = [{"min_chars": "50", "max_chars": "No limit"}]
     questions_instance = communityQuestions()
@@ -1862,7 +1868,7 @@ def create_introduction_question_in_community(community_instance):
     questions_instance.question_state = question_states.INTRODUCTION
     questions_instance.value = json.dumps(value_list)
     questions_instance.optional = False
-    questions_instance.help_text = None
+    questions_instance.help_text = help_text
     questions_instance.is_hidden = False
     questions_instance.save()
 
@@ -5350,7 +5356,7 @@ def create_conversation(request):
     update_last_answer_id(card_instance.id, ans.id)
 
     # auto following the collabcard if answer is created
-    if not is_guest:
+    if current_state['state'] == member_states.ADMIN or current_state['state'] == member_states.MEMBER or current_state['state'] == member_states.PROFILE_UNAVAILABLE:
         function_dict = {
             'member_id': member_id,
             'collabcard_id': card_instance.id,
@@ -8756,6 +8762,8 @@ def get_event_super_properties_for_mixpanel(user_instance,community_instance):
         context['token'] = "7907eb37f46b1ac2908d3881e633a85e"
 
     return context
+
+
 
 
 
