@@ -1085,3 +1085,14 @@ def get_user_communities_by_rank_web(request):
             communities_list.append(comm)
     return communities_list
 
+def get_user_email(member_id):
+    member = User.objects.get(pk=member_id)
+    if member.userinfo.email:
+        return member.userinfo.email
+    else:
+        emails = userEmails.objects.filter(user_id=member_id)
+        if emails.exists():
+            return emails.first().email
+        else:
+            return None
+    

@@ -4,7 +4,13 @@ from collabmates_api import views as api_views
 from collabmates_api.notification import send_poll_notification_manually
 from django.views.decorators.csrf import csrf_exempt
 
+#for testing email templates only remove.  in prod/beta
+from django.views.generic import TemplateView
+
 urlpatterns = [
+    #for testing email templates only. remove in prod/beta
+    path('mail/', TemplateView.as_view(template_name='mails/verify_email_template.html')),
+
     path('communities', api_views.communities, name="communities"),
     path('your_communities/<int:user_id>', api_views.your_communities, name="your_communities"),
 
