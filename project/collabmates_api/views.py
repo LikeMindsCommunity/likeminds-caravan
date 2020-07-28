@@ -60,7 +60,7 @@ from .static_files import *
 from .static_text import *
 from .members import *
 from .tasks import send_email_to_nominated_admin, send_email_for_new_collabcard_posted, send_welcome_mail, \
-    send_verification_mail_for_email_sync
+    send_verification_mail_for_email_sync,send_tagged_user_mail
 
 
 # CACHE_TTL = getattr(settings, 'CACHE_TTL', cache_timeout)
@@ -847,11 +847,7 @@ def join_promoter_created_community_version_1(res,request):
 
             if question_instance.question_state == question_states.CHOICE_SINGLE or question_instance.question_state == question_states.CHOICE_MULTIPLE:
 
-                if "$#" in question['value']:
-                    selected_choices = question['value'].split("$#")
-                else:
-                    selected_choices = question['value'].split(",")
-
+                selected_choices = question['value'].split("$#")
                 save_user_selected_options(question_instance, user_instance, community_instance, selected_choices)
 
 
@@ -1858,14 +1854,21 @@ def create_introduction_question_in_community(community_instance):
 
     '''function to create introduction question in community'''
 
+    help_text = None
+    field_filter = communityField.objects.filter(state=question_states.INTRODUCTION,
+                                                 type=community_instance.type,sub_type=community_instance.sub_type)
+
+    if field_filter.exists():
+        help_text = field_filter[0].help_text
+
     value_list = [{"min_chars": "50", "max_chars": "No limit"}]
     questions_instance = communityQuestions()
     questions_instance.community = community_instance
-    questions_instance.question_title = "Introduce yourself to the community"
+    questions_instance.question_title = "Introduce yourself"
     questions_instance.question_state = question_states.INTRODUCTION
     questions_instance.value = json.dumps(value_list)
-    questions_instance.optional =False
-    questions_instance.help_text = None
+    questions_instance.optional = False
+    questions_instance.help_text = help_text
     questions_instance.is_hidden = False
     questions_instance.save()
 
@@ -2092,7 +2095,6 @@ def create_card(request,req_dict=None):
 def create_chatroom_instance(res,community_instance,user_instance):
 
     '''function to create chatroom instance'''
-
     card = Collabcard()
     card.title = res['title']
     card.community = community_instance
@@ -2249,7 +2251,6 @@ def create_card_internal(user_id,community_id,res):
 def send_chatroom_creation_notifications_and_mails(card_instance,user_instance):
 
     '''function to send mail and notifications for chatroom creations'''
-
     send_notification_for_new_collabcard_posted.delay(card_instance.community.id, card_instance.title,
                                                       user_instance.id, user_instance.userinfo.name,
                                                       type=card_instance.type,
@@ -3400,7 +3401,9 @@ def approve_or_decline_whatsapp_community(req_dict,request):
     if req_dict['accepted'] or req_dict['accepted'] == 'true':
 
         is_member = is_member_verified(community=req_dict['community_id'], user_instance=req_dict['member_id'])
-
+        
+        promoter_name = request.member.userinfo.name
+        
         if not is_member:
             Members.objects.filter(member_id=req_dict['member_id'],
                                    community_id=req_dict['community_id']).update(state=member_states.MEMBER,
@@ -3428,7 +3431,7 @@ def approve_or_decline_whatsapp_community(req_dict,request):
             #sending mails and notifications
 
             #send notification
-            send_notification_for_join_requests.delay(req_dict['community_id'], True, req_dict['member_id'])
+            send_notification_for_join_requests.delay(req_dict['community_id'], True, req_dict['member_id'],promoter_name)
 
             # sending email to the user that his request is accepted for this community
             member_request_approval_or_denied.delay(user_id = req_dict['member_id'],community_id = req_dict['community_id'], approved = True)
@@ -3443,7 +3446,7 @@ def approve_or_decline_whatsapp_community(req_dict,request):
         # delete the responses of user to community questions, if any
         communityAnswers.objects.filter(member_id=req_dict['member_id'],community_id = req_dict['community_id']).delete()
 
-        send_notification_for_join_requests.delay(req_dict['community_id'], False, req_dict['member_id'])
+        send_notification_for_join_requests.delay(req_dict['community_id'], False, req_dict['member_id'],promoter_name)
 
 
 def approve_or_decline_private_community(req_dict,request):
@@ -5287,7 +5290,7 @@ def create_answer(request):
     #sending the tagged member list
     auto_follow_chatrooms_in_case_of_tagging(request, res['title'], card_id)
 
-    send_follow_notification.delay(card_id=card_id, user_id=user_id, answer=res['title'])
+    send_follow_notification(card_id=card_id, user_id=user_id, answer=res['title'])
 
     #     # calling update_answer_text
     # if card.type == card_types.CARD_NORMAL or card.type == card_types.CARD_INTRO:
@@ -5353,7 +5356,7 @@ def create_conversation(request):
     update_last_answer_id(card_instance.id, ans.id)
 
     # auto following the collabcard if answer is created
-    if not is_guest:
+    if current_state['state'] == member_states.ADMIN or current_state['state'] == member_states.MEMBER or current_state['state'] == member_states.PROFILE_UNAVAILABLE:
         function_dict = {
             'member_id': member_id,
             'collabcard_id': card_instance.id,
@@ -5366,6 +5369,14 @@ def create_conversation(request):
 
     user_id  = str(user_instance.id)
     send_follow_notification.delay(card_id=card_instance.id, user_id=user_id, answer=res['text'])
+
+    #send tagged users mail if they didnt check chat in last 24 hours
+    tagged_members = get_tagged_members_list(res['text'])
+
+    tagged_member_list = tagged_members[0]
+    send_tagged_user_mail.delay(user_instance.id,card_instance.id,tagged_member_list,time_in_hrs=24)
+
+
 
     # # updating the conversationEngage table
     conversation_seen(request, {'member_id': user_instance.id, 'conversation_id': ans.id})
@@ -5402,7 +5413,7 @@ def auto_follow_chatrooms_in_case_of_tagging(request,conversation,card_id):
 def _send_notification_to_tagged_users(card_id, answerer_name, answer, user_id):
     tagged_users = re.findall("route://member/"'([0-9]+)', answer)
     answer_text = re.split('>>', answer)[-1]
-    send_follow_notification.delay(card_id=card_id, user_id=user_id, answer=answer, tagged_users_list=tagged_users)
+    send_follow_notification(card_id=card_id, user_id=user_id, answer=answer, tagged_users_list=tagged_users)
     for user_id in tagged_users:
         # user=User.objects.get(id=user_id)
         # if not is_collabcard_already_followed(card,user):
@@ -7015,12 +7026,18 @@ def skip_community(request):
         engage.member_state = member_states.PROFILE_UNAVAILABLE
         engage.click_state = click_states.SKIP_COMMUNITY
         engage.save()
-
+        
     set_state_for_onboarding_chatroom(community_instance,user_instance.id,request)
 
+    #sleeping for 2 hours to remind user to complete profile via notification
+    try:
+        community_instance = Community.obejcts.get(id=community_id)
+        community_state = get_state_of_community(community_instance)
+        send_notification_to_incomplete_profile.delay(user_id,community_id,community_state,community_name,time_in_s=7200)
+    except:
+        print("some error occured")
     #updating the member joined level
     set_levels_on_ctc(community_instance,"Level 2")
-
     return JsonResponse({'success':True})
 
 
@@ -8860,9 +8877,6 @@ def get_event_super_properties_for_mixpanel(user_instance,community_instance):
 
 
 
-
-
-sid_url = """http://enterprise.smsgupshup.com/GatewayAPI/rest?userid=2000193166&password=yeDiJFr3B&method=TWO_FACTOR_AUTH&v=1.1&phone_no=918218225082&msg=Your%20OTP%20code%20is%20%25code%25&format=text&otpCodeLength=4&otpCodeType=NUMERIC"""
 
 
 

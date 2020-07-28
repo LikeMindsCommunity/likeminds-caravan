@@ -11,8 +11,12 @@ from togther.models import *
 from project.celery import app
 from utility.tasks import send_email
 from utility.utils import (android_app_download_link, ios_app_download_link,
-                           is_LG_or_LP_community, is_IG_community,angellist_link,linkedIn_link)
+                           is_LG_or_LP_community, is_IG_community,angellist_link,linkedIn_link,get_user_email)
 from django.http import JsonResponse
+from django.contrib.auth.models import User
+from togther.models import Collabcard
+
+from .static_files import GOOGLE_PLAYSTORE,APPLE_APPSTORE,APP_LOGO
 
 url  = settings.URL
 
@@ -358,3 +362,55 @@ def send_verification_mail_for_email_sync(user_name,verification_link,email):
 
     to = [email]
     send_email(subject, template, to)
+
+@shared_task
+def send_tagged_user_mail(user_id,card_id,tagged_member_list,time_in_hrs):
+    #check last conversation seen
+    userinstance = User.objects.get(pk=user_id)
+    card_instance = Collabcard.objects.get(id=card_id)
+    print('mailsstart')
+    has_seen = {}
+    for member_id in tagged_member_list:
+        state = conversationMemberState.objects.filter(card_id=card_id, user_id=member_id)
+        if state.exists():
+            has_seen[member_id] = state.first().conversation_id
+        else:
+            has_seen_[member_id] = -1
+    
+    #sleep for n hours
+    time.sleep(time_in_hrs*60*60)
+    has_seen_new = {}
+    for member_id in tagged_member_list:
+        user_name = userinstance.userinfo.name
+        email = get_user_email(member_id)
+        member = User.objects.get(pk=member_id)
+        member_name = member.userinfo.name
+
+        #check if user has opened the chat
+        state = conversationMemberState.objects.filter(card_id=card_id, user_id=member_id)
+        if state.exists():
+            has_seen_new[member_id] = state.first().conversation_id
+        else:
+            has_seen_[member_id] = -1
+
+        #if email exists and he hasnt seen the chat
+        if email and has_seen_new[member_id] == has_seen[member_id]:
+            email_context = {
+                'user_name' : user_name,
+                'member_name' : member_name,
+                'community_name' : card_instance.community.name,
+                'card_name' : card_instance.title,
+                'profile_pic': userinstance.userinfo.image_link,
+                'android_app_download_link': '#',
+                'ios_app_download_link': '#',
+                'playstore_image' : GOOGLE_PLAYSTORE,
+                'applestore_image' : APPLE_APPSTORE,
+                'app_image' : APP_LOGO,
+                'cta_url': '#',
+            }
+            subject = str(email_context['user_name']) + " is waiting for your response! "
+            template = get_template("mails/tagged_email.html").render(email_context)
+            #print(context)
+
+            to = [email]
+            send_email(subject, template, to)
