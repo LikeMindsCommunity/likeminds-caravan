@@ -7057,7 +7057,6 @@ def limit_access(request):
     access = is_user_community_part(member_id)
     context['access'] = access
 
-    community_list = []
 
     if not community_list:
         context['title'] = "Important Message"
