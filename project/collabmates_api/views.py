@@ -6909,10 +6909,16 @@ def generate_otp(request):
 
     key = settings.GHUPSHUP_KEY
 
-    email = request.GET.get('email')
+    email = request.GET.get('email_id')
 
     generate_url = """http://enterprise.smsgupshup.com/apps/TwoFactorAuth/incoming.php?phone=%s&key=%s"""%(mobile_no,key)
     response = rqst.get(generate_url)
+
+    # if email:
+    #     generate_url = "http://enterprise.smsgupshup.com/apps/TwoFactorAuth/incoming.php?email=%s&key=%s"%(str(email),key)
+    #     response = rqst.get(generate_url)
+    #
+    #     print(response.content)
 
     return JsonResponse({'success':True})
 
@@ -6927,7 +6933,7 @@ def verify_otp(request):
 
     key = settings.GHUPSHUP_KEY
     otp = request.GET.get('otp')
-    email_id = request.GET.get('email_id')
+    email = request.GET.get('email_id')
 
     verify_url = """http://enterprise.smsgupshup.com/apps/TwoFactorAuth/incoming.php?phone=%s&key=%s&code=%s"""%(str(mobile_no),key,str(otp))
     response = rqst.get(verify_url)
@@ -6941,6 +6947,12 @@ def verify_otp(request):
         if response_list[0].strip() == "error":
             success = False
 
+
+    # if email and not success:
+    #     verify_url = """http://enterprise.smsgupshup.com/apps/TwoFactorAuth/incoming.php?email=%s&key=%s&code=%s"""%(str(email),key,str(otp))
+    #     email_response = rqst.get(verify_url)
+    #
+    #     print(email_response.content)
 
     context = {}
     context['success'] = success
