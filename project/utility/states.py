@@ -154,6 +154,14 @@ email_states = EmailStates()
 
 
 
+class PhoneStates:
+
+    NON_PRIMARY = 0
+    PRIMARY = 1
+
+mobile_states = PhoneStates()
+
+
 
 
 class CommunityLevelsState:
