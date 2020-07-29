@@ -84,7 +84,3 @@ def send_mail_after_rank_computation(user_id):
             count += 1
             time.sleep(30)
 
-
-@shared_task
-def send_chatroom_owner_mail():
-    pass
