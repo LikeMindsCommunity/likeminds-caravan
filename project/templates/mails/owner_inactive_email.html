@@ -1,0 +1,25 @@
+{% extends 'mails/base.html' %}
+{% block extracss %}
+<style>
+strong{
+    color:#00897b;
+}
+.row{
+    display: flex;
+}
+</style>
+{% endblock %}
+{% block mail %}
+<div class="username">Hi, {{member_name}}!</div>
+<div class="row">
+    <div class="text">
+        <p>You are missing action in your chatroom titled <strong>{{card_name}}</strong> under the community named <strong>{{community_name}}</strong>. 
+            In the last 12 hours, there have been {{number_of_messages}} {% if number_of_messages == 1 %}message{%else%}messages{%endif%} exchanged. Click here to see what everyone said.
+        </p>
+        <p class="cta-wrapper">
+            <a href="{{cta_url}}" class="cta">Open chatroom</a>
+        </p>
+
+    </div>
+</div>
+{% endblock %}

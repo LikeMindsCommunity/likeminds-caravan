@@ -49,7 +49,8 @@ from utility.utils import (decode_meta_from_url, update_tag_image,
                            is_member_verified, community_default_image, community_default_thumbnail, is_member_promoter,
                            is_member_present, generate_private_link, generate_random, get_time_text,
                            community_default_image_round, decode_option, get_user_communities_by_rank_web,
-                           user_onbaord,get_time_text_for_my_chatrooms,get_members_count_in_community
+                           user_onbaord,get_time_text_for_my_chatrooms,get_members_count_in_community,
+                           check_notification_flag
 
                            )
 
@@ -4054,6 +4055,12 @@ def fetch_chatroom(request):
 
     context = get_chatroom_internal(request,card_instance,current_user_id,page,conversation_id,scroll_direction)
 
+
+    if str(current_user_id) == str(card_instance.user.id):
+        notification_flag = memberNotificationFlag.objects.get(code='mail_card_owner_inactivity',card=card_instance,member_id=current_user_id)
+        notification_flag.flag=True
+        notification_flag.save()
+
     if request.accepted_renderer.format == 'html' and conversation_id:
         context['conversations'] = context['conversations']
         context = {
@@ -4119,6 +4126,10 @@ def conversation_seen(request,req_dict=None):
         conversation_instance = card_answers.objects.get(id=conversation_id)
         card_instance = conversation_instance.card
         conversation_member_filter = conversationMemberState.objects.filter(user=user_instance,card=card_instance)
+
+        #resetting flag when card owner sees the conversation
+        if member_id == card_instance.user.id:
+            notification_flag = memberNotificationFlag.objects.get(code='mail_card_owner_inactivity',card=card_instance,member=user_instance)
 
         if not conversation_member_filter.exists():
             conversation_member_instance = conversationMemberState()
@@ -5375,9 +5386,15 @@ def create_conversation(request):
 
     tagged_member_list = tagged_members[0]
     if len(tagged_member_list)>0:
-        send_tagged_user_mail.delay(user_instance.id,card_instance.id,time_in_hrs=24)
+        send_tagged_user_mail.delay(user_instance.id,card_instance.id,tagged_member_list,time_in_hrs=24)
 
-    send_chatroom_owner_mail
+    notification_list = [
+        'mail_card_owner_inactivity'
+    ]
+    
+    #check if sender is not the owner and  notification flag is true
+    if check_notification_flag(card_instance.user.id,notification_list,card_id=card_instance.id,community_id=None) and str(member_id) != str(card_instance.user.id):
+        send_chatroom_owner_mail.delay(card_instance.user.id,card_instance.id,ans.created_at,time_in_hrs=12)
 
 
     # # updating the conversationEngage table
