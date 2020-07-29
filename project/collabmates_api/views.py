@@ -1933,8 +1933,8 @@ def get_basic_directory_options(request):
     questions = []
     for field in field_filter:
 
-        if field.state == question_states.GOOGLE_CITY_FETCH:
-            continue
+        # if field.state == question_states.GOOGLE_CITY_FETCH:
+        #     continue
         temp  = communityFieldSerializer(field)
         questions.append(temp)
 
@@ -6783,6 +6783,14 @@ def custom_login(request,res,login_type="custom"):
     email = profile['email'] if 'email' in profile else ''
     email_exists = get_user_from_email(email)
 
+    if email_exists:
+        context['user'] = UserinfoSerializer(email_exists.userinfo)
+        context['has_tags'] = email_exists.userinfo.has_tags
+        context['access'] = is_user_community_part(context['user']['id'])
+        context['email_exists'] = True
+
+        return context
+
     image_url = profile['image_url'] if 'image_url' in profile else PROFILE_DEFAULT
 
     user_instance = create_custom_user(name,mobile_no,email,image_url,login_type)
@@ -6831,7 +6839,15 @@ def create_custom_user(name,mobile_no,email,image_url,login_type):
         userinfo_instance.save()
 
         #creating user email
-        save_user_primary_email(user_instance,email,mobile_no)
+        save_user_primary_email(user_instance,email,mobile_no,email_states.NON_PRIMARY)
+
+
+        #send verification mail for email
+        verification_details = generate_tokens_for_email(user_instance, email, email_state=email_states.NON_PRIMARY)
+
+        # sending a email from template
+        send_verification_mail_for_email_sync(user_name=user_instance.userinfo.name,
+                                                    verification_link=verification_details['verify_url'], email=email)
 
 
         return user_instance
@@ -6849,9 +6865,19 @@ def generate_otp(request):
 
     mobile_no = str(country_code) + str(mobile_no)
 
+    email = request.GET.get('email')
+
     msg = """Your%20OTP%20code%20is%20%25code%25"""
     generate_url = """http://enterprise.smsgupshup.com/GatewayAPI/rest?userid=%s&password=%s&method=TWO_FACTOR_AUTH&v=1.1&phone_no=%s&msg=%s&format=text&otpCodeLength=4&otpCodeType=NUMERIC"""%(str(user_id),str(password),mobile_no,msg)
     response = rqst.get(generate_url)
+
+
+    # if email:
+    #     generate_url = """http://enterprise.smsgupshup.com/GatewayAPI/rest?userid=%s&password=%s&method=TWO_FACTOR_AUTH&v=1.1&email=%s&msg=%s&format=text&otpCodeLength=4&otpCodeType=NUMERIC""" % (
+    #     str(user_id), str(password), email, msg)
+    #     response = rqst.get(generate_url)
+    #     print(response.content)
+
     return JsonResponse({'success':True})
 
 
@@ -6892,13 +6918,13 @@ def verify_otp(request):
 
 
 
-def save_user_primary_email(user_instance,email,mobile_no=None,verified=False):
+def save_user_primary_email(user_instance,email,mobile_no=None,verified=False,email_state=email_states.PRIMARY):
 
     '''function to save primary email of user for communications'''
 
     user_email_instance = userEmails()
     user_email_instance.user = user_instance
-    user_email_instance.email_state = email_states.PRIMARY
+    user_email_instance.email_state = email_state
     user_email_instance.email = email
     user_email_instance.mobile_no = mobile_no
     user_email_instance.verified = verified
@@ -8679,37 +8705,27 @@ def sync_email(request):
         context = get_error_context(False, "send member id in headers")
         return JsonResponse(context)
 
+    try:
+        user_instance = User.objects.get(id=member_id)
+    except:
+        context = get_error_context(False, "User does not exists")
+        return JsonResponse(context)
+
     email = request.POST.get('email_id',None)
     email_state = request.POST.get('email_state',0)
     if not email:
         context = get_error_context(False,"send a email id in post params")
         return JsonResponse(context)
 
-    token_list = list(emailTokens.objects.filter(user=member_id).values_list('token',flat=True))
-
-    try:
-        user_instance = User.objects.get(id=member_id)
-    except:
-        context = get_error_context(False,"User does not exists")
-        return JsonResponse(context)
-
-    verification_details = generating_verification_link_for_email(token_list,member_id)
-
-    #saving the email token details for user
-    instance = emailTokens()
-    instance.user = user_instance
-    instance.token = verification_details['token']
-    instance.expire_time = 86400            #24 hours
-    instance.email = email
-    instance.email_state = email_state
-    instance.save()
-
+    verification_details = generate_tokens_for_email(user_instance,email,email_state=email_state)
 
     #sending a email from template
     send_verification_mail_for_email_sync.delay(user_name=user_instance.userinfo.name,
                                           verification_link=verification_details['verify_url'],email=email)
 
     return JsonResponse({'success':True})
+
+
 
 
 def generating_verification_link_for_email(token_list,user_id):
@@ -8728,6 +8744,24 @@ def generating_verification_link_for_email(token_list,user_id):
 
     return temp
 
+def generate_tokens_for_email(user_instance,email,email_state=0):
+
+    token_list = list(emailTokens.objects.filter(user=user_instance).values_list('token', flat=True))
+
+
+
+    verification_details = generating_verification_link_for_email(token_list, user_instance.id)
+
+    # saving the email token details for user
+    instance = emailTokens()
+    instance.user = user_instance
+    instance.token = verification_details['token']
+    instance.expire_time = 86400  # 24 hours
+    instance.email = email
+    instance.email_state = email_state
+    instance.save()
+
+    return verification_details
 
 
 # web apis  flow
@@ -8795,7 +8829,7 @@ def email_verify(request):
                     user_email_instance.save()
 
                 else:
-                    user_email_list.update(user=user_instance,email_state=email_state,email=instance.email)
+                    user_email_list.update(user=user_instance,email_state=email_state,email=instance.email,verified=True)
 
 
                 return render(request, 'email_verify_landing.html', context)
