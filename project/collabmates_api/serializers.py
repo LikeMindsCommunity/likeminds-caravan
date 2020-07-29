@@ -123,6 +123,32 @@ def UserinfoSerializer(user):
 
     return userinfo
 
+
+def get_logged_in_user(user_instance):
+
+    context = UserinfoSerializer(user_instance.userinfo)
+
+    email_filter = userEmails.objects.filter(user=user_instance)
+
+    email_list = []
+    for email in email_filter:
+        email_list.append(userEmailsSerializer(email))
+
+
+    mobile_filter = userMobiles.objects.filter(user=user_instance)
+
+    mobile_list = []
+
+    for mobile_no in mobile_filter:
+        mobile_list.append(userMobilesSerializer(mobile_no))
+
+
+    context['emails'] = email_list
+
+    context['mobiles'] = mobile_list
+
+    return context
+
 def CollabcardSerializer(card,user,community=None):
     # function to serialize a community object
     collabcard={
@@ -927,4 +953,27 @@ def communityFieldSerializer(instance):
         'sub_type':instance.sub_type.id,
         'field':instance.field,
         'is_compulsory':instance.is_compulsory
+    }
+
+
+
+def userEmailsSerializer(email_instance):
+
+    return {
+
+        'user_id': email_instance.user.id,
+        'email': email_instance.email,
+        'state': email_instance.email_state,
+        'verified':email_instance.verified
+
+    }
+
+
+def userMobilesSerializer(mobile_instance):
+
+    return {
+        'user_id': mobile_instance.user.id,
+        'mobile_no': mobile_instance.mobile_no,
+        'country_code':mobile_instance.country_code,
+        'state': mobile_instance.state
     }
