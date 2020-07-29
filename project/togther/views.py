@@ -1384,7 +1384,7 @@ def join_community(request, community_id, ref_id, aj=False, member_state=None):
 
 
 def get_community_questions(community_id):
-    questions = communityQuestions.objects.filter(community=community_id).order_by('id')
+    questions = communityQuestions.objects.filter(community=community_id,is_hidden=False).order_by('id')
     question_format = []
     dropdown_list = []
     for each_question in questions:
