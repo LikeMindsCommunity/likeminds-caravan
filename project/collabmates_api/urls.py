@@ -66,6 +66,8 @@ urlpatterns = [
     path('generate_otp',api_views.generate_otp,name = 'generate_otp'),
     path('verify_otp',api_views.verify_otp,name = 'verify_otp'),
 
+    path('merge_account',api_views.merge_account,name='merge_account'),
+
 
 
     #path('image_upload',api_views.image_upload,name = 'image'),

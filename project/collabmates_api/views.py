@@ -31,7 +31,7 @@ from utility.encryption import encrypt, decrypt
 from utility.firebase import update_last_answer_id, upload_image_to_firebase, upload_community_thumbnail, \
     upload_community_files
 from utility.states import collabcard_states, member_states, question_states, community_states, deleted_members, \
-    card_types, chatroom_states, email_states
+    card_types, chatroom_states, email_states,mobile_states
 from utility.tasks import (mail_triger, new_member_request,
                            member_request_approval_or_denied,
                            send_mail_for_report_abuse,
@@ -1940,12 +1940,6 @@ def get_basic_directory_options(request):
         questions.append(temp)
 
     return JsonResponse({'questions':questions})
-
-
-
-
-
-
 
 
 
@@ -6576,7 +6570,7 @@ def login_with_google(google_id_token,request,login_type="google"):
             res['id'] = res['azp']
 
             user = create_user(user_name=res['name'], email=res['email'], id=res['email'])
-
+            user_instance = user
             if 'picture' in res:
                 image_link = upload_image_to_firebase(res['picture'], user.id)
             else:
@@ -6588,7 +6582,11 @@ def login_with_google(google_id_token,request,login_type="google"):
                                        )
 
             mobile_no = res['mobile_no'] if 'mobile_no' in res else None
-            save_user_primary_email(user,res['email'],mobile_no=mobile_no,verified=True)
+            country_code = res['country_code'] if 'country_code' in res else None
+
+            save_user_mobile_number(user_instance, country_code, mobile_no, state=mobile_states.PRIMARY)
+
+            save_user_primary_email(user,res['email'],verified=True)
             #mail_triger(str(user.id), request)  # both mail and notification will be sent here
 
 
@@ -6597,7 +6595,9 @@ def login_with_google(google_id_token,request,login_type="google"):
 
 
 
-        usr = UserinfoSerializer(userinfo)
+        #usr = UserinfoSerializer(userinfo)
+
+        usr = get_logged_in_user(user_instance=user)
         # see if user has tags or not
         has_tags = userinfo.has_tags
 
@@ -6635,7 +6635,7 @@ def login_with_facebook(request,res,json_to_save,login_type="facebook"):
     if not user:
         # creating a user if no user is associated with that email
         user = create_user(user_name=res['name'], email=res['email'], id=res['id'])
-
+        user_instance = user
         # if there is no user then user will not have userinfo too
         # creating user info
 
@@ -6653,14 +6653,18 @@ def login_with_facebook(request,res,json_to_save,login_type="facebook"):
                                    # fb_link=fb_link
                                    )
         mobile_no = res['mobile_no'] if 'mobile_no' in res else None
-        save_user_primary_email(user, res['email'], mobile_no=mobile_no, verified=True)
-        mail_triger(str(user.id), request)  # both mail and notification will be sent here
+        country_code = res['country_code'] if 'country_code' in res else None
+
+        save_user_mobile_number(user_instance, country_code, mobile_no, state=mobile_states.PRIMARY)
+
+        save_user_primary_email(user, res['email'],verified=True)
+        #mail_triger(str(user.id), request)  # both mail and notification will be sent here
     else:
         userinfo = user.userinfo
 
         # get serialized user object
 
-    usr = UserinfoSerializer(userinfo)
+    usr = get_logged_in_user(user_instance=user)
     # see if user has tags or not
     has_tags = userinfo.has_tags
 
@@ -6696,7 +6700,7 @@ def login_with_linkedin(request,res,json_to_save,login_type="linkedIn"):
 
         user_name = res['firstName']['localized']['en_US'] + " " + res['lastName']['localized']['en_US']
         user = create_user(user_name=user_name, email=email, id=res['id'])
-
+        user_instance = user
         if 'profilePicture' in res:
             profile_picture = upload_image_to_firebase(
                 res['profilePicture']['displayImage~']['elements'][2]['identifiers'][0]['identifier'], user.id)
@@ -6706,14 +6710,19 @@ def login_with_linkedin(request,res,json_to_save,login_type="linkedIn"):
         userinfo = create_userinfo(user=user, email=email, user_name=user_name,
                                    profile_picture=profile_picture, login_type=login_type,
                                    json_to_save=json_to_save)
+
         mobile_no = res['mobile_no'] if 'mobile_no' in res else None
-        save_user_primary_email(user, res['email'], mobile_no=mobile_no, verified=True)
+        country_code = res['country_code'] if 'country_code' in res else None
+
+        save_user_mobile_number(user_instance, country_code, mobile_no, state=mobile_states.PRIMARY)
+        save_user_primary_email(user, res['email'],verified=True)
         #mail_triger(str(user.id), request)  # both mail and notification will be sent here
 
     else:
         userinfo = user.userinfo
 
-    usr = UserinfoSerializer(userinfo)
+    #usr = UserinfoSerializer(userinfo)
+    usr = get_logged_in_user(user_instance=user)
     # see if user has tags or not
     has_tags = userinfo.has_tags
 
@@ -6744,7 +6753,7 @@ def login_with_apple(request,res,json_to_save,login_type="apple"):
         # creating a user if no user is associated with that email
         user = create_user(user_name=res['name'], email=res['email'],
                            id=res['id'], apple_id=True)
-
+        user_instance = user
         # fb_link = res['link'] if 'link' in res else None
         if 'picture' in res:
             image_link = upload_image_to_firebase(res['picture']['data']['url'], user.id)
@@ -6759,7 +6768,11 @@ def login_with_apple(request,res,json_to_save,login_type="apple"):
                                    json_to_save=json_to_save, city=city, apple_id=res['id']
                                    )
         mobile_no = res['mobile_no'] if 'mobile_no' in res else None
-        save_user_primary_email(user, res['email'], mobile_no=mobile_no, verified=True)
+        country_code = res['country_code'] if 'country_code' in res else None
+
+        save_user_mobile_number(user_instance, country_code, mobile_no, state=mobile_states.PRIMARY)
+
+        save_user_primary_email(user, res['email'], verified=True)
        # mail_triger(str(user.id), request)  # both mail and notification will be sent here
 
     else:
@@ -6767,7 +6780,8 @@ def login_with_apple(request,res,json_to_save,login_type="apple"):
 
     # get serialized user object
 
-    usr = UserinfoSerializer(userinfo)
+    #usr = UserinfoSerializer(userinfo)
+    usr = get_logged_in_user(user_instance=userinfo.user_id)
     # see if user has tags or not
     has_tags = userinfo.has_tags
 
@@ -6790,7 +6804,7 @@ def custom_login(request,res,login_type="custom"):
     context = {}
     mobile_no=res['mobile_no']
     country_code = res['country_code']
-    mobile_no = int(str(country_code) + str(mobile_no))
+    #mobile_no = int(str(country_code) + str(mobile_no))
 
     user_instance = None
 
@@ -6801,7 +6815,7 @@ def custom_login(request,res,login_type="custom"):
     email_exists = get_user_from_email(email)
 
     if email_exists:
-        context['user'] = UserinfoSerializer(email_exists.userinfo)
+        context['user'] = get_logged_in_user(user_instance=email_exists)
         context['has_tags'] = email_exists.userinfo.has_tags
         context['access'] = is_user_community_part(context['user']['id'])
         context['email_exists'] = True
@@ -6810,9 +6824,10 @@ def custom_login(request,res,login_type="custom"):
 
     image_url = profile['image_url'] if 'image_url' in profile else PROFILE_DEFAULT
 
-    user_instance = create_custom_user(name,mobile_no,email,image_url,login_type)
+    user_instance = create_custom_user(name,mobile_no,country_code,email,image_url,login_type)
 
-    usr = UserinfoSerializer(user_instance.userinfo)
+    #usr = UserinfoSerializer(user_instance.userinfo)
+    usr = get_logged_in_user(user_instance)
     # see if user has tags or not
     has_tags = user_instance.userinfo.has_tags
 
@@ -6831,9 +6846,9 @@ def custom_login(request,res,login_type="custom"):
     return context
 
 
-def create_custom_user(name,mobile_no,email,image_url,login_type):
+def create_custom_user(name,mobile_no,country_code,email,image_url,login_type):
 
-    has_mobile_no = userEmails.objects.filter(mobile_no=mobile_no)
+    has_mobile_no = userMobiles.objects.filter(mobile_no=mobile_no)
     user_name = name + "_"+str(mobile_no)
 
     if not has_mobile_no.exists():
@@ -6856,7 +6871,7 @@ def create_custom_user(name,mobile_no,email,image_url,login_type):
         userinfo_instance.save()
 
         #creating user email
-        save_user_primary_email(user_instance,email,mobile_no,email_states.NON_PRIMARY)
+        save_user_primary_email(user_instance,email,email_state = email_states.NON_PRIMARY)
 
 
         #send verification mail for email
@@ -6866,33 +6881,62 @@ def create_custom_user(name,mobile_no,email,image_url,login_type):
         send_verification_mail_for_email_sync(user_name=user_instance.userinfo.name,
                                                     verification_link=verification_details['verify_url'], email=email)
 
+        save_user_mobile_number(user_instance, country_code, mobile_no, state=mobile_states.PRIMARY)
 
         return user_instance
 
     return has_mobile_no[0].user
 
 
+def merge_account(request):
+
+    '''api to merge account '''
+
+    member_id = get_member_id_from_headers(request)
+    context={}
+    if not member_id:
+        context = get_error_context(False,"send member id in headers")
+        return context
+
+    country_code = request.GET.get('country_code')
+    mobile_no = request.GET.get('mobile_no')
+    country_code = request.GET.get('country_code')
+
+    try:
+        user_instance = User.objects.get(id=member_id)
+        save_user_mobile_number(user_instance, country_code, mobile_no)
+
+        context['success'] = True
+
+        context['access'] = is_user_community_part(user_instance.id)
+
+    except Exception as e:
+        context['error_message'] = e.args
+
+
+    return JsonResponse(context)
+
+
+
 def generate_otp(request):
 
-    user_id = settings.GHUPSHAP_USER_ID
-    password = settings.GHUPSHAP_PASSWORD
 
     mobile_no = request.GET.get('mobile_no')
     country_code = request.GET.get('country_code')
 
     mobile_no = str(country_code) + str(mobile_no)
 
-    email = request.GET.get('email')
+    key = settings.GHUPSHUP_KEY
 
-    msg = """Your%20OTP%20code%20is%20%25code%25"""
-    generate_url = """http://enterprise.smsgupshup.com/GatewayAPI/rest?userid=%s&password=%s&method=TWO_FACTOR_AUTH&v=1.1&phone_no=%s&msg=%s&format=text&otpCodeLength=4&otpCodeType=NUMERIC"""%(str(user_id),str(password),mobile_no,msg)
+    email = request.GET.get('email_id')
+
+    generate_url = """http://enterprise.smsgupshup.com/apps/TwoFactorAuth/incoming.php?phone=%s&key=%s"""%(mobile_no,key)
     response = rqst.get(generate_url)
 
-
     # if email:
-    #     generate_url = """http://enterprise.smsgupshup.com/GatewayAPI/rest?userid=%s&password=%s&method=TWO_FACTOR_AUTH&v=1.1&email=%s&msg=%s&format=text&otpCodeLength=4&otpCodeType=NUMERIC""" % (
-    #     str(user_id), str(password), email, msg)
+    #     generate_url = "http://enterprise.smsgupshup.com/apps/TwoFactorAuth/incoming.php?email=%s&key=%s"%(str(email),key)
     #     response = rqst.get(generate_url)
+    #
     #     print(response.content)
 
     return JsonResponse({'success':True})
@@ -6906,13 +6950,11 @@ def verify_otp(request):
 
     mobile_no = str(country_code) + str(mobile_no)
 
+    key = settings.GHUPSHUP_KEY
     otp = request.GET.get('otp')
-    email_id = request.GET.get('email_id')
+    email = request.GET.get('email_id')
 
-    user_id = settings.GHUPSHAP_USER_ID
-    password = settings.GHUPSHAP_PASSWORD
-
-    verify_url = """http://enterprise.smsgupshup.com/GatewayAPI/rest?userid=%s&password=%s&method=TWO_FACTOR_AUTH&v=1.1&phone_no=%s&otp_code=%s"""%(str(user_id),str(password),str(mobile_no),str(otp))
+    verify_url = """http://enterprise.smsgupshup.com/apps/TwoFactorAuth/incoming.php?phone=%s&key=%s&code=%s"""%(str(mobile_no),key,str(otp))
     response = rqst.get(verify_url)
 
     success = False
@@ -6925,17 +6967,23 @@ def verify_otp(request):
             success = False
 
 
+    # if email and not success:
+    #     verify_url = """http://enterprise.smsgupshup.com/apps/TwoFactorAuth/incoming.php?email=%s&key=%s&code=%s"""%(str(email),key,str(otp))
+    #     email_response = rqst.get(verify_url)
+    #
+    #     print(email_response.content)
+
     context = {}
     context['success'] = success
     if not success:
         context['error_message'] = response
-    context['profile_exists'] = userEmails.objects.filter(mobile_no=mobile_no).exists()
+    context['profile_exists'] = userMobiles.objects.filter(mobile_no=mobile_no).exists()
 
     return JsonResponse(context)
 
 
 
-def save_user_primary_email(user_instance,email,mobile_no=None,verified=False,email_state=email_states.PRIMARY):
+def save_user_primary_email(user_instance,email,verified=False,email_state=email_states.PRIMARY):
 
     '''function to save primary email of user for communications'''
 
@@ -6943,9 +6991,27 @@ def save_user_primary_email(user_instance,email,mobile_no=None,verified=False,em
     user_email_instance.user = user_instance
     user_email_instance.email_state = email_state
     user_email_instance.email = email
-    user_email_instance.mobile_no = mobile_no
     user_email_instance.verified = verified
     user_email_instance.save()
+
+
+def save_user_mobile_number(user_instance,country_code,mobile_no,state=mobile_states.PRIMARY):
+
+
+    if not mobile_no:
+        return
+
+    mobile_filter = userMobiles.objects.filter(mobile_no=mobile_no)
+
+    if not mobile_filter.exists():
+
+        instance = userMobiles()
+        instance.country_code = country_code
+        instance.mobile_no = mobile_no
+        instance.state = state
+        instance.user = user_instance
+        instance.created_at = time.time()
+        instance.save()
 
 def get_user_from_email(email):
 
@@ -7013,21 +7079,27 @@ def limit_access(request):
 
     if not community_list:
         context['title'] = "Important Message"
+        context['sub_title'] = """Access to this app is restricted to invited members only. You can:
+1. Click on the invitation link if you received one
+2. Check login credentials if you have already registered with us
+3. Stay tuned and we will let you know once we open up for public.
 
-        platform_code = get_platform_code_from_headers(request)
+If you are a community builder and you wish to receive an invite, do fill out the following form:"""
 
-        if platform_code == "an":
-
-            context['sub_title'] = """Access to this app is restricted to invited members only. The login credentials you used (<font color='#00897b'>%s</font>) seems to be missing from our list of invited members.
-    
-    If you are a community builder and you wish to receive an invite, do fill out the following form:"""%(user_instance.userinfo.email)
-
-        else:
-
-            context['sub_title'] = """Access to this app is restricted to invited members only. The login credentials you used (%s) seems to be missing from our list of invited members.
-
-            If you are a community builder and you wish to receive an invite, do fill out the following form:""" % (
-                user_instance.userinfo.email)
+    #     platform_code = get_platform_code_from_headers(request)
+    #
+    #     if platform_code == "an":
+    #
+    #         context['sub_title'] = """Access to this app is restricted to invited members only. The login credentials you used (<font color='#00897b'>%s</font>) seems to be missing from our list of invited members.
+    #
+    # If you are a community builder and you wish to receive an invite, do fill out the following form:"""%(user_instance.userinfo.email)
+    #
+    #     else:
+    #
+    #         context['sub_title'] = """Access to this app is restricted to invited members only. The login credentials you used (%s) seems to be missing from our list of invited members.
+    #
+    #         If you are a community builder and you wish to receive an invite, do fill out the following form:""" % (
+    #             user_instance.userinfo.email)
 
 
     return JsonResponse(context)
@@ -8846,7 +8918,7 @@ def email_verify(request):
                     user_email_instance.save()
 
                 else:
-                    user_email_list.update(user=user_instance,email_state=email_state,email=instance.email,verified=True)
+                    user_email_list.update(user=user_instance,email_state=email_states.PRIMARY,email=instance.email,verified=True)
 
 
                 return render(request, 'email_verify_landing.html', context)

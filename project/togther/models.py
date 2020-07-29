@@ -877,13 +877,24 @@ class userEmails(models.Model):
     email_state = models.IntegerField(default=0)
     created_at = models.BigIntegerField(default=0)
 
-    mobile_no = models.BigIntegerField(null=True)
     verified = models.BooleanField(default=False)
+
+
 
     def save(self, *args, **kwargs):
         if self.created_at == 0:
             self.created_at = time.time()
         super(userEmails, self).save(*args, **kwargs)
+
+
+class userMobiles(models.Model):
+
+    user = models.ForeignKey(User,on_delete=models.CASCADE)
+    country_code = models.IntegerField(null=True)
+    mobile_no = models.BigIntegerField(null=True)
+    state = models.IntegerField(default=0)
+
+    created_at = models.BigIntegerField(default=0)
 
 
 class membersEngagePilot(models.Model):
