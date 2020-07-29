@@ -1092,7 +1092,37 @@ def get_user_email(member_id):
     else:
         emails = userEmails.objects.filter(user_id=member_id)
         if emails.exists():
-            return emails.first().email
+            if email.first().email != "":
+                return emails.first().email
         else:
             return None
     
+def check_notification_flag(member_id,notification_list,card_id=None,community_id=None):
+
+    ''' 
+    functiont check if we can send notitfications to users 
+    send member_id, card id for card specific flags, 
+    send member_id, community id for community specific flags
+    send member_id for member specific flags
+    '''
+
+    member = User.objects.get(pk=member_id)
+    flag = True
+
+    for notification in notification_list:
+        if card_id == None and community_id == None:
+            p, created = memberNotificationFlag.objects.get_or_create(code=notification)
+
+        elif card_id != None and community_id == None:
+            card = Collabcard.objects.get(pk=card_id)
+            p, created = memberNotificationFlag.objects.get_or_create(code=notification,card=card,member=member)
+
+        elif community_id != None and card_id == None:
+            community = Community.objects.get(pk=card_id)
+            p, created = memberNotificationFlag.objects.get_or_create(code=notification,community=community,member=member)
+        
+        if p.flag == False:
+            flag = False
+            break
+
+    return flag

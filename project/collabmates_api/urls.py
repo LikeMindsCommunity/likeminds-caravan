@@ -1,7 +1,7 @@
 from django.urls import path, include
 from . import views
 from collabmates_api import views as api_views
-from collabmates_api.notification import send_poll_notification_manually
+# from collabmates_api.notification import send_poll_notification_manually
 from django.views.decorators.csrf import csrf_exempt
 
 #for testing email templates only remove.  in prod/beta
@@ -9,7 +9,8 @@ from django.views.generic import TemplateView
 
 urlpatterns = [
     #for testing email templates only. remove in prod/beta
-    path('mail/', TemplateView.as_view(template_name='mails/verify_email_template.html')),
+#     path('mail/', TemplateView.as_view(template_name='mails/verify_email_template.html')),
+    path('mail/', TemplateView.as_view(template_name='mails/tagged_email.html')),
 
     path('communities', api_views.communities, name="communities"),
     path('your_communities/<int:user_id>', api_views.your_communities, name="your_communities"),
@@ -127,7 +128,7 @@ urlpatterns = [
 
     path('fetch_whatsapp_tool', api_views.fetch_whatsapp_tool, name='fetch_whatsapp_tool'),
     path('questions', api_views.questions, name='questions'),
-    path('poll_notification', send_poll_notification_manually, name='poll_notification'),
+#     path('poll_notification', send_poll_notification_manually, name='poll_notification'),
     path('fetch_master_questions', api_views.fetch_master_questions, name='fetch_master_questions'),
 
     path('fetch_filters', api_views.fetch_filters, name='fetch_filters'),

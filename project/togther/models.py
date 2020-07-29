@@ -996,3 +996,25 @@ class communityField(models.Model):
 
 
 
+#
+class memberNotificationFlag(models.Model):
+    '''
+    Model to store the flag state to send emails/push notifications of a particular user
+    Code for mails with start with 'mail_'
+    Code for notification with start with 'push_'
+    '''
+
+    member = models.ForeignKey(User, on_delete=models.CASCADE)
+    community = models.ForeignKey(Community, on_delete=models.SET_NULL, null=True)
+    card = models.ForeignKey(Collabcard, on_delete=models.SET_NULL, null=True)
+    code = models.CharField(default='', max_length=100)
+    flag = models.BooleanField(default=True)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      
+    updated_at = models.BigIntegerField(default=0, null=True)
+    created_at = models.BigIntegerField(default=0, null=True)
+    
+    def save(self, *args, **kwargs):
+        if self.created_at == 0:
+            self.created_at = time.time()
+        super(memberNotificationFlag, self).save(*args, **kwargs)
+
+
