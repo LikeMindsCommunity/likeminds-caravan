@@ -414,3 +414,8 @@ def send_tagged_user_mail(user_id,card_id,tagged_member_list,time_in_hrs):
 
             to = [email]
             send_email(subject, template, to)
+
+
+@shared_task
+def send_chatroom_owner_mail():
+    pass
