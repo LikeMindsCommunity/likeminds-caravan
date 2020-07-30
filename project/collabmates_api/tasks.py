@@ -377,7 +377,9 @@ def send_tagged_user_mail(user_id,card_id,tagged_member_list,time_in_hrs):
             has_seen_[member_id] = -1
     
     #sleep for n hours
-    time.sleep(time_in_hrs*60*60)
+    # time.sleep(time_in_hrs*60*60)
+    #sleeping for 5 mins for testing purposes.
+    time.sleep(5*60)
     has_seen_new = {}
     for member_id in tagged_member_list:
         user_name = userinstance.userinfo.name
@@ -423,8 +425,9 @@ def send_chatroom_owner_mail(user_id,card_id,message_time,time_in_hrs):
     state = conversationMemberState.objects.filter(card_id=card_id, user_id=user_id)
     last_conversation_id = state.first().conversation_id
     email = get_user_email(user_id)
-    time.sleep(time_in_hrs*60*60)
-    # time.sleep(10)
+    # time.sleep(time_in_hrs*60*60)
+    #sleeping for 5 mins for testing purposes.
+    time.sleep(5*60)
     state = conversationMemberState.objects.filter(card_id=card_id, user_id=user_id)
     new_conversation_id = state.first().conversation_id
     if new_conversation_id == last_conversation_id:
