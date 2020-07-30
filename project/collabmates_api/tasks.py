@@ -422,7 +422,12 @@ def send_chatroom_owner_mail(user_id,card_id,time_in_hrs):
     user_instance = User.objects.get(pk=user_id)
     card_instance = Collabcard.objects.get(id=card_id)
     state = conversationMemberState.objects.filter(card_id=card_id, user_id=user_id)
-    last_conversation_id = state.first().conversation_id
+    
+    if state.exists():
+        last_conversation_id = state.first().conversation_id
+    else:
+        last_conversation_id = -1
+    
     message_time = state.first().updated_at
     email = get_user_email(user_id)
     # time.sleep(time_in_hrs*60*60)
@@ -451,7 +456,7 @@ def send_chatroom_owner_mail(user_id,card_id,time_in_hrs):
             }
         template = get_template("mails/owner_inactive_email.html").render(email_context)
         to = [email]
-        # send_email(subject, template, to)
+        send_email(subject, template, to)
         flag = memberNotificationFlag.objects.get(member_id=user_id,code='mail_card_owner_inactivity',card=card_instance)
         flag.flag = False
         flag.save()
