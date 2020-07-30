@@ -4059,7 +4059,6 @@ def fetch_chatroom(request):
 
     if str(current_user_id) == str(card_instance.user.id):
         notification_flag = memberNotificationFlag.objects.filter(code='mail_card_owner_inactivity',card=card_instance,member_id=current_user_id)
-        
         if notification_flag.exists():
             flag = notification_flag[0]
             flag.flag=True
@@ -4398,9 +4397,10 @@ def save_the_latest_conversation(card_instance,user_id):
     
     '''function to save the latest seen conversation'''
 
-
+    if not user_id:
+        return
     latest_card = card_answers.objects.filter(card=card_instance,state=chatroom_states.ANSWER).last()
-    print(latest_card)
+
     #status = is_member_verified(card_instance.community,user_id)
     if True:
         if latest_card:
@@ -4454,19 +4454,19 @@ def adding_guest_in_chatroom(request,context,card_instance,aj,source_id,communit
 
 
 
-    context['aj_expired'] = is_chatroom_join_expired(aj, source_id)
+    aj_expired = is_chatroom_join_expired(aj, source_id)
     status = is_member_verified(community_id, current_user_id)
-
     state_filter = collabcardState.objects.filter(card=card_instance,user=current_user_id,is_guest=True)
 
-    if not context['aj_expired'] and not status and not state_filter.exists():
+    if not aj_expired and not status and not state_filter.exists():
+            context['aj_expired'] = aj_expired
             if guest_header:
                 create_guest_header(current_user_id,source_id,card_instance,current_user_id)
                 func_dict = {'collabcard_id': card_instance.id, 'member_id': current_user_id, 'status': True, 'is_guest': True}
                 collabcard_follow_internal(func_dict)
 
-    else:
-
+    elif not status:
+        context['aj_expired'] = aj_expired
         aj_expired_disclaimer = {}
         aj_expired_disclaimer['image_url'] = WARNING_IMAGE
         aj_expired_disclaimer['title'] = "Oops! The private link to participate in this chat room has expired. Join the following community to access this chat room."
