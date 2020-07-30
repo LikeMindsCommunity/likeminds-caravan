@@ -2148,7 +2148,14 @@ def create_chatroom_instance(res,community_instance,user_instance):
 
     card.date_epoch = time.time()  # card creation time
     card.save()
+    #add ownerflag here
 
+
+    #create relevant flags
+    notification_list = [
+        'mail_card_owner_inactivity'
+    ]
+    check_notification_flag(card.user.id,notification_list,card_id=card.id,community_id=None)
 
     #send notification to new chatroom posted
     if has_been_named:
@@ -4052,9 +4059,11 @@ def fetch_chatroom(request):
 
     if str(current_user_id) == str(card_instance.user.id):
         notification_flag = memberNotificationFlag.objects.filter(code='mail_card_owner_inactivity',card=card_instance,member_id=current_user_id)
+        
         if notification_flag.exists():
-            notification_flag[0].flag=True
-            notification_flag[0].save()
+            flag = notification_flag[0]
+            flag.flag=True
+            flag.save()
 
     if request.accepted_renderer.format == 'html' and conversation_id:
         context['conversations'] = context['conversations']
@@ -5389,7 +5398,7 @@ def create_conversation(request):
     
     #check if sender is not the owner and  notification flag is true
     if check_notification_flag(card_instance.user.id,notification_list,card_id=card_instance.id,community_id=None) and str(member_id) != str(card_instance.user.id):
-        send_chatroom_owner_mail.delay(card_instance.user.id,card_instance.id,ans.created_at,time_in_hrs=12)
+        send_chatroom_owner_mail(card_instance.user.id,card_instance.id,time_in_hrs=12)
 
 
     # # updating the conversationEngage table

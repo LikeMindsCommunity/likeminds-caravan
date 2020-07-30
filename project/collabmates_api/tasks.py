@@ -20,7 +20,7 @@ from .static_files import GOOGLE_PLAYSTORE,APPLE_APPSTORE,APP_LOGO
 
 url  = settings.URL
 
-
+from .notification import get_title_from_collabcard 
 # def send_email(subject,template,to):
 #     fail_silently=True
 #     msg = EmailMultiAlternatives(subject,
@@ -402,7 +402,7 @@ def send_tagged_user_mail(user_id,card_id,tagged_member_list,time_in_hrs):
                 'user_name' : user_name,
                 'member_name' : member_name,
                 'community_name' : card_instance.community.name,
-                'card_name' : card_instance.title,
+                'card_name' : get_title_from_collabcard(card_instance) ,
                 'profile_pic': userinstance.userinfo.image_link,
                 'android_app_download_link': '#',
                 'ios_app_download_link': '#',
@@ -412,18 +412,18 @@ def send_tagged_user_mail(user_id,card_id,tagged_member_list,time_in_hrs):
                 'cta_url': url + '/collabcard/' + str(card_id),
             }
             template = get_template("mails/tagged_email.html").render(email_context)
-            #print(context)
 
             to = [email]
             send_email(subject, template, to)
 
 
 @shared_task
-def send_chatroom_owner_mail(user_id,card_id,message_time,time_in_hrs):
+def send_chatroom_owner_mail(user_id,card_id,time_in_hrs):
     user_instance = User.objects.get(pk=user_id)
     card_instance = Collabcard.objects.get(id=card_id)
     state = conversationMemberState.objects.filter(card_id=card_id, user_id=user_id)
     last_conversation_id = state.first().conversation_id
+    message_time = state.first().updated_at
     email = get_user_email(user_id)
     # time.sleep(time_in_hrs*60*60)
     #sleeping for 5 mins for testing purposes.
@@ -450,9 +450,8 @@ def send_chatroom_owner_mail(user_id,card_id,message_time,time_in_hrs):
                 'number_of_messages':number_of_messages,
             }
         template = get_template("mails/owner_inactive_email.html").render(email_context)
-
         to = [email]
-        send_email(subject, template, to)
+        # send_email(subject, template, to)
         flag = memberNotificationFlag.objects.get(member_id=user_id,code='mail_card_owner_inactivity',card=card_instance)
         flag.flag = False
         flag.save()
