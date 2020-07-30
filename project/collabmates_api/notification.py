@@ -10,7 +10,8 @@ from django.contrib.auth.models import User
 from django.db.models import Q
 from pyfcm import FCMNotification
 from togther.models import (Community_Rank, collabcardState,
-                            MemberPollVotes, Collabcard,Members,Members,Referal,Community,communityAnswers
+                            MemberPollVotes, Collabcard,Members,Members,Referal,Community,communityAnswers,
+                            Userinfo
                             )
 from utility.celery_beat_tasks import CeleryBeatTask
 from utility.states import *
@@ -793,7 +794,7 @@ def send_notification_to_incomplete_profile(user_id,community_id,community_state
 def send_login_dropoff_notification(token,platform_code):
     '''send notification to users who did not login after 1 hour'''
 
-    time.sleep(2*60)
+    # time.sleep(2*60)
     user = Userinfo.objects.filter(fcm_token=token)
 
     if user.exists():
@@ -809,6 +810,8 @@ def send_login_dropoff_notification(token,platform_code):
 
         notification_list.append(temp)
 
+        message = {}
+
         message['payload']={
                 "title" : "Finish signing up!",
                 "sub_title" : "Click here to sign up and meet like-minded people and have relevant conversations.",
@@ -817,6 +820,40 @@ def send_login_dropoff_notification(token,platform_code):
         notification_meta(notification_list,message)
 
 
+@shared_task
+def send_morning_pending_request_notification():
+    communities = Community.objects.all()
+    for community in communities:
+        members = Members.objects.filter(community_id=community.id)
+        
+        pending_members = members.filter(state=member_states.PENDING_MEMBER)
+        pending_members_count = pending_members.count()
+
+        if pending_members_count>0:
+            promoters = members.filter(Q(state=member_states.ADMIN)|Q(state=member_states.MEMBER))
+            notification_list = []
+            for promoter in promoters:
+                notification_details = get_token_for_fcm(promoter.member_id.id,flag=True)
+                temp = {
+                    'id':promoter.member_id.id,
+                    'fcm_token':notification_details[0],
+                    'mobile_os':notification_details[1],
+                }
+
+                notification_list.append(temp)
+
+            message = {}
+
+            message['payload']={
+                    "title" : str(community.name),
+                    "sub_title" : str(pending_members_count) + " members are awaiting your approval to join the community.",
+                    'route':'route://community_collabcard'
+                }
+
+            if pending_members_count == 1:
+                message['payload']['sub_title']= "1 member are awaiting your approval to join the community."
+
+            notification_meta(notification_list,message)
 
 
 
