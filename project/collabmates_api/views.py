@@ -6971,15 +6971,24 @@ def verify_otp(request):
     user_id = request.GET.get('user_id')
     otp = request.GET.get('otp')
 
+    #for existing users flow
+    member_id = get_member_id_from_headers(request)
+
     profile_exists = False
     phone_no = str(country_code) + str(mobile_no)
     context = {}
 
-
+    # verifying  mobile number
     if mobile_no:
-
         verified = verify_otp_on_mobile(phone_no,otp)
         context['success'] = verified['success']
+
+
+        #saving data for existing user migrations
+        if member_id and context['success']:
+            user_instance = User.objects.get(id=member_id)
+            save_user_mobile_number(user_instance,country_code,mobile_no)
+
         if not context['success'] :
             context['error_message'] = verified['error_message']
 
@@ -7009,8 +7018,6 @@ def verify_otp(request):
             context['access'] = is_user_community_part(context['user']['id'])
 
         return JsonResponse(context)
-
-
 
 
     return JsonResponse(context)
@@ -7414,48 +7421,31 @@ def push(request):
 
 
 def config(request):
+
     '''function to update the version number of android for a user profile'''
-    headers = request.META
-    if 'HTTP_X_MEMBER_ID' in headers and 'HTTP_X_VERSION_CODE' in headers:
-        member_id = headers['HTTP_X_MEMBER_ID']
-        version_code = headers['HTTP_X_VERSION_CODE']
 
-        Userinfo.objects.filter(user_id=member_id).update(version_code=version_code)
-        log = """Version code updated for user %s""" % (str(member_id))
-        info_logger.info(log)
-        # title="App Update"
-        # message="Update to latest version 2.2.1"
-        # cta_text="Update"
-        # cancelable=True
-        # cta_link="""https://play.google.com/apps/testing/com.collabmates"""
-        # cta_link=quote(cta_link)
-        # cta="""route://browser?link=%s"""%(cta_link)
-        # route="""route://dialog?title=%s&message=%s&cta_text=%s&cta=%s&cancelable=%s"""%(title,message,cta_text,cta,cancelable)
-        # info_logger.info(route)
-        # return JsonResponse({'success': True,'route':route})
+    member_id = get_member_id_from_headers(request)
 
-        version_no = App_Update_Info.objects.filter(version_code=version_code)
-        version_update = False
-        if version_no:
-            route = version_no[0].android_route
-            version_update = True
+    context = {}
+    if not member_id:
+        context = get_error_context(False,"send member id in headers")
+        return context
 
-    ingest_your_communities = request.GET.get('ingest_your_communities', False)
-    info_logger.info(ingest_your_communities)
-    # if ingest_your_communities:
-    #     update_communities_in_member_engage_table.delay(member_id)
-    #     log = """Updated successfull for user=%s""" % (member_id)
-    #     info_logger.info(log)
-    #     if version_update:
-    #         return JsonResponse({'success': True})  # route:route
-    #     else:
-    #         return JsonResponse({'success': True})
-    # error_logger.error("headers are not comming correctly")
+    #update version code
+    version_code = get_version_code_from_headers(request)
+    Userinfo.objects.filter(user_id=member_id).update(version_code=version_code)
 
-    if version_update:
-        return JsonResponse({'success': True})  # route:route
-    else:
-        return JsonResponse({'success': True})
+
+    #sendign mobile number exists key
+
+    mobile_no_exists = userMobiles.objects.filter(user=member_id).exists()
+
+
+    context['success'] = True
+    context['mobile_no_exists'] = mobile_no_exists
+
+    return JsonResponse(context)
+
 
 
 ############# functions edit community    ##########################
@@ -8254,18 +8244,17 @@ def is_request_web(request):
 
     return False
 
-def check_android_request(request):
 
-    '''function to check whether the request is android or not'''
+def get_version_code_from_headers(request):
+
     headers = request.META
 
-    platform_code = 0
-    if 'HTTP_X_PLATFORM_CODE' in headers:
-        platform_code = headers['HTTP_X_PLATFORM_CODE']
-        if platform_code == "an":
-            return True
+    version_code = None
 
-    return False
+    if 'HTTP_X_VERSION_CODE' in headers:
+        version_code = headers['HTTP_X_VERSION_CODE']
+
+    return version_code
 
 
 ################ functions for getting and setting of tags ##########################################
