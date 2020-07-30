@@ -6921,20 +6921,38 @@ def merge_account(request):
 
 
 
+
+
 def generate_otp(request):
 
 
     mobile_no = request.GET.get('mobile_no')
     country_code = request.GET.get('country_code')
 
-    mobile_no = str(country_code) + str(mobile_no)
+    user_id = request.GET.get('user_id')
 
-    key = settings.GHUPSHUP_KEY
+    phone_no = str(country_code) + str(mobile_no)
 
-    email = request.GET.get('email_id')
+    if mobile_no:
 
-    generate_url = """http://enterprise.smsgupshup.com/apps/TwoFactorAuth/incoming.php?phone=%s&key=%s"""%(mobile_no,key)
-    response = rqst.get(generate_url)
+       send_otp_on_mobile(phone_no)
+       backup_filter = mobileBackup.objects.filter(mobile_no=mobile_no)
+
+       if not backup_filter.exists():
+           instance = mobileBackup()
+           instance.mobile_no = mobile_no
+           instance.country_code = country_code
+           instance.created_at = time.time()
+           instance.save()
+
+
+    #user wants to merge the account
+    if user_id:
+        mobile_filter = userMobiles.objects.filter(mobile_no=mobile_no)
+        for instance in mobile_filter:
+            phone_no = str(instance.country_code) + str(instance.mobile_no)
+            send_otp_on_mobile(phone_no)
+
 
     # if email:
     #     generate_url = "http://enterprise.smsgupshup.com/apps/TwoFactorAuth/incoming.php?email=%s&key=%s"%(str(email),key)
@@ -6950,16 +6968,70 @@ def verify_otp(request):
 
     mobile_no = request.GET.get('mobile_no')
     country_code = request.GET.get('country_code')
+    user_id = request.GET.get('user_id')
+    otp = request.GET.get('otp')
 
-    mobile_no = str(country_code) + str(mobile_no)
+    profile_exists = False
+    phone_no = str(country_code) + str(mobile_no)
+    context = {}
+
+
+    if mobile_no:
+
+        verified = verify_otp_on_mobile(phone_no,otp)
+        context['success'] = verified['success']
+        if not context['success'] :
+            context['error_message'] = verified['error_message']
+
+        mobile_filter = userMobiles.objects.filter(mobile_no=mobile_no)
+        context['profile_exists'] = mobile_filter.exists()
+        if mobile_filter.exists():
+            context['user'] = get_logged_in_user(user_instance = mobile_filter[0].user)
+            context['access'] = is_user_community_part(context['user']['id'])
+
+        return JsonResponse(context)
+
+
+    # when the user wants to merge account
+    if user_id:
+        mobile_filter = userMobiles.objects.filter(mobile_no=mobile_no)
+        verified={'success':False}
+        for instance in mobile_filter:
+            phone_no = str(instance.country_code) + str(instance.mobile_no)
+            verified['success']= verify_otp_on_mobile(phone_no,otp)
+
+            if verified['success']:
+                break
+
+        context['profile_exists'] = mobile_filter.exists()
+        if mobile_filter.exists():
+            context['user'] = get_logged_in_user(user_instance=mobile_filter[0].user)
+            context['access'] = is_user_community_part(context['user']['id'])
+
+        return JsonResponse(context)
+
+
+
+
+    return JsonResponse(context)
+
+
+def send_otp_on_mobile(phone_no):
 
     key = settings.GHUPSHUP_KEY
-    otp = request.GET.get('otp')
-    email = request.GET.get('email_id')
+    generate_url = """http://enterprise.smsgupshup.com/apps/TwoFactorAuth/incoming.php?phone=%s&key=%s""" % (
+    phone_no, key)
+    response = rqst.get(generate_url)
+    info_logger.info(response.content)
 
-    verify_url = """http://enterprise.smsgupshup.com/apps/TwoFactorAuth/incoming.php?phone=%s&key=%s&code=%s"""%(str(mobile_no),key,str(otp))
+def verify_otp_on_mobile(phone_no,otp):
+
+    key = settings.GHUPSHUP_KEY
+    verify_url = """http://enterprise.smsgupshup.com/apps/TwoFactorAuth/incoming.php?phone=%s&key=%s&code=%s""" % (
+    str(phone_no), key, str(otp))
     response = rqst.get(verify_url)
 
+    context = {}
     success = False
 
     if response.status_code == 200:
@@ -6969,21 +7041,11 @@ def verify_otp(request):
         if response_list[0].strip() == "error":
             success = False
 
-
-    # if email and not success:
-    #     verify_url = """http://enterprise.smsgupshup.com/apps/TwoFactorAuth/incoming.php?email=%s&key=%s&code=%s"""%(str(email),key,str(otp))
-    #     email_response = rqst.get(verify_url)
-    #
-    #     print(email_response.content)
-
-    context = {}
     context['success'] = success
     if not success:
         context['error_message'] = response
-    context['profile_exists'] = userMobiles.objects.filter(mobile_no=mobile_no).exists()
 
-    return JsonResponse(context)
-
+    return context
 
 
 def save_user_primary_email(user_instance,email,verified=False,email_state=email_states.PRIMARY):
