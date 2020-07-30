@@ -4051,9 +4051,10 @@ def fetch_chatroom(request):
 
 
     if str(current_user_id) == str(card_instance.user.id):
-        notification_flag = memberNotificationFlag.objects.get(code='mail_card_owner_inactivity',card=card_instance,member_id=current_user_id)
-        notification_flag.flag=True
-        notification_flag.save()
+        notification_flag = memberNotificationFlag.objects.filter(code='mail_card_owner_inactivity',card=card_instance,member_id=current_user_id)
+        if notification_flag.exists():
+            notification_flag[0].flag=True
+            notification_flag[0].save()
 
     if request.accepted_renderer.format == 'html' and conversation_id:
         context['conversations'] = context['conversations']
@@ -4385,7 +4386,7 @@ def get_chatroom_internal(request,card_instance,user_id,page,conversation_id,scr
 
 
 def save_the_latest_conversation(card_instance,user_id):
-
+    
     '''function to save the latest seen conversation'''
 
 
@@ -7326,6 +7327,9 @@ def push(request):
         is_member = Userinfo.objects.filter(user_id=member_id)
     else:
         is_member = None
+        #send notification if the login drops
+        # platform_code = get_platform_code_from_headers(request)
+        # send_login_dropoff_notification(token,platform_code)
 
     info_logger.info("Push Notification hit without member id")
     success = False
