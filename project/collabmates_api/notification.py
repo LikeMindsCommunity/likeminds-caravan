@@ -793,7 +793,7 @@ def send_notification_to_incomplete_profile(user_id,community_id,community_state
 def send_login_dropoff_notification(token,platform_code):
     '''send notification to users who did not login after 1 hour'''
 
-    time.sleep(60*60)
+    time.sleep(2*60)
     user = Userinfo.objects.filter(fcm_token=token)
 
     if user.exists():

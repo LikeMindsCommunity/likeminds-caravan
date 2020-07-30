@@ -7336,9 +7336,9 @@ def push(request):
         is_member = Userinfo.objects.filter(user_id=member_id)
     else:
         is_member = None
-        #send notification if the login drops
-        # platform_code = get_platform_code_from_headers(request)
-        # send_login_dropoff_notification(token,platform_code)
+        send notification if the login drops
+        platform_code = get_platform_code_from_headers(request)
+        send_login_dropoff_notification(token,platform_code)
 
     info_logger.info("Push Notification hit without member id")
     success = False
