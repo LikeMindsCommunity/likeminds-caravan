@@ -4049,12 +4049,13 @@ def fetch_chatroom(request):
 
     context = get_chatroom_internal(request,card_instance,current_user_id,page,conversation_id,scroll_direction)
 
-    #
-    # if str(current_user_id) == str(card_instance.user.id):
-    #     notification_flag = memberNotificationFlag.objects.filter(code='mail_card_owner_inactivity',card=card_instance,member_id=current_user_id)
-    #     if notification_flag.exists():
-    #         notification_flag[0].flag=True
-    #         notification_flag[0].save()
+
+    if str(current_user_id) == str(card_instance.user.id):
+        notification_flag = memberNotificationFlag.objects.filter(code='mail_card_owner_inactivity',
+                                                                  card=card_instance,member_id=current_user_id)
+        if notification_flag.exists():
+            notification_flag[0].flag=True
+            notification_flag[0].save()
 
     if request.accepted_renderer.format == 'html' and conversation_id:
         context['conversations'] = context['conversations']
@@ -4392,7 +4393,7 @@ def save_the_latest_conversation(card_instance,user_id):
     if not user_id:
         return
     latest_card = card_answers.objects.filter(card=card_instance,state=chatroom_states.ANSWER).last()
-    print(latest_card)
+
     #status = is_member_verified(card_instance.community,user_id)
     if True:
         if latest_card:
