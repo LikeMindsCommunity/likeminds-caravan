@@ -5398,7 +5398,7 @@ def create_conversation(request):
     
     #check if sender is not the owner and  notification flag is true
     if check_notification_flag(card_instance.user.id,notification_list,card_id=card_instance.id,community_id=None) and str(member_id) != str(card_instance.user.id):
-        send_chatroom_owner_mail(card_instance.user.id,card_instance.id,time_in_hrs=12)
+        send_chatroom_owner_mail.delay(card_instance.user.id,card_instance.id,time_in_hrs=12)
 
 
     # # updating the conversationEngage table
