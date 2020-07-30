@@ -4447,19 +4447,19 @@ def adding_guest_in_chatroom(request,context,card_instance,aj,source_id,communit
 
 
 
-    context['aj_expired'] = is_chatroom_join_expired(aj, source_id)
+    aj_expired = is_chatroom_join_expired(aj, source_id)
     status = is_member_verified(community_id, current_user_id)
-
     state_filter = collabcardState.objects.filter(card=card_instance,user=current_user_id,is_guest=True)
 
-    if not context['aj_expired'] and not status and not state_filter.exists():
+    if not aj_expired and not status and not state_filter.exists():
+            context['aj_expired'] = aj_expired
             if guest_header:
                 create_guest_header(current_user_id,source_id,card_instance,current_user_id)
                 func_dict = {'collabcard_id': card_instance.id, 'member_id': current_user_id, 'status': True, 'is_guest': True}
                 collabcard_follow_internal(func_dict)
 
-    else:
-
+    elif not status:
+        context['aj_expired'] = aj_expired
         aj_expired_disclaimer = {}
         aj_expired_disclaimer['image_url'] = WARNING_IMAGE
         aj_expired_disclaimer['title'] = "Oops! The private link to participate in this chat room has expired. Join the following community to access this chat room."
