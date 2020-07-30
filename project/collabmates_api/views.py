@@ -4051,7 +4051,8 @@ def fetch_chatroom(request):
 
 
     if str(current_user_id) == str(card_instance.user.id):
-        notification_flag = memberNotificationFlag.objects.filter(code='mail_card_owner_inactivity',card=card_instance,member_id=current_user_id)
+        notification_flag = memberNotificationFlag.objects.filter(code='mail_card_owner_inactivity',
+                                                                  card=card_instance,member_id=current_user_id)
         if notification_flag.exists():
             notification_flag[0].flag=True
             notification_flag[0].save()
@@ -4389,9 +4390,10 @@ def save_the_latest_conversation(card_instance,user_id):
     
     '''function to save the latest seen conversation'''
 
-
+    if not user_id:
+        return
     latest_card = card_answers.objects.filter(card=card_instance,state=chatroom_states.ANSWER).last()
-    print(latest_card)
+
     #status = is_member_verified(card_instance.community,user_id)
     if True:
         if latest_card:
