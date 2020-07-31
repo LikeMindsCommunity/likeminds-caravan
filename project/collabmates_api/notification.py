@@ -300,6 +300,7 @@ def send_notification_to_new_promoter(context):
 
     promoter_id = context['nominated_admin']
     community_id = context['community_id']
+    admin_name = context['admin']
     notification_list = []
     try:
         temp = {}
@@ -315,7 +316,7 @@ def send_notification_to_new_promoter(context):
             message = {}
             message['payload'] = {
                 'title': community_name,
-                'sub_title': "You have become promoter of this community",
+                'sub_title': str(admin_name) + " has added you as promoter of the community.",
                 'route':'route://community?community_id=' + str(community_id)
             }
 
@@ -854,6 +855,35 @@ def send_morning_pending_request_notification():
                 message['payload']['sub_title']= "1 member are awaiting your approval to join the community."
 
             notification_meta(notification_list,message)
+
+
+@shared_task
+def send_evening_level_notification():
+    community_levels = communityLevels.objects.filter(state = community_level_states.PENDING)
+    for community_level in community_levels:
+        members = Members.objects.filter(community_id=community_level.community.id,state=Q(state=member_states.ADMIN)|Q(state=member_states.MEMBER))
+        
+        notification_list = []
+        
+        for member in members:
+            notification_details = get_token_for_fcm(member.member_id.id,flag=True)
+            temp = {
+                'id':member.member_id.id,
+                'fcm_token':notification_details[0],
+                'mobile_os':notification_details[1],
+            }
+
+            notification_list.append(temp)
+
+        message = {}
+
+        message['payload']={
+                "title" : 'Level up '+str(community_level.community.name),
+                "sub_title" : str(community_level.level) + " " +str(community_level.sub_title),
+                'route':'route://community_collabcard'
+            }
+
+        notification_meta(notification_list,message)
 
 
 

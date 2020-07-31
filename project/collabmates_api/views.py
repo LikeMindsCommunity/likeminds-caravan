@@ -2159,6 +2159,7 @@ def create_chatroom_instance(res,community_instance,user_instance):
 
     #send notification to new chatroom posted
     if has_been_named:
+        print('sending_notification')
         send_chatroom_creation_notifications_and_mails(card,user_instance)
 
     # sending notification to co-hosts
@@ -2216,6 +2217,8 @@ def create_card_internal(user_id,community_id,res):
 
     if create_intro:
         update_seen_status_for_new_user_in_chatroom(community_instance,user_instance)
+        #introcard notification
+        send_chatroom_creation_notifications_and_mails(card_instance,user_instance)
 
     #following the user created chatroom
     func_dict = {
@@ -2843,7 +2846,14 @@ def add_admin(request, community_id):
 
         info_logger.info(update_status_member)
 
-        send_notification_to_new_promoter.delay({'nominated_admin':nominated_admin,'community_id':community_id})
+        if request.user.is_authenticated:
+            user_id=request.user.id
+            user_instance = User.objects.get(id=user_id)
+            admin = user_instance.userinfo.name
+        else:
+            admin = ""
+
+        send_notification_to_new_promoter.delay({'admin':admin,'nominated_admin':nominated_admin,'community_id':community_id})
 
         info_logger.info("----------------add admin api end --------------\n")
 
