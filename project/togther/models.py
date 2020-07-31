@@ -897,6 +897,13 @@ class userMobiles(models.Model):
     created_at = models.BigIntegerField(default=0)
 
 
+class mobileBackup(models.Model):
+
+    country_code = models.IntegerField(null=True)
+    mobile_no = models.BigIntegerField(null=True)
+    created_at = models.BigIntegerField(default=0)
+
+
 class membersEngagePilot(models.Model):
 
     '''models to save member engage pilot for backuping pilot community users'''

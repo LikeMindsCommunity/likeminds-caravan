@@ -6940,20 +6940,38 @@ def merge_account(request):
 
 
 
+
+
 def generate_otp(request):
 
 
     mobile_no = request.GET.get('mobile_no')
     country_code = request.GET.get('country_code')
 
-    mobile_no = str(country_code) + str(mobile_no)
+    user_id = request.GET.get('user_id')
 
-    key = settings.GHUPSHUP_KEY
+    phone_no = str(country_code) + str(mobile_no)
 
-    email = request.GET.get('email_id')
+    if mobile_no:
 
-    generate_url = """http://enterprise.smsgupshup.com/apps/TwoFactorAuth/incoming.php?phone=%s&key=%s"""%(mobile_no,key)
-    response = rqst.get(generate_url)
+       send_otp_on_mobile(phone_no)
+       backup_filter = mobileBackup.objects.filter(mobile_no=mobile_no)
+
+       if not backup_filter.exists():
+           instance = mobileBackup()
+           instance.mobile_no = mobile_no
+           instance.country_code = country_code
+           instance.created_at = time.time()
+           instance.save()
+
+
+    #user wants to merge the account
+    if user_id:
+        mobile_filter = userMobiles.objects.filter(mobile_no=mobile_no)
+        for instance in mobile_filter:
+            phone_no = str(instance.country_code) + str(instance.mobile_no)
+            send_otp_on_mobile(phone_no)
+
 
     # if email:
     #     generate_url = "http://enterprise.smsgupshup.com/apps/TwoFactorAuth/incoming.php?email=%s&key=%s"%(str(email),key)
@@ -6969,16 +6987,77 @@ def verify_otp(request):
 
     mobile_no = request.GET.get('mobile_no')
     country_code = request.GET.get('country_code')
+    user_id = request.GET.get('user_id')
+    otp = request.GET.get('otp')
 
-    mobile_no = str(country_code) + str(mobile_no)
+    #for existing users flow
+    member_id = get_member_id_from_headers(request)
+
+    profile_exists = False
+    phone_no = str(country_code) + str(mobile_no)
+    context = {}
+
+    # verifying  mobile number
+    if mobile_no:
+        verified = verify_otp_on_mobile(phone_no,otp)
+        context['success'] = verified['success']
+
+
+        #saving data for existing user migrations
+        if member_id and context['success']:
+            user_instance = User.objects.get(id=member_id)
+            save_user_mobile_number(user_instance,country_code,mobile_no)
+
+        if not context['success'] :
+            context['error_message'] = verified['error_message']
+
+        mobile_filter = userMobiles.objects.filter(mobile_no=mobile_no)
+        context['profile_exists'] = mobile_filter.exists()
+        if mobile_filter.exists():
+            context['user'] = get_logged_in_user(user_instance = mobile_filter[0].user)
+            context['access'] = is_user_community_part(context['user']['id'])
+
+        return JsonResponse(context)
+
+
+    # when the user wants to merge account
+    if user_id:
+        mobile_filter = userMobiles.objects.filter(mobile_no=mobile_no)
+        verified={'success':False}
+        for instance in mobile_filter:
+            phone_no = str(instance.country_code) + str(instance.mobile_no)
+            verified['success']= verify_otp_on_mobile(phone_no,otp)
+
+            if verified['success']:
+                break
+
+        context['profile_exists'] = mobile_filter.exists()
+        if mobile_filter.exists():
+            context['user'] = get_logged_in_user(user_instance=mobile_filter[0].user)
+            context['access'] = is_user_community_part(context['user']['id'])
+
+        return JsonResponse(context)
+
+
+    return JsonResponse(context)
+
+
+def send_otp_on_mobile(phone_no):
 
     key = settings.GHUPSHUP_KEY
-    otp = request.GET.get('otp')
-    email = request.GET.get('email_id')
+    generate_url = """http://enterprise.smsgupshup.com/apps/TwoFactorAuth/incoming.php?phone=%s&key=%s""" % (
+    phone_no, key)
+    response = rqst.get(generate_url)
+    info_logger.info(response.content)
 
-    verify_url = """http://enterprise.smsgupshup.com/apps/TwoFactorAuth/incoming.php?phone=%s&key=%s&code=%s"""%(str(mobile_no),key,str(otp))
+def verify_otp_on_mobile(phone_no,otp):
+
+    key = settings.GHUPSHUP_KEY
+    verify_url = """http://enterprise.smsgupshup.com/apps/TwoFactorAuth/incoming.php?phone=%s&key=%s&code=%s""" % (
+    str(phone_no), key, str(otp))
     response = rqst.get(verify_url)
 
+    context = {}
     success = False
 
     if response.status_code == 200:
@@ -6988,21 +7067,11 @@ def verify_otp(request):
         if response_list[0].strip() == "error":
             success = False
 
-
-    # if email and not success:
-    #     verify_url = """http://enterprise.smsgupshup.com/apps/TwoFactorAuth/incoming.php?email=%s&key=%s&code=%s"""%(str(email),key,str(otp))
-    #     email_response = rqst.get(verify_url)
-    #
-    #     print(email_response.content)
-
-    context = {}
     context['success'] = success
     if not success:
         context['error_message'] = response
-    context['profile_exists'] = userMobiles.objects.filter(mobile_no=mobile_no).exists()
 
-    return JsonResponse(context)
-
+    return context
 
 
 def save_user_primary_email(user_instance,email,verified=False,email_state=email_states.PRIMARY):
@@ -7372,48 +7441,31 @@ def push(request):
 
 
 def config(request):
+
     '''function to update the version number of android for a user profile'''
-    headers = request.META
-    if 'HTTP_X_MEMBER_ID' in headers and 'HTTP_X_VERSION_CODE' in headers:
-        member_id = headers['HTTP_X_MEMBER_ID']
-        version_code = headers['HTTP_X_VERSION_CODE']
 
-        Userinfo.objects.filter(user_id=member_id).update(version_code=version_code)
-        log = """Version code updated for user %s""" % (str(member_id))
-        info_logger.info(log)
-        # title="App Update"
-        # message="Update to latest version 2.2.1"
-        # cta_text="Update"
-        # cancelable=True
-        # cta_link="""https://play.google.com/apps/testing/com.collabmates"""
-        # cta_link=quote(cta_link)
-        # cta="""route://browser?link=%s"""%(cta_link)
-        # route="""route://dialog?title=%s&message=%s&cta_text=%s&cta=%s&cancelable=%s"""%(title,message,cta_text,cta,cancelable)
-        # info_logger.info(route)
-        # return JsonResponse({'success': True,'route':route})
+    member_id = get_member_id_from_headers(request)
 
-        version_no = App_Update_Info.objects.filter(version_code=version_code)
-        version_update = False
-        if version_no:
-            route = version_no[0].android_route
-            version_update = True
+    context = {}
+    if not member_id:
+        context = get_error_context(False,"send member id in headers")
+        return context
 
-    ingest_your_communities = request.GET.get('ingest_your_communities', False)
-    info_logger.info(ingest_your_communities)
-    # if ingest_your_communities:
-    #     update_communities_in_member_engage_table.delay(member_id)
-    #     log = """Updated successfull for user=%s""" % (member_id)
-    #     info_logger.info(log)
-    #     if version_update:
-    #         return JsonResponse({'success': True})  # route:route
-    #     else:
-    #         return JsonResponse({'success': True})
-    # error_logger.error("headers are not comming correctly")
+    #update version code
+    version_code = get_version_code_from_headers(request)
+    Userinfo.objects.filter(user_id=member_id).update(version_code=version_code)
 
-    if version_update:
-        return JsonResponse({'success': True})  # route:route
-    else:
-        return JsonResponse({'success': True})
+
+    #sendign mobile number exists key
+
+    mobile_no_exists = userMobiles.objects.filter(user=member_id).exists()
+
+
+    context['success'] = True
+    context['mobile_no_exists'] = mobile_no_exists
+
+    return JsonResponse(context)
+
 
 
 ############# functions edit community    ##########################
@@ -8212,18 +8264,17 @@ def is_request_web(request):
 
     return False
 
-def check_android_request(request):
 
-    '''function to check whether the request is android or not'''
+def get_version_code_from_headers(request):
+
     headers = request.META
 
-    platform_code = 0
-    if 'HTTP_X_PLATFORM_CODE' in headers:
-        platform_code = headers['HTTP_X_PLATFORM_CODE']
-        if platform_code == "an":
-            return True
+    version_code = None
 
-    return False
+    if 'HTTP_X_VERSION_CODE' in headers:
+        version_code = headers['HTTP_X_VERSION_CODE']
+
+    return version_code
 
 
 ################ functions for getting and setting of tags ##########################################
