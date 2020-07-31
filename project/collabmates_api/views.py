@@ -4411,6 +4411,7 @@ def save_the_latest_conversation(card_instance,user_id):
 
     if not user_id:
         return
+
     latest_card = card_answers.objects.filter(card=card_instance,state=chatroom_states.ANSWER).last()
 
     #status = is_member_verified(card_instance.community,user_id)
