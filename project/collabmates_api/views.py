@@ -2159,7 +2159,6 @@ def create_chatroom_instance(res,community_instance,user_instance):
 
     #send notification to new chatroom posted
     if has_been_named:
-        print('sending_notification')
         send_chatroom_creation_notifications_and_mails(card,user_instance)
 
     # sending notification to co-hosts
