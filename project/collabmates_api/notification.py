@@ -903,7 +903,7 @@ def send_notification_to_join_drop_off(member_id,community_id,aj,time_in_hrs):
         pass
 
     else:
-        community = community.filter(pk_community_id)
+        community = Community.objects.filter(id=community_id)
         if community.exists():
             community_name = community[0].name
         else:

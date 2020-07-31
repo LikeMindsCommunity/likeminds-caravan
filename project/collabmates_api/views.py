@@ -861,7 +861,7 @@ def join_promoter_created_community_version_1(res,request):
             info_logger.info(validate_time)
             #insert private link dropoff here
             time_in_hrs = 2
-            send_notification_to_join_drop_off(user_instance.id,community_instance.id,res['aj'],time_in_hrs)
+            send_notification_to_join_drop_off.delay(user_instance.id,community_instance.id,res['aj'],time_in_hrs)
 
             if validate_time:
                 auto_join_community(community_instance, user_instance)
