@@ -2962,7 +2962,7 @@ def get_pending_members_of_community(community_id,requested_member_id):
     '''functions to get pending members of the community'''
 
 
-    info_logger.info("PENDING MEMBERS COUNT CHECK")
+    #info_logger.info("PENDING MEMBERS COUNT CHECK")
     info_logger.info(community_id)
     member_id=requested_member_id
     community = Community.objects.get(id=community_id)
@@ -2972,7 +2972,7 @@ def get_pending_members_of_community(community_id,requested_member_id):
     is_member_admin = Members.objects.filter(community_id=community, member_id=member_id, state=1)
     if is_member_admin.exists():
         is_admin = True
-    info_logger.info(is_admin)
+   # info_logger.info(is_admin)
 
     is_verified = False
     is_verified_member = Members.objects.filter(community_id=community, member_id=member_id).filter(
@@ -3021,10 +3021,10 @@ def get_pending_members_of_community(community_id,requested_member_id):
                 usr['question_answers'] = response[1]
             pending_requests.append(usr)
 
-    info_logger.info("PENDING MEMBER REQUEST")
-
-    info_logger.info(pending_requests)
-    info_logger.info("\n\n")
+    # info_logger.info("PENDING MEMBER REQUEST")
+    #
+    # info_logger.info(pending_requests)
+    # info_logger.info("\n\n")
     return pending_requests
 
 
@@ -8684,7 +8684,7 @@ def fetch_report_tags(request):
         temp['id'] = instance.tag_id
         temp['name'] = instance.tag_name
         report_tags.append(temp)
-    info_logger.info("fetch report tags api successfulll")
+    #info_logger.info("fetch report tags api successfulll")
     return JsonResponse({'report_tags': report_tags})
 
 
