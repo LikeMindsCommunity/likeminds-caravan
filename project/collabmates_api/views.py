@@ -1250,17 +1250,23 @@ def is_option_present(option,dropdown_list):
 ############# functions for  members of community   ##########################
 
 def user(request, user_id):
-    '''function to send user object with tags'''
 
-    info = Userinfo.objects.all().filter(user_id=user_id)
-    usr = UserinfoSerializer(info[0])
+    '''api to send the user profile of LikeMinds'''
 
-    tags = get_user_lpig_tags(user_id)
-    if tags:
-        usr['tags'] = tags
-        return JsonResponse({'user': usr})
+    context = {}
+    try:
 
-    return JsonResponse({'user': usr})
+        user_instance = User.objects.get(id=user_id)
+
+        context['user'] = get_logged_in_user(user_instance)
+
+    except Exception as e:
+
+        context['error_message'] = e.args
+
+    return JsonResponse(context)
+
+
 
 
 def members(request, community_id):
