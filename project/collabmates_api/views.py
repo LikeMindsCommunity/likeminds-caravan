@@ -859,6 +859,10 @@ def join_promoter_created_community_version_1(res,request):
         if res['aj']:
             validate_time = is_joining_time_valid(community_instance, res['timestamp'], res['aj'])
             info_logger.info(validate_time)
+            #insert private link dropoff here
+            time_in_hrs = 2
+            send_notification_to_join_drop_off(user_instance.id,community_instance.id,res['aj'],time_in_hrs)
+
             if validate_time:
                 auto_join_community(community_instance, user_instance)
                 set_state_for_onboarding_chatroom(community_instance, user_instance.id, request)
@@ -2845,10 +2849,9 @@ def add_admin(request, community_id):
 
         info_logger.info(update_status_member)
 
-        if request.user.is_authenticated:
-            user_id=request.user.id
-            user_instance = User.objects.get(id=user_id)
-            admin = user_instance.userinfo.name
+        user_instance = User.objects.filter(id=member_id)
+        if user_instamce.exists():
+            admin = user_instance[0].userinfo.name
         else:
             admin = ""
 
@@ -7248,7 +7251,8 @@ def members_state(request,req_dict=None):
         if data.actions_required:
             actions_required = True
 
-
+        if not is_member:
+            pass
 
 
     json_response = {
