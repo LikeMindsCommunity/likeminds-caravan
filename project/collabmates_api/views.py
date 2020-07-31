@@ -2215,6 +2215,8 @@ def create_card_internal(user_id,community_id,res):
 
     if create_intro:
         update_seen_status_for_new_user_in_chatroom(community_instance,user_instance)
+        #introcard notification
+        send_chatroom_creation_notifications_and_mails(card_instance,user_instance)
 
     #following the user created chatroom
     func_dict = {
