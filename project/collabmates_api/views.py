@@ -859,6 +859,10 @@ def join_promoter_created_community_version_1(res,request):
         if res['aj']:
             validate_time = is_joining_time_valid(community_instance, res['timestamp'], res['aj'])
             info_logger.info(validate_time)
+            #insert private link dropoff here
+            time_in_hrs = 2
+            send_notification_to_join_drop_off(user_instance.id,community_instance.id,res['aj'],time_in_hrs)
+
             if validate_time:
                 auto_join_community(community_instance, user_instance)
                 set_state_for_onboarding_chatroom(community_instance, user_instance.id, request)
@@ -2216,6 +2220,8 @@ def create_card_internal(user_id,community_id,res):
 
     if create_intro:
         update_seen_status_for_new_user_in_chatroom(community_instance,user_instance)
+        #introcard notification
+        send_chatroom_creation_notifications_and_mails(card_instance,user_instance)
 
     #following the user created chatroom
     func_dict = {
@@ -2843,7 +2849,13 @@ def add_admin(request, community_id):
 
         info_logger.info(update_status_member)
 
-        send_notification_to_new_promoter.delay({'nominated_admin':nominated_admin,'community_id':community_id})
+        user_instance = User.objects.filter(id=member_id)
+        if user_instamce.exists():
+            admin = user_instance[0].userinfo.name
+        else:
+            admin = ""
+
+        send_notification_to_new_promoter.delay({'admin':admin,'nominated_admin':nominated_admin,'community_id':community_id})
 
         info_logger.info("----------------add admin api end --------------\n")
 
@@ -7239,7 +7251,8 @@ def members_state(request,req_dict=None):
         if data.actions_required:
             actions_required = True
 
-
+        if not is_member:
+            pass
 
 
     json_response = {

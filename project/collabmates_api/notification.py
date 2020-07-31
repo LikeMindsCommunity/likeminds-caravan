@@ -300,6 +300,7 @@ def send_notification_to_new_promoter(context):
 
     promoter_id = context['nominated_admin']
     community_id = context['community_id']
+    admin_name = context['admin']
     notification_list = []
     try:
         temp = {}
@@ -315,7 +316,7 @@ def send_notification_to_new_promoter(context):
             message = {}
             message['payload'] = {
                 'title': community_name,
-                'sub_title': "You have become promoter of this community",
+                'sub_title': str(admin_name) + " has added you as promoter of the community.",
                 'route':'route://community?community_id=' + str(community_id)
             }
 
@@ -339,7 +340,7 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title, 
     try:
         connection = get_connection()
         curr = connection.cursor()
-        sql = "select member_id_id from togther_members where community_id_id=%s and member_id_id !=%s and (state=1 or state=2 or state=4 or state=7)"
+        sql = "select member_id_id from togther_members where community_id_id=%s and member_id_id !=%s and (state=1 or state=4 or state=9)"
         parameter_list = [community_id, card_creater_id]
         curr.execute(sql, parameter_list)
         member_list = curr.fetchall()
@@ -788,7 +789,7 @@ def send_notification_to_incomplete_profile(user_id,community_id,community_state
             'route':'route://community_collabcard?community_id=' + str(community_id) + '&community_name=' + str(
                 community_name) + '&community_state=' + str(community_state)
         }
-        notification_meta(notification_list,message)\
+        notification_meta(notification_list,message)
 
 @shared_task
 def send_login_dropoff_notification(token,platform_code):
@@ -856,7 +857,79 @@ def send_morning_pending_request_notification():
             notification_meta(notification_list,message)
 
 
+@shared_task
+def send_evening_level_notification():
+    community_levels = communityLevels.objects.filter(state = community_level_states.PENDING)
+    for community_level in community_levels:
+        members = Members.objects.filter(community_id=community_level.community.id,state=Q(state=member_states.ADMIN)|Q(state=member_states.MEMBER))
+        
+        notification_list = []
+        
+        for member in members:
+            notification_details = get_token_for_fcm(member.member_id.id,flag=True)
+            temp = {
+                'id':member.member_id.id,
+                'fcm_token':notification_details[0],
+                'mobile_os':notification_details[1],
+            }
 
+            notification_list.append(temp)
+
+        message = {}
+
+        message['payload']={
+                "title" : 'Level up '+str(community_level.community.name),
+                "sub_title" : str(community_level.level) + " " +str(community_level.sub_title),
+                'route':'route://community_collabcard'
+            }
+
+        notification_meta(notification_list,message)
+
+
+
+
+@shared_task
+def send_notification_to_join_drop_off(member_id,community_id,aj,time_in_hrs):
+
+    '''function to send notification to users who pressed skip when joining link was sent'''
+    #60 secs for testing
+    time.sleep(60)
+    # time.sleep(time_in_hr*60)
+
+    #check if they created the profile. 
+    member = Members.objects.filter(community_id=community_id,member_id=member_id)
+    
+    if member.exists():
+        pass
+
+    else:
+        community = community.filter(pk_community_id)
+        if community.exists():
+            community_name = community[0].name
+        else:
+            return
+
+        notification_list=[]
+
+        notification_details = get_token_for_fcm(member_id,flag=True)
+
+        temp = {
+            'id':member_id,
+            'fcm_token':notification_details[0],
+            'mobile_os':notification_details[1],
+        }
+
+        notification_list.append(temp)
+
+        
+        message={}
+        
+        message['payload']={
+            "title" : str(community_name),
+            "sub_title" : "Don't miss relevant conversations. Click here to join and meet like-minded people. ",
+            'route':'route://community_collabcard?community_id=' + str(community_id) + '&aj=' + str(aj)
+        }
+        notification_meta(notification_list,message)
 
 
 
