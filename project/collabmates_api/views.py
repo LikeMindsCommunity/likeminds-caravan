@@ -6951,10 +6951,10 @@ def generate_otp(request):
     user_id = request.GET.get('user_id')
 
     phone_no = str(country_code) + str(mobile_no)
-
+    context = {}
     if mobile_no:
 
-       send_otp_on_mobile(phone_no)
+       context = send_otp_on_mobile(phone_no)
        backup_filter = mobileBackup.objects.filter(mobile_no=mobile_no)
 
        if not backup_filter.exists():
@@ -6970,7 +6970,10 @@ def generate_otp(request):
         mobile_filter = userMobiles.objects.filter(mobile_no=mobile_no)
         for instance in mobile_filter:
             phone_no = str(instance.country_code) + str(instance.mobile_no)
-            send_otp_on_mobile(phone_no)
+            context = send_otp_on_mobile(phone_no)
+
+            info_logger.info(instance.user.id)
+            info_logger.info(context)
 
 
     # if email:
@@ -6979,7 +6982,7 @@ def generate_otp(request):
     #
     #     print(response.content)
 
-    return JsonResponse({'success':True})
+    return JsonResponse(context)
 
 
 def verify_otp(request):
@@ -7045,10 +7048,27 @@ def verify_otp(request):
 def send_otp_on_mobile(phone_no):
 
     key = settings.GHUPSHUP_KEY
+    context ={}
+    success = False
+
     generate_url = """http://enterprise.smsgupshup.com/apps/TwoFactorAuth/incoming.php?phone=%s&key=%s""" % (
     phone_no, key)
     response = rqst.get(generate_url)
-    info_logger.info(response.content)
+    print(response.content)
+
+    if response.status_code == 200:
+        success = True
+        response = response.text
+        response_list = response.split("|")
+        if response_list[0].strip() == "error":
+            success = False
+
+    context['success'] = success
+    if not success:
+        context['error_message'] = response
+
+    return context
+
 
 def verify_otp_on_mobile(phone_no,otp):
 
