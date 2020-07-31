@@ -107,13 +107,13 @@ def UserinfoSerializer(user):
     userinfo = {
         'id': user.user_id.id,
         "name": user.name,
-        "email": user.email,
-        "city": user.city,
-        "headline": user.headline,
-        "contact_number": user.contact_number,
-        "about": user.about,
-        "fb_link": user.fb_link,
-        "linkedin_link": user.linkedin_link,
+        # "email": user.email,
+        # "city": user.city,
+        # "headline": user.headline,
+        # "contact_number": user.contact_number,
+        # "about": user.about,
+        # "fb_link": user.fb_link,
+        # "linkedin_link": user.linkedin_link,
     }
 
     if not user.image_link:
@@ -960,7 +960,7 @@ def communityFieldSerializer(instance):
 def userEmailsSerializer(email_instance):
 
     return {
-
+        'id':email_instance.id,
         'user_id': email_instance.user.id,
         'email': email_instance.email,
         'state': email_instance.email_state,
