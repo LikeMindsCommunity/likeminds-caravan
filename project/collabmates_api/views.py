@@ -4383,6 +4383,9 @@ def save_the_latest_conversation(card_instance,user_id):
 
     '''function to save the latest seen conversation'''
 
+    if not user_id:
+        return
+
 
     latest_card = card_answers.objects.filter(card=card_instance,state=chatroom_states.ANSWER).last()
     print(latest_card)
