@@ -1266,6 +1266,28 @@ def user(request, user_id):
 
     return JsonResponse(context)
 
+@csrf_exempt
+def edit_user(request):
+
+    user_id = get_member_id_from_headers(request)
+
+    type = request.POST.get('type')
+    value = request.POST.get('value')
+
+    if not type or not value:
+        context = get_error_context(False,"Send correct type and value in post params")
+        return JsonResponse(context)
+
+    userinfo_filter = Userinfo.objects.filter(user_id=user_id)
+    if type == 'image':
+        userinfo_filter.update(image_link=value)
+
+    elif type == 'name':
+        userinfo_filter.update(name=value)
+
+
+    return JsonResponse({'success':True})
+
 
 
 

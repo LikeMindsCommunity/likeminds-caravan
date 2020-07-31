@@ -40,6 +40,9 @@ urlpatterns = [
 
 
     path('user/<int:user_id>', api_views.user, name="user"),
+    path('edit_user',api_views.edit_user,name="edit_user"),
+
+
     path('admins/<int:community_id>', api_views.admins, name="admins"),
     path('members/<int:community_id>', api_views.members, name="members"),
     path('ask_approval', api_views.ask_approval, name="ask_approval"),
