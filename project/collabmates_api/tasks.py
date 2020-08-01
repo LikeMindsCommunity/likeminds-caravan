@@ -11,7 +11,8 @@ from togther.models import *
 from project.celery import app
 from utility.tasks import send_email
 from utility.utils import (android_app_download_link, ios_app_download_link,
-                           is_LG_or_LP_community, is_IG_community,angellist_link,linkedIn_link,get_user_email)
+                           is_LG_or_LP_community, is_IG_community,angellist_link,linkedIn_link,get_user_email,
+                           android_app_download_link,ios_app_download_link)
 from django.http import JsonResponse
 from django.contrib.auth.models import User
 from togther.models import Collabcard
@@ -404,8 +405,8 @@ def send_tagged_user_mail(user_id,card_id,tagged_member_list,time_in_hrs):
                 'community_name' : card_instance.community.name,
                 'card_name' : get_title_from_collabcard(card_instance) ,
                 'profile_pic': userinstance.userinfo.image_link,
-                'android_app_download_link': '#',
-                'ios_app_download_link': '#',
+                'android_app_download_link': android_app_download_link,
+                'ios_app_download_link': ios_app_download_link,
                 'playstore_image' : GOOGLE_PLAYSTORE,
                 'applestore_image' : APPLE_APPSTORE,
                 'app_image' : APP_LOGO,
@@ -430,9 +431,9 @@ def send_chatroom_owner_mail(user_id,card_id,time_in_hrs):
     
     message_time = state.first().updated_at
     email = get_user_email(user_id)
-    # time.sleep(time_in_hrs*60*60)
+    time.sleep(time_in_hrs*60*60)
     #sleeping for 5 mins for testing purposes.
-    time.sleep(5*60)
+    # time.sleep(5*60)
     state = conversationMemberState.objects.filter(card_id=card_id, user_id=user_id)
     new_conversation_id = state.first().conversation_id
     if new_conversation_id == last_conversation_id:
@@ -445,9 +446,9 @@ def send_chatroom_owner_mail(user_id,card_id,time_in_hrs):
                 'subject':subject,
                 'member_name' : user_instance.userinfo.name,
                 'community_name' : card_instance.community.name,
-                'card_name' : card_instance.title,
-                'android_app_download_link': '#',
-                'ios_app_download_link': '#',
+                'card_name' : get_title_from_collabcard(card_instance),
+                'android_app_download_link': android_app_download_link,
+                'ios_app_download_link': ios_app_download_link,
                 'playstore_image' : GOOGLE_PLAYSTORE,
                 'applestore_image' : APPLE_APPSTORE,
                 'app_image' : APP_LOGO,
@@ -460,3 +461,4 @@ def send_chatroom_owner_mail(user_id,card_id,time_in_hrs):
         flag = memberNotificationFlag.objects.get(member_id=user_id,code='mail_card_owner_inactivity',card=card_instance)
         flag.flag = False
         flag.save()
+

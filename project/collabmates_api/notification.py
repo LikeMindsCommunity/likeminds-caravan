@@ -11,9 +11,10 @@ from django.db.models import Q
 from pyfcm import FCMNotification
 from togther.models import (Community_Rank, collabcardState,
                             MemberPollVotes, Collabcard,Members,Members,Referal,Community,communityAnswers,
-                            Userinfo
+                            Userinfo,communityLevels,communityExpiryCodes
                             )
 from utility.celery_beat_tasks import CeleryBeatTask
+from project.celery import app
 from utility.states import *
 import json
 from django.shortcuts import get_object_or_404
@@ -756,10 +757,13 @@ def get_referred_members_of_a_member(community_id,member_id):
 
 
 @shared_task
-def send_notification_to_incomplete_profile(user_id,community_id,community_state,community_name,time_in_s):
-
+def send_notification_to_incomplete_profile(member_id,community_id,community_state,community_name,time_in_hrs):
     '''function to send notification to users who pressed skip when joining link was sent'''
-    time.sleep(time_in_s)
+    
+    # time.sleep(time_in_hrs*60*60)
+    
+    #for testing purposes
+    time.sleep(time_in_hrs*60)
 
     #check if they created the profile. 
     community_answers = communityAnswers.objects.filter(community_id=community_id,member_id=member_id)
@@ -770,10 +774,10 @@ def send_notification_to_incomplete_profile(user_id,community_id,community_state
     else:
         notification_list=[]
 
-        notification_details = get_token_for_fcm(user_id,flag=True)
+        notification_details = get_token_for_fcm(member_id,flag=True)
 
         temp = {
-            'id':user_id,
+            'id':member_id,
             'fcm_token':notification_details[0],
             'mobile_os':notification_details[1],
         }
@@ -795,13 +799,14 @@ def send_notification_to_incomplete_profile(user_id,community_id,community_state
 def send_login_dropoff_notification(token,platform_code):
     '''send notification to users who did not login after 1 hour'''
 
-    # time.sleep(2*60)
+    #sleep for 2 hours
+    # time.sleep(2*60*60)
+    time.sleep(2*60)
     user = Userinfo.objects.filter(fcm_token=token)
 
     if user.exists():
         return
     else:
-        print('notification sent')
         temp = {
             'id':None,
             'fcm_token':token,
@@ -821,9 +826,18 @@ def send_login_dropoff_notification(token,platform_code):
         notification_meta(notification_list,message)
 
 
-@shared_task
+@app.task
 def send_morning_pending_request_notification():
-    communities = Community.objects.all()
+
+    ''' send morning notification at 8 am '''
+
+    members = Members.objects.filter(state=member_states.PENDING_MEMBER)
+    communities = []
+    for member in members:
+        if member.community_id not in communities:
+            communities.append(member.community_id)
+    
+    # communities = Community.objects.filter(pk__in=)
     for community in communities:
         members = Members.objects.filter(community_id=community.id)
         
@@ -857,11 +871,14 @@ def send_morning_pending_request_notification():
             notification_meta(notification_list,message)
 
 
-@shared_task
+@app.task
 def send_evening_level_notification():
+    
+    ''' send evening notification at 8 pm to ask them to level up'''
+
     community_levels = communityLevels.objects.filter(state = community_level_states.PENDING)
     for community_level in community_levels:
-        members = Members.objects.filter(community_id=community_level.community.id,state=Q(state=member_states.ADMIN)|Q(state=member_states.MEMBER))
+        members = Members.objects.filter(community_id=community_level.community.id,state=member_states.ADMIN)
         
         notification_list = []
         
@@ -891,7 +908,7 @@ def send_evening_level_notification():
 @shared_task
 def send_notification_to_join_drop_off(member_id,community_id,aj,time_in_hrs):
 
-    '''function to send notification to users who pressed skip when joining link was sent'''
+    '''function to send notification to users who opened the private link but did not joint the community'''
     #60 secs for testing
     time.sleep(60)
     # time.sleep(time_in_hr*60)
@@ -903,12 +920,11 @@ def send_notification_to_join_drop_off(member_id,community_id,aj,time_in_hrs):
         pass
 
     else:
-        community = Community.objects.filter(id=community_id)
-        if community.exists():
-            community_name = community[0].name
-        else:
-            return
-
+        user_instance = User.objects.get(pk=member_id)
+        member_name = user_instance.userinfo.name
+        community_instance = Community.objects.get(id=community_id)
+        community_name = community_instance.name
+        
         notification_list=[]
 
         notification_details = get_token_for_fcm(member_id,flag=True)
@@ -923,18 +939,103 @@ def send_notification_to_join_drop_off(member_id,community_id,aj,time_in_hrs):
 
         
         message={}
+        if aj == "":
+            message['payload']={
+                "title" : str(community_name),
+                "sub_title" : "Don't miss relevant conversations. Click here to join and meet like-minded people. ",
+                'route':'route://community_collabcard?community_id=' + str(community_id) + '&aj=' + str(aj)
+            }
+            notification_meta(notification_list,message)
         
-        message['payload']={
-            "title" : str(community_name),
-            "sub_title" : "Don't miss relevant conversations. Click here to join and meet like-minded people. ",
-            'route':'route://community_collabcard?community_id=' + str(community_id) + '&aj=' + str(aj)
-        }
-        notification_meta(notification_list,message)
+        else:
+            message['payload']={
+                "title" : str(community_name),
+                "sub_title" : "Apply to join this community and meet like-minded people. ",
+                'route':'route://community_collabcard?community_id=' + str(community_id)
+            }
+            notification_meta(notification_list,message)
+    
+            expiry_instance = communityExpiryCodes.objects.filter(community=community_instance, unique_code=aj)
+            time_to_sleep = expiry_instance[0].created_at+expiry_instance[0].expire_duration - int(time.time()) - 30*60
+            
+            if time_to_sleep > 0:
+                # time.sleep(time_to_sleep)
+                #for testing purpose
+                time.sleep(60)
+                member = Members.objects.filter(community_id=community_id,member_id=member_id)
+                if member.exists():
+                    return
+                message['payload']={
+                    "title" : 'Invitation link about to expire!',
+                    "sub_title" : "Don't miss relevant conversations in "+ str(community_name) +". Click here to join and meet like-minded people.",
+                    'route':'route://community_collabcard?community_id=' + str(community_id)
+                }
+                
+                notification_meta(notification_list,message)
+
+                # send notification after 6 hours when of expiry
+                time_to_sleep += 30*60+6*60*60 
+                # time.sleep(time_to_sleep)
+                
+                #for testing
+                time.sleep(120)
+
+                member = Members.objects.filter(community_id=community_id,member_id=member_id)
+                if member.exists():
+                    return
+
+                message['payload']={
+                    "title" : member_name + 'may need new invitation!',
+                    "sub_title" : "Your private invitation for joining "+ str(community_name) +"has expired. Please resend them invite link.",
+                    'route':'route://community_collabcard?community_id=' + str(community_id)
+                }
+
+                notification_meta(notification_list,message)
 
 
 
 
 
+# @shared_task
+# def private_link_about_to_expire_notification(member_id,community_id,aj):
+
+#     '''function to send notification to users 30 minutes before the link expires'''
+
+#     #check if they created the profile. 
+#     member = Members.objects.filter(community_id=community_id,member_id=member_id)
+    
+#     if member.exists():
+#         pass
+
+#     else:
+#         community = Community.objects.filter(id=community_id)
+#         if community.exists():
+#             community_name = community[0].name
+#         else:
+#             return
+
+#         notification_list=[]
+
+#         notification_details = get_token_for_fcm(member_id,flag=True)
+
+#         temp = {
+#             'id':member_id,
+#             'fcm_token':notification_details[0],
+#             'mobile_os':notification_details[1],
+#         }
+
+#         notification_list.append(temp)
+
+        
+#         message={}
+        
+#         message['payload']={
+#             "title" : 'Invitation link about to expire!',
+#             "sub_title" : "Don't miss relevant conversations in " + str(community_name)+". Click here to join and meet like-minded people.",
+#             'route':'route://community_collabcard?community_id=' + str(community_id) + '&aj=' + str(aj)
+#         }
+
+#         notification_meta(notification_list,message)
 
 
 
