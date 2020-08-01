@@ -135,7 +135,7 @@ def create_fieldTypes(networking):
 def create_subtype_fields(networking):
 
 
-
+    saved = False
     for data in networking:
 
         field_filter = communityFieldTypes.objects.filter(type=data['type'])
@@ -147,6 +147,17 @@ def create_subtype_fields(networking):
                 instance.type = type_instance
                 instance.sub_type = data['subtype']
                 instance.save()
+                #print(data['subtype'])
+                saved = True
+
+
+
+    return saved
+
+
+
+
+
 
 
 
@@ -309,7 +320,7 @@ def create_profile_link(profile_field,type_instance,subtype_instance):
                 print(profile)
 
 
-def create_introduction_fields(data,type_instance,subtype_instance,state,field):
+def create_introduction_fields(data,help_text,type_instance,subtype_instance,state,field):
 
 
     introduction = data['field']
@@ -334,7 +345,7 @@ def create_introduction_fields(data,type_instance,subtype_instance,state,field):
         instance.state = state
         instance.value = json.dumps(value_list)
         instance.optional = True if data['optional'] == "true" else False
-        instance.help_text = ''
+        instance.help_text = help_text
         instance.field = field
         instance.save()
         print(data['field']+" added")
@@ -391,7 +402,7 @@ def create_user_created_mcq(data,type_instance,subtype_instance,state,field=True
 
         instance.question_title = data['field']
         instance.state = state
-        instance.value = get_option_data(data,user_added=True)
+        instance.value = get_option_data(data,user_added=False)
         instance.optional= True if data['optional'] == "true" else False
         instance.help_text = data['help_text']
         instance.field = field
@@ -402,8 +413,7 @@ def create_user_created_mcq(data,type_instance,subtype_instance,state,field=True
 def get_option_data(data,user_added=False):
 
 
-    # if field == "College":
-    #    return  json.dumps(COLLEGES)
+
     #
     # if field == "City":
     #     return json.dumps(CITIES)
@@ -415,7 +425,8 @@ def get_option_data(data,user_added=False):
     options = data['options']
     field = data['field']
 
-
+    if field == "Colleges":
+        return json.dumps(COLLEGES)
 
     if data['seprator'] == "dollar":
 
@@ -432,6 +443,9 @@ def get_option_data(data,user_added=False):
         temp['value'] = option
 
         option_list.append(temp)
+
+    if 'Other' not in option_list:
+        option_list.append({'value':'Other'})
 
     if user_added:
         option_list.append({'value':True})
@@ -560,7 +574,7 @@ def create_all_fields(networking):
         create_google_city_fetch(field['fetch_city_from-1'], type_instance, subtype_instance, state=11, field=True)
         create_google_city_fetch(field['fetch_city_from-2'], type_instance, subtype_instance, state=11, field=True)
 
-        create_introduction_fields(field['introduction'], type_instance, subtype_instance, state=7, field=False)
+        create_introduction_fields(field['introduction'],field['help_text']['field'],type_instance, subtype_instance, state=7, field=False)
 
         create_short_answer_field(field['short-1'], type_instance, subtype_instance, state=4, field=False)
         create_short_answer_field(field['short-2'], type_instance, subtype_instance, state=4, field=False)
@@ -584,12 +598,17 @@ def create_all_fields(networking):
 def master_field_insert():
 
 
-    for i in range(0,13):
+    update_type = [7,13]
+    for i in update_type:
 
         networking = get_type_of_community(i)
-        create_fieldTypes(networking)
-        create_subtype_fields(networking)
-        create_all_fields(networking)
+
+
+        #create_fieldTypes(networking)
+        saved = create_subtype_fields(networking)
+        print(saved)
+        if saved:
+            create_all_fields(networking)
 
 
 
@@ -659,12 +678,12 @@ def update_help_text():
 start_time = time.time()
 
 
-update_help_text()
+#update_help_text()
 
-# master_field_insert()
-#
-#
-# update_50k_fields()
+master_field_insert()
+
+
+#update_50k_fields()
 
 
 
