@@ -916,12 +916,12 @@ def send_notification_to_join_drop_off(member_id,community_id,aj,time_in_hrs):
     #check if they created the profile. 
     member = Members.objects.filter(community_id=community_id,member_id=member_id)
     
-    if member.exists() and 0:
+    if member.exists():
         pass
 
     else:
-        user = User.objects.get(pk=member_id)
-        member_name = user.userinfo.name
+        user_instance = User.objects.get(pk=member_id)
+        member_name = user_instance.userinfo.name
         community_instance = Community.objects.get(id=community_id)
         community_name = community_instance.name
         
@@ -945,24 +945,25 @@ def send_notification_to_join_drop_off(member_id,community_id,aj,time_in_hrs):
                 "sub_title" : "Don't miss relevant conversations. Click here to join and meet like-minded people. ",
                 'route':'route://community_collabcard?community_id=' + str(community_id) + '&aj=' + str(aj)
             }
+            notification_meta(notification_list,message)
+        
         else:
             message['payload']={
                 "title" : str(community_name),
                 "sub_title" : "Apply to join this community and meet like-minded people. ",
                 'route':'route://community_collabcard?community_id=' + str(community_id)
             }
-        notification_meta(notification_list,message)
+            notification_meta(notification_list,message)
     
-        if aj != '':
             expiry_instance = communityExpiryCodes.objects.filter(community=community_instance, unique_code=aj)
             time_to_sleep = expiry_instance[0].created_at+expiry_instance[0].expire_duration - int(time.time()) - 30*60
-            print(expiry_instance[0].created_at,time_to_sleep)
+            
             if time_to_sleep > 0:
                 # time.sleep(time_to_sleep)
                 #for testing purpose
                 time.sleep(60)
                 member = Members.objects.filter(community_id=community_id,member_id=member_id)
-                if member.exists() and 0:
+                if member.exists():
                     return
                 message['payload']={
                     "title" : 'Invitation link about to expire!',
@@ -980,7 +981,7 @@ def send_notification_to_join_drop_off(member_id,community_id,aj,time_in_hrs):
                 time.sleep(120)
 
                 member = Members.objects.filter(community_id=community_id,member_id=member_id)
-                if member.exists() and 0:
+                if member.exists():
                     return
 
                 message['payload']={
