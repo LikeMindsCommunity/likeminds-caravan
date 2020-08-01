@@ -431,9 +431,9 @@ def send_chatroom_owner_mail(user_id,card_id,time_in_hrs):
     
     message_time = state.first().updated_at
     email = get_user_email(user_id)
-    # time.sleep(time_in_hrs*60*60)
+    time.sleep(time_in_hrs*60*60)
     #sleeping for 5 mins for testing purposes.
-    time.sleep(5*60)
+    # time.sleep(5*60)
     state = conversationMemberState.objects.filter(card_id=card_id, user_id=user_id)
     new_conversation_id = state.first().conversation_id
     if new_conversation_id == last_conversation_id:
