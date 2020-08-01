@@ -5711,7 +5711,11 @@ def collabcard_follow_internal(func_dict,state=collabcard_states.COLLABCARD_STAT
     collabcard_state_filter = collabcardState.objects.filter(card=card_instance, user=user_instance)
 
     if collabcard_state_filter.exists():
-        collabcard_state_filter.update(follow_status=status,state=state,is_guest=is_guest)
+
+        if is_guest:
+            collabcard_state_filter.update(follow_status=status,state=state,is_guest=is_guest)
+        else:
+            collabcard_state_filter.update(follow_status=status, state=state)
 
     else:
         collabcard_state_instance = collabcardState()
