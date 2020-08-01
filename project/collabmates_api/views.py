@@ -876,7 +876,7 @@ def join_promoter_created_community_version_1(res,request):
                 info_logger.info(log)
                 return
             else:
-                send_notification_to_join_drop_off.delay(user_instance.id,community_instance.id,res['aj'],time_in_hrs)
+                send_notification_to_join_drop_off.delay(user_instance.id,community_instance.id,"",time_in_hrs)
     else:
         #send notification for public dropoff
         time_in_hrs=2
@@ -7359,7 +7359,7 @@ def skip_community(request):
     try:
         community_instance = Community.objects.get(id=community_id)
         community_state = get_state_of_community(community_instance)
-        send_notification_to_incomplete_profile(member_id,community_id,community_state,community_instance.name,time_in_hrs=2)    
+        send_notification_to_incomplete_profile.delay(member_id,community_id,community_state,community_instance.name,time_in_hrs=2)    
     except:
         print("some error occured")
        

@@ -84,6 +84,7 @@ def notification_meta(notification_list,message):
         else:
             token_list_ios.append(data['fcm_token'])
 
+        print(data)
 
     if token_list_android:
         send_notification_for_android(token_list_android,message)
@@ -758,7 +759,8 @@ def get_referred_members_of_a_member(community_id,member_id):
 @shared_task
 def send_notification_to_incomplete_profile(member_id,community_id,community_state,community_name,time_in_hrs):
     '''function to send notification to users who pressed skip when joining link was sent'''
-    time.sleep(time_in_hrs*60*60)
+    
+    # time.sleep(time_in_hrs*60*60)
     
     #for testing purposes
     time.sleep(time_in_hrs*60)
@@ -1033,50 +1035,6 @@ def send_notification_to_join_drop_off(member_id,community_id,aj,time_in_hrs):
 #         }
 
 #         notification_meta(notification_list,message)
-
-
-@shared_task
-def private_link_expired_notification(sender_id,community_id,aj):
-
-    '''function to send notification to users 30 minutes before the link expires'''
-
-    #check if they created the profile. 
-    member = Members.objects.filter(community_id=community_id,member_id=member_id)
-    
-    if member.exists():
-        pass
-
-    else:
-        community = Community.objects.filter(id=community_id)
-        if community.exists():
-            community_name = community[0].name
-        else:
-            return
-
-        notification_list=[]
-
-        notification_details = get_token_for_fcm(member_id,flag=True)
-
-        temp = {
-            'id':member_id,
-            'fcm_token':notification_details[0],
-            'mobile_os':notification_details[1],
-        }
-
-        notification_list.append(temp)
-
-        
-        message={}
-        
-        message['payload']={
-            "title" : str(user_name) + 'may need new invitation!',
-            "sub_title" : "Your private invitation for joining " + str(community_name)+" has expired. Please resend them invite link.",
-            'route':'route://community_collabcard?community_id=' + str(community_id)
-        }
-
-        notification_meta(notification_list,message)
-
-
 
 
 
