@@ -861,7 +861,6 @@ def join_promoter_created_community_version_1(res,request):
             info_logger.info(validate_time)
             #insert private link dropoff here
             time_in_hrs = 2
-            send_notification_to_join_drop_off.delay(user_instance.id,community_instance.id,res['aj'],time_in_hrs)
 
             if validate_time:
                 auto_join_community(community_instance, user_instance)
@@ -870,11 +869,18 @@ def join_promoter_created_community_version_1(res,request):
 
                 # saving create community action level3
                 update_community_actions(community_instance)
+                
+                send_notification_to_join_drop_off.delay(user_instance.id,community_instance.id,res['aj'],time_in_hrs)
 
                 log = """Auto join community for community_id=%s for user=%s""" % (community_id, member_id)
                 info_logger.info(log)
                 return
-
+            else:
+                send_notification_to_join_drop_off.delay(user_instance.id,community_instance.id,res['aj'],time_in_hrs)
+    else:
+        #send notification for public dropoff
+        time_in_hrs=2
+        send_notification_to_join_drop_off.delay(user_instance.id,community_instance.id,"",time_in_hrs)
 
     member_list = Members.objects.filter(member_id=user_instance, community_id=community_instance)
 
@@ -1578,7 +1584,7 @@ def ask_approval(request):
         card_temp_instance.created_at = card_temp_list[0].created_at
         card_temp_instance.save()
 
-    # ask_approval_notification(community_id=community_id, community_name=community_instance.name, approver_id=ask_member_id,
+    # ask_approval_notification.delay(community_id=community_id, community_name=community_instance.name, approver_id=ask_member_id,
     #                           member_name=member_instance.member_id.userinfo.name, community_state=community_instance.hide_community)
 
 
@@ -7259,11 +7265,12 @@ def skip_community(request):
 
     #sleeping for 2 hours to remind user to complete profile via notification
     try:
-        community_instance = Community.obejcts.get(id=community_id)
+        community_instance = Community.objects.get(id=community_id)
         community_state = get_state_of_community(community_instance)
-        send_notification_to_incomplete_profile.delay(user_id,community_id,community_state,community_name,time_in_s=7200)
+        send_notification_to_incomplete_profile(member_id,community_id,community_state,community_instance.name,time_in_hrs=2)    
     except:
         print("some error occured")
+       
     #updating the member joined level
     set_levels_on_ctc(community_instance,"Level 2")
     return JsonResponse({'success':True})
