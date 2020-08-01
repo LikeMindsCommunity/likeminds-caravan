@@ -1289,6 +1289,65 @@ def edit_user(request):
     return JsonResponse({'success':True})
 
 
+@csrf_exempt
+def update_email(request):
+
+    '''api to perform operations on email of user'''
+
+    email = request.GET.get('email_id')
+    typ = request.GET.get('type')
+
+    user_id = get_member_id_from_headers(request)
+
+    if not user_id:
+        context = get_error_context(False,"send member id from headers")
+        return JsonResponse(context)
+
+    user_instance = User.objects.get(id=user_id)
+
+    if typ == 'new':
+
+        save_user_primary_email(user_instance,email,email_state=email_states.NON_PRIMARY)
+
+        # send verification mail for email
+        verification_details = generate_tokens_for_email(user_instance, email, email_state=email_states.NON_PRIMARY)
+
+        # sending a email from template
+        send_verification_mail_for_email_sync(user_name=user_instance.userinfo.name,
+                                              verification_link=verification_details['verify_url'], email=email)
+
+        return JsonResponse({'success':True})
+
+    elif typ == 'edit':
+
+        uniq_id = request.GET.get('id')
+        userEmails.objects.filter(id=uniq_id).update(email=email)
+        return JsonResponse({'success': True})
+
+    elif typ == 'primary':
+
+        uniq_id = request.GET.get('id')
+        userEmails.objects.filter(user=user_instance).update(email_state=email_states.NON_PRIMARY)
+        userEmails.objects.filter(id=uniq_id).update(email_state=email_states.PRIMARY)
+
+    elif typ == 'resend_verification':
+
+        uniq_id = request.GET.get('id')
+        email_instance = userEmails.objects.get(id=uniq_id)
+        email = email_instance.email
+        # send verification mail for email
+        verification_details = generate_tokens_for_email(user_instance, email, email_state=email_states.NON_PRIMARY)
+
+        # sending a email from template
+        send_verification_mail_for_email_sync(user_name=user_instance.userinfo.name,
+                                              verification_link=verification_details['verify_url'], email=email)
+
+    elif typ == 'delete':
+        uniq_id = request.GET.get('id')
+        userEmails.objects.filter(id=uniq_id).delete()
+
+
+    return JsonResponse({'success':True})
 
 
 def members(request, community_id):
@@ -9044,7 +9103,7 @@ def email_verify(request):
                     user_email_instance.save()
 
                 else:
-                    user_email_list.update(user=user_instance,email_state=email_states.PRIMARY,email=instance.email,verified=True)
+                    user_email_list.update(user=user_instance,email=instance.email,verified=True)
 
 
                 return render(request, 'email_verify_landing.html', context)
