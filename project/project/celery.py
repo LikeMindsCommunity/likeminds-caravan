@@ -15,7 +15,7 @@ app.config_from_object('django.conf:settings', namespace='CELERY')
 
 # Load task modules from all registered Django app configs.
 app.autodiscover_tasks()
-
+# import collabmates_api.notification.send_morning_pending_request_notification
 
 @app.task(bind=True)
 def debug_task(self):
@@ -23,13 +23,13 @@ def debug_task(self):
 
 app.conf.beat_schedule = {
     'send_pending_request_notification_at_8am': {
-        'task': 'collabmates_api.notifications.send_morning_pending_request_notification',
-        'schedule': crontab(hour=8, minute=0),
+        'task': 'collabmates_api.notification.send_morning_pending_request_notification',
+        'schedule': crontab(hour=14, minute=10),
         # minute="*/10" change to `crontab(minute=0, hour=0)` if you want it to run daily at midnight
         # 'schedule':120.0, #for testing purpose
     },
     'send_level_notification_at_8pm': {
-        'task': 'collabmates_api.notifications.send_morning_pending_request_notification',
+        'task': 'collabmates_api.notification.send_morning_pending_request_notification',
         'schedule': crontab(hour=20, minute=0),
         # minute="*/10" change to `crontab(minute=0, hour=0)` if you want it to run daily at midnight
         # 'schedule':120.0, #for testing purpose
