@@ -266,7 +266,7 @@ def send_notification_to_admins(community_id,name):
         print ("Error while connecting to PostgreSQL", error)
 
 @shared_task
-def send_notification_for_join_requests(community_id,flag,member_id,promoter_name=None):
+def send_notification_for_join_requests(community_id,flag,member_id,promoter_name=""):
     '''function to send notification for approval or denial'''
     community_name=get_community_name(community_id)
     temp = {}
@@ -830,7 +830,8 @@ def send_login_dropoff_notification(token,platform_code):
 def send_morning_pending_request_notification():
 
     ''' send morning notification at 8 am '''
-
+    print('sending notification')
+    Members.objects.filter(community_id=49063,member_id=504).update(state=3)
     members = Members.objects.filter(state=member_states.PENDING_MEMBER)
     communities = []
     for member in members:

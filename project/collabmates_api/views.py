@@ -722,10 +722,14 @@ def questions(request):
 
     ##private link share flow
     aj = request.GET.get('aj')
-
+    user_instance = User.objects.get(id=member_id)
 
     auto_join = private_link_app_invite(community_instance,aj,created_by)
-
+    #add code to send join dropoff notfication
+    print(is_member_verified(community_instance,user_instance))
+    if not is_member_verified(community_instance,user_instance):
+        time_in_hrs=2
+        send_notification_to_join_drop_off.delay(user_instance.id,community_instance.id,aj,time_in_hrs)
 
     questions = []
 
@@ -870,17 +874,17 @@ def join_promoter_created_community_version_1(res,request):
                 # saving create community action level3
                 update_community_actions(community_instance)
                 
-                send_notification_to_join_drop_off.delay(user_instance.id,community_instance.id,res['aj'],time_in_hrs)
+                # send_notification_to_join_drop_off.delay(user_instance.id,community_instance.id,res['aj'],time_in_hrs)
 
                 log = """Auto join community for community_id=%s for user=%s""" % (community_id, member_id)
                 info_logger.info(log)
                 return
-            else:
-                send_notification_to_join_drop_off.delay(user_instance.id,community_instance.id,"",time_in_hrs)
-    else:
-        #send notification for public dropoff
-        time_in_hrs=2
-        send_notification_to_join_drop_off.delay(user_instance.id,community_instance.id,"",time_in_hrs)
+            # else:
+                # send_notification_to_join_drop_off.delay(user_instance.id,community_instance.id,"",time_in_hrs)
+    # else:
+    #     #send notification for public dropoff
+    #     time_in_hrs=2
+        # send_notification_to_join_drop_off.delay(user_instance.id,community_instance.id,"",time_in_hrs)
 
     member_list = Members.objects.filter(member_id=user_instance, community_id=community_instance)
 
@@ -938,6 +942,7 @@ def join_promoter_created_community_version_1(res,request):
         engage.save()
         update_pending_member_count_in_engage(community_instance)
         send_notification_to_admins.delay(community_id, user_instance.userinfo.name)
+        send_notification_for_join_requests(community_id,flag,member_id,promoter_name="")
 
 
 
@@ -2943,7 +2948,7 @@ def add_admin(request, community_id):
         info_logger.info(update_status_member)
 
         user_instance = User.objects.filter(id=member_id)
-        if user_instamce.exists():
+        if user_instance.exists():
             admin = user_instance[0].userinfo.name
         else:
             admin = ""
@@ -3509,7 +3514,7 @@ def approve_or_decline_whatsapp_community(req_dict,request):
 
         is_member = is_member_verified(community=req_dict['community_id'], user_instance=req_dict['member_id'])
         
-        promoter_name = request.member.userinfo.name
+        # promoter_name = request.user.userinfo.name
         
         if not is_member:
             Members.objects.filter(member_id=req_dict['member_id'],
@@ -3563,6 +3568,10 @@ def approve_or_decline_private_community(req_dict,request):
     if req_dict['accepted'] or req_dict['accepted'] == 'true':
 
         is_member = is_member_verified(community=req_dict['community_id'], user_instance=req_dict['member_id'])
+        
+        current_user_id = get_member_id_from_headers(request)
+        current_user_instance = Userinfo.objects.get(user_id=current_user_id)
+        promoter_name = current_user_instance.name
 
         if not is_member:
             Members.objects.filter(member_id=req_dict['member_id'],
@@ -3593,12 +3602,11 @@ def approve_or_decline_private_community(req_dict,request):
             update_community_actions(community_instance=community)
 
             #sending mails and notifications
-
             #send notification
-            send_notification_for_join_requests.delay(req_dict['community_id'], True, req_dict['member_id'])
+            send_notification_for_join_requests.delay(req_dict['community_id'], True, req_dict['member_id'],promoter_name)
 
             # sending email to the user that his request is accepted for this community
-            member_request_approval_or_denied.delay(user_id = req_dict['member_id'],community_id = req_dict['community_id'], approved = True)
+            # member_request_approval_or_denied.delay(user_id = req_dict['member_id'],community_id = req_dict['community_id'], approved = True)
 
     else:
 
@@ -3610,7 +3618,7 @@ def approve_or_decline_private_community(req_dict,request):
         # delete the responses of user to community questions, if any
         communityAnswers.objects.filter(member_id=req_dict['member_id'],community_id = req_dict['community_id']).delete()
 
-        send_notification_for_join_requests.delay(req_dict['community_id'], False, req_dict['member_id'])
+        send_notification_for_join_requests.delay(req_dict['community_id'], False, req_dict['member_id'],promoter_name)
 
 
 def set_state_for_onboarding_chatroom(community_instance,user_id,request):
