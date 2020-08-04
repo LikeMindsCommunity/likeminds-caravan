@@ -7015,19 +7015,19 @@ def create_custom_user(name,mobile_no,country_code,email,image_url,login_type):
 
     return has_mobile_no[0].user
 
-
+@csrf_exempt
 def merge_account(request):
 
     '''api to merge account '''
 
-    member_id = get_member_id_from_headers(request)
+    member_id = request.POST.get('user_id')
+
     context={}
     if not member_id:
-        context = get_error_context(False,"send member id in headers")
-        return context
+        context = get_error_context(False,"send user_id in post params")
+        return JsonResponse(context)
 
-    country_code = request.GET.get('country_code')
-    mobile_no = request.GET.get('mobile_no')
+    mobile_no = request.POST.get('mobile_no')
     country_code = request.GET.get('country_code')
 
     try:
@@ -7203,13 +7203,14 @@ def verify_otp_on_mobile(phone_no,otp):
 def save_user_primary_email(user_instance,email,verified=False,email_state=email_states.PRIMARY):
 
     '''function to save primary email of user for communications'''
-
-    user_email_instance = userEmails()
-    user_email_instance.user = user_instance
-    user_email_instance.email_state = email_state
-    user_email_instance.email = email
-    user_email_instance.verified = verified
-    user_email_instance.save()
+    email_filter = userEmails.objects.filter(email=email)
+    if not email_filter.exists():
+        user_email_instance = userEmails()
+        user_email_instance.user = user_instance
+        user_email_instance.email_state = email_state
+        user_email_instance.email = email
+        user_email_instance.verified = verified
+        user_email_instance.save()
 
 
 def save_user_mobile_number(user_instance,country_code,mobile_no,state=mobile_states.PRIMARY):
