@@ -7195,13 +7195,14 @@ def verify_otp_on_mobile(phone_no,otp):
 def save_user_primary_email(user_instance,email,verified=False,email_state=email_states.PRIMARY):
 
     '''function to save primary email of user for communications'''
-
-    user_email_instance = userEmails()
-    user_email_instance.user = user_instance
-    user_email_instance.email_state = email_state
-    user_email_instance.email = email
-    user_email_instance.verified = verified
-    user_email_instance.save()
+    email_filter = userEmails.objects.filter(email=email)
+    if not email_filter.exists():
+        user_email_instance = userEmails()
+        user_email_instance.user = user_instance
+        user_email_instance.email_state = email_state
+        user_email_instance.email = email
+        user_email_instance.verified = verified
+        user_email_instance.save()
 
 
 def save_user_mobile_number(user_instance,country_code,mobile_no,state=mobile_states.PRIMARY):
