@@ -73,6 +73,7 @@ urlpatterns = [
     path('popup',api_views.popup,name='popup'),
     path('snooze_popup',api_views.snooze_popup,name='snooze_popup'),
     path('dismiss_popup',api_views.dismiss_popup,name='dismiss_popup'),
+    path('phonebook', api_views.phonebook, name='phonebook'),
 
 
 

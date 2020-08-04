@@ -1038,3 +1038,12 @@ class userPopupTime(models.Model):
 
     created_at = models.BigIntegerField(null=True)
 
+
+class userPhonebook(models.Model):
+
+    '''api to make user phonebook'''
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    phonebook = models.TextField(null=True)
+    created_at = models.BigIntegerField(null=True)
+    updated_at = models.BigIntegerField(null=True)

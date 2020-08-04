@@ -7302,7 +7302,28 @@ def dismiss_popup(request):
 
     return JsonResponse({'success':True})
 
+@csrf_exempt
+def phonebook(request):
 
+    '''api to save phonebook'''
+    member_id = get_member_id_from_headers(request)
+    res=json.loads(request.body)
+
+    phonebook_filter = userPhonebook.objects.filter(user=member_id)
+
+    if not phonebook_filter.exists():
+        user_instance = User.objects.get(id=member_id)
+        instance = userPhonebook()
+        instance.phonebook = json.dumps(res['phonebook'])
+        instance.created_at = time.time()
+        instance.updated_at = time.time()
+        instance.user = user_instance
+        instance.save()
+
+    else:
+        phonebook_filter.update(phonebook=json.dumps(res['phonebook']),updated_at=time.time())
+
+    return JsonResponse({'success':True})
 
 
 
