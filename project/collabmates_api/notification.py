@@ -957,8 +957,10 @@ def send_notification_to_join_drop_off(member_id,community_id,aj,time_in_hrs):
             notification_meta(notification_list,message)
     
             expiry_instance = communityExpiryCodes.objects.filter(community=community_instance, unique_code=aj)
-            time_to_sleep = expiry_instance[0].created_at+expiry_instance[0].expire_duration - int(time.time()) - 30*60
-            
+            if expiry_instance.exists():
+                time_to_sleep = expiry_instance[0].created_at+expiry_instance[0].expire_duration - int(time.time()) - 30*60
+            else:
+                time_to_sleep = -1
             if time_to_sleep > 0:
                 # time.sleep(time_to_sleep)
                 #for testing purpose
