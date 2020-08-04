@@ -7007,7 +7007,7 @@ def create_custom_user(name,mobile_no,country_code,email,image_url,login_type):
 
     return has_mobile_no[0].user
 
-
+@csrf_exempt
 def merge_account(request):
 
     '''api to merge account '''
