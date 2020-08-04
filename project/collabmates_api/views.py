@@ -7192,6 +7192,93 @@ def verify_otp_on_mobile(phone_no,otp):
     return context
 
 
+def popup(request):
+
+    '''api to show pop-ups for phonebook permission'''
+
+    context={}
+    popup_home={
+
+        'title':"LikeMinds needs access to your contacts so that you can find and collaborate better with your connections. Your contacts will be stored in our heavily encrypted cloud storage.",
+        'positive_action':"Allow",
+        'negative_action':"Snooze",
+        # 'positive_route':"",
+        # 'negative_route':""
+
+    }
+    popup_directory={
+
+        'title':"LikeMinds needs access to your contacts to highlight your acquaintances and common connections. ",
+        'positive_action':"Okay",
+        'negative_action':"Snooze",
+        # 'positive_route':"",
+        # 'negative_route':""
+
+    }
+
+
+
+    context['popup_home'] = popup_home
+    context['popup_directory'] = popup_directory
+
+    return JsonResponse(context)
+
+@csrf_exempt
+def snooze_popup(request):
+
+    '''api to snooze the pop-ups'''
+
+    member_id = get_member_id_from_headers(request)
+    if not member_id:
+        context = get_error_context(False,"send member id in header")
+        return JsonResponse(context)
+
+    popup_type = request.POST.get('popup_type')
+
+    if popup_type == "popup_home":
+        trigger_time = time.time() + (8*60*60)
+    else:
+
+        trigger_time = time.time() + (24*60*60)
+
+    popup_filter = userPopupTime.objects.filter(user=member_id)
+    if not popup_filter.exists():
+
+        user_instance = User.objects.get(id=member_id)
+        instance = userPopupTime()
+        instance.popup_type = popup_type
+        instance.trigger_time = trigger_time
+        instance.count = 1
+        instance.created_at = time.time()
+        instance.user = user_instance
+        instance.save()
+
+    else:
+
+        instance = popup_filter[0]
+        instance.count = instance.count + 1
+        instance.save()
+
+
+
+    return JsonResponse({'success':True})
+
+@csrf_exempt
+def dismiss_popup(request):
+
+    '''api to dismiss popup for asking phonebook'''
+
+    member_id = get_member_id_from_headers(request)
+
+    update_status = userPopupTime.objects.filter(user=member_id).update(ignore=True)
+    print(update_status)
+
+    return JsonResponse({'success':True})
+
+
+
+
+
 def save_user_primary_email(user_instance,email,verified=False,email_state=email_states.PRIMARY):
 
     '''function to save primary email of user for communications'''
