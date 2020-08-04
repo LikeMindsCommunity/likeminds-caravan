@@ -7196,30 +7196,57 @@ def popup(request):
 
     '''api to show pop-ups for phonebook permission'''
 
+    member_id = get_member_id_from_headers(request)
+    if not member_id:
+        context = get_error_context(False, "send member id in header")
+        return JsonResponse(context)
+
     context={}
     popup_home={
 
         'title':"LikeMinds needs access to your contacts so that you can find and collaborate better with your connections. Your contacts will be stored in our heavily encrypted cloud storage.",
-        'positive_action':"Allow",
-        'negative_action':"Snooze",
-        # 'positive_route':"",
-        # 'negative_route':""
+        'positive_action':"ALLOW",
+        'negative_action':"SNOOZE",
+        'positive_route':"route://ask_phonebook",
+        'negative_route':"route://snooze"
 
     }
     popup_directory={
 
         'title':"LikeMinds needs access to your contacts to highlight your acquaintances and common connections. ",
-        'positive_action':"Okay",
-        'negative_action':"Snooze",
-        # 'positive_route':"",
-        # 'negative_route':""
+        'positive_action':"OKAY",
+        'negative_action':"SNOOZE",
+        'positive_route': "route://ask_phonebook",
+        'negative_route': "route://snooze"
 
     }
 
+    popup_filter = userPopupTime.objects.filter(user=member_id)
+
+    current_time = int(time.time())
+    home_ignore = False
+    directory_ignore = False
+    for data in popup_filter:
+
+        if data.popup_type == "popup_home":
+
+            home_ignore = data.ignore
+            if current_time > data.trigger_time and data.count > 5 and not data.ignore:
+                popup_home['negative_action'] = "DON’T ASK ME"
+
+        elif data.popup_type == "popup_directory":
+            directory_ignore = data.ignore
+
+            if  current_time > data.trigger_time and data.count > 2 and not data.ignore:
+                popup_directory['negative_action'] = "I AM NOT INTERESTED"
 
 
-    context['popup_home'] = popup_home
-    context['popup_directory'] = popup_directory
+
+
+    if not home_ignore:
+        context['popup_home'] = popup_home
+    if not directory_ignore:
+        context['popup_directory'] = popup_directory
 
     return JsonResponse(context)
 
@@ -7239,9 +7266,9 @@ def snooze_popup(request):
         trigger_time = time.time() + (8*60*60)
     else:
 
-        trigger_time = time.time() + (24*60*60)
+        trigger_time = time.time() + (8*60*60)
 
-    popup_filter = userPopupTime.objects.filter(user=member_id)
+    popup_filter = userPopupTime.objects.filter(user=member_id,popup_type=popup_type)
     if not popup_filter.exists():
 
         user_instance = User.objects.get(id=member_id)
@@ -7269,8 +7296,8 @@ def dismiss_popup(request):
     '''api to dismiss popup for asking phonebook'''
 
     member_id = get_member_id_from_headers(request)
-
-    update_status = userPopupTime.objects.filter(user=member_id).update(ignore=True)
+    popup_type = request.POST.get('popup_type')
+    update_status = userPopupTime.objects.filter(user=member_id,popup_type=popup_type).update(ignore=True)
     print(update_status)
 
     return JsonResponse({'success':True})
