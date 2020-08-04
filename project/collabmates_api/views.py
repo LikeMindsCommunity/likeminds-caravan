@@ -7012,14 +7012,14 @@ def merge_account(request):
 
     '''api to merge account '''
 
-    member_id = get_member_id_from_headers(request)
+    member_id = request.POST.get('user_id')
+
     context={}
     if not member_id:
-        context = get_error_context(False,"send member id in headers")
-        return context
+        context = get_error_context(False,"send user_id in post params")
+        return JsonResponse(context)
 
-    country_code = request.GET.get('country_code')
-    mobile_no = request.GET.get('mobile_no')
+    mobile_no = request.POST.get('mobile_no')
     country_code = request.GET.get('country_code')
 
     try:
