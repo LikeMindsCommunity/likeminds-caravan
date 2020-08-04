@@ -942,7 +942,7 @@ def join_promoter_created_community_version_1(res,request):
         engage.save()
         update_pending_member_count_in_engage(community_instance)
         send_notification_to_admins.delay(community_id, user_instance.userinfo.name)
-        send_notification_for_join_requests(community_id,flag,member_id,promoter_name="")
+        send_notification_for_join_requests(community_id,True,member_id,promoter_name="")
 
 
 
