@@ -221,6 +221,7 @@ def community(request, community_id):
 
 
     aj = request.GET.get('aj', False)                           #auto join check functionality
+
     source = request.GET.get('source')
     if aj and is_request_android(request) and not source:
 
@@ -257,10 +258,10 @@ def community(request, community_id):
     if state == 0:
 
         if aj and source:
-            params = str(community_id)+"+"+str(aj)+"+"+str(source)
+            params = str(community_id)+"-"+str(aj)+"-"+str(source)
 
         elif aj:
-            params = str(community_id) + "+" + str(aj) + "+private_link"
+            params = str(community_id) + "-" + str(aj) + "-private_link"
         else:
             params = community_id
         return redirect('community_questions',params=params)
@@ -286,10 +287,10 @@ def community_questions(request,params):
     url_details = {}
     user_directory = False
     chatroom_deleted = None
-    if params.find("+") == -1:
+    if params.find("-") == -1:
         community_id = params
     else:
-        params = params.split("+")
+        params = params.split("-")
 
         if len(params) == 3:
             community_id = params[0]
@@ -303,9 +304,13 @@ def community_questions(request,params):
         else:
             return HttpResponse("invalid url")
 
+
+
     question_format = get_community_questions(community_id)
     community_instance = Community.objects.get(id=community_id)
     admin = get_community_creator(community_instance)
+
+
 
     user_instance = None
     state = 0
