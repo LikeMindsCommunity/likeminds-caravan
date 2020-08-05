@@ -3704,7 +3704,7 @@ def collabcard(request, card_id):
 
         if backup_filter.exists():
             community_id = backup_filter[0].community.id
-            return redirect("community_questions",params=str(community_id)+"+deleted")
+            return redirect("community_questions",params=str(community_id)+"-deleted")
         else:
             return render(request,"__404__.html",{})
 
