@@ -7971,7 +7971,7 @@ def get_all_members(request, req_dict=None):
     if collabcard_id and is_request_web(request):
         members = get_members_data_for_collabcard(collabcard_id, community_id, current_user_id,page_no=page)
         # print(members)
-        context = {'members': members['members']}
+        context = {'members': members}
         return context
 
     is_filter = request.GET.get('is_filter', False)
@@ -7991,8 +7991,8 @@ def get_all_members(request, req_dict=None):
             members = get_member_instances(member_list, current_user_id, community_id, is_filter=is_filter,
                                            member_set=member_set)
             if collabcard_id:
-                card_members = get_members_data_for_collabcard(collabcard_id, community_id, current_user_id, page_no = page)
-                members = get_collabcard_participants(members,card_members['participants'])
+                members = get_members_data_for_collabcard(collabcard_id, community_id, current_user_id, page_no = page)
+                #members = get_collabcard_participants(members,card_members['participants'])
 
         else:
             # is_filter = False
@@ -8004,8 +8004,9 @@ def get_all_members(request, req_dict=None):
                 members = get_member_instances(member_list, current_user_id, community_id)
 
                 if collabcard_id:
-                    card_members = get_members_data_for_collabcard(collabcard_id, community_id, current_user_id, page_no = page)
-                    members = get_collabcard_participants(members, card_members['participants'],guest=True)
+                    members = get_members_data_for_collabcard(collabcard_id, community_id, current_user_id, page_no = page)
+                    #members = get_collabcard_participants(members, card_members['participants'],guest=True)
+                    #members = card_members['members']
 
     else:
         # is_filter = False
@@ -8018,6 +8019,7 @@ def get_all_members(request, req_dict=None):
     promoter_instance = is_member_promoter(community_instance,current_user_id)
 
     community = CommunitySerializer(community_instance,promoter_id=promoter_instance)
+
     context = {'members': members,'community':community}
     return context
 
@@ -8118,59 +8120,32 @@ def get_members_data_for_collabcard(card_id,community_id,current_user_id,page_no
 
     collabcard_state_list = pagination(collabcard_state_list,page_no,paginate_by=10)
     members = []
-    collabcard_participants = []
+
     for instance in collabcard_state_list:
 
         user_instance = instance.user
+        member_state = 0
+        user_context = get_user_profile(user_instance.id,community_id,current_user_id)
+        user_context['collabcard_state'] = instance.state
+        user_context['is_guest'] = instance.is_guest
 
-        userinfo_serialized_object = UserinfoSerializer(user_instance.userinfo)
-        userinfo_serialized_object['collabcard_state'] = instance.state
-        userinfo_serialized_object['is_guest'] = instance.is_guest
+        member_filter = Members.objects.filter(community_id=community_id,member_id=user_instance.id)
 
-
-
-        form_response = FormResponseSerilaizer(community_id, user_instance.id, bl=True,
-                                               current_user_id=current_user_id)
-
-        if form_response:
-            #userinfo_serialized_object['response'] = form_response[0]
-            userinfo_serialized_object['question_answers'] = form_response[1]
-
-        members.append(userinfo_serialized_object)
-
-        #sending state also for conserving filter
-        temp={}
-        temp['user_id'] = user_instance.id
-        temp['collabcard_state'] = instance.state
-        temp['is_guest'] = instance.is_guest
-        temp['member'] = userinfo_serialized_object
+        if member_filter.exists():
+            member_state = member_filter[0].state
+            
+        user_context['state'] = member_state
 
 
-        collabcard_participants.append(temp)
-
-    return {'members':members,'participants':collabcard_participants}
+        members.append(user_context)
 
 
-def get_collabcard_participants(all_members,collabcard_members,guest=False):
-
-    collabcard_participants = []
-    for member in all_members:
-        for participant in collabcard_members:
-            if member['id'] == participant['user_id']:
-                member['collabcard_state'] = participant['collabcard_state']
-                collabcard_participants.append(member)
+    return members
 
 
-    #sending guest data also
-    #print(collabcard_members)
-    if guest:
-        for data in collabcard_members:
 
-            if data['is_guest']:
-                data['member']['state'] = 0
-                collabcard_participants.append(data['member'])
 
-    return collabcard_participants
+
 
 
 def get_tagging_list(request):
