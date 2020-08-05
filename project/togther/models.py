@@ -1025,3 +1025,25 @@ class memberNotificationFlag(models.Model):
         super(memberNotificationFlag, self).save(*args, **kwargs)
 
 
+
+class userPopupTime(models.Model):
+
+    '''api to make user pop up time for getting phonebook permissions'''
+
+    user = models.ForeignKey(User,on_delete=models.CASCADE)
+    popup_type = models.TextField(null=True)
+    trigger_time = models.BigIntegerField(null=True)
+    ignore = models.BooleanField(default=False)
+    count = models.IntegerField(default=0)
+
+    created_at = models.BigIntegerField(null=True)
+
+
+class userPhonebook(models.Model):
+
+    '''api to make user phonebook'''
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    phonebook = models.TextField(null=True)
+    created_at = models.BigIntegerField(null=True)
+    updated_at = models.BigIntegerField(null=True)

@@ -68,8 +68,12 @@ urlpatterns = [
     path('v1/login',api_views.login_authenticate_version_1,name = 'v1/login'),
     path('generate_otp',api_views.generate_otp,name = 'generate_otp'),
     path('verify_otp',api_views.verify_otp,name = 'verify_otp'),
-
     path('merge_account',api_views.merge_account,name='merge_account'),
+
+    path('popup',api_views.popup,name='popup'),
+    path('snooze_popup',api_views.snooze_popup,name='snooze_popup'),
+    path('dismiss_popup',api_views.dismiss_popup,name='dismiss_popup'),
+    path('phonebook', api_views.phonebook, name='phonebook'),
 
 
 
@@ -131,7 +135,6 @@ urlpatterns = [
 
     path('fetch_whatsapp_tool', api_views.fetch_whatsapp_tool, name='fetch_whatsapp_tool'),
     path('questions', api_views.questions, name='questions'),
-#     path('poll_notification', send_poll_notification_manually, name='poll_notification'),
     path('fetch_master_questions', api_views.fetch_master_questions, name='fetch_master_questions'),
 
     path('fetch_filters', api_views.fetch_filters, name='fetch_filters'),

@@ -7202,6 +7202,141 @@ def verify_otp_on_mobile(phone_no,otp):
     return context
 
 
+def popup(request):
+
+    '''api to show pop-ups for phonebook permission'''
+
+    member_id = get_member_id_from_headers(request)
+    if not member_id:
+        context = get_error_context(False, "send member id in header")
+        return JsonResponse(context)
+
+    context={}
+    popup_home={
+
+        'title':"LikeMinds needs access to your contacts so that you can find and collaborate better with your connections. Your contacts will be stored in our heavily encrypted cloud storage.",
+        'positive_action':"ALLOW",
+        'negative_action':"SNOOZE",
+        'positive_route':"route://ask_phonebook",
+        'negative_route':"route://snooze"
+
+    }
+    popup_directory={
+
+        'title':"LikeMinds needs access to your contacts to highlight your acquaintances and common connections. ",
+        'positive_action':"OKAY",
+        'negative_action':"SNOOZE",
+        'positive_route': "route://ask_phonebook",
+        'negative_route': "route://snooze"
+
+    }
+
+    popup_filter = userPopupTime.objects.filter(user=member_id)
+
+    current_time = int(time.time())
+    home_ignore = False
+    directory_ignore = False
+    for data in popup_filter:
+
+        if data.popup_type == "popup_home":
+
+            home_ignore = data.ignore
+            if current_time > data.trigger_time and data.count > 5 and not data.ignore:
+                popup_home['negative_action'] = "DON’T ASK ME"
+
+        elif data.popup_type == "popup_directory":
+            directory_ignore = data.ignore
+
+            if  current_time > data.trigger_time and data.count > 2 and not data.ignore:
+                popup_directory['negative_action'] = "I AM NOT INTERESTED"
+
+
+
+
+    if not home_ignore:
+        context['popup_home'] = popup_home
+    if not directory_ignore:
+        context['popup_directory'] = popup_directory
+
+    return JsonResponse(context)
+
+@csrf_exempt
+def snooze_popup(request):
+
+    '''api to snooze the pop-ups'''
+
+    member_id = get_member_id_from_headers(request)
+    if not member_id:
+        context = get_error_context(False,"send member id in header")
+        return JsonResponse(context)
+
+    popup_type = request.POST.get('popup_type')
+
+    if popup_type == "popup_home":
+        trigger_time = time.time() + (8*60*60)
+    else:
+
+        trigger_time = time.time() + (8*60*60)
+
+    popup_filter = userPopupTime.objects.filter(user=member_id,popup_type=popup_type)
+    if not popup_filter.exists():
+
+        user_instance = User.objects.get(id=member_id)
+        instance = userPopupTime()
+        instance.popup_type = popup_type
+        instance.trigger_time = trigger_time
+        instance.count = 1
+        instance.created_at = time.time()
+        instance.user = user_instance
+        instance.save()
+
+    else:
+
+        instance = popup_filter[0]
+        instance.count = instance.count + 1
+        instance.save()
+
+
+
+    return JsonResponse({'success':True})
+
+@csrf_exempt
+def dismiss_popup(request):
+
+    '''api to dismiss popup for asking phonebook'''
+
+    member_id = get_member_id_from_headers(request)
+    popup_type = request.POST.get('popup_type')
+    update_status = userPopupTime.objects.filter(user=member_id,popup_type=popup_type).update(ignore=True)
+    print(update_status)
+
+    return JsonResponse({'success':True})
+
+@csrf_exempt
+def phonebook(request):
+
+    '''api to save phonebook'''
+    member_id = get_member_id_from_headers(request)
+    res=json.loads(request.body)
+
+    phonebook_filter = userPhonebook.objects.filter(user=member_id)
+
+    if not phonebook_filter.exists():
+        user_instance = User.objects.get(id=member_id)
+        instance = userPhonebook()
+        instance.phonebook = json.dumps(res['phonebook'])
+        instance.created_at = time.time()
+        instance.updated_at = time.time()
+        instance.user = user_instance
+        instance.save()
+
+    else:
+        phonebook_filter.update(phonebook=json.dumps(res['phonebook']),updated_at=time.time())
+
+    return JsonResponse({'success':True})
+
+
+
 def save_user_primary_email(user_instance,email,verified=False,email_state=email_states.PRIMARY):
 
     '''function to save primary email of user for communications'''
