@@ -258,6 +258,9 @@ def community(request, community_id):
 
         if aj and source:
             params = str(community_id)+"+"+str(aj)+"+"+str(source)
+
+        elif aj:
+            params = str(community_id) + "+" + str(aj) + "+private_link"
         else:
             params = community_id
         return redirect('community_questions',params=params)
@@ -277,6 +280,8 @@ def community_questions(request,params):
 
 
     '''function to get community questions'''
+
+
 
     url_details = {}
     user_directory = False
@@ -359,6 +364,9 @@ def community_questions(request,params):
             footer['aj']=url_details['aj']
             context['footer'] = footer
 
+            context['source'] = url_details['source']
+
+
 
         if chatroom_deleted:
 
@@ -377,6 +385,8 @@ def community_questions(request,params):
         question_data = request.POST.dict().get("data")
         aj = request.POST.get('aj')
         aj_expired = request.POST.get('aj_expired')
+        source = request.POST.get('source')
+        #print("source---",source)
         question_data = ast.literal_eval(question_data)
         response_list = []
 
@@ -403,10 +413,15 @@ def community_questions(request,params):
             params = {'member_id': user_instance.id, 'community_id': community_id}
             if  aj_expired == 'False':
                 json_dict['aj'] = int(aj)
+
+            # print("params---",params)
+            # print("json dict---",json_dict)
             rqst.post(join_url, params=params, json=json_dict)
 
         if aj_expired == "" or aj_expired == "True":
             return JsonResponse({'success':True})
+        elif source == "private_link":
+            return JsonResponse({'success': True, 'source': "private_link"})
         else:
             return JsonResponse({'success':True,'source':"members_directory"})
 

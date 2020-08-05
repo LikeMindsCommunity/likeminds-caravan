@@ -757,7 +757,7 @@ You are one step away from being a part of this amazing community. Are you sure 
 
 
 
-                var questions = {"data": JSON.stringify(values_list),"aj":'{{footer.aj}}',"aj_expired":'{{footer.aj_expired}}'}
+                var questions = {"data": JSON.stringify(values_list),"aj":'{{footer.aj}}',"aj_expired":'{{footer.aj_expired}}',"source":'{{source}}'}
                 $.ajax({
                     url:url,
                     type:"POST",
@@ -784,6 +784,9 @@ You are one step away from being a part of this amazing community. Are you sure 
                              location.href="/members_directory/"+'{{community.id}}'
                              return
 
+                            }else if(data['source'] == "private_link"){
+
+                             location.href="/community/"+'{{community.id}}';
                             }
 
                         }
