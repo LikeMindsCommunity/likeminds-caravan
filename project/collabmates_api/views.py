@@ -7981,6 +7981,7 @@ def get_all_members(request, req_dict=None):
         member_list = Members.objects.filter(community_id=community_id).filter(
             Q(state=member_states.ADMIN) | Q(state=member_states.MEMBER) | Q(
                 state=member_states.PROFILE_UNAVAILABLE) | Q(state=member_states.PENDING_MEMBER)).order_by('id')
+
         member_list = pagination(member_list, page, paginate_by=10)
         filter_list = request.GET.get('filter', None)
 
@@ -7988,25 +7989,28 @@ def get_all_members(request, req_dict=None):
             filter_list = json.loads(filter_list)
             #info_logger.info(filter_list)
             member_set = get_filtered_users(filter_list, member_list)
-            members = get_member_instances(member_list, current_user_id, community_id, is_filter=is_filter,
-                                           member_set=member_set)
+
             if collabcard_id:
-                members = get_members_data_for_collabcard(collabcard_id, community_id, current_user_id, page_no = page)
-                #members = get_collabcard_participants(members,card_members['participants'])
+                members = get_members_data_for_collabcard(collabcard_id, community_id, current_user_id, page_no = page,member_set = member_set)
+            else:
+                members = get_member_instances(member_list, current_user_id, community_id, is_filter=is_filter,
+                                               member_set=member_set)
+
+
 
         else:
-            # is_filter = False
+
+            if collabcard_id:
+                members = get_members_data_for_collabcard(collabcard_id, community_id, current_user_id, page_no = page)
+
+            else:
                 member_list = Members.objects.filter(community_id=community_id).filter(
-                    Q(state=member_states.ADMIN) | Q(state=member_states.MEMBER) | Q(
-                        state=member_states.PROFILE_UNAVAILABLE) | Q(state=member_states.PENDING_MEMBER)).order_by(
-                    'id')
+                        Q(state=member_states.ADMIN) | Q(state=member_states.MEMBER) | Q(
+                            state=member_states.PROFILE_UNAVAILABLE) | Q(state=member_states.PENDING_MEMBER)).order_by(
+                        'id')
                 member_list = pagination(member_list, page, paginate_by=10)
                 members = get_member_instances(member_list, current_user_id, community_id)
 
-                if collabcard_id:
-                    members = get_members_data_for_collabcard(collabcard_id, community_id, current_user_id, page_no = page)
-                    #members = get_collabcard_participants(members, card_members['participants'],guest=True)
-                    #members = card_members['members']
 
     else:
         # is_filter = False
@@ -8098,14 +8102,10 @@ def get_filtered_users(filter_list,member_list):
 
        member_set = intersect_sets(member_set,value)
 
-
-
-
-
     return member_set
 
 
-def get_members_data_for_collabcard(card_id,community_id,current_user_id,page_no=1):
+def get_members_data_for_collabcard(card_id,community_id,current_user_id,page_no=1,member_set=None):
 
 
     #card_instance = Collabcard.objects.get(id=card_id)
@@ -8124,6 +8124,9 @@ def get_members_data_for_collabcard(card_id,community_id,current_user_id,page_no
     for instance in collabcard_state_list:
 
         user_instance = instance.user
+
+        if member_set and user_instance.id not in member_set:
+            continue
         member_state = 0
         user_context = get_user_profile(user_instance.id,community_id,current_user_id)
         user_context['collabcard_state'] = instance.state
@@ -8133,7 +8136,7 @@ def get_members_data_for_collabcard(card_id,community_id,current_user_id,page_no
 
         if member_filter.exists():
             member_state = member_filter[0].state
-            
+
         user_context['state'] = member_state
 
 
