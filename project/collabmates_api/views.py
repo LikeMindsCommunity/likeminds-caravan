@@ -858,6 +858,8 @@ def join_promoter_created_community_version_1(res,request):
 
     update_hidden_fields_in_questions(user_instance,community_instance)
 
+
+
     #saving data directly
     if 'aj' in res:
         if res['aj']:
