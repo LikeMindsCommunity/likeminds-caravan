@@ -7211,6 +7211,8 @@ def popup(request):
         context = get_error_context(False, "send member id in header")
         return JsonResponse(context)
 
+
+
     context={}
     popup_home={
 
@@ -7231,6 +7233,15 @@ def popup(request):
 
     }
 
+    first_time = request.GET.get('first_time')
+
+    if first_time == "true":
+        context['popup_home'] = popup_home
+        context['popup_directory'] = popup_directory
+        return JsonResponse(context)
+
+
+    context = {}
     popup_filter = userPopupTime.objects.filter(user=member_id)
 
     current_time = int(time.time())
@@ -7243,12 +7254,14 @@ def popup(request):
             home_ignore = data.ignore
             if current_time > data.trigger_time and data.count > 5 and not data.ignore:
                 popup_home['negative_action'] = "DON’T ASK ME"
+                popup_home['negative_route'] = "route://dismiss"
 
         elif data.popup_type == "popup_directory":
             directory_ignore = data.ignore
 
             if  current_time > data.trigger_time and data.count > 2 and not data.ignore:
                 popup_directory['negative_action'] = "I AM NOT INTERESTED"
+                popup_directory['negative_route'] = "route://dismiss"
 
 
 
