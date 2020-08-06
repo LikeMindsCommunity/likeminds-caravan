@@ -1782,6 +1782,27 @@ def remove_members(community_id, member_id,removed_state):
     #print(intro_removed)
 
 
+def get_community_profile(request):
+
+    '''api to get the community profile of user'''
+
+
+    current_member_id = get_member_id_from_headers(request)
+    user_id = request.GET.get('user_id')
+    community_id = request.GET.get('community_id')
+
+    if not user_id or not community_id:
+        return JsonResponse({"error_message": "send user id and community_id in get params"})
+
+    member_ids = [user_id]
+    member = get_members_profile(member_ids,community_id,current_user_id=current_member_id)
+
+    if member:
+        member = member[0]
+        return JsonResponse(member)
+
+    return JsonResponse({})
+
 
 
 

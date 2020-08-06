@@ -675,22 +675,20 @@ def get_members_profile(member_ids,community_id,current_user_id=None):
     '''function to get member profile from list of members ids'''
     member_profile_list = []
     for id in member_ids:
+
         member_filter = Members.objects.filter(member_id=id,community_id=community_id)
 
         if member_filter.exists():
             member_id = member_filter[0].member_id.id
-            member=member_filter[0]
-            userinfo_serialized_object = UserinfoSerializer(member.member_id.userinfo)
-            userinfo_serialized_object['state'] = member.state
+            member_instance = member_filter[0]
+            community_profile = get_user_profile(member_id,community_id,current_user_id=current_user_id)
+            community_profile['state'] = member_instance.state
+            member_profile_list.append(community_profile)
 
-            form_response = FormResponseSerilaizer(community_id, member_id, bl=True,
-                                                   current_user_id=current_user_id)
-
-            if form_response:
-                #userinfo_serialized_object['response'] = form_response[0]
-                userinfo_serialized_object['question_answers'] = form_response[1]
-
-            member_profile_list.append(userinfo_serialized_object)
+        else:
+            temp = get_user_profile(id,community_id,current_user_id=current_user_id)
+            temp['state'] = 0
+            member_profile_list.append(temp)
 
 
     return member_profile_list
@@ -706,7 +704,6 @@ def get_user_profile(user_id,community_id,current_user_id=None):
 
     userinfo_serialized_object = UserinfoSerializer(user_instance.userinfo)
     #userinfo_serialized_object['state'] = 0
-
     form_response = FormResponseSerilaizer(community_id, user_instance.id, bl=True,
                                            current_user_id=current_user_id)
 
