@@ -35,5 +35,7 @@ urlpatterns = [
     path('oauth/complete/linkedin-oauth2', views.linked_in_authentication, name='linked_in_authentication'),
     path('', include('collabmates_api.urls', namespace='api')),
 
+    #new urls - to be shifted in cms later
+    path('community_wise_details', views.community_wise_details, name='community_wise_details'),
 ]
 

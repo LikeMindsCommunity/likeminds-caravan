@@ -2586,3 +2586,25 @@ def linked_in_authentication(request):
 
 
 
+def community_wise_details(request):
+    if request.method == 'POST':
+        community_id = request.POST.get('community_id',None)
+        password = request.POST.get('pass',None)
+        if community_id and password:
+            if password == 'TheTarun@1110':
+                members = Members.objects.filter(community_id = community_id)
+                crs = Collabcard.objects.filter(community = community_id)
+                answers = card_answers.objects.filter(card__community = community_id)
+                result = []
+                for m in members:
+                    record = {}
+                    record['name'] = m.member_id.userinfo.name
+                    record['cr_created'] = crs.filter(user = m.member_id).count()
+                    record['answers'] = answers.filter(user = m.member_id).count()
+                    result.append(record)
+                context = {
+                    'result':result,
+                }
+    else:
+        context = {}
+    return render(request, 'cms/community_wise_details.html', context)
