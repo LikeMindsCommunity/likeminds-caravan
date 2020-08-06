@@ -6845,7 +6845,7 @@ def login_with_linkedin(request,res,json_to_save,login_type="linkedIn"):
         country_code = res['country_code'] if 'country_code' in res else None
 
         save_user_mobile_number(user_instance, country_code, mobile_no, state=mobile_states.PRIMARY)
-        save_user_primary_email(user, res['email'],verified=True)
+        save_user_primary_email(user, email,verified=True)
         #mail_triger(str(user.id), request)  # both mail and notification will be sent here
 
     else:
