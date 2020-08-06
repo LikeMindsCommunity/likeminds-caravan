@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Communiuty Wise Details</title>
+</head>
+<body>
+    <form action="" method=POST>
+        {% csrf_token %}
+        <input type="text" name="community_id" placeholder="id">
+        <input type="password" name="pass" placeholder="pass">
+        <input type="submit" value="Submit">
+    </form>
+    <table >
+        <tr>
+            <td>Name</td>
+            <td>Chatroom Created</td>
+            <td>Answered</td>
+        </tr>
+        {% for m in result %}
+        <tr>
+            <td>{{m.name}}</td>
+            <td>{{m.cr_created}}</td>
+            <td>{{m.answers}}</td>
+        </tr>
+        {%endfor%}
+
+    </table>
+</body>
+<style>
+    tr:nth-child(even) {
+  background-color: #f2f2f2;
+}
+table {
+  border-collapse: collapse;
+}
+
+table, th, td {
+  border: 1px solid black;
+}
+</style>
+</html>
