@@ -7120,7 +7120,7 @@ def verify_otp(request):
             save_user_mobile_number(user_instance,country_code,mobile_no)
 
         if not context['success'] :
-            context['error_message'] = verified['error_message']
+            context['error_message'] = "Incorrect OTP"
 
         mobile_filter = userMobiles.objects.filter(mobile_no=mobile_no)
         context['profile_exists'] = mobile_filter.exists()
@@ -7197,7 +7197,7 @@ def verify_otp_on_mobile(phone_no,otp):
 
     context['success'] = success
     if not success:
-        context['error_message'] = response
+        context['error_message'] = "Incorrect OTP"
 
     return context
 
