@@ -6466,15 +6466,16 @@ def login_authenticate(request):
 
     if request.method == 'POST':
 
+        res = json.loads(request.body)
         login_type = request.GET.get('type',None)
         if login_type and login_type == "google":
             google_id_token = request.GET.get('google_id_token',None)
-            context = login_with_google(google_id_token,request)
+            context = login_with_google(google_id_token,request,res)
             info_logger.info(context)
             return JsonResponse(context)
 
 
-        res = json.loads(request.body)
+
         dic_form = res
         json_to_save = json.dumps(dic_form)
         # if user is logging in from facebook
@@ -6599,7 +6600,7 @@ def login_authenticate_version_1(request):
         if login_type == "google":
             if 'google_id_token' in res:
                 google_id_token = res['google_id_token']
-                context = login_with_google(google_id_token,request)
+                context = login_with_google(google_id_token,request,res)
                 info_logger.info(context)
                 return JsonResponse(context)
             return JsonResponse({'success':False,'error_message':"send google id token in body"})
@@ -6698,9 +6699,13 @@ def fetch_google_auth_data(google_id_token):
     x = (json_to_save,google_json)
     return x
 
-def login_with_google(google_id_token,request,login_type="google"):
+def login_with_google(google_id_token,request,res,login_type="google"):
 
     '''function to login with google'''
+
+
+    mobile_no = res['mobile_no'] if 'mobile_no' in res else None
+    country_code = res['country_code'] if 'country_code' in res else None
 
     google_json = fetch_google_auth_data(google_id_token)
     json_to_save = google_json[0]
@@ -6732,8 +6737,7 @@ def login_with_google(google_id_token,request,login_type="google"):
                                        json_to_save=json_to_save
                                        )
 
-            mobile_no = res['mobile_no'] if 'mobile_no' in res else None
-            country_code = res['country_code'] if 'country_code' in res else None
+
 
             save_user_mobile_number(user_instance, country_code, mobile_no, state=mobile_states.PRIMARY)
 
@@ -6777,6 +6781,9 @@ def login_with_facebook(request,res,json_to_save,login_type="facebook"):
 
     '''function to login with facebook'''
 
+    mobile_no = res['mobile_no'] if 'mobile_no' in res else None
+    country_code = res['country_code'] if 'country_code' in res else None
+
     res = res['login_json']
     email = res['email']
     # converting email to lower case and removing unwanted space
@@ -6803,9 +6810,6 @@ def login_with_facebook(request,res,json_to_save,login_type="facebook"):
                                    json_to_save=json_to_save, city=city,
                                    # fb_link=fb_link
                                    )
-        mobile_no = res['mobile_no'] if 'mobile_no' in res else None
-        country_code = res['country_code'] if 'country_code' in res else None
-
         save_user_mobile_number(user_instance, country_code, mobile_no, state=mobile_states.PRIMARY)
 
         save_user_primary_email(user, res['email'],verified=True)
@@ -6841,6 +6845,10 @@ def login_with_facebook(request,res,json_to_save,login_type="facebook"):
 def login_with_linkedin(request,res,json_to_save,login_type="linkedIn"):
 
     '''login with linkedIn '''
+
+    mobile_no = res['mobile_no'] if 'mobile_no' in res else None
+    country_code = res['country_code'] if 'country_code' in res else None
+
     res = res['login_json']
     # if user is logging in with linkedIn
     email = res['email']['elements'][0]['handle~']['emailAddress']
@@ -6862,11 +6870,9 @@ def login_with_linkedin(request,res,json_to_save,login_type="linkedIn"):
                                    profile_picture=profile_picture, login_type=login_type,
                                    json_to_save=json_to_save)
 
-        mobile_no = res['mobile_no'] if 'mobile_no' in res else None
-        country_code = res['country_code'] if 'country_code' in res else None
 
         save_user_mobile_number(user_instance, country_code, mobile_no, state=mobile_states.PRIMARY)
-        save_user_primary_email(user, res['email'],verified=True)
+        save_user_primary_email(user, email,verified=True)
         #mail_triger(str(user.id), request)  # both mail and notification will be sent here
 
     else:
@@ -6896,6 +6902,10 @@ def login_with_apple(request,res,json_to_save,login_type="apple"):
 
     '''function to login with apple'''
     # if user is logging in with Apple
+    mobile_no = res['mobile_no'] if 'mobile_no' in res else None
+    country_code = res['country_code'] if 'country_code' in res else None
+
+
     res = res['login_json']
     userinfo = Userinfo.objects.filter(apple_id=res['id'])
 
@@ -6918,8 +6928,7 @@ def login_with_apple(request,res,json_to_save,login_type="apple"):
                                    profile_picture=image_link, login_type=login_type,
                                    json_to_save=json_to_save, city=city, apple_id=res['id']
                                    )
-        mobile_no = res['mobile_no'] if 'mobile_no' in res else None
-        country_code = res['country_code'] if 'country_code' in res else None
+
 
         save_user_mobile_number(user_instance, country_code, mobile_no, state=mobile_states.PRIMARY)
 
@@ -7051,7 +7060,7 @@ def merge_account(request):
         return JsonResponse(context)
 
     mobile_no = request.POST.get('mobile_no')
-    country_code = request.GET.get('country_code')
+    country_code = request.POST.get('country_code')
 
     try:
         user_instance = User.objects.get(id=member_id)
@@ -7141,7 +7150,7 @@ def verify_otp(request):
             save_user_mobile_number(user_instance,country_code,mobile_no)
 
         if not context['success'] :
-            context['error_message'] = verified['error_message']
+            context['error_message'] = "Incorrect OTP"
 
         mobile_filter = userMobiles.objects.filter(mobile_no=mobile_no)
         context['profile_exists'] = mobile_filter.exists()
@@ -7218,7 +7227,7 @@ def verify_otp_on_mobile(phone_no,otp):
 
     context['success'] = success
     if not success:
-        context['error_message'] = response
+        context['error_message'] = "Incorrect OTP"
 
     return context
 
