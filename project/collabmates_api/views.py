@@ -6445,15 +6445,16 @@ def login_authenticate(request):
 
     if request.method == 'POST':
 
+        res = json.loads(request.body)
         login_type = request.GET.get('type',None)
         if login_type and login_type == "google":
             google_id_token = request.GET.get('google_id_token',None)
-            context = login_with_google(google_id_token,request)
+            context = login_with_google(google_id_token,request,res)
             info_logger.info(context)
             return JsonResponse(context)
 
 
-        res = json.loads(request.body)
+
         dic_form = res
         json_to_save = json.dumps(dic_form)
         # if user is logging in from facebook
@@ -6578,7 +6579,7 @@ def login_authenticate_version_1(request):
         if login_type == "google":
             if 'google_id_token' in res:
                 google_id_token = res['google_id_token']
-                context = login_with_google(google_id_token,request)
+                context = login_with_google(google_id_token,request,res)
                 info_logger.info(context)
                 return JsonResponse(context)
             return JsonResponse({'success':False,'error_message':"send google id token in body"})
@@ -6677,9 +6678,13 @@ def fetch_google_auth_data(google_id_token):
     x = (json_to_save,google_json)
     return x
 
-def login_with_google(google_id_token,request,login_type="google"):
+def login_with_google(google_id_token,request,res,login_type="google"):
 
     '''function to login with google'''
+
+
+    mobile_no = res['mobile_no'] if 'mobile_no' in res else None
+    country_code = res['country_code'] if 'country_code' in res else None
 
     google_json = fetch_google_auth_data(google_id_token)
     json_to_save = google_json[0]
@@ -6711,8 +6716,7 @@ def login_with_google(google_id_token,request,login_type="google"):
                                        json_to_save=json_to_save
                                        )
 
-            mobile_no = res['mobile_no'] if 'mobile_no' in res else None
-            country_code = res['country_code'] if 'country_code' in res else None
+
 
             save_user_mobile_number(user_instance, country_code, mobile_no, state=mobile_states.PRIMARY)
 
@@ -6756,6 +6760,9 @@ def login_with_facebook(request,res,json_to_save,login_type="facebook"):
 
     '''function to login with facebook'''
 
+    mobile_no = res['mobile_no'] if 'mobile_no' in res else None
+    country_code = res['country_code'] if 'country_code' in res else None
+
     res = res['login_json']
     email = res['email']
     # converting email to lower case and removing unwanted space
@@ -6782,9 +6789,6 @@ def login_with_facebook(request,res,json_to_save,login_type="facebook"):
                                    json_to_save=json_to_save, city=city,
                                    # fb_link=fb_link
                                    )
-        mobile_no = res['mobile_no'] if 'mobile_no' in res else None
-        country_code = res['country_code'] if 'country_code' in res else None
-
         save_user_mobile_number(user_instance, country_code, mobile_no, state=mobile_states.PRIMARY)
 
         save_user_primary_email(user, res['email'],verified=True)
@@ -6820,6 +6824,10 @@ def login_with_facebook(request,res,json_to_save,login_type="facebook"):
 def login_with_linkedin(request,res,json_to_save,login_type="linkedIn"):
 
     '''login with linkedIn '''
+
+    mobile_no = res['mobile_no'] if 'mobile_no' in res else None
+    country_code = res['country_code'] if 'country_code' in res else None
+
     res = res['login_json']
     # if user is logging in with linkedIn
     email = res['email']['elements'][0]['handle~']['emailAddress']
@@ -6841,8 +6849,6 @@ def login_with_linkedin(request,res,json_to_save,login_type="linkedIn"):
                                    profile_picture=profile_picture, login_type=login_type,
                                    json_to_save=json_to_save)
 
-        mobile_no = res['mobile_no'] if 'mobile_no' in res else None
-        country_code = res['country_code'] if 'country_code' in res else None
 
         save_user_mobile_number(user_instance, country_code, mobile_no, state=mobile_states.PRIMARY)
         save_user_primary_email(user, email,verified=True)
@@ -6875,6 +6881,10 @@ def login_with_apple(request,res,json_to_save,login_type="apple"):
 
     '''function to login with apple'''
     # if user is logging in with Apple
+    mobile_no = res['mobile_no'] if 'mobile_no' in res else None
+    country_code = res['country_code'] if 'country_code' in res else None
+
+
     res = res['login_json']
     userinfo = Userinfo.objects.filter(apple_id=res['id'])
 
@@ -6897,8 +6907,7 @@ def login_with_apple(request,res,json_to_save,login_type="apple"):
                                    profile_picture=image_link, login_type=login_type,
                                    json_to_save=json_to_save, city=city, apple_id=res['id']
                                    )
-        mobile_no = res['mobile_no'] if 'mobile_no' in res else None
-        country_code = res['country_code'] if 'country_code' in res else None
+
 
         save_user_mobile_number(user_instance, country_code, mobile_no, state=mobile_states.PRIMARY)
 
