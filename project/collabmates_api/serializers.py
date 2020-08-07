@@ -687,6 +687,8 @@ def get_members_profile(member_ids,community_id,current_user_id=None):
             member_instance = member_filter[0]
             community_profile = get_user_profile(member_id,community_id,current_user_id=current_user_id)
             community_profile['state'] = member_instance.state
+            if member_instance.image_url:
+                community_profile['image_url'] = member_instance.image_url
             member_profile_list.append(community_profile)
 
         else:
@@ -811,7 +813,8 @@ def CommunityQuestionsSerializer(community_question_instance):
 
 
 
-
+    if community_question_instance.image_url:
+        context['image_url'] = community_question_instance.image_url
 
     return context
 

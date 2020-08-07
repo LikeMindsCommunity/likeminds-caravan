@@ -1480,7 +1480,10 @@ def edit_member_profile(request):
     form_response = FormResponseSerilaizer(community_id,member_id, bl=True, current_user_id=member_id)
 
     #setting edit status in members table
-    Members.objects.filter(community_id=community_instance,member_id=user_instance).update(edit_required=False)
+    member_filter = Members.objects.filter(community_id=community_instance,member_id=user_instance)
+    member_filter.update(edit_required=False)
+    if 'image_url' in res:
+        member_filter.update(image_url=res['image_url'])
 
     #posting a introduction collabcard
     if collabcard_id == 0:
@@ -1494,6 +1497,9 @@ def edit_member_profile(request):
     question_answer=""
     if form_response:
         question_answer = form_response[1]
+
+
+
 
     if question_answer:
         return JsonResponse({'success': True,'question_answers':question_answer})
@@ -1782,7 +1788,7 @@ def remove_members(community_id, member_id,removed_state):
     #print(intro_removed)
 
 
-def get_community_profile(request):
+def fetch_community_profile(request):
 
     '''api to get the community profile of user'''
 
@@ -4293,19 +4299,20 @@ def get_answer_data(answer_filter,community_id,current_user_id,last_seen=None):
 
     answers = []
     for ans in answer_filter:
-        user = Userinfo.objects.filter(user_id=ans.user.id)
-        usr = UserinfoSerializer(user[0])
-        #usr['is_clickable']=feedback
+        # user = Userinfo.objects.filter(user_id=ans.user.id)
+        # usr = UserinfoSerializer(user[0])
+        # #usr['is_clickable']=feedback
 
+        usr = get_members_profile([ans.user.id],community_id,current_user_id)
         removed_state = removedMembersSerializer(community_id, usr['id'])
 
         if removed_state != False:
             usr['remove_state'] = removed_state
 
-        form_response = FormResponseSerilaizer(community_id, ans.user.id,bl=True,current_user_id=current_user_id)
-        if form_response:
-            #usr['response'] = form_response[0]
-            usr['question_answers'] = form_response[1]
+        # form_response = FormResponseSerilaizer(community_id, ans.user.id,bl=True,current_user_id=current_user_id)
+        # if form_response:
+        #     #usr['response'] = form_response[0]
+        #     usr['question_answers'] = form_response[1]
         # coverting current time into epoch time
 
         #time_text = get_time_text(ans.created_at)
