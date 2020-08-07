@@ -146,10 +146,10 @@ def get_logged_in_user(user_instance):
     for mobile_no in mobile_filter:
         mobile_list.append(userMobilesSerializer(mobile_no))
 
-
-    context['emails'] = email_list
-
-    context['mobiles'] = mobile_list
+    if email_list:
+        context['emails'] = email_list
+    if mobile_list:
+        context['mobiles'] = mobile_list
 
     return context
 
