@@ -134,10 +134,10 @@ def get_logged_in_user(user_instance):
     for email in email_filter:
         email_list.append(userEmailsSerializer(email))
 
-    if not email_list:
-        email = user_instance.userinfo.email
-        if email:
-            email_list.append(email)
+    # if not email_list:
+    #     email = user_instance.userinfo.email
+    #     if email:
+    #         email_list.append(email)
 
     mobile_filter = userMobiles.objects.filter(user=user_instance)
 
