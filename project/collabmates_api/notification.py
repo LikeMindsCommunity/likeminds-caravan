@@ -790,7 +790,7 @@ def send_notification_to_incomplete_profile(member_id,community_id,community_sta
         message['payload']={
             "title" : "Complete your profile!",
             "sub_title" : "Get full access to "+ community_name,
-            'route':'route://collabcard?collabcard_id' + str(community_id)
+            'route':'route://community?community_id=' + str(community_id)
         }
         notification_meta(notification_list,message)
 
