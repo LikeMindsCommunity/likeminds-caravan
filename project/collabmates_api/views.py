@@ -7447,10 +7447,10 @@ def limit_access(request):
 
     if not community_list:
         context['title'] = "Important Message"
-        context['sub_title'] = """Access to this app is restricted to invited members only. You can:
-1. Click on the invitation link if you received one
-2. Check login credentials if you have already registered with us
-3. Stay tuned and we will let you know once we open up for public.
+        context['sub_title'] = """Access to this app is restricted to invited members only. You can:\n
+1. Click on the invitation link if you received one\n
+2. Check login credentials if you have already registered with us\n
+3. Stay tuned and we will let you know once we open up for public.\n
 
 If you are a community builder and you wish to receive an invite, do fill out the following form:"""
 
