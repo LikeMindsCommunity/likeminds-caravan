@@ -4304,10 +4304,11 @@ def get_answer_data(answer_filter,community_id,current_user_id,last_seen=None):
         # #usr['is_clickable']=feedback
 
         usr = get_members_profile([ans.user.id],community_id,current_user_id)
-        removed_state = removedMembersSerializer(community_id, usr['id'])
+        user_context = usr[0]
+        removed_state = removedMembersSerializer(community_id, user_context['id'])
 
         if removed_state != False:
-            usr['remove_state'] = removed_state
+            user_context['remove_state'] = removed_state
 
         # form_response = FormResponseSerilaizer(community_id, ans.user.id,bl=True,current_user_id=current_user_id)
         # if form_response:
@@ -4325,7 +4326,7 @@ def get_answer_data(answer_filter,community_id,current_user_id,last_seen=None):
               'id': ans.id,
               'answer': ans.answer,
               'created_at': time_text,
-              'member': usr,
+              'member': user_context,
               'images': attachements['image'],
               'pdf': attachements['pdf'],
               'date': date,
@@ -8217,7 +8218,7 @@ def get_all_members(request, req_dict=None):
 
 def get_member_instances(member_list,current_user_id,community_id,is_filter=False,member_set=None):
 
-    '''function to get members instances from members table'''
+    '''function to get members instances from members table and applying filter based on member_set'''
 
     members = []
 
