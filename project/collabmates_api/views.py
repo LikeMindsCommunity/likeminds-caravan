@@ -7030,7 +7030,7 @@ def merge_account(request):
         return JsonResponse(context)
 
     mobile_no = request.POST.get('mobile_no')
-    country_code = request.GET.get('country_code')
+    country_code = request.POST.get('country_code')
 
     try:
         user_instance = User.objects.get(id=member_id)
