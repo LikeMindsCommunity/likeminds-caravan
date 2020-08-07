@@ -790,8 +790,7 @@ def send_notification_to_incomplete_profile(member_id,community_id,community_sta
         message['payload']={
             "title" : "Complete your profile!",
             "sub_title" : "Get full access to "+ community_name,
-            'route':'route://community_collabcard?community_id=' + str(community_id) + '&community_name=' + str(
-                community_name) + '&community_state=' + str(community_state)
+            'route':'route://community?community_id=' + str(community_id)
         }
         notification_meta(notification_list,message)
 
@@ -821,7 +820,6 @@ def send_login_dropoff_notification(token,platform_code):
         message['payload']={
                 "title" : "Finish signing up!",
                 "sub_title" : "Click here to sign up and meet like-minded people and have relevant conversations.",
-                'route':'route://community_collabcard'
             }
         notification_meta(notification_list,message)
 
@@ -863,7 +861,8 @@ def send_morning_pending_request_notification():
             message['payload']={
                     "title" : str(community.name),
                     "sub_title" : str(pending_members_count) + " members are awaiting your approval to join the community.",
-                    'route':'route://community_collabcard'
+                    'route':'route://member_approve?'+'community_id=' + str(community.id) + "&" + "community_name=" + str(community.name)
+
                 }
 
             if pending_members_count == 1:
@@ -898,7 +897,7 @@ def send_evening_level_notification():
         message['payload']={
                 "title" : 'Level up '+str(community_level.community.name),
                 "sub_title" : str(community_level.level) + " " +str(community_level.sub_title),
-                'route':'route://community_collabcard'
+                'route':'route://community?community_id='+str(community_level.community.id)
             }
 
         notification_meta(notification_list,message)
@@ -944,7 +943,7 @@ def send_notification_to_join_drop_off(member_id,community_id,aj,time_in_hrs):
             message['payload']={
                 "title" : str(community_name),
                 "sub_title" : "Don't miss relevant conversations. Click here to join and meet like-minded people. ",
-                'route':'route://community_collabcard?community_id=' + str(community_id) + '&aj=' + str(aj)
+                'route':'route://community?community_id=' + str(community_id) + '&aj=' + str(aj)
             }
             notification_meta(notification_list,message)
         
@@ -952,7 +951,7 @@ def send_notification_to_join_drop_off(member_id,community_id,aj,time_in_hrs):
             message['payload']={
                 "title" : str(community_name),
                 "sub_title" : "Apply to join this community and meet like-minded people. ",
-                'route':'route://community_collabcard?community_id=' + str(community_id)
+                'route':'route://community?community_id=' + str(community_id)
             }
             notification_meta(notification_list,message)
     
@@ -971,7 +970,7 @@ def send_notification_to_join_drop_off(member_id,community_id,aj,time_in_hrs):
                 message['payload']={
                     "title" : 'Invitation link about to expire!',
                     "sub_title" : "Don't miss relevant conversations in "+ str(community_name) +". Click here to join and meet like-minded people.",
-                    'route':'route://community_collabcard?community_id=' + str(community_id)
+                    'route':'route://community?community_id=' + str(community_id)
                 }
                 
                 notification_meta(notification_list,message)
@@ -990,7 +989,7 @@ def send_notification_to_join_drop_off(member_id,community_id,aj,time_in_hrs):
                 message['payload']={
                     "title" : member_name + 'may need new invitation!',
                     "sub_title" : "Your private invitation for joining "+ str(community_name) +"has expired. Please resend them invite link.",
-                    'route':'route://community_collabcard?community_id=' + str(community_id)
+                    'route':'route://community?community_id=' + str(community_id)
                 }
 
                 notification_meta(notification_list,message)
@@ -1095,8 +1094,7 @@ def ask_approval_notification(community_id,community_name,approver_id,
     message['payload'] = {
         'title': str(community_name),
         'sub_title': """%s has requested to join your community."""%(member_name),
-        'route':'route://community_collabcard?community_id=' + str(community_id) + '&community_name=' + str(
-            community_name) + '&community_state=' + str(community_state)
+        'route':'route://community?community_id=' + str(community_id)
     }
 
     notification_meta(notification_list, message)
@@ -1127,8 +1125,7 @@ def send_notification_to_referrer_of_lg_community(community_id,community_name,re
     message['payload'] = {
         'title': str(community_name),
         'sub_title': sub_title,
-        'route':'route://community_collabcard?community_id=' + str(community_id) + '&community_name=' + str(
-            community_name) + '&community_state=' + str(community_state)
+        'route':'route://community?community_id=' + str(community_id)
     }
 
     notification_meta(notification_list, message)
@@ -1156,8 +1153,7 @@ def send_notification_to_referrer_of_ig_community(community_id,community_name,re
     message['payload'] = {
         'title': str(community_name),
         'sub_title': """%s just joined this community."""%(member_name),
-        'route':'route://community_collabcard?community_id=' + str(community_id) + '&community_name=' + str(
-            community_name) + '&community_state=' + str(community_state)
+        'route':'route://community?community_id=' + str(community_id)
     }
 
     notification_meta(notification_list, message)
@@ -1188,8 +1184,7 @@ def send_poll_or_event_notification(card_id, user_id):
     message['payload'] = {
         'title': str(community_name),
         'sub_title': sub_title,
-        'route': 'route://community_collabcard?community_id=' + str(community_id) + '&community_name=' + str(
-            community_name) + '&community_state=' + str(card.community.hide_community)
+        'route': 'route://collabcard?collabcard_id='+str(card_id)
     }
 
     token_list = [card_creator_fcm_token]
@@ -1328,8 +1323,7 @@ def send_notification_for_tool_unlocked_for_live_community(referer_id,referal_co
     '''function to send notification for tool unlocked'''
 
     sub_title = ""
-    route = 'route://community_collabcard?community_id=' + str(community_id) + '&community_name=' + str(
-            community_name) + '&community_state=' + str(community_state)
+    route = 'route://community?community_id=' + str(community_id)
     print("refererid--",referer_id)
 
     if referal_count == 1:
