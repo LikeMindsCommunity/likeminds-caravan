@@ -943,7 +943,7 @@ def send_notification_to_join_drop_off(member_id,community_id,aj,time_in_hrs):
             message['payload']={
                 "title" : str(community_name),
                 "sub_title" : "Don't miss relevant conversations. Click here to join and meet like-minded people. ",
-                'route':'route://community/community_id=' + str(community_id) + '&aj=' + str(aj)
+                'route':'route://community?community_id=' + str(community_id) + '&aj=' + str(aj)
             }
             notification_meta(notification_list,message)
         
