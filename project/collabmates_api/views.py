@@ -1768,6 +1768,48 @@ def fetch_community_profile(request):
     return JsonResponse({})
 
 
+def fetch_user_chatrooms(request):
+
+    '''api to send chatrooms created by user or followed by user'''
+
+    page = request.GET.get('page',1)
+    state = request.GET.get('state',0)
+    user_id = request.GET.get('user_id')
+    community_id = request.GET.get('community_id')
+    chatrooms = []
+
+
+    # chatrooms created by user
+    if int(state) == 0:
+
+        chatroom_filter = Collabcard.objects.filter(user_id=user_id,community_id=community_id).order_by('-id')
+        chatroom_filter = pagination(chatroom_filter,page,paginate_by=10)
+
+        for chatroom in chatroom_filter:
+
+            temp = get_chatroom_instance(chatroom,user_id)
+            chatrooms.append(temp)
+
+        return JsonResponse({'chatrooms':chatrooms})
+
+
+    #chatrooms not created by user but not followed by users
+    elif int(state) == 1:
+        state_filter = collabcardState.objects.filter(user_id=user_id,community_id=community_id,follow_status=True).order_by('-id')
+        state_filter = pagination(state_filter,page,paginate_by=10)
+        for chatroom in state_filter:
+
+            if chatroom.card.user_id == int(user_id):
+                continue
+            temp = get_chatroom_instance(chatroom.card,user_id)
+            chatrooms.append(temp)
+
+        return JsonResponse({'chatrooms': chatrooms})
+
+
+
+
+    return JsonResponse({'error_message':"Send correct state"})
 
 
 ############# functions for  create flow of card,community and members   ##########################
