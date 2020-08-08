@@ -254,9 +254,10 @@ def your_communities(request, user_id):
         community['pending_members_count'] = each_community.pending_members
         community['updated_at'] = get_time_text(each_community.updated_at)
         if each_community.last_unseen_conversation:
-            collabcard = CollabcardSerializer(each_community.last_unseen_conversation, user=member_id)
-            user = each_community.last_unseen_conversation.user
-            collabcard['member'] = UserinfoSerializer(user.userinfo)
+            # collabcard = CollabcardSerializer(each_community.last_unseen_conversation, user=member_id)
+            # user = each_community.last_unseen_conversation.user
+            # collabcard['member'] = UserinfoSerializer(user.userinfo)
+            collabcard = get_chatroom_instance(each_community.last_unseen_conversation,member_id)
             community['collabcard'] = collabcard
 
         if each_community.member_referral:
@@ -493,56 +494,13 @@ def admins(request, community_id,req_dict=None):
     users = []
 
     for admin in admins:
-        user = Userinfo.objects.filter(user_id=admin.member_id.id)
-        # get user serialized
-        usr = UserinfoSerializer(user[0])
 
-        if int(community_id) != feedback_community_id:
-            form_response = FormResponseSerilaizer(community_id, admin.member_id.id,bl=True,current_user_id=current_user_id)
-            if form_response:
-                usr['response'] = form_response[0]
-                usr['question_answers'] = form_response[1]
-        else:
-            form_response =[
-                {
-                    'key':"",
-                    'value':"founder of LikeMinds"
-                }
-
-            ]
-            usr['response'] = form_response
-        ref_members = get_referred_members_of_a_member(community_id, admin.member_id.id)
-        usr['referred_members_count']=len(ref_members)
+        user_instance = admin.member_id
+        temp = get_members_profile([user_instance.id],community_id,current_user_id)
+        users.append(temp)
 
 
-        users.append(usr)
-
-
-    community = Community.objects.get(pk=community_id)
-    referred_members_count = 0
-    if member_id and community.hide_community == '3':
-        ref_members = get_referred_members_of_a_member(community_id, member_id)
-        referred_members_count = len(ref_members)
-        context = {'members': users, 'referred_members_count': referred_members_count}
-    elif member_id:
-
-        #print(">>>>>>>>>>> ", member_id)
-        referals = get_referred_members_of_a_member(community_id=community_id, member_id=member_id)
-        referal_count = len(referals)
-        # print(referals)
-        # count = 0
-        # print("referal count === ", referal_count)
-        #
-        # for mem_id in referals:
-        #     member = Members.objects.filter(member_id=mem_id, community_id=community_id)
-        #     if member.exists():
-        #
-        #         if member[0].state == 4:
-        #             count += 1
-
-        context = {'members': users, 'referred_members_count': referal_count}
-    else:
-        context = {'members': users}
+    context = {'members': users}
 
 
     if req_dict:
@@ -8181,7 +8139,7 @@ def get_all_members(request, req_dict=None):
             if collabcard_id:
                 members = get_members_data_for_collabcard(collabcard_id, community_id, current_user_id, page_no = page,member_set = member_set)
             else:
-                members = get_member_instances(member_list, current_user_id, community_id, is_filter=is_filter,
+                members = get_filtered_member_instances(member_list, current_user_id, community_id, is_filter=is_filter,
                                                member_set=member_set)
 
 
@@ -8197,7 +8155,7 @@ def get_all_members(request, req_dict=None):
                             state=member_states.PROFILE_UNAVAILABLE) | Q(state=member_states.PENDING_MEMBER)).order_by(
                         'id')
                 member_list = pagination(member_list, page, paginate_by=10)
-                members = get_member_instances(member_list, current_user_id, community_id)
+                members = get_filtered_member_instances(member_list, current_user_id, community_id)
 
 
     else:
@@ -8206,7 +8164,7 @@ def get_all_members(request, req_dict=None):
             Q(state=member_states.ADMIN) | Q(state=member_states.MEMBER) | Q(
                 state=member_states.PROFILE_UNAVAILABLE)).order_by('id')
         member_list = pagination(member_list, page, paginate_by=10)
-        members = get_member_instances(member_list, current_user_id, community_id)
+        members = get_filtered_member_instances(member_list, current_user_id, community_id)
 
     promoter_instance = is_member_promoter(community_instance,current_user_id)
 
@@ -8216,7 +8174,7 @@ def get_all_members(request, req_dict=None):
     return context
 
 
-def get_member_instances(member_list,current_user_id,community_id,is_filter=False,member_set=None):
+def get_filtered_member_instances(member_list,current_user_id,community_id,is_filter=False,member_set=None):
 
     '''function to get members instances from members table and applying filter based on member_set'''
 
@@ -8224,16 +8182,7 @@ def get_member_instances(member_list,current_user_id,community_id,is_filter=Fals
 
     for member in member_list:
         member_id = member.member_id.id
-        userinfo_serialized_object = UserinfoSerializer(member.member_id.userinfo)
-        userinfo_serialized_object['state'] = member.state
-
-        form_response = FormResponseSerilaizer(community_id,member_id , bl=True,
-                                               current_user_id=current_user_id)
-
-        if form_response:
-            #userinfo_serialized_object['response'] = form_response[0]
-            userinfo_serialized_object['question_answers'] = form_response[1]
-
+        userinfo_serialized_object = get_members_profile([member_id],community_id,current_user_id)
         if not is_filter:
             members.append(userinfo_serialized_object)
             #pass
@@ -8315,19 +8264,10 @@ def get_members_data_for_collabcard(card_id,community_id,current_user_id,page_no
 
         if member_set and user_instance.id not in member_set:
             continue
-        member_state = 0
-        user_context = get_user_profile(user_instance.id,community_id,current_user_id)
+        user_context = get_members_profile([user_instance.id],community_id,current_user_id)
+        user_context = user_context[0]
         user_context['collabcard_state'] = instance.state
         user_context['is_guest'] = instance.is_guest
-
-        member_filter = Members.objects.filter(community_id=community_id,member_id=user_instance.id)
-
-        if member_filter.exists():
-            member_state = member_filter[0].state
-
-        user_context['state'] = member_state
-
-
         members.append(user_context)
 
 
