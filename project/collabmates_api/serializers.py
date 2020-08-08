@@ -687,8 +687,13 @@ def get_members_profile(member_ids,community_id,current_user_id=None):
             member_instance = member_filter[0]
             community_profile = get_user_profile(member_id,community_id,current_user_id=current_user_id)
             community_profile['state'] = member_instance.state
+
+            #sending image  url of members
             if member_instance.image_url:
                 community_profile['image_url'] = member_instance.image_url
+
+            if member_instance.state == 1 or member_instance.state == 4:
+                community_profile['route'] = """route://member_community_profile?community_id=%s&member_id=%s"""%(str(community_id),str(member_id))
             member_profile_list.append(community_profile)
 
         else:
