@@ -102,6 +102,7 @@ urlpatterns = [
     path('remove_from_member',api_views.remove_from_member,name='remove_from_member'),
     path('fetch_community_profile',api_views.fetch_community_profile,name='fetch_community_profile'),
     path('fetch_user_chatrooms', api_views.fetch_user_chatrooms, name='fetch_user_chatrooms'),
+    path('fetch_common_communities', api_views.fetch_common_communities, name='fetch_common_communities'),
 
 
     path('push', api_views.push, name='push'),

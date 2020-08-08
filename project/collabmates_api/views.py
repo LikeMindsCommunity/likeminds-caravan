@@ -1811,6 +1811,42 @@ def fetch_user_chatrooms(request):
 
     return JsonResponse({'error_message':"Send correct state"})
 
+def fetch_common_communities(request):
+
+    '''api to fetch common communities of user'''
+    user_id = request.GET.get('user_id')
+    member_id = get_member_id_from_headers(request)
+    page = request.GET.get('page',1)
+    user_communities = Members.objects.filter(member_id=user_id).filter(
+        Q(state=member_states.ADMIN)|Q(state=member_states.MEMBER)|Q(state=member_states.PROFILE_UNAVAILABLE)).values_list('community_id',flat=True).order_by('-id')
+
+    member_communities =  Members.objects.filter(member_id=member_id).filter(
+        Q(state=member_states.ADMIN)|Q(state=member_states.MEMBER)|Q(state=member_states.PROFILE_UNAVAILABLE)).values_list('community_id',flat=True).order_by('-id')
+
+    common_communities = member_communities.intersection(user_communities)
+    common_communities = pagination(common_communities,page,paginate_by=10)
+    communities = []
+    communities_order = {}
+
+    # making a dictionary in order to save latest timestamp of chatroom creation in a community
+    for community_id in common_communities:
+
+        last_chatroom = Collabcard.objects.filter(community_id=community_id).last()
+
+        if last_chatroom:
+            communities_order[community_id] = last_chatroom.date_epoch
+        else:
+            communities_order[community_id] = 0
+
+    communities_order = sorted(communities_order.items(), key=lambda x: x[1], reverse=True)
+
+    for order in communities_order:
+
+        community_instance = Community.objects.get(id=order[0])
+        community_serializer = CommunitySerializer(community_instance)
+
+        communities.append(community_serializer)
+    return JsonResponse({'communities':communities})
 
 ############# functions for  create flow of card,community and members   ##########################
 
