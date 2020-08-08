@@ -1783,6 +1783,7 @@ def fetch_user_chatrooms(request):
     if int(state) == 0:
 
         chatroom_filter = Collabcard.objects.filter(user_id=user_id,community_id=community_id).order_by('-id')
+        created_chatroom_count = chatroom_filter.count()
         chatroom_filter = pagination(chatroom_filter,page,paginate_by=10)
 
         for chatroom in chatroom_filter:
@@ -1790,12 +1791,13 @@ def fetch_user_chatrooms(request):
             temp = get_chatroom_instance(chatroom,user_id)
             chatrooms.append(temp)
 
-        return JsonResponse({'chatrooms':chatrooms})
+        return JsonResponse({'chatrooms':chatrooms,'created_chatroom_count':created_chatroom_count})
 
 
     #chatrooms not created by user but not followed by users
     elif int(state) == 1:
         state_filter = collabcardState.objects.filter(user_id=user_id,community_id=community_id,follow_status=True).order_by('-id')
+        followed_chatroom_count = state_filter.count()
         state_filter = pagination(state_filter,page,paginate_by=10)
         for chatroom in state_filter:
 
@@ -1804,7 +1806,7 @@ def fetch_user_chatrooms(request):
             temp = get_chatroom_instance(chatroom.card,user_id)
             chatrooms.append(temp)
 
-        return JsonResponse({'chatrooms': chatrooms})
+        return JsonResponse({'chatrooms': chatrooms,'followed_chatroom_count' : followed_chatroom_count})
 
 
 
