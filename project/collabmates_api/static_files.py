@@ -30,3 +30,22 @@ GOOGLE_PLAYSTORE = "https://firebasestorage.googleapis.com/v0/b/collabmates-3d60
 APPLE_APPSTORE = "https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Fmain_website%2Fapple_store.png?alt=media&token=b1b62dfb-cde0-42c1-b801-5ed7fd0ca90b"
 
 APP_LOGO = "https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Fmain_website%2Flogo.png?alt=media&token=2e66c0e5-35ef-4f94-ad2b-356c78eeaaba"
+
+
+
+#icons
+
+icons = {}
+
+icons['Phone No.'] = "https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Ficons%2Fphone_no.png?alt=media&token=dada80b8-6a2c-4c47-b085-b8acf68a1c85"
+
+icons['Email'] = "https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Ficons%2Femail.png?alt=media&token=580ac8d9-bd05-421b-895f-06dca3bfa268"
+
+icons['LinkedIn'] = "https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Ficons%2FlinkedIn.png?alt=media&token=c2482e0d-9be6-474a-923c-d3cae74ed618"
+
+icons['Facebook'] = "https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Ficons%2Ffb_alt.png?alt=media&token=af20c8c8-d51c-456b-bdab-406058e23990"
+
+icons['Instagram'] = "https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Ficons%2Finstagram.png?alt=media&token=6781087a-63f7-415f-b0ed-dacac43e423e"
+
+icons['Github'] = "https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Ficons%2Fgithub.png?alt=media&token=2cadb428-e289-4cc3-948d-e5228fb47fb8"
+
