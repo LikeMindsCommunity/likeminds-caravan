@@ -6722,10 +6722,12 @@ def login_with_google(google_id_token,request,res,login_type="google"):
 
             save_user_primary_email(user,res['email'],verified=True)
             #mail_triger(str(user.id), request)  # both mail and notification will be sent here
-
+            email_exists = False
 
         else:
             userinfo = user.userinfo
+            #save_user_mobile_number(user, country_code, mobile_no, state=mobile_states.PRIMARY)
+            email_exists = True
 
 
 
@@ -6752,7 +6754,7 @@ def login_with_google(google_id_token,request,res,login_type="google"):
             login(request,user=userinfo.user_id,backend="django.contrib.auth.backends.ModelBackend")
 
         access = is_user_community_part(usr['id'])
-        context = {'user': usr, 'has_tags': has_tags,'access':access}
+        context = {'user': usr,'access':access,'email_exists':email_exists}
 
     return context
 
@@ -6792,9 +6794,12 @@ def login_with_facebook(request,res,json_to_save,login_type="facebook"):
         save_user_mobile_number(user_instance, country_code, mobile_no, state=mobile_states.PRIMARY)
 
         save_user_primary_email(user, res['email'],verified=True)
-        #mail_triger(str(user.id), request)  # both mail and notification will be sent here
+
+        email_exists = False
     else:
         userinfo = user.userinfo
+        email_exists = True
+        #save_user_mobile_number(user, country_code, mobile_no, state=mobile_states.PRIMARY)
 
         # get serialized user object
 
@@ -6818,7 +6823,7 @@ def login_with_facebook(request,res,json_to_save,login_type="facebook"):
 
 
     access = is_user_community_part(usr['id'])
-    context = {'user': usr, 'has_tags': has_tags, 'access': access}
+    context = {'user': usr,'access': access,'email_exists':email_exists}
     return context
 
 def login_with_linkedin(request,res,json_to_save,login_type="linkedIn"):
@@ -6852,10 +6857,11 @@ def login_with_linkedin(request,res,json_to_save,login_type="linkedIn"):
 
         save_user_mobile_number(user_instance, country_code, mobile_no, state=mobile_states.PRIMARY)
         save_user_primary_email(user, email,verified=True)
-        #mail_triger(str(user.id), request)  # both mail and notification will be sent here
+        email_exists = False
 
     else:
         userinfo = user.userinfo
+        email_exists = True
 
     #usr = UserinfoSerializer(userinfo)
     usr = get_logged_in_user(user_instance=user)
@@ -6873,7 +6879,7 @@ def login_with_linkedin(request,res,json_to_save,login_type="linkedIn"):
 
 
     access = is_user_community_part(usr['id'])
-    context = {'user': usr, 'has_tags': has_tags, 'access': access}
+    context = {'user': usr,'access': access,'email_exists':email_exists}
     #print(context)
     return context
 
@@ -6912,10 +6918,12 @@ def login_with_apple(request,res,json_to_save,login_type="apple"):
         save_user_mobile_number(user_instance, country_code, mobile_no, state=mobile_states.PRIMARY)
 
         save_user_primary_email(user, res['email'], verified=True)
-       # mail_triger(str(user.id), request)  # both mail and notification will be sent here
+        email_exists = False
 
     else:
         userinfo = userinfo[0]
+
+        email_exists = True
 
     # get serialized user object
 
@@ -6935,7 +6943,7 @@ def login_with_apple(request,res,json_to_save,login_type="apple"):
         usr['tags'] = tags
 
     access = is_user_community_part(usr['id'])
-    context = {'user': usr, 'has_tags': has_tags, 'access': access}
+    context = {'user': usr,'access': access,'email_exists': email_exists}
     return context
 
 def custom_login(request,res,login_type="custom"):
