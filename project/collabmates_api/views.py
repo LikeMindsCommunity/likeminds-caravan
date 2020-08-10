@@ -1791,7 +1791,7 @@ def fetch_user_chatrooms(request):
             temp = get_chatroom_instance(chatroom,user_id)
             chatrooms.append(temp)
 
-        return JsonResponse({'chatrooms':chatrooms,'created_chatroom_count':created_chatroom_count})
+        return JsonResponse({'chatrooms':chatrooms,'total_chatrooms_created':created_chatroom_count})
 
 
     #chatrooms not created by user but not followed by users
@@ -1806,7 +1806,7 @@ def fetch_user_chatrooms(request):
             temp = get_chatroom_instance(chatroom.card,user_id)
             chatrooms.append(temp)
 
-        return JsonResponse({'chatrooms': chatrooms,'followed_chatroom_count' : followed_chatroom_count})
+        return JsonResponse({'chatrooms': chatrooms,'total_chatrooms_followed' : followed_chatroom_count})
 
 
 
