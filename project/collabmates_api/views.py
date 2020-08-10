@@ -1826,6 +1826,7 @@ def fetch_common_communities(request):
         Q(state=member_states.ADMIN)|Q(state=member_states.MEMBER)|Q(state=member_states.PROFILE_UNAVAILABLE)).values_list('community_id',flat=True).order_by('-id')
 
     common_communities = member_communities.intersection(user_communities)
+    total_count = common_communities.count()
     common_communities = pagination(common_communities,page,paginate_by=10)
     communities = []
     communities_order = {}
@@ -1848,7 +1849,7 @@ def fetch_common_communities(request):
         community_serializer = CommunitySerializer(community_instance)
 
         communities.append(community_serializer)
-    return JsonResponse({'communities':communities})
+    return JsonResponse({'communities':communities,'total_count':total_count})
 
 ############# functions for  create flow of card,community and members   ##########################
 
