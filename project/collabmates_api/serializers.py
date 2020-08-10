@@ -10,6 +10,8 @@ from utility.states import card_types,question_states
 url = settings.URL
 import ast
 
+from .static_files import *
+
 #
 # class CommunitySerializer(serializers.HyperlinkedModelSerializer):
 #     class Meta:
@@ -761,7 +763,10 @@ def FormResponseSerilaizer(community_id, user_id,current_user_id=None,bl=False):
             temp['question_id'] = response.question_id
             temp['state'] = questions['state']
             temp['is_hidden'] = questions['is_hidden']
-            #temp['question_instance'] = questions               #sending the question instance
+
+            if response.question_title in ICONS:
+                temp['image_url'] = ICONS[response.question_title]
+
             new_response.append(temp)
 
         user_response.append(response_object)
@@ -820,8 +825,7 @@ def CommunityQuestionsSerializer(community_question_instance):
 
 
 
-    if community_question_instance.image_url:
-        context['image_url'] = community_question_instance.image_url
+
 
     return context
 

@@ -711,7 +711,6 @@ class communityQuestions(models.Model):
 
     is_hidden = models.BooleanField(default=False)
 
-    image_url = models.TextField(null=True)
 
 
 
