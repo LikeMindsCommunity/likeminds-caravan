@@ -7101,13 +7101,19 @@ def generate_otp(request):
             info_logger.info(context)
 
 
+
+
+
     # if email:
     #     generate_url = "http://enterprise.smsgupshup.com/apps/TwoFactorAuth/incoming.php?email=%s&key=%s"%(str(email),key)
     #     response = rqst.get(generate_url)
     #
     #     print(response.content)
 
-    return JsonResponse(context)
+
+
+
+    return JsonResponse({'success':True})
 
 
 def verify_otp(request):
