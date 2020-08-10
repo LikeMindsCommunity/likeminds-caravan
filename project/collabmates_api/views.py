@@ -7101,6 +7101,9 @@ def generate_otp(request):
             info_logger.info(context)
 
 
+        context['success'] = True
+
+
 
 
 
@@ -7113,7 +7116,7 @@ def generate_otp(request):
 
 
 
-    return JsonResponse({'success':True})
+    return JsonResponse(context)
 
 
 def verify_otp(request):
