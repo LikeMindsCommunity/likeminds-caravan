@@ -1825,7 +1825,7 @@ def fetch_common_communities(request):
     member_communities =  Members.objects.filter(member_id=member_id).filter(
         Q(state=member_states.ADMIN)|Q(state=member_states.MEMBER)|Q(state=member_states.PROFILE_UNAVAILABLE)).values_list('community_id',flat=True).order_by('-id')
 
-    common_communities = member_communities.intersection(user_communities)
+    common_communities = member_communities.intersection(user_communities).order_by('-id')
     total_count = common_communities.count()
     common_communities = pagination(common_communities,page,paginate_by=10)
     communities = []

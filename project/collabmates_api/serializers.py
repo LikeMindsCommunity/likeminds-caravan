@@ -6,7 +6,7 @@ from django.db.models import Q
 from togther.models import *
 from utility.utils import is_IG_community,is_LG_or_LP_community,feedback_community_id,\
     generate_private_link,generate_random,get_time_text,eligibility_count,get_members_count_in_community,is_member_promoter,generate_private_link_for_chatroom,get_date_time_from_timestamp
-from utility.states import card_types,question_states
+from utility.states import card_types,question_states,member_states
 url = settings.URL
 import ast
 
@@ -680,8 +680,9 @@ def get_members_profile(member_ids,community_id,current_user_id=None):
 
     '''function to get member profile from list of members ids'''
     member_profile_list = []
-    for id in member_ids:
 
+    for id in member_ids:
+       
         member_filter = Members.objects.filter(member_id=id,community_id=community_id)
 
         if member_filter.exists():
@@ -694,7 +695,7 @@ def get_members_profile(member_ids,community_id,current_user_id=None):
             if member_instance.image_url:
                 community_profile['image_url'] = member_instance.image_url
 
-            if member_instance.state == 1 or member_instance.state == 4:
+            if member_instance.state == member_states.ADMIN or member_instance.state == member_states.MEMBER:
                 community_profile['route'] = """route://member_community_profile?community_id=%s&member_id=%s"""%(str(community_id),str(member_id))
 
             community_profile['member_since'] = "Member of "+member_filter[0].community_id.name +" since "+ time.strftime('%b %d %Y', time.localtime(member_filter[0].created_at))
