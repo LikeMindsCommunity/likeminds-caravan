@@ -6754,7 +6754,7 @@ def login_with_google(google_id_token,request,res,login_type="google"):
             login(request,user=userinfo.user_id,backend="django.contrib.auth.backends.ModelBackend")
 
         access = is_user_community_part(usr['id'])
-        context = {'user': usr,'access':access,'email_exists':email_exists}
+        context = {'user': usr,'access':access,'email_exists':email_exists,'has_tags':has_tags}
 
     return context
 
@@ -6823,7 +6823,7 @@ def login_with_facebook(request,res,json_to_save,login_type="facebook"):
 
 
     access = is_user_community_part(usr['id'])
-    context = {'user': usr,'access': access,'email_exists':email_exists}
+    context = {'user': usr,'access': access,'email_exists':email_exists,'has_tags':has_tags}
     return context
 
 def login_with_linkedin(request,res,json_to_save,login_type="linkedIn"):
@@ -6879,7 +6879,7 @@ def login_with_linkedin(request,res,json_to_save,login_type="linkedIn"):
 
 
     access = is_user_community_part(usr['id'])
-    context = {'user': usr,'access': access,'email_exists':email_exists}
+    context = {'user': usr,'access': access,'email_exists':email_exists,'has_tags':has_tags}
     #print(context)
     return context
 
@@ -6943,7 +6943,7 @@ def login_with_apple(request,res,json_to_save,login_type="apple"):
         usr['tags'] = tags
 
     access = is_user_community_part(usr['id'])
-    context = {'user': usr,'access': access,'email_exists': email_exists}
+    context = {'user': usr,'access': access,'email_exists': email_exists,'has_tags':has_tags}
     return context
 
 def custom_login(request,res,login_type="custom"):
