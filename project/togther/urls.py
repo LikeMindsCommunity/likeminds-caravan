@@ -33,6 +33,7 @@ urlpatterns = [
     path('member_profile', views.member_profile, name='member_profile'),
     path('update_email', views.update_email, name='update_email'),
     path('oauth/complete/linkedin-oauth2', views.linked_in_authentication, name='linked_in_authentication'),
+    path('one_last_step', views.one_last_step, name='one_last_step'),
     path('', include('collabmates_api.urls', namespace='api')),
 
     #new urls - to be shifted in cms later

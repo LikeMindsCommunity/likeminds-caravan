@@ -27,6 +27,7 @@ body ::-webkit-scrollbar { display: none; }
 .bgFb { background: #4267b2; }
 .bgLi { background: #007fb1; }
 .bgWa { background: #075e54; }
+.bgW { background: #ffffff; }
 .bgE { background: #eee; }
 .bg06C3AF { background: #06C3AF; }
 .bgd0021b { background: #d0021b; }
@@ -89,6 +90,7 @@ body ::-webkit-scrollbar { display: none; }
 .w22 { width: 22px; }
 .w24 { width: 24px; }
 .w28 { width: 28px; }
+.w30 { width: 30px; }
 .w36 { width: 36px; }
 .w40 { width: 40px; }
 .w48 { width: 48px; }
@@ -100,13 +102,15 @@ body ::-webkit-scrollbar { display: none; }
 .w72 { width: 72px; }
 .w280 { width: 280px!important; }
 .w300, .w300.w300  { width: 300px; }
-.w320, .w320.w320  { width: 300px; }
+.w350, .w350.w350  { width: 350px; }
 .w100 { width: 100px; }
 .w150 { width: 150px; }
 .wp80 {width: 80%}
 
 .w228 { width: 228px; }
-
+.mw300{
+    max-width:300px;
+}
 .ofC { object-fit: cover; }
 
 .bs { box-sizing: border-box; }
@@ -175,6 +179,7 @@ body ::-webkit-scrollbar { display: none; }
 .mt12 { margin-top: 12px; }
 .mt16 { margin-top: 16px; }
 .mt20 { margin-top: 20px; }
+.mt30 { margin-top: 30px; }
 .mt46 { margin-top: 46px; }
 .mtn58 { margin-top: -58px; }
 .mtn22 { margin-top: -22px; }
@@ -368,6 +373,7 @@ body ::-webkit-scrollbar { display: none; }
 
 .o8 { opacity: 0.8; }
 .o25 { opacity: 0.25; }
+.o2 {opacity: 0.2;}
 .o5 { opacity: 0.5; }
 .o0 { opacity: 0; }
 
@@ -492,3 +498,294 @@ input:focus, textarea:focus, select:focus{border-color:#99CC33!important;outline
 
 .bg06C3AF.chatBubbleDown:before { border-top-color: #06C3AF; }
 .bgd0021b.chatBubbleDown:before { border-top-color: #d0021b; }
+
+
+.phoneSignin{
+    display:flex;
+}
+.phoneSignin .country-wrapper{
+    width: 100px;
+    align-items: center;
+    display: flex;
+    justify-content: space-evenly;
+    background:#e3e3e3;
+    border-style: solid;
+    border-width:1px 0 1px 1px;
+    border-color: #d0d8e2;
+    border-radius:8px 0 0 8px;
+}
+.phoneSignin .input-wrapper{
+    border-style: solid;
+    border-width:1px 1px 1px 0;
+    border-color: #e3e3e3;
+    border-radius:0 8px 8px 0;
+    align-items: center;
+    display: flex;
+}
+
+.phoneSignin input{
+    border:none;
+    outline:none;
+    width:100%;
+}
+.country-wrapper{
+    padding:10px 0 10px 5px;
+}
+.modal a{
+    color:teal;
+}
+#step-2{
+    display: none;
+
+}
+.login-step .p{
+    font-size: 16px;
+    color:#000;
+    line-height: 24px;
+}
+.login-step .small{
+    font-size: 14px;
+    color:#666666;
+    margin-bottom: 5px;
+}
+.login-step .phone{
+    font-weight: 600;
+}
+.clickable{
+    color:#06c3af;
+}
+.login-step input[type=number] {
+    height: 48px;
+    width: 48px;
+    font-size: 20px;
+    text-align: center;
+    border: 1px solid #d0d8e2;
+    border-radius: 4px;
+    margin:0 6px ;
+}
+.login-step input[type=number]::-webkit-inner-spin-button,
+.login-step input[type=number]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+form.error input[type=number]{
+    border-color:#d0021b;
+}
+.login-step input:focus{
+    border-color:#06c3af;
+}
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+#timer{
+    color:#06c3af;
+}
+/* Firefox */
+input[type=number] {
+  -moz-appearance: textfield;
+}
+.error_message{
+    color:#d0021b;
+    font-size: 12px;
+    padding: 5px 0 0;
+}
+.one_more_step{
+    text-align:center;
+}
+.profile-pic-wrapper .img-holder{
+    width: 150px;
+    height:150px;
+    background:#e4e6ee;
+    border-radius: 200px;
+    position: relative;
+    margin:auto;
+}
+.img-holder i{
+    color:#fff;
+
+}
+.img-holder span{
+    color:#666;
+    font-size: 14px;
+    top: 46%;
+    position: relative;
+    transform: translateY(-50%);
+}
+.icon_button{
+    background:#00897b;
+    border:0;
+    outline:0;
+    border-radius:50px;
+    padding: 10px 11px;
+    font-size: 20px;
+}
+.img-holder .icon_button{
+    position:absolute;
+    bottom:0;
+    right:0;
+    box-shadow: #ccc 3px 3px 3px 0px;
+}
+.icon-input-wrapper{
+    display: flex;
+    justify-content: center;
+}
+.icon-input-wrapper .input-wrapper{
+    border-style: solid;
+    border-width:1px 1px 1px 0;
+    border-color: #e3e3e3;
+    border-radius:0 8px 8px 0;
+    align-items: center;
+    display: flex;
+}
+
+.icon-input-wrapper input{
+    border:none;
+    outline:none;
+    width:100%;
+    border-radius:0 8px 8px 0;
+}
+.icon-input-wrapper .icon-wrapper{
+    color:#00897b;
+}
+.icon-input-wrapper .icon-wrapper i{
+    font-size: 26px;
+    border:#e3e3e3 1px solid;
+    border-right: 0;
+    border-radius: 8px 0 0 8px;
+    padding:10px;
+}
+.login-step .button{
+    box-shadow:#00432266 0 0 8px;
+    max-width: 300px;
+    width: 100%;
+}
+.import-wrapper{
+    margin: 30px 0;
+    display: flex;
+    justify-content: center;
+}
+.import-from-item a{
+    height:50px;
+    width: 50px;
+    display: flex;
+    background: #e3e3e3;
+    border-radius: 50px;
+    justify-content: center;
+    align-items: center;
+    margin:0 5px;
+}
+.googleSignin img {
+    width:16px;
+    height:16px;
+}
+a.googleSignin{
+    background: #fff;
+    box-shadow: #00000145 0 1px 3px 0;
+}
+a.linkedinSignin{
+    background-color: #2d70b3;
+    color:#fff;
+}
+a.facebookSignin{
+    background-color: #4267b2;
+    color:#fff;
+}
+.x-small{
+    font-size: 11px;
+    letter-spacing: 0.5px;
+    color:#666;   
+}
+.login-step .x-small{
+    text-align: center;
+}
+span.divider{
+    position: relative;
+}
+span.divider:before,span.divider:after{
+    content: " ";
+    height:1px;
+    width: 48px;
+    background: #acb7c0;
+    position: absolute;
+    top:50%;
+    right:-65px;
+}
+span.divider:before{
+    left:-65px;
+}
+.one_last_step{
+    text-align: center;
+}
+
+#snackbar {
+    visibility: hidden; /* Hidden by default. Visible on click */
+    min-width: 250px; /* Set a default minimum width */
+    margin-left: -125px; /* Divide value of min-width by 2 */
+    background-color: #333; /* Black background color */
+    color: #fff; /* White text color */
+    text-align: center; /* Centered text */
+    border-radius: 2px; /* Rounded borders */
+    padding: 16px; /* Padding */
+    position: fixed; /* Sit on top of the screen */
+    z-index: 1; /* Add a z-index if needed */
+    left: 50%; /* Center the snackbar */
+    bottom: 30px; /* 30px from the bottom */
+  }
+  
+  /* Show the snackbar when clicking on a button (class added with JavaScript) */
+  #snackbar.show {
+    visibility: visible; /* Show the snackbar */
+    /* Add animation: Take 0.5 seconds to fade in and out the snackbar.
+    However, delay the fade out process for 2.5 seconds */
+    -webkit-animation: fadein 0.5s, fadeout 0.5s 2.5s;
+    animation: fadein 0.5s, fadeout 0.5s 2.5s;
+  }
+  
+  /* Animations to fade the snackbar in and out */
+  @-webkit-keyframes fadein {
+    from {bottom: 0; opacity: 0;}
+    to {bottom: 30px; opacity: 1;}
+  }
+  
+  @keyframes fadein {
+    from {bottom: 0; opacity: 0;}
+    to {bottom: 30px; opacity: 1;}
+  }
+  
+  @-webkit-keyframes fadeout {
+    from {bottom: 30px; opacity: 1;}
+    to {bottom: 0; opacity: 0;}
+  }
+  
+  @keyframes fadeout {
+    from {bottom: 30px; opacity: 1;}
+    to {bottom: 0; opacity: 0;}
+  }
+
+  .merge_pop_up{
+      padding:20px;
+      border-radius:2px;
+  }
+  #step-merge-verification{
+      text-align: center;
+      padding: 20px;
+  }
+.ui.modal{
+    
+}
+#county_list{
+    max-height: 500px;
+    overflow: scroll;
+}
+#profile_pic_image{
+    width: 150px;
+    height: 150px;
+    opacity: 0;
+}
+.profile-pic-wrapper .img-holder{
+    background-image: url('https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fuser%2F222%2Fimg_user_222?alt=media');
+    background-size: cover;
+    background-position: center center;
+}

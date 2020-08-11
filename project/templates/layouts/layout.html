@@ -46,10 +46,20 @@
             })(window,document,'script','dataLayer','GTM-KSF3G6T');
         </script>
         {% include 'scripts/firebase.html' with firebase_config=firebase_config %}
+        {% include 'scripts/login.html' with firebase_config=firebase_config %}
     </head>
     <body>
         <main role="main" id="views">
             {% block yeild %}{% endblock %}
         </main>
+        <span id="snackbar"></span>   
+        <script>
+            function showSnackbar(text) {
+                var x = document.getElementById("snackbar");
+                x.innerHTML = text;
+                x.className = "show";
+                setTimeout(function(){ x.className = x.className.replace("show", ""); }, 3000);
+            } 
+        </script>
     </body>
 </html>
