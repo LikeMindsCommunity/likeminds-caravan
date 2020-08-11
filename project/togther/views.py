@@ -232,6 +232,9 @@ def community(request, community_id):
         playstore_ref_link = android_app_download_link+"""&referrer=%s"""%(quote(private_link))
         return redirect(playstore_ref_link)
 
+    if is_request_ios(request):
+        return redirect("https://apps.apple.com/us/app/likeminds-community-chat/id1526635028?mt=8")
+
 
     # print(aj)
     # print(source)
@@ -281,6 +284,10 @@ def community_questions(request,params):
 
 
     '''function to get community questions'''
+
+    
+    if is_request_ios(request):
+        return redirect("https://apps.apple.com/us/app/likeminds-community-chat/id1526635028?mt=8")
 
 
 
