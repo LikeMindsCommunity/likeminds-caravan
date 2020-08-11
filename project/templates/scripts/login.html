@@ -82,7 +82,7 @@
         var country_code = stripValues(document.getElementById('country_code').innerHTML);
         var phone_number = stripValues(document.getElementById('phone_number').value);
         var user_id = document.getElementById('user_id').value;
-        var url = "//{{ request.META.HTTP_HOST }}/generate_otp?mobile_no="+phone_number+"&country_code="+country_code+"&user_id="+user_id;
+        var url = "//{{ request.META.HTTP_HOST }}/generate_otp?user_id="+user_id;
         
         console.log(country_code,phone_number,url);
         $.ajax(
@@ -113,26 +113,36 @@
             return $('#otp_from_user1').val()+$('#otp_from_user2').val()+$('#otp_from_user3').val()+$('#otp_from_user4').val(); 
         }
     }
+    var obj;
     function verifyOTP(){
         $('#login_with_phone').prop('disabled', true);
         var country_code = stripValues(document.getElementById('country_code').innerHTML);
         var merge_phone_number = stripValues(document.getElementById('phone_number').value);
         var otp = stripValues(get_otp_from_user());
-        var url = "//{{ request.META.HTTP_HOST }}/verify_otp?mobile_no="+merge_phone_number+"&country_code="+country_code+"&otp="+otp+"&user_id=";
+        var url = "//{{ request.META.HTTP_HOST }}/verify_otp?mobile_no="+merge_phone_number+"&country_code="+country_code+"&otp="+otp;
         console.log(country_code,phone_number,url);
         $.ajax(
             {   
                 //confirm
                 url: url, 
                 success: function(result){
+                    obj =result;
+                    console.log("***",result['profile_exists']);
                     var success = result['success'];
-                    if(success == true){
+                    console.log("***",success);
+                    if(success == true){                           
                         $('.test').modal('hide');
-                        $('.one_more_step').modal('show');
-                        $('.one_more_step').modal({
-                            backdrop: 'static',
-                            keyboard: false  // to prevent closing with Esc button (if you want this too)
-                        });
+                        if(result['profile_exists'] == true){
+                            console.log('reloading')
+                            location.reload();
+                        }
+                        else{
+                            $('.one_more_step').modal('show');
+                            $('.one_more_step').modal({
+                                backdrop: 'static',
+                                keyboard: false  // to prevent closing with Esc button (if you want this too)
+                            });
+                        }
                     }
                     else{
                         $('#otp_error_message').html("Wrong OTP. Try Again");
@@ -162,7 +172,7 @@
                     var success = result['success'];
                     if(success == true){
 
-                        showSnackbar("Login Successful")
+                        showSnackbar("Login Successful");
                         location.reload(); 
                         // $('.test').modal('hide');
                         // $('.one_more_step').modal('show');

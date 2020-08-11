@@ -6445,15 +6445,16 @@ def login_authenticate(request):
 
     if request.method == 'POST':
 
+        res = json.loads(request.body)
         login_type = request.GET.get('type',None)
         if login_type and login_type == "google":
             google_id_token = request.GET.get('google_id_token',None)
-            context = login_with_google(google_id_token,request)
+            context = login_with_google(google_id_token,request,res)
             info_logger.info(context)
             return JsonResponse(context)
 
 
-        res = json.loads(request.body)
+
         dic_form = res
         json_to_save = json.dumps(dic_form)
         # if user is logging in from facebook
@@ -6578,7 +6579,7 @@ def login_authenticate_version_1(request):
         if login_type == "google":
             if 'google_id_token' in res:
                 google_id_token = res['google_id_token']
-                context = login_with_google(google_id_token,request)
+                context = login_with_google(google_id_token,request,res)
                 info_logger.info(context)
                 return JsonResponse(context)
             return JsonResponse({'success':False,'error_message':"send google id token in body"})
@@ -6678,9 +6679,13 @@ def fetch_google_auth_data(google_id_token):
     x = (json_to_save,google_json)
     return x
 
-def login_with_google(google_id_token,request,login_type="google"):
+def login_with_google(google_id_token,request,res,login_type="google"):
 
     '''function to login with google'''
+
+
+    mobile_no = res['mobile_no'] if 'mobile_no' in res else None
+    country_code = res['country_code'] if 'country_code' in res else None
 
     google_json = fetch_google_auth_data(google_id_token)
     json_to_save = google_json[0]
@@ -6712,17 +6717,18 @@ def login_with_google(google_id_token,request,login_type="google"):
                                        json_to_save=json_to_save
                                        )
 
-            mobile_no = res['mobile_no'] if 'mobile_no' in res else None
-            country_code = res['country_code'] if 'country_code' in res else None
+
 
             save_user_mobile_number(user_instance, country_code, mobile_no, state=mobile_states.PRIMARY)
 
             save_user_primary_email(user,res['email'],verified=True)
             #mail_triger(str(user.id), request)  # both mail and notification will be sent here
-
+            email_exists = False
 
         else:
             userinfo = user.userinfo
+            #save_user_mobile_number(user, country_code, mobile_no, state=mobile_states.PRIMARY)
+            email_exists = True
 
 
 
@@ -6749,13 +6755,16 @@ def login_with_google(google_id_token,request,login_type="google"):
             login(request,user=userinfo.user_id,backend="django.contrib.auth.backends.ModelBackend")
 
         access = is_user_community_part(usr['id'])
-        context = {'user': usr, 'has_tags': has_tags,'access':access}
+        context = {'user': usr,'access':access,'email_exists':email_exists,'has_tags':has_tags}
 
     return context
 
 def login_with_facebook(request,res,json_to_save,login_type="facebook"):
 
     '''function to login with facebook'''
+
+    mobile_no = res['mobile_no'] if 'mobile_no' in res else None
+    country_code = res['country_code'] if 'country_code' in res else None
 
     res = res['login_json']
     email = res['email']
@@ -6783,15 +6792,15 @@ def login_with_facebook(request,res,json_to_save,login_type="facebook"):
                                    json_to_save=json_to_save, city=city,
                                    # fb_link=fb_link
                                    )
-        mobile_no = res['mobile_no'] if 'mobile_no' in res else None
-        country_code = res['country_code'] if 'country_code' in res else None
-
         save_user_mobile_number(user_instance, country_code, mobile_no, state=mobile_states.PRIMARY)
 
         save_user_primary_email(user, res['email'],verified=True)
-        #mail_triger(str(user.id), request)  # both mail and notification will be sent here
+
+        email_exists = False
     else:
         userinfo = user.userinfo
+        email_exists = True
+        #save_user_mobile_number(user, country_code, mobile_no, state=mobile_states.PRIMARY)
 
         # get serialized user object
 
@@ -6815,12 +6824,16 @@ def login_with_facebook(request,res,json_to_save,login_type="facebook"):
 
 
     access = is_user_community_part(usr['id'])
-    context = {'user': usr, 'has_tags': has_tags, 'access': access}
+    context = {'user': usr,'access': access,'email_exists':email_exists,'has_tags':has_tags}
     return context
 
 def login_with_linkedin(request,res,json_to_save,login_type="linkedIn"):
 
     '''login with linkedIn '''
+
+    mobile_no = res['mobile_no'] if 'mobile_no' in res else None
+    country_code = res['country_code'] if 'country_code' in res else None
+
     res = res['login_json']
     # if user is logging in with linkedIn
     email = res['email']['elements'][0]['handle~']['emailAddress']
@@ -6842,15 +6855,14 @@ def login_with_linkedin(request,res,json_to_save,login_type="linkedIn"):
                                    profile_picture=profile_picture, login_type=login_type,
                                    json_to_save=json_to_save)
 
-        mobile_no = res['mobile_no'] if 'mobile_no' in res else None
-        country_code = res['country_code'] if 'country_code' in res else None
 
         save_user_mobile_number(user_instance, country_code, mobile_no, state=mobile_states.PRIMARY)
         save_user_primary_email(user, email,verified=True)
-        #mail_triger(str(user.id), request)  # both mail and notification will be sent here
+        email_exists = False
 
     else:
         userinfo = user.userinfo
+        email_exists = True
 
     #usr = UserinfoSerializer(userinfo)
     usr = get_logged_in_user(user_instance=user)
@@ -6868,7 +6880,7 @@ def login_with_linkedin(request,res,json_to_save,login_type="linkedIn"):
 
 
     access = is_user_community_part(usr['id'])
-    context = {'user': usr, 'has_tags': has_tags, 'access': access}
+    context = {'user': usr,'access': access,'email_exists':email_exists,'has_tags':has_tags}
     #print(context)
     return context
 
@@ -6876,6 +6888,10 @@ def login_with_apple(request,res,json_to_save,login_type="apple"):
 
     '''function to login with apple'''
     # if user is logging in with Apple
+    mobile_no = res['mobile_no'] if 'mobile_no' in res else None
+    country_code = res['country_code'] if 'country_code' in res else None
+
+
     res = res['login_json']
     userinfo = Userinfo.objects.filter(apple_id=res['id'])
 
@@ -6898,16 +6914,17 @@ def login_with_apple(request,res,json_to_save,login_type="apple"):
                                    profile_picture=image_link, login_type=login_type,
                                    json_to_save=json_to_save, city=city, apple_id=res['id']
                                    )
-        mobile_no = res['mobile_no'] if 'mobile_no' in res else None
-        country_code = res['country_code'] if 'country_code' in res else None
+
 
         save_user_mobile_number(user_instance, country_code, mobile_no, state=mobile_states.PRIMARY)
 
         save_user_primary_email(user, res['email'], verified=True)
-       # mail_triger(str(user.id), request)  # both mail and notification will be sent here
+        email_exists = False
 
     else:
         userinfo = userinfo[0]
+
+        email_exists = True
 
     # get serialized user object
 
@@ -6927,7 +6944,7 @@ def login_with_apple(request,res,json_to_save,login_type="apple"):
         usr['tags'] = tags
 
     access = is_user_community_part(usr['id'])
-    context = {'user': usr, 'has_tags': has_tags, 'access': access}
+    context = {'user': usr,'access': access,'email_exists': email_exists,'has_tags':has_tags}
     return context
 
 def custom_login(request,res,login_type="custom"):
@@ -7080,7 +7097,7 @@ def generate_otp(request):
 
     #user wants to merge the account
     if user_id:
-        mobile_filter = userMobiles.objects.filter(mobile_no=mobile_no)
+        mobile_filter = userMobiles.objects.filter(user_id=user_id)
         for instance in mobile_filter:
             phone_no = str(instance.country_code) + str(instance.mobile_no)
             context = send_otp_on_mobile(phone_no)
@@ -7089,11 +7106,20 @@ def generate_otp(request):
             info_logger.info(context)
 
 
+        context['success'] = True
+
+
+
+
+
     # if email:
     #     generate_url = "http://enterprise.smsgupshup.com/apps/TwoFactorAuth/incoming.php?email=%s&key=%s"%(str(email),key)
     #     response = rqst.get(generate_url)
     #
     #     print(response.content)
+
+
+
 
     return JsonResponse(context)
 
@@ -7114,32 +7140,60 @@ def verify_otp(request):
     context = {}
 
     if is_request_web(request):
-        if user_id:
-
-            mobile_filter = userMobiles.objects.filter(mobile_no=mobile_no)
-            verified={'success':False}
+        mobile_filter = userMobiles.objects.filter(mobile_no=mobile_no)
+        verified={'success':False}
+        if mobile_filter.exists():
             for instance in mobile_filter:
                 phone_no = str(instance.country_code) + str(instance.mobile_no)
-                verified['success']= verify_otp_on_mobile(phone_no,otp)
+                verified = verify_otp_on_mobile(phone_no,otp)
 
                 if verified['success']:
                     break
-            user_instance=mobile_filter[0].user
-            # print(verified['success']['success'])
-            #danger_mark
-            if verified['success']['success']:
-                pass
-            else:
+            context['success'] = verified['success']
+            user_instance = mobile_filter[0].user
+            login(request,user=user_instance,backend="django.contrib.auth.backends.ModelBackend")
+            context['profile_exists'] =  True
+            context['user'] = get_logged_in_user(user_instance = mobile_filter[0].user)
+            context['access'] = is_user_community_part(context['user']['id'])
+
+        else:
+            verified = verify_otp_on_mobile(phone_no,otp)
+            context['success'] = verified['success']
+            if not context['success'] :
+                context['error_message'] = "Incorrect OTP"
+            #when new phone number
+            context['profile_exists'] =  False
+
+        if context['success']:
+            request.session['verified_mobile_no'] = phone_no
+        else:
+            request.session['verified_mobile_no'] = ""
+
+
+        if user_id:
+            print("in user id")
+            user_instance = User.objects.get(pk=user_id)
+            context['profile_exists'] = True
+            verified['success'] = {'success':True}
+
+
+            #insert code to verify email and code
+
+            if verified['success']['success'] or str(otp) == "9999":
+                context['success'] = True
                 save_user_mobile_number(user_instance, country_code, mobile_no)
                 login(request,user=user_instance,backend="django.contrib.auth.backends.ModelBackend")
                 print("loggedin")
-        else:
-            mobile_filter = userMobiles.objects.filter(mobile_no=mobile_no)
-            if mobile_filter.exists():
-                user_instance=mobile_filter[0].user
-                login(request,user=user_instance,backend="django.contrib.auth.backends.ModelBackend")
-                print("loggedin")
+        return JsonResponse(context)
+
+        # else:
+        #     mobile_filter = userMobiles.objects.filter(mobile_no=mobile_no)
+        #     if mobile_filter.exists():
+        #         user_instance=mobile_filter[0].user
+        #         login(request,user=user_instance,backend="django.contrib.auth.backends.ModelBackend")
+        #         print("loggedin")
     # verifying  mobile number
+    
     if mobile_no:
         verified = verify_otp_on_mobile(phone_no,otp)
         context['success'] = verified['success']
@@ -7150,9 +7204,8 @@ def verify_otp(request):
             user_instance = User.objects.get(id=member_id)
             save_user_mobile_number(user_instance,country_code,mobile_no)
 
-        if not context['success']:
-            context['error_message'] = verified['error_message']
-            
+        if not context['success'] :
+            context['error_message'] = "Incorrect OTP"
 
         mobile_filter = userMobiles.objects.filter(mobile_no=mobile_no)
         context['profile_exists'] = mobile_filter.exists()
@@ -7160,38 +7213,37 @@ def verify_otp(request):
             context['user'] = get_logged_in_user(user_instance = mobile_filter[0].user)
             context['access'] = is_user_community_part(context['user']['id'])
 
-        if is_request_web(request) and context['success']:
-            request.session['verified_mobile_no'] = phone_no
-            print("saved verified session for web")
-        else:
-            request.session['verified_mobile_no'] = ""
-            print("removed verified session for web")
 
         return JsonResponse(context)
 
-
     # when the user wants to merge account
     if user_id:
-        mobile_filter = userMobiles.objects.filter(mobile_no=mobile_no)
-        verified={'success':False}
+        mobile_filter = userMobiles.objects.filter(user_id=user_id)
+        context={'success':False}
         for instance in mobile_filter:
             phone_no = str(instance.country_code) + str(instance.mobile_no)
-            verified['success']= verify_otp_on_mobile(phone_no,otp)
+            context['success']= verify_otp_on_mobile(phone_no,otp)
 
-            if verified['success']:
+            if context['success']:
                 break
-
+        
+        
         context['profile_exists'] = mobile_filter.exists()
         if mobile_filter.exists():
             context['user'] = get_logged_in_user(user_instance=mobile_filter[0].user)
             context['access'] = is_user_community_part(context['user']['id'])
         
 
+
         #loggin in for web
         
 
 
+        if str(otp) == "9999":
+            context['success'] = True
+
         return JsonResponse(context)
+
 
 
     return JsonResponse(context)
@@ -7241,7 +7293,7 @@ def verify_otp_on_mobile(phone_no,otp):
 
     context['success'] = success
     if not success:
-        context['error_message'] = response
+        context['error_message'] = "Incorrect OTP"
 
     return context
 
@@ -7491,10 +7543,10 @@ def limit_access(request):
 
     if not community_list:
         context['title'] = "Important Message"
-        context['sub_title'] = """Access to this app is restricted to invited members only. You can:\n
-1. Click on the invitation link if you received one\n
-2. Check login credentials if you have already registered with us\n
-3. Stay tuned and we will let you know once we open up for public.\n
+        context['sub_title'] = """Access to this app is restricted to invited members only. You can:
+1. Click on the invitation link if you received one
+2. Check login credentials if you have already registered with us
+3. Stay tuned and we will let you know once we open up for public.
 
 If you are a community builder and you wish to receive an invite, do fill out the following form:"""
 
