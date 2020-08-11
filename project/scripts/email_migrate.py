@@ -29,7 +29,7 @@ def set_user_emails():
 
     for data in email_list:
 
-        email_filter = userEmails.objects.filter(user_id=data['user_id'])
+        email_filter = userEmails.objects.filter(user_id=data['user_id'],email=data['email'])
         user_instance = User.objects.get(id=data['user_id'])
         if not email_filter.exists():
             instance = userEmails()
