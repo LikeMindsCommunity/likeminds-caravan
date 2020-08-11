@@ -39,9 +39,9 @@ def set_user_emails():
             instance.created_at = time.time()
             instance.verified = True
             instance.save()
-            print(data['email']+"saved")
+            print(data['email']+" saved")
         else:
-            print("hello")
+            print("Email Already Exists")
 
 
 
