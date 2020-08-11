@@ -7791,7 +7791,7 @@ def get_mixpanel_statistics(member_id):
 
     user_metrics = {}
     user_profile = user_instance.userinfo
-    user_metrics['first_login'] = 0 if user_profile.created_at < 0 else time.strftime('%A, %b %d', time.localtime(user_profile.created_at))
+    user_metrics['first_login'] = "Not Available" if user_profile.created_at < 0 else time.strftime('%d-%m-%Y', time.localtime(user_profile.created_at))
 
     member_filter = Members.objects.filter(member_id=member_id,state=member_states.MEMBER)
 
