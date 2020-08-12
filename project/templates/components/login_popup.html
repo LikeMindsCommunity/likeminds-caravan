@@ -1,35 +1,186 @@
- <div class="ui modal test w300">
+ {% load static %}
+ <div class="w350 ui modal test ">
                 <div class="h72 w72 brp50 bd2F bs bxs oH bgT mtn22 mA">
                     <img class="h72 ofC w72 mtn2 mln2" src="https://beta.likeminds.community/media/media/ic_launcher_round.png">
                 </div>
                 <div class="h18 mt12 taC">
                     <img class="h18 dIb vM" src="https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Flikeminds_logo_hdpi.png?alt=media&token=5f532ef2-20c6-4448-8efa-16e084494417"/>
                 </div>
-                <div class="p24 bs taC ffR">
-                    <p class="p0 fs15 lh22 c9 mb16" id="login_text">
+                <div class="p24 bs taC ffR login-step" id="step-1">
+                    <p class="p0 fs15 lh22 c6 mb16" id="login_text">
                         {{popup_text}}
+                        This is an open community event. Login to register yourself for this event. You can also apply to join the community.
                     </p>
-                    <div class="w120 bdtE bs mA"></div>
+                    <!-- <div class="w120 bdtE bs mA"></div> -->
                     <p class="c0 fs13 fwR lh22 ls05 mb10 mt12 o25 p0">Login to continue</p>
-                    <div class="p160 ls05">
+                    <div class="p160">
                         <div class="fs12 mb16">
-                            <div class="googleSignin p12 bs br20 bgF c79 ffR fwM bdE c79h dN" data-next={{redirect_link}}>
-                                <i class="dIb fa fa-google fs15 lh16 vM"></i>
-                                <span  class="dIb lh16 pl12 vM">LOGIN WITH GOOGLE</span>
+                            <div class="phoneSignin   bgF c79 ffR fwM  c79h " data-next={{redirect_link}}>
+                                <div class="country-wrapper vM df p5" onclick="showCountries()">
+                                    <i class="in flag" id="flag-code"></i>
+                                    <div class="code dIb vM c0" id="country_code">
+                                        +91
+                                    </div>
+                                    <i class="dIb fa fa-caret-down fs15 lh16 vM"></i>
+                                </div>
+                                <div class="input-wrapper">
+                                    <input type="text" class=" df bn on p10 fs15 c4 ls1" placeholder="Mobile no." id="phone_number">
+                                </div>
                             </div>
                         </div>
-                        <div class="fs12 mb16">
-                            <a class="linkedinSignin p12 bs dB br20 tdN bgLi cF ffR fwM cFh" data-next={{redirect_link}}>
-                                <i class="dIb fa fa-linkedin fs15 lh16 vM"></i>
-                                <span  class="dIb lh16 pl12 vM">LOGIN WITH LINKEDIN</span>
-                            </a>
+                        <p class="p0 fs14 c6 mb16">
+                            We will send you the 4 digit verification code.
+                        </p>
+                        <div class=" bs taC    z1">
+                            <button class="ui  h44 bgT cF br22 fwM ffR fs13 bd0 ttU button" id="login_with_phone"  onclick="sendVerificationCode()" type="button">LOGIN WITH MOBILE NUMBER </button>
                         </div>
-<!--                        <div class="fs12">-->
-<!--                            <a class="facebookSignin p12 bs dB br20 tdN bgFb cF ffR fwM cFh"  data-next={{redirect_link}}>-->
-<!--                                <i class="fa fa-facebook dIb fs15 lh16 vM" ></i>-->
-<!--                                <span class="dIb lh16 pl12 vM">LOGIN WITH FACEBOOK</span>-->
-<!--                            </a>-->
-<!--                        </div>-->
+                        <p class="p0 fs14 c6 mb16 mt30">
+                            By proceeding, you agree to our <a href="#">Terms & Conditions</a> & <a href="#">Privacy Policy</a>.
+                        </p>
                     </div>
+                </div>
+                <div class="p24 bs taC ffR login-step" id="step-2">
+                    <h3>Enter verification OTP</h3>
+                    <p class="small">We have sent you a 4 digit verification code on</p>
+                    <p class="phone"><span id="step-2-phone"></span> (<span class="clickable" onclick="editPhone()">Edit</span>)</p>
+                    <form action="" class="" id="otp_form">
+                        <input id="otp_from_user1" type="number" maxlength="1" onkeyup="onKeyUpEvent(1, event)" onfocus="onFocusEvent(1)"/>
+                        <input id="otp_from_user2" type="number" maxlength="1" onkeyup="onKeyUpEvent(2, event)" onfocus="onFocusEvent(2)"/>
+                        <input id="otp_from_user3" type="number" maxlength="1" onkeyup="onKeyUpEvent(3, event)" onfocus="onFocusEvent(3)"/>
+                        <input id="otp_from_user4" type="number" maxlength="1" onkeyup="onKeyUpEvent(4, event)" onfocus="onFocusEvent(4)"/>
+                  
+                    </form>
+                    <p id="otp_error_message" class="error_message">
+                        
+                    </p>
+                    <div class=" bs taC   mt20 z1">
+                        <button class="ui button h44 bgT cF br22 fwM ffR fs13 bd0 ttU " id="verify_phone" type="button" onclick="verifyOTP()">Verify </button>
+                    </div>
+
+                    <div class=" bs taC   mt20 z1" id="timer-wrapper">
+                        <span id="timer">30</span>
+                        <p id="resend-code">
+                            <a href="#">Resend Verification Code</a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+
+
+            <div class="container w350 mA ffR tc login-step one_more_step ui modal one_last_step" id="one_last_step">
+                <h3 class="taC">One last step</h3>
+                <p class="small mw300 mA">
+                    Please provide your name, email and a profile photo. Or, fetch your info from a social account.
+                </p>
+                <div class="profile-pic-wrapper">
+                    <img src="" alt="" id="profile-pic" style="height:0px;width:0px;">
+                    <div class="img-holder taC">
+                        <img id="profile_pic_image" src="https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fuser%2F222%2Fimg_user_222?alt=media" alt="">
+                        <input type="file" name="profile_pic" id="profile_pic" style="display:none;" onchange="setImage(this)" accept="image/gif, image/jpeg, image/png" value='https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fuser%2F222%2Fimg_user_222?alt=media'> 
+                        <button class="icon_button" id="profile_pic_upload" onclick="openProfilePicUpload()"><i class="fa fa-camera"></i></button>
+                    </div>
+                </div>
+                <div class="icon-input-wrapper   bgF c79 ffR fwM mt20 c79h ">
+                    <div class="icon-wrapper vM df p5">
+                        <i class="dIb fa fa-user vM"></i>
+                    </div>
+                    <div class="input-wrapper">
+                        <input type="text"  id="name" class=" df bn on p10 fs15 c4 ls1" placeholder="Type your full name*">
+                    </div>
+                </div>
+                <div class="icon-input-wrapper   bgF c79 ffR fwM mt20 c79h ">
+                    <div class="icon-wrapper vM df p5">
+                        <i class="dIb fa fa-envelope vM"></i>
+                    </div>
+                    <div class="input-wrapper">
+                        <input type="text"  id="email" class=" df bn on p10 fs15 c4 ls1" placeholder="Your email ID">
+                        <input type="hidden" name="user_id" id="user_id">
+                    </div>
+                </div>
+                <div class=" bs taC   mt20 z1">
+                    <button class="ui button h44 bgT cF br22 fwM ffR fs13  bd0 ttU " id="create_account" type="button" onclick="createAccount()">CREATE MY ACCOUNT </button>
+                </div>
+                <p class="small mt20 mb20 taC"><span class="divider">OR</span></p>
+                <p class="x-small mt20 mb20">IMPORT FROM</p>
+                <div class="import-wrapper">
+                    <div class="import-from-item">
+                        <a class="googleSignin" data-next={{redirect_link}}>
+                            <img src="{% static 'google.svg' %}" alt="">
+                        </a>
+                    </div>
+                    <div class="import-from-item">
+                        <a class="facebookSignin"  data-next={{redirect_link}}>
+                            <i class="fa fa-facebook dIb fs15 lh16 vM" ></i>
+                        </a>
+                    </div>
+                    <div class="import-from-item">
+                        <a class="linkedinSignin" data-next={{redirect_link}}>
+                            <i class="dIb fa fa-linkedin fs15 lh16 vM"></i>
+                        </a>
+                    </div> 
+                </div>
+            </div>
+
+
+            <div class="container w300 mA ffR tc login-step  ui modal merge_pop_up" id="merge_pop_up">
+                <h3 class="">Email already taken</h3>
+                <p class="small mw300 mA">
+                    <!-- The email you entered is already linked to an account created with mobile number +91 *** **736.  -->
+                    The email you entered is already linked to an account. 
+                    <!-- In case this is your number, you can login with the same or merge it with this new account.  -->
+                    You can login with the same or merge it with this new account. 
+                    Otherwise, you can provide other email ID.
+                </p>
+                
+                <div class=" bs taR   mt20 z1">
+                    <button class="ui button-inverse  bgW cT  fwM ffR fs13  bd0 ttU " id="merge_account_button" type="button" onclick="sendMergeVerificationCode()">
+                        Merge Accounts 
+                    </button>
+                </div>
+                
+                <div class=" bs taR  mt20  z1">
+                    <button class="ui button-inverse  bgW cT  fwM ffR fs13  bd0 ttU " id="use_other_id" type="button" onclick="useOtherID()">
+                        USE ANOTHER EMAIL ID 
+                    </button>
+                </div>
+                
+            </div>
+
+
+            <div class="ui modal pF b0  merge_verification ">
+                <div class="pF b0 mxw640 mA l0 r0 fadeInUp bgF ad04 btlr8 btrr8 oH bxs login-step" id="step-merge-verification">
+                    <h3>Merge accounts</h3>
+                    <p>
+                        A 4-digit verification OTP (one time password) has been sent to mobile number <span id="merge_phone"></span> and email id <span id="merge_mail"></span>.
+                    </p>
+                    <form action="" class="" id="otp_form">
+                        <input id="otp_from_merge1" type="number" maxlength="1" onkeyup="onKeyUpEvent1(1, event)" onfocus="onFocusEvent1(1)"/>
+                        <input id="otp_from_merge2" type="number" maxlength="1" onkeyup="onKeyUpEvent1(2, event)" onfocus="onFocusEvent1(2)"/>
+                        <input id="otp_from_merge3" type="number" maxlength="1" onkeyup="onKeyUpEvent1(3, event)" onfocus="onFocusEvent1(3)"/>
+                        <input id="otp_from_merge4" type="number" maxlength="1" onkeyup="onKeyUpEvent1(4, event)" onfocus="onFocusEvent1(4)"/>
+                    
+                    </form>
+                    <p id="otp_error_message" class="error_message">
+                        
+                    </p>
+                    <div class=" bs taC   mt20 z1">
+                        <button class="ui button h44 bgT cF br22 fwM ffR fs13 bd0 ttU " id="merge_verify_btn" type="button" onclick="verifyMergeOTP()">
+                            Verify 
+                        </button>
+                    </div>
+
+                    <div class=" bs taC   mt20 z1" id="timer-wrapper">
+                        <span id="timer">30</span>
+                        <p id="resend-code">
+                            <a href="#">Resend Verification Code</a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="ui modal pF b0  county_list ">
+                <div class="pF b0 mxw640 mA l0 r0 fadeInUp bgF ad04 btlr8 btrr8 oH bxs login-step" id="county_list">
+                    {% include 'components/country_codes.html' %}
                 </div>
             </div>

@@ -4342,9 +4342,9 @@ def get_answer_bubble_context_for_web(ans):
             answer_bubble = user_list[0] + " joined via a "+ user_list[1]+"'s invite"
 
     elif ans.state == chatroom_states.CHATROOM_FOLLOW:
-        answer_bubble = str(ans.user.userinfo.name) +  " follwed this chatroom"
+        answer_bubble = str(ans.user.userinfo.name) +  " followed this chatroom"
     elif ans.state == chatroom_states.CHATROOM_UNFOLLOW:
-        answer_bubble= str(ans.user.userinfo.name) +  " unfollwed this chatroom"
+        answer_bubble= str(ans.user.userinfo.name) +  " unfollowed this chatroom"
     elif ans.state == chatroom_states.CHATROOM_PURPOSE_EDIT:
         answer_bubble= str(ans.user.userinfo.name) +  " edited community purpose"
     return answer_bubble
@@ -6613,9 +6613,10 @@ def login_authenticate_version_1(request):
             return JsonResponse(context)
 
         elif login_type == "custom":
-
-           context = custom_login(request,res,login_type="custom")
-           return JsonResponse(context)
+            #insert code here
+            
+            context = custom_login(request,res,login_type="custom")
+            return JsonResponse(context)
     else:
         context = get_error_context(False,"Send a post request")
         return JsonResponse(context)
@@ -6973,9 +6974,13 @@ def custom_login(request,res,login_type="custom"):
         return context
 
     image_url = profile['image_url'] if 'image_url' in profile else PROFILE_DEFAULT
-
+    print(image_url)
     user_instance = create_custom_user(name,mobile_no,country_code,email,image_url,login_type)
 
+    if is_request_web(request):
+        phone_no = str(country_code) + str(mobile_no)
+        if phone_no == request.session['verified_mobile_no']:
+            login(request,user=user_instance,backend="django.contrib.auth.backends.ModelBackend")
     #usr = UserinfoSerializer(user_instance.userinfo)
     usr = get_logged_in_user(user_instance)
     # see if user has tags or not
@@ -7000,7 +7005,7 @@ def create_custom_user(name,mobile_no,country_code,email,image_url,login_type):
 
     has_mobile_no = userMobiles.objects.filter(mobile_no=mobile_no)
     user_name = name + "_"+str(mobile_no)
-
+    print(has_mobile_no.exists())
     if not has_mobile_no.exists():
 
         # creating user instance
@@ -7019,7 +7024,7 @@ def create_custom_user(name,mobile_no,country_code,email,image_url,login_type):
         userinfo_instance.created_at = time.time()
         userinfo_instance.user_id = user_instance
         userinfo_instance.save()
-
+        print(userinfo_instance.image_link)
         #creating user email
         save_user_primary_email(user_instance,email,email_state = email_states.NON_PRIMARY)
 
@@ -7095,7 +7100,7 @@ def generate_otp(request):
 
     #user wants to merge the account
     if user_id:
-        mobile_filter = userMobiles.objects.filter(mobile_no=mobile_no)
+        mobile_filter = userMobiles.objects.filter(user_id=user_id)
         for instance in mobile_filter:
             phone_no = str(instance.country_code) + str(instance.mobile_no)
             context = send_otp_on_mobile(phone_no)
@@ -7137,7 +7142,61 @@ def verify_otp(request):
     phone_no = str(country_code) + str(mobile_no)
     context = {}
 
+    if is_request_web(request):
+        mobile_filter = userMobiles.objects.filter(mobile_no=mobile_no)
+        verified={'success':False}
+        if mobile_filter.exists():
+            for instance in mobile_filter:
+                phone_no = str(instance.country_code) + str(instance.mobile_no)
+                verified = verify_otp_on_mobile(phone_no,otp)
+
+                if verified['success']:
+                    break
+            context['success'] = verified['success']
+            user_instance = mobile_filter[0].user
+            login(request,user=user_instance,backend="django.contrib.auth.backends.ModelBackend")
+            context['profile_exists'] =  True
+            context['user'] = get_logged_in_user(user_instance = mobile_filter[0].user)
+            context['access'] = is_user_community_part(context['user']['id'])
+
+        else:
+            verified = verify_otp_on_mobile(phone_no,otp)
+            context['success'] = verified['success']
+            if not context['success'] :
+                context['error_message'] = "Incorrect OTP"
+            #when new phone number
+            context['profile_exists'] =  False
+
+        if context['success']:
+            request.session['verified_mobile_no'] = phone_no
+        else:
+            request.session['verified_mobile_no'] = ""
+
+
+        if user_id:
+            print("in user id")
+            user_instance = User.objects.get(pk=user_id)
+            context['profile_exists'] = True
+            verified['success'] = {'success':True}
+
+
+            #insert code to verify email and code
+
+            if verified['success']['success'] or str(otp) == "9999":
+                context['success'] = True
+                save_user_mobile_number(user_instance, country_code, mobile_no)
+                login(request,user=user_instance,backend="django.contrib.auth.backends.ModelBackend")
+                print("loggedin")
+        return JsonResponse(context)
+
+        # else:
+        #     mobile_filter = userMobiles.objects.filter(mobile_no=mobile_no)
+        #     if mobile_filter.exists():
+        #         user_instance=mobile_filter[0].user
+        #         login(request,user=user_instance,backend="django.contrib.auth.backends.ModelBackend")
+        #         print("loggedin")
     # verifying  mobile number
+    
     if mobile_no:
         verified = verify_otp_on_mobile(phone_no,otp)
         context['success'] = verified['success']
@@ -7157,12 +7216,12 @@ def verify_otp(request):
             context['user'] = get_logged_in_user(user_instance = mobile_filter[0].user)
             context['access'] = is_user_community_part(context['user']['id'])
 
-        return JsonResponse(context)
 
+        return JsonResponse(context)
 
     # when the user wants to merge account
     if user_id:
-        mobile_filter = userMobiles.objects.filter(mobile_no=mobile_no)
+        mobile_filter = userMobiles.objects.filter(user_id=user_id)
         context={'success':False}
         for instance in mobile_filter:
             phone_no = str(instance.country_code) + str(instance.mobile_no)
@@ -7170,16 +7229,24 @@ def verify_otp(request):
 
             if context['success']:
                 break
-
+        
+        
         context['profile_exists'] = mobile_filter.exists()
         if mobile_filter.exists():
             context['user'] = get_logged_in_user(user_instance=mobile_filter[0].user)
             context['access'] = is_user_community_part(context['user']['id'])
+        
+
+
+        #loggin in for web
+        
+
 
         if str(otp) == "9999":
             context['success'] = True
 
         return JsonResponse(context)
+
 
 
     return JsonResponse(context)

@@ -1,0 +1,77 @@
+{% extends request.is_ajax|yesno:"layouts/ajax.html,layouts/layout.html" %}
+{% load static %}
+{% block yeild %}
+
+        
+        {% include 'components/loader.html' %}
+
+        <!-- {% include 'components/login_success_header_showcase.html' with data=header_showcase request=request %} -->
+
+        <head>
+             {% include 'scripts/mixpanel.html' with mixpanel_event=mixpanel_event %}
+             {% include 'scripts/create_user_mixpanel.html' with mixpanel_event=mixpanel_event request=request  %}
+
+        </head>
+
+        <div class="container mxw640 mA ffR tc login-step one_more_step ui modal one_last_step" id="one_last_step">
+            <h3>One last step</h3>
+            <p class="small mw300 mA">
+                Please provide your name, email and a profile photo. Or, fetch your info from a social account.
+            </p>
+            <div class="profile-pic-wrapper">
+                <img src="" alt="" id="profile-pic" style="height:0px;width:0px;">
+                <div class="img-holder">
+                    <span>Your profile pic</span>
+                    <button class="icon_button"><i class="fa fa-camera"></i></button>
+                </div>
+            </div>
+            <div class="icon-input-wrapper   bgF c79 ffR fwM mt20 c79h ">
+                <div class="icon-wrapper vM df p5">
+                    <i class="dIb fa fa-user vM"></i>
+                </div>
+                <div class="input-wrapper">
+                    <input type="text" class=" df bn on p10 fs15 c4 ls1" placeholder="Type your full name* " id="name">
+                </div>
+            </div>
+            <div class="icon-input-wrapper   bgF c79 ffR fwM mt20 c79h ">
+                <div class="icon-wrapper vM df p5">
+                    <i class="dIb fa fa-envelope vM"></i>
+                </div>
+                <div class="input-wrapper">
+                    <input type="text" class=" df bn on p10 fs15 c4 ls1" placeholder="Your email ID " id="email">
+                </div>
+            </div>
+            <div class=" bs taC   mt20 z1">
+                <button class="ui button h44 bgT cF br22 fwM ffR fs13  bd0 ttU " id="create_account" type="button" onclick="createAccount()">CREATE MY ACCOUNT </button>
+            </div>
+            <p class="small mt20 mb20"><span class="divider">OR</span></p>
+            <p class="x-small mt20 mb20">IMPORT FROM</p>
+            <div class="import-wrapper">
+                <div class="import-from-item">
+                    <a class="googleSignin" data-next={{redirect_link}}>
+                        <img src="{% static 'google.svg' %}" alt="">
+                    </a>
+                </div>
+                <div class="import-from-item">
+                    <a class="facebookSignin"  data-next={{redirect_link}}>
+                        <i class="fa fa-facebook dIb fs15 lh16 vM" ></i>
+                    </a>
+                </div>
+                <div class="import-from-item">
+                    <a class="linkedinSignin" data-next={{redirect_link}}>
+                        <i class="dIb fa fa-linkedin fs15 lh16 vM"></i>
+                    </a>
+                </div> 
+            </div>
+        </div>
+        
+        <!-- Scripts -->
+        <script>
+
+        </script>
+        {% include 'scripts/google_auth.html' with client_id=google_oauth_client_id  %}
+        {% include 'scripts/facebook_auth.html' with facebook_auth_id=facebook_auth_id%}
+        {% include 'scripts/linkedin_auth.html' with request=request %}
+    </body>
+</html>
+{% endblock %}

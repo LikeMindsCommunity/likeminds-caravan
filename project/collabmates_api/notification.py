@@ -36,7 +36,22 @@ url=settings.URL
 server_key=settings.FCM_SERVER_KEY
 
 #notifications for different mobile os versions
+def send_test_notification(token_list):
+    result = ""
+    message = {}
+    message['payload']={
+        'title':"title",
+        'sub_title':'sub_title',
+        'route':'route://member_approve?community_name=" + str(community_name)'
+    }
+    push_service = FCMNotification(api_key=server_key)
+    result = push_service.notify_multiple_devices(registration_ids=token_list,
+                                                  message_title=message['payload']['title'],
+                                                  message_body=message['payload']['sub_title'],
+                                                  data_message=message['payload'])
+    print(result)
 
+    
 def send_notification_for_android(token_list,message):
 
     '''function to send notification to android'''
@@ -866,7 +881,7 @@ def send_morning_pending_request_notification():
                 }
 
             if pending_members_count == 1:
-                message['payload']['sub_title']= "1 member are awaiting your approval to join the community."
+                message['payload']['sub_title']= "1 member is awaiting your approval to join the community."
 
             notification_meta(notification_list,message)
 
