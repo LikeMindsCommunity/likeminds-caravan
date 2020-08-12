@@ -2608,10 +2608,3 @@ def community_wise_details(request):
     else:
         context = {}
     return render(request, 'cms/community_wise_details.html', context)
-
-def one_last_step(request):
-    request.session['mobile_no'] = "9888470272"
-    if 'mobile_no' in request.session:
-        print(request.session['mobile_no'])
-    context = {}
-    return render(request,'one_last_step.html',context)

@@ -68,6 +68,7 @@
                     if (result['success'] == true){
                         $('#step-1').hide();
                         $('#step-2').show();
+                        $('#step-2-phone').html('+'+country_code + ' ' + phone_number);
                     }
                 },
                 error: function (result) { // error callback 
@@ -76,7 +77,11 @@
             }
         );
     }
-
+    function editPhone(){
+        $('#step-1').show();
+        $('#step-2').hide();
+        $('#login_with_phone').removeAttr('disabled');
+    }
     function sendMergeVerificationCode(){
         // $('#login_with_phone').prop('disabled', true);
         var country_code = stripValues(document.getElementById('country_code').innerHTML);

@@ -553,6 +553,7 @@ input:focus, textarea:focus, select:focus{border-color:#99CC33!important;outline
 }
 .clickable{
     color:#06c3af;
+    cursor: pointer;
 }
 .login-step input[type=number] {
     height: 48px;
