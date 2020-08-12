@@ -37,3 +37,4 @@ admin.site.register(communityFieldTypes)
 admin.site.register(communityFieldSubTypes)
 admin.site.register(communityField)
 
+admin.site.register(communityQuestions)

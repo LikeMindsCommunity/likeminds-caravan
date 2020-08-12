@@ -1,10 +1,17 @@
 from django.urls import path, include
 from . import views
 from collabmates_api import views as api_views
-from collabmates_api.notification import send_poll_notification_manually
+# from collabmates_api.notification import send_poll_notification_manually
 from django.views.decorators.csrf import csrf_exempt
 
+#for testing email templates only remove.  in prod/beta
+from django.views.generic import TemplateView
+
 urlpatterns = [
+    #for testing email templates only. remove in prod/beta
+#     path('mail/', TemplateView.as_view(template_name='mails/verify_email_template.html')),
+    path('mail/', TemplateView.as_view(template_name='mails/tagged_email.html')),
+
     path('communities', api_views.communities, name="communities"),
     path('your_communities/<int:user_id>', api_views.your_communities, name="your_communities"),
 
@@ -33,6 +40,9 @@ urlpatterns = [
 
 
     path('user/<int:user_id>', api_views.user, name="user"),
+    path('edit_user',api_views.edit_user,name="edit_user"),
+    path('update_email', api_views.update_email, name="update_email"),
+
     path('admins/<int:community_id>', api_views.admins, name="admins"),
     path('members/<int:community_id>', api_views.members, name="members"),
     path('ask_approval', api_views.ask_approval, name="ask_approval"),
@@ -56,6 +66,16 @@ urlpatterns = [
 
     path('login',api_views.login_authenticate,name = 'login'),
     path('v1/login',api_views.login_authenticate_version_1,name = 'v1/login'),
+    path('generate_otp',api_views.generate_otp,name = 'generate_otp'),
+    path('verify_otp',api_views.verify_otp,name = 'verify_otp'),
+    path('merge_account',api_views.merge_account,name='merge_account'),
+
+    path('popup',api_views.popup,name='popup'),
+    path('snooze_popup',api_views.snooze_popup,name='snooze_popup'),
+    path('dismiss_popup',api_views.dismiss_popup,name='dismiss_popup'),
+    path('phonebook', api_views.phonebook, name='phonebook'),
+
+
 
     #path('image_upload',api_views.image_upload,name = 'image'),
     path('add_admin/<int:community_id>',api_views.add_admin,name = 'add_admin'),
@@ -115,7 +135,6 @@ urlpatterns = [
 
     path('fetch_whatsapp_tool', api_views.fetch_whatsapp_tool, name='fetch_whatsapp_tool'),
     path('questions', api_views.questions, name='questions'),
-    path('poll_notification', send_poll_notification_manually, name='poll_notification'),
     path('fetch_master_questions', api_views.fetch_master_questions, name='fetch_master_questions'),
 
     path('fetch_filters', api_views.fetch_filters, name='fetch_filters'),

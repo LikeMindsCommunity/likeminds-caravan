@@ -11,12 +11,17 @@ from togther.models import *
 from project.celery import app
 from utility.tasks import send_email
 from utility.utils import (android_app_download_link, ios_app_download_link,
-                           is_LG_or_LP_community, is_IG_community,angellist_link,linkedIn_link)
+                           is_LG_or_LP_community, is_IG_community,angellist_link,linkedIn_link,get_user_email,
+                           android_app_download_link,ios_app_download_link)
 from django.http import JsonResponse
+from django.contrib.auth.models import User
+from togther.models import Collabcard
+
+from .static_files import GOOGLE_PLAYSTORE,APPLE_APPSTORE,APP_LOGO
 
 url  = settings.URL
 
-
+from .notification import get_title_from_collabcard 
 # def send_email(subject,template,to):
 #     fail_silently=True
 #     msg = EmailMultiAlternatives(subject,
@@ -358,3 +363,102 @@ def send_verification_mail_for_email_sync(user_name,verification_link,email):
 
     to = [email]
     send_email(subject, template, to)
+
+@shared_task
+def send_tagged_user_mail(user_id,card_id,tagged_member_list,time_in_hrs):
+    #check last conversation seen
+    userinstance = User.objects.get(pk=user_id)
+    card_instance = Collabcard.objects.get(id=card_id)
+    has_seen = {}
+    for member_id in tagged_member_list:
+        state = conversationMemberState.objects.filter(card_id=card_id, user_id=member_id)
+        if state.exists():
+            has_seen[member_id] = state.first().conversation_id
+        else:
+            has_seen_[member_id] = -1
+    
+    #sleep for n hours
+    # time.sleep(time_in_hrs*60*60)
+    #sleeping for 5 mins for testing purposes.
+    time.sleep(2*60)
+    has_seen_new = {}
+    for member_id in tagged_member_list:
+        user_name = userinstance.userinfo.name
+        email = get_user_email(member_id)
+        member = User.objects.get(pk=member_id)
+        member_name = member.userinfo.name
+
+        #check if user has opened the chat
+        state = conversationMemberState.objects.filter(card_id=card_id, user_id=member_id)
+        if state.exists():
+            has_seen_new[member_id] = state.first().conversation_id
+        else:
+            has_seen_[member_id] = -1
+
+        #if email exists and he hasnt seen the chat
+        if email and has_seen_new[member_id] == has_seen[member_id]:
+            subject = str(user_name) + " is waiting for your response! "
+            email_context = {
+                'subject':subject,
+                'user_name' : user_name,
+                'member_name' : member_name,
+                'community_name' : card_instance.community.name,
+                'card_name' : get_title_from_collabcard(card_instance) ,
+                'profile_pic': userinstance.userinfo.image_link,
+                'android_app_download_link': android_app_download_link,
+                'ios_app_download_link': ios_app_download_link,
+                'playstore_image' : GOOGLE_PLAYSTORE,
+                'applestore_image' : APPLE_APPSTORE,
+                'app_image' : APP_LOGO,
+                'cta_url': url + '/collabcard/' + str(card_id),
+            }
+            template = get_template("mails/tagged_email.html").render(email_context)
+
+            to = [email]
+            send_email(subject, template, to)
+
+
+@shared_task
+def send_chatroom_owner_mail(user_id,card_id,time_in_hrs):
+    user_instance = User.objects.get(pk=user_id)
+    card_instance = Collabcard.objects.get(id=card_id)
+    state = conversationMemberState.objects.filter(card_id=card_id, user_id=user_id)
+    
+    if state.exists():
+        last_conversation_id = state.first().conversation_id
+    else:
+        last_conversation_id = -1
+    
+    message_time = state.first().updated_at
+    email = get_user_email(user_id)
+    # time.sleep(time_in_hrs*60*60)
+    #sleeping for 5 mins for testing purposes.
+    time.sleep(1*60)
+    state = conversationMemberState.objects.filter(card_id=card_id, user_id=user_id)
+    new_conversation_id = state.first().conversation_id
+    if new_conversation_id == last_conversation_id:
+        number_of_messages = card_answers.objects.filter(card__id=card_id,created_at__gte=message_time).count()
+        if number_of_messages == 1:
+            subject = str(user_instance.userinfo.name) + ", " + str(number_of_messages) +" message is waiting for you!"
+        else:
+            subject = str(user_instance.userinfo.name) + ", " + str(number_of_messages) +" messages are waiting for you!"
+        email_context = {
+                'subject':subject,
+                'member_name' : user_instance.userinfo.name,
+                'community_name' : card_instance.community.name,
+                'card_name' : get_title_from_collabcard(card_instance),
+                'android_app_download_link': android_app_download_link,
+                'ios_app_download_link': ios_app_download_link,
+                'playstore_image' : GOOGLE_PLAYSTORE,
+                'applestore_image' : APPLE_APPSTORE,
+                'app_image' : APP_LOGO,
+                'cta_url': url + '/collabcard/' + str(card_id),
+                'number_of_messages':number_of_messages,
+            }
+        template = get_template("mails/owner_inactive_email.html").render(email_context)
+        to = [email]
+        send_email(subject, template, to)
+        flag = memberNotificationFlag.objects.get(member_id=user_id,code='mail_card_owner_inactivity',card=card_instance)
+        flag.flag = False
+        flag.save()
+

@@ -31,13 +31,13 @@ def mail_triger(member_id, request):
 
 @shared_task
 def send_email(subject, template, to_mails_list):
-    # fail_silently = True
-    # msg = EmailMultiAlternatives(subject,
-    #                              template,
-    #                              "LikeMinds<hello@likeminds.community>",
-    #                              to_mails_list, )
-    # msg.attach_alternative(template, "text/html")
-    # msg.send(fail_silently)
+    fail_silently = False
+    msg = EmailMultiAlternatives(subject,
+                                 template,
+                                 "LikeMinds<hello@likeminds.community>",
+                                 to_mails_list, )
+    msg.attach_alternative(template, "text/html")
+    msg.send(fail_silently)
     return
 
 

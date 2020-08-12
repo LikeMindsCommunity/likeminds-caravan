@@ -870,17 +870,38 @@ class emailTokens(models.Model):
 
 class userEmails(models.Model):
 
-    '''function to save user emails for communication and email sync'''
+    '''function to save user emails and mobile number for communication and email sync'''
 
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     email = models.TextField(null=True)
     email_state = models.IntegerField(default=0)
     created_at = models.BigIntegerField(default=0)
 
+    verified = models.BooleanField(default=False)
+
+
+
     def save(self, *args, **kwargs):
         if self.created_at == 0:
             self.created_at = time.time()
         super(userEmails, self).save(*args, **kwargs)
+
+
+class userMobiles(models.Model):
+
+    user = models.ForeignKey(User,on_delete=models.CASCADE)
+    country_code = models.IntegerField(null=True)
+    mobile_no = models.BigIntegerField(null=True)
+    state = models.IntegerField(default=0)
+
+    created_at = models.BigIntegerField(default=0)
+
+
+class mobileBackup(models.Model):
+
+    country_code = models.IntegerField(null=True)
+    mobile_no = models.BigIntegerField(null=True)
+    created_at = models.BigIntegerField(default=0)
 
 
 class membersEngagePilot(models.Model):
@@ -982,3 +1003,47 @@ class communityField(models.Model):
 
 
 
+#
+class memberNotificationFlag(models.Model):
+    '''
+    Model to store the flag state to send emails/push notifications of a particular user
+    Code for mails with start with 'mail_'
+    Code for notification with start with 'push_'
+    '''
+
+    member = models.ForeignKey(User, on_delete=models.CASCADE)
+    community = models.ForeignKey(Community, on_delete=models.SET_NULL, null=True)
+    card = models.ForeignKey(Collabcard, on_delete=models.SET_NULL, null=True)
+    code = models.CharField(default='', max_length=100)
+    flag = models.BooleanField(default=True)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      
+    updated_at = models.BigIntegerField(default=0, null=True)
+    created_at = models.BigIntegerField(default=0, null=True)
+    
+    def save(self, *args, **kwargs):
+        if self.created_at == 0:
+            self.created_at = time.time()
+        super(memberNotificationFlag, self).save(*args, **kwargs)
+
+
+
+class userPopupTime(models.Model):
+
+    '''api to make user pop up time for getting phonebook permissions'''
+
+    user = models.ForeignKey(User,on_delete=models.CASCADE)
+    popup_type = models.TextField(null=True)
+    trigger_time = models.BigIntegerField(null=True)
+    ignore = models.BooleanField(default=False)
+    count = models.IntegerField(default=0)
+
+    created_at = models.BigIntegerField(null=True)
+
+
+class userPhonebook(models.Model):
+
+    '''api to make user phonebook'''
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    phonebook = models.TextField(null=True)
+    created_at = models.BigIntegerField(null=True)
+    updated_at = models.BigIntegerField(null=True)

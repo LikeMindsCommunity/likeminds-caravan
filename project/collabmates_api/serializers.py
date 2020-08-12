@@ -107,13 +107,13 @@ def UserinfoSerializer(user):
     userinfo = {
         'id': user.user_id.id,
         "name": user.name,
-        "email": user.email,
-        "city": user.city,
-        "headline": user.headline,
-        "contact_number": user.contact_number,
-        "about": user.about,
-        "fb_link": user.fb_link,
-        "linkedin_link": user.linkedin_link,
+        # "email": user.email,
+        # "city": user.city,
+        # "headline": user.headline,
+        # "contact_number": user.contact_number,
+        # "about": user.about,
+        # "fb_link": user.fb_link,
+        # "linkedin_link": user.linkedin_link,
     }
 
     if not user.image_link:
@@ -122,6 +122,36 @@ def UserinfoSerializer(user):
         userinfo['image_url'] = user.image_link
 
     return userinfo
+
+
+def get_logged_in_user(user_instance):
+
+    context = UserinfoSerializer(user_instance.userinfo)
+
+    email_filter = userEmails.objects.filter(user=user_instance)
+
+    email_list = []
+    for email in email_filter:
+        email_list.append(userEmailsSerializer(email))
+
+    # if not email_list:
+    #     email = user_instance.userinfo.email
+    #     if email:
+    #         email_list.append(email)
+
+    mobile_filter = userMobiles.objects.filter(user=user_instance)
+
+    mobile_list = []
+
+    for mobile_no in mobile_filter:
+        mobile_list.append(userMobilesSerializer(mobile_no))
+
+    if email_list:
+        context['emails'] = email_list
+    if mobile_list:
+        context['mobiles'] = mobile_list
+
+    return context
 
 def CollabcardSerializer(card,user,community=None):
     # function to serialize a community object
@@ -927,4 +957,27 @@ def communityFieldSerializer(instance):
         'sub_type':instance.sub_type.id,
         'field':instance.field,
         'is_compulsory':instance.is_compulsory
+    }
+
+
+
+def userEmailsSerializer(email_instance):
+
+    return {
+        'id':email_instance.id,
+        'user_id': email_instance.user.id,
+        'email': email_instance.email,
+        'state': email_instance.email_state,
+        'verified':email_instance.verified
+
+    }
+
+
+def userMobilesSerializer(mobile_instance):
+
+    return {
+        'user_id': mobile_instance.user.id,
+        'mobile_no': mobile_instance.mobile_no,
+        'country_code':mobile_instance.country_code,
+        'state': mobile_instance.state
     }

@@ -221,6 +221,7 @@ def community(request, community_id):
 
 
     aj = request.GET.get('aj', False)                           #auto join check functionality
+
     source = request.GET.get('source')
     if aj and is_request_android(request) and not source:
 
@@ -230,6 +231,9 @@ def community(request, community_id):
         #
         playstore_ref_link = android_app_download_link+"""&referrer=%s"""%(quote(private_link))
         return redirect(playstore_ref_link)
+
+    # if is_request_ios(request):
+    #     return redirect("https://apps.apple.com/us/app/likeminds-community-chat/id1526635028?mt=8")
 
 
     # print(aj)
@@ -257,7 +261,10 @@ def community(request, community_id):
     if state == 0:
 
         if aj and source:
-            params = str(community_id)+"+"+str(aj)+"+"+str(source)
+            params = str(community_id)+"-"+str(aj)+"-"+str(source)
+
+        elif aj:
+            params = str(community_id) + "-" + str(aj) + "-private_link"
         else:
             params = community_id
         return redirect('community_questions',params=params)
@@ -278,13 +285,19 @@ def community_questions(request,params):
 
     '''function to get community questions'''
 
+
+    # if is_request_ios(request):
+    #     return redirect("https://apps.apple.com/us/app/likeminds-community-chat/id1526635028?mt=8")
+
+
+
     url_details = {}
     user_directory = False
     chatroom_deleted = None
-    if params.find("+") == -1:
+    if params.find("-") == -1:
         community_id = params
     else:
-        params = params.split("+")
+        params = params.split("-")
 
         if len(params) == 3:
             community_id = params[0]
@@ -298,9 +311,13 @@ def community_questions(request,params):
         else:
             return HttpResponse("invalid url")
 
+
+
     question_format = get_community_questions(community_id)
     community_instance = Community.objects.get(id=community_id)
     admin = get_community_creator(community_instance)
+
+
 
     user_instance = None
     state = 0
@@ -359,6 +376,9 @@ def community_questions(request,params):
             footer['aj']=url_details['aj']
             context['footer'] = footer
 
+            context['source'] = url_details['source']
+
+
 
         if chatroom_deleted:
 
@@ -377,6 +397,8 @@ def community_questions(request,params):
         question_data = request.POST.dict().get("data")
         aj = request.POST.get('aj')
         aj_expired = request.POST.get('aj_expired')
+        source = request.POST.get('source')
+        #print("source---",source)
         question_data = ast.literal_eval(question_data)
         response_list = []
 
@@ -403,10 +425,15 @@ def community_questions(request,params):
             params = {'member_id': user_instance.id, 'community_id': community_id}
             if  aj_expired == 'False':
                 json_dict['aj'] = int(aj)
+
+            # print("params---",params)
+            # print("json dict---",json_dict)
             rqst.post(join_url, params=params, json=json_dict)
 
         if aj_expired == "" or aj_expired == "True":
             return JsonResponse({'success':True})
+        elif source == "private_link":
+            return JsonResponse({'success': True, 'source': "private_link"})
         else:
             return JsonResponse({'success':True,'source':"members_directory"})
 
@@ -1384,7 +1411,7 @@ def join_community(request, community_id, ref_id, aj=False, member_state=None):
 
 
 def get_community_questions(community_id):
-    questions = communityQuestions.objects.filter(community=community_id).order_by('id')
+    questions = communityQuestions.objects.filter(community=community_id,is_hidden=False).order_by('id')
     question_format = []
     dropdown_list = []
     for each_question in questions:
@@ -2559,11 +2586,6 @@ def linked_in_authentication(request):
     # redirect_url = redirect_url + "?json="+str(data_main)
     info_logger.info(request.user.is_authenticated)
     return redirect(redirect_url)
-
-
-
-
-
 
 
 

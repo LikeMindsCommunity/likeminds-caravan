@@ -1,0 +1,1502 @@
+[
+    {
+      "name": "Afghanistan",
+      "flag": "https://restcountries.eu/data/afg.svg",
+      "calling_code": "+93",
+      "code": "AF"
+    },
+    {
+      "name": "Åland Islands",
+      "flag": "https://restcountries.eu/data/ala.svg",
+      "calling_code": "+358",
+      "code": "AX"
+    },
+    {
+      "name": "Albania",
+      "flag": "https://restcountries.eu/data/alb.svg",
+      "calling_code": "+355",
+      "code": "AL"
+    },
+    {
+      "name": "Algeria",
+      "flag": "https://restcountries.eu/data/dza.svg",
+      "calling_code": "+213",
+      "code": "DZ"
+    },
+    {
+      "name": "American Samoa",
+      "flag": "https://restcountries.eu/data/asm.svg",
+      "calling_code": "+1684",
+      "code": "AS"
+    },
+    {
+      "name": "Andorra",
+      "flag": "https://restcountries.eu/data/and.svg",
+      "calling_code": "+376",
+      "code": "AD"
+    },
+    {
+      "name": "Angola",
+      "flag": "https://restcountries.eu/data/ago.svg",
+      "calling_code": "+244",
+      "code": "AO"
+    },
+    {
+      "name": "Anguilla",
+      "flag": "https://restcountries.eu/data/aia.svg",
+      "calling_code": "+1264",
+      "code": "AI"
+    },
+    {
+      "name": "Antarctica",
+      "flag": "https://restcountries.eu/data/ata.svg",
+      "calling_code": "+672",
+      "code": "AQ"
+    },
+    {
+      "name": "Antigua and Barbuda",
+      "flag": "https://restcountries.eu/data/atg.svg",
+      "calling_code": "+1268",
+      "code": "AG"
+    },
+    {
+      "name": "Argentina",
+      "flag": "https://restcountries.eu/data/arg.svg",
+      "calling_code": "+54",
+      "code": "AR"
+    },
+    {
+      "name": "Armenia",
+      "flag": "https://restcountries.eu/data/arm.svg",
+      "calling_code": "+374",
+      "code": "AM"
+    },
+    {
+      "name": "Aruba",
+      "flag": "https://restcountries.eu/data/abw.svg",
+      "calling_code": "+297",
+      "code": "AW"
+    },
+    {
+      "name": "Australia",
+      "flag": "https://restcountries.eu/data/aus.svg",
+      "calling_code": "+61",
+      "code": "AU"
+    },
+    {
+      "name": "Austria",
+      "flag": "https://restcountries.eu/data/aut.svg",
+      "calling_code": "+43",
+      "code": "AT"
+    },
+    {
+      "name": "Azerbaijan",
+      "flag": "https://restcountries.eu/data/aze.svg",
+      "calling_code": "+994",
+      "code": "AZ"
+    },
+    {
+      "name": "Bahamas",
+      "flag": "https://restcountries.eu/data/bhs.svg",
+      "calling_code": "+1242",
+      "code": "BS"
+    },
+    {
+      "name": "Bahrain",
+      "flag": "https://restcountries.eu/data/bhr.svg",
+      "calling_code": "+973",
+      "code": "BH"
+    },
+    {
+      "name": "Bangladesh",
+      "flag": "https://restcountries.eu/data/bgd.svg",
+      "calling_code": "+880",
+      "code": "BD"
+    },
+    {
+      "name": "Barbados",
+      "flag": "https://restcountries.eu/data/brb.svg",
+      "calling_code": "+1246",
+      "code": "BB"
+    },
+    {
+      "name": "Belarus",
+      "flag": "https://restcountries.eu/data/blr.svg",
+      "calling_code": "+375",
+      "code": "BY"
+    },
+    {
+      "name": "Belgium",
+      "flag": "https://restcountries.eu/data/bel.svg",
+      "calling_code": "+32",
+      "code": "BE"
+    },
+    {
+      "name": "Belize",
+      "flag": "https://restcountries.eu/data/blz.svg",
+      "calling_code": "+501",
+      "code": "BZ"
+    },
+    {
+      "name": "Benin",
+      "flag": "https://restcountries.eu/data/ben.svg",
+      "calling_code": "+229",
+      "code": "BJ"
+    },
+    {
+      "name": "Bermuda",
+      "flag": "https://restcountries.eu/data/bmu.svg",
+      "calling_code": "+1441",
+      "code": "BM"
+    },
+    {
+      "name": "Bhutan",
+      "flag": "https://restcountries.eu/data/btn.svg",
+      "calling_code": "+975",
+      "code": "BT"
+    },
+    {
+      "name": "Bolivia (Plurinational State of)",
+      "flag": "https://restcountries.eu/data/bol.svg",
+      "calling_code": "+591",
+      "code": "BO"
+    },
+    {
+      "name": "Bonaire, Sint Eustatius and Saba",
+      "flag": "https://restcountries.eu/data/bes.svg",
+      "calling_code": "+5997",
+      "code": "BQ"
+    },
+    {
+      "name": "Bosnia and Herzegovina",
+      "flag": "https://restcountries.eu/data/bih.svg",
+      "calling_code": "+387",
+      "code": "BA"
+    },
+    {
+      "name": "Botswana",
+      "flag": "https://restcountries.eu/data/bwa.svg",
+      "calling_code": "+267",
+      "code": "BW"
+    },
+    {
+      "name": "Bouvet Island",
+      "flag": "https://restcountries.eu/data/bvt.svg",
+      "calling_code": "+",
+      "code": "BV"
+    },
+    {
+      "name": "Brazil",
+      "flag": "https://restcountries.eu/data/bra.svg",
+      "calling_code": "+55",
+      "code": "BR"
+    },
+    {
+      "name": "British Indian Ocean Territory",
+      "flag": "https://restcountries.eu/data/iot.svg",
+      "calling_code": "+246",
+      "code": "IO"
+    },
+    {
+      "name": "United States Minor Outlying Islands",
+      "flag": "https://restcountries.eu/data/umi.svg",
+      "calling_code": "+",
+      "code": "UM"
+    },
+    {
+      "name": "Virgin Islands (British)",
+      "flag": "https://restcountries.eu/data/vgb.svg",
+      "calling_code": "+1284",
+      "code": "VG"
+    },
+    {
+      "name": "Virgin Islands (U.S.)",
+      "flag": "https://restcountries.eu/data/vir.svg",
+      "calling_code": "+1 340",
+      "code": "VI"
+    },
+    {
+      "name": "Brunei Darussalam",
+      "flag": "https://restcountries.eu/data/brn.svg",
+      "calling_code": "+673",
+      "code": "BN"
+    },
+    {
+      "name": "Bulgaria",
+      "flag": "https://restcountries.eu/data/bgr.svg",
+      "calling_code": "+359",
+      "code": "BG"
+    },
+    {
+      "name": "Burkina Faso",
+      "flag": "https://restcountries.eu/data/bfa.svg",
+      "calling_code": "+226",
+      "code": "BF"
+    },
+    {
+      "name": "Burundi",
+      "flag": "https://restcountries.eu/data/bdi.svg",
+      "calling_code": "+257",
+      "code": "BI"
+    },
+    {
+      "name": "Cambodia",
+      "flag": "https://restcountries.eu/data/khm.svg",
+      "calling_code": "+855",
+      "code": "KH"
+    },
+    {
+      "name": "Cameroon",
+      "flag": "https://restcountries.eu/data/cmr.svg",
+      "calling_code": "+237",
+      "code": "CM"
+    },
+    {
+      "name": "Canada",
+      "flag": "https://restcountries.eu/data/can.svg",
+      "calling_code": "+1",
+      "code": "CA"
+    },
+    {
+      "name": "Cabo Verde",
+      "flag": "https://restcountries.eu/data/cpv.svg",
+      "calling_code": "+238",
+      "code": "CV"
+    },
+    {
+      "name": "Cayman Islands",
+      "flag": "https://restcountries.eu/data/cym.svg",
+      "calling_code": "+1345",
+      "code": "KY"
+    },
+    {
+      "name": "Central African Republic",
+      "flag": "https://restcountries.eu/data/caf.svg",
+      "calling_code": "+236",
+      "code": "CF"
+    },
+    {
+      "name": "Chad",
+      "flag": "https://restcountries.eu/data/tcd.svg",
+      "calling_code": "+235",
+      "code": "TD"
+    },
+    {
+      "name": "Chile",
+      "flag": "https://restcountries.eu/data/chl.svg",
+      "calling_code": "+56",
+      "code": "CL"
+    },
+    {
+      "name": "China",
+      "flag": "https://restcountries.eu/data/chn.svg",
+      "calling_code": "+86",
+      "code": "CN"
+    },
+    {
+      "name": "Christmas Island",
+      "flag": "https://restcountries.eu/data/cxr.svg",
+      "calling_code": "+61",
+      "code": "CX"
+    },
+    {
+      "name": "Cocos (Keeling) Islands",
+      "flag": "https://restcountries.eu/data/cck.svg",
+      "calling_code": "+61",
+      "code": "CC"
+    },
+    {
+      "name": "Colombia",
+      "flag": "https://restcountries.eu/data/col.svg",
+      "calling_code": "+57",
+      "code": "CO"
+    },
+    {
+      "name": "Comoros",
+      "flag": "https://restcountries.eu/data/com.svg",
+      "calling_code": "+269",
+      "code": "KM"
+    },
+    {
+      "name": "Congo",
+      "flag": "https://restcountries.eu/data/cog.svg",
+      "calling_code": "+242",
+      "code": "CG"
+    },
+    {
+      "name": "Congo (Democratic Republic of the)",
+      "flag": "https://restcountries.eu/data/cod.svg",
+      "calling_code": "+243",
+      "code": "CD"
+    },
+    {
+      "name": "Cook Islands",
+      "flag": "https://restcountries.eu/data/cok.svg",
+      "calling_code": "+682",
+      "code": "CK"
+    },
+    {
+      "name": "Costa Rica",
+      "flag": "https://restcountries.eu/data/cri.svg",
+      "calling_code": "+506",
+      "code": "CR"
+    },
+    {
+      "name": "Croatia",
+      "flag": "https://restcountries.eu/data/hrv.svg",
+      "calling_code": "+385",
+      "code": "HR"
+    },
+    {
+      "name": "Cuba",
+      "flag": "https://restcountries.eu/data/cub.svg",
+      "calling_code": "+53",
+      "code": "CU"
+    },
+    {
+      "name": "Curaçao",
+      "flag": "https://restcountries.eu/data/cuw.svg",
+      "calling_code": "+599",
+      "code": "CW"
+    },
+    {
+      "name": "Cyprus",
+      "flag": "https://restcountries.eu/data/cyp.svg",
+      "calling_code": "+357",
+      "code": "CY"
+    },
+    {
+      "name": "Czech Republic",
+      "flag": "https://restcountries.eu/data/cze.svg",
+      "calling_code": "+420",
+      "code": "CZ"
+    },
+    {
+      "name": "Denmark",
+      "flag": "https://restcountries.eu/data/dnk.svg",
+      "calling_code": "+45",
+      "code": "DK"
+    },
+    {
+      "name": "Djibouti",
+      "flag": "https://restcountries.eu/data/dji.svg",
+      "calling_code": "+253",
+      "code": "DJ"
+    },
+    {
+      "name": "Dominica",
+      "flag": "https://restcountries.eu/data/dma.svg",
+      "calling_code": "+1767",
+      "code": "DM"
+    },
+    {
+      "name": "Dominican Republic",
+      "flag": "https://restcountries.eu/data/dom.svg",
+      "calling_code": "+1809",
+      "code": "DO"
+    },
+    {
+      "name": "Ecuador",
+      "flag": "https://restcountries.eu/data/ecu.svg",
+      "calling_code": "+593",
+      "code": "EC"
+    },
+    {
+      "name": "Egypt",
+      "flag": "https://restcountries.eu/data/egy.svg",
+      "calling_code": "+20",
+      "code": "EG"
+    },
+    {
+      "name": "El Salvador",
+      "flag": "https://restcountries.eu/data/slv.svg",
+      "calling_code": "+503",
+      "code": "SV"
+    },
+    {
+      "name": "Equatorial Guinea",
+      "flag": "https://restcountries.eu/data/gnq.svg",
+      "calling_code": "+240",
+      "code": "GQ"
+    },
+    {
+      "name": "Eritrea",
+      "flag": "https://restcountries.eu/data/eri.svg",
+      "calling_code": "+291",
+      "code": "ER"
+    },
+    {
+      "name": "Estonia",
+      "flag": "https://restcountries.eu/data/est.svg",
+      "calling_code": "+372",
+      "code": "EE"
+    },
+    {
+      "name": "Ethiopia",
+      "flag": "https://restcountries.eu/data/eth.svg",
+      "calling_code": "+251",
+      "code": "ET"
+    },
+    {
+      "name": "Falkland Islands (Malvinas)",
+      "flag": "https://restcountries.eu/data/flk.svg",
+      "calling_code": "+500",
+      "code": "FK"
+    },
+    {
+      "name": "Faroe Islands",
+      "flag": "https://restcountries.eu/data/fro.svg",
+      "calling_code": "+298",
+      "code": "FO"
+    },
+    {
+      "name": "Fiji",
+      "flag": "https://restcountries.eu/data/fji.svg",
+      "calling_code": "+679",
+      "code": "FJ"
+    },
+    {
+      "name": "Finland",
+      "flag": "https://restcountries.eu/data/fin.svg",
+      "calling_code": "+358",
+      "code": "FI"
+    },
+    {
+      "name": "France",
+      "flag": "https://restcountries.eu/data/fra.svg",
+      "calling_code": "+33",
+      "code": "FR"
+    },
+    {
+      "name": "French Guiana",
+      "flag": "https://restcountries.eu/data/guf.svg",
+      "calling_code": "+594",
+      "code": "GF"
+    },
+    {
+      "name": "French Polynesia",
+      "flag": "https://restcountries.eu/data/pyf.svg",
+      "calling_code": "+689",
+      "code": "PF"
+    },
+    {
+      "name": "French Southern Territories",
+      "flag": "https://restcountries.eu/data/atf.svg",
+      "calling_code": "+",
+      "code": "TF"
+    },
+    {
+      "name": "Gabon",
+      "flag": "https://restcountries.eu/data/gab.svg",
+      "calling_code": "+241",
+      "code": "GA"
+    },
+    {
+      "name": "Gambia",
+      "flag": "https://restcountries.eu/data/gmb.svg",
+      "calling_code": "+220",
+      "code": "GM"
+    },
+    {
+      "name": "Georgia",
+      "flag": "https://restcountries.eu/data/geo.svg",
+      "calling_code": "+995",
+      "code": "GE"
+    },
+    {
+      "name": "Germany",
+      "flag": "https://restcountries.eu/data/deu.svg",
+      "calling_code": "+49",
+      "code": "DE"
+    },
+    {
+      "name": "Ghana",
+      "flag": "https://restcountries.eu/data/gha.svg",
+      "calling_code": "+233",
+      "code": "GH"
+    },
+    {
+      "name": "Gibraltar",
+      "flag": "https://restcountries.eu/data/gib.svg",
+      "calling_code": "+350",
+      "code": "GI"
+    },
+    {
+      "name": "Greece",
+      "flag": "https://restcountries.eu/data/grc.svg",
+      "calling_code": "+30",
+      "code": "GR"
+    },
+    {
+      "name": "Greenland",
+      "flag": "https://restcountries.eu/data/grl.svg",
+      "calling_code": "+299",
+      "code": "GL"
+    },
+    {
+      "name": "Grenada",
+      "flag": "https://restcountries.eu/data/grd.svg",
+      "calling_code": "+1473",
+      "code": "GD"
+    },
+    {
+      "name": "Guadeloupe",
+      "flag": "https://restcountries.eu/data/glp.svg",
+      "calling_code": "+590",
+      "code": "GP"
+    },
+    {
+      "name": "Guam",
+      "flag": "https://restcountries.eu/data/gum.svg",
+      "calling_code": "+1671",
+      "code": "GU"
+    },
+    {
+      "name": "Guatemala",
+      "flag": "https://restcountries.eu/data/gtm.svg",
+      "calling_code": "+502",
+      "code": "GT"
+    },
+    {
+      "name": "Guernsey",
+      "flag": "https://restcountries.eu/data/ggy.svg",
+      "calling_code": "+44",
+      "code": "GG"
+    },
+    {
+      "name": "Guinea",
+      "flag": "https://restcountries.eu/data/gin.svg",
+      "calling_code": "+224",
+      "code": "GN"
+    },
+    {
+      "name": "Guinea-Bissau",
+      "flag": "https://restcountries.eu/data/gnb.svg",
+      "calling_code": "+245",
+      "code": "GW"
+    },
+    {
+      "name": "Guyana",
+      "flag": "https://restcountries.eu/data/guy.svg",
+      "calling_code": "+592",
+      "code": "GY"
+    },
+    {
+      "name": "Haiti",
+      "flag": "https://restcountries.eu/data/hti.svg",
+      "calling_code": "+509",
+      "code": "HT"
+    },
+    {
+      "name": "Heard Island and McDonald Islands",
+      "flag": "https://restcountries.eu/data/hmd.svg",
+      "calling_code": "+",
+      "code": "HM"
+    },
+    {
+      "name": "Holy See",
+      "flag": "https://restcountries.eu/data/vat.svg",
+      "calling_code": "+379",
+      "code": "VA"
+    },
+    {
+      "name": "Honduras",
+      "flag": "https://restcountries.eu/data/hnd.svg",
+      "calling_code": "+504",
+      "code": "HN"
+    },
+    {
+      "name": "Hong Kong",
+      "flag": "https://restcountries.eu/data/hkg.svg",
+      "calling_code": "+852",
+      "code": "HK"
+    },
+    {
+      "name": "Hungary",
+      "flag": "https://restcountries.eu/data/hun.svg",
+      "calling_code": "+36",
+      "code": "HU"
+    },
+    {
+      "name": "Iceland",
+      "flag": "https://restcountries.eu/data/isl.svg",
+      "calling_code": "+354",
+      "code": "IS"
+    },
+    {
+      "name": "India",
+      "flag": "https://restcountries.eu/data/ind.svg",
+      "calling_code": "+91",
+      "code": "IN"
+    },
+    {
+      "name": "Indonesia",
+      "flag": "https://restcountries.eu/data/idn.svg",
+      "calling_code": "+62",
+      "code": "ID"
+    },
+    {
+      "name": "Côte d'Ivoire",
+      "flag": "https://restcountries.eu/data/civ.svg",
+      "calling_code": "+225",
+      "code": "CI"
+    },
+    {
+      "name": "Iran (Islamic Republic of)",
+      "flag": "https://restcountries.eu/data/irn.svg",
+      "calling_code": "+98",
+      "code": "IR"
+    },
+    {
+      "name": "Iraq",
+      "flag": "https://restcountries.eu/data/irq.svg",
+      "calling_code": "+964",
+      "code": "IQ"
+    },
+    {
+      "name": "Ireland",
+      "flag": "https://restcountries.eu/data/irl.svg",
+      "calling_code": "+353",
+      "code": "IE"
+    },
+    {
+      "name": "Isle of Man",
+      "flag": "https://restcountries.eu/data/imn.svg",
+      "calling_code": "+44",
+      "code": "IM"
+    },
+    {
+      "name": "Israel",
+      "flag": "https://restcountries.eu/data/isr.svg",
+      "calling_code": "+972",
+      "code": "IL"
+    },
+    {
+      "name": "Italy",
+      "flag": "https://restcountries.eu/data/ita.svg",
+      "calling_code": "+39",
+      "code": "IT"
+    },
+    {
+      "name": "Jamaica",
+      "flag": "https://restcountries.eu/data/jam.svg",
+      "calling_code": "+1876",
+      "code": "JM"
+    },
+    {
+      "name": "Japan",
+      "flag": "https://restcountries.eu/data/jpn.svg",
+      "calling_code": "+81",
+      "code": "JP"
+    },
+    {
+      "name": "Jersey",
+      "flag": "https://restcountries.eu/data/jey.svg",
+      "calling_code": "+44",
+      "code": "JE"
+    },
+    {
+      "name": "Jordan",
+      "flag": "https://restcountries.eu/data/jor.svg",
+      "calling_code": "+962",
+      "code": "JO"
+    },
+    {
+      "name": "Kazakhstan",
+      "flag": "https://restcountries.eu/data/kaz.svg",
+      "calling_code": "+76",
+      "code": "KZ"
+    },
+    {
+      "name": "Kenya",
+      "flag": "https://restcountries.eu/data/ken.svg",
+      "calling_code": "+254",
+      "code": "KE"
+    },
+    {
+      "name": "Kiribati",
+      "flag": "https://restcountries.eu/data/kir.svg",
+      "calling_code": "+686",
+      "code": "KI"
+    },
+    {
+      "name": "Kuwait",
+      "flag": "https://restcountries.eu/data/kwt.svg",
+      "calling_code": "+965",
+      "code": "KW"
+    },
+    {
+      "name": "Kyrgyzstan",
+      "flag": "https://restcountries.eu/data/kgz.svg",
+      "calling_code": "+996",
+      "code": "KG"
+    },
+    {
+      "name": "Lao People's Democratic Republic",
+      "flag": "https://restcountries.eu/data/lao.svg",
+      "calling_code": "+856",
+      "code": "LA"
+    },
+    {
+      "name": "Latvia",
+      "flag": "https://restcountries.eu/data/lva.svg",
+      "calling_code": "+371",
+      "code": "LV"
+    },
+    {
+      "name": "Lebanon",
+      "flag": "https://restcountries.eu/data/lbn.svg",
+      "calling_code": "+961",
+      "code": "LB"
+    },
+    {
+      "name": "Lesotho",
+      "flag": "https://restcountries.eu/data/lso.svg",
+      "calling_code": "+266",
+      "code": "LS"
+    },
+    {
+      "name": "Liberia",
+      "flag": "https://restcountries.eu/data/lbr.svg",
+      "calling_code": "+231",
+      "code": "LR"
+    },
+    {
+      "name": "Libya",
+      "flag": "https://restcountries.eu/data/lby.svg",
+      "calling_code": "+218",
+      "code": "LY"
+    },
+    {
+      "name": "Liechtenstein",
+      "flag": "https://restcountries.eu/data/lie.svg",
+      "calling_code": "+423",
+      "code": "LI"
+    },
+    {
+      "name": "Lithuania",
+      "flag": "https://restcountries.eu/data/ltu.svg",
+      "calling_code": "+370",
+      "code": "LT"
+    },
+    {
+      "name": "Luxembourg",
+      "flag": "https://restcountries.eu/data/lux.svg",
+      "calling_code": "+352",
+      "code": "LU"
+    },
+    {
+      "name": "Macao",
+      "flag": "https://restcountries.eu/data/mac.svg",
+      "calling_code": "+853",
+      "code": "MO"
+    },
+    {
+      "name": "Macedonia (the former Yugoslav Republic of)",
+      "flag": "https://restcountries.eu/data/mkd.svg",
+      "calling_code": "+389",
+      "code": "MK"
+    },
+    {
+      "name": "Madagascar",
+      "flag": "https://restcountries.eu/data/mdg.svg",
+      "calling_code": "+261",
+      "code": "MG"
+    },
+    {
+      "name": "Malawi",
+      "flag": "https://restcountries.eu/data/mwi.svg",
+      "calling_code": "+265",
+      "code": "MW"
+    },
+    {
+      "name": "Malaysia",
+      "flag": "https://restcountries.eu/data/mys.svg",
+      "calling_code": "+60",
+      "code": "MY"
+    },
+    {
+      "name": "Maldives",
+      "flag": "https://restcountries.eu/data/mdv.svg",
+      "calling_code": "+960",
+      "code": "MV"
+    },
+    {
+      "name": "Mali",
+      "flag": "https://restcountries.eu/data/mli.svg",
+      "calling_code": "+223",
+      "code": "ML"
+    },
+    {
+      "name": "Malta",
+      "flag": "https://restcountries.eu/data/mlt.svg",
+      "calling_code": "+356",
+      "code": "MT"
+    },
+    {
+      "name": "Marshall Islands",
+      "flag": "https://restcountries.eu/data/mhl.svg",
+      "calling_code": "+692",
+      "code": "MH"
+    },
+    {
+      "name": "Martinique",
+      "flag": "https://restcountries.eu/data/mtq.svg",
+      "calling_code": "+596",
+      "code": "MQ"
+    },
+    {
+      "name": "Mauritania",
+      "flag": "https://restcountries.eu/data/mrt.svg",
+      "calling_code": "+222",
+      "code": "MR"
+    },
+    {
+      "name": "Mauritius",
+      "flag": "https://restcountries.eu/data/mus.svg",
+      "calling_code": "+230",
+      "code": "MU"
+    },
+    {
+      "name": "Mayotte",
+      "flag": "https://restcountries.eu/data/myt.svg",
+      "calling_code": "+262",
+      "code": "YT"
+    },
+    {
+      "name": "Mexico",
+      "flag": "https://restcountries.eu/data/mex.svg",
+      "calling_code": "+52",
+      "code": "MX"
+    },
+    {
+      "name": "Micronesia (Federated States of)",
+      "flag": "https://restcountries.eu/data/fsm.svg",
+      "calling_code": "+691",
+      "code": "FM"
+    },
+    {
+      "name": "Moldova (Republic of)",
+      "flag": "https://restcountries.eu/data/mda.svg",
+      "calling_code": "+373",
+      "code": "MD"
+    },
+    {
+      "name": "Monaco",
+      "flag": "https://restcountries.eu/data/mco.svg",
+      "calling_code": "+377",
+      "code": "MC"
+    },
+    {
+      "name": "Mongolia",
+      "flag": "https://restcountries.eu/data/mng.svg",
+      "calling_code": "+976",
+      "code": "MN"
+    },
+    {
+      "name": "Montenegro",
+      "flag": "https://restcountries.eu/data/mne.svg",
+      "calling_code": "+382",
+      "code": "ME"
+    },
+    {
+      "name": "Montserrat",
+      "flag": "https://restcountries.eu/data/msr.svg",
+      "calling_code": "+1664",
+      "code": "MS"
+    },
+    {
+      "name": "Morocco",
+      "flag": "https://restcountries.eu/data/mar.svg",
+      "calling_code": "+212",
+      "code": "MA"
+    },
+    {
+      "name": "Mozambique",
+      "flag": "https://restcountries.eu/data/moz.svg",
+      "calling_code": "+258",
+      "code": "MZ"
+    },
+    {
+      "name": "Myanmar",
+      "flag": "https://restcountries.eu/data/mmr.svg",
+      "calling_code": "+95",
+      "code": "MM"
+    },
+    {
+      "name": "Namibia",
+      "flag": "https://restcountries.eu/data/nam.svg",
+      "calling_code": "+264",
+      "code": "NA"
+    },
+    {
+      "name": "Nauru",
+      "flag": "https://restcountries.eu/data/nru.svg",
+      "calling_code": "+674",
+      "code": "NR"
+    },
+    {
+      "name": "Nepal",
+      "flag": "https://restcountries.eu/data/npl.svg",
+      "calling_code": "+977",
+      "code": "NP"
+    },
+    {
+      "name": "Netherlands",
+      "flag": "https://restcountries.eu/data/nld.svg",
+      "calling_code": "+31",
+      "code": "NL"
+    },
+    {
+      "name": "New Caledonia",
+      "flag": "https://restcountries.eu/data/ncl.svg",
+      "calling_code": "+687",
+      "code": "NC"
+    },
+    {
+      "name": "New Zealand",
+      "flag": "https://restcountries.eu/data/nzl.svg",
+      "calling_code": "+64",
+      "code": "NZ"
+    },
+    {
+      "name": "Nicaragua",
+      "flag": "https://restcountries.eu/data/nic.svg",
+      "calling_code": "+505",
+      "code": "NI"
+    },
+    {
+      "name": "Niger",
+      "flag": "https://restcountries.eu/data/ner.svg",
+      "calling_code": "+227",
+      "code": "NE"
+    },
+    {
+      "name": "Nigeria",
+      "flag": "https://restcountries.eu/data/nga.svg",
+      "calling_code": "+234",
+      "code": "NG"
+    },
+    {
+      "name": "Niue",
+      "flag": "https://restcountries.eu/data/niu.svg",
+      "calling_code": "+683",
+      "code": "NU"
+    },
+    {
+      "name": "Norfolk Island",
+      "flag": "https://restcountries.eu/data/nfk.svg",
+      "calling_code": "+672",
+      "code": "NF"
+    },
+    {
+      "name": "Korea (Democratic People's Republic of)",
+      "flag": "https://restcountries.eu/data/prk.svg",
+      "calling_code": "+850",
+      "code": "KP"
+    },
+    {
+      "name": "Northern Mariana Islands",
+      "flag": "https://restcountries.eu/data/mnp.svg",
+      "calling_code": "+1670",
+      "code": "MP"
+    },
+    {
+      "name": "Norway",
+      "flag": "https://restcountries.eu/data/nor.svg",
+      "calling_code": "+47",
+      "code": "NO"
+    },
+    {
+      "name": "Oman",
+      "flag": "https://restcountries.eu/data/omn.svg",
+      "calling_code": "+968",
+      "code": "OM"
+    },
+    {
+      "name": "Pakistan",
+      "flag": "https://restcountries.eu/data/pak.svg",
+      "calling_code": "+92",
+      "code": "PK"
+    },
+    {
+      "name": "Palau",
+      "flag": "https://restcountries.eu/data/plw.svg",
+      "calling_code": "+680",
+      "code": "PW"
+    },
+    {
+      "name": "Palestine, State of",
+      "flag": "https://restcountries.eu/data/pse.svg",
+      "calling_code": "+970",
+      "code": "PS"
+    },
+    {
+      "name": "Panama",
+      "flag": "https://restcountries.eu/data/pan.svg",
+      "calling_code": "+507",
+      "code": "PA"
+    },
+    {
+      "name": "Papua New Guinea",
+      "flag": "https://restcountries.eu/data/png.svg",
+      "calling_code": "+675",
+      "code": "PG"
+    },
+    {
+      "name": "Paraguay",
+      "flag": "https://restcountries.eu/data/pry.svg",
+      "calling_code": "+595",
+      "code": "PY"
+    },
+    {
+      "name": "Peru",
+      "flag": "https://restcountries.eu/data/per.svg",
+      "calling_code": "+51",
+      "code": "PE"
+    },
+    {
+      "name": "Philippines",
+      "flag": "https://restcountries.eu/data/phl.svg",
+      "calling_code": "+63",
+      "code": "PH"
+    },
+    {
+      "name": "Pitcairn",
+      "flag": "https://restcountries.eu/data/pcn.svg",
+      "calling_code": "+64",
+      "code": "PN"
+    },
+    {
+      "name": "Poland",
+      "flag": "https://restcountries.eu/data/pol.svg",
+      "calling_code": "+48",
+      "code": "PL"
+    },
+    {
+      "name": "Portugal",
+      "flag": "https://restcountries.eu/data/prt.svg",
+      "calling_code": "+351",
+      "code": "PT"
+    },
+    {
+      "name": "Puerto Rico",
+      "flag": "https://restcountries.eu/data/pri.svg",
+      "calling_code": "+1787",
+      "code": "PR"
+    },
+    {
+      "name": "Qatar",
+      "flag": "https://restcountries.eu/data/qat.svg",
+      "calling_code": "+974",
+      "code": "QA"
+    },
+    {
+      "name": "Republic of Kosovo",
+      "flag": "https://restcountries.eu/data/kos.svg",
+      "calling_code": "+383",
+      "code": "XK"
+    },
+    {
+      "name": "Réunion",
+      "flag": "https://restcountries.eu/data/reu.svg",
+      "calling_code": "+262",
+      "code": "RE"
+    },
+    {
+      "name": "Romania",
+      "flag": "https://restcountries.eu/data/rou.svg",
+      "calling_code": "+40",
+      "code": "RO"
+    },
+    {
+      "name": "Russian Federation",
+      "flag": "https://restcountries.eu/data/rus.svg",
+      "calling_code": "+7",
+      "code": "RU"
+    },
+    {
+      "name": "Rwanda",
+      "flag": "https://restcountries.eu/data/rwa.svg",
+      "calling_code": "+250",
+      "code": "RW"
+    },
+    {
+      "name": "Saint Barthélemy",
+      "flag": "https://restcountries.eu/data/blm.svg",
+      "calling_code": "+590",
+      "code": "BL"
+    },
+    {
+      "name": "Saint Helena, Ascension and Tristan da Cunha",
+      "flag": "https://restcountries.eu/data/shn.svg",
+      "calling_code": "+290",
+      "code": "SH"
+    },
+    {
+      "name": "Saint Kitts and Nevis",
+      "flag": "https://restcountries.eu/data/kna.svg",
+      "calling_code": "+1869",
+      "code": "KN"
+    },
+    {
+      "name": "Saint Lucia",
+      "flag": "https://restcountries.eu/data/lca.svg",
+      "calling_code": "+1758",
+      "code": "LC"
+    },
+    {
+      "name": "Saint Martin (French part)",
+      "flag": "https://restcountries.eu/data/maf.svg",
+      "calling_code": "+590",
+      "code": "MF"
+    },
+    {
+      "name": "Saint Pierre and Miquelon",
+      "flag": "https://restcountries.eu/data/spm.svg",
+      "calling_code": "+508",
+      "code": "PM"
+    },
+    {
+      "name": "Saint Vincent and the Grenadines",
+      "flag": "https://restcountries.eu/data/vct.svg",
+      "calling_code": "+1784",
+      "code": "VC"
+    },
+    {
+      "name": "Samoa",
+      "flag": "https://restcountries.eu/data/wsm.svg",
+      "calling_code": "+685",
+      "code": "WS"
+    },
+    {
+      "name": "San Marino",
+      "flag": "https://restcountries.eu/data/smr.svg",
+      "calling_code": "+378",
+      "code": "SM"
+    },
+    {
+      "name": "Sao Tome and Principe",
+      "flag": "https://restcountries.eu/data/stp.svg",
+      "calling_code": "+239",
+      "code": "ST"
+    },
+    {
+      "name": "Saudi Arabia",
+      "flag": "https://restcountries.eu/data/sau.svg",
+      "calling_code": "+966",
+      "code": "SA"
+    },
+    {
+      "name": "Senegal",
+      "flag": "https://restcountries.eu/data/sen.svg",
+      "calling_code": "+221",
+      "code": "SN"
+    },
+    {
+      "name": "Serbia",
+      "flag": "https://restcountries.eu/data/srb.svg",
+      "calling_code": "+381",
+      "code": "RS"
+    },
+    {
+      "name": "Seychelles",
+      "flag": "https://restcountries.eu/data/syc.svg",
+      "calling_code": "+248",
+      "code": "SC"
+    },
+    {
+      "name": "Sierra Leone",
+      "flag": "https://restcountries.eu/data/sle.svg",
+      "calling_code": "+232",
+      "code": "SL"
+    },
+    {
+      "name": "Singapore",
+      "flag": "https://restcountries.eu/data/sgp.svg",
+      "calling_code": "+65",
+      "code": "SG"
+    },
+    {
+      "name": "Sint Maarten (Dutch part)",
+      "flag": "https://restcountries.eu/data/sxm.svg",
+      "calling_code": "+1721",
+      "code": "SX"
+    },
+    {
+      "name": "Slovakia",
+      "flag": "https://restcountries.eu/data/svk.svg",
+      "calling_code": "+421",
+      "code": "SK"
+    },
+    {
+      "name": "Slovenia",
+      "flag": "https://restcountries.eu/data/svn.svg",
+      "calling_code": "+386",
+      "code": "SI"
+    },
+    {
+      "name": "Solomon Islands",
+      "flag": "https://restcountries.eu/data/slb.svg",
+      "calling_code": "+677",
+      "code": "SB"
+    },
+    {
+      "name": "Somalia",
+      "flag": "https://restcountries.eu/data/som.svg",
+      "calling_code": "+252",
+      "code": "SO"
+    },
+    {
+      "name": "South Africa",
+      "flag": "https://restcountries.eu/data/zaf.svg",
+      "calling_code": "+27",
+      "code": "ZA"
+    },
+    {
+      "name": "South Georgia and the South Sandwich Islands",
+      "flag": "https://restcountries.eu/data/sgs.svg",
+      "calling_code": "+500",
+      "code": "GS"
+    },
+    {
+      "name": "Korea (Republic of)",
+      "flag": "https://restcountries.eu/data/kor.svg",
+      "calling_code": "+82",
+      "code": "KR"
+    },
+    {
+      "name": "South Sudan",
+      "flag": "https://restcountries.eu/data/ssd.svg",
+      "calling_code": "+211",
+      "code": "SS"
+    },
+    {
+      "name": "Spain",
+      "flag": "https://restcountries.eu/data/esp.svg",
+      "calling_code": "+34",
+      "code": "ES"
+    },
+    {
+      "name": "Sri Lanka",
+      "flag": "https://restcountries.eu/data/lka.svg",
+      "calling_code": "+94",
+      "code": "LK"
+    },
+    {
+      "name": "Sudan",
+      "flag": "https://restcountries.eu/data/sdn.svg",
+      "calling_code": "+249",
+      "code": "SD"
+    },
+    {
+      "name": "Suriname",
+      "flag": "https://restcountries.eu/data/sur.svg",
+      "calling_code": "+597",
+      "code": "SR"
+    },
+    {
+      "name": "Svalbard and Jan Mayen",
+      "flag": "https://restcountries.eu/data/sjm.svg",
+      "calling_code": "+4779",
+      "code": "SJ"
+    },
+    {
+      "name": "Swaziland",
+      "flag": "https://restcountries.eu/data/swz.svg",
+      "calling_code": "+268",
+      "code": "SZ"
+    },
+    {
+      "name": "Sweden",
+      "flag": "https://restcountries.eu/data/swe.svg",
+      "calling_code": "+46",
+      "code": "SE"
+    },
+    {
+      "name": "Switzerland",
+      "flag": "https://restcountries.eu/data/che.svg",
+      "calling_code": "+41",
+      "code": "CH"
+    },
+    {
+      "name": "Syrian Arab Republic",
+      "flag": "https://restcountries.eu/data/syr.svg",
+      "calling_code": "+963",
+      "code": "SY"
+    },
+    {
+      "name": "Taiwan",
+      "flag": "https://restcountries.eu/data/twn.svg",
+      "calling_code": "+886",
+      "code": "TW"
+    },
+    {
+      "name": "Tajikistan",
+      "flag": "https://restcountries.eu/data/tjk.svg",
+      "calling_code": "+992",
+      "code": "TJ"
+    },
+    {
+      "name": "Tanzania, United Republic of",
+      "flag": "https://restcountries.eu/data/tza.svg",
+      "calling_code": "+255",
+      "code": "TZ"
+    },
+    {
+      "name": "Thailand",
+      "flag": "https://restcountries.eu/data/tha.svg",
+      "calling_code": "+66",
+      "code": "TH"
+    },
+    {
+      "name": "Timor-Leste",
+      "flag": "https://restcountries.eu/data/tls.svg",
+      "calling_code": "+670",
+      "code": "TL"
+    },
+    {
+      "name": "Togo",
+      "flag": "https://restcountries.eu/data/tgo.svg",
+      "calling_code": "+228",
+      "code": "TG"
+    },
+    {
+      "name": "Tokelau",
+      "flag": "https://restcountries.eu/data/tkl.svg",
+      "calling_code": "+690",
+      "code": "TK"
+    },
+    {
+      "name": "Tonga",
+      "flag": "https://restcountries.eu/data/ton.svg",
+      "calling_code": "+676",
+      "code": "TO"
+    },
+    {
+      "name": "Trinidad and Tobago",
+      "flag": "https://restcountries.eu/data/tto.svg",
+      "calling_code": "+1868",
+      "code": "TT"
+    },
+    {
+      "name": "Tunisia",
+      "flag": "https://restcountries.eu/data/tun.svg",
+      "calling_code": "+216",
+      "code": "TN"
+    },
+    {
+      "name": "Turkey",
+      "flag": "https://restcountries.eu/data/tur.svg",
+      "calling_code": "+90",
+      "code": "TR"
+    },
+    {
+      "name": "Turkmenistan",
+      "flag": "https://restcountries.eu/data/tkm.svg",
+      "calling_code": "+993",
+      "code": "TM"
+    },
+    {
+      "name": "Turks and Caicos Islands",
+      "flag": "https://restcountries.eu/data/tca.svg",
+      "calling_code": "+1649",
+      "code": "TC"
+    },
+    {
+      "name": "Tuvalu",
+      "flag": "https://restcountries.eu/data/tuv.svg",
+      "calling_code": "+688",
+      "code": "TV"
+    },
+    {
+      "name": "Uganda",
+      "flag": "https://restcountries.eu/data/uga.svg",
+      "calling_code": "+256",
+      "code": "UG"
+    },
+    {
+      "name": "Ukraine",
+      "flag": "https://restcountries.eu/data/ukr.svg",
+      "calling_code": "+380",
+      "code": "UA"
+    },
+    {
+      "name": "United Arab Emirates",
+      "flag": "https://restcountries.eu/data/are.svg",
+      "calling_code": "+971",
+      "code": "AE"
+    },
+    {
+      "name": "United Kingdom of Great Britain and Northern Ireland",
+      "flag": "https://restcountries.eu/data/gbr.svg",
+      "calling_code": "+44",
+      "code": "GB"
+    },
+    {
+      "name": "United States of America",
+      "flag": "https://restcountries.eu/data/usa.svg",
+      "calling_code": "+1",
+      "code": "US"
+    },
+    {
+      "name": "Uruguay",
+      "flag": "https://restcountries.eu/data/ury.svg",
+      "calling_code": "+598",
+      "code": "UY"
+    },
+    {
+      "name": "Uzbekistan",
+      "flag": "https://restcountries.eu/data/uzb.svg",
+      "calling_code": "+998",
+      "code": "UZ"
+    },
+    {
+      "name": "Vanuatu",
+      "flag": "https://restcountries.eu/data/vut.svg",
+      "calling_code": "+678",
+      "code": "VU"
+    },
+    {
+      "name": "Venezuela (Bolivarian Republic of)",
+      "flag": "https://restcountries.eu/data/ven.svg",
+      "calling_code": "+58",
+      "code": "VE"
+    },
+    {
+      "name": "Viet Nam",
+      "flag": "https://restcountries.eu/data/vnm.svg",
+      "calling_code": "+84",
+      "code": "VN"
+    },
+    {
+      "name": "Wallis and Futuna",
+      "flag": "https://restcountries.eu/data/wlf.svg",
+      "calling_code": "+681",
+      "code": "WF"
+    },
+    {
+      "name": "Western Sahara",
+      "flag": "https://restcountries.eu/data/esh.svg",
+      "calling_code": "+212",
+      "code": "EH"
+    },
+    {
+      "name": "Yemen",
+      "flag": "https://restcountries.eu/data/yem.svg",
+      "calling_code": "+967",
+      "code": "YE"
+    },
+    {
+      "name": "Zambia",
+      "flag": "https://restcountries.eu/data/zmb.svg",
+      "calling_code": "+260",
+      "code": "ZM"
+    },
+    {
+      "name": "Zimbabwe",
+      "flag": "https://restcountries.eu/data/zwe.svg",
+      "calling_code": "+263",
+      "code": "ZW"
+    }
+  ]
