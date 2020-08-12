@@ -52,3 +52,4 @@ FCM_SERVER_KEY=os.getenv('PROD_FCM_SERVER_KEY')
 # hard coding here for prod unless key it is moved to prod env as above
 GOOGLE_OAUTH_CLIENT_ID="645716458793-rprdna1adps5s7pigsrjasko3ot3ljfl.apps.googleusercontent.com"
 
+GHUPSHUP_KEY = "45314393fb4505a15ff19d175d0c92f1"

@@ -7115,11 +7115,7 @@ def generate_otp(request):
 
 
 
-    # if email:
-    #     generate_url = "http://enterprise.smsgupshup.com/apps/TwoFactorAuth/incoming.php?email=%s&key=%s"%(str(email),key)
-    #     response = rqst.get(generate_url)
-    #
-    #     print(response.content)
+    ##code for email otp generation
 
 
 
@@ -7242,7 +7238,7 @@ def verify_otp(request):
         
 
 
-        if str(otp) == "9999":
+        if settings.IS_BETA and str(otp) == "9999":
             context['success'] = True
 
         return JsonResponse(context)
