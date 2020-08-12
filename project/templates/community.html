@@ -1,11 +1,16 @@
 <!DOCTYPE html>
 {% load static %}
+
+
 <html>
     <head>
 
         {% include 'scripts/mixpanel.html' with mixpanel_event=mixpanel_event %}
         {% include 'scripts/create_user_mixpanel.html' with mixpanel_event=mixpanel_event request=request  %}
-        <meta name="apple-itunes-app" content="app-id=1526635028 app-argument=Collabmates://beta.likeminds.community/community/49074?aj=8061"/>
+
+        {% if ios_private_link %}
+            <meta name="apple-itunes-app" content="app-id=1526635028 app-argument={{ios_private_link}}"/>
+        {% endif %}
 
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
         <link rel="shortcut icon" href="https://beta.likeminds.community/media/media/ic_launcher_round.png">
