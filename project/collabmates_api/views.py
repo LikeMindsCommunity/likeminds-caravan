@@ -3567,13 +3567,16 @@ def approve_or_decline_private_community(req_dict,request):
 
     '''function to approve the whatsapp community'''
 
+
+    current_user_id = get_member_id_from_headers(request)
+    current_user_instance = Userinfo.objects.get(user_id=current_user_id)
+    promoter_name = current_user_instance.name
+
     if req_dict['accepted'] or req_dict['accepted'] == 'true':
 
         is_member = is_member_verified(community=req_dict['community_id'], user_instance=req_dict['member_id'])
         
-        current_user_id = get_member_id_from_headers(request)
-        current_user_instance = Userinfo.objects.get(user_id=current_user_id)
-        promoter_name = current_user_instance.name
+
 
         if not is_member:
             Members.objects.filter(member_id=req_dict['member_id'],
