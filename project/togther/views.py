@@ -2590,9 +2590,6 @@ def linked_in_authentication(request):
 
 
 
-
-
-
 def community_wise_details(request):
     if request.method == 'POST':
         community_id = request.POST.get('community_id',None)
