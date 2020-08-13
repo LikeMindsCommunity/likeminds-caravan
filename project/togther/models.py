@@ -65,6 +65,8 @@ class Members(models.Model):
     #column to edit actions required
     actions_required = models.BooleanField(null=True)
 
+    image_url = models.TextField(null=True)
+
     def __str__(self):
         return self.community_id.name
 
@@ -917,7 +919,7 @@ class membersEngagePilot(models.Model):
     member_referral = models.CharField(default='', max_length=1024)
     member_state = models.IntegerField(null=True)
 
-    image_url = models.TextField(null=True)
+
 
 
 
