@@ -7158,16 +7158,20 @@ def generate_otp(request):
             info_logger.info(context)
 
 
+        email_filter = userEmails.objects.filter(user_id=user_id)
+
+        for instance in email_filter:
+
+            email = instance.email
+            context = send_otp_on_email(email)
+            info_logger.info(context)
+            info_logger.info(instance.user.id)
+            info_logger.info(email)
+
+
+
+
         context['success'] = True
-
-
-
-
-
-    ##code for email otp generation
-
-
-
 
     return JsonResponse(context)
 
@@ -7280,15 +7284,23 @@ def verify_otp(request):
         if mobile_filter.exists():
             context['user'] = get_logged_in_user(user_instance=mobile_filter[0].user)
             context['access'] = is_user_community_part(context['user']['id'])
-        
 
 
-        #loggin in for web
-        
+        if not context['success']:
+            #verifying otp from email
+            email_filter = userEmails.objects.filter(user_id=user_id)
 
+            for instance in email_filter:
+                email = instance.email
+                context['success'] = verify_otp_on_email(email,otp)
 
-        if settings.IS_BETA and str(otp) == "9999":
-            context['success'] = True
+                if context['success']:
+                    break
+
+            if email_filter.exists():
+                context['user'] = get_logged_in_user(user_instance=email_filter[0].user)
+                context['access'] = is_user_community_part(context['user']['id'])
+
 
         return JsonResponse(context)
 
@@ -7344,6 +7356,57 @@ def verify_otp_on_mobile(phone_no,otp):
         context['error_message'] = "Incorrect OTP"
 
     return context
+
+
+def send_otp_on_email(email):
+
+    email_key = settings.EMAIL_GHUPSHAP_KEY
+    context = {}
+    success = False
+
+    generate_url = """http://enterprise.smsgupshup.com/apps/TwoFactorAuth/incoming.php?email=%s&key=%s""" % (
+        email, email_key)
+    response = rqst.get(generate_url)
+    print(response.content)
+
+    if response.status_code == 200:
+        success = True
+        response = response.text
+        response_list = response.split("|")
+        if response_list[0].strip() == "error":
+            success = False
+
+    context['success'] = success
+    if not success:
+        context['error_message'] = response
+
+    return context
+
+def verify_otp_on_email(email,otp):
+
+    email_key = settings.EMAIL_GHUPSHAP_KEY
+    verify_url = """http://enterprise.smsgupshup.com/apps/TwoFactorAuth/incoming.php?email=%s&key=%s&code=%s""" % (
+    str(email),email_key ,str(otp))
+
+    response = rqst.get(verify_url)
+    print(response.content)
+    context = {}
+    success = False
+
+    if response.status_code == 200:
+        success = True
+        response = response.text
+        response_list = response.split("|")
+        if response_list[0].strip() == "error":
+            success = False
+
+    context['success'] = success
+    if not success:
+        context['error_message'] = "Incorrect OTP"
+
+    return context
+
+
 
 
 def popup(request):
