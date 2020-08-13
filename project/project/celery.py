@@ -24,13 +24,13 @@ def debug_task(self):
 app.conf.beat_schedule = {
     'send_pending_request_notification_at_8am': {
         'task': 'collabmates_api.notification.send_morning_pending_request_notification',
-        'schedule': crontab(hour=15, minute=45),
+        'schedule': crontab(hour=8, minute=0),
         # minute="*/10" change to `crontab(minute=0, hour=0)` if you want it to run daily at midnight
         # 'schedule':120.0, #for testing purpose
     },
     'send_level_notification_at_8pm': {
         'task': 'collabmates_api.notification.send_evening_level_notification',
-        'schedule': crontab(hour=15, minute=59),
+        'schedule': crontab(hour=20, minute=0),
         # minute="*/10" change to `crontab(minute=0, hour=0)` if you want it to run daily at midnight
         # 'schedule':120.0, #for testing purpose
     },
