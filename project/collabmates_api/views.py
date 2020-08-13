@@ -7271,6 +7271,7 @@ def verify_otp(request):
     # when the user wants to merge account
     if user_id:
         mobile_filter = userMobiles.objects.filter(user_id=user_id)
+
         context={'success':False}
         for instance in mobile_filter:
             phone_no = str(instance.country_code) + str(instance.mobile_no)
@@ -7279,20 +7280,20 @@ def verify_otp(request):
             if context['success']:
                 break
         
-        
+        print("context--",context)
         context['profile_exists'] = mobile_filter.exists()
         if mobile_filter.exists():
             context['user'] = get_logged_in_user(user_instance=mobile_filter[0].user)
             context['access'] = is_user_community_part(context['user']['id'])
 
 
+
         if not context['success']:
             #verifying otp from email
             email_filter = userEmails.objects.filter(user_id=user_id)
-
             for instance in email_filter:
                 email = instance.email
-                context['success'] = verify_otp_on_email(email,otp)
+                context = verify_otp_on_email(email,otp)
 
                 if context['success']:
                     break
