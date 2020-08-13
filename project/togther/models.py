@@ -65,8 +65,6 @@ class Members(models.Model):
     #column to edit actions required
     actions_required = models.BooleanField(null=True)
 
-    image_url = models.TextField(null=True)
-
     def __str__(self):
         return self.community_id.name
 
@@ -710,7 +708,6 @@ class communityQuestions(models.Model):
     remove_state = models.BooleanField(default=False)
 
     is_hidden = models.BooleanField(default=False)
-
 
 
 
