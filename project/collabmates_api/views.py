@@ -1748,7 +1748,7 @@ def remove_members(community_id, member_id,removed_state):
 
 def fetch_community_profile(request):
 
-    '''api to get the community profile of user'''
+    '''Get api to get the community profile of user'''
 
 
     current_member_id = get_member_id_from_headers(request)
