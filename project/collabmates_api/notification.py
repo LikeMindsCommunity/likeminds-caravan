@@ -415,11 +415,12 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title, 
         notification_meta(notification_list_member, message)
 
         # functionality to send notification to tagged users
-        print(collabcard_title)
+        new_title_text = re.sub(r'\|route://member/[0-9]+>>|<<', '', card.title)
         for member_id in tagged_users_list:
             if not str(member_id) == str(card_creater_id):
+
                 send_notification_to_tagged_users(card_id=kwargs['card_id'], answerer_name=card_creater_name,
-                                                  answer=card.title,
+                                                  answer=new_title_text,
                                                   user_id=member_id, user_names=user_names)
 
         #commenting to remove 

@@ -944,7 +944,8 @@ def join_promoter_created_community_version_1(res,request):
         engage.save()
         update_pending_member_count_in_engage(community_instance)
         send_notification_to_admins.delay(community_id, user_instance.userinfo.name)
-        send_notification_for_join_requests(community_id,True,member_id,promoter_name="")
+        #this----
+        # send_notification_for_join_requests(community_id,True,member_id,promoter_name="")
 
 
 
@@ -974,6 +975,7 @@ def auto_join_community(community_instance,user_instance):
         member_instance.state = member_states.MEMBER
         member_instance.created_at=time.time()
         member_instance.save()
+        #this
         send_notification_for_join_requests.delay(community_instance.id, True, user_instance.id)
 
     # updating the member engage instance
