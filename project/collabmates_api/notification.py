@@ -60,6 +60,7 @@ def send_notification_for_android(token_list,message):
     push_service = FCMNotification(api_key=server_key)
     result = push_service.notify_multiple_devices(registration_ids=token_list,
                                                   data_message=message['payload'])
+    
     print(result)
    
 
@@ -91,7 +92,7 @@ def notification_meta(notification_list,message):
 
     token_list_android=[]
     token_list_ios=[]
-
+    
     for data in notification_list:
 
         if data['mobile_os'] == "Android":
@@ -295,12 +296,20 @@ def send_notification_for_join_requests(community_id,flag,member_id,promoter_nam
 
     message={}
     if flag:
-        message['payload']={
-            'title':"Membership approved!",
-            'sub_title':"Congratulations, " + promoter_name + " has accepted your request to join " + community_name,
+        if promoter_name != "":
+            message['payload']={
+                'title':"Membership approved!",
+                'sub_title':"Congratulations, " + promoter_name + " has accepted your request to join " + community_name,
 
-            'route':'route://member_approved?community_id='+ str(community_id)
-        }
+                'route':'route://member_approved?community_id='+ str(community_id)
+            }
+        else:
+            message['payload']={
+                'title':"Membership approved!",
+                'sub_title':"Congratulations, you are now part of the " + community_name + " community",
+
+                'route':'route://member_approved?community_id='+ str(community_id)
+            }
         notification_meta(notification_list,message)
     # else:
     #     message['payload'] = {
@@ -361,20 +370,26 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title, 
         curr.execute(sql, parameter_list)
         member_list = curr.fetchall()
 
-        notification_list = []
+        notification_list_member = []
+
+        tagged_users_list, collabcard_title, user_names = get_tagged_members_list(collabcard_title)
+        
         for member in member_list:
             temp = {}
             temp['user_id'] = member[0]
             notification_details = get_token_for_fcm(member[0], True)
             temp['fcm_token'] = notification_details[0]
             temp['mobile_os'] = notification_details[1]
-            notification_list.append(temp)
+            if str(member[0]) not in tagged_users_list:
+                notification_list_member.append(temp)
+                
+
 
         card_id = kwargs['card_id']
         card = Collabcard.objects.get(id=card_id)
 
-        tagged_users_list, collabcard_title, user_names = get_tagged_members_list(collabcard_title)
-
+        
+        
         collabcard_title = get_title_from_collabcard(card)
 
         community_name = kwargs['community_name']
@@ -397,13 +412,15 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title, 
             'route': 'route://collabcard?collabcard_id='+str(kwargs['card_id'])
         }
 
-        notification_meta(notification_list, message)
+        notification_meta(notification_list_member, message)
 
         # functionality to send notification to tagged users
+        new_title_text = re.sub(r'\|route://member/[0-9]+>>|<<', '', card.title)
         for member_id in tagged_users_list:
             if not str(member_id) == str(card_creater_id):
+
                 send_notification_to_tagged_users(card_id=kwargs['card_id'], answerer_name=card_creater_name,
-                                                  answer=collabcard_title,
+                                                  answer=new_title_text,
                                                   user_id=member_id, user_names=user_names)
 
         #commenting to remove 
@@ -530,7 +547,6 @@ def send_notification_to_tagged_users(card_id,answerer_name,answer,user_id,user_
             "route":"route://collabcard?collabcard_id="+str(card_id)
         }
         notification_list = []
-
         temp = {}
         notification_details = get_token_for_fcm(user_id, True)
         temp['id'] = user_id
@@ -775,10 +791,8 @@ def get_referred_members_of_a_member(community_id,member_id):
 def send_notification_to_incomplete_profile(member_id,community_id,community_state,community_name,time_in_hrs):
     '''function to send notification to users who pressed skip when joining link was sent'''
     
-    # time.sleep(time_in_hrs*60*60)
+    time.sleep(time_in_hrs*60*60)
     
-    #for testing purposes
-    time.sleep(time_in_hrs*60)
 
     #check if they created the profile. 
     community_answers = communityAnswers.objects.filter(community_id=community_id,member_id=member_id)
@@ -814,8 +828,8 @@ def send_login_dropoff_notification(token,platform_code):
     '''send notification to users who did not login after 1 hour'''
 
     #sleep for 2 hours
-    # time.sleep(2*60*60)
-    time.sleep(2*60)
+    time.sleep(2*60*60)
+    
     user = Userinfo.objects.filter(fcm_token=token)
 
     if user.exists():
@@ -924,9 +938,8 @@ def send_evening_level_notification():
 def send_notification_to_join_drop_off(member_id,community_id,aj,time_in_hrs):
 
     '''function to send notification to users who opened the private link but did not joint the community'''
-    #60 secs for testing
-    time.sleep(60)
-    # time.sleep(time_in_hr*60)
+    
+    time.sleep(time_in_hr*60*60)
 
     #check if they created the profile. 
     member = Members.objects.filter(community_id=community_id,member_id=member_id)
@@ -971,14 +984,15 @@ def send_notification_to_join_drop_off(member_id,community_id,aj,time_in_hrs):
             notification_meta(notification_list,message)
     
             expiry_instance = communityExpiryCodes.objects.filter(community=community_instance, unique_code=aj)
+            
             if expiry_instance.exists():
                 time_to_sleep = expiry_instance[0].created_at+expiry_instance[0].expire_duration - int(time.time()) - 30*60
             else:
                 time_to_sleep = -1
+                
             if time_to_sleep > 0:
-                # time.sleep(time_to_sleep)
-                #for testing purpose
-                time.sleep(60)
+                time.sleep(time_to_sleep)
+                
                 member = Members.objects.filter(community_id=community_id,member_id=member_id)
                 if member.exists():
                     return
@@ -992,10 +1006,8 @@ def send_notification_to_join_drop_off(member_id,community_id,aj,time_in_hrs):
 
                 # send notification after 6 hours when of expiry
                 time_to_sleep += 30*60+6*60*60 
-                # time.sleep(time_to_sleep)
+                time.sleep(time_to_sleep)
                 
-                #for testing
-                time.sleep(120)
 
                 member = Members.objects.filter(community_id=community_id,member_id=member_id)
                 if member.exists():

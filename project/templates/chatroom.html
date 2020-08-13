@@ -326,6 +326,15 @@ Are you sure, you want to leave this chat room? You can apply to join this commu
 
 
             {% else %}
+                
+            $('.test').modal({
+                    backdrop: 'static',
+                    keyboard: false,
+                      // to prevent closing with Esc button (if you want this too)
+                    closable: false, 
+                    keyboardShortcuts: true  // to prevent closing with Esc button (if you want this too)
+                      // to prevent closing with Esc button (if you want this too)
+                });
                 $('.test').modal('show');
             {% endif %}
         }

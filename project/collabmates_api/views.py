@@ -944,7 +944,8 @@ def join_promoter_created_community_version_1(res,request):
         engage.save()
         update_pending_member_count_in_engage(community_instance)
         send_notification_to_admins.delay(community_id, user_instance.userinfo.name)
-        send_notification_for_join_requests(community_id,True,member_id,promoter_name="")
+        #this----
+        # send_notification_for_join_requests(community_id,True,member_id,promoter_name="")
 
 
 
@@ -974,6 +975,7 @@ def auto_join_community(community_instance,user_instance):
         member_instance.state = member_states.MEMBER
         member_instance.created_at=time.time()
         member_instance.save()
+        #this
         send_notification_for_join_requests.delay(community_instance.id, True, user_instance.id)
 
     # updating the member engage instance
@@ -1783,6 +1785,55 @@ def remove_members(community_id, member_id,removed_state):
 
 
 
+def fetch_community_profile(request):
+
+    '''Get api to get the community profile of user'''
+
+
+    current_member_id = get_member_id_from_headers(request)
+    user_id = request.GET.get('user_id')
+    community_id = request.GET.get('community_id')
+
+    if not user_id or not community_id:
+        return JsonResponse({"error_message": "send user id and community_id in get params"})
+
+    member_ids = [user_id]
+    member = get_members_profile(member_ids,community_id,current_user_id=current_member_id)
+
+    if member:
+        member = member[0]
+        return JsonResponse(member)
+
+    return JsonResponse({})
+
+
+def fetch_user_chatrooms(request):
+
+    '''api to send chatrooms created by user or followed by user'''
+
+    page = request.GET.get('page',1)
+    state = request.GET.get('state',0)
+    user_id = request.GET.get('user_id')
+    community_id = request.GET.get('community_id')
+    chatrooms = []
+
+
+    # chatrooms created by user
+    if int(state) == 0:
+
+        chatroom_filter = Collabcard.objects.filter(user_id=user_id,community_id=community_id).order_by('-id')
+        created_chatroom_count = chatroom_filter.count()
+        chatroom_filter = pagination(chatroom_filter,page,paginate_by=10)
+
+        for chatroom in chatroom_filter:
+
+            temp = get_chatroom_instance(chatroom,user_id)
+            chatrooms.append(temp)
+
+        return JsonResponse({'chatrooms':chatrooms,'total_chatrooms_created':created_chatroom_count})
+
+
+
 
 
 ############# functions for  create flow of card,community and members   ##########################
@@ -2255,7 +2306,7 @@ def create_chatroom_instance(res,community_instance,user_instance):
     #add ownerflag here
 
 
-    #create relevant flags
+    #create relevant flags for first time conversation
     notification_list = [
         'mail_card_owner_inactivity'
     ]
@@ -6574,7 +6625,7 @@ def login_authenticate(request):
 def login_authenticate_version_1(request):
 
     ''' function to login a user '''
-
+    
     if request.method == 'POST':
         res = json.loads(request.body)
         #print(res)
@@ -6810,7 +6861,7 @@ def login_with_facebook(request,res,json_to_save,login_type="facebook"):
     usr = get_logged_in_user(user_instance=user)
     # see if user has tags or not
     has_tags = userinfo.has_tags
-
+    
     # saving the OS type of user (Android,iOS,WEB)
     request_type = get_request_type(request)
     if request_type:
@@ -7109,16 +7160,20 @@ def generate_otp(request):
             info_logger.info(context)
 
 
+        email_filter = userEmails.objects.filter(user_id=user_id)
+
+        for instance in email_filter:
+
+            email = instance.email
+            context = send_otp_on_email(email)
+            info_logger.info(context)
+            info_logger.info(instance.user.id)
+            info_logger.info(email)
+
+
+
+
         context['success'] = True
-
-
-
-
-
-    ##code for email otp generation
-
-
-
 
     return JsonResponse(context)
 
@@ -7218,28 +7273,37 @@ def verify_otp(request):
     # when the user wants to merge account
     if user_id:
         mobile_filter = userMobiles.objects.filter(user_id=user_id)
+
         context={'success':False}
         for instance in mobile_filter:
             phone_no = str(instance.country_code) + str(instance.mobile_no)
-            context['success']= verify_otp_on_mobile(phone_no,otp)
+            context= verify_otp_on_mobile(phone_no,otp)
 
             if context['success']:
                 break
         
-        
+        print("context--",context)
         context['profile_exists'] = mobile_filter.exists()
         if mobile_filter.exists():
             context['user'] = get_logged_in_user(user_instance=mobile_filter[0].user)
             context['access'] = is_user_community_part(context['user']['id'])
-        
 
 
-        #loggin in for web
-        
 
+        if not context['success']:
+            #verifying otp from email
+            email_filter = userEmails.objects.filter(user_id=user_id)
+            for instance in email_filter:
+                email = instance.email
+                context = verify_otp_on_email(email,otp)
 
-        if settings.IS_BETA and str(otp) == "9999":
-            context['success'] = True
+                if context['success']:
+                    break
+
+            if email_filter.exists():
+                context['user'] = get_logged_in_user(user_instance=email_filter[0].user)
+                context['access'] = is_user_community_part(context['user']['id'])
+
 
         return JsonResponse(context)
 
@@ -7295,6 +7359,57 @@ def verify_otp_on_mobile(phone_no,otp):
         context['error_message'] = "Incorrect OTP"
 
     return context
+
+
+def send_otp_on_email(email):
+
+    email_key = settings.EMAIL_GHUPSHAP_KEY
+    context = {}
+    success = False
+
+    generate_url = """http://enterprise.smsgupshup.com/apps/TwoFactorAuth/incoming.php?email=%s&key=%s""" % (
+        email, email_key)
+    response = rqst.get(generate_url)
+    print(response.content)
+
+    if response.status_code == 200:
+        success = True
+        response = response.text
+        response_list = response.split("|")
+        if response_list[0].strip() == "error":
+            success = False
+
+    context['success'] = success
+    if not success:
+        context['error_message'] = response
+
+    return context
+
+def verify_otp_on_email(email,otp):
+
+    email_key = settings.EMAIL_GHUPSHAP_KEY
+    verify_url = """http://enterprise.smsgupshup.com/apps/TwoFactorAuth/incoming.php?email=%s&key=%s&code=%s""" % (
+    str(email),email_key ,str(otp))
+
+    response = rqst.get(verify_url)
+    print(response.content)
+    context = {}
+    success = False
+
+    if response.status_code == 200:
+        success = True
+        response = response.text
+        response_list = response.split("|")
+        if response_list[0].strip() == "error":
+            success = False
+
+    context['success'] = success
+    if not success:
+        context['error_message'] = "Incorrect OTP"
+
+    return context
+
+
 
 
 def popup(request):

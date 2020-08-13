@@ -54,6 +54,7 @@
         }
       }
     function sendVerificationCode(){
+        $('#resend-code').hide();
         $('#login_with_phone').prop('disabled', true);
         var country_code = stripValues(document.getElementById('country_code').innerHTML);
         var phone_number = stripValues(document.getElementById('phone_number').value);
@@ -69,6 +70,7 @@
                         $('#step-1').hide();
                         $('#step-2').show();
                         $('#step-2-phone').html('+'+country_code + ' ' + phone_number);
+                        startTimer(30,'timer-2');
                     }
                 },
                 error: function (result) { // error callback 
@@ -77,6 +79,31 @@
             }
         );
     }
+    let startTimer = function(x,id) {
+        if(x === 0) {
+            $('#resend-code').show();
+            $(id).hide();
+            return;
+        }
+
+        document.getElementById(id).innerHTML = x;
+        console.log()
+        return setTimeout(() => {startTimer(--x,id)}, 1000)
+    }
+
+    // function startTimer(timeLeft){
+    //     var elem = $('.timer');
+    //     var timerId = setInterval(countdown(timeLeft,elem), 1000);
+    // }
+    // function countdown(timeLeft,elem) {
+    //     if (timeLeft == -1) {
+    //         clearTimeout(timerId);
+    //         $('#resend-code').show();
+    //     } else {
+    //         elem.innerHTML = timeLeft + ' seconds remaining';
+    //         timeLeft--;
+    //     }
+    // }
     function editPhone(){
         $('#step-1').show();
         $('#step-2').hide();
@@ -100,6 +127,7 @@
                     }
                     $('.merge_verification').show();
                     $('.merge_pop_up').modal('hide');
+                    startTimer(30,'timer-1');
                 },
                 error: function (result) { // error callback 
                     console.log("Error:"+result)
@@ -131,7 +159,7 @@
                 //confirm
                 url: url, 
                 success: function(result){
-                    obj =result;
+                    obj = result;
                     console.log("***",result['profile_exists']);
                     var success = result['success'];
                     console.log("***",success);
@@ -177,7 +205,7 @@
                     var success = result['success'];
                     if(success == true){
 
-                        showSnackbar("Login Successful");
+                        showSnackbar("Login Successful","success");
                         location.reload(); 
                         // $('.test').modal('hide');
                         // $('.one_more_step').modal('show');
@@ -317,7 +345,8 @@
                         $('#one_last_step').modal('hide');
                     }
                     else{
-                        console.log(result['user']);
+                        console.log("new user",result['user']);
+                        location.reload();
                     }
                 },
                 error: function (result) { // error callback 

@@ -1,9 +1,12 @@
 <!DOCTYPE html>
 {% load static %}
+
 <html class="bgBg">
     <head>
 
-        <meta name="apple-itunes-app" content="app-id=1526635028,  app-argument=Collabmates://home"/>
+        {% if ios_private_link %}
+            <meta name="apple-itunes-app" content="app-id=1526635028,  app-argument={{ios_private_link}}"/>
+        {% endif %}
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
         <link rel="shortcut icon" href="https://beta.likeminds.community/media/media/ic_launcher_round.png">
         <meta name="keywords" content="">
@@ -51,15 +54,17 @@
         {% include 'scripts/login.html' with firebase_config=firebase_config %}
     </head>
     <body>
+
         <main role="main" id="views">
             {% block yeild %}{% endblock %}
         </main>
         <span id="snackbar"></span>   
         <script>
-            function showSnackbar(text) {
+            function showSnackbar(text,class_="") {
+
                 var x = document.getElementById("snackbar");
                 x.innerHTML = text;
-                x.className = "show";
+                x.className = "show "+class_;
                 setTimeout(function(){ x.className = x.className.replace("show", ""); }, 3000);
             } 
         </script>

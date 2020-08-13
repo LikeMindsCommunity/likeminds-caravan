@@ -1,5 +1,5 @@
  {% load static %}
- <div class="w350 ui modal test ">
+ <div class="w350 ui modal test " data-keyboard="false" data-backdrop="static">
                 <div class="h72 w72 brp50 bd2F bs bxs oH bgT mtn22 mA">
                     <img class="h72 ofC w72 mtn2 mln2" src="https://beta.likeminds.community/media/media/ic_launcher_round.png">
                 </div>
@@ -24,7 +24,7 @@
                                     <i class="dIb fa fa-caret-down fs15 lh16 vM"></i>
                                 </div>
                                 <div class="input-wrapper">
-                                    <input type="text" class=" df bn on p10 fs15 c4 ls1" placeholder="Mobile no." id="phone_number">
+                                    <input autocomplete="off" type="text" class=" df bn on p10 fs15 c4 ls1" placeholder="Mobile no." id="phone_number">
                                 </div>
                             </div>
                         </div>
@@ -35,7 +35,7 @@
                             <button class="ui  h44 bgT cF br22 fwM ffR fs13 bd0 ttU button" id="login_with_phone"  onclick="sendVerificationCode()" type="button">LOGIN WITH MOBILE NUMBER </button>
                         </div>
                         <p class="p0 fs14 c6 mb16 mt30">
-                            By proceeding, you agree to our <a href="#">Terms & Conditions</a> & <a href="#">Privacy Policy</a>.
+                            By proceeding, you agree to our <a href="{% url 'terms' %}">Terms & Conditions</a> & <a href="{% url 'privacy' %}">Privacy Policy</a>.
                         </p>
                     </div>
                 </div>
@@ -43,7 +43,7 @@
                     <h3>Enter verification OTP</h3>
                     <p class="small">We have sent you a 4 digit verification code on</p>
                     <p class="phone"><span id="step-2-phone"></span> (<span class="clickable" onclick="editPhone()">Edit</span>)</p>
-                    <form action="" class="" id="otp_form">
+                    <form action="" class="" id="otp_form" autocomplete="off" >
                         <input id="otp_from_user1" type="number" maxlength="1" onkeyup="onKeyUpEvent(1, event)" onfocus="onFocusEvent(1)"/>
                         <input id="otp_from_user2" type="number" maxlength="1" onkeyup="onKeyUpEvent(2, event)" onfocus="onFocusEvent(2)"/>
                         <input id="otp_from_user3" type="number" maxlength="1" onkeyup="onKeyUpEvent(3, event)" onfocus="onFocusEvent(3)"/>
@@ -58,9 +58,9 @@
                     </div>
 
                     <div class=" bs taC   mt20 z1" id="timer-wrapper">
-                        <span id="timer">30</span>
+                        00:<span id="timer-2">30</span>
                         <p id="resend-code">
-                            <a href="#">Resend Verification Code</a>
+                            <a class="clickable" onclick="sendVerificationCode()">Resend Verification Code</a>
                         </p>
                     </div>
                 </div>
@@ -86,7 +86,7 @@
                         <i class="dIb fa fa-user vM"></i>
                     </div>
                     <div class="input-wrapper">
-                        <input type="text"  id="name" class=" df bn on p10 fs15 c4 ls1" placeholder="Type your full name*">
+                        <input autocomplete="off" type="text"  id="name" class=" df bn on p10 fs15 c4 ls1" placeholder="Type your full name*">
                     </div>
                 </div>
                 <div class="icon-input-wrapper   bgF c79 ffR fwM mt20 c79h ">
@@ -94,8 +94,8 @@
                         <i class="dIb fa fa-envelope vM"></i>
                     </div>
                     <div class="input-wrapper">
-                        <input type="text"  id="email" class=" df bn on p10 fs15 c4 ls1" placeholder="Your email ID">
-                        <input type="hidden" name="user_id" id="user_id">
+                        <input autocomplete="off" type="text"  id="email" class=" df bn on p10 fs15 c4 ls1" placeholder="Your email ID">
+                        <input autocomplete="off" type="hidden" name="user_id" id="user_id">
                     </div>
                 </div>
                 <div class=" bs taC   mt20 z1">
@@ -114,11 +114,11 @@
                             <i class="fa fa-facebook dIb fs15 lh16 vM" ></i>
                         </a>
                     </div>
-                    <div class="import-from-item">
+                    <!-- <div class="import-from-item">
                         <a class="linkedinSignin" data-next={{redirect_link}}>
                             <i class="dIb fa fa-linkedin fs15 lh16 vM"></i>
                         </a>
-                    </div> 
+                    </div>  -->
                 </div>
             </div>
 
@@ -154,7 +154,7 @@
                     <p>
                         A 4-digit verification OTP (one time password) has been sent to mobile number <span id="merge_phone"></span> and email id <span id="merge_mail"></span>.
                     </p>
-                    <form action="" class="" id="otp_form">
+                    <form action="" class="" id="otp_form" autocomplete="off" >
                         <input id="otp_from_merge1" type="number" maxlength="1" onkeyup="onKeyUpEvent1(1, event)" onfocus="onFocusEvent1(1)"/>
                         <input id="otp_from_merge2" type="number" maxlength="1" onkeyup="onKeyUpEvent1(2, event)" onfocus="onFocusEvent1(2)"/>
                         <input id="otp_from_merge3" type="number" maxlength="1" onkeyup="onKeyUpEvent1(3, event)" onfocus="onFocusEvent1(3)"/>
@@ -171,7 +171,7 @@
                     </div>
 
                     <div class=" bs taC   mt20 z1" id="timer-wrapper">
-                        <span id="timer">30</span>
+                        <span id="timer-1">30</span>
                         <p id="resend-code">
                             <a href="#">Resend Verification Code</a>
                         </p>
