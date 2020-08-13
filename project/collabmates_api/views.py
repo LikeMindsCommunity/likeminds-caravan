@@ -1267,8 +1267,8 @@ def update_email(request):
 
     '''api to perform operations on email of user'''
 
-    email = request.GET.get('email_id')
-    typ = request.GET.get('type')
+    email = request.POST.get('email_id')
+    typ = request.POST.get('type')
 
     user_id = get_member_id_from_headers(request)
 
