@@ -454,12 +454,12 @@
 
 
 
-                            mixpanel.track("Viewed Member Name",{
+                            mixpanel.track("Member profile view",{
 
-                                    "View Member Name":data['member_name'],
-                                    "Viewed Member ID": data['member_id'],
-                                    "Viewed Member State": data['member_state'],
-                                    "Member Page View Source":"Member Directory Page",
+                                    "viewed_member_name":data['member_name'],
+                                    "viewed_member_id": data['member_id'],
+                                    "viewed_member_state": data['member_state'],
+                                    "source":"member_directory",
                                     "Click Date" : new Date() + ""
 
                                     })

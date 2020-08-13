@@ -3785,6 +3785,7 @@ def collabcard(request, card_id):
             return render(request,"__404__.html",{})
 
     card['type'] = card_instance.type
+    aj = request.GET.get('aj')
     if card_instance.type == card_types.CARD_EVENT or card_instance.type == card_types.CARD_PUBLIC_EVENT or card_instance.type == card_types.CARD_POLL:
         page = request.GET.get('page', 1)
 
@@ -3872,10 +3873,18 @@ def collabcard(request, card_id):
         context = web_data[0]
         card_category = web_data[1]
 
-        mixpanel_events = get_event_super_properties_for_mixpanel(user_instance,card_instance.community)
-
-        if mixpanel_events:
+        if request.user.is_authenticated:
+            mixpanel_events = get_mixpanel_statistics(request.user.id)
             context['mixpanel_event'] = mixpanel_events
+
+
+            if aj:
+                context['aj'] = aj
+
+            context['current_date'] = time.strftime('%d-%m-%Y', time.localtime(time.time()))
+
+
+
 
 
         if card_category == "EVENT_CARD":
@@ -7988,6 +7997,10 @@ def config(request):
 def get_mixpanel_statistics(member_id):
 
     '''function to give mixpanel statistics of user'''
+
+    if not member_id:
+        return
+
     context = {}
     user_instance = User.objects.get(id=member_id)
 
@@ -9557,15 +9570,15 @@ def get_member_community_status(state):
 
     member = ""
     if state == 0:
-        member = "Guest"
+        member = "not_member"
     elif state == 1:
-        member = "Promoter"
+        member = "member"
     elif state == 3:
-        member = "Pending Member"
+        member = "not_member"
     elif state == 4:
-        member = "Member"
+        member = "member"
     elif state == 7:
-        member = "Nominated Promoter"
+        member = "not_member"
 
     return member
 
