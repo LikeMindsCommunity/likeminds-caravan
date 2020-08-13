@@ -2304,7 +2304,7 @@ def create_chatroom_instance(res,community_instance,user_instance):
     #add ownerflag here
 
 
-    #create relevant flags
+    #create relevant flags for first time conversation
     notification_list = [
         'mail_card_owner_inactivity'
     ]
@@ -6623,7 +6623,7 @@ def login_authenticate(request):
 def login_authenticate_version_1(request):
 
     ''' function to login a user '''
-
+    
     if request.method == 'POST':
         res = json.loads(request.body)
         #print(res)
@@ -6859,7 +6859,7 @@ def login_with_facebook(request,res,json_to_save,login_type="facebook"):
     usr = get_logged_in_user(user_instance=user)
     # see if user has tags or not
     has_tags = userinfo.has_tags
-
+    
     # saving the OS type of user (Android,iOS,WEB)
     request_type = get_request_type(request)
     if request_type:

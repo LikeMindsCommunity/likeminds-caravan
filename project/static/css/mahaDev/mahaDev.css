@@ -730,11 +730,16 @@ span.divider:before{
     border-radius: 2px; /* Rounded borders */
     padding: 16px; /* Padding */
     position: fixed; /* Sit on top of the screen */
-    z-index: 1; /* Add a z-index if needed */
+    z-index: 9999999; /* Add a z-index if needed */
     left: 50%; /* Center the snackbar */
     bottom: 30px; /* 30px from the bottom */
   }
-  
+  #snackbar.success{
+      background-color: #00897b;
+  }
+  #snackbar.error{
+      background-color: #d0021b;
+  }
   /* Show the snackbar when clicking on a button (class added with JavaScript) */
   #snackbar.show {
     visibility: visible; /* Show the snackbar */
@@ -789,4 +794,7 @@ span.divider:before{
     background-image: url('https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fuser%2F222%2Fimg_user_222?alt=media');
     background-size: cover;
     background-position: center center;
+}
+#resend-code{
+    display: none;
 }
