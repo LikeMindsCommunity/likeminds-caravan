@@ -54,10 +54,11 @@
         </main>
         <span id="snackbar"></span>   
         <script>
-            function showSnackbar(text) {
+            function showSnackbar(text,class_="") {
+
                 var x = document.getElementById("snackbar");
                 x.innerHTML = text;
-                x.className = "show";
+                x.className = "show "+class_;
                 setTimeout(function(){ x.className = x.className.replace("show", ""); }, 3000);
             } 
         </script>
