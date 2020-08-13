@@ -1823,12 +1823,12 @@ def fetch_common_communities(request):
     member_id = get_member_id_from_headers(request)
     page = request.GET.get('page',1)
     user_communities = Members.objects.filter(member_id=user_id).filter(
-        Q(state=member_states.ADMIN)|Q(state=member_states.MEMBER)|Q(state=member_states.PROFILE_UNAVAILABLE)).values_list('community_id',flat=True).order_by('-id')
+        Q(state=member_states.ADMIN)|Q(state=member_states.MEMBER)|Q(state=member_states.PROFILE_UNAVAILABLE)).values_list('community_id',flat=True)
 
     member_communities =  Members.objects.filter(member_id=member_id).filter(
-        Q(state=member_states.ADMIN)|Q(state=member_states.MEMBER)|Q(state=member_states.PROFILE_UNAVAILABLE)).values_list('community_id',flat=True).order_by('-id')
+        Q(state=member_states.ADMIN)|Q(state=member_states.MEMBER)|Q(state=member_states.PROFILE_UNAVAILABLE)).values_list('community_id',flat=True)
 
-    common_communities = member_communities.intersection(user_communities).order_by('-id')
+    common_communities = member_communities.intersection(user_communities)
     total_count = common_communities.count()
     common_communities = pagination(common_communities,page,paginate_by=10)
     communities = []
