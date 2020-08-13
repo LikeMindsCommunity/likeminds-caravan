@@ -251,7 +251,7 @@ def community(request, community_id):
     state = 0
     user_instance = None
     is_member = False
-
+    mixpanel_event = ""
     user_context = {}
     user_context['current_user_request_date'] = 0
     if request.user.is_authenticated:
@@ -262,6 +262,8 @@ def community(request, community_id):
         # if profile:
         #     profile_list = get_member_profile(community_id,user_instance.id)
         is_member = is_member_verified(community_id,request.user)
+
+        mixpanel_event = get_mixpanel_statistics(user_instance.id)
 
     if state == 0:
 
@@ -279,7 +281,9 @@ def community(request, community_id):
     context = get_community_context(request,community_instance,user_instance,state,profile_list,is_member,user_context)
 
     context['ios_private_link'] = ios_private_link
-    print(ios_private_link)
+
+    if mixpanel_event:
+        context['mixpanel_event'] = mixpanel_event
 
     return render(request,'community.html',context)
 
@@ -330,6 +334,7 @@ def community_questions(request,params):
     user_instance = None
     state = 0
     analytics = {}
+    mixpanel_event = ""
     if request.user.is_authenticated:
         user_instance = request.user
         state = members_state(request,req_dict={'community_id':community_id,'member_id':user_instance.id})
@@ -338,6 +343,9 @@ def community_questions(request,params):
             return redirect('community',community_id=community_id)
 
         analytics = get_community_join_analytics(user_instance)
+
+        mixpanel_event = get_mixpanel_statistics(user_instance.id)
+
 
 
 
@@ -400,9 +408,10 @@ def community_questions(request,params):
                       }
             context['footer'] = footer
 
-        mixpanel_event = get_event_super_properties_for_mixpanel(user_instance,community_instance)
 
-        context['mixpanel_event'] = mixpanel_event
+
+        if mixpanel_event:
+            context['mixpanel_event'] = mixpanel_event
 
 
         return render(request, 'response_form.html', context)
@@ -444,11 +453,11 @@ def community_questions(request,params):
             rqst.post(join_url, params=params, json=json_dict)
 
         if aj_expired == "" or aj_expired == "True":
-            return JsonResponse({'success':True})
+            return JsonResponse({'success':True, 'aj_expired':aj_expired})
         elif source == "private_link":
-            return JsonResponse({'success': True, 'source': "private_link"})
+            return JsonResponse({'success': True, 'source': "private_link",'aj_expired':aj_expired})
         else:
-            return JsonResponse({'success':True,'source':"members_directory"})
+            return JsonResponse({'success':True,'source':"members_directory",'aj_expired':aj_expired})
 
 
 
@@ -523,9 +532,8 @@ def get_community_context(request,community_instance,user_instance,state,profile
         }
 
 
-    mixpanel_event = get_event_super_properties_for_mixpanel(user_instance,community_instance)
-    if mixpanel_event:
-        context['mixpanel_event'] = mixpanel_event
+
+
 
     return context
 
@@ -837,7 +845,7 @@ def members_directory(request, community_id):
         community_instance = Community.objects.get(id=community_id)
         user_instance = User.objects.get(id=request.user.id)
 
-        mixpanel_event = get_event_super_properties_for_mixpanel(user_instance,community_instance)
+        mixpanel_event = get_mixpanel_statistics(user_instance.id)
 
 
         user_email = request.user.userinfo.email

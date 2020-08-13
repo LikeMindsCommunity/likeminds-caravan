@@ -4,17 +4,41 @@
 
             {% if request.user.is_authenticated %}
 
-                var USER_ID = "{{mixpanel_event.user_unique_id}}";
+                var USER_ID = "{{mixpanel_event.user.id}}";
+                console.log(USER_ID)
+
+                var temp = {
+
+                  "user_name":"{{mixpanel_event.user.name}}",
+                  "first_login": "{{mixpanel_event.user_metrics.first_login}}",
+                  "count_communities_joined": "{{mixpanel_event.user_metrics.count_communities_joined}}",
+                  "name_communities_joined": "{{mixpanel_event.user_metrics.name_communities_joined}}",
+                  "is_any_community_promoter": "{{mixpanel_event.user_metrics.is_any_community_promoter}}",
+                  "unique_chatroom_responded": "{{mixpanel_event.user_metrics.unique_chatroom_responded}}",
+                  "count_chatroom_created": "{{mixpanel_event.user_metrics.count_chatroom_created}}",
+                  "count_chatroom_followed": "{{mixpanel_event.user_metrics.count_chatroom_followed}}",
+
+
+
+
+                }
+
+
+
                 mixpanel.identify(USER_ID);
 
                   mixpanel.people.set({
 
-                  "name":"{{mixpanel_event.name}}",
-                  "$email": "{{mixpanel_event.email}}",
-                  "user_unique_id": "{{mixpanel_event.user_unique_id}}",
-                  "first_login_date": "{{mixpanel_event.first_login_date}}",
-                  "No_of_Chatrooms_Followed": "{{mixpanel_event.No_of_Chatrooms_Followed}}",
-                  "No_of_community_member": "{{mixpanel_event.No_of_community_member}}"
+                  "user_name":"{{mixpanel_event.user.name}}",
+                  "first_login": "{{mixpanel_event.user_metrics.first_login}}",
+                  "count_communities_joined": "{{mixpanel_event.user_metrics.count_communities_joined}}",
+                  "name_communities_joined": "{{mixpanel_event.user_metrics.name_communities_joined}}",
+                  "is_any_community_promoter": "{{mixpanel_event.user_metrics.is_any_community_promoter}}",
+                  "unique_chatroom_responded": "{{mixpanel_event.user_metrics.unique_chatroom_responded}}",
+                  "count_chatroom_created": "{{mixpanel_event.user_metrics.count_chatroom_created}}",
+                  "count_chatroom_followed": "{{mixpanel_event.user_metrics.count_chatroom_followed}}",
+
+
 
 
                 });
