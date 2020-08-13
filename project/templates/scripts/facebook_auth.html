@@ -13,7 +13,6 @@
   // initialize the facebook sdk
 
   window.fbAsyncInit = function() {
-    console.log('here');
     FB.init({
       appId      : "{{facebook_auth_id}}",
       cookie     : true,  // enable cookies to allow the server to access
@@ -21,17 +20,6 @@
       xfbml      : true,  // parse social plugins on this page
       version    : 'v3.1' // The Graph API version to use for the call
     });
-  $('.facebookSignin').click(function(){
-    var cta = $(this).attr("data-next")
-    FB.login(function(response) {
-      if (response.status === 'connected') {
-        fetchUserProfile(cta,this)
-      }
-      else{
-        console.log("not logged in")
-      }
-      }, {scope: 'public_profile,email'});
-  })
 }
 
 
@@ -78,5 +66,16 @@ function authServerFacebook(response,cta){
 
 
 
+    $('.facebookSignin').click(function(){
+    var cta = $(this).attr("data-next")
+    FB.login(function(response) {
+      if (response.status === 'connected') {
+        fetchUserProfile(cta,this)
+      }
+      else{
+        console.log("not logged in")
+      }
+      }, {scope: 'public_profile,email'});
+  })
 
 </script>

@@ -2359,7 +2359,7 @@ def create_card_internal(user_id,community_id,res):
 def send_chatroom_creation_notifications_and_mails(card_instance,user_instance):
 
     '''function to send mail and notifications for chatroom creations'''
-    send_notification_for_new_collabcard_posted(card_instance.community.id, card_instance.title,
+    send_notification_for_new_collabcard_posted.delay(card_instance.community.id, card_instance.title,
                                                       user_instance.id, user_instance.userinfo.name,
                                                       type=card_instance.type,
                                                       date_time=card_instance.end_date if card_instance.type == card_types.CARD_POLL else card_instance.date_time,
@@ -6574,7 +6574,7 @@ def login_authenticate(request):
 def login_authenticate_version_1(request):
 
     ''' function to login a user '''
-    print(request.method)
+    
     if request.method == 'POST':
         res = json.loads(request.body)
         #print(res)
@@ -6810,7 +6810,7 @@ def login_with_facebook(request,res,json_to_save,login_type="facebook"):
     usr = get_logged_in_user(user_instance=user)
     # see if user has tags or not
     has_tags = userinfo.has_tags
-    print(usr)
+    
     # saving the OS type of user (Android,iOS,WEB)
     request_type = get_request_type(request)
     if request_type:
@@ -6967,7 +6967,6 @@ def custom_login(request,res,login_type="custom"):
 
     if email_exists:
         context['user'] = get_logged_in_user(user_instance=email_exists)
-        print(context['user'])
         context['has_tags'] = email_exists.userinfo.has_tags
         context['access'] = is_user_community_part(context['user']['id'])
         context['email_exists'] = True

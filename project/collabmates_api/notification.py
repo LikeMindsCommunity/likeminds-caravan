@@ -365,8 +365,7 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title, 
     try:
         connection = get_connection()
         curr = connection.cursor()
-        # sql = "select member_id_id from togther_members where community_id_id=%s and member_id_id !=%s and (state=1 or state=4 or state=9)"
-        sql = "select member_id_id from togther_members where community_id_id=%s and member_id_id !=%s"
+        sql = "select member_id_id from togther_members where community_id_id=%s and member_id_id !=%s and (state=1 or state=4 or state=9)"
         parameter_list = [community_id, card_creater_id]
         curr.execute(sql, parameter_list)
         member_list = curr.fetchall()
@@ -374,7 +373,7 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title, 
         notification_list_member = []
 
         tagged_users_list, collabcard_title, user_names = get_tagged_members_list(collabcard_title)
-        print(tagged_users_list)
+        
         for member in member_list:
             temp = {}
             temp['user_id'] = member[0]
