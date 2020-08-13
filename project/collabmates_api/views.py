@@ -3567,13 +3567,16 @@ def approve_or_decline_private_community(req_dict,request):
 
     '''function to approve the whatsapp community'''
 
+
+    current_user_id = get_member_id_from_headers(request)
+    current_user_instance = Userinfo.objects.get(user_id=current_user_id)
+    promoter_name = current_user_instance.name
+
     if req_dict['accepted'] or req_dict['accepted'] == 'true':
 
         is_member = is_member_verified(community=req_dict['community_id'], user_instance=req_dict['member_id'])
         
-        current_user_id = get_member_id_from_headers(request)
-        current_user_instance = Userinfo.objects.get(user_id=current_user_id)
-        promoter_name = current_user_instance.name
+
 
         if not is_member:
             Members.objects.filter(member_id=req_dict['member_id'],
@@ -7113,11 +7116,7 @@ def generate_otp(request):
 
 
 
-    # if email:
-    #     generate_url = "http://enterprise.smsgupshup.com/apps/TwoFactorAuth/incoming.php?email=%s&key=%s"%(str(email),key)
-    #     response = rqst.get(generate_url)
-    #
-    #     print(response.content)
+    ##code for email otp generation
 
 
 
@@ -7240,7 +7239,7 @@ def verify_otp(request):
         
 
 
-        if str(otp) == "9999":
+        if settings.IS_BETA and str(otp) == "9999":
             context['success'] = True
 
         return JsonResponse(context)
@@ -7839,9 +7838,62 @@ def config(request):
     context['success'] = True
     context['mobile_no_exists'] = mobile_no_exists
 
+
+
+    ##mixpanel changes
+    user_detail =get_mixpanel_statistics(member_id)
+    context['user_detail'] = user_detail
+
     return JsonResponse(context)
 
 
+
+def get_mixpanel_statistics(member_id):
+
+    '''function to give mixpanel statistics of user'''
+    context = {}
+    user_instance = User.objects.get(id=member_id)
+
+    context['user'] = get_logged_in_user(user_instance)
+
+    user_metrics = {}
+    user_profile = user_instance.userinfo
+    user_metrics['first_login'] = "Not Available" if user_profile.created_at < 0 else time.strftime('%d-%m-%Y', time.localtime(user_profile.created_at))
+
+    member_filter = Members.objects.filter(member_id=member_id,state=member_states.MEMBER)
+
+    user_metrics['count_communities_joined'] = member_filter.count()
+
+    community_names= ""
+
+    for data in member_filter:
+
+        community_names = community_names + str(data.community_id.name) + ","
+
+    if community_names:
+        user_metrics['name_communities_joined'] = community_names
+
+    user_metrics['is_any_community_promoter'] =  Members.objects.filter(member_id=member_id,state=member_states.ADMIN).exists()
+
+    user_metrics['unique_chatroom_responded'] = card_answers.objects.filter(user=user_instance).distinct('card_id').count()
+
+    user_metrics['count_chatroom_created'] = Collabcard.objects.filter(user_id=member_id).count()
+
+    state_filter = collabcardState.objects.filter(user_id=member_id,
+                                                  follow_status=True)
+    followed_count = 0
+    for chatroom in state_filter:
+
+        if chatroom.card.user_id == int(member_id):
+            continue
+        followed_count = followed_count + 1
+
+    user_metrics['count_chatroom_followed'] = followed_count
+
+    context['user_metrics'] = user_metrics
+
+
+    return context
 
 ############# functions edit community    ##########################
 

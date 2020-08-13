@@ -1,4 +1,4 @@
-{% extends request.is_ajax|yesno:"layouts/ajax.html,layouts/layout.html" %}
+{% extends request.is_ajax|yesno:"layouts/ajax.html,layouts/layout.html"%}
 {% block yeild %}
 
         <script src="https://cdn.rawgit.com/mdehoog/Semantic-UI-Calendar/76959c6f7d33a527b49be76789e984a0a407350b/dist/calendar.min.js"></script>
@@ -8,11 +8,12 @@
 
         {% include 'components/login_success_header_showcase.html' with data=header_showcase request=request %}
 
-        <head>
-             {% include 'scripts/mixpanel.html' with mixpanel_event=mixpanel_event %}
-             {% include 'scripts/create_user_mixpanel.html' with mixpanel_event=mixpanel_event request=request  %}
+        {% include 'scripts/mixpanel.html' with mixpanel_event=mixpanel_event %}
+        {% include 'scripts/create_user_mixpanel.html' with mixpanel_event=mixpanel_event request=request  %}
 
-        </head>
+
+
+
 
         <div class="container mxw960 mA ffR">
             <style>
