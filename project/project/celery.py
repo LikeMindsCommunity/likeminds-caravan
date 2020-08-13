@@ -29,7 +29,7 @@ app.conf.beat_schedule = {
         # 'schedule':120.0, #for testing purpose
     },
     'send_level_notification_at_8pm': {
-        'task': 'collabmates_api.notification.send_morning_pending_request_notification',
+        'task': 'collabmates_api.notification.send_evening_level_notification',
         'schedule': crontab(hour=15, minute=59),
         # minute="*/10" change to `crontab(minute=0, hour=0)` if you want it to run daily at midnight
         # 'schedule':120.0, #for testing purpose

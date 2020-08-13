@@ -222,6 +222,8 @@ def community(request, community_id):
 
     aj = request.GET.get('aj', False)                           #auto join check functionality
 
+    ios_private_link = ""
+
     source = request.GET.get('source')
     if aj and is_request_android(request) and not source:
 
@@ -231,6 +233,12 @@ def community(request, community_id):
         #
         playstore_ref_link = android_app_download_link+"""&referrer=%s"""%(quote(private_link))
         return redirect(playstore_ref_link)
+
+    if aj and is_request_ios(request) and not source:
+
+        ios_private_link = "Collabmates://" + request.META['HTTP_HOST'] +"/community/"+str(community_id)+"?aj="+str(aj)
+
+
 
 
     # print(aj)
@@ -270,6 +278,9 @@ def community(request, community_id):
 
     context = get_community_context(request,community_instance,user_instance,state,profile_list,is_member,user_context)
 
+    context['ios_private_link'] = ios_private_link
+    print(ios_private_link)
+
     return render(request,'community.html',context)
 
 
@@ -281,6 +292,10 @@ def community_questions(request,params):
 
 
     '''function to get community questions'''
+
+
+    # if is_request_ios(request):
+    #     return redirect("https://apps.apple.com/us/app/likeminds-community-chat/id1526635028?mt=8")
 
 
 
@@ -371,6 +386,11 @@ def community_questions(request,params):
 
             context['source'] = url_details['source']
 
+            if context['source'] == "private_link":
+                ios_private_link = "Collabmates://" + request.META['HTTP_HOST'] + "/community/" + str(
+                    community_id) + "?aj=" + str(url_details['aj'])
+
+                context['ios_private_link'] = ios_private_link
 
 
         if chatroom_deleted:
@@ -2579,9 +2599,6 @@ def linked_in_authentication(request):
     # redirect_url = redirect_url + "?json="+str(data_main)
     info_logger.info(request.user.is_authenticated)
     return redirect(redirect_url)
-
-
-
 
 
 

@@ -1,0 +1,329 @@
+<script>
+    function getCodeBoxElement(index) {
+        return document.getElementById('otp_from_user' + index);
+      }
+    function getCodeBoxElement1(index) {
+        return document.getElementById('otp_from_merge' + index);
+      }
+      function onKeyUpEvent(index, event) {
+        const eventCode = event.which || event.keyCode;
+        if (getCodeBoxElement(index).value.length === 1) {
+          if (index !== 4) {
+            getCodeBoxElement(index+ 1).focus();
+          } else {
+            getCodeBoxElement(index).blur();
+            // Submit code
+            console.log('submit code ');
+          }
+        }
+        if (eventCode === 8 && index !== 1) {
+          getCodeBoxElement(index - 1).focus();
+        }
+      }
+      function onKeyUpEvent1(index, event) {
+        const eventCode = event.which || event.keyCode;
+        if (getCodeBoxElement1(index).value.length === 1) {
+          if (index !== 4) {
+            getCodeBoxElement1(index+ 1).focus();
+          } else {
+            getCodeBoxElement1(index).blur();
+            // Submit code
+            console.log('submit code ');
+          }
+        }
+        if (eventCode === 8 && index !== 1) {
+          getCodeBoxElement1(index - 1).focus();
+        }
+      }
+      function onFocusEvent(index) {
+        for (item = 1; item < index; item++) {
+          const currentElement = getCodeBoxElement(item);
+          if (!currentElement.value) {
+              currentElement.focus();
+              break;
+          }
+        }
+      }
+      function onFocusEvent1(index) {
+        for (item = 1; item < index; item++) {
+          const currentElement = getCodeBoxElement1(item);
+          if (!currentElement.value) {
+              currentElement.focus();
+              break;
+          }
+        }
+      }
+    function sendVerificationCode(){
+        $('#login_with_phone').prop('disabled', true);
+        var country_code = stripValues(document.getElementById('country_code').innerHTML);
+        var phone_number = stripValues(document.getElementById('phone_number').value);
+        var url = "//{{ request.META.HTTP_HOST }}/generate_otp?mobile_no="+phone_number+"&country_code="+country_code+"&user_id=";
+        console.log(country_code,phone_number,url);
+        $.ajax(
+            {   
+                //confirm
+                url: url, 
+                success: function(result){
+                    console.log(result['success']);
+                    if (result['success'] == true){
+                        $('#step-1').hide();
+                        $('#step-2').show();
+                        $('#step-2-phone').html('+'+country_code + ' ' + phone_number);
+                    }
+                },
+                error: function (result) { // error callback 
+                    console.log("Error:"+result)
+                }
+            }
+        );
+    }
+    function editPhone(){
+        $('#step-1').show();
+        $('#step-2').hide();
+        $('#login_with_phone').removeAttr('disabled');
+    }
+    function sendMergeVerificationCode(){
+        // $('#login_with_phone').prop('disabled', true);
+        var country_code = stripValues(document.getElementById('country_code').innerHTML);
+        var phone_number = stripValues(document.getElementById('phone_number').value);
+        var user_id = document.getElementById('user_id').value;
+        var url = "//{{ request.META.HTTP_HOST }}/generate_otp?user_id="+user_id;
+        
+        console.log(country_code,phone_number,url);
+        $.ajax(
+            {   
+                //confirm
+                url: url, 
+                success: function(result){
+                    console.log(result['success']);
+                    if (result['success'] == true){
+                    }
+                    $('.merge_verification').show();
+                    $('.merge_pop_up').modal('hide');
+                },
+                error: function (result) { // error callback 
+                    console.log("Error:"+result)
+                }
+            }
+        );
+    }
+    function stripValues(text) { 
+        return text.toString().replace(/\D/g,''); 
+    } 
+    function get_otp_from_user(x=false){
+        if (x){
+            return $('#otp_from_merge1').val()+$('#otp_from_merge2').val()+$('#otp_from_merge3').val()+$('#otp_from_merge4').val(); 
+        }
+        else{
+            return $('#otp_from_user1').val()+$('#otp_from_user2').val()+$('#otp_from_user3').val()+$('#otp_from_user4').val(); 
+        }
+    }
+    var obj;
+    function verifyOTP(){
+        $('#login_with_phone').prop('disabled', true);
+        var country_code = stripValues(document.getElementById('country_code').innerHTML);
+        var merge_phone_number = stripValues(document.getElementById('phone_number').value);
+        var otp = stripValues(get_otp_from_user());
+        var url = "//{{ request.META.HTTP_HOST }}/verify_otp?mobile_no="+merge_phone_number+"&country_code="+country_code+"&otp="+otp;
+        console.log(country_code,phone_number,url);
+        $.ajax(
+            {   
+                //confirm
+                url: url, 
+                success: function(result){
+                    obj =result;
+                    console.log("***",result['profile_exists']);
+                    var success = result['success'];
+                    console.log("***",success);
+                    if(success == true){                           
+                        $('.test').modal('hide');
+                        if(result['profile_exists'] == true){
+                            console.log('reloading')
+                            location.reload();
+                        }
+                        else{
+                            $('.one_more_step').modal('show');
+                            $('.one_more_step').modal({
+                                backdrop: 'static',
+                                keyboard: false  // to prevent closing with Esc button (if you want this too)
+                            });
+                        }
+                    }
+                    else{
+                        $('#otp_error_message').html("Wrong OTP. Try Again");
+                        $('#otp_form').addClass('error');
+                    }
+                    
+                },
+                error: function (result) { // error callback 
+                    console.log("Error:"+result)
+                }
+            }
+        );
+    }
+    function verifyMergeOTP(){
+        $('#merge_verify_btn').prop('disabled', true);
+        var country_code = stripValues(document.getElementById('country_code').innerHTML);
+        var phone_number = stripValues(document.getElementById('phone_number').value);
+        var user_id = document.getElementById('user_id').value;
+        var otp = stripValues(get_otp_from_user(1));
+        var url = "//{{ request.META.HTTP_HOST }}/verify_otp?mobile_no="+phone_number+"&country_code="+country_code+"&otp="+otp+"&user_id="+user_id;
+        console.log(country_code,phone_number,url);
+        $.ajax(
+            {   
+                //confirm
+                url: url, 
+                success: function(result){
+                    var success = result['success'];
+                    if(success == true){
+
+                        showSnackbar("Login Successful");
+                        location.reload(); 
+                        // $('.test').modal('hide');
+                        // $('.one_more_step').modal('show');
+                        // $('.one_more_step').modal({
+                        //     backdrop: 'static',
+                        //     keyboard: false  // to prevent closing with Esc button (if you want this too)
+                        // });
+                    }
+                    else{
+                        $('#otp_error_message').html("Wrong OTP. Try Again");
+                        $('#otp_form').addClass('error');
+                    }
+                    
+                },
+                error: function (result) { // error callback 
+                    console.log("Error:"+result)
+                }
+            }
+        );
+    }
+    function useOtherID(){
+        $('.merge_pop_up').modal('hide');
+        $('.one_more_step').modal('show');
+    }
+    function createAccount(){
+        // $('#create_account').prop('disabled', true);
+        var name = document.getElementById('name').value;
+        var email = document.getElementById('email').value;
+        var country_code = stripValues(document.getElementById('country_code').innerHTML);
+        var phone_number = stripValues(document.getElementById('phone_number').value);
+        console.log(country_code,phone_number,email,name);
+        var dict = {
+            "type":"custom",
+            "mobile_no":phone_number,
+            "country_code":country_code,
+            "user":{
+                "name":name,
+                "email":email
+            },
+            "login_json":{},
+            "google_id_token":{}
+        }
+        var file = $('#profile_pic')[0].files[0];
+        if(file){
+            uploadProfileImage(dict,phone_number);
+        }
+        else{
+            send_login_request(dict);
+        }
+    }
+    function showCountries(){
+        $('.county_list').show();
+    }
+    $( document ).ready(function() {
+        $('#county_list .item').click(function(){
+            var $this   = $(this),
+                data = $this.attr("data-value");
+                code = data.split('|')[1];
+                flag = data.split('|')[0];
+                $('#country_code').html('+'+code);
+                $('#flag-code').attr('class', '');
+                $('#flag-code').addClass('flag');
+                $('#flag-code').addClass(flag);
+            $('.county_list').hide();
+        }); 
+    });
+    function openProfilePicUpload() {
+        $("#profile_pic").click();
+    }
+    function uploadProfileImage(dict,phone_number){
+        var file = $('#profile_pic')[0].files[0];
+        if(file){
+            var metadata = { contentType: file.type };
+            var name = +new Date; //files[i].name;
+            var storageRef = firebase.storage().ref();
+            var uploadTask = storageRef.child('files/profile/'+ phone_number +'/').put(file, metadata);
+
+            uploadTask.on('state_changed', function(snapshot){
+            
+                var progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                console.log('Upload is ' + progress + '% done');
+                switch (snapshot.state) {
+                    case firebase.storage.TaskState.PAUSED: // or 'paused'
+                    console.log('Upload is paused');
+                    break;
+                    case firebase.storage.TaskState.RUNNING: // or 'running'
+                    console.log('Upload is running');
+                    break;
+                }
+            }, function(error) {
+                // Handle unsuccessful uploads
+                console.log("Some error occured");
+            }, function() {
+                // Handle successful uploads on complete
+                // For instance, get the download URL: https://firebasestorage.googleapis.com/...
+                uploadTask.snapshot.ref.getDownloadURL().then(function(downloadURL) {
+                    dict['user']['image_url'] = downloadURL;
+                    send_login_request(dict);
+                 });
+            });
+
+        }
+        else{
+            return "";
+        }
+    }
+    function setImage(input) {
+        if (input.files && input.files[0]) {
+            var reader = new FileReader();
+
+            reader.onload = function (e) {
+                $('.profile-pic-wrapper .img-holder').css("background-image","url(" + e.target.result + ")");
+            };
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+    function send_login_request(dict){
+        console.log(JSON.stringify(dict));
+        var url = "//{{ request.META.HTTP_HOST }}/v1/login";
+        $.ajax(
+            {   
+                //confirm
+                type: "POST",
+                url: url, 
+                data: JSON.stringify(dict),
+                dataType: "text",
+                success: function(result){
+                    console.log(result);
+                    result = JSON.parse(result)
+                    if (result['email_exists']){
+                        document.getElementById('user_id').value = result['user']['id'];
+                        document.getElementById('merge_mail').innerHTML = result['user']['emails'][0]['email'];
+                        if (result['user'].hasOwnProperty('mobiles')){
+                            document.getElementById('merge_phone').innerHTML = result['user']['mobiles'][0]['mobile_no'];
+                        }
+                        $('#merge_pop_up').modal('show');
+                        $('#one_last_step').modal('hide');
+                    }
+                    else{
+                        console.log(result['user']);
+                    }
+                },
+                error: function (result) { // error callback 
+                    console.log("Error:"+result.responseText)
+                }
+            }
+        );
+    }
+</script>

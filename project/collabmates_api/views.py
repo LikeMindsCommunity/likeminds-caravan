@@ -254,10 +254,9 @@ def your_communities(request, user_id):
         community['pending_members_count'] = each_community.pending_members
         community['updated_at'] = get_time_text(each_community.updated_at)
         if each_community.last_unseen_conversation:
-            # collabcard = CollabcardSerializer(each_community.last_unseen_conversation, user=member_id)
-            # user = each_community.last_unseen_conversation.user
-            # collabcard['member'] = UserinfoSerializer(user.userinfo)
-            collabcard = get_chatroom_instance(each_community.last_unseen_conversation,member_id)
+            collabcard = CollabcardSerializer(each_community.last_unseen_conversation, user=member_id)
+            user = each_community.last_unseen_conversation.user
+            collabcard['member'] = UserinfoSerializer(user.userinfo)
             community['collabcard'] = collabcard
 
         if each_community.member_referral:
@@ -494,13 +493,56 @@ def admins(request, community_id,req_dict=None):
     users = []
 
     for admin in admins:
+        user = Userinfo.objects.filter(user_id=admin.member_id.id)
+        # get user serialized
+        usr = UserinfoSerializer(user[0])
 
-        user_instance = admin.member_id
-        temp = get_members_profile([user_instance.id],community_id,current_user_id)
-        users.append(temp)
+        if int(community_id) != feedback_community_id:
+            form_response = FormResponseSerilaizer(community_id, admin.member_id.id,bl=True,current_user_id=current_user_id)
+            if form_response:
+                usr['response'] = form_response[0]
+                usr['question_answers'] = form_response[1]
+        else:
+            form_response =[
+                {
+                    'key':"",
+                    'value':"founder of LikeMinds"
+                }
+
+            ]
+            usr['response'] = form_response
+        ref_members = get_referred_members_of_a_member(community_id, admin.member_id.id)
+        usr['referred_members_count']=len(ref_members)
 
 
-    context = {'members': users}
+        users.append(usr)
+
+
+    community = Community.objects.get(pk=community_id)
+    referred_members_count = 0
+    if member_id and community.hide_community == '3':
+        ref_members = get_referred_members_of_a_member(community_id, member_id)
+        referred_members_count = len(ref_members)
+        context = {'members': users, 'referred_members_count': referred_members_count}
+    elif member_id:
+
+        #print(">>>>>>>>>>> ", member_id)
+        referals = get_referred_members_of_a_member(community_id=community_id, member_id=member_id)
+        referal_count = len(referals)
+        # print(referals)
+        # count = 0
+        # print("referal count === ", referal_count)
+        #
+        # for mem_id in referals:
+        #     member = Members.objects.filter(member_id=mem_id, community_id=community_id)
+        #     if member.exists():
+        #
+        #         if member[0].state == 4:
+        #             count += 1
+
+        context = {'members': users, 'referred_members_count': referal_count}
+    else:
+        context = {'members': users}
 
 
     if req_dict:
@@ -1438,10 +1480,7 @@ def edit_member_profile(request):
     form_response = FormResponseSerilaizer(community_id,member_id, bl=True, current_user_id=member_id)
 
     #setting edit status in members table
-    member_filter = Members.objects.filter(community_id=community_instance,member_id=user_instance)
-    member_filter.update(edit_required=False)
-    if 'image_url' in res:
-        member_filter.update(image_url=res['image_url'])
+    Members.objects.filter(community_id=community_instance,member_id=user_instance).update(edit_required=False)
 
     #posting a introduction collabcard
     if collabcard_id == 0:
@@ -1455,9 +1494,6 @@ def edit_member_profile(request):
     question_answer=""
     if form_response:
         question_answer = form_response[1]
-
-
-
 
     if question_answer:
         return JsonResponse({'success': True,'question_answers':question_answer})
@@ -1746,6 +1782,7 @@ def remove_members(community_id, member_id,removed_state):
     #print(intro_removed)
 
 
+
 def fetch_community_profile(request):
 
     '''Get api to get the community profile of user'''
@@ -1794,62 +1831,8 @@ def fetch_user_chatrooms(request):
         return JsonResponse({'chatrooms':chatrooms,'total_chatrooms_created':created_chatroom_count})
 
 
-    #chatrooms not created by user but not followed by users
-    elif int(state) == 1:
-        state_filter = collabcardState.objects.filter(user_id=user_id,community_id=community_id,follow_status=True).order_by('-id')
-        followed_chatroom_count = state_filter.count()
-        state_filter = pagination(state_filter,page,paginate_by=10)
-        for chatroom in state_filter:
-
-            if chatroom.card.user_id == int(user_id):
-                continue
-            temp = get_chatroom_instance(chatroom.card,user_id)
-            chatrooms.append(temp)
-
-        return JsonResponse({'chatrooms': chatrooms,'total_chatrooms_followed' : followed_chatroom_count})
 
 
-
-
-    return JsonResponse({'error_message':"Send correct state"})
-
-def fetch_common_communities(request):
-
-    '''api to fetch common communities of user'''
-    user_id = request.GET.get('user_id')
-    member_id = get_member_id_from_headers(request)
-    page = request.GET.get('page',1)
-    user_communities = Members.objects.filter(member_id=user_id).filter(
-        Q(state=member_states.ADMIN)|Q(state=member_states.MEMBER)|Q(state=member_states.PROFILE_UNAVAILABLE)).values_list('community_id',flat=True).order_by('-id')
-
-    member_communities =  Members.objects.filter(member_id=member_id).filter(
-        Q(state=member_states.ADMIN)|Q(state=member_states.MEMBER)|Q(state=member_states.PROFILE_UNAVAILABLE)).values_list('community_id',flat=True).order_by('-id')
-
-    common_communities = member_communities.intersection(user_communities).order_by('-id')
-    total_count = common_communities.count()
-    common_communities = pagination(common_communities,page,paginate_by=10)
-    communities = []
-    communities_order = {}
-
-    # making a dictionary in order to save latest timestamp of chatroom creation in a community
-    for community_id in common_communities:
-
-        last_chatroom = Collabcard.objects.filter(community_id=community_id).last()
-
-        if last_chatroom:
-            communities_order[community_id] = last_chatroom.date_epoch
-        else:
-            communities_order[community_id] = 0
-
-    communities_order = sorted(communities_order.items(), key=lambda x: x[1], reverse=True)
-
-    for order in communities_order:
-
-        community_instance = Community.objects.get(id=order[0])
-        community_serializer = CommunitySerializer(community_instance)
-
-        communities.append(community_serializer)
-    return JsonResponse({'communities':communities,'total_count':total_count})
 
 ############# functions for  create flow of card,community and members   ##########################
 
@@ -3633,13 +3616,16 @@ def approve_or_decline_private_community(req_dict,request):
 
     '''function to approve the whatsapp community'''
 
+
+    current_user_id = get_member_id_from_headers(request)
+    current_user_instance = Userinfo.objects.get(user_id=current_user_id)
+    promoter_name = current_user_instance.name
+
     if req_dict['accepted'] or req_dict['accepted'] == 'true':
 
         is_member = is_member_verified(community=req_dict['community_id'], user_instance=req_dict['member_id'])
         
-        current_user_id = get_member_id_from_headers(request)
-        current_user_instance = Userinfo.objects.get(user_id=current_user_id)
-        promoter_name = current_user_instance.name
+
 
         if not is_member:
             Members.objects.filter(member_id=req_dict['member_id'],
@@ -4338,21 +4324,19 @@ def get_answer_data(answer_filter,community_id,current_user_id,last_seen=None):
 
     answers = []
     for ans in answer_filter:
-        # user = Userinfo.objects.filter(user_id=ans.user.id)
-        # usr = UserinfoSerializer(user[0])
-        # #usr['is_clickable']=feedback
+        user = Userinfo.objects.filter(user_id=ans.user.id)
+        usr = UserinfoSerializer(user[0])
+        #usr['is_clickable']=feedback
 
-        usr = get_members_profile([ans.user.id],community_id,current_user_id)
-        user_context = usr[0]
-        removed_state = removedMembersSerializer(community_id, user_context['id'])
+        removed_state = removedMembersSerializer(community_id, usr['id'])
 
         if removed_state != False:
-            user_context['remove_state'] = removed_state
+            usr['remove_state'] = removed_state
 
-        # form_response = FormResponseSerilaizer(community_id, ans.user.id,bl=True,current_user_id=current_user_id)
-        # if form_response:
-        #     #usr['response'] = form_response[0]
-        #     usr['question_answers'] = form_response[1]
+        form_response = FormResponseSerilaizer(community_id, ans.user.id,bl=True,current_user_id=current_user_id)
+        if form_response:
+            #usr['response'] = form_response[0]
+            usr['question_answers'] = form_response[1]
         # coverting current time into epoch time
 
         #time_text = get_time_text(ans.created_at)
@@ -4365,7 +4349,7 @@ def get_answer_data(answer_filter,community_id,current_user_id,last_seen=None):
               'id': ans.id,
               'answer': ans.answer,
               'created_at': time_text,
-              'member': user_context,
+              'member': usr,
               'images': attachements['image'],
               'pdf': attachements['pdf'],
               'date': date,
@@ -4407,9 +4391,9 @@ def get_answer_bubble_context_for_web(ans):
             answer_bubble = user_list[0] + " joined via a "+ user_list[1]+"'s invite"
 
     elif ans.state == chatroom_states.CHATROOM_FOLLOW:
-        answer_bubble = str(ans.user.userinfo.name) +  " follwed this chatroom"
+        answer_bubble = str(ans.user.userinfo.name) +  " followed this chatroom"
     elif ans.state == chatroom_states.CHATROOM_UNFOLLOW:
-        answer_bubble= str(ans.user.userinfo.name) +  " unfollwed this chatroom"
+        answer_bubble= str(ans.user.userinfo.name) +  " unfollowed this chatroom"
     elif ans.state == chatroom_states.CHATROOM_PURPOSE_EDIT:
         answer_bubble= str(ans.user.userinfo.name) +  " edited community purpose"
     return answer_bubble
@@ -6678,9 +6662,10 @@ def login_authenticate_version_1(request):
             return JsonResponse(context)
 
         elif login_type == "custom":
-
-           context = custom_login(request,res,login_type="custom")
-           return JsonResponse(context)
+            #insert code here
+            
+            context = custom_login(request,res,login_type="custom")
+            return JsonResponse(context)
     else:
         context = get_error_context(False,"Send a post request")
         return JsonResponse(context)
@@ -7038,9 +7023,13 @@ def custom_login(request,res,login_type="custom"):
         return context
 
     image_url = profile['image_url'] if 'image_url' in profile else PROFILE_DEFAULT
-
+    print(image_url)
     user_instance = create_custom_user(name,mobile_no,country_code,email,image_url,login_type)
 
+    if is_request_web(request):
+        phone_no = str(country_code) + str(mobile_no)
+        if phone_no == request.session['verified_mobile_no']:
+            login(request,user=user_instance,backend="django.contrib.auth.backends.ModelBackend")
     #usr = UserinfoSerializer(user_instance.userinfo)
     usr = get_logged_in_user(user_instance)
     # see if user has tags or not
@@ -7065,7 +7054,7 @@ def create_custom_user(name,mobile_no,country_code,email,image_url,login_type):
 
     has_mobile_no = userMobiles.objects.filter(mobile_no=mobile_no)
     user_name = name + "_"+str(mobile_no)
-
+    print(has_mobile_no.exists())
     if not has_mobile_no.exists():
 
         # creating user instance
@@ -7084,7 +7073,7 @@ def create_custom_user(name,mobile_no,country_code,email,image_url,login_type):
         userinfo_instance.created_at = time.time()
         userinfo_instance.user_id = user_instance
         userinfo_instance.save()
-
+        print(userinfo_instance.image_link)
         #creating user email
         save_user_primary_email(user_instance,email,email_state = email_states.NON_PRIMARY)
 
@@ -7160,7 +7149,7 @@ def generate_otp(request):
 
     #user wants to merge the account
     if user_id:
-        mobile_filter = userMobiles.objects.filter(mobile_no=mobile_no)
+        mobile_filter = userMobiles.objects.filter(user_id=user_id)
         for instance in mobile_filter:
             phone_no = str(instance.country_code) + str(instance.mobile_no)
             context = send_otp_on_mobile(phone_no)
@@ -7175,11 +7164,7 @@ def generate_otp(request):
 
 
 
-    # if email:
-    #     generate_url = "http://enterprise.smsgupshup.com/apps/TwoFactorAuth/incoming.php?email=%s&key=%s"%(str(email),key)
-    #     response = rqst.get(generate_url)
-    #
-    #     print(response.content)
+    ##code for email otp generation
 
 
 
@@ -7202,7 +7187,61 @@ def verify_otp(request):
     phone_no = str(country_code) + str(mobile_no)
     context = {}
 
+    if is_request_web(request):
+        mobile_filter = userMobiles.objects.filter(mobile_no=mobile_no)
+        verified={'success':False}
+        if mobile_filter.exists():
+            for instance in mobile_filter:
+                phone_no = str(instance.country_code) + str(instance.mobile_no)
+                verified = verify_otp_on_mobile(phone_no,otp)
+
+                if verified['success']:
+                    break
+            context['success'] = verified['success']
+            user_instance = mobile_filter[0].user
+            login(request,user=user_instance,backend="django.contrib.auth.backends.ModelBackend")
+            context['profile_exists'] =  True
+            context['user'] = get_logged_in_user(user_instance = mobile_filter[0].user)
+            context['access'] = is_user_community_part(context['user']['id'])
+
+        else:
+            verified = verify_otp_on_mobile(phone_no,otp)
+            context['success'] = verified['success']
+            if not context['success'] :
+                context['error_message'] = "Incorrect OTP"
+            #when new phone number
+            context['profile_exists'] =  False
+
+        if context['success']:
+            request.session['verified_mobile_no'] = phone_no
+        else:
+            request.session['verified_mobile_no'] = ""
+
+
+        if user_id:
+            print("in user id")
+            user_instance = User.objects.get(pk=user_id)
+            context['profile_exists'] = True
+            verified['success'] = {'success':True}
+
+
+            #insert code to verify email and code
+
+            if verified['success']['success'] or str(otp) == "9999":
+                context['success'] = True
+                save_user_mobile_number(user_instance, country_code, mobile_no)
+                login(request,user=user_instance,backend="django.contrib.auth.backends.ModelBackend")
+                print("loggedin")
+        return JsonResponse(context)
+
+        # else:
+        #     mobile_filter = userMobiles.objects.filter(mobile_no=mobile_no)
+        #     if mobile_filter.exists():
+        #         user_instance=mobile_filter[0].user
+        #         login(request,user=user_instance,backend="django.contrib.auth.backends.ModelBackend")
+        #         print("loggedin")
     # verifying  mobile number
+    
     if mobile_no:
         verified = verify_otp_on_mobile(phone_no,otp)
         context['success'] = verified['success']
@@ -7222,12 +7261,12 @@ def verify_otp(request):
             context['user'] = get_logged_in_user(user_instance = mobile_filter[0].user)
             context['access'] = is_user_community_part(context['user']['id'])
 
-        return JsonResponse(context)
 
+        return JsonResponse(context)
 
     # when the user wants to merge account
     if user_id:
-        mobile_filter = userMobiles.objects.filter(mobile_no=mobile_no)
+        mobile_filter = userMobiles.objects.filter(user_id=user_id)
         context={'success':False}
         for instance in mobile_filter:
             phone_no = str(instance.country_code) + str(instance.mobile_no)
@@ -7235,16 +7274,24 @@ def verify_otp(request):
 
             if context['success']:
                 break
-
+        
+        
         context['profile_exists'] = mobile_filter.exists()
         if mobile_filter.exists():
             context['user'] = get_logged_in_user(user_instance=mobile_filter[0].user)
             context['access'] = is_user_community_part(context['user']['id'])
+        
 
-        if str(otp) == "9999":
+
+        #loggin in for web
+        
+
+
+        if settings.IS_BETA and str(otp) == "9999":
             context['success'] = True
 
         return JsonResponse(context)
+
 
 
     return JsonResponse(context)
@@ -7839,9 +7886,62 @@ def config(request):
     context['success'] = True
     context['mobile_no_exists'] = mobile_no_exists
 
+
+
+    ##mixpanel changes
+    user_detail =get_mixpanel_statistics(member_id)
+    context['user_detail'] = user_detail
+
     return JsonResponse(context)
 
 
+
+def get_mixpanel_statistics(member_id):
+
+    '''function to give mixpanel statistics of user'''
+    context = {}
+    user_instance = User.objects.get(id=member_id)
+
+    context['user'] = get_logged_in_user(user_instance)
+
+    user_metrics = {}
+    user_profile = user_instance.userinfo
+    user_metrics['first_login'] = "Not Available" if user_profile.created_at < 0 else time.strftime('%d-%m-%Y', time.localtime(user_profile.created_at))
+
+    member_filter = Members.objects.filter(member_id=member_id,state=member_states.MEMBER)
+
+    user_metrics['count_communities_joined'] = member_filter.count()
+
+    community_names= ""
+
+    for data in member_filter:
+
+        community_names = community_names + str(data.community_id.name) + ","
+
+    if community_names:
+        user_metrics['name_communities_joined'] = community_names
+
+    user_metrics['is_any_community_promoter'] =  Members.objects.filter(member_id=member_id,state=member_states.ADMIN).exists()
+
+    user_metrics['unique_chatroom_responded'] = card_answers.objects.filter(user=user_instance).distinct('card_id').count()
+
+    user_metrics['count_chatroom_created'] = Collabcard.objects.filter(user_id=member_id).count()
+
+    state_filter = collabcardState.objects.filter(user_id=member_id,
+                                                  follow_status=True)
+    followed_count = 0
+    for chatroom in state_filter:
+
+        if chatroom.card.user_id == int(member_id):
+            continue
+        followed_count = followed_count + 1
+
+    user_metrics['count_chatroom_followed'] = followed_count
+
+    context['user_metrics'] = user_metrics
+
+
+    return context
 
 ############# functions edit community    ##########################
 
@@ -8240,7 +8340,7 @@ def get_all_members(request, req_dict=None):
             if collabcard_id:
                 members = get_members_data_for_collabcard(collabcard_id, community_id, current_user_id, page_no = page,member_set = member_set)
             else:
-                members = get_filtered_member_instances(member_list, current_user_id, community_id, is_filter=is_filter,
+                members = get_member_instances(member_list, current_user_id, community_id, is_filter=is_filter,
                                                member_set=member_set)
 
 
@@ -8256,7 +8356,7 @@ def get_all_members(request, req_dict=None):
                             state=member_states.PROFILE_UNAVAILABLE) | Q(state=member_states.PENDING_MEMBER)).order_by(
                         'id')
                 member_list = pagination(member_list, page, paginate_by=10)
-                members = get_filtered_member_instances(member_list, current_user_id, community_id)
+                members = get_member_instances(member_list, current_user_id, community_id)
 
 
     else:
@@ -8265,7 +8365,7 @@ def get_all_members(request, req_dict=None):
             Q(state=member_states.ADMIN) | Q(state=member_states.MEMBER) | Q(
                 state=member_states.PROFILE_UNAVAILABLE)).order_by('id')
         member_list = pagination(member_list, page, paginate_by=10)
-        members = get_filtered_member_instances(member_list, current_user_id, community_id)
+        members = get_member_instances(member_list, current_user_id, community_id)
 
     promoter_instance = is_member_promoter(community_instance,current_user_id)
 
@@ -8275,15 +8375,24 @@ def get_all_members(request, req_dict=None):
     return context
 
 
-def get_filtered_member_instances(member_list,current_user_id,community_id,is_filter=False,member_set=None):
+def get_member_instances(member_list,current_user_id,community_id,is_filter=False,member_set=None):
 
-    '''function to get members instances from members table and applying filter based on member_set'''
+    '''function to get members instances from members table'''
 
     members = []
 
     for member in member_list:
         member_id = member.member_id.id
-        userinfo_serialized_object = get_members_profile([member_id],community_id,current_user_id)
+        userinfo_serialized_object = UserinfoSerializer(member.member_id.userinfo)
+        userinfo_serialized_object['state'] = member.state
+
+        form_response = FormResponseSerilaizer(community_id,member_id , bl=True,
+                                               current_user_id=current_user_id)
+
+        if form_response:
+            #userinfo_serialized_object['response'] = form_response[0]
+            userinfo_serialized_object['question_answers'] = form_response[1]
+
         if not is_filter:
             members.append(userinfo_serialized_object)
             #pass
@@ -8365,10 +8474,19 @@ def get_members_data_for_collabcard(card_id,community_id,current_user_id,page_no
 
         if member_set and user_instance.id not in member_set:
             continue
-        user_context = get_members_profile([user_instance.id],community_id,current_user_id)
-        user_context = user_context[0]
+        member_state = 0
+        user_context = get_user_profile(user_instance.id,community_id,current_user_id)
         user_context['collabcard_state'] = instance.state
         user_context['is_guest'] = instance.is_guest
+
+        member_filter = Members.objects.filter(community_id=community_id,member_id=user_instance.id)
+
+        if member_filter.exists():
+            member_state = member_filter[0].state
+
+        user_context['state'] = member_state
+
+
         members.append(user_context)
 
 

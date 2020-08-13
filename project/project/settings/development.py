@@ -50,3 +50,7 @@ FIREBASE_CONFIG = {
     'appId':  "1:983690302378:web:b2fa2c58f2351d5c1b91d3",
     'measurementId': "G-R2PXYC9F4S"
 }
+
+
+
+GHUPSHUP_KEY = "03f92dd7cbf3b983d8c9a4dc7ac485c7"
