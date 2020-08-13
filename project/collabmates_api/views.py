@@ -7275,7 +7275,7 @@ def verify_otp(request):
         context={'success':False}
         for instance in mobile_filter:
             phone_no = str(instance.country_code) + str(instance.mobile_no)
-            context['success']= verify_otp_on_mobile(phone_no,otp)
+            context= verify_otp_on_mobile(phone_no,otp)
 
             if context['success']:
                 break
