@@ -1007,7 +1007,9 @@ def update_hidden_fields_in_questions(user_instance,community_instance):
             for data in email_filter:
                 emails = emails + str(data.email) + ", "
 
-            emails = emails[:-1]
+            emails = emails[:-2]
+
+
             if emails:
                 answer_instance = communityAnswers()
                 answer_instance.question = question_instance
@@ -1024,7 +1026,8 @@ def update_hidden_fields_in_questions(user_instance,community_instance):
             for data in mobile_filter:
                 mobile_nos = mobile_nos + str(data.mobile_no) + ", "
 
-            mobile_nos = mobile_nos[:-1]
+            mobile_nos = mobile_nos[:-2]
+
             if mobile_nos:
                 answer_instance = communityAnswers()
                 answer_instance.question = question_instance
