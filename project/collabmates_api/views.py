@@ -7622,6 +7622,10 @@ def phonebook(request):
 def save_user_primary_email(user_instance,email,verified=False,email_state=email_states.PRIMARY):
 
     '''function to save primary email of user for communications'''
+
+    if not email:
+        return
+
     email_filter = userEmails.objects.filter(email=email)
     if not email_filter.exists():
         user_email_instance = userEmails()
