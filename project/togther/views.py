@@ -22,7 +22,11 @@ from utility.utils import (get_city_address, update_tag_image,
                            update_user_geography_tags, create_or_categorize_tag,
                            referal, insert_user_home_town_tags, user_onbaord,
                            is_request_android, is_request_ios,
-                           is_request_pc, android_app_download_link, is_IG_community, ios_app_download_link,is_member_verified,feedback_community_id,decode_option,get_members_count_in_community)
+                           is_request_pc, android_app_download_link, 
+                           is_IG_community, ios_app_download_link,is_member_verified,
+                           feedback_community_id,decode_option,get_members_count_in_community,
+                           )
+from utility.encryption import encrypt,decrypt
 from utility.firebase import upload_image_to_firebase
 from urllib.parse import urlencode, quote,unquote
 from collabmates_api.tasks import send_email
@@ -2633,3 +2637,21 @@ def community_wise_details(request):
     else:
         context = {}
     return render(request, 'cms/community_wise_details.html', context)
+
+
+def unsubscribe_from_email(request):
+    user_hash = request.GET.get('m',None)
+    email = request.GET.get('code',None)
+    user_id = decrypt(user_hash)
+    user = User.objects.get(id=user_id)
+    notification_list = []
+    notification_list.append(email)
+    
+    flag_instance, created = memberNotificationFlag.objects.get_or_create(code=email,member=user)
+    flag_instance.flag = False
+    flag_instance.save()
+    context = {
+        'user':user,
+        'flag':flag_instance.flag,
+    }
+    return render(request,'cms/unsubscribe_from_email.html',context)

@@ -873,7 +873,7 @@ def send_morning_pending_request_notification():
         pending_members_count = pending_members.count()
 
         if pending_members_count>0:
-            promoters = members.filter(Q(state=member_states.ADMIN)|Q(state=member_states.MEMBER))
+            promoters = members.filter(state=member_states.ADMIN)
             notification_list = []
             for promoter in promoters:
                 notification_details = get_token_for_fcm(promoter.member_id.id,flag=True)
@@ -925,7 +925,7 @@ def send_evening_level_notification():
 
         message['payload']={
                 "title" : 'Level up '+str(community_level.community.name),
-                "sub_title" : str(community_level.level) + " " +str(community_level.sub_title),
+                "sub_title" : str(community_level.title) + ". " +str(community_level.sub_title),
                 'route':'route://community?community_id='+str(community_level.community.id)
             }
 
@@ -970,16 +970,16 @@ def send_notification_to_join_drop_off(member_id,community_id,aj,time_in_hrs):
         if aj == "":
             message['payload']={
                 "title" : str(community_name),
-                "sub_title" : "Don't miss relevant conversations. Click here to join and meet like-minded people. ",
-                'route':'route://community?community_id=' + str(community_id) + '&aj=' + str(aj)
+                "sub_title" : "Apply to join this community and meet like-minded people. ",
+                'route':'route://community?community_id=' + str(community_id)
             }
             notification_meta(notification_list,message)
         
         else:
             message['payload']={
                 "title" : str(community_name),
-                "sub_title" : "Apply to join this community and meet like-minded people. ",
-                'route':'route://community?community_id=' + str(community_id)
+                "sub_title" : "Don't miss relevant conversations. Click here to join and meet like-minded people. ",
+                'route':'route://community?community_id=' + str(community_id) + '&aj=' + str(aj)
             }
             notification_meta(notification_list,message)
     
@@ -1012,6 +1012,19 @@ def send_notification_to_join_drop_off(member_id,community_id,aj,time_in_hrs):
                 member = Members.objects.filter(community_id=community_id,member_id=member_id)
                 if member.exists():
                     return
+
+                notification_list=[]
+
+                notification_details = get_token_for_fcm(expiry_instance[0].promoter.id,flag=True)
+
+                temp = {
+                    'id':expiry_instance[0].promoter.id,
+                    'fcm_token':notification_details[0],
+                    'mobile_os':notification_details[1],
+                }
+
+                notification_list.append(temp)
+
 
                 message['payload']={
                     "title" : member_name + 'may need new invitation!',

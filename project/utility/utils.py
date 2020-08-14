@@ -30,7 +30,8 @@ from .states import *
 #link to download the android app
 android_app_download_link="https://play.google.com/store/apps/details?id=com.collabmates"
 
-ios_app_download_link="https://apps.apple.com/us/app/collabmates/id1481298195"
+ios_app_download_link="https://apps.apple.com/us/app/likeminds-community-chat/id1526635028"
+
 
 community_default_image = "https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fcommunity%2Fimage_community_default?alt=media"
 
@@ -1111,7 +1112,7 @@ def check_notification_flag(member_id,notification_list,card_id=None,community_i
 
     for notification in notification_list:
         if card_id == None and community_id == None:
-            p, created = memberNotificationFlag.objects.get_or_create(code=notification)
+            p, created = memberNotificationFlag.objects.get_or_create(code=notification,member=member)
 
         elif card_id != None and community_id == None:
             card = Collabcard.objects.get(pk=card_id)
