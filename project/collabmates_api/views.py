@@ -7111,7 +7111,7 @@ def create_custom_user(name,mobile_no,country_code,email,image_url,login_type):
         userinfo_instance.save()
         print(userinfo_instance.image_link)
         #creating user email
-        save_user_primary_email(user_instance,email,email_state = email_states.NON_PRIMARY)
+        save_user_primary_email(user_instance,email,email_state = email_states.PRIMARY)
 
 
         #send verification mail for email
