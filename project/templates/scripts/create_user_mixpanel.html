@@ -29,6 +29,7 @@
 
                   mixpanel.people.set({
 
+                  "name":"{{mixpanel_event.user.name}}",
                   "user_name":"{{mixpanel_event.user.name}}",
                   "first_login": "{{mixpanel_event.user_metrics.first_login}}",
                   "count_communities_joined": "{{mixpanel_event.user_metrics.count_communities_joined}}",
