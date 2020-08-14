@@ -2238,7 +2238,7 @@ def set_community_actions(community_instance):
         instance.title = "Invite your inner circle"
         instance.sub_title = "Bring 5 trusted people you want to build this community with."
         instance.joined_members = 0
-        instance.max_members = 2 if settings.IS_BETA  else 5
+        instance.max_members = 1 if settings.IS_BETA  else 5
         instance.state = community_level_states.PENDING
         instance.image = IMAGE_LEVEL_2
         instance.save()
