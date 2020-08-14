@@ -237,8 +237,8 @@ def community(request, community_id):
 
     if aj and is_request_ios(request) and not source:
 
-        #ios_deep_link = "Collabmates://" + request.META['HTTP_HOST'] +"/community/"+str(community_id)+"?aj="+str(aj)
-        ios_branch_link="https://collabmates.app.link/q9PKG0YPR8?$custom_data=123&hello=world"
+        ios_deep_link = "Collabmates://" + request.META['HTTP_HOST'] +"/community/"+str(community_id)+"?aj="+str(aj)
+        ios_branch_link="""https://collabmates.app.link/q9PKG0YPR8?$deep_link=%s"""%(quote(ios_deep_link))
         print(ios_branch_link)
 
 
