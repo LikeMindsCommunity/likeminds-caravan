@@ -1018,7 +1018,7 @@ def update_hidden_fields_in_questions(user_instance,community_instance):
                 answer_instance.save()
 
         elif question_instance.question_state == question_states.MOBILE_NO:
-            mobile_filter = userMobiles.objects.filter(user=user)
+            mobile_filter = userMobiles.objects.filter(user=user_instance)
             mobile_nos= ""
 
             for data in mobile_filter:
