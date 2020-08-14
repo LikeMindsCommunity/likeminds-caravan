@@ -873,7 +873,7 @@ def send_morning_pending_request_notification():
         pending_members_count = pending_members.count()
 
         if pending_members_count>0:
-            promoters = members.filter(Q(state=member_states.ADMIN)|Q(state=member_states.MEMBER))
+            promoters = members.filter(state=member_states.ADMIN)
             notification_list = []
             for promoter in promoters:
                 notification_details = get_token_for_fcm(promoter.member_id.id,flag=True)
@@ -925,7 +925,7 @@ def send_evening_level_notification():
 
         message['payload']={
                 "title" : 'Level up '+str(community_level.community.name),
-                "sub_title" : str(community_level.level) + " " +str(community_level.sub_title),
+                "sub_title" : str(community_level.title) + ". " +str(community_level.sub_title),
                 'route':'route://community?community_id='+str(community_level.community.id)
             }
 
