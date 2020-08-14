@@ -497,7 +497,8 @@ def admins(request, community_id,req_dict=None):
 
         user_instance = admin.member_id
         temp = get_members_profile([user_instance.id],community_id,current_user_id)
-        users.append(temp)
+        if temp:
+            users.append(temp[0])
 
 
     context = {'members': users}
@@ -991,6 +992,7 @@ def post_purpose_collabcard_for_community(request,community_instance,member_id):
     return context['card_instance']
 
 
+
 def update_hidden_fields_in_questions(user_instance,community_instance):
 
     '''api to update hidden fields in questions'''
@@ -1020,7 +1022,7 @@ def update_hidden_fields_in_questions(user_instance,community_instance):
             mobile_nos= ""
 
             for data in mobile_filter:
-                mobile_nos = mobilr_nos + str(data.mobile_no) + ", "
+                mobile_nos = mobile_nos + str(data.mobile_no) + ", "
 
             mobile_nos = mobile_nos[:-1]
             if mobile_nos:
