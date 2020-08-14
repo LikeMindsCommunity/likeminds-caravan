@@ -30,7 +30,8 @@ from .states import *
 #link to download the android app
 android_app_download_link="https://play.google.com/store/apps/details?id=com.collabmates"
 
-ios_app_download_link="https://apps.apple.com/us/app/collabmates/id1481298195"
+ios_app_download_link="https://apps.apple.com/us/app/likeminds-community-chat/id1526635028?mt=8"
+
 
 community_default_image = "https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fcommunity%2Fimage_community_default?alt=media"
 
