@@ -240,9 +240,10 @@ def community(request, community_id):
 
     if aj and is_request_ios(request) and not source:
 
-        ios_private_link = "Collabmates://" + request.META['HTTP_HOST'] +"/community/"+str(community_id)+"?aj="+str(aj)
-
-
+        #ios_private_link = "Collabmates://" + request.META['HTTP_HOST'] +"/community/"+str(community_id)+"?aj="+str(aj)
+        ios_private_link="https://collabmates.app.link/q9PKG0YPR8/" + "community/"+str(community_id)+"?aj="+str(aj)
+        print(ios_private_link)
+        return redirect(ios_private_link)
 
 
     # print(aj)
