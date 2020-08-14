@@ -998,17 +998,39 @@ def update_hidden_fields_in_questions(user_instance,community_instance):
 
     for question_instance in question_filter:
 
-
-
         if question_instance.question_state == question_states.EMAIL_ID:
 
-            answer_instance = communityAnswers()
-            answer_instance.question = question_instance
-            answer_instance.member = user_instance
-            answer_instance.community = community_instance
-            answer_instance.question_answer = user_instance.userinfo.email
-            answer_instance.question_title = question_instance.question_title
-            answer_instance.save()
+            email_filter = userEmails.objects.filter(user=user_instance)
+            emails = ""
+            for data in email_filter:
+                emails = emails + str(data.email) + ", "
+
+            emails = emails[:-1]
+            if emails:
+                answer_instance = communityAnswers()
+                answer_instance.question = question_instance
+                answer_instance.member = user_instance
+                answer_instance.community = community_instance
+                answer_instance.question_answer = user_instance.userinfo.email
+                answer_instance.question_title = question_instance.question_title
+                answer_instance.save()
+
+        elif question_instance.question_state == question_states.MOBILE_NO:
+            mobile_filter = userMobiles.objects.filter(user=user)
+            mobile_nos= ""
+
+            for data in mobile_filter:
+                mobile_nos = mobilr_nos + str(data.mobile_no) + ", "
+
+            mobile_nos = mobile_nos[:-1]
+            if mobile_nos:
+                answer_instance = communityAnswers()
+                answer_instance.question = question_instance
+                answer_instance.member = user_instance
+                answer_instance.community = community_instance
+                answer_instance.question_answer = mobile_nos
+                answer_instance.question_title = question_instance.question_title
+                answer_instance.save()
 
 
 
@@ -2226,7 +2248,7 @@ def set_community_actions(community_instance):
         instance.title = "Community Directory"
         instance.state = community_level_states.LOCKED
         instance.joined_members = 0
-        instance.max_members = 2 if settings.IS_BETA  else 10
+        instance.max_members = 1 if settings.IS_BETA  else 10
         instance.image = IMAGE_LEVEL_3
         instance.save()
 
@@ -2237,7 +2259,7 @@ def set_community_actions(community_instance):
         instance.title = "Growth"
         instance.state = community_level_states.LOCKED
         instance.joined_members = 0
-        instance.max_members = 2 if settings.IS_BETA  else 10
+        instance.max_members = 1 if settings.IS_BETA  else 10
         instance.image = IMAGE_LEVEL_4
         instance.save()
 
