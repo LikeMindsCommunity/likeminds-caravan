@@ -8042,6 +8042,11 @@ def get_mixpanel_statistics(member_id):
 
     context['user_metrics'] = user_metrics
 
+    if settings.IS_BETA:
+        context['token'] = "eb1e03c8be370040278bff61a4857608"
+    else:
+        context['token'] = "7907eb37f46b1ac2908d3881e633a85e"
+
 
     return context
 
