@@ -1320,19 +1320,19 @@ def update_email(request):
 
     elif typ == 'edit':
 
-        uniq_id = request.GET.get('id')
+        uniq_id = request.POST.get('id')
         userEmails.objects.filter(id=uniq_id).update(email=email)
         return JsonResponse({'success': True})
 
     elif typ == 'primary':
 
-        uniq_id = request.GET.get('id')
+        uniq_id = request.POST.get('id')
         userEmails.objects.filter(user=user_instance).update(email_state=email_states.NON_PRIMARY)
         userEmails.objects.filter(id=uniq_id).update(email_state=email_states.PRIMARY)
 
     elif typ == 'resend_verification':
 
-        uniq_id = request.GET.get('id')
+        uniq_id = request.POST.get('id')
         email_instance = userEmails.objects.get(id=uniq_id)
         email = email_instance.email
         # send verification mail for email
@@ -1343,7 +1343,7 @@ def update_email(request):
                                               verification_link=verification_details['verify_url'], email=email)
 
     elif typ == 'delete':
-        uniq_id = request.GET.get('id')
+        uniq_id = request.POST.get('id')
         userEmails.objects.filter(id=uniq_id).delete()
 
 
