@@ -497,7 +497,8 @@ def admins(request, community_id,req_dict=None):
 
         user_instance = admin.member_id
         temp = get_members_profile([user_instance.id],community_id,current_user_id)
-        users.append(temp)
+        if temp:
+            users.append(temp[0])
 
 
     context = {'members': users}
