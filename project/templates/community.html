@@ -851,16 +851,6 @@ The admin has received your request and would take a decision on your membership
             $('#download_pending').click(function(e){
 
 
-                {% if current_user_request_date %}
-                console.log("{{current_user_request_date}}")
-                        mixpanel.track("Approval Pending CTA clicked",{
-
-                            "Community Join Request date": "{{current_user_request_date}}",
-                            "Community Name":"{{community.name}}",
-                            "User Community State":"{{mixpanel_event.user_community_state}}"
-
-                        })
-                {% endif %}
 
                 $('#approval_pending').modal('show')
             })

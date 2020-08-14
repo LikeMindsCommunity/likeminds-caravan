@@ -364,13 +364,11 @@ Are you sure, you want to leave this chat room? You can apply to join this commu
      $(document.body).on('click','.footer_join',function(e){
 
 
-       mixpanel.track("Community Join CR",{
+       mixpanel.track("Community joined",{
 
-        "footer join click date" : new Date() + "",
-        "CR Name" : "{{collabcard.header}}",
-        "Community Name" : "{{collabcard.community_name}}",
-        "CR type": "{{collabcard.type}}",
-        "User Community State":"{{mixpanel_event.user_community_state}}"
+        "chatroom_name" : "{{collabcard.header}}",
+        "chatroom_type": "{{collabcard.type}}"
+
 
        })
 

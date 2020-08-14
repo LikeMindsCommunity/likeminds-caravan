@@ -254,9 +254,10 @@ def your_communities(request, user_id):
         community['pending_members_count'] = each_community.pending_members
         community['updated_at'] = get_time_text(each_community.updated_at)
         if each_community.last_unseen_conversation:
-            collabcard = CollabcardSerializer(each_community.last_unseen_conversation, user=member_id)
-            user = each_community.last_unseen_conversation.user
-            collabcard['member'] = UserinfoSerializer(user.userinfo)
+            # collabcard = CollabcardSerializer(each_community.last_unseen_conversation, user=member_id)
+            # user = each_community.last_unseen_conversation.user
+            # collabcard['member'] = UserinfoSerializer(user.userinfo)
+            collabcard = get_chatroom_instance(each_community.last_unseen_conversation,member_id)
             community['collabcard'] = collabcard
 
         if each_community.member_referral:
@@ -493,56 +494,13 @@ def admins(request, community_id,req_dict=None):
     users = []
 
     for admin in admins:
-        user = Userinfo.objects.filter(user_id=admin.member_id.id)
-        # get user serialized
-        usr = UserinfoSerializer(user[0])
 
-        if int(community_id) != feedback_community_id:
-            form_response = FormResponseSerilaizer(community_id, admin.member_id.id,bl=True,current_user_id=current_user_id)
-            if form_response:
-                usr['response'] = form_response[0]
-                usr['question_answers'] = form_response[1]
-        else:
-            form_response =[
-                {
-                    'key':"",
-                    'value':"founder of LikeMinds"
-                }
-
-            ]
-            usr['response'] = form_response
-        ref_members = get_referred_members_of_a_member(community_id, admin.member_id.id)
-        usr['referred_members_count']=len(ref_members)
+        user_instance = admin.member_id
+        temp = get_members_profile([user_instance.id],community_id,current_user_id)
+        users.append(temp)
 
 
-        users.append(usr)
-
-
-    community = Community.objects.get(pk=community_id)
-    referred_members_count = 0
-    if member_id and community.hide_community == '3':
-        ref_members = get_referred_members_of_a_member(community_id, member_id)
-        referred_members_count = len(ref_members)
-        context = {'members': users, 'referred_members_count': referred_members_count}
-    elif member_id:
-
-        #print(">>>>>>>>>>> ", member_id)
-        referals = get_referred_members_of_a_member(community_id=community_id, member_id=member_id)
-        referal_count = len(referals)
-        # print(referals)
-        # count = 0
-        # print("referal count === ", referal_count)
-        #
-        # for mem_id in referals:
-        #     member = Members.objects.filter(member_id=mem_id, community_id=community_id)
-        #     if member.exists():
-        #
-        #         if member[0].state == 4:
-        #             count += 1
-
-        context = {'members': users, 'referred_members_count': referal_count}
-    else:
-        context = {'members': users}
+    context = {'members': users}
 
 
     if req_dict:
@@ -875,7 +833,7 @@ def join_promoter_created_community_version_1(res,request):
 
                 # saving create community action level3
                 update_community_actions(community_instance)
-                
+
                 # send_notification_to_join_drop_off.delay(user_instance.id,community_instance.id,res['aj'],time_in_hrs)
 
                 log = """Auto join community for community_id=%s for user=%s""" % (community_id, member_id)
@@ -1214,7 +1172,7 @@ def set_levels_on_ctc(community_instance,level):
                 community_level_filter.filter(level="Level 4").update(title="Invite new member applications",
                                                                       sub_title="Grow your community. Start social sharing and approve 10 new members.",
                                                                       state=community_level_states.PENDING)
-                
+
 
 
 
@@ -1309,8 +1267,8 @@ def update_email(request):
 
     '''api to perform operations on email of user'''
 
-    email = request.GET.get('email_id')
-    typ = request.GET.get('type')
+    email = request.POST.get('email_id')
+    typ = request.POST.get('type')
 
     user_id = get_member_id_from_headers(request)
 
@@ -1482,7 +1440,10 @@ def edit_member_profile(request):
     form_response = FormResponseSerilaizer(community_id,member_id, bl=True, current_user_id=member_id)
 
     #setting edit status in members table
-    Members.objects.filter(community_id=community_instance,member_id=user_instance).update(edit_required=False)
+    member_filter = Members.objects.filter(community_id=community_instance,member_id=user_instance)
+    member_filter.update(edit_required=False)
+    if 'image_url' in res:
+        member_filter.update(image_url=res['image_url'])
 
     #posting a introduction collabcard
     if collabcard_id == 0:
@@ -1496,6 +1457,9 @@ def edit_member_profile(request):
     question_answer=""
     if form_response:
         question_answer = form_response[1]
+
+
+
 
     if question_answer:
         return JsonResponse({'success': True,'question_answers':question_answer})
@@ -1787,7 +1751,7 @@ def remove_members(community_id, member_id,removed_state):
 
 def fetch_community_profile(request):
 
-    '''Get api to get the community profile of user'''
+    '''api to get the community profile of user'''
 
 
     current_member_id = get_member_id_from_headers(request)
@@ -1831,6 +1795,64 @@ def fetch_user_chatrooms(request):
             chatrooms.append(temp)
 
         return JsonResponse({'chatrooms':chatrooms,'total_chatrooms_created':created_chatroom_count})
+
+
+    #chatrooms not created by user but not followed by users
+    elif int(state) == 1:
+        state_filter = collabcardState.objects.filter(user_id=user_id,community_id=community_id,follow_status=True).order_by('-id')
+        followed_chatroom_count = state_filter.count()
+        state_filter = pagination(state_filter,page,paginate_by=10)
+        for chatroom in state_filter:
+
+            if chatroom.card.user_id == int(user_id):
+                continue
+            temp = get_chatroom_instance(chatroom.card,user_id)
+            chatrooms.append(temp)
+
+        return JsonResponse({'chatrooms': chatrooms,'total_chatrooms_followed' : followed_chatroom_count})
+
+
+
+
+    return JsonResponse({'error_message':"Send correct state"})
+
+def fetch_common_communities(request):
+
+    '''api to fetch common communities of user'''
+    user_id = request.GET.get('user_id')
+    member_id = get_member_id_from_headers(request)
+    page = request.GET.get('page',1)
+    user_communities = Members.objects.filter(member_id=user_id).filter(
+        Q(state=member_states.ADMIN)|Q(state=member_states.MEMBER)|Q(state=member_states.PROFILE_UNAVAILABLE)).values_list('community_id',flat=True)
+
+    member_communities =  Members.objects.filter(member_id=member_id).filter(
+        Q(state=member_states.ADMIN)|Q(state=member_states.MEMBER)|Q(state=member_states.PROFILE_UNAVAILABLE)).values_list('community_id',flat=True)
+
+    common_communities = member_communities.intersection(user_communities)
+    total_count = common_communities.count()
+    common_communities = pagination(common_communities,page,paginate_by=10)
+    communities = []
+    communities_order = {}
+
+    # making a dictionary in order to save latest timestamp of chatroom creation in a community
+    for community_id in common_communities:
+
+        last_chatroom = Collabcard.objects.filter(community_id=community_id).last()
+
+        if last_chatroom:
+            communities_order[community_id] = last_chatroom.date_epoch
+        else:
+            communities_order[community_id] = 0
+
+    communities_order = sorted(communities_order.items(), key=lambda x: x[1], reverse=True)
+
+    for order in communities_order:
+
+        community_instance = Community.objects.get(id=order[0])
+        community_serializer = CommunitySerializer(community_instance)
+
+        communities.append(community_serializer)
+    return JsonResponse({'communities':communities,'total_count':total_count})
 
 
 
@@ -3566,9 +3588,9 @@ def approve_or_decline_whatsapp_community(req_dict,request):
     if req_dict['accepted'] or req_dict['accepted'] == 'true':
 
         is_member = is_member_verified(community=req_dict['community_id'], user_instance=req_dict['member_id'])
-        
+
         # promoter_name = request.user.userinfo.name
-        
+
         if not is_member:
             Members.objects.filter(member_id=req_dict['member_id'],
                                    community_id=req_dict['community_id']).update(state=member_states.MEMBER,
@@ -3626,7 +3648,7 @@ def approve_or_decline_private_community(req_dict,request):
     if req_dict['accepted'] or req_dict['accepted'] == 'true':
 
         is_member = is_member_verified(community=req_dict['community_id'], user_instance=req_dict['member_id'])
-        
+
 
 
         if not is_member:
@@ -3763,6 +3785,7 @@ def collabcard(request, card_id):
             return render(request,"__404__.html",{})
 
     card['type'] = card_instance.type
+    aj = request.GET.get('aj')
     if card_instance.type == card_types.CARD_EVENT or card_instance.type == card_types.CARD_PUBLIC_EVENT or card_instance.type == card_types.CARD_POLL:
         page = request.GET.get('page', 1)
 
@@ -3850,10 +3873,18 @@ def collabcard(request, card_id):
         context = web_data[0]
         card_category = web_data[1]
 
-        mixpanel_events = get_event_super_properties_for_mixpanel(user_instance,card_instance.community)
-
-        if mixpanel_events:
+        if request.user.is_authenticated:
+            mixpanel_events = get_mixpanel_statistics(request.user.id)
             context['mixpanel_event'] = mixpanel_events
+
+
+            if aj:
+                context['aj'] = aj
+
+            context['current_date'] = time.strftime('%d-%m-%Y', time.localtime(time.time()))
+
+
+
 
 
         if card_category == "EVENT_CARD":
@@ -4326,19 +4357,21 @@ def get_answer_data(answer_filter,community_id,current_user_id,last_seen=None):
 
     answers = []
     for ans in answer_filter:
-        user = Userinfo.objects.filter(user_id=ans.user.id)
-        usr = UserinfoSerializer(user[0])
-        #usr['is_clickable']=feedback
+        # user = Userinfo.objects.filter(user_id=ans.user.id)
+        # usr = UserinfoSerializer(user[0])
+        # #usr['is_clickable']=feedback
 
-        removed_state = removedMembersSerializer(community_id, usr['id'])
+        usr = get_members_profile([ans.user.id],community_id,current_user_id)
+        user_context = usr[0]
+        removed_state = removedMembersSerializer(community_id, user_context['id'])
 
         if removed_state != False:
-            usr['remove_state'] = removed_state
+            user_context['remove_state'] = removed_state
 
-        form_response = FormResponseSerilaizer(community_id, ans.user.id,bl=True,current_user_id=current_user_id)
-        if form_response:
-            #usr['response'] = form_response[0]
-            usr['question_answers'] = form_response[1]
+        # form_response = FormResponseSerilaizer(community_id, ans.user.id,bl=True,current_user_id=current_user_id)
+        # if form_response:
+        #     #usr['response'] = form_response[0]
+        #     usr['question_answers'] = form_response[1]
         # coverting current time into epoch time
 
         #time_text = get_time_text(ans.created_at)
@@ -4351,7 +4384,7 @@ def get_answer_data(answer_filter,community_id,current_user_id,last_seen=None):
               'id': ans.id,
               'answer': ans.answer,
               'created_at': time_text,
-              'member': usr,
+              'member': user_context,
               'images': attachements['image'],
               'pdf': attachements['pdf'],
               'date': date,
@@ -4373,6 +4406,7 @@ def get_answer_data(answer_filter,community_id,current_user_id,last_seen=None):
 
         answers.append(context)
     return answers
+
 
 
 def get_answer_bubble_context_for_web(ans):
@@ -4563,7 +4597,7 @@ def get_chatroom_internal(request,card_instance,user_id,page,conversation_id,scr
 
 
 def save_the_latest_conversation(card_instance,user_id):
-    
+
     '''function to save the latest seen conversation'''
 
     if not user_id:
@@ -5565,7 +5599,7 @@ def create_conversation(request):
     notification_list = [
         'mail_card_owner_inactivity'
     ]
-    
+
     #check if sender is not the owner and  notification flag is true
     if check_notification_flag(card_instance.user.id,notification_list,card_id=card_instance.id,community_id=None) and str(member_id) != str(card_instance.user.id):
         send_chatroom_owner_mail.delay(card_instance.user.id,card_instance.id,time_in_hrs=12)
@@ -6665,7 +6699,7 @@ def login_authenticate_version_1(request):
 
         elif login_type == "custom":
             #insert code here
-            
+
             context = custom_login(request,res,login_type="custom")
             return JsonResponse(context)
     else:
@@ -7160,16 +7194,20 @@ def generate_otp(request):
             info_logger.info(context)
 
 
+        email_filter = userEmails.objects.filter(user_id=user_id)
+
+        for instance in email_filter:
+
+            email = instance.email
+            context = send_otp_on_email(email)
+            info_logger.info(context)
+            info_logger.info(instance.user.id)
+            info_logger.info(email)
+
+
+
+
         context['success'] = True
-
-
-
-
-
-    ##code for email otp generation
-
-
-
 
     return JsonResponse(context)
 
@@ -7243,7 +7281,7 @@ def verify_otp(request):
         #         login(request,user=user_instance,backend="django.contrib.auth.backends.ModelBackend")
         #         print("loggedin")
     # verifying  mobile number
-    
+
     if mobile_no:
         verified = verify_otp_on_mobile(phone_no,otp)
         context['success'] = verified['success']
@@ -7269,28 +7307,35 @@ def verify_otp(request):
     # when the user wants to merge account
     if user_id:
         mobile_filter = userMobiles.objects.filter(user_id=user_id)
+
         context={'success':False}
         for instance in mobile_filter:
             phone_no = str(instance.country_code) + str(instance.mobile_no)
-            context['success']= verify_otp_on_mobile(phone_no,otp)
+            context= verify_otp_on_mobile(phone_no,otp)
 
             if context['success']:
                 break
-        
-        
+
         context['profile_exists'] = mobile_filter.exists()
         if mobile_filter.exists():
             context['user'] = get_logged_in_user(user_instance=mobile_filter[0].user)
             context['access'] = is_user_community_part(context['user']['id'])
-        
 
 
-        #loggin in for web
-        
+        if not context['success']:
+            #verifying otp from email
+            email_filter = userEmails.objects.filter(user_id=user_id)
+            for instance in email_filter:
+                email = instance.email
+                context = verify_otp_on_email(email,otp)
 
+                if context['success']:
+                    break
 
-        if settings.IS_BETA and str(otp) == "9999":
-            context['success'] = True
+            if email_filter.exists():
+                context['user'] = get_logged_in_user(user_instance=email_filter[0].user)
+                context['access'] = is_user_community_part(context['user']['id'])
+
 
         return JsonResponse(context)
 
@@ -7346,6 +7391,57 @@ def verify_otp_on_mobile(phone_no,otp):
         context['error_message'] = "Incorrect OTP"
 
     return context
+
+
+def send_otp_on_email(email):
+
+    email_key = settings.EMAIL_GHUPSHAP_KEY
+    context = {}
+    success = False
+
+    generate_url = """http://enterprise.smsgupshup.com/apps/TwoFactorAuth/incoming.php?email=%s&key=%s""" % (
+        email, email_key)
+    response = rqst.get(generate_url)
+    print(response.content)
+
+    if response.status_code == 200:
+        success = True
+        response = response.text
+        response_list = response.split("|")
+        if response_list[0].strip() == "error":
+            success = False
+
+    context['success'] = success
+    if not success:
+        context['error_message'] = response
+
+    return context
+
+def verify_otp_on_email(email,otp):
+
+    email_key = settings.EMAIL_GHUPSHAP_KEY
+    verify_url = """http://enterprise.smsgupshup.com/apps/TwoFactorAuth/incoming.php?email=%s&key=%s&code=%s""" % (
+    str(email),email_key ,str(otp))
+
+    response = rqst.get(verify_url)
+    print(response.content)
+    context = {}
+    success = False
+
+    if response.status_code == 200:
+        success = True
+        response = response.text
+        response_list = response.split("|")
+        if response_list[0].strip() == "error":
+            success = False
+
+    context['success'] = success
+    if not success:
+        context['error_message'] = "Incorrect OTP"
+
+    return context
+
+
 
 
 def popup(request):
@@ -7657,17 +7753,17 @@ def skip_community(request):
         engage.member_state = member_states.PROFILE_UNAVAILABLE
         engage.click_state = click_states.SKIP_COMMUNITY
         engage.save()
-        
+
     set_state_for_onboarding_chatroom(community_instance,user_instance.id,request)
 
     #sleeping for 2 hours to remind user to complete profile via notification
     try:
         community_instance = Community.objects.get(id=community_id)
         community_state = get_state_of_community(community_instance)
-        send_notification_to_incomplete_profile.delay(member_id,community_id,community_state,community_instance.name,time_in_hrs=2)    
+        send_notification_to_incomplete_profile.delay(member_id,community_id,community_state,community_instance.name,time_in_hrs=2)
     except:
         print("some error occured")
-       
+
     #updating the member joined level
     set_levels_on_ctc(community_instance,"Level 2")
     return JsonResponse({'success':True})
@@ -7901,6 +7997,10 @@ def config(request):
 def get_mixpanel_statistics(member_id):
 
     '''function to give mixpanel statistics of user'''
+
+    if not member_id:
+        return
+
     context = {}
     user_instance = User.objects.get(id=member_id)
 
@@ -8342,7 +8442,7 @@ def get_all_members(request, req_dict=None):
             if collabcard_id:
                 members = get_members_data_for_collabcard(collabcard_id, community_id, current_user_id, page_no = page,member_set = member_set)
             else:
-                members = get_member_instances(member_list, current_user_id, community_id, is_filter=is_filter,
+                members = get_filtered_member_instances(member_list, current_user_id, community_id, is_filter=is_filter,
                                                member_set=member_set)
 
 
@@ -8358,7 +8458,7 @@ def get_all_members(request, req_dict=None):
                             state=member_states.PROFILE_UNAVAILABLE) | Q(state=member_states.PENDING_MEMBER)).order_by(
                         'id')
                 member_list = pagination(member_list, page, paginate_by=10)
-                members = get_member_instances(member_list, current_user_id, community_id)
+                members = get_filtered_member_instances(member_list, current_user_id, community_id)
 
 
     else:
@@ -8367,7 +8467,7 @@ def get_all_members(request, req_dict=None):
             Q(state=member_states.ADMIN) | Q(state=member_states.MEMBER) | Q(
                 state=member_states.PROFILE_UNAVAILABLE)).order_by('id')
         member_list = pagination(member_list, page, paginate_by=10)
-        members = get_member_instances(member_list, current_user_id, community_id)
+        members = get_filtered_member_instances(member_list, current_user_id, community_id)
 
     promoter_instance = is_member_promoter(community_instance,current_user_id)
 
@@ -8377,7 +8477,8 @@ def get_all_members(request, req_dict=None):
     return context
 
 
-def get_member_instances(member_list,current_user_id,community_id,is_filter=False,member_set=None):
+
+def get_filtered_member_instances(member_list,current_user_id,community_id,is_filter=False,member_set=None):
 
     '''function to get members instances from members table'''
 
@@ -8476,23 +8577,15 @@ def get_members_data_for_collabcard(card_id,community_id,current_user_id,page_no
 
         if member_set and user_instance.id not in member_set:
             continue
-        member_state = 0
-        user_context = get_user_profile(user_instance.id,community_id,current_user_id)
+        user_context = get_members_profile([user_instance.id],community_id,current_user_id)
+        user_context = user_context[0]
         user_context['collabcard_state'] = instance.state
         user_context['is_guest'] = instance.is_guest
-
-        member_filter = Members.objects.filter(community_id=community_id,member_id=user_instance.id)
-
-        if member_filter.exists():
-            member_state = member_filter[0].state
-
-        user_context['state'] = member_state
-
-
         members.append(user_context)
 
 
     return members
+
 
 
 
@@ -9477,15 +9570,15 @@ def get_member_community_status(state):
 
     member = ""
     if state == 0:
-        member = "Guest"
+        member = "not_member"
     elif state == 1:
-        member = "Promoter"
+        member = "member"
     elif state == 3:
-        member = "Pending Member"
+        member = "not_member"
     elif state == 4:
-        member = "Member"
+        member = "member"
     elif state == 7:
-        member = "Nominated Promoter"
+        member = "not_member"
 
     return member
 

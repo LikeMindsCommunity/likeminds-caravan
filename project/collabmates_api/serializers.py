@@ -6,9 +6,10 @@ from django.db.models import Q
 from togther.models import *
 from utility.utils import is_IG_community,is_LG_or_LP_community,feedback_community_id,\
     generate_private_link,generate_random,get_time_text,eligibility_count,get_members_count_in_community,is_member_promoter,generate_private_link_for_chatroom,get_date_time_from_timestamp
-from utility.states import card_types,question_states
+from utility.states import card_types,question_states,member_states
 url = settings.URL
 import ast
+from .static_files import *
 
 #
 # class CommunitySerializer(serializers.HyperlinkedModelSerializer):
@@ -674,28 +675,37 @@ def draftPollsSerializers(poll):
     return polls
 
 
-def get_members_profile(member_ids,community_id,current_user_id=None):
-
+def get_members_profile(member_ids, community_id, current_user_id=None):
     '''function to get member profile from list of members ids'''
     member_profile_list = []
+
     for id in member_ids:
-        member_filter = Members.objects.filter(member_id=id,community_id=community_id)
+
+        member_filter = Members.objects.filter(member_id=id, community_id=community_id)
 
         if member_filter.exists():
             member_id = member_filter[0].member_id.id
-            member=member_filter[0]
-            userinfo_serialized_object = UserinfoSerializer(member.member_id.userinfo)
-            userinfo_serialized_object['state'] = member.state
+            member_instance = member_filter[0]
+            community_profile = get_user_profile(member_id, community_id, current_user_id=current_user_id)
+            community_profile['state'] = member_instance.state
 
-            form_response = FormResponseSerilaizer(community_id, member_id, bl=True,
-                                                   current_user_id=current_user_id)
+            # sending image  url of members
+            if member_instance.image_url:
+                community_profile['image_url'] = member_instance.image_url
 
-            if form_response:
-                #userinfo_serialized_object['response'] = form_response[0]
-                userinfo_serialized_object['question_answers'] = form_response[1]
+            if member_instance.state == member_states.ADMIN or member_instance.state == member_states.MEMBER:
+                community_profile['route'] = """route://member_community_profile?community_id=%s&member_id=%s""" % (
+                str(community_id), str(member_id))
 
-            member_profile_list.append(userinfo_serialized_object)
+            community_profile['member_since'] = "Member of " + member_filter[
+                0].community_id.name + " since " + time.strftime('%b %d %Y',
+                                                                 time.localtime(member_filter[0].created_at))
+            member_profile_list.append(community_profile)
 
+        else:
+            temp = get_user_profile(id, community_id, current_user_id=current_user_id)
+            temp['state'] = 0
+            member_profile_list.append(temp)
 
     return member_profile_list
 
@@ -755,7 +765,10 @@ def FormResponseSerilaizer(community_id, user_id,current_user_id=None,bl=False):
             temp['question_id'] = response.question_id
             temp['state'] = questions['state']
             temp['is_hidden'] = questions['is_hidden']
-            #temp['question_instance'] = questions               #sending the question instance
+
+            if response.question_title in ICONS:
+                temp['image_url'] = ICONS[response.question_title]
+
             new_response.append(temp)
 
         user_response.append(response_object)
