@@ -75,7 +75,7 @@
 
 
     {% if not request.user.is_authenticated %}
-        <div class="pF b0 l0 r0 z2 h60 chatInput" onclick="showJoinPopUp()"></div>
+        <div class="pF b60 l0 r0 z2 h60 chatInput" onclick="showJoinPopUp()"></div>
     {% endif %}
 
 
@@ -107,7 +107,7 @@ Are you sure, you want to leave this chat room? You can apply to join this commu
         </div>
 
 
-
+        {% include 'components/download_app_bar.html' with subtitle="Chat rooms are better on our app"  %}
     <script>
 
         $(document.body).on('click','.member_link',function(e){

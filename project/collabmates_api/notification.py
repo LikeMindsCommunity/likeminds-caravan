@@ -970,16 +970,16 @@ def send_notification_to_join_drop_off(member_id,community_id,aj,time_in_hrs):
         if aj == "":
             message['payload']={
                 "title" : str(community_name),
-                "sub_title" : "Don't miss relevant conversations. Click here to join and meet like-minded people. ",
-                'route':'route://community?community_id=' + str(community_id) + '&aj=' + str(aj)
+                "sub_title" : "Apply to join this community and meet like-minded people. ",
+                'route':'route://community?community_id=' + str(community_id)
             }
             notification_meta(notification_list,message)
         
         else:
             message['payload']={
                 "title" : str(community_name),
-                "sub_title" : "Apply to join this community and meet like-minded people. ",
-                'route':'route://community?community_id=' + str(community_id)
+                "sub_title" : "Don't miss relevant conversations. Click here to join and meet like-minded people. ",
+                'route':'route://community?community_id=' + str(community_id) + '&aj=' + str(aj)
             }
             notification_meta(notification_list,message)
     
@@ -1012,6 +1012,19 @@ def send_notification_to_join_drop_off(member_id,community_id,aj,time_in_hrs):
                 member = Members.objects.filter(community_id=community_id,member_id=member_id)
                 if member.exists():
                     return
+
+                notification_list=[]
+
+                notification_details = get_token_for_fcm(expiry_instance[0].promoter.id,flag=True)
+
+                temp = {
+                    'id':expiry_instance[0].promoter.id,
+                    'fcm_token':notification_details[0],
+                    'mobile_os':notification_details[1],
+                }
+
+                notification_list.append(temp)
+
 
                 message['payload']={
                     "title" : member_name + 'may need new invitation!',

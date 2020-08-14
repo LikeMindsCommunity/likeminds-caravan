@@ -1111,7 +1111,7 @@ def check_notification_flag(member_id,notification_list,card_id=None,community_i
 
     for notification in notification_list:
         if card_id == None and community_id == None:
-            p, created = memberNotificationFlag.objects.get_or_create(code=notification)
+            p, created = memberNotificationFlag.objects.get_or_create(code=notification,member=member)
 
         elif card_id != None and community_id == None:
             card = Collabcard.objects.get(pk=card_id)
