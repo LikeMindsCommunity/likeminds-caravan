@@ -533,7 +533,7 @@ def get_custom_data_for_new_conversation_created(user_id):
 
     '''function to send notification for new conversation posted to followed users'''
 
-    time.sleep(100)
+    time.sleep(10)
     followed_chatrooms = conversationEngage.objects.filter(user_id=user_id,draft_id=None).order_by('-updated_at','-id')
 
     unread_conversation = []
