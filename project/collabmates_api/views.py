@@ -1321,7 +1321,20 @@ def update_email(request):
     elif typ == 'edit':
 
         uniq_id = request.POST.get('id')
-        userEmails.objects.filter(id=uniq_id).update(email=email)
+        email_filter = userEmails.objects.filter(id=uniq_id)
+        if email_filter.exists():
+            email_instance = email_filter[0]
+            email_instance.email = email
+            email_instance.verified = False
+            email_instance.save()
+
+            # send verification mail for email
+            verification_details = generate_tokens_for_email(user_instance, email, email_state=email_states.NON_PRIMARY)
+
+            # sending a email from template
+            send_verification_mail_for_email_sync(user_name=user_instance.userinfo.name,
+                                                  verification_link=verification_details['verify_url'], email=email)
+
         return JsonResponse({'success': True})
 
     elif typ == 'primary':
