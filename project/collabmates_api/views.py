@@ -5630,7 +5630,7 @@ def create_conversation(request):
     auto_follow_chatrooms_in_case_of_tagging(request, res['text'], card_instance.id)
 
     user_id  = str(user_instance.id)
-    send_follow_notification.delay(card_id=card_instance.id, user_id=user_id, answer=res['text'])
+
 
     #send tagged users mail if they didnt check chat in last 24 hours
     tagged_members = get_tagged_members_list(res['text'])
@@ -5651,6 +5651,8 @@ def create_conversation(request):
     # # updating the conversationEngage table
     conversation_seen(request, {'member_id': user_instance.id, 'conversation_id': ans.id})
     update_my_chatrooms_for_users.delay(chatroom_id=card_instance.id)
+
+    send_follow_notification.delay(card_id=card_instance.id, user_id=user_id, answer=res['text'])
 
     return JsonResponse({'success': True, 'id': ans.id})
 
