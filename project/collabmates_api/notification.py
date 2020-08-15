@@ -11,7 +11,7 @@ from django.db.models import Q
 from pyfcm import FCMNotification
 from togther.models import (Community_Rank, collabcardState,
                             MemberPollVotes, Collabcard,Members,Members,Referal,Community,communityAnswers,
-                            Userinfo,communityLevels,communityExpiryCodes
+                            Userinfo,communityLevels,communityExpiryCodes,conversationEngage,card_answers
                             )
 from utility.celery_beat_tasks import CeleryBeatTask
 from project.celery import app
@@ -60,7 +60,7 @@ def send_notification_for_android(token_list,message):
     push_service = FCMNotification(api_key=server_key)
     result = push_service.notify_multiple_devices(registration_ids=token_list,
                                                   data_message=message['payload'])
-    
+    print(message['payload'])
     print(result)
    
 
@@ -446,7 +446,7 @@ def get_custom_data_for_new_chatroom_created(card):
     unread_conversation['chatroom_id'] = chatroom_instance.id
     unread_conversation['community_image'] = chatroom_instance.community.image_link
     unread_conversation['notification_id'] = str(chatroom_instance.id)+"_new"
-    unread_conversation['route'] = """route://chatroom_new_feed?community_id=%s"""%(chatroom_instance.community.id)
+    unread_conversation['route'] = """route://chatroom_new_feed?community_id=%s"""%(str(chatroom_instance.community.id))
 
     return unread_conversation
 
@@ -483,12 +483,16 @@ def send_follow_notification(card_id,user_id,answer):
 
         #in case of images/document, show following in the notification
         if answer_text == "":
-            answer_text == '📄 Document'
+            answer_text = '📄 Document'
+
+
+        unread_conversation = get_custom_data_for_new_conversation_created(user_id)
 
         message['payload']={
             "title":str(get_title_from_collabcard(card)),
             "sub_title":str(answerer_name[0])+": "+answer_text,
-            "route":"route://collabcard?collabcard_id="+str(card_id)
+            "route":"route://collabcard?collabcard_id="+str(card_id),
+            "unread_conversation" : unread_conversation
         }
         # message['payload']={
         #     "title":str(answerer_name[0]) + " responded",
@@ -516,7 +520,7 @@ def send_follow_notification(card_id,user_id,answer):
             if not str(member_id) == str(user_id):
                 send_notification_to_tagged_users(card_id=card_id, answerer_name=answerer_name[0],
                                                   answer=answer_text,
-                                                  user_id=member_id, user_names=user_names)
+                                                  user_id=member_id, user_names=user_names,chatroom_created=False)
 
 
 
@@ -525,8 +529,47 @@ def send_follow_notification(card_id,user_id,answer):
         print ("Error while connecting to PostgreSQL", error)
 
 
+def get_custom_data_for_new_conversation_created(user_id):
+
+    '''function to send notification for new conversation posted to followed users'''
+
+    time.sleep(100)
+    followed_chatrooms = conversationEngage.objects.filter(user_id=user_id,draft_id=None).order_by('-updated_at','-id')
+
+    unread_conversation = []
+
+    for conversation in followed_chatrooms:
+        temp = {}
+
+        if not conversation.unseen_count:
+            continue
+
+        temp['community_name'] = conversation.card.community.name
+        temp['chatroom_name'] = get_title_from_collabcard(conversation.card)
+        temp['chatroom_title'] = conversation.card.title
+        temp['chatroom_user_name'] = conversation.user.userinfo.name
+        temp['chatroom_user_image'] = conversation.user.userinfo.image_link
+        temp['chatroom_id'] =  conversation.card.id
+        temp['notification_id'] = str(conversation.card.id)+"_followed"
+        temp['route'] = "route://chatroom_followed_feed?community_id=%s"%(str(conversation.card.community.id))
+        temp['chatroom_unread_conversation_count'] = conversation.unseen_count
+
+        last_conversation = ""
+        last_instance = card_answers.objects.filter(card=conversation.card,state=0).last()
+        if last_instance:
+            last_conversation = last_instance.answer
+
+        temp['chatroom_last_conversation'] = last_conversation
+
+        unread_conversation.append(temp)
+
+    return unread_conversation
+
+
+
+
 @shared_task
-def send_notification_to_tagged_users(card_id,answerer_name,answer,user_id,user_names):
+def send_notification_to_tagged_users(card_id,answerer_name,answer,user_id,user_names,chatroom_created = True):
 
     '''function to send notification to those users who didn't follow the collabcard but tagged in an answer'''
 
@@ -535,13 +578,22 @@ def send_notification_to_tagged_users(card_id,answerer_name,answer,user_id,user_
         message={}
 
         card = Collabcard.objects.get(id=card_id)
-        custom_payload = get_custom_data_for_new_chatroom_created(card)
+
+
+
         message['payload']={
             "title":str(answerer_name) + " tagged you!",
             "sub_title":str(get_title_from_collabcard(card))+": "+answer,
             "route":"route://collabcard?collabcard_id="+str(card_id),
-            'unread_new_chatroom': custom_payload
         }
+
+        if chatroom_created:
+            custom_payload = get_custom_data_for_new_chatroom_created(card)
+            message['payload']['unread_new_chatroom'] = custom_payload
+        else:
+            unread_conversation = get_custom_data_for_new_conversation_created(user_id)
+            message['payload']['unread_conversation'] = unread_conversation
+
         notification_list = []
         temp = {}
         notification_details = get_token_for_fcm(user_id, True)
