@@ -60,7 +60,7 @@ def send_notification_for_android(token_list,message):
     push_service = FCMNotification(api_key=server_key)
     result = push_service.notify_multiple_devices(registration_ids=token_list,
                                                   data_message=message['payload'])
-    print(message['payload'])
+
     print(result)
    
 
@@ -76,6 +76,8 @@ def send_notification_for_ios(token_list, message):
                                                   message_title=message['payload']['title'],
                                                   message_body=message['payload']['sub_title'],
                                                   data_message=message['payload'])
+
+    print(result)
 
 def get_title_from_collabcard(card):
     ''' To extract the title from a card. '''
