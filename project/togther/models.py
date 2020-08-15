@@ -67,6 +67,8 @@ class Members(models.Model):
 
     image_url = models.TextField(null=True)
 
+
+
     def __str__(self):
         return self.community_id.name
 
@@ -710,6 +712,9 @@ class communityQuestions(models.Model):
     remove_state = models.BooleanField(default=False)
 
     is_hidden = models.BooleanField(default=False)
+
+    field = models.BooleanField(default=False)
+
 
 
 
