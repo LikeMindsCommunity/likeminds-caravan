@@ -388,6 +388,8 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title, 
         card_id = kwargs['card_id']
         card = Collabcard.objects.get(id=card_id)
 
+        custom_payload = get_custom_data_for_new_chatroom_created(card)
+
         
         
         collabcard_title = get_title_from_collabcard(card)
@@ -409,7 +411,8 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title, 
             # 'title': str(card_creater_name) + " @ " + str(community_name),
             'title': title,
             'sub_title': sub_title,
-            'route': 'route://collabcard?collabcard_id='+str(kwargs['card_id'])
+            'route': 'route://collabcard?collabcard_id='+str(kwargs['card_id']),
+            'unread_new_chatroom':custom_payload
         }
 
         notification_meta(notification_list_member, message)
@@ -423,39 +426,31 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title, 
                                                   answer=new_title_text,
                                                   user_id=member_id, user_names=user_names)
 
-        #commenting to remove 
-        #Your event is starting in 30 minutes
-        #
-
-        # if typ == 2 or typ == 3:
-        #     task_name = 'poll_with_id_' + str(kwargs['card_id']) if typ == 3 else 'event_with_id_' + str(
-        #         kwargs['card_id'])
-        #     task_path = 'collabmates_api.notification.poll_expiry_or_event_remainder_notification'
-        #     task_name, task_path = task_name, task_path
-        #     if task_name and task_path:
-        #         celerybeatask = CeleryBeatTask()
-        #         args = [community_name, community_id, typ]
-        #         print("card id === ", kwargs['card_id'],"   type ===  ",typ)
-        #         print("date time === ",kwargs['date_time'])
-
-        #         date_time = int(str(kwargs['date_time'])[:10])
-        #         print("date time === ", date_time)
-        #         if typ == 2:
-        #             date_time = date_time - 1800
-        #         else:
-        #             date_time = date_time
-        #         print("date time === ", date_time)
-        #         celerybeatask.get_or_create_new_beat_task(card_creater_id=card_creater_id,
-        #                                                   card_creater_name=card_creater_name,
-        #                                                   args=args, task_name=task_name, task_path=task_path,
-        #                                                   date_time=date_time, interval=False, crontab=True,
-        #                                                   collabcard_title=collabcard_title,
-        #                                                   card_id=kwargs['card_id'],
-        #                                                   community_state=kwargs['community_state'])
 
     except (Exception, psycopg2.Error) as error:
 
         print("Error while connecting to PostgreSQL", error)
+
+def get_custom_data_for_new_chatroom_created(card):
+
+    '''function to get data for custom notification'''
+
+    unread_conversation = {}
+    chatroom_instance = card
+    user_instance = chatroom_instance.user
+    unread_conversation['community_name'] = chatroom_instance.community.name
+    unread_conversation['chatroom_name'] = get_title_from_collabcard(chatroom_instance)+"(New Chatroom)"
+    unread_conversation['chatroom_title'] = chatroom_instance.title
+    unread_conversation['chatroom_user_name'] = user_instance.userinfo.name
+    unread_conversation['chatroom_user_image'] = user_instance.userinfo.image_link
+    unread_conversation['chatroom_id'] = chatroom_instance.id
+    unread_conversation['community_image'] = chatroom_instance.community.image_link
+    unread_conversation['notification_id'] = str(chatroom_instance.id)+"_new"
+    unread_conversation['route'] = """route://chatroom_new_feed?community_id=%s"""%(chatroom_instance.community.id)
+
+    return unread_conversation
+
+
 
 
 
@@ -540,11 +535,12 @@ def send_notification_to_tagged_users(card_id,answerer_name,answer,user_id,user_
         message={}
 
         card = Collabcard.objects.get(id=card_id)
-
+        custom_payload = get_custom_data_for_new_chatroom_created(card)
         message['payload']={
             "title":str(answerer_name) + " tagged you!",
             "sub_title":str(get_title_from_collabcard(card))+": "+answer,
-            "route":"route://collabcard?collabcard_id="+str(card_id)
+            "route":"route://collabcard?collabcard_id="+str(card_id),
+            'unread_new_chatroom': custom_payload
         }
         notification_list = []
         temp = {}
