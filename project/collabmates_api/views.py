@@ -2050,6 +2050,8 @@ def create_community_questions(res):
                     question_instance.optional = question['optional']
                     question_instance.help_text = question['help_text'] if 'help_text' in question else None
                     question_instance.is_hidden = question['is_compulsory'] if 'is_compulsory' in question else False
+
+                    question_instance.field = questions['field'] if 'field' in question else False
                     question_instance.save()
 
             else:
@@ -2061,6 +2063,7 @@ def create_community_questions(res):
                 questions_instance.optional = question['optional']
                 questions_instance.help_text = question['help_text'] if 'help_text' in question else None
                 questions_instance.is_hidden = question['is_compulsory'] if 'is_compulsory' in question else False
+                question_instance.field = questions['field'] if 'field' in question else False
                 questions_instance.save()
 
 
