@@ -766,6 +766,8 @@ def FormResponseSerilaizer(community_id, user_id,current_user_id=None,bl=False):
             temp['state'] = questions['state']
             temp['is_hidden'] = questions['is_hidden']
 
+            temp['directory_fields'] = questions['field']
+
             if response.question_title in ICONS:
                 temp['image_url'] = ICONS[response.question_title]
 
@@ -776,6 +778,7 @@ def FormResponseSerilaizer(community_id, user_id,current_user_id=None,bl=False):
     if not bl:
         return user_response
     return (user_response,new_response)
+
 
 
 def get_question_data(question_id, member_state, send_back):
@@ -814,7 +817,8 @@ def CommunityQuestionsSerializer(community_question_instance):
         'community_id':community_question_instance.community_id,
         'state':community_question_instance.question_state,
         'help_text':community_question_instance.help_text if community_question_instance.help_text else '',
-        'is_hidden': community_question_instance.is_hidden
+        'is_hidden': community_question_instance.is_hidden,
+        'field':community_question_instance.field
     }
 
     if context['value'] and (context['state'] == question_states.CHOICE_SINGLE or context['state'] == question_states.CHOICE_MULTIPLE):
