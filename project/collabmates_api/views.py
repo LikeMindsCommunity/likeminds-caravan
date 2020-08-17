@@ -1810,7 +1810,7 @@ def fetch_community_profile(request):
 
     return JsonResponse({})
 
-
+from django.db.models import Subquery
 def fetch_user_chatrooms(request):
 
     '''api to send chatrooms created by user or followed by user'''
@@ -1837,15 +1837,16 @@ def fetch_user_chatrooms(request):
         return JsonResponse({'chatrooms':chatrooms,'total_chatrooms_created':created_chatroom_count})
 
 
-    #chatrooms not created by user but not followed by users
+    #chatrooms not created by user but  followed by users
     elif int(state) == 1:
-        state_filter = collabcardState.objects.filter(user_id=user_id,community_id=community_id,follow_status=True).order_by('-id')
+        # state_filter = collabcardState.objects.filter(user_id=user_id,community_id=community_id,follow_status=True).order_by('-id')
+
+        chatroom_filter = Collabcard.objects.filter(user_id=user_id,community_id=community_id)
+        state_filter = collabcardState.objects.filter(user_id=user_id,community_id=community_id,follow_status=True).exclude(card__in=chatroom_filter.values('id')).order_by('-id')
         followed_chatroom_count = state_filter.count()
         state_filter = pagination(state_filter,page,paginate_by=10)
         for chatroom in state_filter:
-
-            if chatroom.card.user_id == int(user_id):
-                continue
+            
             temp = get_chatroom_instance(chatroom.card,user_id)
             chatrooms.append(temp)
 
