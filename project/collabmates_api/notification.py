@@ -446,8 +446,9 @@ def get_custom_data_for_new_chatroom_created(card):
     unread_conversation['chatroom_user_name'] = user_instance.userinfo.name
     unread_conversation['chatroom_user_image'] = user_instance.userinfo.image_link
     unread_conversation['chatroom_id'] = chatroom_instance.id
+    unread_conversation['community_id'] = str(chatroom_instance.community.id)
     unread_conversation['community_image'] = chatroom_instance.community.image_link
-    unread_conversation['notification_id'] = str(chatroom_instance.id)+"_new"
+    #unread_conversation['notification_id'] = str(chatroom_instance.id)+"_new"
     unread_conversation['route'] = """route://chatroom_new_feed?community_id=%s"""%(str(chatroom_instance.community.id))
 
     return unread_conversation
@@ -555,6 +556,7 @@ def get_custom_data_for_new_conversation_created(user_id):
         temp['notification_id'] = str(conversation.card.id)+"_followed"
         temp['route'] = "route://chatroom_followed_feed?community_id=%s"%(str(conversation.card.community.id))
         temp['chatroom_unread_conversation_count'] = conversation.unseen_count
+        temp['community_id'] = str(conversation.card.community.id)
 
         last_conversation = ""
         last_instance = card_answers.objects.filter(card=conversation.card,state=0).last()
