@@ -9683,5 +9683,42 @@ def get_event_super_properties_for_mixpanel(user_instance,community_instance):
 
 
 
+def test_notification_api(request):
+
+    '''function to test notification api'''
+
+    card_id = request.GET.get('card_id')
+    user_id = request.GET.get('user_id')
+
+    if card_id:
+        card_instance = Collabcard.objects.get(id=card_id)
+        temp = {}
+        temp['title'] = "Chatroom Creation"
+        temp['sub_title'] = "payload data for chatroom creation"
+        temp['route'] = "route://collabcard?collabcard_id="+str(card_id)
+        temp['unread_new_chatroom'] = get_custom_data_for_new_chatroom_created(card_instance)
+
+        return JsonResponse(temp)
+
+
+    if user_id:
+        temp = {}
+        temp['title'] = "Conversation Creation"
+        temp['sub_title'] = "payload data for conversation creation"
+        temp['route'] = "route://collabcard?collabcard_id=" + str(card_id)
+        temp['unread_conversation'] = get_custom_data_for_new_conversation_created(user_id)
+
+        return JsonResponse(temp)
+
+
+    return JsonResponse({'error':'send user_id or conversation_id in order to see payload'})
+
+
+
+
+
+
+
+
 
 
