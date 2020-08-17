@@ -1810,7 +1810,7 @@ def fetch_community_profile(request):
 
     return JsonResponse({})
 
-from django.db.models import Subquery
+
 def fetch_user_chatrooms(request):
 
     '''api to send chatrooms created by user or followed by user'''
@@ -1846,7 +1846,7 @@ def fetch_user_chatrooms(request):
         followed_chatroom_count = state_filter.count()
         state_filter = pagination(state_filter,page,paginate_by=10)
         for chatroom in state_filter:
-            
+
             temp = get_chatroom_instance(chatroom.card,user_id)
             chatrooms.append(temp)
 
