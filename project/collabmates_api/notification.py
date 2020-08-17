@@ -441,7 +441,7 @@ def get_custom_data_for_new_chatroom_created(card):
     chatroom_instance = card
     user_instance = chatroom_instance.user
     unread_conversation['community_name'] = chatroom_instance.community.name
-    unread_conversation['chatroom_name'] = get_title_from_collabcard(chatroom_instance)+"(New Chatroom)"
+    unread_conversation['chatroom_name'] = get_title_from_collabcard(chatroom_instance)+" (New Chatroom)"
     unread_conversation['chatroom_title'] = chatroom_instance.title
     unread_conversation['chatroom_user_name'] = user_instance.userinfo.name
     unread_conversation['chatroom_user_image'] = user_instance.userinfo.image_link
@@ -547,8 +547,14 @@ def get_custom_data_for_new_conversation_created(user_id):
         if not conversation.unseen_count:
             continue
 
+        chatroom_name = get_title_from_collabcard(conversation.card)
+
+        if conversation.unseen_count > 1:
+            chatroom_name = chatroom_name+"""(%s messages)"""%(str(conversation.unseen_count))
+
+
         temp['community_name'] = conversation.card.community.name
-        temp['chatroom_name'] = get_title_from_collabcard(conversation.card)
+        temp['chatroom_name'] = chatroom_name
         temp['chatroom_title'] = conversation.card.title
         temp['chatroom_user_name'] = conversation.user.userinfo.name
         temp['chatroom_user_image'] = conversation.user.userinfo.image_link
