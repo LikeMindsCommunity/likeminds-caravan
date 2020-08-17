@@ -27,6 +27,17 @@
         {%endfor%}
 
     </table>
+    <table>
+        <tr>
+            <td>Chatroom</td>
+        </tr>
+        {% for r in result_c%}
+        <tr>
+            <td>{{r.name}}</td>
+            <td>{% for i in r.member%}<b>{{i.0.user.userinfo.name}}</b>:{{i.0.conversation.answer}} <br>{%endfor%}</td>
+        </tr>
+        {% endfor %}
+    </table>
 </body>
 <style>
     tr:nth-child(even) {

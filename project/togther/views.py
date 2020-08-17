@@ -2622,7 +2622,7 @@ def community_wise_details(request):
         if community_id and password:
             if password == 'TheTarun@1110':
                 members = Members.objects.filter(community_id = community_id)
-                crs = Collabcard.objects.filter(community = community_id)
+                crs = Collabcard.objects.filter(community = community_id).order_by('date_epoch')
                 answers = card_answers.objects.filter(card__community = community_id)
                 result = []
                 for m in members:
@@ -2631,9 +2631,29 @@ def community_wise_details(request):
                     record['cr_created'] = crs.filter(user = m.member_id).count()
                     record['answers'] = answers.filter(user = m.member_id).count()
                     result.append(record)
+                result_c = []
+                for cr in crs:
+                    record_c = {}
+                    record_c['name'] = cr.header
+                    mem = []
+                    for m in members:
+                        cms = conversationMemberState.objects.filter(card_id=cr.id, user_id=m.member_id)
+                        print()
+                        if cms.exists():
+                            mem.append(cms)
+                    record_c['member'] = mem
+                    result_c.append(record_c)
+
+                    # cms = conversationMemberState.objects.filter(card_id=card_id, user_id=member_id)
                 context = {
                     'result':result,
+                    'crs':crs,
+                    'result_c':result_c,
                 }
+            else:
+                context = {}
+        else:
+            context = {}
     else:
         context = {}
     return render(request, 'cms/community_wise_details.html', context)
