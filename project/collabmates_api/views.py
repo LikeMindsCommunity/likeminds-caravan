@@ -9335,7 +9335,7 @@ def push_report(request):
 
         report_instance.save()
 
-        community_url = url + "/community/" + str(collabcard_instance.community.id)
+        #community_url = url + "/community/" + str(collabcard_instance.community.id)
         try:
             if reported_member_id:
                 reported_user_instance = User.objects.get(pk=reported_member_id)
