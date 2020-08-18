@@ -449,7 +449,7 @@ def get_custom_data_for_new_chatroom_created(card):
     unread_conversation['community_id'] = str(chatroom_instance.community.id)
     unread_conversation['community_image'] = chatroom_instance.community.image_link
     #unread_conversation['notification_id'] = str(chatroom_instance.id)+"_new"
-    unread_conversation['route'] = """route://chatroom_new_feed?community_id=%s"""%(str(chatroom_instance.community.id))
+    unread_conversation['route'] = """route://chatroom_new_feed?community_id=%s&community_name=%s"""%(str(chatroom_instance.community.id),str(chatroom_instance.community.name))
 
     return unread_conversation
 
@@ -560,7 +560,7 @@ def get_custom_data_for_new_conversation_created(user_id):
         temp['chatroom_user_image'] = conversation.user.userinfo.image_link
         temp['chatroom_id'] =  conversation.card.id
         temp['notification_id'] = str(conversation.card.id)+"_followed"
-        temp['route'] = "route://chatroom_followed_feed?community_id=%s"%(str(conversation.card.community.id))
+        temp['route'] = """route://chatroom_followed_feed?community_id=%s&community_name=%s"""%(str(conversation.card.community.id),str(conversation.card.community.name))
         temp['chatroom_unread_conversation_count'] = conversation.unseen_count
         temp['community_id'] = str(conversation.card.community.id)
         temp['community_image'] = conversation.card.community.image_link
