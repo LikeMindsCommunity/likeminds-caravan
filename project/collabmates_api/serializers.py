@@ -771,7 +771,7 @@ def FormResponseSerilaizer(community_id, user_id,current_user_id=None,bl=False):
             if response.question_title in ICONS:
                 temp['image_url'] = ICONS[response.question_title]
             elif questions['field']:
-                temp['Generic'] = ICONS[response.question_title]
+                temp['image_url'] = ICONS['Generic']
 
             new_response.append(temp)
 
