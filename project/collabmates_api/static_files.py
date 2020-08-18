@@ -54,7 +54,7 @@ ICONS['Job designation'] = "https://firebasestorage.googleapis.com/v0/b/collabma
 
 ICONS['Schools'] = "https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Ficons%2Fschool.png?alt=media&token=3939f19a-de4a-47d6-a7ba-7de04ab0b689"
 
-#icons['Hobby'] = "https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Ficons%2Fhobby.png?alt=media&token=81dded63-12e4-4816-89e1-00af24d9ab66"
+ICONS['Hobbies'] = "https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Ficons%2Fhobby.png?alt=media&token=81dded63-12e4-4816-89e1-00af24d9ab66"
 
 ICONS['Resident since'] = "https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Ficons%2Fresident_since.png?alt=media&token=a9bf232a-e8a8-432c-8c88-6e283c6742d7"
 
