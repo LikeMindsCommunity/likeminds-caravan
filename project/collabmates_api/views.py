@@ -1797,6 +1797,11 @@ def fetch_community_profile(request):
     current_member_id = get_member_id_from_headers(request)
     user_id = request.GET.get('user_id')
     community_id = request.GET.get('community_id')
+    try:
+        community_instance = Community.objects.get(id=community_id)
+    except Exception as e:
+        return JsonResponse({'error':e.args})
+
 
     if not user_id or not community_id:
         return JsonResponse({"error_message": "send user id and community_id in get params"})
@@ -1806,6 +1811,8 @@ def fetch_community_profile(request):
 
     if member:
         member = member[0]
+        member['community_name'] = community_instance.name
+
         return JsonResponse(member)
 
     return JsonResponse({})
