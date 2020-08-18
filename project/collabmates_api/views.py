@@ -9569,7 +9569,7 @@ def generating_verification_link_for_email(token_list,user_id):
     #encrpt_number = encrypt(token)
     #user_id = encrypt(user_id)
     #print(user_id)
-    verify_url = url + "/email_verify?token="+token+"&user="+user_id
+    verify_url = url + "/email_verify?token="+str(token)+"&user="+str(user_id)
 
     temp={'verify_url':verify_url,'token':token}
 
