@@ -1898,7 +1898,7 @@ def fetch_user_chatrooms(request):
         # state_filter = collabcardState.objects.filter(user_id=user_id,community_id=community_id,follow_status=True).order_by('-id')
 
         chatroom_filter = Collabcard.objects.filter(user_id=user_id,community_id=community_id)
-        state_filter = collabcardState.objects.filter(user_id=user_id,community_id=community_id,follow_status=True).exclude(card__in=chatroom_filter.values('id')).order_by('-id')
+        state_filter = collabcardState.objects.filter(user_id=user_id,community_id=community_id,follow_status=True).exclude(card__in=chatroom_filter.values('id')).order_by('-updated_at')
         followed_chatroom_count = state_filter.count()
         state_filter = pagination(state_filter,page,paginate_by=10)
         for chatroom in state_filter:
@@ -5919,9 +5919,9 @@ def collabcard_follow_internal(func_dict,state=collabcard_states.COLLABCARD_STAT
     if collabcard_state_filter.exists():
 
         if is_guest:
-            collabcard_state_filter.update(follow_status=status,state=state,is_guest=is_guest)
+            collabcard_state_filter.update(follow_status=status,state=state,is_guest=is_guest,updated_at=time.time())
         else:
-            collabcard_state_filter.update(follow_status=status, state=state)
+            collabcard_state_filter.update(follow_status=status, state=state,updated_at=time.time())
 
     else:
         collabcard_state_instance = collabcardState()
