@@ -570,7 +570,7 @@ def get_custom_data_for_new_conversation_created(user_id):
         if last_instance:
             last_conversation = last_instance.answer
             temp['chatroom_last_conversation'] = last_conversation
-            temp['chatroom_last_conversation_user_name'] = last_conversation.user.name
+            temp['chatroom_last_conversation_user_name'] = last_instance.user.name
 
         unread_conversation.append(temp)
 
