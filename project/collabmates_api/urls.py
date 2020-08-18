@@ -42,6 +42,7 @@ urlpatterns = [
     path('user/<int:user_id>', api_views.user, name="user"),
     path('edit_user',api_views.edit_user,name="edit_user"),
     path('update_email', api_views.update_email, name="update_email"),
+    path('update_mobiles', api_views.update_mobiles, name="update_mobiles"),
 
     path('admins/<int:community_id>', api_views.admins, name="admins"),
     path('members/<int:community_id>', api_views.members, name="members"),
@@ -146,7 +147,9 @@ urlpatterns = [
 
     #email verify
     path('email_verify', api_views.email_verify, name='email_verify'),
-    path('sync_email', api_views.sync_email, name='sync_email')
+    path('sync_email', api_views.sync_email, name='sync_email'),
+
+    path('test_notification_api',api_views.test_notification_api,name='test_notification_api')
 
 ]
 

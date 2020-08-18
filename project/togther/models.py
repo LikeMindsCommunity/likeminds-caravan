@@ -612,7 +612,7 @@ class Report(models.Model):
     '''Table containing the report data of user'''
 
     tag = models.ForeignKey(Report_Tags, on_delete=models.CASCADE)
-    collabcard = models.ForeignKey(Collabcard, on_delete=models.CASCADE)
+    collabcard = models.ForeignKey(Collabcard, on_delete=models.CASCADE,null=True)
     reported_member_id = models.IntegerField(default=0)
     member = models.ForeignKey(User, on_delete=models.CASCADE)
     reason = models.CharField(max_length=2048, null=True)

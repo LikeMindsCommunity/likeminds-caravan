@@ -1316,6 +1316,11 @@ def update_email(request):
 
     if typ == 'new':
 
+
+        email_filter = userEmails.objects.filter(email=email)
+        if email_filter.exists():
+            return JsonResponse({'error_message':"email already exists in system",'success':False})
+
         save_user_primary_email(user_instance,email,email_state=email_states.NON_PRIMARY)
 
         # send verification mail for email
@@ -1328,6 +1333,11 @@ def update_email(request):
         return JsonResponse({'success':True})
 
     elif typ == 'edit':
+
+        email_filter = userEmails.objects.filter(email=email)
+        if email_filter.exists():
+            return JsonResponse({'error_message': "email already exists in system",'success':False})
+
 
         uniq_id = request.POST.get('id')
         email_filter = userEmails.objects.filter(id=uniq_id)
@@ -1370,6 +1380,45 @@ def update_email(request):
 
 
     return JsonResponse({'success':True})
+
+@csrf_exempt
+def update_mobiles(request):
+
+    '''api to add mobile number'''
+
+    typ = request.POST.get('type')
+
+    user_id = get_member_id_from_headers(request)
+
+    if not user_id:
+        context = get_error_context(False, "send member id from headers")
+        return JsonResponse(context)
+
+    if typ == 'delete':
+
+       uniq_id = request.POST.get('id')
+       userMobiles.objects.filter(id=uniq_id).delete()
+
+       return JsonResponse({'success':True})
+
+    elif typ == 'primary':
+
+        uniq_id = request.POST.get('id')
+
+        userMobiles.objects.filter(user_id=user_id).update(state=mobile_states.NON_PRIMARY)
+        userMobiles.objects.filter(id=uniq_id).update(state=mobile_states.PRIMARY)
+
+        return JsonResponse({'success':True})
+
+
+    return JsonResponse({'error_message':"send correct type"})
+
+
+
+
+
+
+
 
 
 def members(request, community_id):
@@ -1806,6 +1855,11 @@ def fetch_community_profile(request):
     current_member_id = get_member_id_from_headers(request)
     user_id = request.GET.get('user_id')
     community_id = request.GET.get('community_id')
+    try:
+        community_instance = Community.objects.get(id=community_id)
+    except Exception as e:
+        return JsonResponse({'error':e.args})
+
 
     if not user_id or not community_id:
         return JsonResponse({"error_message": "send user id and community_id in get params"})
@@ -1815,6 +1869,8 @@ def fetch_community_profile(request):
 
     if member:
         member = member[0]
+        member['community_name'] = community_instance.name
+
         return JsonResponse(member)
 
     return JsonResponse({})
@@ -1846,16 +1902,18 @@ def fetch_user_chatrooms(request):
         return JsonResponse({'chatrooms':chatrooms,'total_chatrooms_created':created_chatroom_count})
 
 
-    #chatrooms not created by user but not followed by users
+    #chatrooms not created by user but  followed by users
     elif int(state) == 1:
-        state_filter = collabcardState.objects.filter(user_id=user_id,community_id=community_id,follow_status=True).order_by('-id')
+        # state_filter = collabcardState.objects.filter(user_id=user_id,community_id=community_id,follow_status=True).order_by('-id')
+
+        chatroom_filter = Collabcard.objects.filter(user_id=user_id,community_id=community_id)
+        state_filter = collabcardState.objects.filter(user_id=user_id,community_id=community_id,follow_status=True).exclude(card__in=chatroom_filter.values('id')).order_by('-updated_at')
         followed_chatroom_count = state_filter.count()
         state_filter = pagination(state_filter,page,paginate_by=10)
         for chatroom in state_filter:
 
-            if chatroom.card.user_id == int(user_id):
-                continue
             temp = get_chatroom_instance(chatroom.card,user_id)
+            temp['date'] = time.strftime('%d %b %Y', time.localtime(chatroom.updated_at))
             chatrooms.append(temp)
 
         return JsonResponse({'chatrooms': chatrooms,'total_chatrooms_followed' : followed_chatroom_count})
@@ -5871,9 +5929,9 @@ def collabcard_follow_internal(func_dict,state=collabcard_states.COLLABCARD_STAT
     if collabcard_state_filter.exists():
 
         if is_guest:
-            collabcard_state_filter.update(follow_status=status,state=state,is_guest=is_guest)
+            collabcard_state_filter.update(follow_status=status,state=state,is_guest=is_guest,updated_at=time.time())
         else:
-            collabcard_state_filter.update(follow_status=status, state=state)
+            collabcard_state_filter.update(follow_status=status, state=state,updated_at=time.time())
 
     else:
         collabcard_state_instance = collabcardState()
@@ -7344,7 +7402,12 @@ def verify_otp(request):
         #saving data for existing user migrations
         if member_id and context['success']:
             user_instance = User.objects.get(id=member_id)
-            save_user_mobile_number(user_instance,country_code,mobile_no)
+            mobile_filter = userMobiles.objects.filter(user=user_instance,state=mobile_states.PRIMARY)
+
+            if mobile_filter.exists():
+                save_user_mobile_number(user_instance,country_code,mobile_no,state=mobile_states.NON_PRIMARY)
+            else:
+                save_user_mobile_number(user_instance, country_code, mobile_no)
 
         if not context['success'] :
             context['error_message'] = "Incorrect OTP"
@@ -9343,7 +9406,7 @@ def push_report(request):
 
         report_instance.save()
 
-        community_url = url + "/community/" + str(collabcard_instance.community.id)
+        #community_url = url + "/community/" + str(collabcard_instance.community.id)
         try:
             if reported_member_id:
                 reported_user_instance = User.objects.get(pk=reported_member_id)
@@ -9687,6 +9750,43 @@ def get_event_super_properties_for_mixpanel(user_instance,community_instance):
         context['token'] = "7907eb37f46b1ac2908d3881e633a85e"
 
     return context
+
+
+
+
+def test_notification_api(request):
+
+    '''function to test notification api'''
+
+    card_id = request.GET.get('card_id')
+    user_id = request.GET.get('user_id')
+
+    if card_id:
+        card_instance = Collabcard.objects.get(id=card_id)
+        temp = {}
+        temp['title'] = "Chatroom Creation"
+        temp['sub_title'] = "payload data for chatroom creation"
+        temp['route'] = "route://collabcard?collabcard_id="+str(card_id)
+        temp['unread_new_chatroom'] = get_custom_data_for_new_chatroom_created(card_instance)
+
+        return JsonResponse(temp)
+
+
+    if user_id:
+        temp = {}
+        temp['title'] = "Conversation Creation"
+        temp['sub_title'] = "payload data for conversation creation"
+        temp['route'] = "route://collabcard?collabcard_id=" + str(card_id)
+        temp['unread_conversation'] = get_custom_data_for_new_conversation_created(user_id)
+
+        return JsonResponse(temp)
+
+
+    return JsonResponse({'error':'send user_id or conversation_id in order to see payload'})
+
+
+
+
 
 
 

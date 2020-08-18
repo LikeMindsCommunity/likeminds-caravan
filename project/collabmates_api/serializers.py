@@ -762,6 +762,8 @@ def FormResponseSerilaizer(community_id, user_id,current_user_id=None,bl=False):
             temp['member_id'] = user_id
             temp['question_title'] = response.question_title
             temp['value'] = response.question_answer
+            if '$#' in temp['value']:
+                temp['value'] = temp['value'].replace('$#',', ')
             temp['question_id'] = response.question_id
             temp['state'] = questions['state']
             temp['is_hidden'] = questions['is_hidden']
@@ -770,6 +772,8 @@ def FormResponseSerilaizer(community_id, user_id,current_user_id=None,bl=False):
 
             if response.question_title in ICONS:
                 temp['image_url'] = ICONS[response.question_title]
+            elif questions['field']:
+                temp['image_url'] = ICONS['Generic']
 
             new_response.append(temp)
 
@@ -993,6 +997,8 @@ def userEmailsSerializer(email_instance):
 def userMobilesSerializer(mobile_instance):
 
     return {
+
+        'id': mobile_instance.id,
         'user_id': mobile_instance.user.id,
         'mobile_no': mobile_instance.mobile_no,
         'country_code':mobile_instance.country_code,
