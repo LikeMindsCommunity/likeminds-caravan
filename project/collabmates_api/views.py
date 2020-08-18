@@ -1310,7 +1310,7 @@ def update_email(request):
 
         email_filter = userEmails.objects.filter(email=email)
         if email_filter.exists():
-            return JsonResponse({'error_message':"email already exists in system"})
+            return JsonResponse({'error_message':"email already exists in system",'success':False})
 
         save_user_primary_email(user_instance,email,email_state=email_states.NON_PRIMARY)
 
@@ -1327,7 +1327,7 @@ def update_email(request):
 
         email_filter = userEmails.objects.filter(email=email)
         if email_filter.exists():
-            return JsonResponse({'error_message': "email already exists in system"})
+            return JsonResponse({'error_message': "email already exists in system",'success':False})
 
 
         uniq_id = request.POST.get('id')
@@ -1904,6 +1904,7 @@ def fetch_user_chatrooms(request):
         for chatroom in state_filter:
 
             temp = get_chatroom_instance(chatroom.card,user_id)
+            temp['date'] = time.strftime('%d %b %Y', time.localtime(chatroom.updated_at))
             chatrooms.append(temp)
 
         return JsonResponse({'chatrooms': chatrooms,'total_chatrooms_followed' : followed_chatroom_count})
