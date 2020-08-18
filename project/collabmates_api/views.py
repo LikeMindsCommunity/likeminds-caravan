@@ -1904,6 +1904,7 @@ def fetch_user_chatrooms(request):
         for chatroom in state_filter:
 
             temp = get_chatroom_instance(chatroom.card,user_id)
+            temp['date'] = time.strftime('%d %b %Y', time.localtime(chatroom.updated_at))
             chatrooms.append(temp)
 
         return JsonResponse({'chatrooms': chatrooms,'total_chatrooms_followed' : followed_chatroom_count})
