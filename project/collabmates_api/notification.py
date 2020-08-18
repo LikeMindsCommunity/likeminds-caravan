@@ -563,6 +563,7 @@ def get_custom_data_for_new_conversation_created(user_id):
         temp['route'] = "route://chatroom_followed_feed?community_id=%s"%(str(conversation.card.community.id))
         temp['chatroom_unread_conversation_count'] = conversation.unseen_count
         temp['community_id'] = str(conversation.card.community.id)
+        temp['community_image'] = conversation.card.community.image_link
 
         last_conversation = ""
         last_instance = card_answers.objects.filter(card=conversation.card,state=0).last()
