@@ -42,6 +42,7 @@ urlpatterns = [
     path('user/<int:user_id>', api_views.user, name="user"),
     path('edit_user',api_views.edit_user,name="edit_user"),
     path('update_email', api_views.update_email, name="update_email"),
+    path('update_mobiles', api_views.update_mobiles, name="update_mobiles"),
 
     path('admins/<int:community_id>', api_views.admins, name="admins"),
     path('members/<int:community_id>', api_views.members, name="members"),

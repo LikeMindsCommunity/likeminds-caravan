@@ -1362,6 +1362,45 @@ def update_email(request):
 
     return JsonResponse({'success':True})
 
+@csrf_exempt
+def update_mobiles(request):
+
+    '''api to add mobile number'''
+
+    typ = request.POST.get('type')
+
+    user_id = get_member_id_from_headers(request)
+
+    if not user_id:
+        context = get_error_context(False, "send member id from headers")
+        return JsonResponse(context)
+
+    if typ == 'delete':
+
+       uniq_id = request.POST.get('id')
+       userMobiles.objects.filter(id=uniq_id).delete()
+
+       return JsonResponse({'success':True})
+
+    elif typ == 'primary':
+
+        uniq_id = request.POST.get('id')
+
+        userMobiles.objects.filter(user_id=user_id).update(state=mobile_states.NON_PRIMARY)
+        userMobiles.objects.filter(id=uniq_id).update(state=mobile_states.PRIMARY)
+
+        return JsonResponse({'success':True})
+
+
+    return JsonResponse({'error_message':"send correct type"})
+
+
+
+
+
+
+
+
 
 def members(request, community_id):
     ''' function to get all the mebers of a community including admins and nominated members '''
@@ -7343,7 +7382,12 @@ def verify_otp(request):
         #saving data for existing user migrations
         if member_id and context['success']:
             user_instance = User.objects.get(id=member_id)
-            save_user_mobile_number(user_instance,country_code,mobile_no)
+            mobile_filter = userMobiles.objects.filter(user=user_instance,state=mobile_states.PRIMARY)
+
+            if mobile_filter.exists():
+                save_user_mobile_number(user_instance,country_code,mobile_no,state=mobile_states.NON_PRIMARY)
+            else:
+                save_user_mobile_number(user_instance, country_code, mobile_no)
 
         if not context['success'] :
             context['error_message'] = "Incorrect OTP"
