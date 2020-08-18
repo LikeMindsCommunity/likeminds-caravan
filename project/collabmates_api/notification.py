@@ -550,7 +550,7 @@ def get_custom_data_for_new_conversation_created(user_id):
         chatroom_name = get_title_from_collabcard(conversation.card)
 
         if conversation.unseen_count > 1:
-            chatroom_name = chatroom_name+"""(%s messages)"""%(str(conversation.unseen_count))
+            chatroom_name = chatroom_name+""" (%s messages)"""%(str(conversation.unseen_count))
 
 
         temp['community_name'] = conversation.card.community.name
@@ -571,6 +571,7 @@ def get_custom_data_for_new_conversation_created(user_id):
             last_conversation = last_instance.answer
             temp['chatroom_last_conversation'] = last_conversation
             temp['chatroom_last_conversation_user_name'] = last_instance.user.userinfo.name
+            temp['chatroom_last_conversation_user_image'] = last_instance.user.userinfo.image_link
 
         unread_conversation.append(temp)
 
