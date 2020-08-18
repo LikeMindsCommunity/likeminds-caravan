@@ -762,6 +762,8 @@ def FormResponseSerilaizer(community_id, user_id,current_user_id=None,bl=False):
             temp['member_id'] = user_id
             temp['question_title'] = response.question_title
             temp['value'] = response.question_answer
+            if '$#' in temp['value']:
+                temp['value'] = temp['value'].replace('$#',', ')
             temp['question_id'] = response.question_id
             temp['state'] = questions['state']
             temp['is_hidden'] = questions['is_hidden']
