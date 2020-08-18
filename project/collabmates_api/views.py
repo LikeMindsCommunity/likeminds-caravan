@@ -1307,6 +1307,11 @@ def update_email(request):
 
     if typ == 'new':
 
+
+        email_filter = userEmails.objects.filter(email=email)
+        if email_filter.exists():
+            return JsonResponse({'error_message':"email already exists in system"})
+
         save_user_primary_email(user_instance,email,email_state=email_states.NON_PRIMARY)
 
         # send verification mail for email
@@ -1319,6 +1324,11 @@ def update_email(request):
         return JsonResponse({'success':True})
 
     elif typ == 'edit':
+
+        email_filter = userEmails.objects.filter(email=email)
+        if email_filter.exists():
+            return JsonResponse({'error_message': "email already exists in system"})
+
 
         uniq_id = request.POST.get('id')
         email_filter = userEmails.objects.filter(id=uniq_id)
