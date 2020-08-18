@@ -569,8 +569,8 @@ def get_custom_data_for_new_conversation_created(user_id):
         last_instance = card_answers.objects.filter(card=conversation.card,state=0).last()
         if last_instance:
             last_conversation = last_instance.answer
-
-        temp['chatroom_last_conversation'] = last_conversation
+            temp['chatroom_last_conversation'] = last_conversation
+            temp['chatroom_last_conversation_user_name'] = last_conversation.user.name
 
         unread_conversation.append(temp)
 
