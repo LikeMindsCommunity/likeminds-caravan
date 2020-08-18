@@ -489,13 +489,13 @@ def send_follow_notification(card_id,user_id,answer):
             answer_text = '📄 Document'
 
 
-        unread_conversation = get_custom_data_for_new_conversation_created(user_id)
+        #unread_conversation = get_custom_data_for_new_conversation_created(user_id)
 
         message['payload']={
             "title":str(get_title_from_collabcard(card)),
             "sub_title":str(answerer_name[0])+": "+answer_text,
-            "route":"route://collabcard?collabcard_id="+str(card_id),
-            "unread_conversation" : unread_conversation
+            "route":"route://collabcard?collabcard_id="+str(card_id)
+            #"unread_conversation" : unread_conversation
         }
         # message['payload']={
         #     "title":str(answerer_name[0]) + " responded",
@@ -597,12 +597,10 @@ def send_notification_to_tagged_users(card_id,answerer_name,answer,user_id,user_
             "route":"route://collabcard?collabcard_id="+str(card_id),
         }
 
-        if chatroom_created:
-            custom_payload = get_custom_data_for_new_chatroom_created(card)
-            message['payload']['unread_new_chatroom'] = custom_payload
-        else:
-            unread_conversation = get_custom_data_for_new_conversation_created(user_id)
-            message['payload']['unread_conversation'] = unread_conversation
+
+        custom_payload = get_custom_data_for_new_chatroom_created(card)
+        message['payload']['unread_new_chatroom'] = custom_payload
+
 
         notification_list = []
         temp = {}

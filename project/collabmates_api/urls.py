@@ -149,7 +149,8 @@ urlpatterns = [
     path('email_verify', api_views.email_verify, name='email_verify'),
     path('sync_email', api_views.sync_email, name='sync_email'),
 
-    path('test_notification_api',api_views.test_notification_api,name='test_notification_api')
+    path('test_notification_api',api_views.test_notification_api,name='test_notification_api'),
+    path('unread_conversation_notification', api_views.unread_conversation_notification, name='unread_conversation_notification')
 
 ]
 

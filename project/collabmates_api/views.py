@@ -9777,6 +9777,25 @@ def test_notification_api(request):
 
 
 
+def unread_conversation_notification(request):
+
+    member_id = get_member_id_from_headers(request)
+
+    if not member_id:
+        context = get_error_context(False,"send memeber id in headers")
+        return JsonResponse(context)
+
+
+    temp = {}
+    temp['unread_conversation'] = get_custom_data_for_new_conversation_created(user_id=member_id)
+
+    return JsonResponse(temp)
+
+
+
+
+
+
 
 
 
