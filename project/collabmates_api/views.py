@@ -9566,10 +9566,10 @@ def generating_verification_link_for_email(token_list,user_id):
 
     token = generate_random(token_list)
     #print(token)
-    encrpt_number = encrypt(token)
-    user_id = encrypt(user_id)
+    #encrpt_number = encrypt(token)
+    #user_id = encrypt(user_id)
     #print(user_id)
-    verify_url = url + "/email_verify?token="+encrpt_number+"&user="+user_id
+    verify_url = url + "/email_verify?token="+token+"&user="+user_id
 
     temp={'verify_url':verify_url,'token':token}
 
@@ -9613,8 +9613,11 @@ def email_verify(request):
             return HttpResponse("Invalid link")
 
 
-        decoded_token = decrypt(token)
-        decoded_user = decrypt(user)
+        # decoded_token = decrypt(token)
+        # decoded_user = decrypt(user)
+
+        decoded_token = token
+        decoded_user = user
 
         #getting the user instance
         try:
