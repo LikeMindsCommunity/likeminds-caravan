@@ -2111,6 +2111,8 @@ def create_community_version_1(request):
             if card_filter.exists():
                 post_member_directly_link(card_filter[0], user_instance, community_instance)
 
+            send_notification_for_directory_creation.delay(community_id, time.time(), day=0)
+
         except Exception as e:
 
             context = get_error_context(False, e)
@@ -7902,6 +7904,8 @@ def skip_community(request):
 
     set_state_for_onboarding_chatroom(community_instance,user_instance.id,request)
 
+
+
     #sleeping for 2 hours to remind user to complete profile via notification
     try:
         community_instance = Community.objects.get(id=community_id)
@@ -8354,6 +8358,7 @@ def edit_questions_version_1(request):
     #updating members state table for editing
     if major_change:
         Members.objects.filter(community_id=community_instance).update(edit_required=True)
+        send_notification_for_directory_creation.delay(community_instance.id, time.time(), day=0)
 
     return JsonResponse({'success':True})
 
