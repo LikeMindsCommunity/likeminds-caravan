@@ -1413,7 +1413,11 @@ def send_feedback(request):
     res = json.loads(request.body)
 
     user_id = res['user_id']
-    user_instance = User.objects.get(id=user_id)
+    try:
+        user_instance = User.objects.get(id=user_id)
+    except:
+        return JsonResponse({'success':False,"error_message":"user does not exists"})
+
     feedback = res['feedback']
     images = json.dumps(res['images']) if 'images' in res else None
 
