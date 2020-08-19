@@ -1,0 +1,33 @@
+{% extends 'mails/base.html' %}
+{% block extracss %}
+<style>
+strong{
+    color:#00897b;
+}
+.row{
+    display: flex;
+}
+</style>
+{% endblock %}
+{% block mail %}
+<div class="username">Hi, {{member_name}}!</div>
+<div class="row">
+    <div class="text">
+        <p>
+            It’s been 3 days since you were approved to join {{community_name}}.
+            Don’t miss the real action. Download the LikeMinds app and experience the following:
+        </p>
+        <ul style="color:#718297;line-height: 1.5;">
+            <li>  Get real-time notifications on chats</li>
+            <li>  Join ongoing discussion on a need-basis</li>
+            <li>  Start your chatrooms and invite relevant members</li>
+            <li>  Attend community events and join polls</li>
+            <li>  Browse through member profiles and collaborate better</li>
+        </ul>
+        <p class="cta-wrapper" style="text-align: center;">
+            <a href="https://likeminds.community/download_the_app" class="cta">Download The App</a>
+        </p>
+
+    </div>
+</div>
+{% endblock %}

@@ -1302,12 +1302,12 @@ def edit_user(request):
 def update_email(request):
 
     '''api to perform operations on email of user'''
-    print("here")
+    print(url)
     email = request.POST.get('email_id')
     typ = request.POST.get('type')
 
     user_id = get_member_id_from_headers(request)
-    print(user_id,"****")
+    print(user_id,request.POST)
     if not user_id:
         context = get_error_context(False,"send member id from headers")
         return JsonResponse(context)
@@ -1378,7 +1378,7 @@ def update_email(request):
         uniq_id = request.POST.get('id')
         userEmails.objects.filter(id=uniq_id).delete()
 
-
+    print("nowherere")
     return JsonResponse({'success':True})
 
 @csrf_exempt

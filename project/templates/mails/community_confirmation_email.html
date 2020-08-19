@@ -1,0 +1,36 @@
+{% extends 'mails/base.html' %}
+{% block extracss %}
+<style>
+strong{
+    color:#00897b;
+}
+.row{
+    display: flex;
+}
+</style>
+{% endblock %}
+{% block mail %}
+<div class="username">Hi, {{member_name}}!</div>
+<div class="row">
+    <div class="text">
+        <p>
+            Congratulations, your request to join <b>{{community_name}}</b> has been approved!
+            It means you are FREE to download LikeMinds - an invite-only chat app that helps exclusive members to be a part of exciting community experiences!
+        </p>
+        <p style="margin-bottom: 0;">
+        Now, you can:
+        </p>
+        <ul style="color:#718297;line-height: 1.5;">
+            <li>  Enjoy clutter-free, focused conversations</li>
+            <li>  Join ongoing discussion on a need-basis</li>
+            <li>  Start your chatrooms and invite relevant members</li>
+            <li>  Effortlessly attend community events and join polls</li>
+            <li>  Better understand and collaborate with members</li>
+        </ul>
+        <p class="cta-wrapper" style="text-align: center;">
+            <a href="https://likeminds.community/download_the_app" class="cta">Download The App</a>
+        </p>
+
+    </div>
+</div>
+{% endblock %}

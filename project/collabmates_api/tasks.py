@@ -351,7 +351,7 @@ def send_verification_mail_for_email_sync(user_name,verification_link,email):
 
     '''function to send verification mail to user who wants email sync'''
 
-    subject = "Verify your email"
+    subject = user_name + ", verify your email"
     context = {
                 'user_name':user_name,
                 'verification_link':verification_link,
@@ -488,6 +488,7 @@ def send_community_confirmation_email(user_id, community_id):
         'mail_has_installed_app'
     ]
     if check_notification_flag(user_id, notification_list, card_id=None, community_id=None):
+        subject = user_instance.userinfo.name+', Congratulations, your request has been approved!',
         email_context = {
             'subject': user_instance.userinfo.name+', Congratulations, your request has been approved!',
             'member_name': user_instance.userinfo.name,
@@ -506,16 +507,17 @@ def send_community_confirmation_email(user_id, community_id):
         send_email(subject, template, to)
         print(email_context)
         celerybeatask = CeleryBeatTask()
-        args = [user_id, community_id]
         task_name = str(user_id)+"_"+str(community_id) + "_send_community_confirmation_email_2"
+        args = [user_id, community_id,task_name]
         task_path = "collabmates_api.tasks.send_community_confirmation_email_2"
         date_time = time.time() + 220
         # date_time = time.time() + (3*24*60*60)
-        celerybeatask.get_or_create_new_beat_task(args=args, task_name=task_name, task_path=task_path,
+        celerybeatask.create_dynamic_clery_task(args=args, task_name=task_name, task_path=task_path,
                                                   date_time=date_time, interval=False, crontab=True)
 
 
-def send_community_confirmation_email_2(user_id, community_id):
+@app.task
+def send_community_confirmation_email_2(user_id, community_id,task_name,*args,**kwargs):
     print("here")
     user_instance = User.objects.get(pk=user_id)
     community_instance = Community.objects.get(id=community_id)
@@ -525,7 +527,9 @@ def send_community_confirmation_email_2(user_id, community_id):
     notification_list = [
         'mail_has_installed_app'
     ]
+
     if check_notification_flag(user_id, notification_list, card_id=None, community_id=None):
+        subject = "Hey " + user_instance.userinfo.name + ', you are missing the real action!😬',
         email_context = {
             'subject': "Hey " + user_instance.userinfo.name+', you are missing the real action!😬',
             'member_name': user_instance.userinfo.name,
@@ -541,7 +545,9 @@ def send_community_confirmation_email_2(user_id, community_id):
         }
         template = get_template("mails/community_confirmation_email_2.html").render(email_context)
         to = [email]
-        # send_email(subject, template, to)
+        send_email(subject, template, to)
         print(email_context)
+    celerybeatask = CeleryBeatTask()
+    celerybeatask.terminate_task(task_name)
 
 
