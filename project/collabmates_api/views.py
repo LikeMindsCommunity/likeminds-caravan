@@ -1405,7 +1405,28 @@ def update_mobiles(request):
     return JsonResponse({'error_message':"send correct type"})
 
 
+@csrf_exempt
+def send_feedback(request):
 
+    '''api to send feedback of user to likeminds team'''
+
+    res = json.loads(request.body)
+
+    user_id = res['user_id']
+    user_instance = User.objects.get(id=user_id)
+    feedback = res['feedback']
+    images = json.dumps(res['images']) if 'images' in res else None
+
+    instance = userFeedback()
+    instance.feedback = feedback
+    instance.user = user_instance
+    instance.images = images
+    instance.created_at = time.time()
+    instance.save()
+
+
+
+    return JsonResponse({'success':True})
 
 
 

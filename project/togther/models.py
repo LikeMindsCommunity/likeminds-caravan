@@ -1056,3 +1056,14 @@ class userPhonebook(models.Model):
     phonebook = models.TextField(null=True)
     created_at = models.BigIntegerField(null=True)
     updated_at = models.BigIntegerField(null=True)
+
+
+
+class userFeedback(models.Model):
+
+    '''api to make save user feedback'''
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    created_at = models.BigIntegerField(null=True)
+    images = models.TextField(null=True)
+    feedback = models.TextField(null=True)
