@@ -581,6 +581,7 @@ def get_custom_data_for_new_conversation_created(user_id):
             temp['chatroom_last_conversation'] = last_conversation
             temp['chatroom_last_conversation_user_name'] = last_instance.user.userinfo.name
             temp['chatroom_last_conversation_user_image'] = last_instance.user.userinfo.image_link
+            temp['chatroom_last_conversation_timestamp'] = last_instance.created_at
 
         unread_conversation.append(temp)
 
