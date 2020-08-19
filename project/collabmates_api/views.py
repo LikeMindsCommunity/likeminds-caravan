@@ -1414,7 +1414,32 @@ def update_mobiles(request):
     return JsonResponse({'error_message':"send correct type"})
 
 
+@csrf_exempt
+def send_feedback(request):
 
+    '''api to send feedback of user to likeminds team'''
+
+    res = json.loads(request.body)
+
+    user_id = res['user_id']
+    try:
+        user_instance = User.objects.get(id=user_id)
+    except:
+        return JsonResponse({'success':False,"error_message":"user does not exists"})
+
+    feedback = res['feedback']
+    images = json.dumps(res['images']) if 'images' in res else None
+
+    instance = userFeedback()
+    instance.feedback = feedback
+    instance.user = user_instance
+    instance.images = images
+    instance.created_at = time.time()
+    instance.save()
+
+
+
+    return JsonResponse({'success':True})
 
 
 
@@ -9575,10 +9600,10 @@ def generating_verification_link_for_email(token_list,user_id):
 
     token = generate_random(token_list)
     #print(token)
-    encrpt_number = encrypt(token)
-    user_id = encrypt(user_id)
+    #encrpt_number = encrypt(token)
+    #user_id = encrypt(user_id)
     #print(user_id)
-    verify_url = url + "/email_verify?token="+encrpt_number+"&user="+user_id
+    verify_url = url + "/email_verify?token="+str(token)+"&user="+str(user_id)
 
     temp={'verify_url':verify_url,'token':token}
 
@@ -9622,8 +9647,11 @@ def email_verify(request):
             return HttpResponse("Invalid link")
 
 
-        decoded_token = decrypt(token)
-        decoded_user = decrypt(user)
+        # decoded_token = decrypt(token)
+        # decoded_user = decrypt(user)
+
+        decoded_token = token
+        decoded_user = user
 
         #getting the user instance
         try:
@@ -9783,6 +9811,25 @@ def test_notification_api(request):
 
 
     return JsonResponse({'error':'send user_id or conversation_id in order to see payload'})
+
+
+
+def unread_conversation_notification(request):
+
+    member_id = get_member_id_from_headers(request)
+
+    if not member_id:
+        context = get_error_context(False,"send memeber id in headers")
+        return JsonResponse(context)
+
+
+    temp = {}
+    temp['unread_conversation'] = get_custom_data_for_new_conversation_created(user_id=member_id)
+
+    return JsonResponse(temp)
+
+
+
 
 
 

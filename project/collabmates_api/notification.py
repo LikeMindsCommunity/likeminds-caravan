@@ -449,7 +449,8 @@ def get_custom_data_for_new_chatroom_created(card):
     unread_conversation['community_id'] = str(chatroom_instance.community.id)
     unread_conversation['community_image'] = chatroom_instance.community.image_link
     #unread_conversation['notification_id'] = str(chatroom_instance.id)+"_new"
-    unread_conversation['route'] = """route://chatroom_new_feed?community_id=%s"""%(str(chatroom_instance.community.id))
+    unread_conversation['route'] = """route://chatroom_new_feed?community_id=%s&community_name=%s"""%(str(chatroom_instance.community.id),str(chatroom_instance.community.name))
+    unread_conversation['route_child']="""route://collabcard?collabcard_id=%s"""%(str(chatroom_instance.id))
 
     return unread_conversation
 
@@ -489,13 +490,13 @@ def send_follow_notification(card_id,user_id,answer):
             answer_text = '📄 Document'
 
 
-        unread_conversation = get_custom_data_for_new_conversation_created(user_id)
+        #unread_conversation = get_custom_data_for_new_conversation_created(user_id)
 
         message['payload']={
             "title":str(get_title_from_collabcard(card)),
             "sub_title":str(answerer_name[0])+": "+answer_text,
-            "route":"route://collabcard?collabcard_id="+str(card_id),
-            "unread_conversation" : unread_conversation
+            "route":"route://collabcard?collabcard_id="+str(card_id)
+            #"unread_conversation" : unread_conversation
         }
         # message['payload']={
         #     "title":str(answerer_name[0]) + " responded",
@@ -536,7 +537,7 @@ def get_custom_data_for_new_conversation_created(user_id):
 
     '''function to send notification for new conversation posted to followed users'''
 
-    time.sleep(10)
+    time.sleep(2)
     followed_chatrooms = conversationEngage.objects.filter(user_id=user_id,draft_id=None).order_by('-updated_at','-id')
 
     unread_conversation = []
@@ -550,7 +551,7 @@ def get_custom_data_for_new_conversation_created(user_id):
         chatroom_name = get_title_from_collabcard(conversation.card)
 
         if conversation.unseen_count > 1:
-            chatroom_name = chatroom_name+"""(%s messages)"""%(str(conversation.unseen_count))
+            chatroom_name = chatroom_name+""" (%s messages)"""%(str(conversation.unseen_count))
 
 
         temp['community_name'] = conversation.card.community.name
@@ -560,16 +561,19 @@ def get_custom_data_for_new_conversation_created(user_id):
         temp['chatroom_user_image'] = conversation.user.userinfo.image_link
         temp['chatroom_id'] =  conversation.card.id
         temp['notification_id'] = str(conversation.card.id)+"_followed"
-        temp['route'] = "route://chatroom_followed_feed?community_id=%s"%(str(conversation.card.community.id))
+        temp['route'] = """route://chatroom_followed_feed?community_id=%s&community_name=%s"""%(str(conversation.card.community.id),str(conversation.card.community.name))
         temp['chatroom_unread_conversation_count'] = conversation.unseen_count
         temp['community_id'] = str(conversation.card.community.id)
+        temp['community_image'] = conversation.card.community.image_link
+        temp['route_child'] = """route://collabcard?collabcard_id=%s""" % (str(conversation.card.id))
 
         last_conversation = ""
         last_instance = card_answers.objects.filter(card=conversation.card,state=0).last()
         if last_instance:
             last_conversation = last_instance.answer
-
-        temp['chatroom_last_conversation'] = last_conversation
+            temp['chatroom_last_conversation'] = last_conversation
+            temp['chatroom_last_conversation_user_name'] = last_instance.user.userinfo.name
+            temp['chatroom_last_conversation_user_image'] = last_instance.user.userinfo.image_link
 
         unread_conversation.append(temp)
 
@@ -597,12 +601,10 @@ def send_notification_to_tagged_users(card_id,answerer_name,answer,user_id,user_
             "route":"route://collabcard?collabcard_id="+str(card_id),
         }
 
-        if chatroom_created:
-            custom_payload = get_custom_data_for_new_chatroom_created(card)
-            message['payload']['unread_new_chatroom'] = custom_payload
-        else:
-            unread_conversation = get_custom_data_for_new_conversation_created(user_id)
-            message['payload']['unread_conversation'] = unread_conversation
+
+        custom_payload = get_custom_data_for_new_chatroom_created(card)
+        message['payload']['unread_new_chatroom'] = custom_payload
+
 
         notification_list = []
         temp = {}

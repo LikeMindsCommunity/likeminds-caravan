@@ -43,6 +43,7 @@ urlpatterns = [
     path('edit_user',api_views.edit_user,name="edit_user"),
     path('update_email', api_views.update_email, name="update_email"),
     path('update_mobiles', api_views.update_mobiles, name="update_mobiles"),
+    path('send_feedback', api_views.send_feedback, name="send_feedback"),
 
     path('admins/<int:community_id>', api_views.admins, name="admins"),
     path('members/<int:community_id>', api_views.members, name="members"),
@@ -149,7 +150,8 @@ urlpatterns = [
     path('email_verify', api_views.email_verify, name='email_verify'),
     path('sync_email', api_views.sync_email, name='sync_email'),
 
-    path('test_notification_api',api_views.test_notification_api,name='test_notification_api')
+    path('test_notification_api',api_views.test_notification_api,name='test_notification_api'),
+    path('unread_conversation_notification', api_views.unread_conversation_notification, name='unread_conversation_notification')
 
 ]
 
