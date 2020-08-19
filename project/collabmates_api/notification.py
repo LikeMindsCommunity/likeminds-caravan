@@ -72,12 +72,16 @@ def send_notification_for_ios(token_list, message):
 
     result = ""
     push_service = FCMNotification(api_key=server_key)
+    message['payload']['aps'] = {
+        'mutable-content':1
+    }
     result = push_service.notify_multiple_devices(registration_ids=token_list,
                                                   message_title=message['payload']['title'],
                                                   message_body=message['payload']['sub_title'],
                                                   data_message=message['payload'])
 
     print(result)
+
 
 def get_title_from_collabcard(card):
     ''' To extract the title from a card. '''
@@ -566,6 +570,7 @@ def get_custom_data_for_new_conversation_created(user_id):
         temp['community_id'] = str(conversation.card.community.id)
         temp['community_image'] = conversation.card.community.image_link
         temp['route_child'] = """route://collabcard?collabcard_id=%s""" % (str(conversation.card.id))
+
 
         last_conversation = ""
         last_instance = card_answers.objects.filter(card=conversation.card,state=0).last()
