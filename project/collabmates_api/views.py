@@ -810,12 +810,17 @@ def join_promoter_created_community_version_1(res,request):
                 continue
 
             question_instance = communityQuestions.objects.get(id=question['id'])
+
+            if question_instance.is_hidden:
+                continue
+
             answer_instance = communityAnswers()
             answer_instance.question = question_instance
             answer_instance.member = user_instance
             answer_instance.community = community_instance
             answer_instance.question_answer = question['value']
             answer_instance.question_title = question_instance.question_title
+
             answer_instance.save()
 
             if question_instance.question_state == question_states.CHOICE_SINGLE or question_instance.question_state == question_states.CHOICE_MULTIPLE:
