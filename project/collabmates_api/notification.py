@@ -19,6 +19,8 @@ from utility.states import *
 import json
 from django.shortcuts import get_object_or_404
 import traceback
+
+from datetime import datetime,timedelta
 # file to store configuration of the system
 
 
@@ -1007,7 +1009,7 @@ def send_notification_to_join_drop_off(member_id,community_id,aj,time_in_hrs):
 
     '''function to send notification to users who opened the private link but did not joint the community'''
     
-    time.sleep(time_in_hr*60*60)
+    time.sleep(time_in_hrs*60*60)
 
     #check if they created the profile. 
     member = Members.objects.filter(community_id=community_id,member_id=member_id)
@@ -1101,9 +1103,155 @@ def send_notification_to_join_drop_off(member_id,community_id,aj,time_in_hrs):
                 }
 
                 notification_meta(notification_list,message)
+@app.task
+@shared_task
+def send_notification_for_directory_creation(community_id,start_time,day=0):
+
+    community_instance = Community.objects.get(id=community_id)
+    community_name = community_instance.name
+
+    members = Members.objects.filter(community_id=community_id, state__in=[1,4,9],edit_required=True)
 
 
 
+    message = {}
+
+    message['payload'] = {
+        "title": str(community_name),
+        "sub_title": "",
+        'route': 'route://community?community_id=' + str(community_id)
+    }
+
+    if day == 0 and members.exists():
+        # get tomorrow 9 am
+        start_time = datetime.fromtimestamp(start_time)
+        # start_time = datetime.fromtimestamp(start_time+(24*60*60))
+        # start_time = start_time.replace(hour=9,minute=0)+ timedelta(days=3)
+        start_time = start_time + timedelta(minutes=2)
+        date_time = start_time.timestamp()
+        celerybeatask = CeleryBeatTask()
+        task_name =  str(community_id) + str(start_time) + "_3_send_notification_for_directory_creation"
+        day = 3
+        args = [community_id, date_time,day]
+        task_path = "collabmates_api.notification.send_notification_for_directory_creation"
+        kwargs = {}
+
+        celerybeatask.create_dynamic_clery_task(args, kwargs, task_name, task_path,
+                                        date_time=date_time, interval=False, crontab=True)
+    elif day == 3 and members.exists():
+        start_time = datetime.fromtimestamp(start_time)
+        # start_time = start_time.replace(hour=9,minute=0)+ timedelta(days=2)
+        start_time = start_time + timedelta(minutes=2)
+        date_time = start_time.timestamp()
+        task_name =  str(community_id) + str(start_time)  + "_3_send_notification_for_directory_creation"
+        celerybeatask = CeleryBeatTask()
+        celerybeatask.terminate_task(task_name)
+        celerybeatask = CeleryBeatTask()
+        task_name =  str(community_id) + str(start_time) + "_5_send_notification_for_directory_creation"
+        day = 5
+        args = [community_id, date_time,day]
+        task_path = "collabmates_api.notification.send_notification_for_directory_creation"
+        kwargs = {}
+        for member in members:
+            member_name = member.member_id.userinfo.name
+            notification_list = []
+            notification_details = get_token_for_fcm(member.member_id.id, flag=True)
+            temp = {
+                'id': member.member_id.id,
+                'fcm_token': notification_details[0],
+                'mobile_os': notification_details[1],
+            }
+            message['payload']['sub_title'] = str(member_name) + ", we are reminding you to complete your directory profile. Without an updated profile, you won’t have seamless access to the community. ",
+            notification_list.append(temp)
+            notification_meta(notification_list, message)
+        celerybeatask.create_dynamic_clery_task(args, kwargs, task_name, task_path,
+                                                date_time=date_time, interval=False, crontab=True)
+    elif day == 5 and members.exists():
+        start_time = datetime.fromtimestamp(start_time)
+        # start_time = start_time.replace(hour=9,minute=0)+ timedelta(days=2)
+        start_time = start_time + timedelta(minutes=2)
+        date_time = start_time.timestamp()
+        task_name =  str(community_id) + str(start_time) + "_5_send_notification_for_directory_creation"
+        celerybeatask = CeleryBeatTask()
+        celerybeatask.terminate_task(task_name)
+        celerybeatask = CeleryBeatTask()
+        task_name =  str(community_id) + str(start_time) + "_7_send_notification_for_directory_creation"
+        day = 7
+        args = [community_id, date_time,day]
+        task_path = "collabmates_api.notification.send_notification_for_directory_creation"
+        kwargs = {}
+        for member in members:
+            member_name = member.member_id.userinfo.name
+            notification_list = []
+            notification_details = get_token_for_fcm(member.member_id.id, flag=True)
+            temp = {
+                'id': member.member_id.id,
+                'fcm_token': notification_details[0],
+                'mobile_os': notification_details[1],
+            }
+            message['payload']['sub_title'] = str(member_name) + ", please update your profile now to take full advantage of our networking features. This is mandatory for all the members. ",
+            notification_list.append(temp)
+            notification_meta(notification_list, message)
+        celerybeatask.create_dynamic_clery_task(args, kwargs, task_name, task_path,
+                                                date_time=date_time, interval=False, crontab=True)
+
+    elif day == 7 and members.exists():
+        start_time = datetime.fromtimestamp(start_time)
+        # start_time = start_time.replace(hour=9,minute=0)+ timedelta(days=8)
+        start_time = start_time + timedelta(minutes=2)
+        date_time = start_time.timestamp()
+        task_name =  str(community_id) + str(start_time) + "_7_send_notification_for_directory_creation"
+        celerybeatask = CeleryBeatTask()
+        celerybeatask.terminate_task(task_name)
+        celerybeatask = CeleryBeatTask()
+        task_name =   str(community_id) + str(start_time) + "_15_send_notification_for_directory_creation"
+        day = 15
+        args = [community_id, date_time,day]
+        task_path = "collabmates_api.notification.send_notification_for_directory_creation"
+        kwargs = {}
+        for member in members:
+            member_name = member.member_id.userinfo.name
+            notification_list = []
+            notification_details = get_token_for_fcm(member.member_id.id, flag=True)
+            temp = {
+                'id': member.member_id.id,
+                'fcm_token': notification_details[0],
+                'mobile_os': notification_details[1],
+            }
+            message['payload']['sub_title'] = str(member_name) + ", it has been over 15 days you joined us. Please update your profile now to take full advantage of LikeMinds and connect with others.",
+            notification_list.append(temp)
+            notification_meta(notification_list, message)
+        celerybeatask.create_dynamic_clery_task(args, kwargs, task_name, task_path,
+                                                date_time=date_time, interval=False, crontab=True)
+
+    elif day == 15 and members.exists():
+        start_time = datetime.fromtimestamp(start_time)
+        # start_time = start_time.replace(hour=9,minute=0)+ timedelta(days=15)
+        start_time = start_time + timedelta(minutes=2)
+        date_time = start_time.timestamp()
+        task_name =  str(community_id) + str(start_time) + "_15_send_notification_for_directory_creation"
+        celerybeatask = CeleryBeatTask()
+        celerybeatask.terminate_task(task_name)
+        celerybeatask = CeleryBeatTask()
+        task_name =  str(community_id) + str(start_time) + "_30_send_notification_for_directory_creation"
+        day = 15
+        args = [community_id, date_time,day]
+        task_path = "collabmates_api.notification.send_notification_for_directory_creation"
+        kwargs = {}
+        for member in members:
+            member_name = member.member_id.userinfo.name
+            notification_list = []
+            notification_details = get_token_for_fcm(member.member_id.id, flag=True)
+            temp = {
+                'id': member.member_id.id,
+                'fcm_token': notification_details[0],
+                'mobile_os': notification_details[1],
+            }
+            message['payload']['sub_title'] = str(member_name) + ", it has been over 15 days you joined us. Please update your profile and improve your chances of connecting with like-minded folks.",
+            notification_list.append(temp)
+            notification_meta(notification_list, message)
+        celerybeatask.create_dynamic_clery_task(args, kwargs, task_name, task_path,
+                                                date_time=date_time, interval=False, crontab=True)
 
 
 # @shared_task

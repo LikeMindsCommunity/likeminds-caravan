@@ -50,7 +50,7 @@ from utility.utils import (decode_meta_from_url, update_tag_image,
                            is_member_present, generate_private_link, generate_random, get_time_text,
                            community_default_image_round, decode_option, get_user_communities_by_rank_web,
                            user_onbaord,get_time_text_for_my_chatrooms,get_members_count_in_community,
-                           check_notification_flag
+                           check_notification_flag,create_notification_flag
 
                            )
 
@@ -61,7 +61,7 @@ from .static_files import *
 from .static_text import *
 from .members import *
 from .tasks import send_email_to_nominated_admin, send_email_for_new_collabcard_posted, send_welcome_mail, \
-    send_verification_mail_for_email_sync,send_tagged_user_mail,send_chatroom_owner_mail
+    send_verification_mail_for_email_sync,send_tagged_user_mail,send_chatroom_owner_mail,send_community_confirmation_email
 
 
 # CACHE_TTL = getattr(settings, 'CACHE_TTL', cache_timeout)
@@ -243,8 +243,17 @@ def your_communities(request, user_id):
     page_number = request.GET.get('page', '')
     if str(member_id) != str(user_id):
         member_id = user_id
+
     my_community = []
     user = User.objects.get(id=member_id)
+
+    # event when user installed athe app
+
+    notification_list = [
+        'mail_has_installed_app',
+    ]
+    create_notification_flag(member_id,notification_list,card_id=None,community_id=None,flag=False)
+
     communities = Member_Engage.objects.filter(member_id=user).order_by('-updated_at')
     if page_number and not page_number == '0' and not page_number == '':
         communities = pagination(communities, page_number, paginate_by=10)
@@ -1293,12 +1302,10 @@ def edit_user(request):
 def update_email(request):
 
     '''api to perform operations on email of user'''
-
     email = request.POST.get('email_id')
     typ = request.POST.get('type')
 
     user_id = get_member_id_from_headers(request)
-
     if not user_id:
         context = get_error_context(False,"send member id from headers")
         return JsonResponse(context)
@@ -1354,7 +1361,6 @@ def update_email(request):
         userEmails.objects.filter(id=uniq_id).update(email_state=email_states.PRIMARY)
 
     elif typ == 'resend_verification':
-
         uniq_id = request.POST.get('id')
         email_instance = userEmails.objects.get(id=uniq_id)
         email = email_instance.email
@@ -1368,7 +1374,6 @@ def update_email(request):
     elif typ == 'delete':
         uniq_id = request.POST.get('id')
         userEmails.objects.filter(id=uniq_id).delete()
-
 
     return JsonResponse({'success':True})
 
@@ -2102,6 +2107,8 @@ def create_community_version_1(request):
             if card_filter.exists():
                 post_member_directly_link(card_filter[0], user_instance, community_instance)
 
+            send_notification_for_directory_creation.delay(community_id, time.time(), day=0)
+
         except Exception as e:
 
             context = get_error_context(False, e)
@@ -2458,7 +2465,7 @@ def create_chatroom_instance(res,community_instance,user_instance):
     notification_list = [
         'mail_card_owner_inactivity'
     ]
-    check_notification_flag(card.user.id,notification_list,card_id=card.id,community_id=None)
+    check_notification_flag(card.user.id, notification_list, card_id=card.id, community_id=None)
 
     #send notification to new chatroom posted
     if has_been_named:
@@ -3808,7 +3815,7 @@ def approve_or_decline_private_community(req_dict,request):
             #sending mails and notifications
             #send notification
             send_notification_for_join_requests.delay(req_dict['community_id'], True, req_dict['member_id'],promoter_name)
-
+            send_community_confirmation_email.delay(req_dict['member_id'], req_dict['community_id'])
             # sending email to the user that his request is accepted for this community
             # member_request_approval_or_denied.delay(user_id = req_dict['member_id'],community_id = req_dict['community_id'], approved = True)
 
@@ -7893,6 +7900,8 @@ def skip_community(request):
 
     set_state_for_onboarding_chatroom(community_instance,user_instance.id,request)
 
+
+
     #sleeping for 2 hours to remind user to complete profile via notification
     try:
         community_instance = Community.objects.get(id=community_id)
@@ -8345,6 +8354,7 @@ def edit_questions_version_1(request):
     #updating members state table for editing
     if major_change:
         Members.objects.filter(community_id=community_instance).update(edit_required=True)
+        send_notification_for_directory_creation.delay(community_instance.id, time.time(), day=0)
 
     return JsonResponse({'success':True})
 

@@ -34,14 +34,14 @@ class CeleryBeatTask:
                                                      hour=str(result.tm_hour),
                                                      day_of_month=str(result.tm_mday),
                                                      month_of_year=str(result.tm_mon)) if 'crontab' in kwargs and kwargs['crontab'] else None, False
-
+        print("----->>>>>   ", json.dumps(kwargs) if kwargs else '{}')
         periodic_task = PeriodicTask(
                         name=str(kwargs['task_name']) if 'task_name' in kwargs else None,
                         task=str(kwargs['task_path']) if 'task_path' in kwargs else None,
                         interval=interval[0] if interval else None,
                         crontab=crontab[0] if crontab else None,
                         args=json.dumps(kwargs['args']) if 'args' in kwargs else json.dumps(args) if args else '[]',
-                        kwargs=json.dumps(kwargs) if kwargs else '{}',
+                        kwargs=json.dumps(kwargs['kwargs']) if 'kwargs' in kwargs else '{}',
                         # expires=datetime.utcnow() + timedelta(seconds=30),
                         enabled=True
                         )
@@ -93,7 +93,7 @@ class CeleryBeatTask:
 
     def terminate_task(self, task_name):
         ''' function to delete the periodic task '''
-        periodic_task = PeriodicTask.object.filter(name=task_name)
+        periodic_task = PeriodicTask.objects.filter(name=task_name)
         periodic_task.delete()
         print("deleted task succesfully")
 
@@ -126,6 +126,7 @@ class CeleryBeatTask:
         # task_path = 'collabmates_api.notification.poll_expiry_or_event_remainder_notification'
         # args = positional arguments in form of list (should be in exact position as given parameters)
         # kwargs = Extra agruments in form of dictionary in key value pairs
+        print(kwargs,**kwargs)
 
         if task_name and task_path:
             periodic_task, created = self.get_or_create_new_beat_task(args=args, task_name=task_name, task_path=task_path,
