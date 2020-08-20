@@ -76,7 +76,7 @@ def send_notification_for_ios(token_list, message):
     push_service = FCMNotification(api_key=server_key)
 
     extra_kwargs = {
-        'mutable_content': True
+        "mutable_content": True
     }
 
     result = push_service.notify_multiple_devices(registration_ids=token_list,
