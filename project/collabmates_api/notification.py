@@ -82,7 +82,8 @@ def send_notification_for_ios(token_list, message):
     result = push_service.notify_multiple_devices(registration_ids=token_list,
                                                   message_title=message['payload']['title'],
                                                   message_body=message['payload']['sub_title'],
-                                                  data_message=message['payload'],extra_kwargs=extra_kwargs)
+                                                  #data_message=message['payload'],
+                                                  extra_kwargs=extra_kwargs)
 
     print(result)
 
