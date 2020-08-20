@@ -63,7 +63,7 @@ from .members import *
 from .tasks import send_email_to_nominated_admin, send_email_for_new_collabcard_posted, send_welcome_mail, \
     send_verification_mail_for_email_sync,send_tagged_user_mail,send_chatroom_owner_mail,send_community_confirmation_email
 
-
+from .mails import *
 # CACHE_TTL = getattr(settings, 'CACHE_TTL', cache_timeout)
 
 url = settings.URL
@@ -1424,6 +1424,7 @@ def send_feedback(request):
         return JsonResponse({'success':False,"error_message":"user does not exists"})
 
     feedback = res['feedback']
+    mail_images = res['images']
     images = json.dumps(res['images']) if 'images' in res else None
 
     instance = userFeedback()
@@ -1432,7 +1433,18 @@ def send_feedback(request):
     instance.images = images
     instance.created_at = time.time()
     instance.save()
-
+    mail_images = ast.literal_eval(mail_images)
+    mail_context = {
+        'feedback': instance.feedback,
+        'images' : mail_images,
+        'user' : {
+            'email': instance.user.userinfo.email,
+            'name': instance.user.userinfo.name
+        }
+    }
+    send_feedback_mail_to_webmaster.delay(mail_context)
+    # print(mail_images)
+    # print(json.loads(mail_images))
 
 
     return JsonResponse({'success':True})
