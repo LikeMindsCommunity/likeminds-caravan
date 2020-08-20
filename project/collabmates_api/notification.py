@@ -1120,7 +1120,7 @@ def send_notification_for_directory_creation(community_id,start_time,day=0):
     message['payload'] = {
         "title": str(community_name),
         "sub_title": "",
-        'route': 'route://community?community_id=' + str(community_id)
+        'route': '//route://community_collabcard?community_id=' + str(community_id) + '&community_name=' + str(community_instance.name)
     }
 
     if day == 0 and members.exists():
