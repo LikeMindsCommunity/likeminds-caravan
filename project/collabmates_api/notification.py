@@ -111,12 +111,12 @@ def notification_meta(notification_list,message):
         else:
             token_list_ios.append(data['fcm_token'])
             message['payload']['user_id'] = data['id']
-            print(token_list_ios)
-            print(message)
-            #send_notification_for_ios(token_list_ios, message)
+            # print(token_list_ios)
+            # print(message)
+            send_notification_for_ios(token_list_ios, message)
             token_list_ios = []
 
-        print(data)
+        #print(data)
 
     if token_list_android:
         send_notification_for_android(token_list_android,message)
