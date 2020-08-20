@@ -103,22 +103,26 @@ def notification_meta(notification_list,message):
 
     token_list_android=[]
     token_list_ios=[]
-    
+    user_dict = {}
     for data in notification_list:
 
         if data['mobile_os'] == "Android":
             token_list_android.append(data['fcm_token'])
         else:
             token_list_ios.append(data['fcm_token'])
+            message['payload']['user_id'] = data['id']
+            print(token_list_ios)
+            print(message)
+            #send_notification_for_ios(token_list_ios, message)
+            token_list_ios = []
 
         print(data)
 
     if token_list_android:
         send_notification_for_android(token_list_android,message)
 
-    if token_list_ios:
-        send_notification_for_ios(token_list_ios,message)
-
+    # if token_list_ios:
+    #     send_notification_for_ios(token_list_ios,message)
 
 
 
@@ -505,7 +509,7 @@ def send_follow_notification(card_id,user_id,answer):
             "title":str(get_title_from_collabcard(card)),
             "sub_title":str(answerer_name[0])+": "+answer_text,
             "route":"route://collabcard?collabcard_id="+str(card_id)
-            #"unread_conversation" : unread_conversation
+
         }
         # message['payload']={
         #     "title":str(answerer_name[0]) + " responded",
