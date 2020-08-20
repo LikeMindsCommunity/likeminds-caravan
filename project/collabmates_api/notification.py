@@ -38,18 +38,17 @@ url=settings.URL
 server_key=settings.FCM_SERVER_KEY
 
 #notifications for different mobile os versions
-def send_test_notification(token_list):
+def send_test_notification(token_list,subtitle):
     result = ""
     message = {}
     message['payload']={
-        'title':"title",
-        'sub_title':'sub_title',
-        'route':'route://member_approve?community_name=" + str(community_name)'
+        'title': 'title',
+        'sub_title': 'sub_title',
+        'route': 'route://community?community_id=49016'
     }
+    message['payload']['sub_title'] = subtitle
     push_service = FCMNotification(api_key=server_key)
     result = push_service.notify_multiple_devices(registration_ids=token_list,
-                                                  message_title=message['payload']['title'],
-                                                  message_body=message['payload']['sub_title'],
                                                   data_message=message['payload'])
     print(result)
 
@@ -57,13 +56,13 @@ def send_test_notification(token_list):
 def send_notification_for_android(token_list,message):
 
     '''function to send notification to android'''
-
     result=""
     push_service = FCMNotification(api_key=server_key)
     result = push_service.notify_multiple_devices(registration_ids=token_list,
                                                   data_message=message['payload'])
 
     print(result)
+    print(message)
    
 
 def send_notification_for_ios(token_list, message):
@@ -1120,7 +1119,7 @@ def send_notification_for_directory_creation(community_id,start_time,day=0):
     message['payload'] = {
         "title": str(community_name),
         "sub_title": "",
-        'route': 'route://community?community_id=' + str(community_id)
+        'route': '//route://community_collabcard?community_id=' + str(community_id) + '&community_name=' + str(community_instance.name)
     }
 
     if day == 0 and members.exists():
@@ -1139,6 +1138,8 @@ def send_notification_for_directory_creation(community_id,start_time,day=0):
 
         celerybeatask.create_dynamic_clery_task(args, kwargs, task_name, task_path,
                                         date_time=date_time, interval=False, crontab=True)
+        return
+
     elif day == 3 and members.exists():
         start_time = datetime.fromtimestamp(start_time)
         # start_time = start_time.replace(hour=9,minute=0)+ timedelta(days=2)
@@ -1162,11 +1163,13 @@ def send_notification_for_directory_creation(community_id,start_time,day=0):
                 'fcm_token': notification_details[0],
                 'mobile_os': notification_details[1],
             }
-            message['payload']['sub_title'] = str(member_name) + ", we are reminding you to complete your directory profile. Without an updated profile, you won’t have seamless access to the community. ",
+            message['payload']['sub_title'] = str(member_name) + ", we are reminding you to complete your directory profile. Without an updated profile, you won’t have seamless access to the community. "
             notification_list.append(temp)
             notification_meta(notification_list, message)
         celerybeatask.create_dynamic_clery_task(args, kwargs, task_name, task_path,
                                                 date_time=date_time, interval=False, crontab=True)
+        return
+
     elif day == 5 and members.exists():
         start_time = datetime.fromtimestamp(start_time)
         # start_time = start_time.replace(hour=9,minute=0)+ timedelta(days=2)
@@ -1190,11 +1193,12 @@ def send_notification_for_directory_creation(community_id,start_time,day=0):
                 'fcm_token': notification_details[0],
                 'mobile_os': notification_details[1],
             }
-            message['payload']['sub_title'] = str(member_name) + ", please update your profile now to take full advantage of our networking features. This is mandatory for all the members. ",
+            message['payload']['sub_title'] = str(member_name) + ", please update your profile now to take full advantage of our networking features. This is mandatory for all the members. "
             notification_list.append(temp)
             notification_meta(notification_list, message)
         celerybeatask.create_dynamic_clery_task(args, kwargs, task_name, task_path,
                                                 date_time=date_time, interval=False, crontab=True)
+        return
 
     elif day == 7 and members.exists():
         start_time = datetime.fromtimestamp(start_time)
@@ -1219,11 +1223,12 @@ def send_notification_for_directory_creation(community_id,start_time,day=0):
                 'fcm_token': notification_details[0],
                 'mobile_os': notification_details[1],
             }
-            message['payload']['sub_title'] = str(member_name) + ", it has been over 15 days you joined us. Please update your profile now to take full advantage of LikeMinds and connect with others.",
+            message['payload']['sub_title'] = str(member_name) + ", it has been over 15 days you joined us. Please update your profile now to take full advantage of LikeMinds and connect with others."
             notification_list.append(temp)
             notification_meta(notification_list, message)
         celerybeatask.create_dynamic_clery_task(args, kwargs, task_name, task_path,
                                                 date_time=date_time, interval=False, crontab=True)
+        return
 
     elif day == 15 and members.exists():
         start_time = datetime.fromtimestamp(start_time)
@@ -1235,7 +1240,7 @@ def send_notification_for_directory_creation(community_id,start_time,day=0):
         celerybeatask.terminate_task(task_name)
         celerybeatask = CeleryBeatTask()
         task_name =  str(community_id) + str(start_time) + "_30_send_notification_for_directory_creation"
-        day = 15
+        day = 30
         args = [community_id, date_time,day]
         task_path = "collabmates_api.notification.send_notification_for_directory_creation"
         kwargs = {}
@@ -1248,11 +1253,12 @@ def send_notification_for_directory_creation(community_id,start_time,day=0):
                 'fcm_token': notification_details[0],
                 'mobile_os': notification_details[1],
             }
-            message['payload']['sub_title'] = str(member_name) + ", it has been over 15 days you joined us. Please update your profile and improve your chances of connecting with like-minded folks.",
+            message['payload']['sub_title'] = str(member_name) + ", it has been over 30 days you joined us. Please update your profile and improve your chances of connecting with like-minded folks."
             notification_list.append(temp)
             notification_meta(notification_list, message)
         celerybeatask.create_dynamic_clery_task(args, kwargs, task_name, task_path,
                                                 date_time=date_time, interval=False, crontab=True)
+        return
 
 
 # @shared_task
