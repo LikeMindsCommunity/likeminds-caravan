@@ -1009,40 +1009,40 @@ def update_hidden_fields_in_questions(user_instance,community_instance):
 
     for question_instance in question_filter:
 
-        if question_instance.question_state == question_states.EMAIL_ID:
+        # if question_instance.question_state == question_states.EMAIL_ID:
+        #
+        #     email_filter = userEmails.objects.filter(user=user_instance)
+        #     emails = ""
+        #     for data in email_filter:
+        #         emails = emails + str(data.email) + ", "
+        #
+        #     emails = emails[:-2]
+        #
+        #
+        #     if emails:
+        #         answer_instance = communityAnswers()
+        #         answer_instance.question = question_instance
+        #         answer_instance.member = user_instance
+        #         answer_instance.community = community_instance
+        #         answer_instance.question_answer = user_instance.userinfo.email
+        #         answer_instance.question_title = question_instance.question_title
+        #         answer_instance.save()
 
-            email_filter = userEmails.objects.filter(user=user_instance)
-            emails = ""
-            for data in email_filter:
-                emails = emails + str(data.email) + ", "
+        if question_instance.question_state == question_states.MOBILE_NO:
+            mobile_filter = userMobiles.objects.filter(user=user_instance,state=mobile_states.PRIMARY)
 
-            emails = emails[:-2]
+            if not mobile_filter.exists():
+                return
+
+            mobile_no = "+"+str(mobile_filter[0].country_code) + " " + str(mobile_filter[0].mobile_no)
 
 
-            if emails:
+            if mobile_no:
                 answer_instance = communityAnswers()
                 answer_instance.question = question_instance
                 answer_instance.member = user_instance
                 answer_instance.community = community_instance
-                answer_instance.question_answer = user_instance.userinfo.email
-                answer_instance.question_title = question_instance.question_title
-                answer_instance.save()
-
-        elif question_instance.question_state == question_states.MOBILE_NO:
-            mobile_filter = userMobiles.objects.filter(user=user_instance)
-            mobile_nos= ""
-
-            for data in mobile_filter:
-                mobile_nos = mobile_nos + str(data.mobile_no) + ", "
-
-            mobile_nos = mobile_nos[:-2]
-
-            if mobile_nos:
-                answer_instance = communityAnswers()
-                answer_instance.question = question_instance
-                answer_instance.member = user_instance
-                answer_instance.community = community_instance
-                answer_instance.question_answer = mobile_nos
+                answer_instance.question_answer = mobile_no
                 answer_instance.question_title = question_instance.question_title
                 answer_instance.save()
 
@@ -2175,7 +2175,7 @@ def create_community_questions(res):
 
 def create_introduction_question_in_community(community_instance):
 
-    '''function to create introduction question in community'''
+    '''function to create introduction question in community and mobile information'''
 
     help_text = None
     field_filter = communityField.objects.filter(state=question_states.INTRODUCTION,
@@ -2187,13 +2187,30 @@ def create_introduction_question_in_community(community_instance):
     value_list = [{"min_chars": "50", "max_chars": "No limit"}]
     questions_instance = communityQuestions()
     questions_instance.community = community_instance
-    questions_instance.question_title = "Introduce yourself"
+    questions_instance.question_title = field_filter[0].question_title if field_filter.exists() else "Introduce yourself"
     questions_instance.question_state = question_states.INTRODUCTION
     questions_instance.value = json.dumps(value_list)
     questions_instance.optional = False
     questions_instance.help_text = help_text
     questions_instance.is_hidden = False
     questions_instance.save()
+
+
+    value_list = [{"answer_privacy": "Private"}]
+    questions_instance = communityQuestions()
+    questions_instance.community = community_instance
+    questions_instance.question_title = "Phone No."
+    questions_instance.question_state = question_states.MOBILE_NO
+    questions_instance.value = json.dumps(value_list)
+    questions_instance.optional = False
+    questions_instance.help_text = ''
+    questions_instance.is_hidden = True
+    questions_instance.save()
+
+
+
+
+
 
 def post_member_directly_link(card_instance,user_instance,community_instance):
 
