@@ -1196,7 +1196,7 @@ def send_notification_for_directory_creation(community_id,start_time,day=0):
         celerybeatask = CeleryBeatTask()
         celerybeatask.terminate_task(task_name)
         celerybeatask = CeleryBeatTask()
-        task_name =   str(community_id) + "_15_send_notification_for_directory_creation"
+        task_name =   str(community_id) + str(start_time) + "_15_send_notification_for_directory_creation"
         day = 15
         args = [community_id, date_time,day]
         task_path = "collabmates_api.notification.send_notification_for_directory_creation"

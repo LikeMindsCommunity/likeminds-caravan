@@ -24,7 +24,6 @@ class CeleryBeatTask:
             print("tm_hour:", result.tm_hour)
             print("tm_min:", result.tm_min)
 
-        print()
         interval, created = None, False
         crontab, created = None, False
         if 'interval' in kwargs and kwargs['interval']:
