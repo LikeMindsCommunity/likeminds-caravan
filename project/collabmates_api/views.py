@@ -2198,6 +2198,7 @@ def create_introduction_question_in_community(community_instance):
     questions_instance.optional = False
     questions_instance.help_text = ''
     questions_instance.is_hidden = True
+    questions_instance.field = True
     questions_instance.save()
 
 
