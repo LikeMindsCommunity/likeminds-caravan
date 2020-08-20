@@ -2160,6 +2160,9 @@ def create_community_questions(res):
 
                     question_instance.field = question['field'] if 'field' in question else False
                     question_instance.save()
+                    
+            elif question['state'] == question_states.MOBILE_NO:
+                continue
 
             else:
                 questions_instance = communityQuestions()
