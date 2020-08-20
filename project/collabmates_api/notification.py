@@ -56,15 +56,13 @@ def send_test_notification(token_list,subtitle):
 def send_notification_for_android(token_list,message):
 
     '''function to send notification to android'''
-    token_list.append('f2IopazIT0qsZS_zYh0jdf:APA91bGdh-xAZXyHhu1LpEUN9r4ZIZFbgvoQmWglVbPFNYmEj760dwBScFQUDm_S5PpJHE2Zy5djdGe64g41QR0r6oQLr9nkajw4jgJyXYjM9YmktUFmknGICyEXyRReTwtpPZaebFfO')
-    token_list.append('eODUlvYGTZCJlR08pijrmR:APA91bEF70MUhr4cfMkgVXsmN3t4rwDBfdMC7WPbo6abr3H-k5Gi0eIgz4_2phBl3FSTYzqOq-O4ugJf6XL4jhRLW_CftHKGUEreW9mlD0cBaBx5vYgcbgDduPWqLVWO93c1AocVBseK')
     result=""
-    print(token_list)
     push_service = FCMNotification(api_key=server_key)
     result = push_service.notify_multiple_devices(registration_ids=token_list,
                                                   data_message=message['payload'])
 
     print(result)
+    print(message)
    
 
 def send_notification_for_ios(token_list, message):
