@@ -8104,9 +8104,9 @@ def push(request):
     if is_member:
         if platform_code == 'an':
             platform_code = 'Android'
-        else:
+        elif platform_code == 'ios':
             platform_code = 'iOS'
-            
+
         success = True
         # if not is_member[0].fcm_token:
         #     send_welcome_mail.delay(member_id)
