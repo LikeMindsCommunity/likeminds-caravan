@@ -2185,7 +2185,7 @@ def create_community_questions(res):
 
 
 
-    #setting the state of community in order to make it editable
+    #setting the state of community in order to make it editable and saving only those questions which are changed
     if current_question_count != question_count:
         Members.objects.filter(community_id=community_instance,state=member_states.MEMBER).update(edit_required=True)
 
