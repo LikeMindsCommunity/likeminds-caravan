@@ -62,7 +62,6 @@ def send_notification_for_android(token_list,message):
                                                   data_message=message['payload'])
 
     print(result)
-    print(message)
    
 
 def send_notification_for_ios(token_list, message):

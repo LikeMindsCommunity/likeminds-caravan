@@ -4056,8 +4056,6 @@ def collabcard(request, card_id):
 
 
 
-
-
         if card_category == "EVENT_CARD":
             return render(request, 'event.html', context)
 
@@ -8118,22 +8116,27 @@ def push(request):
 
     member_id = request.GET.get('member_id', '')
     token = request.GET.get('token', '')
+    platform_code = get_platform_code_from_headers(request)
     if member_id:
         is_member = Userinfo.objects.filter(user_id=member_id)
     else:
         is_member = None
         # send notification if the login drops
-        platform_code = get_platform_code_from_headers(request)
         send_login_dropoff_notification.delay(token,platform_code)
 
     info_logger.info("Push Notification hit without member id")
+
     success = False
     if is_member:
+        if platform_code == 'an':
+            platform_code = 'Android'
+        elif platform_code == 'ios':
+            platform_code = 'iOS'
 
         success = True
         # if not is_member[0].fcm_token:
         #     send_welcome_mail.delay(member_id)
-        fcm_token = Userinfo.objects.filter(user_id=member_id).update(fcm_token=token)
+        fcm_token = Userinfo.objects.filter(user_id=member_id).update(fcm_token=token,mobile_os=platform_code)
 
         info_logger.info("Push Notification hit with member id")
         info_logger.info(member_id)

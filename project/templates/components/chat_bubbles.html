@@ -271,8 +271,7 @@
         {% endif %}
     {% endfor %}
 {% endfor %}
-
-{% if answers.chatroom.show_follow_telescope %}
+{% if  current_user.follow_status == False%}
     <div class="mb36 mt48 taC" id="followChat" id="follow_poll" data-status="{% if current_user.collabcard_state == 2 or current_user.collabcard_state == 3 %}false{% else %}true{% endif %}">
         <img src="https://firebasestorage.googleapis.com/v0/b/collabmates-beta.appspot.com/o/files%2Fmain_website%2Ffollow_icon.png?alt=media&amp;token=6a4641fe-4ab2-4e21-b235-8d820a67843b">
         <div class="c6 fs14 lh18 mA p160 w228">
