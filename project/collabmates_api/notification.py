@@ -644,7 +644,7 @@ def get_custom_data_for_new_conversation_created_ios(user_id):
             temp['chatroom_last_conversation_user_image'] = last_instance.user.userinfo.image_link
             temp['chatroom_last_conversation_timestamp'] = last_instance.created_at
 
-            temp['route_child'] = """route://collabcard?collabcard_id=%s&last_conversation_id=%s"""%(str(conversation.card.id),str(last_conversation.id))
+            temp['route_child'] = """route://collabcard?collabcard_id=%s&last_conversation_id=%s"""%(str(conversation.card.id),str(last_instance.id))
 
 
     return temp
