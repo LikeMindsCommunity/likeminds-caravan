@@ -2143,8 +2143,14 @@ def create_community_questions(res):
     community_id = res['community_id']
     community_instance = Community.objects.get(id=community_id)
 
+    question_count = 0
+    current_question_count = communityQuestions.objects.filter(community=community_instance).count()
+
     if 'questions' in res:
         for question in res['questions']:
+
+            # counting the number of questions in order to show edit required to users
+            question_count = question_count + 1
 
             if question['state'] == question_states.INTRODUCTION:
                 question_filter = communityQuestions.objects.filter(question_state=question_states.INTRODUCTION,community=community_instance)
@@ -2177,8 +2183,11 @@ def create_community_questions(res):
                 questions_instance.save()
 
 
+
+
     #setting the state of community in order to make it editable
-    Members.objects.filter(community_id=community_instance,state=member_states.MEMBER).update(edit_required=True)
+    if current_question_count != question_count:
+        Members.objects.filter(community_id=community_instance,state=member_states.MEMBER).update(edit_required=True)
 
 
 def create_introduction_question_in_community(community_instance):
