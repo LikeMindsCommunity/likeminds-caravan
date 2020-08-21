@@ -944,7 +944,7 @@ def auto_join_community(community_instance,user_instance):
         member_instance.created_at=time.time()
         member_instance.save()
         #this
-        send_notification_for_join_requests.delay(community_instance.id, True, user_instance.id)
+        # send_notification_for_join_requests.delay(community_instance.id, True, user_instance.id)
 
     # updating the member engage instance
     if not is_member_engage(community_instance,user_instance):
