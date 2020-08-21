@@ -810,12 +810,17 @@ def join_promoter_created_community_version_1(res,request):
                 continue
 
             question_instance = communityQuestions.objects.get(id=question['id'])
+
+            if question_instance.is_hidden:
+                continue
+
             answer_instance = communityAnswers()
             answer_instance.question = question_instance
             answer_instance.member = user_instance
             answer_instance.community = community_instance
             answer_instance.question_answer = question['value']
             answer_instance.question_title = question_instance.question_title
+
             answer_instance.save()
 
             if question_instance.question_state == question_states.CHOICE_SINGLE or question_instance.question_state == question_states.CHOICE_MULTIPLE:
@@ -1009,40 +1014,40 @@ def update_hidden_fields_in_questions(user_instance,community_instance):
 
     for question_instance in question_filter:
 
-        if question_instance.question_state == question_states.EMAIL_ID:
+        # if question_instance.question_state == question_states.EMAIL_ID:
+        #
+        #     email_filter = userEmails.objects.filter(user=user_instance)
+        #     emails = ""
+        #     for data in email_filter:
+        #         emails = emails + str(data.email) + ", "
+        #
+        #     emails = emails[:-2]
+        #
+        #
+        #     if emails:
+        #         answer_instance = communityAnswers()
+        #         answer_instance.question = question_instance
+        #         answer_instance.member = user_instance
+        #         answer_instance.community = community_instance
+        #         answer_instance.question_answer = user_instance.userinfo.email
+        #         answer_instance.question_title = question_instance.question_title
+        #         answer_instance.save()
 
-            email_filter = userEmails.objects.filter(user=user_instance)
-            emails = ""
-            for data in email_filter:
-                emails = emails + str(data.email) + ", "
+        if question_instance.question_state == question_states.MOBILE_NO:
+            mobile_filter = userMobiles.objects.filter(user=user_instance,state=mobile_states.PRIMARY)
 
-            emails = emails[:-2]
+            if not mobile_filter.exists():
+                return
+
+            mobile_no = "+"+str(mobile_filter[0].country_code) + " " + str(mobile_filter[0].mobile_no)
 
 
-            if emails:
+            if mobile_no:
                 answer_instance = communityAnswers()
                 answer_instance.question = question_instance
                 answer_instance.member = user_instance
                 answer_instance.community = community_instance
-                answer_instance.question_answer = user_instance.userinfo.email
-                answer_instance.question_title = question_instance.question_title
-                answer_instance.save()
-
-        elif question_instance.question_state == question_states.MOBILE_NO:
-            mobile_filter = userMobiles.objects.filter(user=user_instance)
-            mobile_nos= ""
-
-            for data in mobile_filter:
-                mobile_nos = mobile_nos + str(data.mobile_no) + ", "
-
-            mobile_nos = mobile_nos[:-2]
-
-            if mobile_nos:
-                answer_instance = communityAnswers()
-                answer_instance.question = question_instance
-                answer_instance.member = user_instance
-                answer_instance.community = community_instance
-                answer_instance.question_answer = mobile_nos
+                answer_instance.question_answer = mobile_no
                 answer_instance.question_title = question_instance.question_title
                 answer_instance.save()
 
@@ -2156,6 +2161,9 @@ def create_community_questions(res):
                     question_instance.field = question['field'] if 'field' in question else False
                     question_instance.save()
 
+            elif question['state'] == question_states.MOBILE_NO:
+                continue
+
             else:
                 questions_instance = communityQuestions()
                 questions_instance.community = community_instance
@@ -2175,7 +2183,7 @@ def create_community_questions(res):
 
 def create_introduction_question_in_community(community_instance):
 
-    '''function to create introduction question in community'''
+    '''function to create introduction question in community and mobile information'''
 
     help_text = None
     field_filter = communityField.objects.filter(state=question_states.INTRODUCTION,
@@ -2187,13 +2195,31 @@ def create_introduction_question_in_community(community_instance):
     value_list = [{"min_chars": "50", "max_chars": "No limit"}]
     questions_instance = communityQuestions()
     questions_instance.community = community_instance
-    questions_instance.question_title = "Introduce yourself"
+    questions_instance.question_title = field_filter[0].question_title if field_filter.exists() else "Introduce yourself"
     questions_instance.question_state = question_states.INTRODUCTION
     questions_instance.value = json.dumps(value_list)
     questions_instance.optional = False
     questions_instance.help_text = help_text
     questions_instance.is_hidden = False
     questions_instance.save()
+
+
+    value_list = [{"answer_privacy": "Private"}]
+    questions_instance = communityQuestions()
+    questions_instance.community = community_instance
+    questions_instance.question_title = "Phone No."
+    questions_instance.question_state = question_states.MOBILE_NO
+    questions_instance.value = json.dumps(value_list)
+    questions_instance.optional = False
+    questions_instance.help_text = ''
+    questions_instance.is_hidden = True
+    questions_instance.field = True
+    questions_instance.save()
+
+
+
+
+
 
 def post_member_directly_link(card_instance,user_instance,community_instance):
 
@@ -6971,10 +6997,10 @@ def login_with_google(google_id_token,request,res,login_type="google"):
         # see if user has tags or not
         has_tags = userinfo.has_tags
 
-        # saving the OS type of user (Android,iOS,WEB)
-        request_type = get_request_type(request)
-        if request_type:
-            Userinfo.objects.filter(user_id=usr['id']).update(mobile_os=request_type)
+        # # saving the OS type of user (Android,iOS,WEB)
+        # request_type = get_request_type(request)
+        # if request_type:
+        #     Userinfo.objects.filter(user_id=usr['id']).update(mobile_os=request_type)
 
         # User asscoaited tags if any present
         if has_tags:
@@ -7041,10 +7067,10 @@ def login_with_facebook(request,res,json_to_save,login_type="facebook"):
     # see if user has tags or not
     has_tags = userinfo.has_tags
     
-    # saving the OS type of user (Android,iOS,WEB)
-    request_type = get_request_type(request)
-    if request_type:
-        Userinfo.objects.filter(user_id=usr['id']).update(mobile_os=request_type)
+    # # saving the OS type of user (Android,iOS,WEB)
+    # request_type = get_request_type(request)
+    # if request_type:
+    #     Userinfo.objects.filter(user_id=usr['id']).update(mobile_os=request_type)
 
     #login in when the request is web
     if is_request_web(request):
@@ -7102,10 +7128,10 @@ def login_with_linkedin(request,res,json_to_save,login_type="linkedIn"):
     # see if user has tags or not
     has_tags = userinfo.has_tags
 
-    # saving the OS type of user (Android,iOS,WEB)
-    request_type = get_request_type(request)
-    if request_type:
-        Userinfo.objects.filter(user_id=usr['id']).update(mobile_os=request_type)
+    # # saving the OS type of user (Android,iOS,WEB)
+    # request_type = get_request_type(request)
+    # if request_type:
+    #     Userinfo.objects.filter(user_id=usr['id']).update(mobile_os=request_type)
 
     if has_tags:
         tags = get_user_lpig_tags(usr['id'])
@@ -7166,10 +7192,10 @@ def login_with_apple(request,res,json_to_save,login_type="apple"):
     # see if user has tags or not
     has_tags = userinfo.has_tags
 
-    # saving the OS type of user (Android,iOS,WEB)
-    request_type = get_request_type(request)
-    if request_type:
-        Userinfo.objects.filter(user_id=usr['id']).update(mobile_os=request_type)
+    # # saving the OS type of user (Android,iOS,WEB)
+    # request_type = get_request_type(request)
+    # if request_type:
+    #     Userinfo.objects.filter(user_id=usr['id']).update(mobile_os=request_type)
 
     # User asscoaited tags if any present
     if has_tags:
@@ -7216,10 +7242,10 @@ def custom_login(request,res,login_type="custom"):
     # see if user has tags or not
     has_tags = user_instance.userinfo.has_tags
 
-    # saving the OS type of user (Android,iOS,WEB)
-    request_type = get_request_type(request)
-    if request_type:
-        Userinfo.objects.filter(user_id=user_instance.id).update(mobile_os=request_type)
+    # # saving the OS type of user (Android,iOS,WEB)
+    # request_type = get_request_type(request)
+    # if request_type:
+    #     Userinfo.objects.filter(user_id=user_instance.id).update(mobile_os=request_type)
 
 
     context['user'] = usr

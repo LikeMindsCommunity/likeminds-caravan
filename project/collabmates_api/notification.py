@@ -74,13 +74,14 @@ def send_notification_for_ios(token_list, message):
     push_service = FCMNotification(api_key=server_key)
 
     extra_kwargs = {
-        'mutable_content': True
+        "mutable_content": True
     }
 
     result = push_service.notify_multiple_devices(registration_ids=token_list,
                                                   message_title=message['payload']['title'],
                                                   message_body=message['payload']['sub_title'],
-                                                  data_message=message['payload'],extra_kwargs=extra_kwargs)
+                                                  data_message=message['payload'],
+                                                  extra_kwargs=extra_kwargs)
 
     print(result)
 
@@ -100,22 +101,26 @@ def notification_meta(notification_list,message):
 
     token_list_android=[]
     token_list_ios=[]
-    
     for data in notification_list:
 
         if data['mobile_os'] == "Android":
             token_list_android.append(data['fcm_token'])
         else:
             token_list_ios.append(data['fcm_token'])
+            #functionalities for iOS flow
+            if 'message' in data:
+                send_notification_for_ios(token_list_ios, data['message'])
+            else:
+                send_notification_for_ios(token_list_ios,message)
+            token_list_ios = []
 
-        print(data)
+        #print(data)
 
     if token_list_android:
         send_notification_for_android(token_list_android,message)
 
-    if token_list_ios:
-        send_notification_for_ios(token_list_ios,message)
-
+    # if token_list_ios:
+    #     send_notification_for_ios(token_list_ios,message)
 
 
 
@@ -502,7 +507,7 @@ def send_follow_notification(card_id,user_id,answer):
             "title":str(get_title_from_collabcard(card)),
             "sub_title":str(answerer_name[0])+": "+answer_text,
             "route":"route://collabcard?collabcard_id="+str(card_id)
-            #"unread_conversation" : unread_conversation
+
         }
         # message['payload']={
         #     "title":str(answerer_name[0]) + " responded",
@@ -517,8 +522,13 @@ def send_follow_notification(card_id,user_id,answer):
                 temp={}
                 notification_details = get_token_for_fcm(member[0],True)
                 temp['id']=member[0]
-                temp['fcm_token']=notification_details[0]
-                temp['mobile_os']=notification_details[1]
+                temp['fcm_token'] = notification_details[0]
+                temp['mobile_os'] = notification_details[1]
+                if temp['mobile_os'] == 'iOS':
+                    unread_followed_chatroom = get_custom_data_for_new_conversation_created_ios(temp['id'])
+                    message['payload']['unread_followed_chatroom'] = unread_followed_chatroom
+                    temp['message'] = message
+
                 notification_list.append(temp)
 
         notification_meta(notification_list,message)
@@ -588,6 +598,61 @@ def get_custom_data_for_new_conversation_created(user_id):
     return unread_conversation
 
 
+def get_custom_data_for_new_conversation_created_ios(user_id):
+
+    '''function to send custom data in case of ios'''
+
+
+    time.sleep(2)
+    followed_chatrooms = conversationEngage.objects.filter(user_id=user_id,draft_id=None).order_by('-updated_at','-id')
+
+
+    temp = {}
+
+    if followed_chatrooms.exists():
+
+        conversation = followed_chatrooms[0]
+        if not conversation.unseen_count:
+            return {}
+
+        chatroom_name = get_title_from_collabcard(conversation.card)
+
+        if conversation.unseen_count > 1:
+            chatroom_name = chatroom_name+""" (%s messages)"""%(str(conversation.unseen_count))
+
+
+        temp['community_name'] = conversation.card.community.name
+        temp['chatroom_name'] = chatroom_name
+        temp['chatroom_title'] = conversation.card.title
+        temp['chatroom_user_name'] = conversation.user.userinfo.name
+        temp['chatroom_user_image'] = conversation.user.userinfo.image_link
+        temp['chatroom_id'] =  conversation.card.id
+        temp['notification_id'] = str(conversation.card.id)+"_followed"
+        temp['route'] = """route://chatroom_followed_feed?community_id=%s&community_name=%s"""%(str(conversation.card.community.id),str(conversation.card.community.name))
+        temp['chatroom_unread_conversation_count'] = conversation.unseen_count
+        temp['community_id'] = str(conversation.card.community.id)
+        temp['community_image'] = conversation.card.community.image_link
+
+
+
+        last_conversation = ""
+        last_instance = card_answers.objects.filter(card=conversation.card,state=0).last()
+        if last_instance:
+            last_conversation = last_instance.answer
+            temp['chatroom_last_conversation'] = last_conversation
+            temp['chatroom_last_conversation_user_name'] = last_instance.user.userinfo.name
+            temp['chatroom_last_conversation_user_image'] = last_instance.user.userinfo.image_link
+            temp['chatroom_last_conversation_timestamp'] = last_instance.created_at
+
+            temp['route_child'] = """route://collabcard?collabcard_id=%s&last_conversation_id=%s"""%(str(conversation.card.id),str(last_conversation.id))
+
+
+    return temp
+
+
+
+
+
 
 
 @shared_task
@@ -609,9 +674,11 @@ def send_notification_to_tagged_users(card_id,answerer_name,answer,user_id,user_
             "route":"route://collabcard?collabcard_id="+str(card_id),
         }
 
+        if chatroom_created:
+            custom_payload = get_custom_data_for_new_chatroom_created(card)
+            message['payload']['unread_new_chatroom'] = custom_payload
 
-        custom_payload = get_custom_data_for_new_chatroom_created(card)
-        message['payload']['unread_new_chatroom'] = custom_payload
+
 
 
         notification_list = []
@@ -620,6 +687,13 @@ def send_notification_to_tagged_users(card_id,answerer_name,answer,user_id,user_
         temp['id'] = user_id
         temp['fcm_token'] = notification_details[0]
         temp['mobile_os'] = notification_details[1]
+
+        if temp['mobile_os'] == 'iOS' and chatroom_created == False:
+            #case for send conversation message
+            unread_followed_chatroom = get_custom_data_for_new_conversation_created_ios(user_id)
+            message['payload']['unread_followed_chatroom'] = unread_followed_chatroom
+            temp['message'] = message
+
         notification_list.append(temp)
 
         notification_meta(notification_list, message)
