@@ -4030,8 +4030,6 @@ def collabcard(request, card_id):
 
 
 
-
-
         if card_category == "EVENT_CARD":
             return render(request, 'event.html', context)
 
