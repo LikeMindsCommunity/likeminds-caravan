@@ -2148,7 +2148,7 @@ def create_community_questions(res):
 
                     question_instance.field = question['field'] if 'field' in question else False
                     question_instance.save()
-                    
+
             elif question['state'] == question_states.MOBILE_NO:
                 continue
 
@@ -6987,10 +6987,10 @@ def login_with_google(google_id_token,request,res,login_type="google"):
         # see if user has tags or not
         has_tags = userinfo.has_tags
 
-        # saving the OS type of user (Android,iOS,WEB)
-        request_type = get_request_type(request)
-        if request_type:
-            Userinfo.objects.filter(user_id=usr['id']).update(mobile_os=request_type)
+        # # saving the OS type of user (Android,iOS,WEB)
+        # request_type = get_request_type(request)
+        # if request_type:
+        #     Userinfo.objects.filter(user_id=usr['id']).update(mobile_os=request_type)
 
         # User asscoaited tags if any present
         if has_tags:
@@ -7057,10 +7057,10 @@ def login_with_facebook(request,res,json_to_save,login_type="facebook"):
     # see if user has tags or not
     has_tags = userinfo.has_tags
     
-    # saving the OS type of user (Android,iOS,WEB)
-    request_type = get_request_type(request)
-    if request_type:
-        Userinfo.objects.filter(user_id=usr['id']).update(mobile_os=request_type)
+    # # saving the OS type of user (Android,iOS,WEB)
+    # request_type = get_request_type(request)
+    # if request_type:
+    #     Userinfo.objects.filter(user_id=usr['id']).update(mobile_os=request_type)
 
     #login in when the request is web
     if is_request_web(request):
@@ -7118,10 +7118,10 @@ def login_with_linkedin(request,res,json_to_save,login_type="linkedIn"):
     # see if user has tags or not
     has_tags = userinfo.has_tags
 
-    # saving the OS type of user (Android,iOS,WEB)
-    request_type = get_request_type(request)
-    if request_type:
-        Userinfo.objects.filter(user_id=usr['id']).update(mobile_os=request_type)
+    # # saving the OS type of user (Android,iOS,WEB)
+    # request_type = get_request_type(request)
+    # if request_type:
+    #     Userinfo.objects.filter(user_id=usr['id']).update(mobile_os=request_type)
 
     if has_tags:
         tags = get_user_lpig_tags(usr['id'])
@@ -7182,10 +7182,10 @@ def login_with_apple(request,res,json_to_save,login_type="apple"):
     # see if user has tags or not
     has_tags = userinfo.has_tags
 
-    # saving the OS type of user (Android,iOS,WEB)
-    request_type = get_request_type(request)
-    if request_type:
-        Userinfo.objects.filter(user_id=usr['id']).update(mobile_os=request_type)
+    # # saving the OS type of user (Android,iOS,WEB)
+    # request_type = get_request_type(request)
+    # if request_type:
+    #     Userinfo.objects.filter(user_id=usr['id']).update(mobile_os=request_type)
 
     # User asscoaited tags if any present
     if has_tags:
@@ -7232,10 +7232,10 @@ def custom_login(request,res,login_type="custom"):
     # see if user has tags or not
     has_tags = user_instance.userinfo.has_tags
 
-    # saving the OS type of user (Android,iOS,WEB)
-    request_type = get_request_type(request)
-    if request_type:
-        Userinfo.objects.filter(user_id=user_instance.id).update(mobile_os=request_type)
+    # # saving the OS type of user (Android,iOS,WEB)
+    # request_type = get_request_type(request)
+    # if request_type:
+    #     Userinfo.objects.filter(user_id=user_instance.id).update(mobile_os=request_type)
 
 
     context['user'] = usr
