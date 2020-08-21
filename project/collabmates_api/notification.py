@@ -40,13 +40,13 @@ server_key=settings.FCM_SERVER_KEY
 #notifications for different mobile os versions
 def send_test_notification(token_list,subtitle):
     result = ""
-    message = {}
-    message['payload']={
-        'title': 'title',
-        'sub_title': 'sub_title',
-        'route': 'route://community?community_id=49016'
-    }
-    message['payload']['sub_title'] = subtitle
+    message = message
+    # message['payload']={
+    #     'title': 'title',
+    #     'sub_title': 'sub_title',
+    #     'route': 'route://community?community_id=49016'
+    # }
+    # message['payload']['sub_title'] = sub_titlee
     push_service = FCMNotification(api_key=server_key)
     result = push_service.notify_multiple_devices(registration_ids=token_list,
                                                   data_message=message['payload'])
@@ -98,9 +98,9 @@ def notification_meta(notification_list,message):
 
     '''function to process notification to send'''
 
-
     token_list_android=[]
     token_list_ios=[]
+
     for data in notification_list:
 
         if data['mobile_os'] == "Android":
@@ -644,7 +644,7 @@ def get_custom_data_for_new_conversation_created_ios(user_id):
             temp['chatroom_last_conversation_user_image'] = last_instance.user.userinfo.image_link
             temp['chatroom_last_conversation_timestamp'] = last_instance.created_at
 
-            temp['route_child'] = """route://collabcard?collabcard_id=%s&last_conversation_id=%s"""%(str(conversation.card.id),str(last_conversation.id))
+            temp['route_child'] = """route://collabcard?collabcard_id=%s&last_conversation_id=%s"""%(str(conversation.card.id),str(last_instance.id))
 
 
     return temp
