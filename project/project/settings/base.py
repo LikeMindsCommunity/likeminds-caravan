@@ -216,7 +216,6 @@ SOCIAL_AUTH_PIPELINE = (
 
 )
 
-ADMINS = [('mahesh', 'mahesh61437mahe@gmail.com'),('Priyanshu','rastogi.fresh88@gmail.com')]
 TEAM = [('hello', 'hello@likeminds.community')]
 
 
