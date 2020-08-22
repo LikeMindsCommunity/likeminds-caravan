@@ -151,20 +151,29 @@ def get_filtered_member_instances(member_list,current_user_id,community_id,is_fi
     '''function to get members instances from members table'''
 
     members = []
+    current_user = {}
 
     for member in member_list:
         member_id = member.member_id.id
-        userinfo_serialized_object = get_user_profile(member_id,community_id,current_user_id=current_user_id)
-        userinfo_serialized_object['state'] = member.state
+        userinfo_serialized_object = MembersSerializer(member,community_id,current_user_id=current_user_id)
 
         if not is_filter:
-            members.append(userinfo_serialized_object)
-            #pass
+            if member_id == int(current_user_id):
+                current_user = userinfo_serialized_object
+            else:
+                members.append(userinfo_serialized_object)
+
         else:
             if member_id in member_set:
-                members.append(userinfo_serialized_object)
-                #members.append(member_id)
+                if member_id == int(current_user_id):
+                    current_user = userinfo_serialized_object
+                else:
+                    members.append(userinfo_serialized_object)
 
+    # for making the logged in user name first
+    members = sorted(members,key= lambda i:i['name'])
+    if current_user:
+        members.insert(0,current_user)
     return members
 
 def get_filtered_users(filter_list,member_list):
