@@ -56,8 +56,7 @@ def get_pending_members_of_community(community_id,requested_member_id):
 
     for pending_member in member_filter:
 
-        user_profile = get_user_profile(pending_member.member_id.id,community_id,current_user_id=requested_member_id)
-        user_profile['state'] = pending_member.state
+        user_profile = MembersSerializer(pending_member,community_id,current_user_id=requested_member_id)
 
         pending_requests.append(user_profile)
 
@@ -242,3 +241,7 @@ def get_members_data_for_collabcard(card_id,community_id,current_user_id,page_no
 
 
     return members
+
+def intersect_sets(set1,set2):
+
+    return set1.intersection(set2)

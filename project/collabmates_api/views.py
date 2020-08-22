@@ -495,17 +495,23 @@ def admins(request, community_id,req_dict=None):
 
 
     current_user_id = get_member_id_from_headers(request)
-    admins = Members.objects.filter(community_id=community_id,state=member_states.ADMIN)
+    admins = Members.objects.filter(community_id=community_id,state=member_states.ADMIN).order_by('-created_at')
     users = []
-
+    current_member_data = {}
     for admin in admins:
 
         user_instance = admin.member_id
-        temp = get_members_profile([user_instance.id],community_id,current_user_id)
-        if temp:
-            users.append(temp[0])
+        if user_instance.id == int(current_user_id):
+            temp = MembersSerializer(admin,community_id,current_user_id=current_user_id)
+            current_member_data = temp
+        else:
+            temp = MembersSerializer(admin,community_id,current_user_id=current_user_id)
+            users.append(temp)
 
 
+
+    if current_member_data:
+        users.insert(0,current_member_data)
     context = {'members': users}
 
 
@@ -8468,9 +8474,7 @@ Once verified, we will send an email on: """+str(email)
     return member_direction_lock
 
 
-def intersect_sets(set1,set2):
 
-    return set1.intersection(set2)
 
 def invite_members(request):
     ''' function to get members requested to join in a community '''
