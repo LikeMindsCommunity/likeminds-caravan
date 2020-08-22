@@ -60,6 +60,7 @@ from .serializers import *
 from .static_files import *
 from .static_text import *
 from .members import *
+from .headers import *
 from .tasks import send_email_to_nominated_admin, send_email_for_new_collabcard_posted, send_welcome_mail, \
     send_verification_mail_for_email_sync,send_tagged_user_mail,send_chatroom_owner_mail,send_community_confirmation_email
 
@@ -8884,57 +8885,6 @@ def get_profile(request):
         print("userinfo object does not exist")
 
     return JsonResponse({'user': []})
-
-
-
-#getting data from headers
-
-def get_member_id_from_headers(request):
-    '''function to get member id from headers'''
-    headers = request.META
-
-    member_id = None
-    if 'HTTP_X_MEMBER_ID' in headers and 'HTTP_X_VERSION_CODE' in headers:
-        member_id = headers['HTTP_X_MEMBER_ID']
-    elif 'HTTP_X_MEMBER_ID' in headers:
-        member_id = headers['HTTP_X_MEMBER_ID']
-
-    return member_id
-
-
-
-def get_platform_code_from_headers(request):
-
-    headers = request.META
-
-    platform_code = 0
-    if 'HTTP_X_PLATFORM_CODE' in headers:
-        platform_code = headers['HTTP_X_PLATFORM_CODE']
-
-    return platform_code
-
-
-def is_request_web(request):
-
-    '''function to tell if the request is web or not'''
-
-    platform_code = get_platform_code_from_headers(request)
-    if platform_code == 0:
-        return True
-
-    return False
-
-
-def get_version_code_from_headers(request):
-
-    headers = request.META
-
-    version_code = None
-
-    if 'HTTP_X_VERSION_CODE' in headers:
-        version_code = headers['HTTP_X_VERSION_CODE']
-
-    return version_code
 
 
 ################ functions for getting and setting of tags ##########################################

@@ -1,0 +1,48 @@
+#filtes to take from headers
+
+def get_member_id_from_headers(request):
+    '''function to get member id from headers'''
+    headers = request.META
+
+    member_id = None
+    if 'HTTP_X_MEMBER_ID' in headers and 'HTTP_X_VERSION_CODE' in headers:
+        member_id = headers['HTTP_X_MEMBER_ID']
+    elif 'HTTP_X_MEMBER_ID' in headers:
+        member_id = headers['HTTP_X_MEMBER_ID']
+
+    return member_id
+
+
+
+def get_platform_code_from_headers(request):
+
+    headers = request.META
+
+    platform_code = 0
+    if 'HTTP_X_PLATFORM_CODE' in headers:
+        platform_code = headers['HTTP_X_PLATFORM_CODE']
+
+    return platform_code
+
+
+def is_request_web(request):
+
+    '''function to tell if the request is web or not'''
+
+    platform_code = get_platform_code_from_headers(request)
+    if platform_code == 0:
+        return True
+
+    return False
+
+
+def get_version_code_from_headers(request):
+
+    headers = request.META
+
+    version_code = None
+
+    if 'HTTP_X_VERSION_CODE' in headers:
+        version_code = headers['HTTP_X_VERSION_CODE']
+
+    return version_code
