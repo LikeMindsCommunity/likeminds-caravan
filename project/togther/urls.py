@@ -31,9 +31,13 @@ urlpatterns = [
     path('download_the_app', views.download_the_app, name='download_the_app'),
     path('members_directory/<int:community_id>', views.members_directory, name='members_directory'),
     path('member_profile', views.member_profile, name='member_profile'),
-    path('update_email', views.update_email, name='update_email'),
+    # path('update_email', views.update_email, name='update_email'),
     path('oauth/complete/linkedin-oauth2', views.linked_in_authentication, name='linked_in_authentication'),
     path('', include('collabmates_api.urls', namespace='api')),
+    
+
+    path('unsubscribe_from_email', views.unsubscribe_from_email, name='unsubscribe_from_email'),
+
 
     #new urls - to be shifted in cms later
     path('community_wise_details', views.community_wise_details, name='community_wise_details'),

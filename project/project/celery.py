@@ -34,17 +34,6 @@ app.conf.beat_schedule = {
         # minute="*/10" change to `crontab(minute=0, hour=0)` if you want it to run daily at midnight
         # 'schedule':120.0, #for testing purpose
     },
-    # 'pending_members_mail_at_8_AM': {
-    #     'task': 'collabmates_api.tasks.pending_members_mail_new',
-    #     'schedule': crontab(hour=8,minute=0),  #  minute="*/10" change to `crontab(minute=0, hour=0)` if you want it to run daily at midnight
-    #     #'schedule':120.0, #for testing purpose
-    # },
-    # 'compute_rank_task_at_3_AM': {
-    #     'task': 'collabmates_api.raw_queries.ranking_all_users_and_communities',
-    #     'schedule': crontab(hour=3, minute=0),
-    #     # minute="*/10" change to `crontab(minute=0, hour=0)` if you want it to run daily at midnight
-    #     # 'schedule':120.0, #for testing purpose
-    # },
 }
 app.conf.timezone = 'Asia/Kolkata'
 

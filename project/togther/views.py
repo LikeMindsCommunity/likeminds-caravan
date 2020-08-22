@@ -22,7 +22,11 @@ from utility.utils import (get_city_address, update_tag_image,
                            update_user_geography_tags, create_or_categorize_tag,
                            referal, insert_user_home_town_tags, user_onbaord,
                            is_request_android, is_request_ios,
-                           is_request_pc, android_app_download_link, is_IG_community, ios_app_download_link,is_member_verified,feedback_community_id,decode_option,get_members_count_in_community)
+                           is_request_pc, android_app_download_link, 
+                           is_IG_community, ios_app_download_link,is_member_verified,
+                           feedback_community_id,decode_option,get_members_count_in_community,
+                           )
+from utility.encryption import encrypt,decrypt
 from utility.firebase import upload_image_to_firebase
 from urllib.parse import urlencode, quote,unquote
 from collabmates_api.tasks import send_email
@@ -228,17 +232,17 @@ def community(request, community_id):
     if aj and is_request_android(request) and not source:
 
         private_link = "https://" + request.META['HTTP_HOST'] +"/community/"+str(community_id)+"?aj="+str(aj)
-        # redirect_link =  android_app_download_link
-        # #check = android_app_download_link+"&referrer=utm_source"+ quote("""utm_source=google &utm_medium=cpc &utm_term=checking &utm_content=testing &utm_campaign=spring_sale&private_link=https://beta.likeminds.community/community/53?aj=123456""")
-        #
         playstore_ref_link = android_app_download_link+"""&referrer=%s"""%(quote(private_link))
         return redirect(playstore_ref_link)
 
     if aj and is_request_ios(request) and not source:
 
-        ios_private_link = "Collabmates://" + request.META['HTTP_HOST'] +"/community/"+str(community_id)+"?aj="+str(aj)
+        ios_deep_link = "Collabmates://" + request.META['HTTP_HOST'] +"/community/"+str(community_id)+"?aj="+str(aj)
+        ios_branch_link="""https://collabmates.app.link/q9PKG0YPR8?$deep_link=%s"""%(quote(ios_deep_link))
+        print(ios_branch_link)
 
 
+        return redirect(ios_branch_link)
 
 
     # print(aj)
@@ -251,7 +255,7 @@ def community(request, community_id):
     state = 0
     user_instance = None
     is_member = False
-
+    mixpanel_event = ""
     user_context = {}
     user_context['current_user_request_date'] = 0
     if request.user.is_authenticated:
@@ -262,6 +266,8 @@ def community(request, community_id):
         # if profile:
         #     profile_list = get_member_profile(community_id,user_instance.id)
         is_member = is_member_verified(community_id,request.user)
+
+        mixpanel_event = get_mixpanel_statistics(user_instance.id)
 
     if state == 0:
 
@@ -279,7 +285,9 @@ def community(request, community_id):
     context = get_community_context(request,community_instance,user_instance,state,profile_list,is_member,user_context)
 
     context['ios_private_link'] = ios_private_link
-    print(ios_private_link)
+
+    if mixpanel_event:
+        context['mixpanel_event'] = mixpanel_event
 
     return render(request,'community.html',context)
 
@@ -330,6 +338,7 @@ def community_questions(request,params):
     user_instance = None
     state = 0
     analytics = {}
+    mixpanel_event = ""
     if request.user.is_authenticated:
         user_instance = request.user
         state = members_state(request,req_dict={'community_id':community_id,'member_id':user_instance.id})
@@ -338,6 +347,9 @@ def community_questions(request,params):
             return redirect('community',community_id=community_id)
 
         analytics = get_community_join_analytics(user_instance)
+
+        mixpanel_event = get_mixpanel_statistics(user_instance.id)
+
 
 
 
@@ -400,9 +412,10 @@ def community_questions(request,params):
                       }
             context['footer'] = footer
 
-        mixpanel_event = get_event_super_properties_for_mixpanel(user_instance,community_instance)
 
-        context['mixpanel_event'] = mixpanel_event
+
+        if mixpanel_event:
+            context['mixpanel_event'] = mixpanel_event
 
 
         return render(request, 'response_form.html', context)
@@ -444,11 +457,11 @@ def community_questions(request,params):
             rqst.post(join_url, params=params, json=json_dict)
 
         if aj_expired == "" or aj_expired == "True":
-            return JsonResponse({'success':True})
+            return JsonResponse({'success':True, 'aj_expired':aj_expired})
         elif source == "private_link":
-            return JsonResponse({'success': True, 'source': "private_link"})
+            return JsonResponse({'success': True, 'source': "private_link",'aj_expired':aj_expired})
         else:
-            return JsonResponse({'success':True,'source':"members_directory"})
+            return JsonResponse({'success':True,'source':"members_directory",'aj_expired':aj_expired})
 
 
 
@@ -523,9 +536,8 @@ def get_community_context(request,community_instance,user_instance,state,profile
         }
 
 
-    mixpanel_event = get_event_super_properties_for_mixpanel(user_instance,community_instance)
-    if mixpanel_event:
-        context['mixpanel_event'] = mixpanel_event
+
+
 
     return context
 
@@ -837,7 +849,7 @@ def members_directory(request, community_id):
         community_instance = Community.objects.get(id=community_id)
         user_instance = User.objects.get(id=request.user.id)
 
-        mixpanel_event = get_event_super_properties_for_mixpanel(user_instance,community_instance)
+        mixpanel_event = get_mixpanel_statistics(user_instance.id)
 
 
         user_email = request.user.userinfo.email
@@ -2610,7 +2622,7 @@ def community_wise_details(request):
         if community_id and password:
             if password == 'TheTarun@1110':
                 members = Members.objects.filter(community_id = community_id)
-                crs = Collabcard.objects.filter(community = community_id)
+                crs = Collabcard.objects.filter(community = community_id).order_by('date_epoch')
                 answers = card_answers.objects.filter(card__community = community_id)
                 result = []
                 for m in members:
@@ -2619,9 +2631,47 @@ def community_wise_details(request):
                     record['cr_created'] = crs.filter(user = m.member_id).count()
                     record['answers'] = answers.filter(user = m.member_id).count()
                     result.append(record)
+                result_c = []
+                for cr in crs:
+                    record_c = {}
+                    record_c['name'] = cr.header
+                    mem = []
+                    for m in members:
+                        cms = conversationMemberState.objects.filter(card_id=cr.id, user_id=m.member_id)
+                        print()
+                        if cms.exists():
+                            mem.append(cms)
+                    record_c['member'] = mem
+                    result_c.append(record_c)
+
+                    # cms = conversationMemberState.objects.filter(card_id=card_id, user_id=member_id)
                 context = {
                     'result':result,
+                    'crs':crs,
+                    'result_c':result_c,
                 }
+            else:
+                context = {}
+        else:
+            context = {}
     else:
         context = {}
     return render(request, 'cms/community_wise_details.html', context)
+
+
+def unsubscribe_from_email(request):
+    user_hash = request.GET.get('m',None)
+    email = request.GET.get('code',None)
+    user_id = decrypt(user_hash)
+    user = User.objects.get(id=user_id)
+    notification_list = []
+    notification_list.append(email)
+    
+    flag_instance, created = memberNotificationFlag.objects.get_or_create(code=email,member=user)
+    flag_instance.flag = False
+    flag_instance.save()
+    context = {
+        'user':user,
+        'flag':flag_instance.flag,
+    }
+    return render(request,'cms/unsubscribe_from_email.html',context)

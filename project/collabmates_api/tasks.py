@@ -12,14 +12,16 @@ from project.celery import app
 from utility.tasks import send_email
 from utility.utils import (android_app_download_link, ios_app_download_link,
                            is_LG_or_LP_community, is_IG_community,angellist_link,linkedIn_link,get_user_email,
-                           android_app_download_link,ios_app_download_link)
+                           android_app_download_link,ios_app_download_link,check_notification_flag)
+
+from utility.celery_beat_tasks import CeleryBeatTask
 from django.http import JsonResponse
 from django.contrib.auth.models import User
 from togther.models import Collabcard
-
+from utility.encryption import encrypt,decrypt
 from .static_files import GOOGLE_PLAYSTORE,APPLE_APPSTORE,APP_LOGO
-
-url  = settings.URL
+# from datetime import datetime, timedelta
+url = settings.URL
 
 from .notification import get_title_from_collabcard 
 # def send_email(subject,template,to):
@@ -349,7 +351,7 @@ def send_verification_mail_for_email_sync(user_name,verification_link,email):
 
     '''function to send verification mail to user who wants email sync'''
 
-    subject = "Verify your email"
+    subject = user_name + ", verify your email"
     context = {
                 'user_name':user_name,
                 'verification_link':verification_link,
@@ -375,12 +377,12 @@ def send_tagged_user_mail(user_id,card_id,tagged_member_list,time_in_hrs):
         if state.exists():
             has_seen[member_id] = state.first().conversation_id
         else:
-            has_seen_[member_id] = -1
+            has_seen[member_id] = -1
     
     #sleep for n hours
-    # time.sleep(time_in_hrs*60*60)
+    time.sleep(time_in_hrs*60*60)
     #sleeping for 5 mins for testing purposes.
-    time.sleep(2*60)
+    # time.sleep(2*60)
     has_seen_new = {}
     for member_id in tagged_member_list:
         user_name = userinstance.userinfo.name
@@ -393,29 +395,34 @@ def send_tagged_user_mail(user_id,card_id,tagged_member_list,time_in_hrs):
         if state.exists():
             has_seen_new[member_id] = state.first().conversation_id
         else:
-            has_seen_[member_id] = -1
+            has_seen_new[member_id] = -1
 
         #if email exists and he hasnt seen the chat
         if email and has_seen_new[member_id] == has_seen[member_id]:
-            subject = str(user_name) + " is waiting for your response! "
-            email_context = {
-                'subject':subject,
-                'user_name' : user_name,
-                'member_name' : member_name,
-                'community_name' : card_instance.community.name,
-                'card_name' : get_title_from_collabcard(card_instance) ,
-                'profile_pic': userinstance.userinfo.image_link,
-                'android_app_download_link': android_app_download_link,
-                'ios_app_download_link': ios_app_download_link,
-                'playstore_image' : GOOGLE_PLAYSTORE,
-                'applestore_image' : APPLE_APPSTORE,
-                'app_image' : APP_LOGO,
-                'cta_url': url + '/collabcard/' + str(card_id),
-            }
-            template = get_template("mails/tagged_email.html").render(email_context)
+            notification_list = [
+                'mail_send_tagged_user_mail'
+            ]
+            if check_notification_flag(member_id,notification_list,card_id=None,community_id=None):
+                subject = str(user_name) + " is waiting for your response! "
+                email_context = {
+                    'subject':subject,
+                    'user_name' : user_name,
+                    'member_name' : member_name,
+                    'community_name' : card_instance.community.name,
+                    'card_name' : get_title_from_collabcard(card_instance) ,
+                    'profile_pic': userinstance.userinfo.image_link,
+                    'android_app_download_link': android_app_download_link,
+                    'ios_app_download_link': ios_app_download_link,
+                    'playstore_image' : GOOGLE_PLAYSTORE,
+                    'applestore_image' : APPLE_APPSTORE,
+                    'app_image' : APP_LOGO,
+                    'cta_url': url + '/collabcard/' + str(card_id),
+                    'unsubscribe_url':url + '/unsubscribe_from_email?m=' + encrypt(member_id) + '&code=mail_send_tagged_user_mail' 
+                }
+                template = get_template("mails/tagged_email.html").render(email_context)
 
-            to = [email]
-            send_email(subject, template, to)
+                to = [email]
+                send_email(subject, template, to)
 
 
 @shared_task
@@ -426,39 +433,127 @@ def send_chatroom_owner_mail(user_id,card_id,time_in_hrs):
     
     if state.exists():
         last_conversation_id = state.first().conversation_id
+        message_time = state.first().updated_at
     else:
         last_conversation_id = -1
-    
-    message_time = state.first().updated_at
+        message_time = 0
     email = get_user_email(user_id)
-    # time.sleep(time_in_hrs*60*60)
+    time.sleep(time_in_hrs*60*60)
     #sleeping for 5 mins for testing purposes.
-    time.sleep(1*60)
+    # time.sleep(1*60)
     state = conversationMemberState.objects.filter(card_id=card_id, user_id=user_id)
-    new_conversation_id = state.first().conversation_id
+    if state.exists():
+        new_conversation_id = state.first().conversation_id
+    else:
+        new_conversation_id = -1
     if new_conversation_id == last_conversation_id:
-        number_of_messages = card_answers.objects.filter(card__id=card_id,created_at__gte=message_time).count()
-        if number_of_messages == 1:
-            subject = str(user_instance.userinfo.name) + ", " + str(number_of_messages) +" message is waiting for you!"
-        else:
-            subject = str(user_instance.userinfo.name) + ", " + str(number_of_messages) +" messages are waiting for you!"
+        notification_list = [
+            'mail_send_chatroom_owner_mail'
+        ]
+        if check_notification_flag(user_id,notification_list,card_id=None,community_id=None):
+            number_of_messages = card_answers.objects.filter(card__id=card_id,created_at__gte=message_time).count()
+            if number_of_messages == 1:
+                subject = str(user_instance.userinfo.name) + ", " + str(number_of_messages) +" message is waiting for you!"
+            else:
+                subject = str(user_instance.userinfo.name) + ", " + str(number_of_messages) +" messages are waiting for you!"
+            email_context = {
+                    'subject':subject,
+                    'member_name' : user_instance.userinfo.name,
+                    'community_name' : card_instance.community.name,
+                    'card_name' : get_title_from_collabcard(card_instance),
+                    'android_app_download_link': android_app_download_link,
+                    'ios_app_download_link': ios_app_download_link,
+                    'playstore_image' : GOOGLE_PLAYSTORE,
+                    'applestore_image' : APPLE_APPSTORE,
+                    'app_image' : APP_LOGO,
+                    'cta_url': url + '/collabcard/' + str(card_id),
+                    'number_of_messages':number_of_messages,
+                    'unsubscribe_url':url + '/unsubscribe_from_email?m=' + encrypt(user_id) + '&code=mail_send_chatroom_owner_mail' ,
+                }
+            template = get_template("mails/owner_inactive_email.html").render(email_context)
+            to = [email]
+            send_email(subject, template, to)
+            # print(email_context)
+            flag = memberNotificationFlag.objects.get(member_id=user_id,code='mail_card_owner_inactivity',card=card_instance)
+            flag.flag = False
+            flag.save()
+
+
+@shared_task
+def send_community_confirmation_email(user_id, community_id):
+
+    user_instance = User.objects.get(pk=user_id)
+    community_instance = Community.objects.get(id=community_id)
+
+    email = get_user_email(user_id)
+
+    notification_list = [
+        'mail_has_installed_app'
+    ]
+    if check_notification_flag(user_id, notification_list, card_id=None, community_id=None):
+        subject = user_instance.userinfo.name+', Congratulations, your request has been approved!'
         email_context = {
-                'subject':subject,
-                'member_name' : user_instance.userinfo.name,
-                'community_name' : card_instance.community.name,
-                'card_name' : get_title_from_collabcard(card_instance),
-                'android_app_download_link': android_app_download_link,
-                'ios_app_download_link': ios_app_download_link,
-                'playstore_image' : GOOGLE_PLAYSTORE,
-                'applestore_image' : APPLE_APPSTORE,
-                'app_image' : APP_LOGO,
-                'cta_url': url + '/collabcard/' + str(card_id),
-                'number_of_messages':number_of_messages,
-            }
-        template = get_template("mails/owner_inactive_email.html").render(email_context)
-        to = [email]
+            'subject': user_instance.userinfo.name+', Congratulations, your request has been approved!',
+            'member_name': user_instance.userinfo.name,
+            'community_name': community_instance.name,
+            'android_app_download_link': android_app_download_link,
+            'ios_app_download_link': ios_app_download_link,
+            'playstore_image': GOOGLE_PLAYSTORE,
+            'applestore_image': APPLE_APPSTORE,
+            'app_image': APP_LOGO,
+            'cta_url': url + '/community/' + str(community_id),
+            'unsubscribe_url': url + '/unsubscribe_from_email?m=' + encrypt(
+                user_id) + '&code=mail_has_installed_app',
+        }
+        template = get_template("mails/community_confirmation_email.html").render(email_context)
+        # to = [email]
+        to = ['himanshu@likeminds.community']
         send_email(subject, template, to)
-        flag = memberNotificationFlag.objects.get(member_id=user_id,code='mail_card_owner_inactivity',card=card_instance)
-        flag.flag = False
-        flag.save()
+        print(email_context)
+        celerybeatask = CeleryBeatTask()
+        task_name = str(user_id)+"_"+str(community_id) + "_send_community_confirmation_email_2"
+        args = [user_id, community_id,task_name]
+        task_path = "collabmates_api.tasks.send_community_confirmation_email_2"
+        date_time = time.time() + 60
+        # date_time = time.time() + (3*24*60*60)
+        kwargs = {}
+        celerybeatask.create_dynamic_clery_task(args,kwargs, task_name,task_path,
+                                                  date_time=date_time, interval=False, crontab=True)
+
+
+@app.task
+def send_community_confirmation_email_2(user_id, community_id,task_name,*args,**kwargs):
+    print("here")
+    user_instance = User.objects.get(pk=user_id)
+    community_instance = Community.objects.get(id=community_id)
+
+    email = get_user_email(user_id)
+
+    notification_list = [
+        'mail_has_installed_app'
+    ]
+
+    if check_notification_flag(user_id, notification_list, card_id=None, community_id=None):
+        subject = "Hey " + user_instance.userinfo.name + ', you are missing the real action!😬'
+        email_context = {
+            'subject': "Hey " + user_instance.userinfo.name+', you are missing the real action!😬',
+            'member_name': user_instance.userinfo.name,
+            'community_name': community_instance.name,
+            'android_app_download_link': android_app_download_link,
+            'ios_app_download_link': ios_app_download_link,
+            'playstore_image': GOOGLE_PLAYSTORE,
+            'applestore_image': APPLE_APPSTORE,
+            'app_image': APP_LOGO,
+            'cta_url': url + '/community/' + str(community_id),
+            'unsubscribe_url': url + '/unsubscribe_from_email?m=' + encrypt(
+                user_id) + '&code=mail_has_installed_app',
+        }
+        template = get_template("mails/community_confirmation_email_2.html").render(email_context)
+        to = [email]
+        to = ['himanshu@likeminds.community']
+        send_email(subject, template, to)
+        print(email_context)
+    celerybeatask = CeleryBeatTask()
+    celerybeatask.terminate_task(task_name)
+
 

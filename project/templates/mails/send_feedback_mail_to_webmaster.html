@@ -11,15 +11,25 @@
             </div>
             <div style="padding:24px;padding-top:72px;max-width:500px;margin:auto;background:#fff;border-radius:8px;border: 1px solid #eee;box-sizing:border-box;">
                 <div style="font-size:20px;color:#666;text-align:left;font-weight:bold;">
-                    Hello {{user_name}}!
+                    Hello admin!
                 </div>
                 <div style="margin-top:18px;font-size:16px;line-height:24px;color:#718297;text-align:left;">
-                    Thank you for registering on LikeMinds. Please verify your email below:
+                    <b>User details</b><br>
+                    {{feedback.user.email}}<br>
+                    {{feedback.user.name}}
                 </div>
-                <a href="{{verification_link}}" style="background:#00897b;height:44px;line-height:44px;width:162px;border-radius:22px;font-size:13px;line-height:44px;letter-spacing:0.5px;font-weight:bold;color:#fff;margin:48px auto;display:block;text-decoration:none;outline:none;">
-                    VERIFY EMAIL
-                </a>
-                <div style="text-align:left;">
+                <div style="margin-top:18px;font-size:16px;line-height:24px;color:#718297;text-align:left;">
+                    <b>Feedback</b><br>
+                    {{feedback.feedback}}
+                </div>
+                <div style="margin:18px 0;font-size:16px;line-height:24px;color:#000;font-weight:bold;text-align:left">
+                    <b>Images</b><br>
+                    {% for i in feedback.images %}
+                    <img src="{{i}}" alt="" style="width:500px;max-width:100%;">
+                    {% endfor %}
+
+                </div>
+                <div style="text-align:left;margin-top:20px;">
                     <div style="color:#718297;font-size:16px;">
                         Regards
                     </div>
@@ -42,7 +52,7 @@
                 <div style="margin-bottom:8px;">
                     <a href="https://likeminds.community/privacy" class="privacyLink" style="text-decoration:none;color:#718297;">
                         Privacy Policy
-                    </a>  | 
+                    </a>  |
                     <a href="https://likeminds.community/terms" class="termsLink" style="text-decoration:none;color:#718297;">
                         Terms & Condition
                     </a>

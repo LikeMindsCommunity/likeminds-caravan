@@ -9,12 +9,9 @@
                               console.log(typeof x)
 
 
-                              mixpanel.track("CR Link Clicked",{
-                                             "User Community State":"{{mixpanel_event.user_community_state}}",
-                                             "click date": new Date() + "",
-                                             "Creation Date" : "{{collabcard.link_created_at}}",
-                                             "Chatroom Name": "{{collabcard.header}}",
-                                             "Chatroom Type" : "{{collabcard.chatroom_category}}"
+                              mixpanel.track("Chatroom link clicked",{
+                                             "unique_code":'{{aj}}',
+                                             "current_date":'{{current_date}}'
                                              })
 
                              <!--    TRACKER ENDS    -->

@@ -65,6 +65,10 @@ class Members(models.Model):
     #column to edit actions required
     actions_required = models.BooleanField(null=True)
 
+    image_url = models.TextField(null=True)
+
+
+
     def __str__(self):
         return self.community_id.name
 
@@ -608,7 +612,7 @@ class Report(models.Model):
     '''Table containing the report data of user'''
 
     tag = models.ForeignKey(Report_Tags, on_delete=models.CASCADE)
-    collabcard = models.ForeignKey(Collabcard, on_delete=models.CASCADE)
+    collabcard = models.ForeignKey(Collabcard, on_delete=models.CASCADE,null=True)
     reported_member_id = models.IntegerField(default=0)
     member = models.ForeignKey(User, on_delete=models.CASCADE)
     reason = models.CharField(max_length=2048, null=True)
@@ -708,6 +712,9 @@ class communityQuestions(models.Model):
     remove_state = models.BooleanField(default=False)
 
     is_hidden = models.BooleanField(default=False)
+
+    field = models.BooleanField(default=False)
+
 
 
 
@@ -919,6 +926,8 @@ class membersEngagePilot(models.Model):
 
 
 
+
+
 class membersPilot(models.Model):
 
     '''model to create members pilot for backuping pilot community users'''
@@ -1047,3 +1056,14 @@ class userPhonebook(models.Model):
     phonebook = models.TextField(null=True)
     created_at = models.BigIntegerField(null=True)
     updated_at = models.BigIntegerField(null=True)
+
+
+
+class userFeedback(models.Model):
+
+    '''api to make save user feedback'''
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    created_at = models.BigIntegerField(null=True)
+    images = models.TextField(null=True)
+    feedback = models.TextField(null=True)

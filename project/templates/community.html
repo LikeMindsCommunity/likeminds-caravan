@@ -190,13 +190,13 @@
                 {% elif Nom_mem_state == 3 %}
                     <button class="m80 h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" disabled>Pending Approval</button>
                 {% elif Nom_mem_state == 1%}
-                    {% include 'components/download_app_bar.html' with title='Use the LikeMinds app' subtitle='You are a promoter, track all updates on app' auto_join=footer %}
+                    <!-- {% include 'components/download_app_bar.html' with title='Use the LikeMinds app' subtitle='You are a promoter, track all updates on app' auto_join=footer %} -->
                     <!-- <button class="h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" onclick="window.location.href='/download_the_app'">Open in App You are a promoter</button> -->
                 {% elif Nom_mem_state == 2 %}
-                    {% include 'components/download_app_bar.html' with title='Use the LikeMinds app' subtitle='You are a promoter, track all updates on app' auto_join=footer %}
+                    <!-- {% include 'components/download_app_bar.html' with title='Use the LikeMinds app' subtitle='You are a promoter, track all updates on app' auto_join=footer %} -->
                     <!-- <button class="h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" onclick="window.location.href='/download_the_app'">Open in App You are a promoter</button> -->
                 {% elif Nom_mem_state == 4 %}
-                    {% include 'components/download_app_bar.html' with title='Use the LikeMinds app' subtitle='Already a Member, track all updates on app' auto_join=footer %}
+                    {% include 'components/download_app_bar.html' with  subtitle='To edit the information provided by you in membership request' auto_join=footer %}
                     <!-- <button class="h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" onclick="window.location.href='/download_the_app'">Open in App Already a Member</button> -->
                 {% elif Nom_mem_state == 5 %}
                     <button class="m80 h44 bgT cF br22 fwM ffR fs13 w228 bd0 ttU" onclick="join('{{community.id}}')">Join Community (Declined)</button>
@@ -851,16 +851,6 @@ The admin has received your request and would take a decision on your membership
             $('#download_pending').click(function(e){
 
 
-                {% if current_user_request_date %}
-                console.log("{{current_user_request_date}}")
-                        mixpanel.track("Approval Pending CTA clicked",{
-
-                            "Community Join Request date": "{{current_user_request_date}}",
-                            "Community Name":"{{community.name}}",
-                            "User Community State":"{{mixpanel_event.user_community_state}}"
-
-                        })
-                {% endif %}
 
                 $('#approval_pending').modal('show')
             })
@@ -880,7 +870,6 @@ The admin has received your request and would take a decision on your membership
         {% include 'scripts/facebook_auth.html' with facebook_auth_id=facebook_auth_id%}
 
         {% include 'scripts/linkedin_auth.html' with request=request %}
-
 
 
     </body>

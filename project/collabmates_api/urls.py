@@ -10,7 +10,7 @@ from django.views.generic import TemplateView
 urlpatterns = [
     #for testing email templates only. remove in prod/beta
 #     path('mail/', TemplateView.as_view(template_name='mails/verify_email_template.html')),
-    path('mail/', TemplateView.as_view(template_name='mails/tagged_email.html')),
+    path('mail/', TemplateView.as_view(template_name='mails/email_otp.html')),
 
     path('communities', api_views.communities, name="communities"),
     path('your_communities/<int:user_id>', api_views.your_communities, name="your_communities"),
@@ -42,6 +42,8 @@ urlpatterns = [
     path('user/<int:user_id>', api_views.user, name="user"),
     path('edit_user',api_views.edit_user,name="edit_user"),
     path('update_email', api_views.update_email, name="update_email"),
+    path('update_mobiles', api_views.update_mobiles, name="update_mobiles"),
+    path('send_feedback', api_views.send_feedback, name="send_feedback"),
 
     path('admins/<int:community_id>', api_views.admins, name="admins"),
     path('members/<int:community_id>', api_views.members, name="members"),
@@ -100,6 +102,9 @@ urlpatterns = [
     path('members_state',api_views.members_state,name='members_state'),
     path('edit_member_profile',api_views.edit_member_profile,name='edit_member_profile'),
     path('remove_from_member',api_views.remove_from_member,name='remove_from_member'),
+    path('fetch_community_profile',api_views.fetch_community_profile,name='fetch_community_profile'),
+    path('fetch_user_chatrooms', api_views.fetch_user_chatrooms, name='fetch_user_chatrooms'),
+    path('fetch_common_communities', api_views.fetch_common_communities, name='fetch_common_communities'),
 
     path('push', api_views.push, name='push'),
     path('collabcard_follow',api_views.collabcard_follow,name='collabcard_follow'),
@@ -143,7 +148,10 @@ urlpatterns = [
 
     #email verify
     path('email_verify', api_views.email_verify, name='email_verify'),
-    path('sync_email', api_views.sync_email, name='sync_email')
+    path('sync_email', api_views.sync_email, name='sync_email'),
+
+    path('test_notification_api',api_views.test_notification_api,name='test_notification_api'),
+    path('unread_conversation_notification', api_views.unread_conversation_notification, name='unread_conversation_notification')
 
 ]
 

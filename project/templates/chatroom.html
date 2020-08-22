@@ -75,7 +75,7 @@
 
 
     {% if not request.user.is_authenticated %}
-        <div class="pF b0 l0 r0 z2 h60 chatInput" onclick="showJoinPopUp()"></div>
+        <div class="pF b60 l0 r0 z2 h60 chatInput" onclick="showJoinPopUp()"></div>
     {% endif %}
 
 
@@ -107,7 +107,7 @@ Are you sure, you want to leave this chat room? You can apply to join this commu
         </div>
 
 
-
+        {% include 'components/download_app_bar.html' with subtitle="Chat rooms are better on our app"  %}
     <script>
 
         $(document.body).on('click','.member_link',function(e){
@@ -364,13 +364,11 @@ Are you sure, you want to leave this chat room? You can apply to join this commu
      $(document.body).on('click','.footer_join',function(e){
 
 
-       mixpanel.track("Community Join CR",{
+       mixpanel.track("Community joined",{
 
-        "footer join click date" : new Date() + "",
-        "CR Name" : "{{collabcard.header}}",
-        "Community Name" : "{{collabcard.community_name}}",
-        "CR type": "{{collabcard.type}}",
-        "User Community State":"{{mixpanel_event.user_community_state}}"
+        "chatroom_name" : "{{collabcard.header}}",
+        "chatroom_type": "{{collabcard.type}}"
+
 
        })
 
