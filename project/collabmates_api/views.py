@@ -499,7 +499,7 @@ def admins(request, community_id,req_dict=None):
 
 
     current_user_id = get_member_id_from_headers(request)
-    admins = Members.objects.filter(community_id=community_id,state=member_states.ADMIN).order_by('')
+    admins = Members.objects.filter(community_id=community_id,state=member_states.ADMIN)
     users = []
 
     for admin in admins:
@@ -8610,8 +8610,6 @@ def get_all_members(request, req_dict=None):
     context = {'members': members,'community':community}
     return context
 
-
-
 def get_filtered_member_instances(member_list,current_user_id,community_id,is_filter=False,member_set=None):
 
     '''function to get members instances from members table'''
@@ -8620,15 +8618,8 @@ def get_filtered_member_instances(member_list,current_user_id,community_id,is_fi
 
     for member in member_list:
         member_id = member.member_id.id
-        userinfo_serialized_object = UserinfoSerializer(member.member_id.userinfo)
+        userinfo_serialized_object = get_user_profile(member_id,community_id,current_user_id=current_user_id)
         userinfo_serialized_object['state'] = member.state
-
-        form_response = FormResponseSerilaizer(community_id,member_id , bl=True,
-                                               current_user_id=current_user_id)
-
-        if form_response:
-            #userinfo_serialized_object['response'] = form_response[0]
-            userinfo_serialized_object['question_answers'] = form_response[1]
 
         if not is_filter:
             members.append(userinfo_serialized_object)
@@ -8639,8 +8630,6 @@ def get_filtered_member_instances(member_list,current_user_id,community_id,is_fi
                 #members.append(member_id)
 
     return members
-
-
 
 def get_filtered_users(filter_list,member_list):
 
@@ -8719,8 +8708,6 @@ def get_members_data_for_collabcard(card_id,community_id,current_user_id,page_no
 
 
     return members
-
-
 
 def get_tagging_list(request):
 

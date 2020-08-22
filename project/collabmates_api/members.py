@@ -45,8 +45,6 @@ def get_tagging_list_internal(community_id,chatroom_id=None):
 
     return tagging_list
 
-
-
 def get_pending_members_of_community(community_id,requested_member_id):
 
     '''functions to get pending members of the community'''
@@ -64,3 +62,5 @@ def get_pending_members_of_community(community_id,requested_member_id):
 
 
     return pending_requests
+
+
