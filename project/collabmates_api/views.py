@@ -5216,7 +5216,7 @@ def community_cards_version_1(request,community_id,req_dict=None):
     '''Version 1 community collabcards'''
     context = {}
     member_id = get_member_id_from_headers(request)
-    total_chatrooms = 0
+
     if not member_id:
         context = get_error_context(False, "send member id in request header")
         return JsonResponse(context)
