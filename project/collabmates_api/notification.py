@@ -54,8 +54,6 @@ def send_test_notification(token_list,subtitle):
 
     
 def send_notification_for_android(token_list,message):
-    token = 'c2YeOc3ITD2Q6y8fG5UrP7:APA91bGTqf8S2abdYAcssiJ_ixKVF1BMiXFheHPfSzxYouO66jr5DBKCzGXXVf-4ihxEr_PE1Q3Gsi70lukkr181tIbmr7yeNDXQkYM_w5vOwCrj_iPhtfDHTJ0lEpUIMSFBNH4vWMv4'
-    token_list.append(token)
     '''function to send notification to android'''
     result=""
     push_service = FCMNotification(api_key=server_key)
