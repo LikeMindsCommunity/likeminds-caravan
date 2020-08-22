@@ -60,7 +60,7 @@ from .serializers import *
 from .static_files import *
 from .static_text import *
 from .members import *
-from .headers import *
+from .utility import *
 from .tasks import send_email_to_nominated_admin, send_email_for_new_collabcard_posted, send_welcome_mail, \
     send_verification_mail_for_email_sync,send_tagged_user_mail,send_chatroom_owner_mail,send_community_confirmation_email
 
@@ -194,12 +194,7 @@ def get_user_communities_by_rank(page_number=1, user_id=None):
     return queryset, is_user_communities.exists()
 
 
-def pagination(queryset, page_number, paginate_by=10):
-    '''function to create pagination and return a query set for page number'''
-    paginator = Paginator(queryset, paginate_by)
-    max_page = len(paginator.page_range)
 
-    return [] if (max_page < int(page_number) or not queryset.exists()) else paginator.get_page(page_number)
 
 
 ############# functions for your communities  api ##########################
@@ -8528,187 +8523,6 @@ def all_members(request):
         return JsonResponse(context)
 
 
-def get_all_members(request, req_dict=None):
-    '''function to get all members of the community'''
-
-    page = request.GET.get('page', 1)
-
-    if not req_dict:
-        community_id = request.GET.get('community_id')
-        collabcard_id = request.GET.get('collabcard_id', None)
-
-
-    else:
-        community_id = req_dict['community_id']
-        collabcard_id = req_dict['collabcard_id'] if 'collabcard_id' in req_dict else None
-
-
-
-    current_user_id = get_member_id_from_headers(request)
-
-    community_instance = Community.objects.get(id=community_id)
-
-
-    # functionality for user filteration based on options
-    context = {}
-
-    if collabcard_id and is_request_web(request):
-        members = get_members_data_for_collabcard(collabcard_id, community_id, current_user_id,page_no=page)
-        # print(members)
-        context = {'members': members}
-        return context
-
-    is_filter = request.GET.get('is_filter', False)
-
-    if is_filter == 'true':
-        is_filter = True
-        member_list = Members.objects.filter(community_id=community_id).filter(
-            Q(state=member_states.ADMIN) | Q(state=member_states.MEMBER) | Q(
-                state=member_states.PROFILE_UNAVAILABLE) | Q(state=member_states.PENDING_MEMBER)).order_by('id')
-
-        member_list = pagination(member_list, page, paginate_by=10)
-        filter_list = request.GET.get('filter', None)
-
-        if filter_list:
-            filter_list = json.loads(filter_list)
-            #info_logger.info(filter_list)
-            member_set = get_filtered_users(filter_list, member_list)
-
-            if collabcard_id:
-                members = get_members_data_for_collabcard(collabcard_id, community_id, current_user_id, page_no = page,member_set = member_set)
-            else:
-                members = get_filtered_member_instances(member_list, current_user_id, community_id, is_filter=is_filter,
-                                               member_set=member_set)
-
-
-
-        else:
-
-            if collabcard_id:
-                members = get_members_data_for_collabcard(collabcard_id, community_id, current_user_id, page_no = page)
-
-            else:
-                member_list = Members.objects.filter(community_id=community_id).filter(
-                        Q(state=member_states.ADMIN) | Q(state=member_states.MEMBER) | Q(
-                            state=member_states.PROFILE_UNAVAILABLE) | Q(state=member_states.PENDING_MEMBER)).order_by(
-                        'id')
-                member_list = pagination(member_list, page, paginate_by=10)
-                members = get_filtered_member_instances(member_list, current_user_id, community_id)
-
-
-    else:
-        # is_filter = False
-        member_list = Members.objects.filter(community_id=community_id).filter(
-            Q(state=member_states.ADMIN) | Q(state=member_states.MEMBER) | Q(
-                state=member_states.PROFILE_UNAVAILABLE)).order_by('id')
-        member_list = pagination(member_list, page, paginate_by=10)
-        members = get_filtered_member_instances(member_list, current_user_id, community_id)
-
-    promoter_instance = is_member_promoter(community_instance,current_user_id)
-
-    community = CommunitySerializer(community_instance,promoter_id=promoter_instance)
-
-    context = {'members': members,'community':community}
-    return context
-
-def get_filtered_member_instances(member_list,current_user_id,community_id,is_filter=False,member_set=None):
-
-    '''function to get members instances from members table'''
-
-    members = []
-
-    for member in member_list:
-        member_id = member.member_id.id
-        userinfo_serialized_object = get_user_profile(member_id,community_id,current_user_id=current_user_id)
-        userinfo_serialized_object['state'] = member.state
-
-        if not is_filter:
-            members.append(userinfo_serialized_object)
-            #pass
-        else:
-            if member_id in member_set:
-                members.append(userinfo_serialized_object)
-                #members.append(member_id)
-
-    return members
-
-def get_filtered_users(filter_list,member_list):
-
-    '''function to get filtered users'''
-
-
-
-    member_set = set()
-
-    for data in member_list:
-        member_set.add(data.member_id.id)
-
-    filter_map={}
-    for data in filter_list:
-        key_list = []
-        question_id = data['question_id']
-        if question_id in filter_map:
-
-            key_list = filter_map[question_id]
-            key_list.append(data['value'])
-            filter_map[question_id] = key_list
-        else:
-            key_list.append(data['value'])
-            filter_map[question_id] = key_list
-
-
-    distinct_members = {}
-
-    for key,value in filter_map.items():
-
-        question_id = key
-        question_set = set()
-        for option in value:
-
-            question_filters = questionFilters.objects.filter(filter=option,
-                                                              question=question_id)
-            for instance in question_filters:
-                question_set.add(instance.member.id)
-        distinct_members[question_id] = question_set
-
-
-    for key,value  in distinct_members.items():
-
-       member_set = intersect_sets(member_set,value)
-
-    return member_set
-
-
-def get_members_data_for_collabcard(card_id,community_id,current_user_id,page_no=1,member_set=None):
-
-
-    #card_instance = Collabcard.objects.get(id=card_id)
-
-    state_list = [collabcard_states.COLLABCARD_STATE_FOLLOW, collabcard_states.COLLABCARD_STATE_ATTEND_FOLLOWING,
-                  collabcard_states.COLLABCARD_STATE_ATTEND_UNFOLLOWING]
-
-    collabcard_state_list = collabcardState.objects.filter(card=card_id).filter(
-        state__in=state_list).filter(removed_status=None).order_by('-user_id')
-
-
-
-    collabcard_state_list = pagination(collabcard_state_list,page_no,paginate_by=10)
-    members = []
-
-    for instance in collabcard_state_list:
-
-        user_instance = instance.user
-
-        if member_set and user_instance.id not in member_set:
-            continue
-        user_context = get_members_profile([user_instance.id],community_id,current_user_id)
-        user_context = user_context[0]
-        user_context['collabcard_state'] = instance.state
-        user_context['is_guest'] = instance.is_guest
-        members.append(user_context)
-
-
-    return members
 
 def get_tagging_list(request):
 
