@@ -499,7 +499,7 @@ def admins(request, community_id,req_dict=None):
 
 
     current_user_id = get_member_id_from_headers(request)
-    admins = Members.objects.filter(community_id=community_id).filter(Q(state=1) | Q(state=2))
+    admins = Members.objects.filter(community_id=community_id,state=member_states.ADMIN).order_by('')
     users = []
 
     for admin in admins:
@@ -3310,75 +3310,7 @@ def check_member(email, community_id, member_id, nominated_member_name,community
 
 
 
-def get_pending_members_of_community(community_id,requested_member_id):
 
-    '''functions to get pending members of the community'''
-
-
-    #info_logger.info("PENDING MEMBERS COUNT CHECK")
-    info_logger.info(community_id)
-    member_id=requested_member_id
-    community = Community.objects.get(id=community_id)
-    pend_requests = Members.objects.filter(community_id=community).filter(state=3)
-
-    is_admin = False
-    is_member_admin = Members.objects.filter(community_id=community, member_id=member_id, state=1)
-    if is_member_admin.exists():
-        is_admin = True
-   # info_logger.info(is_admin)
-
-    is_verified = False
-    is_verified_member = Members.objects.filter(community_id=community, member_id=member_id).filter(
-        Q(state=1) | Q(state=4))
-    if is_verified_member.exists():
-        is_verified = True
-    pending_requests = []
-    is_lg = is_LG_or_LP_community(community)
-
-    for i in pend_requests:
-        if is_lg and is_verified:
-            if str(i.ask_member_id) == str(member_id):
-                # resp = communityAnswers.objects.filter(community=community_id).filter(member=i.member_id.id).order_by('id')
-                user = Userinfo.objects.get(user_id=i.member_id.id)
-                # serilaizing userinfo object
-                usr = UserinfoSerializer(user)
-                # user_response = []
-                # for j in resp:
-                #     # getting the answers of the users who requested to join
-                #     # for the questions that have been asked while requestiong to join in a community
-                #     response_object = {}
-                #     response_object['key'] = j.question_title
-                #     response_object['value'] = j.question_answer
-                #     user_response.append(response_object)
-                response = FormResponseSerilaizer(community_id, i.member_id.id,bl=True,current_user_id=requested_member_id)
-                if response:
-                    usr['response'] = response[0]
-                    usr['question_answers'] = response[1]
-                pending_requests.append(usr)
-        elif is_admin:
-            # resp = communityAnswers.objects.filter(community=community_id).filter(member=i.member_id.id).order_by('id')
-            user = Userinfo.objects.get(user_id=i.member_id.id)
-            # serilaizing userinfo object
-            usr = UserinfoSerializer(user)
-            # user_response = []
-            # for j in resp:
-            #     # getting the answers of the users who requested to join
-            #     # for the questions that have been asked while requestiong to join in a community
-            #     response_object = {}
-            #     response_object['key'] = j.question_title
-            #     response_object['value'] = j.question_answer
-            #     user_response.append(response_object)
-            response = FormResponseSerilaizer(community_id, i.member_id.id, bl=True,current_user_id=requested_member_id)
-            if response:
-                usr['response'] = response[0]
-                usr['question_answers'] = response[1]
-            pending_requests.append(usr)
-
-    # info_logger.info("PENDING MEMBER REQUEST")
-    #
-    # info_logger.info(pending_requests)
-    # info_logger.info("\n\n")
-    return pending_requests
 
 
 def check_for_member_eligibiity(community_id, member_id):
@@ -8790,22 +8722,13 @@ def get_members_data_for_collabcard(card_id,community_id,current_user_id,page_no
 
 
 
-
-
-
-
-
 def get_tagging_list(request):
 
     '''api to get tag list of members'''
 
     community_id = request.GET.get('community_id')
     chatroom_id = request.GET.get('chatroom_id')
-
-
     tagging_list = get_tagging_list_internal(community_id,chatroom_id)
-
-
 
     return JsonResponse({'members':tagging_list})
 

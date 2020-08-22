@@ -4,6 +4,7 @@ from utility.states import collabcard_states, member_states, question_states, co
 
 from django.db.models import Q
 
+from .serializers import get_user_profile
 
 
 def get_tagging_list_internal(community_id,chatroom_id=None):
@@ -43,3 +44,23 @@ def get_tagging_list_internal(community_id,chatroom_id=None):
             tagging_list.append(temp)
 
     return tagging_list
+
+
+
+def get_pending_members_of_community(community_id,requested_member_id):
+
+    '''functions to get pending members of the community'''
+
+    pending_requests = []
+
+    member_filter = Members.objects.filter(community_id=community_id,state=member_states.PENDING_MEMBER)
+
+    for pending_member in member_filter:
+
+        user_profile = get_user_profile(pending_member.member_id.id,community_id,current_user_id=requested_member_id)
+        user_profile['state'] = pending_member.state
+
+        pending_requests.append(user_profile)
+
+
+    return pending_requests

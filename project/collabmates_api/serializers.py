@@ -697,7 +697,7 @@ def get_members_profile(member_ids, community_id, current_user_id=None):
                 community_profile['route'] = """route://member_community_profile?community_id=%s&member_id=%s""" % (
                 str(community_id), str(member_id))
 
-            community_profile['member_since'] = "Member of " + member_filter[
+                community_profile['member_since'] = "Member of " + member_filter[
                 0].community_id.name + " since " + time.strftime('%b %d %Y',
                                                                  time.localtime(member_filter[0].created_at))
             member_profile_list.append(community_profile)
