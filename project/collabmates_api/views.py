@@ -374,6 +374,7 @@ def community(request, community_id,req_dict=None):
     block_leave_community = False
     member_list = Members.objects.filter(community_id=community, member_id=member_id)
     promoter_instance = 0
+    new_dict = {}
     if member_list.exists():
 
         state = member_list[0].state
@@ -382,10 +383,14 @@ def community(request, community_id,req_dict=None):
             is_promoter = True
             promoter_instance = member_list[0].member_id
             block_leave_community = True
+            new_dict['menu'] = MENU['promoter']
 
 
         if state == member_states.PENDING_MEMBER:
             block_leave_community = True
+
+        if state == member_states.MEMBER or state == member_states.PROFILE_UNAVAILABLE:
+            new_dict['menu'] = MENU['member']
     else:
         block_leave_community = True
 
@@ -394,7 +399,7 @@ def community(request, community_id,req_dict=None):
         serialized_object = CommunitySerializer(community,promoter_id=promoter_instance)
     else:
         serialized_object = CommunitySerializer(community)
-    new_dict = {}
+
 
     community_state = get_state_of_community(community)
 
@@ -407,20 +412,7 @@ def community(request, community_id,req_dict=None):
 
     # form a dictionary of community objects
     new_dict.update(serialized_object)
-    # if community:
-    #     community_type = is_IG_community(community)
-    #     if not community_type:
-    #         new_dict['share_text_admin'] = """Hi, I am trying to gather %s community on LikeMinds. It will be good if you can join it.\n""" % (new_dict['name'])
-    #         new_dict['share_text_member'] = """I recently joined %s community on LikeMinds. It will be good if you also join this community.\n""" % (new_dict['name'])
-    #         new_dict['share_text_anonymous'] = """I recently discovered %s community on LikeMinds. You can join this community using this link.\n""" % (new_dict['name'])
-    #     else:
-    #         new_dict['share_text_admin'] = """Hi, I am trying to gather %s community on CollabMates. It will be fun if you can join it.\n""" % (new_dict['name'])
-    #         new_dict['share_text_member'] = """I recently joined %s community on CollabMates. It will be fun if you also join this community.\n""" % (new_dict['name'])
-    #         new_dict['share_text_anonymous'] = """I recently discovered %s community on CollabMates. You can join this community using this link.\n""" % (new_dict['name'])
-    #new_dict['min_referrer_member'] = eligibility_count
 
-    if community.id == feedback_community_id:
-        new_dict['share_url'] = ""
 
     #leave community data
     if not block_leave_community:
@@ -435,8 +427,7 @@ def community(request, community_id,req_dict=None):
             return context
         return JsonResponse(context)
 
-    if req_dict:
-        return new_dict
+
 
     return JsonResponse({'community': new_dict})
 
