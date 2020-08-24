@@ -154,7 +154,7 @@ def get_filtered_member_instances(member_list,current_user_id,community_id,is_fi
     current_user = {}
 
     #fetching the user profile to show his name at top
-    if page == 1:
+    if int(page) == 1:
         current_filter = Members.objects.filter(member_id=current_user_id,community_id=community_id)
         if current_filter.exists():
             if member_set and current_user_id in member_set:
