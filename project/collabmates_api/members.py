@@ -101,7 +101,7 @@ def get_all_members(request, req_dict=None):
             Q(state=member_states.ADMIN) | Q(state=member_states.MEMBER) | Q(
                 state=member_states.PROFILE_UNAVAILABLE) | Q(state=member_states.PENDING_MEMBER)).order_by('id')
 
-        member_list = pagination(member_list, page, paginate_by=10)
+
         filter_list = request.GET.get('filter', None)
 
         if filter_list:
@@ -113,7 +113,7 @@ def get_all_members(request, req_dict=None):
                 members = get_members_data_for_collabcard(collabcard_id, community_id, current_user_id, page_no = page,member_set = member_set)
             else:
                 members = get_filtered_member_instances(member_list, current_user_id, community_id, is_filter=is_filter,
-                                               member_set=member_set)
+                                               member_set=member_set,page=page)
 
 
 
@@ -127,8 +127,8 @@ def get_all_members(request, req_dict=None):
                         Q(state=member_states.ADMIN) | Q(state=member_states.MEMBER) | Q(
                             state=member_states.PROFILE_UNAVAILABLE) | Q(state=member_states.PENDING_MEMBER)).order_by(
                         'id')
-                member_list = pagination(member_list, page, paginate_by=10)
-                members = get_filtered_member_instances(member_list, current_user_id, community_id)
+
+                members = get_filtered_member_instances(member_list, current_user_id, community_id,page=page)
 
 
     else:
@@ -136,8 +136,8 @@ def get_all_members(request, req_dict=None):
         member_list = Members.objects.filter(community_id=community_id).filter(
             Q(state=member_states.ADMIN) | Q(state=member_states.MEMBER) | Q(
                 state=member_states.PROFILE_UNAVAILABLE)).order_by('id')
-        member_list = pagination(member_list, page, paginate_by=30)
-        members = get_filtered_member_instances(member_list, current_user_id, community_id)
+
+        members = get_filtered_member_instances(member_list, current_user_id, community_id,page=page)
 
     promoter_instance = is_member_promoter(community_instance,current_user_id)
 
@@ -146,12 +146,25 @@ def get_all_members(request, req_dict=None):
     context = {'members': members,'community':community}
     return context
 
-def get_filtered_member_instances(member_list,current_user_id,community_id,is_filter=False,member_set=None):
+def get_filtered_member_instances(member_list,current_user_id,community_id,is_filter=False,member_set=None,page=1):
 
     '''function to get members instances from members table'''
 
     members = []
     current_user = {}
+
+    #fetching the user profile to show his name at top
+    if page == 1:
+        current_filter = Members.objects.filter(member_id=current_user_id,community_id=community_id)
+        if current_filter.exists():
+            if member_set and current_user_id in member_set:
+                current_user = MembersSerializer(current_filter[0],community_id,current_user_id=current_user_id)
+            elif not member_set:
+                current_user = MembersSerializer(current_filter[0],community_id,current_user_id=current_user_id)
+
+
+
+    member_list = pagination(member_list, page, paginate_by=10)
 
     for member in member_list:
         member_id = member.member_id.id
@@ -159,19 +172,19 @@ def get_filtered_member_instances(member_list,current_user_id,community_id,is_fi
 
         if not is_filter:
             if member_id == int(current_user_id):
-                current_user = userinfo_serialized_object
+                pass
             else:
                 members.append(userinfo_serialized_object)
 
         else:
             if member_id in member_set:
                 if member_id == int(current_user_id):
-                    current_user = userinfo_serialized_object
+                    pass
                 else:
                     members.append(userinfo_serialized_object)
 
     # for making the logged in user name first
-    members = sorted(members,key= lambda i:i['name'])
+    #members = sorted(members,key= lambda i:i['name'])
     if current_user:
         members.insert(0,current_user)
     return members
