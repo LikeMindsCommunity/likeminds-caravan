@@ -486,7 +486,7 @@ def admins(request, community_id,req_dict=None):
 
 
     current_user_id = get_member_id_from_headers(request)
-    admins = Members.objects.filter(community_id=community_id,state=member_states.ADMIN).order_by('-created_at')
+    admins = Members.objects.filter(community_id=community_id,state=member_states.ADMIN).order_by('-updated_at')
     users = []
     current_member_data = {}
     for admin in admins:
@@ -498,7 +498,7 @@ def admins(request, community_id,req_dict=None):
         else:
             temp = MembersSerializer(admin,community_id,current_user_id=current_user_id)
             users.append(temp)
-        break
+       
 
 
 
@@ -1675,7 +1675,7 @@ def remove_from_member(request):
     if not is_promoter and member_ids == False:
 
         is_member=Members.objects.filter(community_id=community_id,member_id=member_id).filter(
-            Q(state=member_states.KNOWN_NOMINATED_PROMOTER)|Q(state=member_states.MEMBER))
+            Q(state=member_states.KNOWN_NOMINATED_PROMOTER)|Q(state=member_states.MEMBER)|Q(state=member_states.PENDING_MEMBER))
         if is_member.exists():
             remove_members(community_id,member_id,removed_state=deleted_members.LEFT)
             return JsonResponse({'success':True})
