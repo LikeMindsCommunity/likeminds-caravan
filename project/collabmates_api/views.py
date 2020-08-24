@@ -8351,7 +8351,6 @@ def all_members(request):
         return JsonResponse(context)
 
 
-
 def get_tagging_list(request):
 
     '''api to get tag list of members'''

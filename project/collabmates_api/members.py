@@ -136,7 +136,7 @@ def get_all_members(request, req_dict=None):
         member_list = Members.objects.filter(community_id=community_id).filter(
             Q(state=member_states.ADMIN) | Q(state=member_states.MEMBER) | Q(
                 state=member_states.PROFILE_UNAVAILABLE)).order_by('id')
-        member_list = pagination(member_list, page, paginate_by=10)
+        member_list = pagination(member_list, page, paginate_by=30)
         members = get_filtered_member_instances(member_list, current_user_id, community_id)
 
     promoter_instance = is_member_promoter(community_instance,current_user_id)
