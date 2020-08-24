@@ -436,7 +436,7 @@ def community(request, community_id,req_dict=None):
     if menu:
         context['menu'] = menu
 
-    return JsonResponse({'community': context})
+    return JsonResponse(context)
 
 
 
