@@ -2583,7 +2583,7 @@ def create_card_internal(user_id,community_id,res):
 
     update_last_unseen_in_engage_on_card_creation.delay(community_id=community_id)
 
-
+    send_ice_breaker_notification.delay(community_id, time.time(), day=0)
 
     #deleting the draft chatroom
     if 'draft_id' in res:
