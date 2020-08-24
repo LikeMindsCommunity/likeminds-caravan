@@ -8037,55 +8037,26 @@ def get_mixpanel_statistics(member_id):
 def edit_community(request):
     '''function to edit the community'''
 
-    community_id = request.GET.get('community_id')
+    res = json.loads(request.body)
+    community_id = res['community_id']
     member_id = get_member_id_from_headers(request)
-    community = Community.objects.get(id=community_id)
+    try:
+        community_instance = Community.objects.get(id=community_id)
+    except:
+        context = get_error_context(False,"send correct community id")
+        return JsonResponse(context)
 
+    type_id = res['type_id'] if 'type_id' in res else None
+    subtype_id = res['subtype_id'] if 'subtype_id' in res else None
+    about = res['about'] if 'about' in res else None
+    name = res['name']
 
-    if not member_id:
-        return JsonResponse({'success':False,'error_message':"Send member id in headers"})
-    else:
-        member_instance = User.objects.get(id=member_id)
-
-    json_body = json.loads(request.body)
-
-    key = json_body['key']
-
-    if key == 'purpose':
-        value = json_body['value']
-        edit_community_purpose_collabcard(community_instance=community, member_instance=member_instance, purpose=value)
-        community.purpose = value
-        community.save()
-
-
-    elif key == 'questions':
-        questions = json_body['questions']
-        edit_questions(questions, community_id)
-    else:
-        value = json_body['value']
-        Community.objects.filter(id=community_id).update(**{key: value})
-
-        if key == "about":
-            # saving create community action step 5
-            createCommunityAction.objects.filter(community=community_id,
-                                                 step_no="Step 5").update(current_point=15)
-
-
-
-    #saving the updating details for history
-
-    instance = communityUpdate()
-    instance.updated_field = key
-    instance.updated_time = time.time()
-    instance.updated_member = member_instance
-    instance.community = community
-    instance.save()
-
-    serialized_object = CommunitySerializer(community)
-    new_dict = {}
-    new_dict.update(serialized_object)
-
-    return JsonResponse({'success': True, 'community': new_dict})
+    community_instance.type = type_id
+    community_instance.sub_type = subtype_id
+    community_instance.about = about
+    community_instance.name = name
+    community_instance.save()
+    return JsonResponse({'success': True})
 
 
 def edit_questions(questions, community_id):
