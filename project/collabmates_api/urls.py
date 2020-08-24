@@ -78,6 +78,8 @@ urlpatterns = [
 
     #path('image_upload',api_views.image_upload,name = 'image'),
     path('add_admin/<int:community_id>',api_views.add_admin,name = 'add_admin'),
+    path('remove_promoter',api_views.remove_promoter,name = 'remove_promoter'),
+
     path('pending_members/<int:community_id>',api_views.pending_members,name = 'pending_members'),
     path('join',api_views.request_response,name = 'join'),
     path('pending_members_count/<int:community_id>',api_views.pending_request_count,name = 'pending_request_count'),

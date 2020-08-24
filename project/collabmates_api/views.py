@@ -3073,8 +3073,15 @@ def add_admin(request, community_id):
 
     return JsonResponse({'success':True})
 
+@csrf_exempt
+def remove_promoter(request):
 
+    '''api to remove the promoter of community'''
 
+    member_id = request.POST.get('member_id')
+    community_id = request.POST.get('community_id')
+
+    return JsonResponse({'success':True})
 
 def check_member(email, community_id, member_id, nominated_member_name,community_instance):
     """ check if the user is already a member of the invited community and make user as nominated promoter
