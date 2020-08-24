@@ -218,5 +218,6 @@ Anytime if you are looking to exchange referrals or maybe want to have a small g
 
 MENU = {
     'member' : ['Invite members','View all chat rooms','Member directory','Exit community','Report'],
-    'promoter': ['Invite members','View all chat rooms','Member directory','Edit community','Report']
+    'promoter': ['Invite members','View all chat rooms','Member directory','Edit community','Report'],
+    'pending_member':['Cancel joining request']
 }
