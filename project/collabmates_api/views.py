@@ -498,6 +498,7 @@ def admins(request, community_id,req_dict=None):
         else:
             temp = MembersSerializer(admin,community_id,current_user_id=current_user_id)
             users.append(temp)
+        break
 
 
 
@@ -5213,7 +5214,7 @@ def community_cards_version_1(request,community_id,req_dict=None):
     '''Version 1 community collabcards'''
     context = {}
     member_id = get_member_id_from_headers(request)
-
+    size = request.GET.get('size',3)
     if not member_id:
         context = get_error_context(False, "send member id in request header")
         return JsonResponse(context)
@@ -5224,7 +5225,6 @@ def community_cards_version_1(request,community_id,req_dict=None):
         context = get_error_context(False,"send correct community id")
         return JsonResponse(context)
 
-    size = 5
     chatroom_filter = Collabcard.objects.filter(community=community_instance).order_by('-id')
     total_chatrooms = chatroom_filter.count()
     chatroom_list = []
@@ -5238,7 +5238,7 @@ def community_cards_version_1(request,community_id,req_dict=None):
 
 
     context = {
-        'collabcards':chatroom_list,
+        'chatrooms':chatroom_list,
         'total_chatrooms':total_chatrooms
     }
 
@@ -6303,6 +6303,42 @@ def fetch_chatroom_feed(request):
     context['chatrooms'] = chatrooms
     return JsonResponse(context)
 
+
+def fetch_community_chatroom_feed(request):
+
+    '''Version 1 community collabcards'''
+    context = {}
+    member_id = get_member_id_from_headers(request)
+    size = request.GET.get('size',3)
+    community_id = request.GET.get('community_id')
+    if not member_id:
+        context = get_error_context(False, "send member id in request header")
+        return JsonResponse(context)
+
+    try:
+        community_instance = Community.objects.get(id=community_id)
+    except:
+        context = get_error_context(False,"send correct community id")
+        return JsonResponse(context)
+
+    chatroom_filter = Collabcard.objects.filter(community=community_instance).order_by('-id')
+    total_chatrooms = chatroom_filter.count()
+    chatroom_list = []
+    for chatroom in chatroom_filter:
+
+        chatroom_data = get_chatroom_instance(chatroom,member_id)
+        chatroom_list.append(chatroom_data)
+        size = size - 1
+        if size == 0:
+            break
+
+
+    context = {
+        'chatrooms':chatroom_list,
+        'total_chatrooms':total_chatrooms
+    }
+
+    return JsonResponse(context)
 
 
 
