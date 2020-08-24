@@ -388,6 +388,7 @@ def community(request, community_id,req_dict=None):
 
         if state == member_states.PENDING_MEMBER:
             block_leave_community = True
+            new_dict['menu'] = MENU['pending_member']
 
         if state == member_states.MEMBER or state == member_states.PROFILE_UNAVAILABLE:
             new_dict['menu'] = MENU['member']
@@ -486,7 +487,7 @@ def admins(request, community_id,req_dict=None):
 
 
     current_user_id = get_member_id_from_headers(request)
-    admins = Members.objects.filter(community_id=community_id,state=member_states.ADMIN).order_by('-created_at')
+    admins = Members.objects.filter(community_id=community_id,state=member_states.ADMIN).order_by('-updated_at')
     users = []
     current_member_data = {}
     for admin in admins:
@@ -498,7 +499,7 @@ def admins(request, community_id,req_dict=None):
         else:
             temp = MembersSerializer(admin,community_id,current_user_id=current_user_id)
             users.append(temp)
-        break
+
 
 
 
@@ -726,7 +727,7 @@ def join_promoter_created_community_version_1(res,request):
         elif member_state == member_states.PROFILE_UNAVAILABLE:
 
             Members.objects.filter(member_id=user_instance, community_id=community_instance).update(
-                state=member_states.MEMBER)
+                state=member_states.MEMBER,updated_at=time.time())
 
             Member_Engage.objects.filter(member_id=user_instance, community_id=community_instance).update(
                 member_state=member_states.MEMBER,click_state=click_states.DEFAULT)
@@ -735,7 +736,7 @@ def join_promoter_created_community_version_1(res,request):
         else:
 
             Members.objects.filter(member_id=user_instance, community_id=community_instance).update(
-                state=member_states.PENDING_MEMBER)
+                state=member_states.PENDING_MEMBER,updated_at=time.time())
 
             Member_Engage.objects.filter(member_id=user_instance, community_id=community_instance).update(
                 member_state=member_states.PENDING_MEMBER)
@@ -749,6 +750,7 @@ def join_promoter_created_community_version_1(res,request):
         member_instance.community_id = community_instance
         member_instance.state = member_states.PENDING_MEMBER
         member_instance.created_at = time.time()
+        member_instance.updated_at = time.time()
         member_instance.save()
 
         # creating a member engage instance
@@ -791,6 +793,7 @@ def auto_join_community(community_instance,user_instance):
         member_instance.community_id = community_instance
         member_instance.state = member_states.MEMBER
         member_instance.created_at=time.time()
+        member_instance.updated_at = time.time()
         member_instance.save()
         #this
         # send_notification_for_join_requests.delay(community_instance.id, True, user_instance.id)
@@ -1675,7 +1678,7 @@ def remove_from_member(request):
     if not is_promoter and member_ids == False:
 
         is_member=Members.objects.filter(community_id=community_id,member_id=member_id).filter(
-            Q(state=member_states.KNOWN_NOMINATED_PROMOTER)|Q(state=member_states.MEMBER))
+            Q(state=member_states.KNOWN_NOMINATED_PROMOTER)|Q(state=member_states.MEMBER)|Q(state=member_states.PENDING_MEMBER))
         if is_member.exists():
             remove_members(community_id,member_id,removed_state=deleted_members.LEFT)
             return JsonResponse({'success':True})
@@ -3040,7 +3043,7 @@ def add_admin(request, community_id):
 
         info_logger.info(res)
 
-        update_status_member = member_filter.update(state=member_states.ADMIN)
+        update_status_member = member_filter.update(state=member_states.ADMIN,updated_at=time.time())
 
         update_status_engage = engage_filter.update(member_state=member_states.ADMIN)
 
@@ -3610,7 +3613,7 @@ def approve_or_decline_private_community(req_dict,request):
         if not is_member:
             Members.objects.filter(member_id=req_dict['member_id'],
                                    community_id=req_dict['community_id']).update(state=member_states.MEMBER,
-                                                                                 created_at=time.time())
+                                                                                 created_at=time.time(),updated_at=time.time())
 
             Member_Engage.objects.filter(member_id=req_dict['member_id'],
                                          community_id=req_dict['community_id']).update(member_state=member_states.MEMBER,
