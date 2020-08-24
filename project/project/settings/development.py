@@ -1,11 +1,11 @@
 from .base import *
 
 
-DEBUG = True
+DEBUG = False
 
-URL = os.getenv('LOCAL_URL')
+URL = os.getenv('BETA_URL')
 
-DB_HOST=os.getenv('LOCAL_DB_HOST')
+DB_HOST=os.getenv('BETA_DB_HOST')
 
 # Database
 # https://docs.djangoproject.com/en/2.1/ref/settings/#databases
@@ -13,10 +13,10 @@ DB_HOST=os.getenv('LOCAL_DB_HOST')
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': os.getenv('LOCAL_DB_NAME'),
-        'USER': os.getenv('LOCAL_DB_USER'),
-        'PASSWORD':os.getenv('LOCAL_DB_PASSWORD'),
-        'HOST': os.getenv('LOCAL_DB_HOST'),
+        'NAME': os.getenv('BETA_DB_NAME'),
+        'USER': os.getenv('BETA_DB_USER'),
+        'PASSWORD':os.getenv('BETA_DB_PASSWORD'),
+        'HOST': os.getenv('BETA_DB_HOST'),
         'PORT': '5432',
     }
 }
@@ -57,4 +57,3 @@ GHUPSHUP_KEY = "03f92dd7cbf3b983d8c9a4dc7ac485c7"
 
 
 ADMINS = [('mahesh', 'mahesh61437mahe@gmail.com')]
-
