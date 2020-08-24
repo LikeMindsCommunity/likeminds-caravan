@@ -677,7 +677,7 @@ def draftPollsSerializers(poll):
 
 def MembersSerializer(member_instance, community_id, current_user_id=None):
     member_id = member_instance.member_id.id
-    community_profile = get_user_profile(member_id, community_id, current_user_id=current_user_id,send_profile=False)
+    community_profile = get_user_profile(member_id, community_id, current_user_id=current_user_id,send_profile=True)
     community_profile['state'] = member_instance.state
 
     # sending image  url of members
