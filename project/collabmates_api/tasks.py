@@ -310,7 +310,6 @@ def send_pending_members_mail_for_multiple_pending_members(admin, pending_member
 
 @shared_task
 def send_welcome_mail(user_id):
-
     user = User.objects.get(pk = user_id)
     count = 0
     member_communities_list = Members.objects.filter(member_id = user).distinct('community_id')
@@ -380,9 +379,9 @@ def send_tagged_user_mail(user_id,card_id,tagged_member_list,time_in_hrs):
             has_seen[member_id] = -1
     
     #sleep for n hours
-    time.sleep(time_in_hrs*60*60)
+    # time.sleep(time_in_hrs*60*60)
     #sleeping for 5 mins for testing purposes.
-    # time.sleep(2*60)
+    time.sleep(2*60)
     has_seen_new = {}
     for member_id in tagged_member_list:
         user_name = userinstance.userinfo.name
@@ -438,9 +437,9 @@ def send_chatroom_owner_mail(user_id,card_id,time_in_hrs):
         last_conversation_id = -1
         message_time = 0
     email = get_user_email(user_id)
-    time.sleep(time_in_hrs*60*60)
+    # time.sleep(time_in_hrs*60*60)
     #sleeping for 5 mins for testing purposes.
-    # time.sleep(1*60)
+    time.sleep(2*60)
     state = conversationMemberState.objects.filter(card_id=card_id, user_id=user_id)
     if state.exists():
         new_conversation_id = state.first().conversation_id
@@ -506,8 +505,8 @@ def send_community_confirmation_email(user_id, community_id):
                 user_id) + '&code=mail_has_installed_app',
         }
         template = get_template("mails/community_confirmation_email.html").render(email_context)
-        # to = [email]
-        to = ['himanshu@likeminds.community']
+        to = [email]
+        # to = ['himanshu@likeminds.community']
         send_email(subject, template, to)
         print(email_context)
         celerybeatask = CeleryBeatTask()
@@ -550,7 +549,7 @@ def send_community_confirmation_email_2(user_id, community_id,task_name,*args,**
         }
         template = get_template("mails/community_confirmation_email_2.html").render(email_context)
         to = [email]
-        to = ['himanshu@likeminds.community']
+        # to = ['himanshu@likeminds.community']
         send_email(subject, template, to)
         print(email_context)
     celerybeatask = CeleryBeatTask()

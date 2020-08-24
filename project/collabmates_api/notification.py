@@ -312,15 +312,14 @@ def send_notification_for_join_requests(community_id,flag,member_id,promoter_nam
             message['payload']={
                 'title':"Membership approved!",
                 'sub_title':"Congratulations, " + promoter_name + " has accepted your request to join " + community_name,
-
-                'route':'route://member_approved?community_id='+ str(community_id)
+                'route':'//route://community_collabcard?community_id='+ str(community_id) +'&community_name=' + str(community_name)
             }
         else:
             message['payload']={
                 'title':"Membership approved!",
                 'sub_title':"Congratulations, you are now part of the " + community_name + " community",
+                'route':'//route://community_collabcard?community_id='+ str(community_id) +'&community_name=' + str(community_name)
 
-                'route':'route://member_approved?community_id='+ str(community_id)
             }
         notification_meta(notification_list,message)
     # else:
@@ -1183,8 +1182,6 @@ def send_notification_for_directory_creation(community_id,start_time,day=0):
 
     members = Members.objects.filter(community_id=community_id, state__in=[1,4,9],edit_required=True)
 
-
-
     message = {}
 
     message['payload'] = {
@@ -1197,8 +1194,8 @@ def send_notification_for_directory_creation(community_id,start_time,day=0):
         # get tomorrow 9 am
         # start_time = datetime.fromtimestamp(start_time)
         start_time = datetime.fromtimestamp(start_time+(24*60*60))
-        start_time = start_time.replace(hour=9,minute=0)+ timedelta(days=3)
-        # start_time = start_time + timedelta(minutes=2)
+        # start_time = start_time.replace(hour=9,minute=0)+ timedelta(days=3)
+        start_time = start_time + timedelta(minutes=2)
         date_time = start_time.timestamp()
         celerybeatask = CeleryBeatTask()
         task_name =  str(community_id) + str(start_time) + "_3_send_notification_for_directory_creation"
@@ -1213,8 +1210,8 @@ def send_notification_for_directory_creation(community_id,start_time,day=0):
 
     elif day == 3 and members.exists():
         start_time = datetime.fromtimestamp(start_time)
-        start_time = start_time.replace(hour=9,minute=0)+ timedelta(days=2)
-        # start_time = start_time + timedelta(minutes=2)
+        # start_time = start_time.replace(hour=9,minute=0)+ timedelta(days=2)
+        start_time = start_time + timedelta(minutes=2)
         date_time = start_time.timestamp()
         task_name =  str(community_id) + str(start_time)  + "_3_send_notification_for_directory_creation"
         celerybeatask = CeleryBeatTask()
@@ -1243,8 +1240,8 @@ def send_notification_for_directory_creation(community_id,start_time,day=0):
 
     elif day == 5 and members.exists():
         start_time = datetime.fromtimestamp(start_time)
-        start_time = start_time.replace(hour=9,minute=0)+ timedelta(days=2)
-        # start_time = start_time + timedelta(minutes=2)
+        # start_time = start_time.replace(hour=9,minute=0)+ timedelta(days=2)
+        start_time = start_time + timedelta(minutes=2)
         date_time = start_time.timestamp()
         task_name =  str(community_id) + str(start_time) + "_5_send_notification_for_directory_creation"
         celerybeatask = CeleryBeatTask()
@@ -1273,8 +1270,8 @@ def send_notification_for_directory_creation(community_id,start_time,day=0):
 
     elif day == 7 and members.exists():
         start_time = datetime.fromtimestamp(start_time)
-        start_time = start_time.replace(hour=9,minute=0)+ timedelta(days=8)
-        # start_time = start_time + timedelta(minutes=2)
+        # start_time = start_time.replace(hour=9,minute=0)+ timedelta(days=8)
+        start_time = start_time + timedelta(minutes=2)
         date_time = start_time.timestamp()
         task_name =  str(community_id) + str(start_time) + "_7_send_notification_for_directory_creation"
         celerybeatask = CeleryBeatTask()
@@ -1303,8 +1300,8 @@ def send_notification_for_directory_creation(community_id,start_time,day=0):
 
     elif day == 15 and members.exists():
         start_time = datetime.fromtimestamp(start_time)
-        start_time = start_time.replace(hour=9,minute=0)+ timedelta(days=15)
-        # start_time = start_time + timedelta(minutes=2)
+        # start_time = start_time.replace(hour=9,minute=0)+ timedelta(days=15)
+        start_time = start_time + timedelta(minutes=2)
         date_time = start_time.timestamp()
         task_name =  str(community_id) + str(start_time) + "_15_send_notification_for_directory_creation"
         celerybeatask = CeleryBeatTask()
@@ -1353,14 +1350,14 @@ def send_ice_breaker_notification(community_id,start_time,day=0):
         message['payload'] = {
             "title": "Hey " + str(member.member_id.userinfo.name) + "!",
             "sub_title": "",
-            'route': 'route://community?community_id=' + str(community_id)
+            'route':'//route://community_collabcard?community_id='+ str(community_id) +'&community_name=' + str(community_instance.name)
         }
         if day == 3:
             message['payload']['sub_title'] = "Looks like your community is having a dull moment! Start a conversation on something your community would like to discuss."
             notification_meta(notification_list, message)
 
         elif day == 4:
-            message['payload']['sub_title'] = "It has been 4 someone said anything in your community. Don’t let the ball drop, start a conversation now!"
+            message['payload']['sub_title'] = "It has been 4 days that someone said anything in your community. Don’t let the ball drop, start a conversation now!"
             notification_meta(notification_list, message)
 
         elif day == 7:
@@ -1368,14 +1365,14 @@ def send_ice_breaker_notification(community_id,start_time,day=0):
             notification_meta(notification_list, message)
 
         elif day == 9:
-            message['payload']['sub_title'] = "It has been 9 someone said anything in your community. Don’t let the ball drop, start a conversation now!"
+            message['payload']['sub_title'] = "It has been 9 days that someone said anything in your community. Don’t let the ball drop, start a conversation now!"
             notification_meta(notification_list, message)
 
 
 
     if day == 0 and members.exists():
         # get tomorrow 11 am
-        start_time = datetime.fromtimestamp(start_time)
+        start_time = datetime.fromtimestamp(start_time+30)
         # start_time = datetime.fromtimestamp(start_time+(24*60*60))
         # start_time = start_time.replace(hour=11,minute=0)+ timedelta(days=3)
         start_time = start_time + timedelta(minutes=2)
