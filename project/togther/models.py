@@ -623,6 +623,8 @@ class Report(models.Model):
     link = models.TextField(null=True)
     conversation = models.ForeignKey(card_answers,on_delete=models.CASCADE,null=True)
 
+    community = models.ForeignKey(Community,on_delete=models.CASCADE,null=True)
+
 
 
 
