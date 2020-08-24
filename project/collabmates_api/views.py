@@ -388,6 +388,7 @@ def community(request, community_id,req_dict=None):
 
         if state == member_states.PENDING_MEMBER:
             block_leave_community = True
+            new_dict['menu'] = MENU['pending_member']
 
         if state == member_states.MEMBER or state == member_states.PROFILE_UNAVAILABLE:
             new_dict['menu'] = MENU['member']
