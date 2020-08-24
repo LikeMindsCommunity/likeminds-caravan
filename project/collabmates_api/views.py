@@ -60,6 +60,7 @@ from .serializers import *
 from .static_files import *
 from .static_text import *
 from .members import *
+from .utility import *
 from .tasks import send_email_to_nominated_admin, send_email_for_new_collabcard_posted, send_welcome_mail, \
     send_verification_mail_for_email_sync,send_tagged_user_mail,send_chatroom_owner_mail,send_community_confirmation_email
 
@@ -193,12 +194,7 @@ def get_user_communities_by_rank(page_number=1, user_id=None):
     return queryset, is_user_communities.exists()
 
 
-def pagination(queryset, page_number, paginate_by=10):
-    '''function to create pagination and return a query set for page number'''
-    paginator = Paginator(queryset, paginate_by)
-    max_page = len(paginator.page_range)
 
-    return [] if (max_page < int(page_number) or not queryset.exists()) else paginator.get_page(page_number)
 
 
 ############# functions for your communities  api ##########################
@@ -499,17 +495,23 @@ def admins(request, community_id,req_dict=None):
 
 
     current_user_id = get_member_id_from_headers(request)
-    admins = Members.objects.filter(community_id=community_id).filter(Q(state=1) | Q(state=2))
+    admins = Members.objects.filter(community_id=community_id,state=member_states.ADMIN).order_by('-created_at')
     users = []
-
+    current_member_data = {}
     for admin in admins:
 
         user_instance = admin.member_id
-        temp = get_members_profile([user_instance.id],community_id,current_user_id)
-        if temp:
-            users.append(temp[0])
+        if user_instance.id == int(current_user_id):
+            temp = MembersSerializer(admin,community_id,current_user_id=current_user_id)
+            current_member_data = temp
+        else:
+            temp = MembersSerializer(admin,community_id,current_user_id=current_user_id)
+            users.append(temp)
 
 
+
+    if current_member_data:
+        users.insert(0,current_member_data)
     context = {'members': users}
 
 
@@ -517,156 +519,6 @@ def admins(request, community_id,req_dict=None):
         return context
 
     return JsonResponse(context)
-
-
-
-def community_version_1(request,community_id):
-
-    '''api to club data in community detail screen by calling apis from backend'''
-    start_time=time.time()
-
-    response={}
-    member_id=get_member_id_from_headers(request)
-    headers={'x-member-id':member_id}
-    #print(headers)
-
-    #community detail api
-    community_url=url+"/api/community/"+str(community_id)
-    community_detail_response=rqst.get(community_url,headers=headers)
-    if community_detail_response.status_code == 200:
-        community_detail_response = community_detail_response.json()
-        #print(community_detail_response)
-
-        response['community_api'] = community_detail_response
-
-    #admins api
-
-    admin_url = url + "/api/admins/" + str(community_id)
-    admin_response = rqst.get(admin_url, headers=headers,params={'member_id':member_id})
-    if admin_response.status_code == 200:
-        admin_response = admin_response.json()
-        # print(community_detail_response)
-
-        response['admins_api'] = admin_response
-
-
-    #members api
-    member_url = url + "/api/all_members"
-    member_response = rqst.get(member_url, headers=headers, params={'community_id': community_id})
-    if member_response.status_code == 200:
-        member_response = member_response.json()
-        # print(community_detail_response)
-
-        response['all-member-api'] = member_response
-
-
-    #members_state
-    member_url = url + "/api/members_state"
-    member_state = rqst.get(member_url, headers=headers, params={'community_id': community_id,'member_id':member_id})
-    if member_state.status_code == 200:
-        member_state = member_state.json()
-        state=member_state['state']
-        # print(community_detail_response)
-
-        response['member-state-api'] = member_state
-
-
-
-    # pending-members
-    pending_url = url + "/api/pending_members/"+str(community_id)
-    pending_response = rqst.get(pending_url, headers=headers, params={'community_id': community_id, 'member_id': member_id})
-
-    if pending_response.status_code == 200:
-        pending_response = pending_response.json()
-        # print(community_detail_response)
-
-        response['pending-members-api'] = pending_response
-
-    if member_state['state'] == member_states.ADMIN or member_state['state'] == member_states.MEMBER or member_state['state'] == member_states.KNOWN_NOMINATED_PROMOTER:
-
-        # collabcard url
-        collabcard = url + "/api/v1/community_collabcard/" + str(community_id)
-        collabcard = rqst.get(collabcard, headers=headers,
-                                    params={'community_id': community_id, 'member_id': member_id})
-
-        if collabcard.status_code == 200:
-            collabcard = collabcard.json()
-            # print(community_detail_response)
-
-            response['v1/collabcard-api'] = collabcard
-
-    else:
-
-        # similar communities
-        similar_communities = url + "/api/similar_communities/" + str(community_id)
-        similar_communities = rqst.get(similar_communities, headers=headers,
-                                    params={'community_id': community_id, 'member_id': member_id})
-
-        if similar_communities.status_code == 200:
-            similar_communities = similar_communities.json()
-            # print(community_detail_response)
-
-            response['similar_communities'] = similar_communities
-
-    end_time = time.time()
-
-    diff = end_time-start_time
-
-    info_logger.info("community-version-api")
-    info_logger.info(diff)
-    info_logger.info("\n\n")
-
-
-    return JsonResponse(response)
-
-
-
-def community_version_2(request,community_id):
-
-
-    start_time = time.time()
-    response={}
-    member_id=get_member_id_from_headers(request)
-    #community_detail_api
-    community_detail = community(request,community_id,req_dict=True)
-    response['community'] = community_detail
-
-    #admins api
-    admins_api=admins(request,community_id,req_dict={'member_id':member_id})
-    response['admins-api'] = admins_api
-
-    #all_members api
-    all_members_api=get_all_members(request,req_dict={'community_id':community_id})
-    response['all_members_api'] = all_members_api
-
-    #member_state api
-
-    member_state=members_state(request,req_dict={'community_id':community_id,'member_id':member_id})
-    response['members_state_api'] = member_state
-
-    #pending members api
-    pending_members=get_pending_members_of_community(community_id,member_id)
-    response['pending_members_api'] = pending_members
-
-
-    if member_state['state'] == member_states.ADMIN or member_state['state'] == member_states.MEMBER or member_state['state'] == member_states.KNOWN_NOMINATED_PROMOTER:
-        #community_collabcard
-        community_collabcard=community_cards_version_1(request,community_id,{'member_id':member_id})
-        response['community_collabcard_api']=community_collabcard
-    else:
-        # suggested_communities api
-        suggested_community = similar_community(request, community_id, {'member_id': member_id})
-        response['similar_communities_api'] = suggested_community
-
-    end_time=time.time()
-
-    info_logger.info("Community Detail version 2")
-    diff= end_time-start_time
-    info_logger.info(diff)
-
-
-    return JsonResponse(response)
-
 
 
 ############# functions for  join community  screen ##########################
@@ -3310,75 +3162,7 @@ def check_member(email, community_id, member_id, nominated_member_name,community
 
 
 
-def get_pending_members_of_community(community_id,requested_member_id):
 
-    '''functions to get pending members of the community'''
-
-
-    #info_logger.info("PENDING MEMBERS COUNT CHECK")
-    info_logger.info(community_id)
-    member_id=requested_member_id
-    community = Community.objects.get(id=community_id)
-    pend_requests = Members.objects.filter(community_id=community).filter(state=3)
-
-    is_admin = False
-    is_member_admin = Members.objects.filter(community_id=community, member_id=member_id, state=1)
-    if is_member_admin.exists():
-        is_admin = True
-   # info_logger.info(is_admin)
-
-    is_verified = False
-    is_verified_member = Members.objects.filter(community_id=community, member_id=member_id).filter(
-        Q(state=1) | Q(state=4))
-    if is_verified_member.exists():
-        is_verified = True
-    pending_requests = []
-    is_lg = is_LG_or_LP_community(community)
-
-    for i in pend_requests:
-        if is_lg and is_verified:
-            if str(i.ask_member_id) == str(member_id):
-                # resp = communityAnswers.objects.filter(community=community_id).filter(member=i.member_id.id).order_by('id')
-                user = Userinfo.objects.get(user_id=i.member_id.id)
-                # serilaizing userinfo object
-                usr = UserinfoSerializer(user)
-                # user_response = []
-                # for j in resp:
-                #     # getting the answers of the users who requested to join
-                #     # for the questions that have been asked while requestiong to join in a community
-                #     response_object = {}
-                #     response_object['key'] = j.question_title
-                #     response_object['value'] = j.question_answer
-                #     user_response.append(response_object)
-                response = FormResponseSerilaizer(community_id, i.member_id.id,bl=True,current_user_id=requested_member_id)
-                if response:
-                    usr['response'] = response[0]
-                    usr['question_answers'] = response[1]
-                pending_requests.append(usr)
-        elif is_admin:
-            # resp = communityAnswers.objects.filter(community=community_id).filter(member=i.member_id.id).order_by('id')
-            user = Userinfo.objects.get(user_id=i.member_id.id)
-            # serilaizing userinfo object
-            usr = UserinfoSerializer(user)
-            # user_response = []
-            # for j in resp:
-            #     # getting the answers of the users who requested to join
-            #     # for the questions that have been asked while requestiong to join in a community
-            #     response_object = {}
-            #     response_object['key'] = j.question_title
-            #     response_object['value'] = j.question_answer
-            #     user_response.append(response_object)
-            response = FormResponseSerilaizer(community_id, i.member_id.id, bl=True,current_user_id=requested_member_id)
-            if response:
-                usr['response'] = response[0]
-                usr['question_answers'] = response[1]
-            pending_requests.append(usr)
-
-    # info_logger.info("PENDING MEMBER REQUEST")
-    #
-    # info_logger.info(pending_requests)
-    # info_logger.info("\n\n")
-    return pending_requests
 
 
 def check_for_member_eligibiity(community_id, member_id):
@@ -5435,69 +5219,39 @@ def get_unlock_prompt(members_left):
 
 def community_cards_version_1(request,community_id,req_dict=None):
 
-    '''Version 1 community cards for ig communities'''
+    '''Version 1 community collabcards'''
+    context = {}
+    member_id = get_member_id_from_headers(request)
 
-    community = Community.objects.get(id=community_id)
+    if not member_id:
+        context = get_error_context(False, "send member id in request header")
+        return JsonResponse(context)
 
-    if req_dict:
-        member_id=req_dict['member_id']
-        size=10
-    else:
-        member_id = request.GET.get('member_id')
-        size = request.GET.get('size', '')
+    try:
+        community_instance = Community.objects.get(id=community_id)
+    except:
+        context = get_error_context(False,"send correct community id")
+        return JsonResponse(context)
 
-    current_user_id = get_member_id_from_headers(request)
+    size = 5
+    chatroom_filter = Collabcard.objects.filter(community=community_instance).order_by('-id')
+    total_chatrooms = chatroom_filter.count()
+    chatroom_list = []
+    for chatroom in chatroom_filter:
+
+        chatroom_data = get_chatroom_instance(chatroom,member_id)
+        chatroom_list.append(chatroom_data)
+        size = size - 1
+        if size == 0:
+            break
 
 
-    if size:
-        size = int(size)
-        collabcard_instance_list = Collabcard.objects.filter(community=community_id).order_by('id')[:size]
-        size = Collabcard.objects.filter(community=community_id).count()
-    else:
-        collabcard_instance_list = Collabcard.objects.filter(community=community_id).order_by('id')
-        size = collabcard_instance_list.count()
-    card_list = []
-
-    for card_instance in collabcard_instance_list:
-
-        user = Userinfo.objects.get(user_id=card_instance.user)
-        # serialize user object
-        usr = UserinfoSerializer(user)
-        # form responses of user
-        form_response = FormResponseSerilaizer(card_instance.community.id, card_instance.user.id,bl=True,current_user_id=current_user_id)
-        if form_response:
-            usr['response'] = form_response[0]
-            usr['question_answers'] =form_response[1]
-        # get card images --------------------------------------------------------
-        files = get_collabcard_files(card_instance)
-        # -----------------------------------------------------------------------
-        # share_url = url+'/collabcard/'+str(card.id)
-
-        time_text = '' if str(card_instance.date_epoch) == "-9223372036854775808" else get_time_text(
-            card_instance.date_epoch)
-        card_dict = CollabcardSerializer(card_instance, member_id, card_instance.community)
-
-        collabcard_status = get_status_of_collabcard(member_id=member_id,
-                                                     card=card_instance)
-        card_dict['state'] = collabcard_status['state']
-        card_dict['mute_status'] = collabcard_status['mute_status']
-        card_dict['follow_status'] = collabcard_status['follow_status']
-
-        card_dict['created_at'] = time_text
-        card_dict['member'] = usr
-        card_dict['images'] = files[0]
-        card_dict['pdf'] = files[1]
-        card_list.append(card_dict)
-
-    json_response = {
-        'collabcards': card_list,
-        'size': size,
+    context = {
+        'collabcards':chatroom_list,
+        'total_chatrooms':total_chatrooms
     }
 
-    if req_dict:
-        return json_response
-
-    return JsonResponse(json_response)
+    return JsonResponse(context)
 
 
 
@@ -8595,205 +8349,6 @@ def all_members(request):
         return JsonResponse(context)
 
 
-def get_all_members(request, req_dict=None):
-    '''function to get all members of the community'''
-
-    page = request.GET.get('page', 1)
-
-    if not req_dict:
-        community_id = request.GET.get('community_id')
-        collabcard_id = request.GET.get('collabcard_id', None)
-
-
-    else:
-        community_id = req_dict['community_id']
-        collabcard_id = req_dict['collabcard_id'] if 'collabcard_id' in req_dict else None
-
-
-
-    current_user_id = get_member_id_from_headers(request)
-
-    community_instance = Community.objects.get(id=community_id)
-
-
-    # functionality for user filteration based on options
-    context = {}
-
-    if collabcard_id and is_request_web(request):
-        members = get_members_data_for_collabcard(collabcard_id, community_id, current_user_id,page_no=page)
-        # print(members)
-        context = {'members': members}
-        return context
-
-    is_filter = request.GET.get('is_filter', False)
-
-    if is_filter == 'true':
-        is_filter = True
-        member_list = Members.objects.filter(community_id=community_id).filter(
-            Q(state=member_states.ADMIN) | Q(state=member_states.MEMBER) | Q(
-                state=member_states.PROFILE_UNAVAILABLE) | Q(state=member_states.PENDING_MEMBER)).order_by('id')
-
-        member_list = pagination(member_list, page, paginate_by=10)
-        filter_list = request.GET.get('filter', None)
-
-        if filter_list:
-            filter_list = json.loads(filter_list)
-            #info_logger.info(filter_list)
-            member_set = get_filtered_users(filter_list, member_list)
-
-            if collabcard_id:
-                members = get_members_data_for_collabcard(collabcard_id, community_id, current_user_id, page_no = page,member_set = member_set)
-            else:
-                members = get_filtered_member_instances(member_list, current_user_id, community_id, is_filter=is_filter,
-                                               member_set=member_set)
-
-
-
-        else:
-
-            if collabcard_id:
-                members = get_members_data_for_collabcard(collabcard_id, community_id, current_user_id, page_no = page)
-
-            else:
-                member_list = Members.objects.filter(community_id=community_id).filter(
-                        Q(state=member_states.ADMIN) | Q(state=member_states.MEMBER) | Q(
-                            state=member_states.PROFILE_UNAVAILABLE) | Q(state=member_states.PENDING_MEMBER)).order_by(
-                        'id')
-                member_list = pagination(member_list, page, paginate_by=10)
-                members = get_filtered_member_instances(member_list, current_user_id, community_id)
-
-
-    else:
-        # is_filter = False
-        member_list = Members.objects.filter(community_id=community_id).filter(
-            Q(state=member_states.ADMIN) | Q(state=member_states.MEMBER) | Q(
-                state=member_states.PROFILE_UNAVAILABLE)).order_by('id')
-        member_list = pagination(member_list, page, paginate_by=10)
-        members = get_filtered_member_instances(member_list, current_user_id, community_id)
-
-    promoter_instance = is_member_promoter(community_instance,current_user_id)
-
-    community = CommunitySerializer(community_instance,promoter_id=promoter_instance)
-
-    context = {'members': members,'community':community}
-    return context
-
-
-
-def get_filtered_member_instances(member_list,current_user_id,community_id,is_filter=False,member_set=None):
-
-    '''function to get members instances from members table'''
-
-    members = []
-
-    for member in member_list:
-        member_id = member.member_id.id
-        userinfo_serialized_object = UserinfoSerializer(member.member_id.userinfo)
-        userinfo_serialized_object['state'] = member.state
-
-        form_response = FormResponseSerilaizer(community_id,member_id , bl=True,
-                                               current_user_id=current_user_id)
-
-        if form_response:
-            #userinfo_serialized_object['response'] = form_response[0]
-            userinfo_serialized_object['question_answers'] = form_response[1]
-
-        if not is_filter:
-            members.append(userinfo_serialized_object)
-            #pass
-        else:
-            if member_id in member_set:
-                members.append(userinfo_serialized_object)
-                #members.append(member_id)
-
-    return members
-
-
-
-def get_filtered_users(filter_list,member_list):
-
-    '''function to get filtered users'''
-
-
-
-    member_set = set()
-
-    for data in member_list:
-        member_set.add(data.member_id.id)
-
-    filter_map={}
-    for data in filter_list:
-        key_list = []
-        question_id = data['question_id']
-        if question_id in filter_map:
-
-            key_list = filter_map[question_id]
-            key_list.append(data['value'])
-            filter_map[question_id] = key_list
-        else:
-            key_list.append(data['value'])
-            filter_map[question_id] = key_list
-
-
-    distinct_members = {}
-
-    for key,value in filter_map.items():
-
-        question_id = key
-        question_set = set()
-        for option in value:
-
-            question_filters = questionFilters.objects.filter(filter=option,
-                                                              question=question_id)
-            for instance in question_filters:
-                question_set.add(instance.member.id)
-        distinct_members[question_id] = question_set
-
-
-    for key,value  in distinct_members.items():
-
-       member_set = intersect_sets(member_set,value)
-
-    return member_set
-
-
-def get_members_data_for_collabcard(card_id,community_id,current_user_id,page_no=1,member_set=None):
-
-
-    #card_instance = Collabcard.objects.get(id=card_id)
-
-    state_list = [collabcard_states.COLLABCARD_STATE_FOLLOW, collabcard_states.COLLABCARD_STATE_ATTEND_FOLLOWING,
-                  collabcard_states.COLLABCARD_STATE_ATTEND_UNFOLLOWING]
-
-    collabcard_state_list = collabcardState.objects.filter(card=card_id).filter(
-        state__in=state_list).filter(removed_status=None).order_by('-user_id')
-
-
-
-    collabcard_state_list = pagination(collabcard_state_list,page_no,paginate_by=10)
-    members = []
-
-    for instance in collabcard_state_list:
-
-        user_instance = instance.user
-
-        if member_set and user_instance.id not in member_set:
-            continue
-        user_context = get_members_profile([user_instance.id],community_id,current_user_id)
-        user_context = user_context[0]
-        user_context['collabcard_state'] = instance.state
-        user_context['is_guest'] = instance.is_guest
-        members.append(user_context)
-
-
-    return members
-
-
-
-
-
-
-
 
 def get_tagging_list(request):
 
@@ -8801,11 +8356,7 @@ def get_tagging_list(request):
 
     community_id = request.GET.get('community_id')
     chatroom_id = request.GET.get('chatroom_id')
-
-
     tagging_list = get_tagging_list_internal(community_id,chatroom_id)
-
-
 
     return JsonResponse({'members':tagging_list})
 
@@ -8923,9 +8474,7 @@ Once verified, we will send an email on: """+str(email)
     return member_direction_lock
 
 
-def intersect_sets(set1,set2):
 
-    return set1.intersection(set2)
 
 def invite_members(request):
     ''' function to get members requested to join in a community '''
@@ -8974,57 +8523,6 @@ def get_profile(request):
         print("userinfo object does not exist")
 
     return JsonResponse({'user': []})
-
-
-
-#getting data from headers
-
-def get_member_id_from_headers(request):
-    '''function to get member id from headers'''
-    headers = request.META
-
-    member_id = None
-    if 'HTTP_X_MEMBER_ID' in headers and 'HTTP_X_VERSION_CODE' in headers:
-        member_id = headers['HTTP_X_MEMBER_ID']
-    elif 'HTTP_X_MEMBER_ID' in headers:
-        member_id = headers['HTTP_X_MEMBER_ID']
-
-    return member_id
-
-
-
-def get_platform_code_from_headers(request):
-
-    headers = request.META
-
-    platform_code = 0
-    if 'HTTP_X_PLATFORM_CODE' in headers:
-        platform_code = headers['HTTP_X_PLATFORM_CODE']
-
-    return platform_code
-
-
-def is_request_web(request):
-
-    '''function to tell if the request is web or not'''
-
-    platform_code = get_platform_code_from_headers(request)
-    if platform_code == 0:
-        return True
-
-    return False
-
-
-def get_version_code_from_headers(request):
-
-    headers = request.META
-
-    version_code = None
-
-    if 'HTTP_X_VERSION_CODE' in headers:
-        version_code = headers['HTTP_X_VERSION_CODE']
-
-    return version_code
 
 
 ################ functions for getting and setting of tags ##########################################
